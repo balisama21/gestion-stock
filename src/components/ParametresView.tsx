@@ -4,6 +4,7 @@ import { SettingsLayout, SettingsTab } from "./settings/SettingsLayout";
 import { supabase } from "../lib/supabase";
 import { useWorkspace } from "../hooks/useWorkspace";
 import { useAuth } from "../hooks/useAuth";
+import { APP_NAME } from "../lib/appConfig";
 import {
   Building,
   Phone,
@@ -152,14 +153,50 @@ export const ParametresView: React.FC<ParametresViewProps> = ({
   const [inviting, setInviting] = useState(false);
   const [inviteStatus, setInviteStatus] = useState("");
 
-  const [activationCode, setActivationCode] = useState("BLSM-7K9F-3D2P");
-  const [adminContact, setAdminContact] = useState("+261 34 12 345 67");
+  // Contact admin réel de la plateforme (celui affiché à AuthPage.tsx et
+  // ici doivent toujours être synchronisés — voir aussi la constante du
+  // même nom dans AuthPage.tsx).
+  const ADMIN_CONTACT = "+261 38 97 234 12";
+
+  const [myLicenseCode, setMyLicenseCode] = useState<string | null>(null);
+  const [loadingMyLicense, setLoadingMyLicense] = useState(true);
   const [pendingUsers, setPendingUsers] = useState<
     Array<{ id: string; email: string; full_name: string | null; created_at: string }>
   >([]);
   const [selectedPendingUserId, setSelectedPendingUserId] = useState<string | null>(null);
   const [loadingPendingUsers, setLoadingPendingUsers] = useState(false);
   const [generatingCode, setGeneratingCode] = useState(false);
+  const [activationCode, setActivationCode] = useState("");
+
+  // Récupère le VRAI code d'activation utilisé par ce compte (au lieu
+  // d'un code factice codé en dur), pour l'afficher sur la carte
+  // "Licence Active".
+  useEffect(() => {
+    if (!user) return;
+    let cancelled = false;
+
+    const fetchMyLicense = async () => {
+      setLoadingMyLicense(true);
+      const { data } = await supabase
+        .from("access_codes")
+        .select("code, activated_at")
+        .eq("user_id", user.id)
+        .eq("status", "used")
+        .order("activated_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+      if (!cancelled) {
+        setMyLicenseCode(data?.code ?? null);
+        setLoadingMyLicense(false);
+      }
+    };
+
+    fetchMyLicense();
+    return () => {
+      cancelled = true;
+    };
+  }, [user]);
 
   useEffect(() => {
     if (!isPlatformAdmin) return;
@@ -213,7 +250,6 @@ export const ParametresView: React.FC<ParametresViewProps> = ({
 
     if (!error) {
       setActivationCode(code);
-      setAdminContact("+261 34 12 345 67");
     }
   };
 
@@ -818,51 +854,87 @@ export const ParametresView: React.FC<ParametresViewProps> = ({
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-              <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-2xl p-6">
-                <div className="w-12 h-12 bg-emerald-500/20 rounded-full flex items-center justify-center mb-4">
-                  <CheckCircle2 className="w-6 h-6 text-emerald-500" />
-                </div>
-                <h3 className="text-lg font-bold text-foreground mb-2">Licence Active</h3>
-                <p className="text-sm text-muted-foreground mb-4">
-                  Votre compte est activé et vous avez accès à toutes les fonctionnalités premium de
-                  GESTIONS STOCK.
-                </p>
-                <div className="bg-background rounded-xl p-3 border border-border text-sm font-mono text-center">
-                  CODE: BALSAMA-PRO-X892
+              <div className="relative overflow-hidden bg-gradient-to-br from-emerald-500/15 via-emerald-500/5 to-transparent border border-emerald-500/25 rounded-2xl p-6">
+                <div className="absolute -top-10 -right-10 w-32 h-32 bg-emerald-500/10 rounded-full blur-2xl" />
+                <div className="relative">
+                  <div className="flex items-center justify-between mb-4">
+                    <div className="w-12 h-12 bg-emerald-500/20 rounded-full flex items-center justify-center">
+                      <CheckCircle2 className="w-6 h-6 text-emerald-500" />
+                    </div>
+                    <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-400 bg-emerald-500/10 border border-emerald-500/25 rounded-full px-2.5 py-1">
+                      Active
+                    </span>
+                  </div>
+                  <h3 className="text-lg font-bold text-foreground mb-1">Licence Active</h3>
+                  <p className="text-sm text-muted-foreground mb-4 leading-relaxed">
+                    Votre compte est activé et vous avez accès à toutes les fonctionnalités
+                    premium de {APP_NAME}.
+                  </p>
+                  <div>
+                    <label className="block text-[11px] font-semibold uppercase tracking-wide text-muted-foreground mb-1.5">
+                      Votre code d'activation
+                    </label>
+                    <div className="bg-background/80 rounded-xl p-3 border border-border text-sm font-mono text-center tracking-wider">
+                      {loadingMyLicense
+                        ? "Chargement..."
+                        : myLicenseCode
+                          ? myLicenseCode
+                          : "Activé par l'administrateur"}
+                    </div>
+                  </div>
                 </div>
               </div>
 
               <div className="bg-card border border-border rounded-2xl p-6 flex flex-col justify-center items-center text-center">
+                <div className="w-12 h-12 bg-blue-500/10 border border-blue-500/20 rounded-full flex items-center justify-center mb-4">
+                  <ShieldCheck className="w-6 h-6 text-blue-500" />
+                </div>
                 <h3 className="font-bold text-foreground mb-2">Besoin de plus de licences ?</h3>
-                <p className="text-sm text-muted-foreground mb-4">
-                  Vous pouvez générer ou acheter de nouveaux codes pour d'autres boutiques.
+                <p className="text-sm text-muted-foreground mb-5 leading-relaxed">
+                  Vous pouvez acheter de nouveaux codes pour gérer d'autres boutiques.
                 </p>
-                <button className="px-6 py-2.5 bg-background border border-border hover:bg-muted text-foreground font-bold rounded-xl transition-colors">
+                <button className="px-6 py-2.5 bg-foreground/95 hover:bg-foreground text-background font-bold rounded-xl transition-colors">
                   Acheter un Code (100 000 Ar)
                 </button>
               </div>
             </div>
 
-            <div className="bg-blue-500/10 border border-blue-500/20 rounded-2xl p-5">
-              <div className="flex items-start gap-3">
-                <AlertCircle className="w-5 h-5 text-blue-500 mt-0.5" />
-                <div>
-                  <h3 className="font-bold text-foreground mb-2">Processus d’activation</h3>
-                  <ul className="text-sm text-muted-foreground list-disc pl-5 space-y-1">
-                    <li>1. Effectuez le paiement de 100 000 Ar via Mobile Money.</li>
-                    <li>2. Envoyez le numéro de transaction à l’administrateur.</li>
-                    <li>3. L’administrateur génère votre code d’activation.</li>
-                    <li>
-                      4. Vous l’entrez dans le formulaire de connexion pour activer votre compte.
-                    </li>
-                  </ul>
-                  <div className="mt-3 flex items-center gap-3 bg-background/70 border border-border rounded-xl p-3 text-sm">
-                    <Phone className="w-4 h-4 text-emerald-500" />
-                    <span className="font-semibold text-foreground">Contact admin:</span>
-                    <span className="text-muted-foreground">{adminContact}</span>
-                  </div>
+            <div className="bg-card border border-border rounded-2xl p-6">
+              <div className="flex items-center gap-2.5 mb-5">
+                <div className="w-9 h-9 rounded-lg bg-blue-500/10 flex items-center justify-center">
+                  <AlertCircle className="w-4.5 h-4.5 text-blue-500" />
                 </div>
+                <h3 className="font-bold text-foreground">Processus d'activation</h3>
               </div>
+
+              <div className="space-y-3">
+                {[
+                  "Effectuez le paiement de 100 000 Ar via Mobile Money.",
+                  "Envoyez le numéro de transaction à l'administrateur.",
+                  "L'administrateur génère votre code d'activation.",
+                  "Vous l'entrez dans le formulaire de connexion pour activer votre compte.",
+                ].map((step, i) => (
+                  <div key={i} className="flex items-start gap-3">
+                    <span className="shrink-0 w-6 h-6 rounded-full bg-blue-500/10 border border-blue-500/25 text-blue-500 text-xs font-bold flex items-center justify-center mt-0.5">
+                      {i + 1}
+                    </span>
+                    <p className="text-sm text-muted-foreground leading-relaxed pt-0.5">{step}</p>
+                  </div>
+                ))}
+              </div>
+
+              <a
+                href={`tel:${ADMIN_CONTACT.replace(/\s/g, "")}`}
+                className="mt-5 flex items-center gap-3 bg-muted/60 hover:bg-muted border border-border rounded-xl p-4 text-sm transition-colors"
+              >
+                <div className="w-9 h-9 rounded-full bg-emerald-500/15 flex items-center justify-center shrink-0">
+                  <Phone className="w-4 h-4 text-emerald-500" />
+                </div>
+                <div>
+                  <span className="block font-semibold text-foreground">Contact admin</span>
+                  <span className="text-muted-foreground font-mono">{ADMIN_CONTACT}</span>
+                </div>
+              </a>
             </div>
 
             {isPlatformAdmin && (

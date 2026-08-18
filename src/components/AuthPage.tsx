@@ -33,7 +33,6 @@ export const AuthPage: React.FC = () => {
     resetPasswordForEmail,
   } = useAuth();
   const [mode, setMode] = useState<AuthMode>(() => {
-    if (user && profile && profile.status === "pending") return "activate";
     return "login";
   });
 
@@ -48,25 +47,19 @@ export const AuthPage: React.FC = () => {
   const [forgotEmail, setForgotEmail] = useState("");
   const [forgotSent, setForgotSent] = useState(false);
 
+  // NOTE (18/08/2026) : l'ancien blocage "paiement obligatoire avant accès"
+  // est supprimé. Dès que `user` existe, App() (BalsamaApp.tsx) bascule
+  // directement vers l'espace de travail — cet écran (AuthPage) n'est plus
+  // affiché du tout après connexion, donc ce useEffect n'a plus besoin de
+  // gérer de mode "activate" automatique. Le mode "activate" reste
+  // disponible dans le JSX ci-dessous pour un usage futur (activation
+  // payante PAR BOUTIQUE, gérée depuis Paramètres > Paiements & Activation),
+  // mais n'est plus déclenché automatiquement ici.
   useEffect(() => {
     if (!user) {
       // Ne pas écraser le mode "mot de passe oublié" : ce mode s'utilise
       // précisément quand l'utilisateur n'est pas connecté.
       setMode((current) => (current === "forgot-password" ? current : "login"));
-      return;
-    }
-
-    if (!profile || profile.status === "pending") {
-      setMode("activate");
-      setSuccess("Connexion réussie. Vérification du compte…");
-      setError(null);
-      return;
-    }
-
-    if (profile.status === "activated") {
-      setMode("login");
-      setSuccess("Connexion réussie.");
-      setError(null);
     }
   }, [user, profile]);
 
@@ -81,8 +74,8 @@ export const AuthPage: React.FC = () => {
       setError(signInError);
       return;
     }
-    setMode("activate");
-    setSuccess("Connexion réussie. Vérification du compte…");
+    // Rien d'autre à faire : dès que `user` devient non-null, BalsamaApp.tsx
+    // bascule automatiquement vers l'espace de travail (WorkspaceLoader).
   };
 
   const handleRegister = async (e: React.FormEvent) => {
@@ -95,7 +88,7 @@ export const AuthPage: React.FC = () => {
       setError(signUpError);
     } else {
       setSuccess(
-        "Compte créé ! Vérifiez votre e-mail puis connectez-vous pour activer votre compte.",
+        "Compte créé ! Vérifiez votre e-mail puis connectez-vous pour créer votre boutique.",
       );
       setMode("login");
     }
@@ -394,13 +387,13 @@ export const AuthPage: React.FC = () => {
                     </div>
                   </Field>
 
-                  <div className="rounded-xl border border-amber-500/25 bg-amber-500/8 p-4 text-sm">
-                    <p className="font-semibold text-amber-600 dark:text-amber-400 mb-1">
-                      Activation requise
+                  <div className="rounded-xl border border-emerald-500/25 bg-emerald-500/8 p-4 text-sm">
+                    <p className="font-semibold text-emerald-600 dark:text-emerald-400 mb-1">
+                      7 jours d'essai gratuit
                     </p>
-                    <p className="text-amber-700/80 dark:text-amber-300/70 text-xs leading-relaxed">
-                      Après inscription, activez votre compte avec un code d&apos;accès (100 000 Ar)
-                      via Orange Money.
+                    <p className="text-emerald-700/80 dark:text-emerald-300/70 text-xs leading-relaxed">
+                      Créez votre boutique et utilisez-la immédiatement. Aucun paiement requis
+                      pour commencer.
                     </p>
                   </div>
 
@@ -478,7 +471,7 @@ export const AuthPage: React.FC = () => {
                       Money au :
                     </p>
                     <p className="font-bold text-center py-2.5 rounded-lg bg-blue-500/15 text-blue-600 dark:text-blue-300 tracking-wide">
-                      +261 32 19 124 65
+                      +261 38 97 234 12
                     </p>
                     <p className="text-muted-foreground text-xs mt-2 leading-relaxed">
                       Envoyez la référence de transaction par SMS ou WhatsApp. Votre code vous sera

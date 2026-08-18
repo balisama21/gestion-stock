@@ -34,6 +34,7 @@ import { PaiementsARecevoirView } from "./components/PaiementsARecevoirView";
 import { ScriptViewerModal } from "./components/ScriptViewerModal";
 import { FormulaGuideModal } from "./components/FormulaGuideModal";
 import { AuthPage } from "./components/AuthPage";
+import { CreateStoreOnboarding } from "./components/CreateStoreOnboarding";
 import { PinLockScreen } from "./components/PinLockScreen";
 import { useAuth } from "./hooks/useAuth";
 import { useSessionTimeout } from "./hooks/useSessionTimeout";
@@ -592,6 +593,21 @@ function AppInner() {
     }
   };
 
+  if (workspace.loading) {
+    return (
+      <div className="min-h-screen bg-background flex justify-center items-center">
+        <div className="w-8 h-8 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin"></div>
+      </div>
+    );
+  }
+
+  // Nouveau compte sans boutique (ancien blocage par paiement supprimé) :
+  // propose de créer sa boutique ou de rejoindre via invitation, plutôt
+  // que d'afficher un tableau de bord vide et confus.
+  if (!workspace.activeStore) {
+    return <CreateStoreOnboarding />;
+  }
+
   if (storeData.loading) {
     return (
       <div className="min-h-screen bg-background flex justify-center items-center">
@@ -899,8 +915,13 @@ export default function App() {
     );
   }
 
-  // Not authenticated or not activated → show AuthPage (no workspace needed)
-  if (!user || !isActivated) {
+  // Authentification requise, mais le PAIEMENT n'est plus un prérequis pour
+  // entrer dans l'app (ancien système supprimé le 18/08/2026). Un nouveau
+  // compte accède directement à l'espace de travail, où il pourra créer sa
+  // boutique (qui démarre automatiquement en essai gratuit de 7 jours —
+  // voir stores.activation_status/trial_ends_at) ou rejoindre une boutique
+  // existante via une invitation.
+  if (!user) {
     return <AuthPage />;
   }
 
