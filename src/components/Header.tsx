@@ -36,6 +36,7 @@ import {
   CreditCard,
   ShoppingBag,
   Plus,
+  Copy,
 } from "lucide-react";
 import { formatCurrency, getProductLabel } from "../utils/formulas";
 import { useWorkspace } from "../hooks/useWorkspace";
@@ -81,6 +82,32 @@ export const Header: React.FC<HeaderProps> = ({
   const [newStoreName, setNewStoreName] = useState("");
   const [creatingStore, setCreatingStore] = useState(false);
   const [createStoreError, setCreateStoreError] = useState<string | null>(null);
+
+  const [showCopyStoreModal, setShowCopyStoreModal] = useState(false);
+  const [copyStoreName, setCopyStoreName] = useState("");
+  const [copyingStore, setCopyingStore] = useState(false);
+  const [copyStoreError, setCopyStoreError] = useState<string | null>(null);
+
+  const handleCopyStore = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!copyStoreName.trim() || copyingStore || !workspace.activeStore) return;
+    setCopyingStore(true);
+    setCopyStoreError(null);
+    const { store, error } = await workspace.copyStore(
+      workspace.activeStore.id,
+      copyStoreName.trim(),
+    );
+    setCopyingStore(false);
+    if (error) {
+      setCopyStoreError(error);
+      return;
+    }
+    if (store) {
+      setShowCopyStoreModal(false);
+      setCopyStoreName("");
+      setWorkspaceMenuOpen(false);
+    }
+  };
 
   const handleCreateStore = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -249,6 +276,21 @@ export const Header: React.FC<HeaderProps> = ({
                     ))}
                   </div>
                   <div className="border-t border-border py-1">
+                    <button
+                      onClick={() => {
+                        setWorkspaceMenuOpen(false);
+                        setCopyStoreName(
+                          workspace.activeStore ? `${workspace.activeStore.name} (copie)` : "",
+                        );
+                        setShowCopyStoreModal(true);
+                      }}
+                      className="w-full flex items-center gap-3 px-3 py-2.5 hover:bg-muted transition-colors text-left text-foreground"
+                    >
+                      <Copy className="w-4 h-4 shrink-0 text-muted-foreground" />
+                      <span className="text-sm font-semibold">
+                        Dupliquer {workspace.activeStore?.name || "cette boutique"}
+                      </span>
+                    </button>
                     <button
                       onClick={() => {
                         setWorkspaceMenuOpen(false);
@@ -506,6 +548,68 @@ export const Header: React.FC<HeaderProps> = ({
                   className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-60 text-white rounded-xl font-semibold text-sm"
                 >
                   {creatingStore ? "Création..." : "Créer la boutique"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modale : dupliquer la boutique active (config uniquement) */}
+      {showCopyStoreModal && workspace.activeStore && (
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-[60] flex items-center justify-center p-4">
+          <div className="bg-card border border-border rounded-2xl w-full max-w-sm p-6 shadow-xl text-foreground space-y-4">
+            <div className="flex items-center gap-2.5">
+              <div className="w-9 h-9 rounded-lg bg-blue-500/15 flex items-center justify-center">
+                <Copy className="w-4.5 h-4.5 text-blue-500" />
+              </div>
+              <h3 className="text-lg font-bold">Dupliquer {workspace.activeStore.name}</h3>
+            </div>
+            <p className="text-sm text-muted-foreground leading-relaxed">
+              Reprend la configuration (devise, TVA, fournisseurs, coordonnées...) dans une
+              nouvelle boutique. Les produits, ventes et données ne sont PAS copiés — c'est une
+              boutique neuve, indépendante.
+              {workspace.activeStore.activation_status === "active" ? (
+                <span className="block mt-2 text-emerald-400 font-medium">
+                  Cette boutique est active à vie : la copie le sera aussi, immédiatement.
+                </span>
+              ) : (
+                <span className="block mt-2 text-amber-400 font-medium">
+                  Cette boutique est en essai : la copie héritera de la même date de fin d'essai
+                  (pas d'un nouvel essai de 7 jours).
+                </span>
+              )}
+            </p>
+            <form onSubmit={handleCopyStore} className="space-y-3">
+              <input
+                type="text"
+                required
+                autoFocus
+                value={copyStoreName}
+                onChange={(e) => setCopyStoreName(e.target.value)}
+                placeholder="Nom de la nouvelle boutique"
+                className="w-full bg-muted border border-border rounded-xl px-4 py-2.5 text-foreground focus:outline-none focus:border-blue-500"
+              />
+              {copyStoreError && (
+                <p className="text-rose-500 text-sm font-semibold">{copyStoreError}</p>
+              )}
+              <div className="flex items-center justify-end gap-2 pt-1">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowCopyStoreModal(false);
+                    setCopyStoreError(null);
+                  }}
+                  className="px-4 py-2 bg-muted hover:bg-accent text-muted-foreground rounded-xl font-medium text-sm"
+                >
+                  Annuler
+                </button>
+                <button
+                  type="submit"
+                  disabled={copyingStore}
+                  className="px-4 py-2 bg-blue-600 hover:bg-blue-500 disabled:opacity-60 text-white rounded-xl font-semibold text-sm"
+                >
+                  {copyingStore ? "Copie..." : "Dupliquer"}
                 </button>
               </div>
             </form>

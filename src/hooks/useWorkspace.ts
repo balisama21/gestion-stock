@@ -26,6 +26,17 @@ interface WorkspaceActions {
     storeId: string,
     updates: Partial<Store>,
   ) => Promise<{ store: Store | null; error: string | null }>;
+  /**
+   * Copie une boutique possédée (config uniquement : nom donné par
+   * l'utilisateur, devise, TVA, fournisseurs, adresse... jamais les
+   * produits/ventes). L'activation est héritée de façon sécurisée côté
+   * Supabase (RPC copy_store) : une boutique active reste active, une
+   * boutique en essai ne génère jamais un nouvel essai complet.
+   */
+  copyStore: (
+    sourceStoreId: string,
+    newName: string,
+  ) => Promise<{ store: Store | null; error: string | null }>;
 }
 
 export type WorkspaceContext = WorkspaceState & WorkspaceActions;
@@ -232,6 +243,33 @@ export function useWorkspaceState(): WorkspaceContext {
     [],
   );
 
+  const copyStore = useCallback(
+    async (
+      sourceStoreId: string,
+      newName: string,
+    ): Promise<{ store: Store | null; error: string | null }> => {
+      if (!user) return { store: null, error: "Non authentifié." };
+
+      const { data, error } = await supabase.rpc("copy_store", {
+        p_source_store_id: sourceStoreId,
+        p_new_name: newName,
+      });
+
+      if (error) return { store: null, error: error.message };
+
+      const created = data as Store;
+
+      setOwnedStores((prev) => [...prev, created]);
+      setActiveStoreIdState(created.id);
+      if (typeof window !== "undefined") {
+        window.localStorage.setItem(`${ACTIVE_STORE_STORAGE_KEY}:${user.id}`, created.id);
+      }
+
+      return { store: created, error: null };
+    },
+    [user],
+  );
+
   return {
     activeStore,
     accessibleStores: allStores,
@@ -243,5 +281,6 @@ export function useWorkspaceState(): WorkspaceContext {
     refreshStores,
     createStore,
     updateStore,
+    copyStore,
   };
 }
