@@ -44,11 +44,7 @@ serve(async (req: Request) => {
 
     const supabase = createClient(supabaseUrl, serviceRoleKey);
 
-    // Generate token and expiry
-    const token = crypto.randomUUID();
-    const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
-
-    // Get the user JWT to identify invited_by
+    // Identifie l'appelant depuis son JWT.
     const authHeader = req.headers.get("Authorization");
     let invitedBy: string | null = null;
     if (authHeader) {
@@ -58,11 +54,58 @@ serve(async (req: Request) => {
       invitedBy = user?.id ?? null;
     }
 
+    if (!invitedBy) {
+      return new Response(JSON.stringify({ error: "Authentification requise." }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // FAILLE CORRIGÉE (19/08/2026) : cette fonction utilisait la clé
+    // service_role (contourne toutes les RLS) et faisait confiance à
+    // n'importe quel store_id envoyé par le client, sans jamais vérifier
+    // que l'appelant possédait réellement cette boutique. N'importe quel
+    // compte authentifié pouvait donc inviter quelqu'un dans une boutique
+    // qui n'était pas la sienne. On vérifie maintenant explicitement que
+    // l'appelant est propriétaire (ou admin plateforme) avant toute chose.
+    const { data: store, error: storeError } = await supabase
+      .from("stores")
+      .select("id, owner_id")
+      .eq("id", store_id)
+      .single();
+
+    if (storeError || !store) {
+      return new Response(JSON.stringify({ error: "Boutique introuvable." }), {
+        status: 404,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const { data: callerProfile } = await supabase
+      .from("profiles")
+      .select("is_platform_admin")
+      .eq("id", invitedBy)
+      .single();
+
+    const isOwner = store.owner_id === invitedBy;
+    const isPlatformAdmin = callerProfile?.is_platform_admin === true;
+
+    if (!isOwner && !isPlatformAdmin) {
+      return new Response(
+        JSON.stringify({ error: "Vous n'êtes pas propriétaire de cette boutique." }),
+        { status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+
+    // Generate token and expiry
+    const token = crypto.randomUUID();
+    const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
+
     // Insert invitation into DB
     const { error: insertError } = await supabase.from("collaborator_invitations").insert({
       store_id,
       invited_email,
-      invited_by: invitedBy ?? store_id, // fallback
+      invited_by: invitedBy,
       role,
       status: "pending",
       token,

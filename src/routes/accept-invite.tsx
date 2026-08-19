@@ -1,4 +1,4 @@
-import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
+import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { supabase } from "../lib/supabase";
 import { useAuth } from "../hooks/useAuth";
@@ -24,7 +24,6 @@ export const Route = createFileRoute("/accept-invite")({
 
 function AcceptInvitePage() {
   const { token } = Route.useSearch();
-  const navigate = useNavigate();
   const { user, refreshProfile } = useAuth();
 
   const [status, setStatus] = useState<
@@ -55,28 +54,24 @@ function AcceptInvitePage() {
   const processInvitation = async (userId: string) => {
     setStatus("processing");
     try {
-      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string;
-      const session = (await supabase.auth.getSession()).data.session;
-      const response = await fetch(`${supabaseUrl}/functions/v1/accept-invitation`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${session?.access_token ?? ""}`,
-        },
-        body: JSON.stringify({ token, user_id: userId }),
-      });
+      // Passe désormais par la RPC accept_invitation (déjà en base) au lieu
+      // de l'edge function accept-invitation : celle-ci vérifie que l'email
+      // du compte connecté correspond bien à l'email invité — l'edge
+      // function, elle, ne le faisait pas (faille corrigée le 19/08/2026).
+      const { error } = await supabase.rpc("accept_invitation", { p_token: token });
 
-      const result = await response.json();
-
-      if (!response.ok) {
-        throw new Error(result.error || "Erreur lors de l'acceptation.");
+      if (error) {
+        throw new Error(error.message || "Erreur lors de l'acceptation.");
       }
 
       await refreshProfile();
       setStatus("success");
 
+      // Rechargement complet (pas une navigation SPA) : garantit que le
+      // workspace récupère bien la nouvelle boutique rejointe dès l'arrivée
+      // sur le dashboard, sans dépendre d'un état déjà en mémoire.
       setTimeout(() => {
-        navigate({ to: "/" });
+        window.location.href = "/";
       }, 2000);
     } catch (e: unknown) {
       setStatus("error");
