@@ -35,6 +35,7 @@ import { ScriptViewerModal } from "./components/ScriptViewerModal";
 import { FormulaGuideModal } from "./components/FormulaGuideModal";
 import { AuthPage } from "./components/AuthPage";
 import { CreateStoreOnboarding } from "./components/CreateStoreOnboarding";
+import { StoreLockedScreen } from "./components/StoreLockedScreen";
 import { PinLockScreen } from "./components/PinLockScreen";
 import { useAuth } from "./hooks/useAuth";
 import { useSessionTimeout } from "./hooks/useSessionTimeout";
@@ -606,6 +607,30 @@ function AppInner() {
   // que d'afficher un tableau de bord vide et confus.
   if (!workspace.activeStore) {
     return <CreateStoreOnboarding />;
+  }
+
+  // Essai gratuit expiré sans activation (ou verrouillage explicite) :
+  // affiche l'écran de blocage au lieu de l'app. Ceci est l'expérience
+  // utilisateur — la vraie barrière de sécurité est déjà posée côté
+  // Supabase par les RLS (voir can_modify_in_store / store_allows_write),
+  // donc même en contournant ce composant, aucune écriture n'est
+  // possible tant que la boutique n'est pas réellement activée en base.
+  {
+    const activeStore = workspace.activeStore;
+    const trialExpired =
+      activeStore.activation_status === "trial" &&
+      new Date(activeStore.trial_ends_at).getTime() < Date.now();
+    const isStoreLocked = activeStore.activation_status === "locked" || trialExpired;
+
+    if (isStoreLocked) {
+      return (
+        <StoreLockedScreen
+          storeName={activeStore.name}
+          storeId={activeStore.id}
+          onActivated={workspace.refreshStores}
+        />
+      );
+    }
   }
 
   if (storeData.loading) {

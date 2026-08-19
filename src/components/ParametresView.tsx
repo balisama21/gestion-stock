@@ -160,11 +160,18 @@ export const ParametresView: React.FC<ParametresViewProps> = ({
 
   const [myLicenseCode, setMyLicenseCode] = useState<string | null>(null);
   const [loadingMyLicense, setLoadingMyLicense] = useState(true);
-  const [pendingUsers, setPendingUsers] = useState<
-    Array<{ id: string; email: string; full_name: string | null; created_at: string }>
+  const [storesNeedingActivation, setStoresNeedingActivation] = useState<
+    Array<{
+      id: string;
+      name: string;
+      activation_status: string;
+      trial_ends_at: string;
+      owner_email: string;
+      owner_name: string | null;
+    }>
   >([]);
-  const [selectedPendingUserId, setSelectedPendingUserId] = useState<string | null>(null);
-  const [loadingPendingUsers, setLoadingPendingUsers] = useState(false);
+  const [selectedStoreToActivateId, setSelectedStoreToActivateId] = useState<string | null>(null);
+  const [loadingStoresNeedingActivation, setLoadingStoresNeedingActivation] = useState(false);
   const [generatingCode, setGeneratingCode] = useState(false);
   const [activationCode, setActivationCode] = useState("");
 
@@ -201,29 +208,38 @@ export const ParametresView: React.FC<ParametresViewProps> = ({
   useEffect(() => {
     if (!isPlatformAdmin) return;
 
-    const fetchPendingUsers = async () => {
-      setLoadingPendingUsers(true);
+    const fetchStoresNeedingActivation = async () => {
+      setLoadingStoresNeedingActivation(true);
       const { data, error } = await supabase
-        .from("profiles")
-        .select("id, email, full_name, created_at, status, role")
-        .eq("status", "pending")
-        .order("created_at", { ascending: false });
+        .from("stores")
+        .select(
+          "id, name, activation_status, trial_ends_at, owner:profiles!stores_owner_id_fkey(email, full_name)",
+        )
+        .neq("activation_status", "active")
+        .order("trial_ends_at", { ascending: true });
 
       if (!error && data) {
-        const nextPendingUsers = data as typeof pendingUsers;
-        setPendingUsers(nextPendingUsers);
-        if (!selectedPendingUserId && nextPendingUsers[0]) {
-          setSelectedPendingUserId(nextPendingUsers[0].id);
+        const next = (data as any[]).map((s) => ({
+          id: s.id,
+          name: s.name,
+          activation_status: s.activation_status,
+          trial_ends_at: s.trial_ends_at,
+          owner_email: s.owner?.email ?? "—",
+          owner_name: s.owner?.full_name ?? null,
+        }));
+        setStoresNeedingActivation(next);
+        if (!selectedStoreToActivateId && next[0]) {
+          setSelectedStoreToActivateId(next[0].id);
         }
       }
-      setLoadingPendingUsers(false);
+      setLoadingStoresNeedingActivation(false);
     };
 
-    fetchPendingUsers();
-  }, [isPlatformAdmin, selectedPendingUserId]);
+    fetchStoresNeedingActivation();
+  }, [isPlatformAdmin, selectedStoreToActivateId]);
 
   const handleGenerateActivationCode = async () => {
-    if (!isPlatformAdmin || !currentUserId || !selectedPendingUserId) return;
+    if (!isPlatformAdmin || !currentUserId || !selectedStoreToActivateId) return;
 
     const chars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
     let code = "BLSM-";
@@ -232,9 +248,14 @@ export const ParametresView: React.FC<ParametresViewProps> = ({
     for (let i = 0; i < 4; i++) code += chars[Math.floor(Math.random() * chars.length)];
 
     setGeneratingCode(true);
+    // Le code est désormais rattaché DIRECTEMENT à la boutique concernée
+    // (store_id) plutôt qu'à un utilisateur au hasard — il ne pourra donc
+    // être utilisé que pour activer CETTE boutique précise (voir la RPC
+    // activate_store_with_code, qui vérifie store_id IS NULL OR = la
+    // boutique demandée).
     const payload: any = {
       code,
-      user_id: selectedPendingUserId,
+      store_id: selectedStoreToActivateId,
       status: "generated",
       activation_type: "paid",
       payment_method: "mobile_money",
@@ -421,6 +442,54 @@ export const ParametresView: React.FC<ParametresViewProps> = ({
       window.location.href = "/";
     } finally {
       setDeletingAccount(false);
+    }
+  };
+
+  const MVOLA_NUMBER = "0389723412";
+
+  const [storeActivationCode, setStoreActivationCode] = useState("");
+  const [activatingStore, setActivatingStore] = useState(false);
+  const [storeActivationError, setStoreActivationError] = useState<string | null>(null);
+
+  // Statut réel de la boutique active (calculé côté client pour
+  // l'affichage uniquement — le vrai verrouillage des fonctionnalités,
+  // lui, est appliqué côté Supabase, voir Étape 5).
+  const storeActivationStatus = workspace.activeStore?.activation_status ?? "trial";
+  const trialEndsAt = workspace.activeStore?.trial_ends_at
+    ? new Date(workspace.activeStore.trial_ends_at)
+    : null;
+  const isTrialExpired = trialEndsAt ? trialEndsAt.getTime() < Date.now() : false;
+  const storeIsLocked = storeActivationStatus === "locked" || (storeActivationStatus === "trial" && isTrialExpired);
+  const storeIsActive = storeActivationStatus === "active";
+  const daysRemaining = trialEndsAt
+    ? Math.max(0, Math.ceil((trialEndsAt.getTime() - Date.now()) / (1000 * 60 * 60 * 24)))
+    : 0;
+
+  const handleActivateStoreWithCode = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!workspace.activeStore) return;
+    setStoreActivationError(null);
+
+    const normalized = storeActivationCode.toUpperCase().trim();
+    if (!normalized) {
+      setStoreActivationError("Entrez un code d'activation.");
+      return;
+    }
+
+    setActivatingStore(true);
+    try {
+      const { error } = await supabase.rpc("activate_store_with_code", {
+        p_store_id: workspace.activeStore.id,
+        p_code: normalized,
+      });
+      if (error) {
+        setStoreActivationError(error.message || "Code invalide ou déjà utilisé.");
+        return;
+      }
+      setStoreActivationCode("");
+      await workspace.refreshStores();
+    } finally {
+      setActivatingStore(false);
     }
   };
 
@@ -849,11 +918,12 @@ export const ParametresView: React.FC<ParametresViewProps> = ({
             <div>
               <h2 className="text-xl font-bold text-foreground">Paiements & Activation</h2>
               <p className="text-sm text-muted-foreground mt-1">
-                Gérez le statut de votre licence et activez votre compte complet.
+                Gérez le statut de votre boutique et son activation.
               </p>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* ── BOUTIQUE DÉJÀ ACTIVE À VIE ── */}
+            {storeIsActive && (
               <div className="relative overflow-hidden bg-gradient-to-br from-emerald-500/15 via-emerald-500/5 to-transparent border border-emerald-500/25 rounded-2xl p-6">
                 <div className="absolute -top-10 -right-10 w-32 h-32 bg-emerald-500/10 rounded-full blur-2xl" />
                 <div className="relative">
@@ -862,80 +932,179 @@ export const ParametresView: React.FC<ParametresViewProps> = ({
                       <CheckCircle2 className="w-6 h-6 text-emerald-500" />
                     </div>
                     <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-400 bg-emerald-500/10 border border-emerald-500/25 rounded-full px-2.5 py-1">
-                      Active
+                      Active — à vie
                     </span>
                   </div>
-                  <h3 className="text-lg font-bold text-foreground mb-1">Licence Active</h3>
+                  <h3 className="text-lg font-bold text-foreground mb-1">
+                    Votre boutique est déjà active
+                  </h3>
                   <p className="text-sm text-muted-foreground mb-4 leading-relaxed">
-                    Votre compte est activé et vous avez accès à toutes les fonctionnalités
-                    premium de {APP_NAME}.
+                    Vous pouvez utiliser {workspace.activeStore?.name || "votre boutique"} sans
+                    limite, à vie. Aucune action supplémentaire n'est nécessaire.
                   </p>
-                  <div>
+                  {workspace.activeStore?.activated_at && (
+                    <p className="text-xs text-muted-foreground">
+                      Activée le{" "}
+                      {new Date(workspace.activeStore.activated_at).toLocaleDateString("fr-FR")}
+                    </p>
+                  )}
+                  <div className="mt-4">
                     <label className="block text-[11px] font-semibold uppercase tracking-wide text-muted-foreground mb-1.5">
-                      Votre code d'activation
+                      Code d'activation utilisé
                     </label>
                     <div className="bg-background/80 rounded-xl p-3 border border-border text-sm font-mono text-center tracking-wider">
                       {loadingMyLicense
                         ? "Chargement..."
                         : myLicenseCode
                           ? myLicenseCode
-                          : "Activé par l'administrateur"}
+                          : "Activée par l'administrateur"}
                     </div>
                   </div>
                 </div>
               </div>
+            )}
 
-              <div className="bg-card border border-border rounded-2xl p-6 flex flex-col justify-center items-center text-center">
-                <div className="w-12 h-12 bg-blue-500/10 border border-blue-500/20 rounded-full flex items-center justify-center mb-4">
-                  <ShieldCheck className="w-6 h-6 text-blue-500" />
+            {/* ── ESSAI GRATUIT EN COURS ── */}
+            {storeActivationStatus === "trial" && !storeIsLocked && (
+              <div className="relative overflow-hidden bg-gradient-to-br from-blue-500/15 via-blue-500/5 to-transparent border border-blue-500/25 rounded-2xl p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <div className="w-12 h-12 bg-blue-500/20 rounded-full flex items-center justify-center">
+                    <Sparkles className="w-6 h-6 text-blue-400" />
+                  </div>
+                  <span className="text-[10px] font-bold uppercase tracking-wider text-blue-300 bg-blue-500/10 border border-blue-500/25 rounded-full px-2.5 py-1">
+                    Essai gratuit
+                  </span>
                 </div>
-                <h3 className="font-bold text-foreground mb-2">Besoin de plus de licences ?</h3>
-                <p className="text-sm text-muted-foreground mb-5 leading-relaxed">
-                  Vous pouvez acheter de nouveaux codes pour gérer d'autres boutiques.
+                <h3 className="text-lg font-bold text-foreground mb-1">
+                  Votre boutique est en période d'essai gratuit
+                </h3>
+                <p className="text-sm text-muted-foreground mb-4 leading-relaxed">
+                  Il vous reste{" "}
+                  <strong className="text-foreground">
+                    {daysRemaining} jour{daysRemaining > 1 ? "s" : ""}
+                  </strong>
+                  . Votre essai gratuit se termine le{" "}
+                  <strong className="text-foreground">
+                    {trialEndsAt?.toLocaleDateString("fr-FR", {
+                      day: "numeric",
+                      month: "long",
+                      year: "numeric",
+                    })}
+                  </strong>
+                  . Activez avant cette date pour ne pas être interrompu.
                 </p>
-                <button className="px-6 py-2.5 bg-foreground/95 hover:bg-foreground text-background font-bold rounded-xl transition-colors">
+              </div>
+            )}
+
+            {/* ── VERROUILLÉE (essai expiré, non activée) ── */}
+            {storeIsLocked && (
+              <div className="relative overflow-hidden bg-gradient-to-br from-rose-500/15 via-rose-500/5 to-transparent border border-rose-500/25 rounded-2xl p-6">
+                <div className="w-12 h-12 bg-rose-500/20 rounded-full flex items-center justify-center mb-4">
+                  <Lock className="w-6 h-6 text-rose-400" />
+                </div>
+                <h3 className="text-lg font-bold text-foreground mb-1">
+                  Votre période d'essai est terminée
+                </h3>
+                <p className="text-sm text-muted-foreground leading-relaxed">
+                  Votre boutique est temporairement verrouillée. Activez-la ci-dessous pour
+                  retrouver un accès normal.
+                </p>
+              </div>
+            )}
+
+            {/* ── PAIEMENT + CODE : affiché tant que non active ── */}
+            {!storeIsActive && (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div className="bg-card border border-border rounded-2xl p-6">
+                  <div className="flex items-center gap-2.5 mb-4">
+                    <div className="w-9 h-9 rounded-lg bg-emerald-500/10 flex items-center justify-center">
+                      <Phone className="w-4.5 h-4.5 text-emerald-500" />
+                    </div>
+                    <h3 className="font-bold text-foreground">Activer par paiement</h3>
+                  </div>
+                  <p className="text-sm text-muted-foreground mb-4 leading-relaxed">
+                    Effectuez le paiement de{" "}
+                    <strong className="text-foreground">100 000 Ar</strong> via MVola, puis
+                    envoyez la référence de transaction à l'administrateur pour recevoir votre
+                    code d'activation.
+                  </p>
+                  <div className="bg-muted/60 border border-border rounded-xl p-4 text-center mb-4">
+                    <p className="text-[11px] uppercase tracking-wide text-muted-foreground mb-1">
+                      MVola
+                    </p>
+                    <p className="text-xl font-mono font-bold text-foreground tracking-wider">
+                      {MVOLA_NUMBER}
+                    </p>
+                  </div>
+                  <a
+                    href={`tel:${ADMIN_CONTACT.replace(/\s/g, "")}`}
+                    className="flex items-center gap-3 bg-muted/60 hover:bg-muted border border-border rounded-xl p-3.5 text-sm transition-colors"
+                  >
+                    <div className="w-8 h-8 rounded-full bg-emerald-500/15 flex items-center justify-center shrink-0">
+                      <Phone className="w-4 h-4 text-emerald-500" />
+                    </div>
+                    <div>
+                      <span className="block font-semibold text-foreground text-xs">
+                        Contact admin
+                      </span>
+                      <span className="text-muted-foreground font-mono text-xs">
+                        {ADMIN_CONTACT}
+                      </span>
+                    </div>
+                  </a>
+                </div>
+
+                <div className="bg-card border border-border rounded-2xl p-6">
+                  <div className="flex items-center gap-2.5 mb-4">
+                    <div className="w-9 h-9 rounded-lg bg-blue-500/10 flex items-center justify-center">
+                      <KeyRound className="w-4.5 h-4.5 text-blue-500" />
+                    </div>
+                    <h3 className="font-bold text-foreground">Activer avec un code</h3>
+                  </div>
+                  <p className="text-sm text-muted-foreground mb-4 leading-relaxed">
+                    Vous avez déjà reçu un code de l'administrateur ? Entrez-le ici pour activer
+                    {workspace.activeStore?.name ? ` ${workspace.activeStore.name}` : " votre boutique"}{" "}
+                    immédiatement.
+                  </p>
+                  <form onSubmit={handleActivateStoreWithCode} className="space-y-3">
+                    <input
+                      type="text"
+                      value={storeActivationCode}
+                      onChange={(e) => setStoreActivationCode(e.target.value.toUpperCase())}
+                      placeholder="BLSM-XXXX-XXXX"
+                      maxLength={20}
+                      className="w-full bg-muted border border-border rounded-xl px-4 py-3 text-foreground font-mono tracking-widest text-center focus:outline-none focus:border-emerald-500"
+                    />
+                    {storeActivationError && (
+                      <p className="text-rose-500 text-sm font-semibold text-center">
+                        {storeActivationError}
+                      </p>
+                    )}
+                    <button
+                      type="submit"
+                      disabled={activatingStore}
+                      className="w-full px-6 py-3 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-60 text-white font-bold rounded-xl transition-colors"
+                    >
+                      {activatingStore ? "Vérification..." : "Activer ma boutique"}
+                    </button>
+                  </form>
+                </div>
+              </div>
+            )}
+
+            {storeIsActive && (
+              <div className="bg-card border border-border rounded-2xl p-6 flex flex-col md:flex-row items-center justify-between gap-4">
+                <div className="text-center md:text-left">
+                  <h3 className="font-bold text-foreground mb-1">Besoin de plus de licences ?</h3>
+                  <p className="text-sm text-muted-foreground">
+                    Vous pouvez acheter de nouveaux codes pour gérer d'autres boutiques.
+                  </p>
+                </div>
+                <button className="shrink-0 px-6 py-2.5 bg-foreground/95 hover:bg-foreground text-background font-bold rounded-xl transition-colors">
                   Acheter un Code (100 000 Ar)
                 </button>
               </div>
-            </div>
-
-            <div className="bg-card border border-border rounded-2xl p-6">
-              <div className="flex items-center gap-2.5 mb-5">
-                <div className="w-9 h-9 rounded-lg bg-blue-500/10 flex items-center justify-center">
-                  <AlertCircle className="w-4.5 h-4.5 text-blue-500" />
-                </div>
-                <h3 className="font-bold text-foreground">Processus d'activation</h3>
-              </div>
-
-              <div className="space-y-3">
-                {[
-                  "Effectuez le paiement de 100 000 Ar via Mobile Money.",
-                  "Envoyez le numéro de transaction à l'administrateur.",
-                  "L'administrateur génère votre code d'activation.",
-                  "Vous l'entrez dans le formulaire de connexion pour activer votre compte.",
-                ].map((step, i) => (
-                  <div key={i} className="flex items-start gap-3">
-                    <span className="shrink-0 w-6 h-6 rounded-full bg-blue-500/10 border border-blue-500/25 text-blue-500 text-xs font-bold flex items-center justify-center mt-0.5">
-                      {i + 1}
-                    </span>
-                    <p className="text-sm text-muted-foreground leading-relaxed pt-0.5">{step}</p>
-                  </div>
-                ))}
-              </div>
-
-              <a
-                href={`tel:${ADMIN_CONTACT.replace(/\s/g, "")}`}
-                className="mt-5 flex items-center gap-3 bg-muted/60 hover:bg-muted border border-border rounded-xl p-4 text-sm transition-colors"
-              >
-                <div className="w-9 h-9 rounded-full bg-emerald-500/15 flex items-center justify-center shrink-0">
-                  <Phone className="w-4 h-4 text-emerald-500" />
-                </div>
-                <div>
-                  <span className="block font-semibold text-foreground">Contact admin</span>
-                  <span className="text-muted-foreground font-mono">{ADMIN_CONTACT}</span>
-                </div>
-              </a>
-            </div>
+            )}
 
             {isPlatformAdmin && (
               <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-2xl p-5">
@@ -945,19 +1114,20 @@ export const ParametresView: React.FC<ParametresViewProps> = ({
                 </div>
 
                 <div className="space-y-4">
-                  {pendingUsers.length > 0 && (
+                  {storesNeedingActivation.length > 0 && (
                     <div>
                       <label className="block text-sm font-semibold text-foreground mb-1">
-                        Compte concerné
+                        Boutique concernée
                       </label>
                       <select
-                        value={selectedPendingUserId ?? ""}
-                        onChange={(e) => setSelectedPendingUserId(e.target.value)}
+                        value={selectedStoreToActivateId ?? ""}
+                        onChange={(e) => setSelectedStoreToActivateId(e.target.value)}
                         className="w-full bg-background border border-border rounded-xl px-4 py-2.5 text-foreground"
                       >
-                        {pendingUsers.map((user) => (
-                          <option key={user.id} value={user.id}>
-                            {user.email}
+                        {storesNeedingActivation.map((store) => (
+                          <option key={store.id} value={store.id}>
+                            {store.name} — {store.owner_name || store.owner_email} (
+                            {store.activation_status === "trial" ? "essai" : "verrouillée"})
                           </option>
                         ))}
                       </select>
@@ -984,13 +1154,16 @@ export const ParametresView: React.FC<ParametresViewProps> = ({
                         <Copy className="w-4 h-4" />
                       </button>
                     </div>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      Ce code n'activera QUE la boutique sélectionnée ci-dessus.
+                    </p>
                   </div>
 
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
                     <button
                       type="button"
                       onClick={handleGenerateActivationCode}
-                      disabled={generatingCode || !selectedPendingUserId}
+                      disabled={generatingCode || !selectedStoreToActivateId}
                       className="px-4 py-3 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-60 text-white font-bold rounded-xl"
                     >
                       {generatingCode ? "Génération..." : "Générer un code"}
@@ -1003,19 +1176,38 @@ export const ParametresView: React.FC<ParametresViewProps> = ({
                   <div className="bg-background rounded-xl p-4 border border-border text-sm">
                     <div className="flex items-center gap-2 text-foreground font-semibold mb-2">
                       <Users className="w-4 h-4 text-emerald-500" />
-                      Comptes en attente
+                      Boutiques non activées ({storesNeedingActivation.length})
                     </div>
-                    {loadingPendingUsers ? (
+                    {loadingStoresNeedingActivation ? (
                       <p className="text-muted-foreground">Chargement...</p>
-                    ) : pendingUsers.length === 0 ? (
+                    ) : storesNeedingActivation.length === 0 ? (
                       <p className="text-muted-foreground">
-                        Aucun compte en attente pour le moment.
+                        Toutes les boutiques sont activées pour le moment.
                       </p>
                     ) : (
                       <ul className="space-y-2 text-muted-foreground">
-                        {pendingUsers.map((user) => (
-                          <li key={user.id}>• {user.email} — 100 000 Ar — en attente</li>
-                        ))}
+                        {storesNeedingActivation.map((store) => {
+                          const daysLeft = Math.max(
+                            0,
+                            Math.ceil(
+                              (new Date(store.trial_ends_at).getTime() - Date.now()) /
+                                (1000 * 60 * 60 * 24),
+                            ),
+                          );
+                          const expired = new Date(store.trial_ends_at).getTime() < Date.now();
+                          return (
+                            <li key={store.id}>
+                              • {store.name} ({store.owner_email}) —{" "}
+                              {expired ? (
+                                <span className="text-rose-400 font-semibold">
+                                  essai expiré, verrouillée
+                                </span>
+                              ) : (
+                                `${daysLeft} j restant${daysLeft > 1 ? "s" : ""}`
+                              )}
+                            </li>
+                          );
+                        })}
                       </ul>
                     )}
                   </div>

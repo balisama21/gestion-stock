@@ -36,6 +36,7 @@ export type Database = {
           payment_reference: string | null
           reason: string | null
           status: Database["public"]["Enums"]["access_code_status"]
+          store_id: string | null
           user_id: string | null
         }
         Insert: {
@@ -51,6 +52,7 @@ export type Database = {
           payment_reference?: string | null
           reason?: string | null
           status?: Database["public"]["Enums"]["access_code_status"]
+          store_id?: string | null
           user_id?: string | null
         }
         Update: {
@@ -66,6 +68,7 @@ export type Database = {
           payment_reference?: string | null
           reason?: string | null
           status?: Database["public"]["Enums"]["access_code_status"]
+          store_id?: string | null
           user_id?: string | null
         }
         Relationships: [
@@ -1041,6 +1044,8 @@ export type Database = {
       }
       stores: {
         Row: {
+          activated_at: string | null
+          activation_status: string
           address: string | null
           capital_initial: number
           created_at: string
@@ -1057,10 +1062,13 @@ export type Database = {
           seuil_alerte_tresorerie: number
           subtitle: string | null
           suppliers: string[] | null
+          trial_ends_at: string
           tva_rate: number
           updated_at: string
         }
         Insert: {
+          activated_at?: string | null
+          activation_status?: string
           address?: string | null
           capital_initial?: number
           created_at?: string
@@ -1077,10 +1085,13 @@ export type Database = {
           seuil_alerte_tresorerie?: number
           subtitle?: string | null
           suppliers?: string[] | null
+          trial_ends_at?: string
           tva_rate?: number
           updated_at?: string
         }
         Update: {
+          activated_at?: string | null
+          activation_status?: string
           address?: string | null
           capital_initial?: number
           created_at?: string
@@ -1097,6 +1108,7 @@ export type Database = {
           seuil_alerte_tresorerie?: number
           subtitle?: string | null
           suppliers?: string[] | null
+          trial_ends_at?: string
           tva_rate?: number
           updated_at?: string
         }

@@ -35,6 +35,7 @@ import {
   User as UserIcon,
   CreditCard,
   ShoppingBag,
+  Plus,
 } from "lucide-react";
 import { formatCurrency, getProductLabel } from "../utils/formulas";
 import { useWorkspace } from "../hooks/useWorkspace";
@@ -76,6 +77,28 @@ export const Header: React.FC<HeaderProps> = ({
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
   const [workspaceMenuOpen, setWorkspaceMenuOpen] = useState(false);
+  const [showCreateStoreModal, setShowCreateStoreModal] = useState(false);
+  const [newStoreName, setNewStoreName] = useState("");
+  const [creatingStore, setCreatingStore] = useState(false);
+  const [createStoreError, setCreateStoreError] = useState<string | null>(null);
+
+  const handleCreateStore = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!newStoreName.trim() || creatingStore) return;
+    setCreatingStore(true);
+    setCreateStoreError(null);
+    const { store, error } = await workspace.createStore({ name: newStoreName.trim() });
+    setCreatingStore(false);
+    if (error) {
+      setCreateStoreError(error);
+      return;
+    }
+    if (store) {
+      setShowCreateStoreModal(false);
+      setNewStoreName("");
+      setWorkspaceMenuOpen(false);
+    }
+  };
   const [readNotifIds, setReadNotifIds] = useState<string[]>([]);
 
   const workspace = useWorkspace();
@@ -224,6 +247,18 @@ export const Header: React.FC<HeaderProps> = ({
                         )}
                       </button>
                     ))}
+                  </div>
+                  <div className="border-t border-border py-1">
+                    <button
+                      onClick={() => {
+                        setWorkspaceMenuOpen(false);
+                        setShowCreateStoreModal(true);
+                      }}
+                      className="w-full flex items-center gap-3 px-3 py-2.5 hover:bg-muted transition-colors text-left text-emerald-400"
+                    >
+                      <Plus className="w-4 h-4 shrink-0" />
+                      <span className="text-sm font-semibold">Créer une boutique</span>
+                    </button>
                   </div>
                 </div>
               </>
@@ -426,6 +461,57 @@ export const Header: React.FC<HeaderProps> = ({
           </button>
         </div>
       </nav>
+
+      {/* Modale : créer une nouvelle boutique (multi-boutiques) */}
+      {showCreateStoreModal && (
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-[60] flex items-center justify-center p-4">
+          <div className="bg-card border border-border rounded-2xl w-full max-w-sm p-6 shadow-xl text-foreground space-y-4">
+            <div className="flex items-center gap-2.5">
+              <div className="w-9 h-9 rounded-lg bg-emerald-500/15 flex items-center justify-center">
+                <Store className="w-4.5 h-4.5 text-emerald-500" />
+              </div>
+              <h3 className="text-lg font-bold">Créer une nouvelle boutique</h3>
+            </div>
+            <p className="text-sm text-muted-foreground">
+              Un même compte peut gérer plusieurs boutiques. Cette nouvelle boutique démarre avec
+              son propre essai gratuit de 7 jours, indépendant de vos autres boutiques.
+            </p>
+            <form onSubmit={handleCreateStore} className="space-y-3">
+              <input
+                type="text"
+                required
+                autoFocus
+                value={newStoreName}
+                onChange={(e) => setNewStoreName(e.target.value)}
+                placeholder="Ex: Ma Deuxième Boutique"
+                className="w-full bg-muted border border-border rounded-xl px-4 py-2.5 text-foreground focus:outline-none focus:border-emerald-500"
+              />
+              {createStoreError && (
+                <p className="text-rose-500 text-sm font-semibold">{createStoreError}</p>
+              )}
+              <div className="flex items-center justify-end gap-2 pt-1">
+                <button
+                  type="button"
+                  onClick={() => {
+                    setShowCreateStoreModal(false);
+                    setCreateStoreError(null);
+                  }}
+                  className="px-4 py-2 bg-muted hover:bg-accent text-muted-foreground rounded-xl font-medium text-sm"
+                >
+                  Annuler
+                </button>
+                <button
+                  type="submit"
+                  disabled={creatingStore}
+                  className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-60 text-white rounded-xl font-semibold text-sm"
+                >
+                  {creatingStore ? "Création..." : "Créer la boutique"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </header>
   );
 };

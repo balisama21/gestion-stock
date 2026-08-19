@@ -4,9 +4,6 @@ import type { Database } from "../lib/database.types";
 import { useAuth } from "./useAuth";
 
 type Store = Database["public"]["Tables"]["stores"]["Row"];
-type StoreMember = Database["public"]["Tables"]["store_members"]["Row"] & {
-  store: Store;
-};
 
 interface WorkspaceState {
   /** La boutique actuellement active (contexte de travail) */
@@ -43,14 +40,45 @@ export function useWorkspace(): WorkspaceContext {
 
 export { workspaceContext };
 
+const ACTIVE_STORE_STORAGE_KEY = "balsama-active-store-id";
+
 export function useWorkspaceState(): WorkspaceContext {
-  const { user, profile } = useAuth();
-  const [ownedStore, setOwnedStore] = useState<Store | null>(null);
+  const { user } = useAuth();
+  // ÉTAPE 6 (18/08/2026) : un compte peut désormais posséder PLUSIEURS
+  // boutiques. `ownedStores` est un TABLEAU (auparavant un seul objet
+  // récupéré via .maybeSingle(), qui plantait dès qu'un utilisateur avait
+  // 2 boutiques ou plus — c'était la cause du blocage multi-boutiques).
+  const [ownedStores, setOwnedStores] = useState<Store[]>([]);
   const [memberStores, setMemberStores] = useState<Store[]>([]);
-  const [activeStoreId, setActiveStoreId] = useState<string | null>(null);
+  const [activeStoreId, setActiveStoreIdState] = useState<string | null>(null);
   const [memberRoles, setMemberRoles] = useState<Record<string, string>>({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [hasInitializedActiveStore, setHasInitializedActiveStore] = useState(false);
+
+  const fetchAllStores = useCallback(async () => {
+    if (!user) return { owned: [] as Store[], memberStoreList: [] as Store[], roles: {} as Record<string, string> };
+
+    const [ownedRes, membershipsRes] = await Promise.all([
+      supabase.from("stores").select("*").eq("owner_id", user.id).order("created_at"),
+      supabase.from("store_members").select("*, store:stores(*)").eq("user_id", user.id),
+    ]);
+
+    if (ownedRes.error) throw ownedRes.error;
+    if (membershipsRes.error) throw membershipsRes.error;
+
+    const owned = ownedRes.data ?? [];
+    const memberStoreList = (membershipsRes.data ?? [])
+      .map((m: any) => m.store as Store)
+      .filter(Boolean);
+
+    const roles: Record<string, string> = {};
+    (membershipsRes.data ?? []).forEach((m: any) => {
+      if (m.store_id) roles[m.store_id] = m.role;
+    });
+
+    return { owned, memberStoreList, roles };
+  }, [user]);
 
   const loadStores = useCallback(async () => {
     if (!user) {
@@ -61,91 +89,83 @@ export function useWorkspaceState(): WorkspaceContext {
     setError(null);
 
     try {
-      // 1. Charger la boutique possédée
-      const { data: owned, error: ownedError } = await supabase
-        .from("stores")
-        .select("*")
-        .eq("owner_id", user.id)
-        .maybeSingle();
-
-      if (ownedError) throw ownedError;
-      setOwnedStore(owned ?? null);
-
-      // 2. Charger les boutiques en tant que membre (collaborateur)
-      const { data: memberships, error: membError } = await supabase
-        .from("store_members")
-        .select("*, store:stores(*)")
-        .eq("user_id", user.id);
-
-      if (membError) throw membError;
-
-      const memberStoreList = (memberships ?? []).map((m: any) => m.store as Store).filter(Boolean);
+      const { owned, memberStoreList, roles } = await fetchAllStores();
+      setOwnedStores(owned);
       setMemberStores(memberStoreList);
-
-      // Stocker les rôles
-      const roles: Record<string, string> = {};
-      (memberships ?? []).forEach((m: any) => {
-        if (m.store_id) roles[m.store_id] = m.role;
-      });
       setMemberRoles(roles);
 
-      // 3. Définir la boutique active par défaut
-      if (!activeStoreId) {
-        const defaultId = owned?.id ?? memberStoreList[0]?.id ?? null;
-        setActiveStoreId(defaultId);
+      if (!hasInitializedActiveStore) {
+        // Priorité : dernière boutique active mémorisée (localStorage) si
+        // elle est toujours accessible, sinon la première boutique
+        // possédée, sinon la première boutique où l'utilisateur est
+        // collaborateur.
+        const allIds = new Set([...owned.map((s) => s.id), ...memberStoreList.map((s) => s.id)]);
+        const stored =
+          typeof window !== "undefined"
+            ? window.localStorage.getItem(`${ACTIVE_STORE_STORAGE_KEY}:${user.id}`)
+            : null;
+        const defaultId =
+          stored && allIds.has(stored) ? stored : (owned[0]?.id ?? memberStoreList[0]?.id ?? null);
+
+        setActiveStoreIdState(defaultId);
+        setHasInitializedActiveStore(true);
       }
     } catch (err: any) {
       setError(err.message ?? "Erreur lors du chargement des boutiques.");
     } finally {
       setLoading(false);
     }
-  }, [user, activeStoreId]);
+  }, [user, fetchAllStores, hasInitializedActiveStore]);
 
   useEffect(() => {
+    setHasInitializedActiveStore(false);
+    setActiveStoreIdState(null);
     loadStores();
-  }, [user?.id]); // eslint-disable-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [user?.id]);
 
+  // Fusionne propriétés + collaborations, sans doublons (un cas limite
+  // improbable mais possible : owner ET membre de sa propre boutique).
   const allStores = [
-    ...(ownedStore ? [ownedStore] : []),
-    ...memberStores.filter((s) => s.id !== ownedStore?.id),
+    ...ownedStores,
+    ...memberStores.filter((s) => !ownedStores.some((o) => o.id === s.id)),
   ];
 
   const activeStore = allStores.find((s) => s.id === activeStoreId) ?? null;
   const isOwner = activeStore?.owner_id === user?.id;
   const memberRole = activeStore ? (memberRoles[activeStore.id] ?? null) : null;
 
-  const switchStore = useCallback((storeId: string) => {
-    setActiveStoreId(storeId);
-  }, []);
+  const switchStore = useCallback(
+    (storeId: string) => {
+      setActiveStoreIdState(storeId);
+      if (user && typeof window !== "undefined") {
+        window.localStorage.setItem(`${ACTIVE_STORE_STORAGE_KEY}:${user.id}`, storeId);
+      }
+      // Best-effort, ne bloque jamais l'UI : sert uniquement de "dernière
+      // boutique ouverte" pour d'éventuels usages futurs (ex: e-mails).
+      // La donnée d'autorité reste toujours `stores`/`store_members`.
+      if (user) {
+        supabase.from("profiles").update({ store_id: storeId }).eq("id", user.id);
+      }
+    },
+    [user],
+  );
 
   const refreshStores = useCallback(async () => {
-    // Force reload without cached activeStoreId constraint
+    if (!user) return;
     setLoading(true);
     setError(null);
     try {
-      const { data: owned } = await supabase
-        .from("stores")
-        .select("*")
-        .eq("owner_id", user?.id ?? "")
-        .maybeSingle();
-      setOwnedStore(owned ?? null);
-
-      const { data: memberships } = await supabase
-        .from("store_members")
-        .select("*, store:stores(*)")
-        .eq("user_id", user?.id ?? "");
-      const memberStoreList = (memberships ?? []).map((m: any) => m.store as Store).filter(Boolean);
+      const { owned, memberStoreList, roles } = await fetchAllStores();
+      setOwnedStores(owned);
       setMemberStores(memberStoreList);
-
-      const roles: Record<string, string> = {};
-      (memberships ?? []).forEach((m: any) => {
-        if (m.store_id) roles[m.store_id] = m.role;
-      });
       setMemberRoles(roles);
+    } catch (err: any) {
+      setError(err.message ?? "Erreur lors du rafraîchissement des boutiques.");
     } finally {
       setLoading(false);
     }
-  }, [user?.id]);
+  }, [user, fetchAllStores]);
 
   const createStore = useCallback(
     async (data: Partial<Store>): Promise<{ store: Store | null; error: string | null }> => {
@@ -161,6 +181,10 @@ export function useWorkspaceState(): WorkspaceContext {
         enable_pin_security: data.enable_pin_security ?? true,
         capital_initial: (data as any).capital_initial ?? 0,
         seuil_alerte_tresorerie: (data as any).seuil_alerte_tresorerie ?? 50000,
+        // activation_status / trial_ends_at ne sont volontairement PAS
+        // envoyés ici : la colonne a un DEFAULT ('trial', now()+7 jours)
+        // côté base (voir Étape 1), donc chaque nouvelle boutique démarre
+        // automatiquement son propre essai gratuit indépendant.
       };
 
       const { data: created, error } = await supabase
@@ -171,11 +195,16 @@ export function useWorkspaceState(): WorkspaceContext {
 
       if (error) return { store: null, error: error.message };
 
-      // Mettre à jour le profil avec le store_id
-      await supabase.from("profiles").update({ store_id: created.id }).eq("id", user.id);
+      // "Dernière boutique ouverte" — best effort, non bloquant.
+      supabase.from("profiles").update({ store_id: created.id }).eq("id", user.id);
 
-      setOwnedStore(created);
-      setActiveStoreId(created.id);
+      setOwnedStores((prev) => [...prev, created]);
+      setActiveStoreIdState(created.id);
+      if (typeof window !== "undefined") {
+        window.localStorage.setItem(`${ACTIVE_STORE_STORAGE_KEY}:${user.id}`, created.id);
+      }
+      setHasInitializedActiveStore(true);
+
       return { store: created, error: null };
     },
     [user],
@@ -195,8 +224,7 @@ export function useWorkspaceState(): WorkspaceContext {
 
       if (error) return { store: null, error: error.message };
 
-      // Refléter la mise à jour dans l'état local (boutique possédée ou boutique membre)
-      setOwnedStore((prev) => (prev && prev.id === storeId ? (updated as Store) : prev));
+      setOwnedStores((prev) => prev.map((s) => (s.id === storeId ? (updated as Store) : s)));
       setMemberStores((prev) => prev.map((s) => (s.id === storeId ? (updated as Store) : s)));
 
       return { store: updated as Store, error: null };
