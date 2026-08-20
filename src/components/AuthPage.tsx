@@ -25,6 +25,7 @@ export const AuthPage: React.FC = () => {
   const {
     signIn,
     signUp,
+    signInWithGoogle,
     activateWithCode,
     signOut,
     user,
@@ -44,6 +45,7 @@ export const AuthPage: React.FC = () => {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [googleLoading, setGoogleLoading] = useState(false);
   const [forgotEmail, setForgotEmail] = useState("");
   const [forgotSent, setForgotSent] = useState(false);
 
@@ -76,6 +78,19 @@ export const AuthPage: React.FC = () => {
     }
     // Rien d'autre à faire : dès que `user` devient non-null, BalsamaApp.tsx
     // bascule automatiquement vers l'espace de travail (WorkspaceLoader).
+  };
+
+  const handleGoogleSignIn = async () => {
+    setError(null);
+    setGoogleLoading(true);
+    const { error: googleError } = await signInWithGoogle();
+    // En cas de succès, le navigateur est redirigé vers Google : ce code
+    // ne continue pas d'exécution. On ne coupe le loading que si l'appel
+    // a échoué avant même la redirection (ex: provider mal configuré).
+    if (googleError) {
+      setGoogleLoading(false);
+      setError(googleError);
+    }
   };
 
   const handleRegister = async (e: React.FormEvent) => {
@@ -295,6 +310,45 @@ export const AuthPage: React.FC = () => {
                   <CheckCircle2 className="w-5 h-5 shrink-0 mt-0.5" />
                   <span>{success}</span>
                 </div>
+              )}
+
+              {(mode === "login" || mode === "register") && (
+                <>
+                  <button
+                    type="button"
+                    onClick={handleGoogleSignIn}
+                    disabled={googleLoading}
+                    className="w-full flex items-center justify-center gap-2.5 py-3 mb-5 bg-white hover:bg-slate-50 disabled:opacity-60 text-slate-800 font-semibold text-sm rounded-xl border border-slate-300 transition-colors shadow-sm"
+                  >
+                    <svg className="w-4.5 h-4.5" viewBox="0 0 24 24">
+                      <path
+                        fill="#4285F4"
+                        d="M23.52 12.27c0-.85-.08-1.67-.22-2.45H12v4.64h6.47c-.28 1.5-1.13 2.78-2.4 3.63v3.02h3.89c2.28-2.1 3.56-5.2 3.56-8.84Z"
+                      />
+                      <path
+                        fill="#34A853"
+                        d="M12 24c3.24 0 5.96-1.07 7.95-2.9l-3.89-3.02c-1.08.72-2.46 1.15-4.06 1.15-3.12 0-5.77-2.11-6.71-4.94H1.28v3.11C3.26 21.3 7.31 24 12 24Z"
+                      />
+                      <path
+                        fill="#FBBC05"
+                        d="M5.29 14.29A7.2 7.2 0 0 1 4.9 12c0-.8.14-1.57.39-2.29V6.6H1.28A11.98 11.98 0 0 0 0 12c0 1.94.46 3.77 1.28 5.4l4.01-3.11Z"
+                      />
+                      <path
+                        fill="#EA4335"
+                        d="M12 4.77c1.76 0 3.34.6 4.58 1.79l3.44-3.44C17.95 1.19 15.24 0 12 0 7.31 0 3.26 2.7 1.28 6.6l4.01 3.11C6.23 6.88 8.88 4.77 12 4.77Z"
+                      />
+                    </svg>
+                    {googleLoading ? "Redirection..." : "Continuer avec Google"}
+                  </button>
+
+                  <div className="flex items-center gap-3 mb-5">
+                    <div className="h-px flex-1 bg-border" />
+                    <span className="text-[11px] text-muted-foreground uppercase tracking-wide">
+                      ou
+                    </span>
+                    <div className="h-px flex-1 bg-border" />
+                  </div>
+                </>
               )}
 
               {mode === "login" && (

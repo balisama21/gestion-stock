@@ -19,6 +19,13 @@ interface AuthState {
 interface AuthActions {
   signIn: (email: string, password: string) => Promise<{ error: string | null }>;
   signUp: (email: string, password: string, fullName: string) => Promise<{ error: string | null }>;
+  /**
+   * "Continuer avec Google" — redirige vers Google puis revient sur l'app.
+   * Ne court-circuite jamais le système de boutiques/rôles : un nouvel
+   * utilisateur Google atterrit sur le même écran d'onboarding
+   * (CreateStoreOnboarding) qu'un utilisateur email/mot de passe.
+   */
+  signInWithGoogle: () => Promise<{ error: string | null }>;
   signOut: () => Promise<void>;
   activateWithCode: (code: string) => Promise<{ error: string | null }>;
   refreshProfile: () => Promise<void>;
@@ -165,6 +172,20 @@ export function useAuthState(): AuthState & AuthActions {
     return { error: error?.message ?? null };
   }, []);
 
+  const signInWithGoogle = useCallback(async () => {
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: {
+        // Ramène l'utilisateur à la racine après authentification Google ;
+        // App() (BalsamaApp.tsx) prend alors le relais normalement (même
+        // logique que pour un compte email/mot de passe : boutique
+        // existante → dashboard, aucune boutique → CreateStoreOnboarding).
+        redirectTo: `${window.location.origin}/`,
+      },
+    });
+    return { error: error?.message ?? null };
+  }, []);
+
   const signOut = useCallback(async () => {
     await supabase.auth.signOut();
     setProfile(null);
@@ -271,6 +292,7 @@ export function useAuthState(): AuthState & AuthActions {
     isPasswordRecovery,
     signIn,
     signUp,
+    signInWithGoogle,
     signOut,
     activateWithCode,
     refreshProfile,
