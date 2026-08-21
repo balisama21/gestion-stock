@@ -14,6 +14,12 @@ interface WorkspaceState {
   isOwner: boolean;
   /** Rôle dans la boutique active (si collaborateur) */
   memberRole: string | null;
+  /**
+   * Permissions accordées dans la boutique active — `null` si owner
+   * (accès total, illimité), sinon la liste des clés autorisées choisies
+   * par le propriétaire à l'invitation (voir src/lib/permissions.ts).
+   */
+  memberPermissions: string[] | null;
   loading: boolean;
   error: string | null;
 }
@@ -63,12 +69,21 @@ export function useWorkspaceState(): WorkspaceContext {
   const [memberStores, setMemberStores] = useState<Store[]>([]);
   const [activeStoreId, setActiveStoreIdState] = useState<string | null>(null);
   const [memberRoles, setMemberRoles] = useState<Record<string, string>>({});
+  const [memberPermissionsByStore, setMemberPermissionsByStore] = useState<
+    Record<string, string[]>
+  >({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [hasInitializedActiveStore, setHasInitializedActiveStore] = useState(false);
 
   const fetchAllStores = useCallback(async () => {
-    if (!user) return { owned: [] as Store[], memberStoreList: [] as Store[], roles: {} as Record<string, string> };
+    if (!user)
+      return {
+        owned: [] as Store[],
+        memberStoreList: [] as Store[],
+        roles: {} as Record<string, string>,
+        permissions: {} as Record<string, string[]>,
+      };
 
     const [ownedRes, membershipsRes] = await Promise.all([
       supabase.from("stores").select("*").eq("owner_id", user.id).order("created_at"),
@@ -84,11 +99,15 @@ export function useWorkspaceState(): WorkspaceContext {
       .filter(Boolean);
 
     const roles: Record<string, string> = {};
+    const permissions: Record<string, string[]> = {};
     (membershipsRes.data ?? []).forEach((m: any) => {
-      if (m.store_id) roles[m.store_id] = m.role;
+      if (m.store_id) {
+        roles[m.store_id] = m.role;
+        permissions[m.store_id] = Array.isArray(m.permissions) ? m.permissions : [];
+      }
     });
 
-    return { owned, memberStoreList, roles };
+    return { owned, memberStoreList, roles, permissions };
   }, [user]);
 
   const loadStores = useCallback(async () => {
@@ -100,10 +119,11 @@ export function useWorkspaceState(): WorkspaceContext {
     setError(null);
 
     try {
-      const { owned, memberStoreList, roles } = await fetchAllStores();
+      const { owned, memberStoreList, roles, permissions } = await fetchAllStores();
       setOwnedStores(owned);
       setMemberStores(memberStoreList);
       setMemberRoles(roles);
+      setMemberPermissionsByStore(permissions);
 
       if (!hasInitializedActiveStore) {
         // Priorité : dernière boutique active mémorisée (localStorage) si
@@ -145,6 +165,10 @@ export function useWorkspaceState(): WorkspaceContext {
   const activeStore = allStores.find((s) => s.id === activeStoreId) ?? null;
   const isOwner = activeStore?.owner_id === user?.id;
   const memberRole = activeStore ? (memberRoles[activeStore.id] ?? null) : null;
+  // Owner = accès total (null = illimité). Collaborateur = uniquement les
+  // permissions choisies par le propriétaire à l'invitation.
+  const memberPermissions =
+    activeStore && !isOwner ? (memberPermissionsByStore[activeStore.id] ?? []) : null;
 
   const switchStore = useCallback(
     (storeId: string) => {
@@ -167,10 +191,11 @@ export function useWorkspaceState(): WorkspaceContext {
     setLoading(true);
     setError(null);
     try {
-      const { owned, memberStoreList, roles } = await fetchAllStores();
+      const { owned, memberStoreList, roles, permissions } = await fetchAllStores();
       setOwnedStores(owned);
       setMemberStores(memberStoreList);
       setMemberRoles(roles);
+      setMemberPermissionsByStore(permissions);
     } catch (err: any) {
       setError(err.message ?? "Erreur lors du rafraîchissement des boutiques.");
     } finally {
@@ -275,6 +300,7 @@ export function useWorkspaceState(): WorkspaceContext {
     accessibleStores: allStores,
     isOwner,
     memberRole,
+    memberPermissions,
     loading,
     error,
     switchStore,

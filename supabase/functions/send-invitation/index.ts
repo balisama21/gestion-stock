@@ -17,6 +17,7 @@ serve(async (req: Request) => {
       invited_email,
       store_id,
       role = "seller",
+      permissions = [],
       invited_by_name,
       store_name,
       app_url,
@@ -97,8 +98,12 @@ serve(async (req: Request) => {
       );
     }
 
-    // Generate token and expiry
+    // Generate token, short code and expiry
     const token = crypto.randomUUID();
+    const codeChars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; // sans 0/O/1/I ambigus
+    const randomBlock = () =>
+      Array.from({ length: 4 }, () => codeChars[Math.floor(Math.random() * codeChars.length)]).join("");
+    const inviteCode = `INV-${randomBlock()}-${randomBlock()}`;
     const expiresAt = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString();
 
     // Insert invitation into DB
@@ -107,8 +112,10 @@ serve(async (req: Request) => {
       invited_email,
       invited_by: invitedBy,
       role,
+      permissions,
       status: "pending",
       token,
+      invite_code: inviteCode,
       expires_at: expiresAt,
     });
 
@@ -208,13 +215,19 @@ serve(async (req: Request) => {
           success: true,
           warning: "Invitation créée mais e-mail non envoyé. Vérifiez votre clé Resend.",
           token,
+          invite_code: inviteCode,
         }),
         { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
       );
     }
 
     return new Response(
-      JSON.stringify({ success: true, message: "Invitation envoyée avec succès !", token }),
+      JSON.stringify({
+        success: true,
+        message: "Invitation envoyée avec succès !",
+        token,
+        invite_code: inviteCode,
+      }),
       { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
   } catch (err: unknown) {

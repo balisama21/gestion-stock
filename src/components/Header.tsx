@@ -37,10 +37,12 @@ import {
   ShoppingBag,
   Plus,
   Copy,
+  KeyRound,
 } from "lucide-react";
 import { formatCurrency, getProductLabel } from "../utils/formulas";
 import { useWorkspace } from "../hooks/useWorkspace";
 import { useAuth } from "../hooks/useAuth";
+import { supabase } from "../lib/supabase";
 import { APP_NAME } from "../lib/appConfig";
 
 interface HeaderProps {
@@ -82,6 +84,32 @@ export const Header: React.FC<HeaderProps> = ({
   const [copyStoreName, setCopyStoreName] = useState("");
   const [copyingStore, setCopyingStore] = useState(false);
   const [copyStoreError, setCopyStoreError] = useState<string | null>(null);
+
+  const [showJoinCodeModal, setShowJoinCodeModal] = useState(false);
+  const [joinCode, setJoinCode] = useState("");
+  const [joiningWithCode, setJoiningWithCode] = useState(false);
+  const [joinCodeError, setJoinCodeError] = useState<string | null>(null);
+
+  const handleJoinWithCode = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!joinCode.trim() || joiningWithCode) return;
+    setJoiningWithCode(true);
+    setJoinCodeError(null);
+    const { data, error } = await supabase.rpc("accept_invitation_by_code", {
+      p_code: joinCode.trim(),
+    });
+    setJoiningWithCode(false);
+    if (error) {
+      setJoinCodeError(error.message || "Code invalide.");
+      return;
+    }
+    await workspace.refreshStores();
+    if (data?.store_id) {
+      workspace.switchStore(data.store_id);
+    }
+    setShowJoinCodeModal(false);
+    setJoinCode("");
+  };
 
   const handleCopyStore = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -166,6 +194,16 @@ export const Header: React.FC<HeaderProps> = ({
     { id: "rapports", label: "Bilan", icon: <CalendarRange className="w-4 h-4 text-amber-400" /> },
     { id: "historique", label: "Historique", icon: <History className="w-4 h-4" /> },
   ];
+
+  // Owner (memberPermissions === null) = tous les onglets. Collaborateur =
+  // uniquement ceux choisis par le propriétaire à l'invitation. Filtrage
+  // d'affichage — voir la note de sécurité dans src/lib/permissions.ts.
+  const visibleTabs =
+    workspace.memberPermissions === null
+      ? tabs
+      : tabs.filter((tab) => workspace.memberPermissions!.includes(tab.id));
+  const canSeeSettings =
+    workspace.memberPermissions === null || workspace.memberPermissions.includes("settings");
 
   const bottomTabs: { id: ActiveTab; shortLabel: string; icon: React.ReactNode }[] = [
     { id: "dashboard", shortLabel: "Accueil", icon: <TrendingUp className="w-5 h-5" /> },
@@ -253,21 +291,37 @@ export const Header: React.FC<HeaderProps> = ({
                       </button>
                     ))}
                   </div>
+                  {workspace.isOwner && (
+                    <div className="border-t border-border py-1">
+                      <button
+                        onClick={() => {
+                          setWorkspaceMenuOpen(false);
+                          setCopyStoreName(
+                            workspace.activeStore ? `${workspace.activeStore.name} (copie)` : "",
+                          );
+                          setShowCopyStoreModal(true);
+                        }}
+                        className="w-full flex items-center gap-3 px-3 py-2.5 hover:bg-muted transition-colors text-left text-emerald-400"
+                      >
+                        <Copy className="w-4 h-4 shrink-0" />
+                        <span className="text-sm font-semibold">
+                          Dupliquer {workspace.activeStore?.name || "cette boutique"}
+                        </span>
+                      </button>
+                    </div>
+                  )}
                   <div className="border-t border-border py-1">
                     <button
                       onClick={() => {
                         setWorkspaceMenuOpen(false);
-                        setCopyStoreName(
-                          workspace.activeStore ? `${workspace.activeStore.name} (copie)` : "",
-                        );
-                        setShowCopyStoreModal(true);
+                        setJoinCodeError(null);
+                        setJoinCode("");
+                        setShowJoinCodeModal(true);
                       }}
-                      className="w-full flex items-center gap-3 px-3 py-2.5 hover:bg-muted transition-colors text-left text-emerald-400"
+                      className="w-full flex items-center gap-3 px-3 py-2.5 hover:bg-muted transition-colors text-left text-foreground"
                     >
-                      <Copy className="w-4 h-4 shrink-0" />
-                      <span className="text-sm font-semibold">
-                        Dupliquer {workspace.activeStore?.name || "cette boutique"}
-                      </span>
+                      <KeyRound className="w-4 h-4 shrink-0 text-muted-foreground" />
+                      <span className="text-sm font-semibold">Rejoindre avec un code</span>
                     </button>
                   </div>
                 </div>
@@ -379,25 +433,28 @@ export const Header: React.FC<HeaderProps> = ({
             )}
           </div>
 
-          {/* Settings - visible for all authenticated users */}
-          <button
-            onClick={() => handleTabClick("settings")}
-            className={`p-2.5 rounded-xl border transition-colors ${
-              activeTab === "settings"
-                ? "bg-emerald-500/20 border-emerald-500/40 text-emerald-300"
-                : "bg-muted border-muted-foreground/20 text-foreground hover:bg-accent"
-            }`}
-            title="Paramètres"
-          >
-            <Settings className="w-4 h-4 text-emerald-400" />
-          </button>
+          {/* Settings - visible pour les owners et les collaborateurs avec
+              la permission "settings" */}
+          {canSeeSettings && (
+            <button
+              onClick={() => handleTabClick("settings")}
+              className={`p-2.5 rounded-xl border transition-colors ${
+                activeTab === "settings"
+                  ? "bg-emerald-500/20 border-emerald-500/40 text-emerald-300"
+                  : "bg-muted border-muted-foreground/20 text-foreground hover:bg-accent"
+              }`}
+              title="Paramètres"
+            >
+              <Settings className="w-4 h-4 text-emerald-400" />
+            </button>
+          )}
         </div>
       </div>
 
       {/* Desktop Horizontal Navigation Tabs */}
       <div className="hidden md:block bg-background/80 border-t border-border/80 overflow-x-auto">
         <div className="app-container flex items-center gap-1 py-1">
-          {tabs.map((tab) => {
+          {visibleTabs.map((tab) => {
             const isActive = activeTab === tab.id;
             return (
               <button
@@ -427,7 +484,7 @@ export const Header: React.FC<HeaderProps> = ({
           <div className="md:hidden fixed bottom-[68px] left-0 right-0 z-50 bg-card border-t border-border rounded-t-2xl px-4 pt-3 pb-4 shadow-2xl animate-in slide-in-from-bottom duration-200">
             <div className="w-10 h-1 rounded-full bg-accent mx-auto mb-3" />
             <div className="grid grid-cols-2 gap-2 max-h-[50vh] overflow-y-auto">
-              {tabs.map((tab) => {
+              {visibleTabs.map((tab) => {
                 const isActive = activeTab === tab.id;
                 return (
                   <button
@@ -531,6 +588,54 @@ export const Header: React.FC<HeaderProps> = ({
                   className="px-4 py-2 bg-blue-600 hover:bg-blue-500 disabled:opacity-60 text-white rounded-xl font-semibold text-sm"
                 >
                   {copyingStore ? "Copie..." : "Dupliquer"}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Modale : rejoindre une boutique avec un code d'invitation */}
+      {showJoinCodeModal && (
+        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-[60] flex items-center justify-center p-4">
+          <div className="bg-card border border-border rounded-2xl w-full max-w-sm p-6 shadow-xl text-foreground space-y-4">
+            <div className="flex items-center gap-2.5">
+              <div className="w-9 h-9 rounded-lg bg-blue-500/15 flex items-center justify-center">
+                <KeyRound className="w-4.5 h-4.5 text-blue-500" />
+              </div>
+              <h3 className="text-lg font-bold">Rejoindre avec un code</h3>
+            </div>
+            <p className="text-sm text-muted-foreground">
+              Entrez le code d'invitation reçu du propriétaire de la boutique. Le code ne
+              fonctionne qu'avec l'adresse e-mail à laquelle il a été destiné.
+            </p>
+            <form onSubmit={handleJoinWithCode} className="space-y-3">
+              <input
+                type="text"
+                required
+                autoFocus
+                value={joinCode}
+                onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
+                placeholder="INV-XXXX-XXXX"
+                className="w-full bg-muted border border-border rounded-xl px-4 py-2.5 text-foreground font-mono tracking-widest text-center focus:outline-none focus:border-blue-500"
+              />
+              {joinCodeError && (
+                <p className="text-rose-500 text-sm font-semibold">{joinCodeError}</p>
+              )}
+              <div className="flex items-center justify-end gap-2 pt-1">
+                <button
+                  type="button"
+                  onClick={() => setShowJoinCodeModal(false)}
+                  className="px-4 py-2 bg-muted hover:bg-accent text-muted-foreground rounded-xl font-medium text-sm"
+                >
+                  Annuler
+                </button>
+                <button
+                  type="submit"
+                  disabled={joiningWithCode}
+                  className="px-4 py-2 bg-blue-600 hover:bg-blue-500 disabled:opacity-60 text-white rounded-xl font-semibold text-sm"
+                >
+                  {joiningWithCode ? "Vérification..." : "Rejoindre"}
                 </button>
               </div>
             </form>

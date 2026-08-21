@@ -235,8 +235,10 @@ export type Database = {
           created_at: string
           expires_at: string
           id: string
+          invite_code: string | null
           invited_by: string
           invited_email: string
+          permissions: string[]
           role: string
           status: Database["public"]["Enums"]["invitation_status"]
           store_id: string
@@ -247,8 +249,10 @@ export type Database = {
           created_at?: string
           expires_at?: string
           id?: string
+          invite_code?: string | null
           invited_by: string
           invited_email: string
+          permissions?: string[]
           role?: string
           status?: Database["public"]["Enums"]["invitation_status"]
           store_id: string
@@ -259,8 +263,10 @@ export type Database = {
           created_at?: string
           expires_at?: string
           id?: string
+          invite_code?: string | null
           invited_by?: string
           invited_email?: string
+          permissions?: string[]
           role?: string
           status?: Database["public"]["Enums"]["invitation_status"]
           store_id?: string
@@ -998,6 +1004,7 @@ export type Database = {
           id: string
           invited_by: string | null
           joined_at: string
+          permissions: string[]
           role: string
           store_id: string
           user_id: string
@@ -1006,6 +1013,7 @@ export type Database = {
           id?: string
           invited_by?: string | null
           joined_at?: string
+          permissions?: string[]
           role?: string
           store_id: string
           user_id: string
@@ -1014,6 +1022,7 @@ export type Database = {
           id?: string
           invited_by?: string | null
           joined_at?: string
+          permissions?: string[]
           role?: string
           store_id?: string
           user_id?: string

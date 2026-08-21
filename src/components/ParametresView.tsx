@@ -5,6 +5,7 @@ import { supabase } from "../lib/supabase";
 import { useWorkspace } from "../hooks/useWorkspace";
 import { useAuth } from "../hooks/useAuth";
 import { APP_NAME } from "../lib/appConfig";
+import { AVAILABLE_PERMISSIONS } from "../lib/permissions";
 import {
   Building,
   Phone,
@@ -152,6 +153,52 @@ export const ParametresView: React.FC<ParametresViewProps> = ({
   const [inviteRole, setInviteRole] = useState("seller");
   const [inviting, setInviting] = useState(false);
   const [inviteStatus, setInviteStatus] = useState("");
+  // Permissions choisies par le propriétaire AVANT l'envoi (cases à
+  // cocher). Par défaut, aucune coché — le propriétaire choisit
+  // explicitement ce que le collaborateur pourra voir.
+  const [invitePermissions, setInvitePermissions] = useState<string[]>([]);
+  // Boutique ciblée par l'invitation — utile si le propriétaire possède
+  // plusieurs boutiques (ex: après une duplication) : l'invité ne
+  // rejoint QUE celle sélectionnée ici, jamais les autres.
+  const [inviteStoreId, setInviteStoreId] = useState<string>("");
+  // Lien + code générés après l'envoi, à copier manuellement (l'envoi
+  // d'e-mail automatique reste peu fiable tant qu'aucun domaine pro n'est
+  // configuré pour Resend).
+  const [lastInviteLink, setLastInviteLink] = useState<string | null>(null);
+  const [lastInviteCode, setLastInviteCode] = useState<string | null>(null);
+  const [pendingInvitations, setPendingInvitations] = useState<
+    Array<{ id: string; invited_email: string; role: string; token: string; invite_code: string | null; store_id: string }>
+  >([]);
+
+  const ownedStoresForInvite = workspace.accessibleStores.filter((s) => s.owner_id === user?.id);
+
+  useEffect(() => {
+    if (!inviteStoreId && workspace.activeStore) {
+      setInviteStoreId(workspace.activeStore.id);
+    }
+  }, [inviteStoreId, workspace.activeStore]);
+
+  const fetchPendingInvitations = async () => {
+    if (!inviteStoreId) return;
+    const { data } = await supabase
+      .from("collaborator_invitations")
+      .select("id, invited_email, role, token, invite_code, store_id")
+      .eq("store_id", inviteStoreId)
+      .eq("status", "pending")
+      .order("created_at", { ascending: false });
+    setPendingInvitations(data ?? []);
+  };
+
+  useEffect(() => {
+    fetchPendingInvitations();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [inviteStoreId]);
+
+  const togglePermission = (key: string) => {
+    setInvitePermissions((prev) =>
+      prev.includes(key) ? prev.filter((p) => p !== key) : [...prev, key],
+    );
+  };
 
   // Contact admin réel de la plateforme (celui affiché à AuthPage.tsx et
   // ici doivent toujours être synchronisés — voir aussi la constante du
@@ -275,25 +322,44 @@ export const ParametresView: React.FC<ParametresViewProps> = ({
   };
 
   const handleSendInvitation = async () => {
-    if (!inviteEmail || !workspace.activeStore) return;
+    const targetStoreId = inviteStoreId || workspace.activeStore?.id;
+    if (!inviteEmail || !targetStoreId) return;
     setInviting(true);
     setInviteStatus("");
+    setLastInviteLink(null);
+    setLastInviteCode(null);
+
+    const targetStore = ownedStoresForInvite.find((s) => s.id === targetStoreId);
 
     try {
       const { data, error } = await supabase.functions.invoke("send-invitation", {
         body: {
           invited_email: inviteEmail.trim(),
-          store_id: workspace.activeStore.id,
+          store_id: targetStoreId,
           role: inviteRole,
+          permissions: invitePermissions,
           invited_by_name: profile?.full_name || "Propriétaire",
-          store_name: workspace.activeStore.name,
+          store_name: targetStore?.name || workspace.activeStore?.name,
           app_url: window.location.origin,
         },
       });
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
-      setInviteStatus("Invitation envoyée avec succès par e-mail!");
+
+      setInviteStatus(
+        data?.warning
+          ? "Invitation créée. E-mail non envoyé (voir lien/code ci-dessous à partager manuellement)."
+          : "Invitation envoyée avec succès par e-mail ! Lien/code disponibles ci-dessous en secours.",
+      );
+      if (data?.token) {
+        setLastInviteLink(`${window.location.origin}/accept-invite?token=${data.token}`);
+      }
+      if (data?.invite_code) {
+        setLastInviteCode(data.invite_code);
+      }
       setInviteEmail("");
+      setInvitePermissions([]);
+      fetchPendingInvitations();
     } catch (e: any) {
       setInviteStatus("Erreur : " + e.message);
     } finally {
@@ -839,10 +905,31 @@ export const ParametresView: React.FC<ParametresViewProps> = ({
               </p>
             </div>
 
-            <div className="bg-muted border border-border rounded-2xl p-5 mb-6">
-              <h3 className="font-bold text-foreground mb-4">
-                Inviter un Collaborateur par e-mail
-              </h3>
+            <div className="bg-muted border border-border rounded-2xl p-5 mb-6 space-y-5">
+              <h3 className="font-bold text-foreground">Inviter un Collaborateur par e-mail</h3>
+
+              {ownedStoresForInvite.length > 1 && (
+                <div>
+                  <label className="block text-sm font-semibold text-foreground mb-1">
+                    Boutique concernée
+                  </label>
+                  <select
+                    value={inviteStoreId}
+                    onChange={(e) => setInviteStoreId(e.target.value)}
+                    className="w-full bg-background border border-border rounded-xl px-4 py-2.5 text-foreground"
+                  >
+                    {ownedStoresForInvite.map((s) => (
+                      <option key={s.id} value={s.id}>
+                        {s.name}
+                      </option>
+                    ))}
+                  </select>
+                  <p className="text-xs text-muted-foreground mt-1">
+                    L'invité rejoindra UNIQUEMENT cette boutique, jamais vos autres boutiques.
+                  </p>
+                </div>
+              )}
+
               <div className="flex flex-col sm:flex-row gap-3">
                 <input
                   type="email"
@@ -860,20 +947,142 @@ export const ParametresView: React.FC<ParametresViewProps> = ({
                   <option value="collaborator">Collaborateur / Magasinier</option>
                   <option value="cashier">Gérant Caisse</option>
                 </select>
-                <button
-                  onClick={handleSendInvitation}
-                  disabled={inviting || !inviteEmail}
-                  className="px-6 py-2 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white font-bold rounded-xl"
-                >
-                  {inviting ? "Envoi..." : "Envoyer Invitation"}
-                </button>
               </div>
+
+              <div>
+                <div className="flex items-center justify-between mb-2">
+                  <label className="block text-sm font-semibold text-foreground">
+                    Permissions accordées (onglets visibles pour l'invité)
+                  </label>
+                  <div className="flex items-center gap-3 text-xs">
+                    <button
+                      type="button"
+                      onClick={() => setInvitePermissions(AVAILABLE_PERMISSIONS.map((p) => p.key))}
+                      className="text-emerald-500 hover:underline font-semibold"
+                    >
+                      Tout cocher
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setInvitePermissions([])}
+                      className="text-muted-foreground hover:underline font-semibold"
+                    >
+                      Tout décocher
+                    </button>
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 bg-background border border-border rounded-xl p-3">
+                  {AVAILABLE_PERMISSIONS.map((perm) => (
+                    <label
+                      key={perm.key}
+                      className="flex items-center gap-2 text-sm text-foreground cursor-pointer select-none"
+                    >
+                      <input
+                        type="checkbox"
+                        checked={invitePermissions.includes(perm.key)}
+                        onChange={() => togglePermission(perm.key)}
+                        className="w-4 h-4 rounded border-muted-foreground/40 accent-emerald-500"
+                      />
+                      {perm.label}
+                    </label>
+                  ))}
+                </div>
+                {invitePermissions.length === 0 && (
+                  <p className="text-xs text-amber-500 mt-1.5">
+                    Aucune permission cochée : l'invité n'aura accès à aucun onglet.
+                  </p>
+                )}
+              </div>
+
+              <button
+                onClick={handleSendInvitation}
+                disabled={inviting || !inviteEmail}
+                className="w-full px-6 py-2.5 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white font-bold rounded-xl"
+              >
+                {inviting ? "Envoi..." : "Envoyer Invitation"}
+              </button>
+
               {inviteStatus && (
                 <p
-                  className={`mt-3 text-sm font-semibold ${inviteStatus.includes("Erreur") ? "text-rose-500" : "text-emerald-500"}`}
+                  className={`text-sm font-semibold ${inviteStatus.includes("Erreur") ? "text-rose-500" : "text-emerald-500"}`}
                 >
                   {inviteStatus}
                 </p>
+              )}
+
+              {(lastInviteLink || lastInviteCode) && (
+                <div className="bg-background border border-emerald-500/30 rounded-xl p-4 space-y-3">
+                  <p className="text-xs font-semibold text-emerald-500 uppercase tracking-wide">
+                    À partager manuellement (l'envoi automatique par e-mail est peu fiable sans
+                    domaine pro pour l'instant)
+                  </p>
+                  {lastInviteLink && (
+                    <div>
+                      <label className="block text-xs text-muted-foreground mb-1">
+                        Lien d'invitation
+                      </label>
+                      <div className="flex gap-2">
+                        <input
+                          readOnly
+                          value={lastInviteLink}
+                          className="flex-1 bg-muted border border-border rounded-lg px-3 py-2 text-xs text-foreground font-mono"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => navigator.clipboard?.writeText(lastInviteLink)}
+                          className="px-3 py-2 bg-muted border border-border rounded-lg text-foreground hover:bg-accent"
+                          title="Copier"
+                        >
+                          <Copy className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                  {lastInviteCode && (
+                    <div>
+                      <label className="block text-xs text-muted-foreground mb-1">
+                        Ou code d'invitation (alternative au lien)
+                      </label>
+                      <div className="flex gap-2">
+                        <input
+                          readOnly
+                          value={lastInviteCode}
+                          className="flex-1 bg-muted border border-border rounded-lg px-3 py-2 text-sm text-foreground font-mono tracking-widest text-center"
+                        />
+                        <button
+                          type="button"
+                          onClick={() => navigator.clipboard?.writeText(lastInviteCode)}
+                          className="px-3 py-2 bg-muted border border-border rounded-lg text-foreground hover:bg-accent"
+                          title="Copier"
+                        >
+                          <Copy className="w-4 h-4" />
+                        </button>
+                      </div>
+                    </div>
+                  )}
+                  <p className="text-xs text-muted-foreground">
+                    Ne fonctionne que pour l'adresse e-mail saisie ci-dessus.
+                  </p>
+                </div>
+              )}
+
+              {pendingInvitations.length > 0 && (
+                <div className="pt-2 border-t border-border">
+                  <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wide mb-2">
+                    Invitations en attente ({pendingInvitations.length})
+                  </p>
+                  <div className="space-y-1.5 text-sm">
+                    {pendingInvitations.map((inv) => (
+                      <div
+                        key={inv.id}
+                        className="flex items-center justify-between bg-background border border-border rounded-lg px-3 py-2"
+                      >
+                        <span className="text-foreground">{inv.invited_email}</span>
+                        <span className="text-xs text-muted-foreground">{inv.role}</span>
+                      </div>
+                    ))}
+                  </div>
+                </div>
               )}
             </div>
 
