@@ -36,6 +36,7 @@ import { FormulaGuideModal } from "./components/FormulaGuideModal";
 import { AuthPage } from "./components/AuthPage";
 import { CreateStoreOnboarding } from "./components/CreateStoreOnboarding";
 import { StoreLockedScreen } from "./components/StoreLockedScreen";
+import { MyActivityView } from "./components/MyActivityView";
 import { PinLockScreen } from "./components/PinLockScreen";
 import { useAuth } from "./hooks/useAuth";
 import { useSessionTimeout } from "./hooks/useSessionTimeout";
@@ -270,6 +271,23 @@ function AppInner() {
       };
     });
   }, [sales, expenses, storeMembers, profile, user, workspace.isOwner]);
+
+  // "Mon activité" — utilisé uniquement pour la vue restreinte d'un
+  // collaborateur sans permission dashboard/capital complète (MyActivityView).
+  const myStoreMember = storeMembers.find((m) => m.user_id === user?.id);
+  const myName = workspace.isOwner
+    ? (profile?.full_name || user?.email || "").trim()
+    : myStoreMember?.full_name || myStoreMember?.email || "";
+  const mySellerData = computedSellers.find((s) => s.nom === myName) ?? null;
+
+  const hasDashboardAccess =
+    workspace.isOwner ||
+    workspace.memberPermissions === null ||
+    workspace.memberPermissions.includes("dashboard");
+  const hasCapitalAccess =
+    workspace.isOwner ||
+    workspace.memberPermissions === null ||
+    workspace.memberPermissions.includes("capital");
 
   const computedCapital = useMemo(() => {
     const capitalInitial = workspace.activeStore?.capital_initial || 0;
@@ -662,30 +680,46 @@ function AppInner() {
 
       <main className="app-container flex-1 py-4 md:py-6 pb-24 md:pb-6">
         {activeTab === "dashboard" && (
-          <DashboardView
-            capital={computedCapital}
-            products={products}
-            sales={sales}
-            purchases={purchases}
-            expenses={expenses}
-            sellers={computedSellers}
-            orders={storeData.orders}
-            clients={storeData.clients}
-            locale={locale}
-            onNavigateTab={setActiveTab}
-          />
+          hasDashboardAccess ? (
+            <DashboardView
+              capital={computedCapital}
+              products={products}
+              sales={sales}
+              purchases={purchases}
+              expenses={expenses}
+              sellers={computedSellers}
+              orders={storeData.orders}
+              clients={storeData.clients}
+              locale={locale}
+              onNavigateTab={setActiveTab}
+            />
+          ) : (
+            <MyActivityView
+              variant="dashboard"
+              storeName={workspace.activeStore?.name || "cette boutique"}
+              mySellerData={mySellerData}
+            />
+          )
         )}
         {activeTab === "capital" && (
-          <CapitalView
-            capital={computedCapital}
-            apports={apports}
-            locale={locale}
-            onUpdateCapitalInitial={handleUpdateCapitalInitial}
-            onUpdateSeuil={handleUpdateSeuil}
-            onAddApport={handleAddApport}
-            onDeleteApport={handleDeleteApport}
-            onDownloadExcel={handleDownloadExcel}
-          />
+          hasCapitalAccess ? (
+            <CapitalView
+              capital={computedCapital}
+              apports={apports}
+              locale={locale}
+              onUpdateCapitalInitial={handleUpdateCapitalInitial}
+              onUpdateSeuil={handleUpdateSeuil}
+              onAddApport={handleAddApport}
+              onDeleteApport={handleDeleteApport}
+              onDownloadExcel={handleDownloadExcel}
+            />
+          ) : (
+            <MyActivityView
+              variant="capital"
+              storeName={workspace.activeStore?.name || "cette boutique"}
+              mySellerData={mySellerData}
+            />
+          )
         )}
         {activeTab === "produits" && (
           <ProduitsView

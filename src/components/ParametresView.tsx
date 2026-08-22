@@ -170,6 +170,66 @@ export const ParametresView: React.FC<ParametresViewProps> = ({
     Array<{ id: string; invited_email: string; role: string; token: string; invite_code: string | null; store_id: string }>
   >([]);
 
+  // Vrais collaborateurs (store_members) de la boutique ciblée, avec leurs
+  // permissions actuelles — permet au propriétaire de les modifier après
+  // coup, pas uniquement au moment de l'invitation initiale.
+  const [realMembers, setRealMembers] = useState<
+    Array<{
+      id: string;
+      user_id: string;
+      role: string;
+      permissions: string[];
+      full_name: string | null;
+      email: string;
+    }>
+  >([]);
+  const [editingMemberId, setEditingMemberId] = useState<string | null>(null);
+  const [editingPermissions, setEditingPermissions] = useState<string[]>([]);
+  const [savingMemberPermissions, setSavingMemberPermissions] = useState(false);
+
+  const fetchRealMembers = async () => {
+    if (!inviteStoreId) return;
+    const { data } = await supabase
+      .from("store_members")
+      .select("id, user_id, role, permissions, profile:profiles!user_id(full_name, email)")
+      .eq("store_id", inviteStoreId);
+    setRealMembers(
+      (data ?? []).map((m: any) => ({
+        id: m.id,
+        user_id: m.user_id,
+        role: m.role,
+        permissions: Array.isArray(m.permissions) ? m.permissions : [],
+        full_name: m.profile?.full_name ?? null,
+        email: m.profile?.email ?? "",
+      })),
+    );
+  };
+
+  const openEditPermissions = (member: (typeof realMembers)[number]) => {
+    setEditingMemberId(member.id);
+    setEditingPermissions(member.permissions);
+  };
+
+  const toggleEditingPermission = (key: string) => {
+    setEditingPermissions((prev) =>
+      prev.includes(key) ? prev.filter((p) => p !== key) : [...prev, key],
+    );
+  };
+
+  const handleSaveMemberPermissions = async () => {
+    if (!editingMemberId) return;
+    setSavingMemberPermissions(true);
+    const { error } = await supabase
+      .from("store_members")
+      .update({ permissions: editingPermissions })
+      .eq("id", editingMemberId);
+    setSavingMemberPermissions(false);
+    if (!error) {
+      setEditingMemberId(null);
+      fetchRealMembers();
+    }
+  };
+
   const ownedStoresForInvite = workspace.accessibleStores.filter((s) => s.owner_id === user?.id);
 
   useEffect(() => {
@@ -191,6 +251,7 @@ export const ParametresView: React.FC<ParametresViewProps> = ({
 
   useEffect(() => {
     fetchPendingInvitations();
+    fetchRealMembers();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [inviteStoreId]);
 
@@ -586,7 +647,7 @@ export const ParametresView: React.FC<ParametresViewProps> = ({
   };
 
   return (
-    <SettingsLayout activeTab={activeTab} onTabChange={setActiveTab}>
+    <SettingsLayout activeTab={activeTab} onTabChange={setActiveTab} isOwner={workspace.isOwner}>
       <div className="p-6">
         {/* TAB: COMPTE */}
         {activeTab === "compte" && (
@@ -1118,6 +1179,106 @@ export const ParametresView: React.FC<ParametresViewProps> = ({
                 ))}
               </div>
             </div>
+
+            {/* Modification des permissions APRÈS l'invitation initiale */}
+            {realMembers.length > 0 && (
+              <div className="space-y-4">
+                <h3 className="font-bold text-foreground border-b border-border pb-2">
+                  Permissions des collaborateurs
+                </h3>
+                <p className="text-xs text-muted-foreground -mt-2">
+                  Modifiez à tout moment ce que chaque collaborateur peut voir dans cette boutique.
+                </p>
+                <div className="grid gap-3">
+                  {realMembers.map((member) => (
+                    <div
+                      key={member.id}
+                      className="p-4 bg-background border border-border rounded-xl"
+                    >
+                      {editingMemberId === member.id ? (
+                        <div className="space-y-3">
+                          <div className="flex items-center justify-between">
+                            <span className="font-bold text-foreground">
+                              {member.full_name || member.email}
+                            </span>
+                            <div className="flex items-center gap-3 text-xs">
+                              <button
+                                type="button"
+                                onClick={() =>
+                                  setEditingPermissions(AVAILABLE_PERMISSIONS.map((p) => p.key))
+                                }
+                                className="text-emerald-500 hover:underline font-semibold"
+                              >
+                                Tout cocher
+                              </button>
+                              <button
+                                type="button"
+                                onClick={() => setEditingPermissions([])}
+                                className="text-muted-foreground hover:underline font-semibold"
+                              >
+                                Tout décocher
+                              </button>
+                            </div>
+                          </div>
+                          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 bg-muted border border-border rounded-xl p-3">
+                            {AVAILABLE_PERMISSIONS.map((perm) => (
+                              <label
+                                key={perm.key}
+                                className="flex items-center gap-2 text-sm text-foreground cursor-pointer select-none"
+                              >
+                                <input
+                                  type="checkbox"
+                                  checked={editingPermissions.includes(perm.key)}
+                                  onChange={() => toggleEditingPermission(perm.key)}
+                                  className="w-4 h-4 rounded border-muted-foreground/40 accent-emerald-500"
+                                />
+                                {perm.label}
+                              </label>
+                            ))}
+                          </div>
+                          <div className="flex justify-end gap-2">
+                            <button
+                              type="button"
+                              onClick={() => setEditingMemberId(null)}
+                              className="px-3 py-1.5 bg-muted text-muted-foreground rounded-lg text-sm font-medium"
+                            >
+                              Annuler
+                            </button>
+                            <button
+                              type="button"
+                              onClick={handleSaveMemberPermissions}
+                              disabled={savingMemberPermissions}
+                              className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-60 text-white rounded-lg text-sm font-bold"
+                            >
+                              {savingMemberPermissions ? "Sauvegarde..." : "Enregistrer"}
+                            </button>
+                          </div>
+                        </div>
+                      ) : (
+                        <div className="flex items-center justify-between">
+                          <div>
+                            <div className="font-bold text-foreground">
+                              {member.full_name || member.email}
+                            </div>
+                            <div className="text-xs text-muted-foreground mt-0.5">
+                              {member.permissions.length === 0
+                                ? "Aucune permission accordée"
+                                : `${member.permissions.length} onglet(s) autorisé(s)`}
+                            </div>
+                          </div>
+                          <button
+                            onClick={() => openEditPermissions(member)}
+                            className="px-3 py-1.5 bg-muted hover:bg-accent text-foreground rounded-lg text-xs font-semibold border border-border"
+                          >
+                            Modifier permissions
+                          </button>
+                        </div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         )}
 

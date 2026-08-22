@@ -196,21 +196,34 @@ export const Header: React.FC<HeaderProps> = ({
   ];
 
   // Owner (memberPermissions === null) = tous les onglets. Collaborateur =
-  // uniquement ceux choisis par le propriétaire à l'invitation. Filtrage
-  // d'affichage — voir la note de sécurité dans src/lib/permissions.ts.
+  // uniquement ceux choisis par le propriétaire à l'invitation — SAUF
+  // "dashboard" et "capital" qui restent toujours visibles : plutôt que
+  // de les cacher, leur CONTENU s'adapte (vue personnelle restreinte au
+  // lieu des données globales de l'entreprise, voir BalsamaApp.tsx).
+  const ALWAYS_VISIBLE_TABS = ["dashboard", "capital"];
   const visibleTabs =
     workspace.memberPermissions === null
       ? tabs
-      : tabs.filter((tab) => workspace.memberPermissions!.includes(tab.id));
+      : tabs.filter(
+          (tab) =>
+            ALWAYS_VISIBLE_TABS.includes(tab.id) || workspace.memberPermissions!.includes(tab.id),
+        );
   const canSeeSettings =
     workspace.memberPermissions === null || workspace.memberPermissions.includes("settings");
 
-  const bottomTabs: { id: ActiveTab; shortLabel: string; icon: React.ReactNode }[] = [
-    { id: "dashboard", shortLabel: "Accueil", icon: <TrendingUp className="w-5 h-5" /> },
-    { id: "commandes", shortLabel: "Cmds", icon: <ShoppingBag className="w-5 h-5" /> },
-    { id: "ventes", shortLabel: "Ventes", icon: <DollarSign className="w-5 h-5" /> },
-    { id: "produits", shortLabel: "Stock", icon: <Package className="w-5 h-5" /> },
-  ];
+  const bottomTabs: { id: ActiveTab; shortLabel: string; icon: React.ReactNode }[] = (
+    [
+      { id: "dashboard", shortLabel: "Accueil", icon: <TrendingUp className="w-5 h-5" /> },
+      { id: "commandes", shortLabel: "Cmds", icon: <ShoppingBag className="w-5 h-5" /> },
+      { id: "ventes", shortLabel: "Ventes", icon: <DollarSign className="w-5 h-5" /> },
+      { id: "produits", shortLabel: "Stock", icon: <Package className="w-5 h-5" /> },
+    ] as { id: ActiveTab; shortLabel: string; icon: React.ReactNode }[]
+  ).filter(
+    (tab) =>
+      workspace.memberPermissions === null ||
+      ALWAYS_VISIBLE_TABS.includes(tab.id) ||
+      workspace.memberPermissions.includes(tab.id),
+  );
 
   const handleTabClick = (id: ActiveTab) => {
     setActiveTab(id);

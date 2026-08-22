@@ -19,23 +19,55 @@ interface SettingsLayoutProps {
   activeTab: SettingsTab;
   onTabChange: (tab: SettingsTab) => void;
   children: React.ReactNode;
+  /**
+   * Un collaborateur avec la permission "settings" ne doit voir QUE ses
+   * propres réglages (compte, sécurité, notifications, préférences) —
+   * jamais "Ma boutique", "Équipe & invitations" ou "Paiements &
+   * activation", qui restent strictement réservés au propriétaire quelle
+   * que soit la permission "settings" accordée. Évite qu'accorder l'accès
+   * aux paramètres personnels ouvre accidentellement la gestion de toute
+   * la boutique.
+   */
+  isOwner: boolean;
 }
 
 export const SettingsLayout: React.FC<SettingsLayoutProps> = ({
   activeTab,
   onTabChange,
   children,
+  isOwner,
 }) => {
   const { signOut, profile } = useAuth();
-  const tabs = [
-    { id: "compte", label: "Mon compte", icon: <User className="w-4 h-4" /> },
-    { id: "securite", label: "Sécurité", icon: <Shield className="w-4 h-4" /> },
-    { id: "boutique", label: "Ma boutique", icon: <Store className="w-4 h-4" /> },
-    { id: "equipe", label: "Équipe & invitations", icon: <Users className="w-4 h-4" /> },
-    { id: "paiement", label: "Paiements & activation", icon: <CreditCard className="w-4 h-4" /> },
-    { id: "notifications", label: "Notifications", icon: <Bell className="w-4 h-4" /> },
-    { id: "preferences", label: "Préférences", icon: <SettingsIcon className="w-4 h-4" /> },
-  ];
+  const allTabs = [
+    { id: "compte", label: "Mon compte", icon: <User className="w-4 h-4" />, ownerOnly: false },
+    { id: "securite", label: "Sécurité", icon: <Shield className="w-4 h-4" />, ownerOnly: false },
+    { id: "boutique", label: "Ma boutique", icon: <Store className="w-4 h-4" />, ownerOnly: true },
+    {
+      id: "equipe",
+      label: "Équipe & invitations",
+      icon: <Users className="w-4 h-4" />,
+      ownerOnly: true,
+    },
+    {
+      id: "paiement",
+      label: "Paiements & activation",
+      icon: <CreditCard className="w-4 h-4" />,
+      ownerOnly: true,
+    },
+    {
+      id: "notifications",
+      label: "Notifications",
+      icon: <Bell className="w-4 h-4" />,
+      ownerOnly: false,
+    },
+    {
+      id: "preferences",
+      label: "Préférences",
+      icon: <SettingsIcon className="w-4 h-4" />,
+      ownerOnly: false,
+    },
+  ] as const;
+  const tabs = allTabs.filter((tab) => isOwner || !tab.ownerOnly);
 
   return (
     <div className="pb-16 flex flex-col md:flex-row gap-6">

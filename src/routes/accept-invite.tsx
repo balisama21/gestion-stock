@@ -24,7 +24,7 @@ export const Route = createFileRoute("/accept-invite")({
 
 function AcceptInvitePage() {
   const { token } = Route.useSearch();
-  const { user, refreshProfile } = useAuth();
+  const { user, refreshProfile, signOut } = useAuth();
 
   const [status, setStatus] = useState<
     "loading" | "auth-required" | "processing" | "success" | "error"
@@ -36,6 +36,10 @@ function AcceptInvitePage() {
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
   const [showPassword, setShowPassword] = useState(false);
+  const [isEmailMismatch, setIsEmailMismatch] = useState(false);
+  const [joinedStoreName, setJoinedStoreName] = useState<string | null>(null);
+
+  const [needsEmailConfirmation, setNeedsEmailConfirmation] = useState(false);
 
   useEffect(() => {
     if (!token) {
@@ -45,10 +49,11 @@ function AcceptInvitePage() {
     }
 
     if (!user) {
-      setStatus("auth-required");
+      if (!needsEmailConfirmation) setStatus("auth-required");
     } else {
       processInvitation(user.id);
     }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token, user]);
 
   const processInvitation = async (userId: string) => {
@@ -58,7 +63,7 @@ function AcceptInvitePage() {
       // de l'edge function accept-invitation : celle-ci vérifie que l'email
       // du compte connecté correspond bien à l'email invité — l'edge
       // function, elle, ne le faisait pas (faille corrigée le 19/08/2026).
-      const { error } = await supabase.rpc("accept_invitation", { p_token: token });
+      const { data, error } = await supabase.rpc("accept_invitation", { p_token: token });
 
       if (error) {
         throw new Error(error.message || "Erreur lors de l'acceptation.");
@@ -66,6 +71,7 @@ function AcceptInvitePage() {
 
       await refreshProfile();
       setStatus("success");
+      setJoinedStoreName(data?.store_name ?? null);
 
       // Rechargement complet (pas une navigation SPA) : garantit que le
       // workspace récupère bien la nouvelle boutique rejointe dès l'arrivée
@@ -74,8 +80,14 @@ function AcceptInvitePage() {
         window.location.href = "/";
       }, 2000);
     } catch (e: unknown) {
+      const message = e instanceof Error ? e.message : "Une erreur est survenue.";
+      // Cas fréquent en test : la personne est déjà connectée avec SON
+      // PROPRE compte (pas celui invité) quand elle clique le lien. On lui
+      // propose de se déconnecter directement plutôt qu'un message d'échec
+      // sec — c'est la cause la plus probable de "le lien ne marche pas".
+      setIsEmailMismatch(message.includes("ne correspond pas"));
       setStatus("error");
-      setErrorMsg(e instanceof Error ? e.message : "Une erreur est survenue.");
+      setErrorMsg(message);
     }
   };
 
@@ -85,15 +97,38 @@ function AcceptInvitePage() {
     setErrorMsg("");
     try {
       if (isLogin) {
-        const { error } = await supabase.auth.signInWithPassword({ email, password });
+        const { data, error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
+        // Traite l'invitation immédiatement plutôt que d'attendre la
+        // propagation du contexte React (plus fiable, évite tout délai/
+        // impression que "le lien ne fait rien").
+        if (data.user) {
+          await processInvitation(data.user.id);
+        }
       } else {
-        const { error } = await supabase.auth.signUp({
+        const { data, error } = await supabase.auth.signUp({
           email,
           password,
-          options: { data: { full_name: fullName } },
+          options: {
+            data: { full_name: fullName },
+            // Préserve le lien COMPLET (avec le token) pour que la
+            // confirmation par e-mail ramène directement ici, et non sur
+            // la page d'accueil où l'invitation serait perdue.
+            emailRedirectTo: window.location.href,
+          },
         });
         if (error) throw error;
+
+        if (data.session) {
+          // Confirmation email désactivée sur ce projet : session immédiate.
+          await processInvitation(data.user!.id);
+        } else {
+          // Cas standard : confirmation par e-mail requise avant toute
+          // session. On informe clairement au lieu de rester bloqué en
+          // silence sur l'écran de connexion.
+          setNeedsEmailConfirmation(true);
+          setStatus("auth-required");
+        }
       }
     } catch (e: unknown) {
       setStatus("auth-required");
@@ -160,6 +195,11 @@ function AcceptInvitePage() {
               <div className="text-center py-4">
                 <CheckCircle2 className="w-12 h-12 text-emerald-500 mx-auto mb-4" />
                 <p className="text-emerald-500 font-bold mb-2">Invitation acceptée !</p>
+                {joinedStoreName && (
+                  <p className="text-sm text-foreground mb-1">
+                    Vous avez rejoint <strong>{joinedStoreName}</strong>.
+                  </p>
+                )}
                 <p className="text-sm text-muted-foreground">Redirection vers votre espace...</p>
               </div>
             )}
@@ -170,16 +210,43 @@ function AcceptInvitePage() {
                   <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
                   {errorMsg}
                 </div>
-                <Link
-                  to="/"
-                  className="block w-full text-center py-3 bg-muted hover:bg-muted/80 text-foreground rounded-xl text-sm font-semibold transition-colors"
-                >
-                  Retour à l&apos;accueil
-                </Link>
+                {isEmailMismatch ? (
+                  <button
+                    type="button"
+                    onClick={async () => {
+                      await signOut();
+                      setIsEmailMismatch(false);
+                      setStatus("auth-required");
+                      setErrorMsg("");
+                    }}
+                    className="block w-full text-center py-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-sm font-bold transition-colors"
+                  >
+                    Se déconnecter et utiliser le bon compte
+                  </button>
+                ) : (
+                  <Link
+                    to="/"
+                    className="block w-full text-center py-3 bg-muted hover:bg-muted/80 text-foreground rounded-xl text-sm font-semibold transition-colors"
+                  >
+                    Retour à l&apos;accueil
+                  </Link>
+                )}
               </div>
             )}
 
-            {status === "auth-required" && (
+            {status === "auth-required" && needsEmailConfirmation && (
+              <div className="text-center py-4">
+                <Mail className="w-12 h-12 text-emerald-500 mx-auto mb-4" />
+                <p className="text-foreground font-bold mb-2">Confirmez votre e-mail</p>
+                <p className="text-sm text-muted-foreground leading-relaxed">
+                  Un e-mail de confirmation a été envoyé à <strong>{email}</strong>. Ouvrez le
+                  lien qu'il contient pour finaliser votre inscription — vous serez ramené
+                  directement ici pour rejoindre la boutique.
+                </p>
+              </div>
+            )}
+
+            {status === "auth-required" && !needsEmailConfirmation && (
               <div>
                 <p className="text-sm text-muted-foreground mb-6">
                   Connectez-vous ou créez un compte pour accepter cette invitation.
