@@ -2,6 +2,7 @@ import React, { useState, useEffect, useMemo } from "react";
 import { Sale, Product, Seller, LocaleSetting, StoreSettings } from "../types";
 import {
   DollarSign,
+  Lock,
   Plus,
   UserCheck,
   AlertCircle,
@@ -43,6 +44,13 @@ interface VentesViewProps {
   }) => Promise<{ sale: Sale | null; error: string | null }>;
   onEditSale?: (updatedSale: Sale) => void;
   onDeleteSale?: (saleId: string) => void;
+  /**
+   * true si l'utilisateur n'a pas la permission "Ventes" complète : la
+   * liste ne contient déjà QUE ses propres ventes (filtrée en amont dans
+   * BalsamaApp.tsx) — ce flag sert uniquement à afficher un bandeau
+   * explicatif, pas à refiltrer quoi que ce soit ici.
+   */
+  restrictedToOwnSales?: boolean;
 }
 
 export const VentesView: React.FC<VentesViewProps> = ({
@@ -54,6 +62,7 @@ export const VentesView: React.FC<VentesViewProps> = ({
   onAddSale,
   onEditSale,
   onDeleteSale,
+  restrictedToOwnSales,
 }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingSale, setEditingSale] = useState<Sale | null>(null);
@@ -201,6 +210,15 @@ export const VentesView: React.FC<VentesViewProps> = ({
 
   return (
     <div className="space-y-6">
+      {restrictedToOwnSales && (
+        <div className="flex items-center gap-3 bg-amber-500/10 border border-amber-500/25 rounded-2xl p-4 text-sm text-amber-600 dark:text-amber-400">
+          <Lock className="w-5 h-5 shrink-0" />
+          <span>
+            Vous n'avez pas accès à l'historique complet des ventes de la boutique — seules{" "}
+            <strong>vos propres ventes</strong> sont affichées ci-dessous.
+          </span>
+        </div>
+      )}
       {/* Header */}
       <div className="flex flex-wrap items-center justify-between gap-4 bg-card p-6 rounded-2xl border border-border">
         <div>

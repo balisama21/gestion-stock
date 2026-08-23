@@ -139,6 +139,13 @@ export const Header: React.FC<HeaderProps> = ({
 
   const isTresorerieLow = tresorerie < seuilAlerte;
   const isTresorerieNegative = tresorerie < 0;
+  // Un collaborateur sans la permission "capital" ne doit JAMAIS voir la
+  // trésorerie globale de l'entreprise, même dans ce badge d'en-tête
+  // toujours visible — c'était affiché sans aucune vérification jusqu'ici.
+  const hasCapitalAccess =
+    workspace.isOwner ||
+    workspace.memberPermissions === null ||
+    workspace.memberPermissions.includes("capital");
 
   // Build aggregated notifications list from recent software activities
   const allNotifications = useMemo(() => {
@@ -197,10 +204,12 @@ export const Header: React.FC<HeaderProps> = ({
 
   // Owner (memberPermissions === null) = tous les onglets. Collaborateur =
   // uniquement ceux choisis par le propriétaire à l'invitation — SAUF
-  // "dashboard" et "capital" qui restent toujours visibles : plutôt que
-  // de les cacher, leur CONTENU s'adapte (vue personnelle restreinte au
-  // lieu des données globales de l'entreprise, voir BalsamaApp.tsx).
-  const ALWAYS_VISIBLE_TABS = ["dashboard", "capital"];
+  // "dashboard", "capital" et "ventes" qui restent toujours visibles :
+  // plutôt que de les cacher, leur CONTENU s'adapte (vue personnelle
+  // restreinte au lieu des données globales de l'entreprise, voir
+  // BalsamaApp.tsx). Ce même principe pourra être étendu aux autres
+  // onglets (Achats, Commandes, Dépenses...) selon le même schéma.
+  const ALWAYS_VISIBLE_TABS = ["dashboard", "capital", "ventes"];
   const visibleTabs =
     workspace.memberPermissions === null
       ? tabs
@@ -345,18 +354,20 @@ export const Header: React.FC<HeaderProps> = ({
 
         {/* Header Right Actions */}
         <div className="flex shrink-0 items-center gap-1.5 sm:gap-3">
-          <div className="flex items-center gap-2 sm:gap-3 bg-muted/80 px-2.5 py-1.5 sm:px-4 sm:py-2 rounded-xl border border-muted-foreground/20">
-            <div>
-              <div className="text-[9px] sm:text-[10px] uppercase font-semibold text-muted-foreground tracking-wider">
-                Trésorerie
-              </div>
-              <div
-                className={`text-xs sm:text-base font-bold font-mono whitespace-nowrap ${isTresorerieNegative ? "text-red-400 animate-pulse" : isTresorerieLow ? "text-amber-400" : "text-emerald-400"}`}
-              >
-                {formatCurrency(tresorerie)}
+          {hasCapitalAccess && (
+            <div className="flex items-center gap-2 sm:gap-3 bg-muted/80 px-2.5 py-1.5 sm:px-4 sm:py-2 rounded-xl border border-muted-foreground/20">
+              <div>
+                <div className="text-[9px] sm:text-[10px] uppercase font-semibold text-muted-foreground tracking-wider">
+                  Trésorerie
+                </div>
+                <div
+                  className={`text-xs sm:text-base font-bold font-mono whitespace-nowrap ${isTresorerieNegative ? "text-red-400 animate-pulse" : isTresorerieLow ? "text-amber-400" : "text-emerald-400"}`}
+                >
+                  {formatCurrency(tresorerie)}
+                </div>
               </div>
             </div>
-          </div>
+          )}
 
           <button
             onClick={() => setTheme(theme === "dark" ? "light" : "dark")}

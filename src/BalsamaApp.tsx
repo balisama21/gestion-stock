@@ -280,14 +280,35 @@ function AppInner() {
     : myStoreMember?.full_name || myStoreMember?.email || "";
   const mySellerData = computedSellers.find((s) => s.nom === myName) ?? null;
 
-  const hasDashboardAccess =
-    workspace.isOwner ||
-    workspace.memberPermissions === null ||
-    workspace.memberPermissions.includes("dashboard");
   const hasCapitalAccess =
     workspace.isOwner ||
     workspace.memberPermissions === null ||
     workspace.memberPermissions.includes("capital");
+  const hasDashboardPermission =
+    workspace.isOwner ||
+    workspace.memberPermissions === null ||
+    workspace.memberPermissions.includes("dashboard");
+  // Le Dashboard complet contient des chiffres financiers globaux
+  // (trésorerie, achats, dépenses...) : il faut donc EXPLICITEMENT les
+  // permissions "Dashboard" ET "Capital" toutes les deux, sinon vue
+  // restreinte à l'activité personnelle. Avant ce correctif, "Dashboard"
+  // seul suffisait à tout révéler même sans "Capital" — faille corrigée
+  // le 21/08/2026.
+  const hasDashboardAccess = hasDashboardPermission && hasCapitalAccess;
+
+  const hasVentesAccess =
+    workspace.isOwner ||
+    workspace.memberPermissions === null ||
+    workspace.memberPermissions.includes("ventes");
+  // Si la permission "Ventes" n'est pas accordée, l'onglet reste visible
+  // mais ne montre QUE les ventes réalisées par ce collaborateur lui-même
+  // (jamais le tableau complet de l'entreprise) — même principe que
+  // Dashboard/Capital, généralisable aux autres pages au besoin.
+  const mySales = useMemo(
+    () => (myName ? sales.filter((s) => s.vendeur === myName) : []),
+    [sales, myName],
+  );
+  const visibleSales = hasVentesAccess ? sales : mySales;
 
   const computedCapital = useMemo(() => {
     const capitalInitial = workspace.activeStore?.capital_initial || 0;
@@ -741,14 +762,15 @@ function AppInner() {
         )}
         {activeTab === "ventes" && (
           <VentesView
-            sales={sales}
+            sales={visibleSales}
             products={products}
             sellers={computedSellers}
             locale={locale}
             settings={storeSettings}
             onAddSale={handleAddSale}
-            onEditSale={handleEditSale}
-            onDeleteSale={handleDeleteSale}
+            onEditSale={hasVentesAccess ? handleEditSale : undefined}
+            onDeleteSale={hasVentesAccess ? handleDeleteSale : undefined}
+            restrictedToOwnSales={!hasVentesAccess}
           />
         )}
         {activeTab === "vendeurs" && (
