@@ -5,7 +5,16 @@ import { supabase } from "../lib/supabase";
 import { useWorkspace } from "../hooks/useWorkspace";
 import { useAuth } from "../hooks/useAuth";
 import { APP_NAME } from "../lib/appConfig";
-import { AVAILABLE_PERMISSIONS } from "../lib/permissions";
+import {
+  AVAILABLE_PERMISSIONS,
+  MODULE_DEFINITIONS,
+  normalizePermissions,
+  summarizePermissions,
+  type PermissionsMap,
+  type RoleKey,
+} from "../lib/permissions";
+import { InviteWizard } from "./permissions/InviteWizard";
+import { ModulePermissionCard } from "./permissions/ModulePermissionCard";
 import {
   Building,
   Phone,
@@ -149,14 +158,8 @@ export const ParametresView: React.FC<ParametresViewProps> = ({
 
   const [savedSuccess, setSavedSuccess] = useState(false);
 
-  const [inviteEmail, setInviteEmail] = useState("");
-  const [inviteRole, setInviteRole] = useState("seller");
   const [inviting, setInviting] = useState(false);
   const [inviteStatus, setInviteStatus] = useState("");
-  // Permissions choisies par le propriétaire AVANT l'envoi (cases à
-  // cocher). Par défaut, aucune coché — le propriétaire choisit
-  // explicitement ce que le collaborateur pourra voir.
-  const [invitePermissions, setInvitePermissions] = useState<string[]>([]);
   // Boutique ciblée par l'invitation — utile si le propriétaire possède
   // plusieurs boutiques (ex: après une duplication) : l'invité ne
   // rejoint QUE celle sélectionnée ici, jamais les autres.
@@ -171,20 +174,21 @@ export const ParametresView: React.FC<ParametresViewProps> = ({
   >([]);
 
   // Vrais collaborateurs (store_members) de la boutique ciblée, avec leurs
-  // permissions actuelles — permet au propriétaire de les modifier après
-  // coup, pas uniquement au moment de l'invitation initiale.
+  // permissions actuelles (nouveau modèle PermissionsMap — voir
+  // src/lib/permissions.ts) — permet au propriétaire de les modifier
+  // après coup, pas uniquement au moment de l'invitation initiale.
   const [realMembers, setRealMembers] = useState<
     Array<{
       id: string;
       user_id: string;
       role: string;
-      permissions: string[];
+      permissions: PermissionsMap;
       full_name: string | null;
       email: string;
     }>
   >([]);
   const [editingMemberId, setEditingMemberId] = useState<string | null>(null);
-  const [editingPermissions, setEditingPermissions] = useState<string[]>([]);
+  const [editingPermissions, setEditingPermissions] = useState<PermissionsMap>({});
   const [savingMemberPermissions, setSavingMemberPermissions] = useState(false);
 
   const fetchRealMembers = async () => {
@@ -198,7 +202,10 @@ export const ParametresView: React.FC<ParametresViewProps> = ({
         id: m.id,
         user_id: m.user_id,
         role: m.role,
-        permissions: Array.isArray(m.permissions) ? m.permissions : [],
+        // normalizePermissions() lit aussi bien l'ancien format (tableau)
+        // que le nouveau (carte détaillée) — aucun collaborateur existant
+        // n'affiche "aucune permission" par erreur après la migration.
+        permissions: normalizePermissions(m.permissions),
         full_name: m.profile?.full_name ?? null,
         email: m.profile?.email ?? "",
       })),
@@ -208,12 +215,6 @@ export const ParametresView: React.FC<ParametresViewProps> = ({
   const openEditPermissions = (member: (typeof realMembers)[number]) => {
     setEditingMemberId(member.id);
     setEditingPermissions(member.permissions);
-  };
-
-  const toggleEditingPermission = (key: string) => {
-    setEditingPermissions((prev) =>
-      prev.includes(key) ? prev.filter((p) => p !== key) : [...prev, key],
-    );
   };
 
   const handleSaveMemberPermissions = async () => {
@@ -254,12 +255,6 @@ export const ParametresView: React.FC<ParametresViewProps> = ({
     fetchRealMembers();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [inviteStoreId]);
-
-  const togglePermission = (key: string) => {
-    setInvitePermissions((prev) =>
-      prev.includes(key) ? prev.filter((p) => p !== key) : [...prev, key],
-    );
-  };
 
   // Contact admin réel de la plateforme (celui affiché à AuthPage.tsx et
   // ici doivent toujours être synchronisés — voir aussi la constante du
@@ -382,44 +377,45 @@ export const ParametresView: React.FC<ParametresViewProps> = ({
     }
   };
 
-  const handleSendInvitation = async () => {
-    const targetStoreId = inviteStoreId || workspace.activeStore?.id;
-    if (!inviteEmail || !targetStoreId) return;
+  const handleSendInvitation = async (data: {
+    email: string;
+    storeId: string;
+    role: RoleKey;
+    permissions: PermissionsMap;
+  }) => {
     setInviting(true);
     setInviteStatus("");
     setLastInviteLink(null);
     setLastInviteCode(null);
 
-    const targetStore = ownedStoresForInvite.find((s) => s.id === targetStoreId);
+    const targetStore = ownedStoresForInvite.find((s) => s.id === data.storeId);
 
     try {
-      const { data, error } = await supabase.functions.invoke("send-invitation", {
+      const { data: res, error } = await supabase.functions.invoke("send-invitation", {
         body: {
-          invited_email: inviteEmail.trim(),
-          store_id: targetStoreId,
-          role: inviteRole,
-          permissions: invitePermissions,
+          invited_email: data.email,
+          store_id: data.storeId,
+          role: data.role,
+          permissions: data.permissions,
           invited_by_name: profile?.full_name || "Propriétaire",
           store_name: targetStore?.name || workspace.activeStore?.name,
           app_url: window.location.origin,
         },
       });
       if (error) throw error;
-      if (data?.error) throw new Error(data.error);
+      if (res?.error) throw new Error(res.error);
 
       setInviteStatus(
-        data?.warning
+        res?.warning
           ? "Invitation créée. E-mail non envoyé (voir lien/code ci-dessous à partager manuellement)."
           : "Invitation envoyée avec succès par e-mail ! Lien/code disponibles ci-dessous en secours.",
       );
-      if (data?.token) {
-        setLastInviteLink(`${window.location.origin}/accept-invite?token=${data.token}`);
+      if (res?.token) {
+        setLastInviteLink(`${window.location.origin}/accept-invite?token=${res.token}`);
       }
-      if (data?.invite_code) {
-        setLastInviteCode(data.invite_code);
+      if (res?.invite_code) {
+        setLastInviteCode(res.invite_code);
       }
-      setInviteEmail("");
-      setInvitePermissions([]);
       fetchPendingInvitations();
     } catch (e: any) {
       setInviteStatus("Erreur : " + e.message);
@@ -967,101 +963,20 @@ export const ParametresView: React.FC<ParametresViewProps> = ({
             </div>
 
             <div className="bg-muted border border-border rounded-2xl p-5 mb-6 space-y-5">
-              <h3 className="font-bold text-foreground">Inviter un Collaborateur par e-mail</h3>
-
-              {ownedStoresForInvite.length > 1 && (
-                <div>
-                  <label className="block text-sm font-semibold text-foreground mb-1">
-                    Boutique concernée
-                  </label>
-                  <select
-                    value={inviteStoreId}
-                    onChange={(e) => setInviteStoreId(e.target.value)}
-                    className="w-full bg-background border border-border rounded-xl px-4 py-2.5 text-foreground"
-                  >
-                    {ownedStoresForInvite.map((s) => (
-                      <option key={s.id} value={s.id}>
-                        {s.name}
-                      </option>
-                    ))}
-                  </select>
-                  <p className="text-xs text-muted-foreground mt-1">
-                    L'invité rejoindra UNIQUEMENT cette boutique, jamais vos autres boutiques.
-                  </p>
-                </div>
-              )}
-
-              <div className="flex flex-col sm:flex-row gap-3">
-                <input
-                  type="email"
-                  placeholder="Adresse e-mail du collaborateur"
-                  value={inviteEmail}
-                  onChange={(e) => setInviteEmail(e.target.value)}
-                  className="flex-1 bg-background border border-border rounded-xl px-4 py-2 text-foreground"
-                />
-                <select
-                  value={inviteRole}
-                  onChange={(e) => setInviteRole(e.target.value)}
-                  className="bg-background border border-border rounded-xl px-4 py-2 text-foreground"
-                >
-                  <option value="seller">Vendeur</option>
-                  <option value="collaborator">Collaborateur / Magasinier</option>
-                  <option value="cashier">Gérant Caisse</option>
-                </select>
-              </div>
-
               <div>
-                <div className="flex items-center justify-between mb-2">
-                  <label className="block text-sm font-semibold text-foreground">
-                    Permissions accordées (onglets visibles pour l'invité)
-                  </label>
-                  <div className="flex items-center gap-3 text-xs">
-                    <button
-                      type="button"
-                      onClick={() => setInvitePermissions(AVAILABLE_PERMISSIONS.map((p) => p.key))}
-                      className="text-emerald-500 hover:underline font-semibold"
-                    >
-                      Tout cocher
-                    </button>
-                    <button
-                      type="button"
-                      onClick={() => setInvitePermissions([])}
-                      className="text-muted-foreground hover:underline font-semibold"
-                    >
-                      Tout décocher
-                    </button>
-                  </div>
-                </div>
-                <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 bg-background border border-border rounded-xl p-3">
-                  {AVAILABLE_PERMISSIONS.map((perm) => (
-                    <label
-                      key={perm.key}
-                      className="flex items-center gap-2 text-sm text-foreground cursor-pointer select-none"
-                    >
-                      <input
-                        type="checkbox"
-                        checked={invitePermissions.includes(perm.key)}
-                        onChange={() => togglePermission(perm.key)}
-                        className="w-4 h-4 rounded border-muted-foreground/40 accent-emerald-500"
-                      />
-                      {perm.label}
-                    </label>
-                  ))}
-                </div>
-                {invitePermissions.length === 0 && (
-                  <p className="text-xs text-amber-500 mt-1.5">
-                    Aucune permission cochée : l'invité n'aura accès à aucun onglet.
-                  </p>
-                )}
+                <h3 className="font-bold text-foreground">Inviter un Collaborateur</h3>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  Choisissez un rôle pour appliquer un profil de permissions recommandé, puis
+                  personnalisez librement chaque module avant l'envoi.
+                </p>
               </div>
 
-              <button
-                onClick={handleSendInvitation}
-                disabled={inviting || !inviteEmail}
-                className="w-full px-6 py-2.5 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white font-bold rounded-xl"
-              >
-                {inviting ? "Envoi..." : "Envoyer Invitation"}
-              </button>
+              <InviteWizard
+                stores={ownedStoresForInvite.map((s) => ({ id: s.id, name: s.name }))}
+                defaultStoreId={inviteStoreId || workspace.activeStore?.id || ""}
+                submitting={inviting}
+                onSubmit={handleSendInvitation}
+              />
 
               {inviteStatus && (
                 <p
@@ -1201,39 +1116,20 @@ export const ParametresView: React.FC<ParametresViewProps> = ({
                             <span className="font-bold text-foreground">
                               {member.full_name || member.email}
                             </span>
-                            <div className="flex items-center gap-3 text-xs">
-                              <button
-                                type="button"
-                                onClick={() =>
-                                  setEditingPermissions(AVAILABLE_PERMISSIONS.map((p) => p.key))
-                                }
-                                className="text-emerald-500 hover:underline font-semibold"
-                              >
-                                Tout cocher
-                              </button>
-                              <button
-                                type="button"
-                                onClick={() => setEditingPermissions([])}
-                                className="text-muted-foreground hover:underline font-semibold"
-                              >
-                                Tout décocher
-                              </button>
-                            </div>
                           </div>
-                          <div className="grid grid-cols-2 sm:grid-cols-3 gap-2 bg-muted border border-border rounded-xl p-3">
-                            {AVAILABLE_PERMISSIONS.map((perm) => (
-                              <label
-                                key={perm.key}
-                                className="flex items-center gap-2 text-sm text-foreground cursor-pointer select-none"
-                              >
-                                <input
-                                  type="checkbox"
-                                  checked={editingPermissions.includes(perm.key)}
-                                  onChange={() => toggleEditingPermission(perm.key)}
-                                  className="w-4 h-4 rounded border-muted-foreground/40 accent-emerald-500"
-                                />
-                                {perm.label}
-                              </label>
+                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                            {MODULE_DEFINITIONS.map((def) => (
+                              <ModulePermissionCard
+                                key={def.key}
+                                def={def}
+                                value={editingPermissions[def.key]}
+                                onChange={(next) =>
+                                  setEditingPermissions((prev) => ({
+                                    ...prev,
+                                    [def.key]: next ?? { visible: false },
+                                  }))
+                                }
+                              />
                             ))}
                           </div>
                           <div className="flex justify-end gap-2">
@@ -1261,9 +1157,12 @@ export const ParametresView: React.FC<ParametresViewProps> = ({
                               {member.full_name || member.email}
                             </div>
                             <div className="text-xs text-muted-foreground mt-0.5">
-                              {member.permissions.length === 0
-                                ? "Aucune permission accordée"
-                                : `${member.permissions.length} onglet(s) autorisé(s)`}
+                              {(() => {
+                                const s = summarizePermissions(member.permissions);
+                                return s.modulesCount === 0
+                                  ? "Aucune permission accordée"
+                                  : `${s.modulesCount} module(s) autorisé(s)`;
+                              })()}
                             </div>
                           </div>
                           <button

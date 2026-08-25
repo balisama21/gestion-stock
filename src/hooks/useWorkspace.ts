@@ -2,6 +2,11 @@ import { useState, useEffect, useCallback, createContext, useContext } from "rea
 import { supabase } from "../lib/supabase";
 import type { Database } from "../lib/database.types";
 import { useAuth } from "./useAuth";
+import {
+  normalizePermissions,
+  permissionsToVisibleModules,
+  type PermissionsMap,
+} from "../lib/permissions";
 
 type Store = Database["public"]["Tables"]["stores"]["Row"];
 
@@ -16,10 +21,17 @@ interface WorkspaceState {
   memberRole: string | null;
   /**
    * Permissions accordées dans la boutique active — `null` si owner
-   * (accès total, illimité), sinon la liste des clés autorisées choisies
-   * par le propriétaire à l'invitation (voir src/lib/permissions.ts).
+   * (accès total, illimité), sinon la liste des clés de modules VISIBLES
+   * choisies par le propriétaire (vue "à plat", rétro-compatible avec le
+   * système v1). Voir src/lib/permissions.ts.
    */
   memberPermissions: string[] | null;
+  /**
+   * Nouvelle carte détaillée (visibilité + portée + actions + champs) —
+   * `null` si owner. Utilisée progressivement module par module au fur
+   * et à mesure de la mise à niveau vers le système de permissions v2.
+   */
+  memberPermissionsDetailed: PermissionsMap | null;
   loading: boolean;
   error: string | null;
 }
@@ -69,8 +81,8 @@ export function useWorkspaceState(): WorkspaceContext {
   const [memberStores, setMemberStores] = useState<Store[]>([]);
   const [activeStoreId, setActiveStoreIdState] = useState<string | null>(null);
   const [memberRoles, setMemberRoles] = useState<Record<string, string>>({});
-  const [memberPermissionsByStore, setMemberPermissionsByStore] = useState<
-    Record<string, string[]>
+  const [memberPermissionsDetailedByStore, setMemberPermissionsDetailedByStore] = useState<
+    Record<string, PermissionsMap>
   >({});
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -82,7 +94,7 @@ export function useWorkspaceState(): WorkspaceContext {
         owned: [] as Store[],
         memberStoreList: [] as Store[],
         roles: {} as Record<string, string>,
-        permissions: {} as Record<string, string[]>,
+        permissionsDetailed: {} as Record<string, PermissionsMap>,
       };
 
     const [ownedRes, membershipsRes] = await Promise.all([
@@ -99,15 +111,18 @@ export function useWorkspaceState(): WorkspaceContext {
       .filter(Boolean);
 
     const roles: Record<string, string> = {};
-    const permissions: Record<string, string[]> = {};
+    const permissionsDetailed: Record<string, PermissionsMap> = {};
     (membershipsRes.data ?? []).forEach((m: any) => {
       if (m.store_id) {
         roles[m.store_id] = m.role;
-        permissions[m.store_id] = Array.isArray(m.permissions) ? m.permissions : [];
+        // normalizePermissions() gère aussi bien l'ancien format (tableau
+        // de clés) que le nouveau (carte détaillée) — aucune donnée
+        // existante n'est perdue lors de cette mise à niveau.
+        permissionsDetailed[m.store_id] = normalizePermissions(m.permissions);
       }
     });
 
-    return { owned, memberStoreList, roles, permissions };
+    return { owned, memberStoreList, roles, permissionsDetailed };
   }, [user]);
 
   const loadStores = useCallback(async () => {
@@ -119,11 +134,11 @@ export function useWorkspaceState(): WorkspaceContext {
     setError(null);
 
     try {
-      const { owned, memberStoreList, roles, permissions } = await fetchAllStores();
+      const { owned, memberStoreList, roles, permissionsDetailed } = await fetchAllStores();
       setOwnedStores(owned);
       setMemberStores(memberStoreList);
       setMemberRoles(roles);
-      setMemberPermissionsByStore(permissions);
+      setMemberPermissionsDetailedByStore(permissionsDetailed);
 
       if (!hasInitializedActiveStore) {
         // Priorité : dernière boutique active mémorisée (localStorage) si
@@ -167,8 +182,15 @@ export function useWorkspaceState(): WorkspaceContext {
   const memberRole = activeStore ? (memberRoles[activeStore.id] ?? null) : null;
   // Owner = accès total (null = illimité). Collaborateur = uniquement les
   // permissions choisies par le propriétaire à l'invitation.
-  const memberPermissions =
-    activeStore && !isOwner ? (memberPermissionsByStore[activeStore.id] ?? []) : null;
+  const memberPermissionsDetailed =
+    activeStore && !isOwner ? (memberPermissionsDetailedByStore[activeStore.id] ?? {}) : null;
+  // Vue "à plat" dérivée automatiquement — garde tout le code déjà écrit
+  // (Header.tsx, BalsamaApp.tsx, VentesView.tsx...) fonctionnel sans
+  // modification tant qu'il n'a pas été mis à niveau vers la granularité
+  // fine (scope/actions/fields), module par module.
+  const memberPermissions = memberPermissionsDetailed
+    ? permissionsToVisibleModules(memberPermissionsDetailed)
+    : null;
 
   const switchStore = useCallback(
     (storeId: string) => {
@@ -191,11 +213,11 @@ export function useWorkspaceState(): WorkspaceContext {
     setLoading(true);
     setError(null);
     try {
-      const { owned, memberStoreList, roles, permissions } = await fetchAllStores();
+      const { owned, memberStoreList, roles, permissionsDetailed } = await fetchAllStores();
       setOwnedStores(owned);
       setMemberStores(memberStoreList);
       setMemberRoles(roles);
-      setMemberPermissionsByStore(permissions);
+      setMemberPermissionsDetailedByStore(permissionsDetailed);
     } catch (err: any) {
       setError(err.message ?? "Erreur lors du rafraîchissement des boutiques.");
     } finally {
@@ -301,6 +323,7 @@ export function useWorkspaceState(): WorkspaceContext {
     isOwner,
     memberRole,
     memberPermissions,
+    memberPermissionsDetailed,
     loading,
     error,
     switchStore,
