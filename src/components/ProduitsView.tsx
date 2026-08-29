@@ -37,6 +37,20 @@ interface ProduitsViewProps {
     },
   ) => Promise<{ error: string | null }>;
   onDeleteProducts?: (ids: string[]) => Promise<{ error: string | null }>;
+  /**
+   * Champs visibles pour l'utilisateur courant — `null`/`undefined` = tout
+   * visible (propriétaire). Pour un collaborateur restreint, masque
+   * concrètement les colonnes sensibles (prix d'achat, fournisseur,
+   * valeur totale du stock) plutôt que de cacher tout l'onglet.
+   * Clés possibles : nom, prix_vente, prix_achat, stock_disponible,
+   * valeur_stock, fournisseur (voir src/lib/permissions.ts).
+   */
+  visibleFields?: string[] | null;
+  /**
+   * Actions autorisées — `null`/`undefined` = toutes (propriétaire).
+   * Clés possibles : view, create, edit, delete, adjust_stock, inventory.
+   */
+  allowedActions?: string[] | null;
 }
 
 export const ProduitsView: React.FC<ProduitsViewProps> = ({
@@ -45,7 +59,21 @@ export const ProduitsView: React.FC<ProduitsViewProps> = ({
   onAddProduct,
   onEditProduct,
   onDeleteProducts,
+  visibleFields,
+  allowedActions,
 }) => {
+  // null/undefined = tout visible (propriétaire). Sinon, seuls les champs
+  // explicitement listés sont montrés.
+  const showField = (key: string) => !visibleFields || visibleFields.includes(key);
+  const showPrixAchat = showField("prix_achat");
+  const showFournisseur = showField("fournisseur");
+  const showValeurStock = showField("valeur_stock");
+
+  const canDo = (key: string) => !allowedActions || allowedActions.includes(key);
+  const canCreate = canDo("create");
+  const canEdit = canDo("edit");
+  const canDelete = canDo("delete");
+
   const [searchTerm, setSearchTerm] = useState("");
   const [stockFilter, setStockFilter] = useState<"Tous" | "OK" | "Alerte">("Tous");
   const [supplierFilter, setSupplierFilter] = useState<string>("Tous");
@@ -257,13 +285,15 @@ export const ProduitsView: React.FC<ProduitsViewProps> = ({
             />
           </div>
 
-          <button
-            onClick={() => setIsAddModalOpen(true)}
-            className="flex items-center gap-1.5 px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-semibold shadow-sm transition-colors"
-          >
-            <Plus className="w-4 h-4" />
-            Nouveau Produit
-          </button>
+          {canCreate && (
+            <button
+              onClick={() => setIsAddModalOpen(true)}
+              className="flex items-center gap-1.5 px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-semibold shadow-sm transition-colors"
+            >
+              <Plus className="w-4 h-4" />
+              Nouveau Produit
+            </button>
+          )}
         </div>
       </div>
 
@@ -281,17 +311,19 @@ export const ProduitsView: React.FC<ProduitsViewProps> = ({
             <Layers className="w-5 h-5 text-emerald-400" />
           </div>
 
-          <div className="bg-muted/80 p-3 rounded-xl border border-muted-foreground/20/80 flex items-center justify-between">
-            <div>
-              <span className="text-muted-foreground font-medium block">
-                Valeur Totale du Stock :
-              </span>
-              <span className="text-base font-bold font-mono text-blue-400">
-                {formatCurrency(totalValeurStock)}
-              </span>
+          {showValeurStock && (
+            <div className="bg-muted/80 p-3 rounded-xl border border-muted-foreground/20/80 flex items-center justify-between">
+              <div>
+                <span className="text-muted-foreground font-medium block">
+                  Valeur Totale du Stock :
+                </span>
+                <span className="text-base font-bold font-mono text-blue-400">
+                  {formatCurrency(totalValeurStock)}
+                </span>
+              </div>
+              <DollarSign className="w-5 h-5 text-blue-400" />
             </div>
-            <DollarSign className="w-5 h-5 text-blue-400" />
-          </div>
+          )}
 
           <div className="bg-muted/80 p-3 rounded-xl border border-muted-foreground/20/80 flex items-center justify-between">
             <div>
@@ -410,9 +442,9 @@ export const ProduitsView: React.FC<ProduitsViewProps> = ({
                 </th>
                 <th className="px-4 py-3.5">ID Produit</th>
                 <th className="px-4 py-3.5">Nom Affiché (Désignation + Indice)</th>
-                <th className="px-4 py-3.5 text-right">Prix Achat</th>
+                {showPrixAchat && <th className="px-4 py-3.5 text-right">Prix Achat</th>}
                 <th className="px-4 py-3.5 text-right">Prix Vente Défaut (E)</th>
-                <th className="px-4 py-3.5">Fournisseur</th>
+                {showFournisseur && <th className="px-4 py-3.5">Fournisseur</th>}
                 <th className="px-4 py-3.5 text-right">Stock Actuel</th>
                 <th className="px-4 py-3.5 text-right">Seuil Alerte</th>
                 <th className="px-4 py-3.5 text-center">Statut</th>
@@ -441,13 +473,19 @@ export const ProduitsView: React.FC<ProduitsViewProps> = ({
                     <td className="px-4 py-3.5 font-mono text-sm font-bold text-foreground flex items-center gap-1.5">
                       {getProductLabel(p, products)}
                     </td>
-                    <td className="px-4 py-3.5 text-right font-mono">{formatCurrency(p.prixAchat)}</td>
+                    {showPrixAchat && (
+                      <td className="px-4 py-3.5 text-right font-mono">
+                        {formatCurrency(p.prixAchat)}
+                      </td>
+                    )}
                     <td className="px-4 py-3.5 text-right font-mono font-bold text-blue-400">
                       {formatCurrency(p.prixVenteDefaut)}
                     </td>
-                    <td className="px-4 py-3.5 text-muted-foreground">
-                      {p.fournisseur || "Non renseigné"}
-                    </td>
+                    {showFournisseur && (
+                      <td className="px-4 py-3.5 text-muted-foreground">
+                        {p.fournisseur || "Non renseigné"}
+                      </td>
+                    )}
                     <td className="px-4 py-3.5 text-right font-mono font-bold text-foreground">
                       {p.stockActuel}
                     </td>
@@ -473,7 +511,7 @@ export const ProduitsView: React.FC<ProduitsViewProps> = ({
                     </td>
                     <td className="px-4 py-3.5 text-center">
                       <div className="flex items-center justify-center gap-1">
-                        {onEditProduct && (
+                        {onEditProduct && canEdit && (
                           <button
                             onClick={() => openEditModal(p)}
                             className="p-1.5 text-muted-foreground hover:text-blue-400 bg-muted hover:bg-accent rounded-lg transition-colors"
@@ -482,7 +520,7 @@ export const ProduitsView: React.FC<ProduitsViewProps> = ({
                             <Pencil className="w-3.5 h-3.5" />
                           </button>
                         )}
-                        {onDeleteProducts && (
+                        {onDeleteProducts && canDelete && (
                           <button
                             onClick={() => setConfirmDeleteIds([p.id])}
                             className="p-1.5 text-muted-foreground hover:text-red-400 bg-muted hover:bg-red-500/10 rounded-lg transition-colors"
@@ -498,7 +536,10 @@ export const ProduitsView: React.FC<ProduitsViewProps> = ({
               })}
               {filteredProducts.length === 0 && (
                 <tr>
-                  <td colSpan={10} className="px-4 py-8 text-center text-muted-foreground italic">
+                  <td
+                    colSpan={7 + (showPrixAchat ? 1 : 0) + (showFournisseur ? 1 : 0)}
+                    className="px-4 py-8 text-center text-muted-foreground italic"
+                  >
                     Aucun produit ne correspond à ces filtres.
                   </td>
                 </tr>
@@ -522,7 +563,7 @@ export const ProduitsView: React.FC<ProduitsViewProps> = ({
           >
             Tout désélectionner
           </button>
-          {onDeleteProducts && (
+          {onDeleteProducts && canDelete && (
             <button
               onClick={() => setConfirmDeleteIds(Array.from(selectedIds))}
               className="flex items-center gap-1.5 px-3.5 py-1.5 bg-red-600 hover:bg-red-500 text-white rounded-xl text-xs font-semibold shadow-sm transition-colors"

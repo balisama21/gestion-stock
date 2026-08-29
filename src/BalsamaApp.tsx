@@ -15,6 +15,7 @@ import {
 } from "./types";
 import type { OrderStatus } from "./lib/database.types";
 import { toSubscript } from "./utils/formulas";
+import { getModuleScope, isFieldVisible, hasModuleAction } from "./lib/permissions";
 import { downloadExcelWorkbook } from "./utils/exportExcel";
 import { Header } from "./components/Header";
 import { DashboardView } from "./components/DashboardView";
@@ -309,6 +310,49 @@ function AppInner() {
     [sales, myName],
   );
   const visibleSales = hasVentesAccess ? sales : mySales;
+
+  // ── Clients : portée own/team/all ──
+  const hasClientsModule =
+    workspace.isOwner ||
+    workspace.memberPermissions === null ||
+    workspace.memberPermissions.includes("clients");
+  const clientsScope = workspace.isOwner
+    ? "all"
+    : getModuleScope(workspace.memberPermissionsDetailed ?? {}, "clients");
+  const visibleClients = useMemo(() => {
+    if (!hasClientsModule) return [];
+    if (clientsScope === "all") return storeData.clients;
+    // "own"/"team" traités identiquement pour l'instant : filtré sur le
+    // créateur du client (created_by). Une vraie notion d'équipe
+    // nécessiterait un regroupement de vendeurs, hors périmètre ici.
+    return storeData.clients.filter((c: any) => c.created_by === user?.id);
+  }, [storeData.clients, hasClientsModule, clientsScope, user?.id]);
+
+  // ── Commandes : portée own/team/all ──
+  const hasCommandesModule =
+    workspace.isOwner ||
+    workspace.memberPermissions === null ||
+    workspace.memberPermissions.includes("commandes");
+  const commandesScope = workspace.isOwner
+    ? "all"
+    : getModuleScope(workspace.memberPermissionsDetailed ?? {}, "commandes");
+  const visibleOrders = useMemo(() => {
+    if (!hasCommandesModule) return [];
+    if (commandesScope === "all") return storeData.orders;
+    return storeData.orders.filter((o: any) => o.owner_id === user?.id);
+  }, [storeData.orders, hasCommandesModule, commandesScope, user?.id]);
+
+  // ── Produits : champs sensibles + actions (pas de portée, catalogue partagé) ──
+  const produitsVisibleFields = workspace.isOwner
+    ? null
+    : ["nom", "prix_vente", "prix_achat", "stock_disponible", "valeur_stock", "fournisseur"].filter(
+        (f) => isFieldVisible(workspace.memberPermissionsDetailed ?? {}, "produits", f),
+      );
+  const produitsActions = workspace.isOwner
+    ? null
+    : ["view", "create", "edit", "delete", "adjust_stock", "inventory"].filter((a) =>
+        hasModuleAction(workspace.memberPermissionsDetailed ?? {}, "produits", a),
+      );
 
   const computedCapital = useMemo(() => {
     const capitalInitial = workspace.activeStore?.capital_initial || 0;
@@ -749,6 +793,8 @@ function AppInner() {
             onAddProduct={handleAddProduct}
             onEditProduct={storeData.updateProduct}
             onDeleteProducts={storeData.deleteProducts}
+            visibleFields={produitsVisibleFields}
+            allowedActions={produitsActions}
           />
         )}
         {activeTab === "achats" && (
@@ -836,7 +882,7 @@ function AppInner() {
         )}
         {activeTab === "commandes" && (
           <CommandesView
-            orders={storeData.orders}
+            orders={visibleOrders}
             clients={storeData.clients}
             products={storeData.products}
             isOwner={workspace.isOwner}
@@ -859,7 +905,7 @@ function AppInner() {
         )}
         {activeTab === "clients" && (
           <ClientsView
-            clients={storeData.clients}
+            clients={visibleClients}
             orders={storeData.orders}
             onAddClient={storeData.addClient}
             onUpdateClient={storeData.updateClient}
