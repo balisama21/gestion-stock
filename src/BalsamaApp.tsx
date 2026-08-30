@@ -354,6 +354,66 @@ function AppInner() {
         hasModuleAction(workspace.memberPermissionsDetailed ?? {}, "produits", a),
       );
 
+  // ── Dépenses : portée own/all, même principe que Ventes ──
+  const hasDepensesModule =
+    workspace.isOwner ||
+    workspace.memberPermissions === null ||
+    workspace.memberPermissions.includes("depenses");
+  const depensesScope = workspace.isOwner
+    ? "all"
+    : getModuleScope(workspace.memberPermissionsDetailed ?? {}, "depenses");
+  const visibleExpenses = useMemo(() => {
+    if (!hasDepensesModule) return [];
+    if (depensesScope === "all") return expenses;
+    return myName ? expenses.filter((e) => e.vendeur === myName) : [];
+  }, [expenses, hasDepensesModule, depensesScope, myName]);
+
+  // ── Paiements à recevoir : portée own/all, dérivée des ventes/commandes
+  // déjà scopées (un paiement est "à soi" s'il concerne SA vente ou SA
+  // commande) ──
+  const hasPaiementsModule =
+    workspace.isOwner ||
+    workspace.memberPermissions === null ||
+    workspace.memberPermissions.includes("paiements");
+  const paiementsScope = workspace.isOwner
+    ? "all"
+    : getModuleScope(workspace.memberPermissionsDetailed ?? {}, "paiements");
+  const visiblePayments = useMemo(() => {
+    if (!hasPaiementsModule) return [];
+    if (paiementsScope === "all") return payments;
+    const mySaleIds = new Set(visibleSales.map((s) => s.id));
+    const myOrderIds = new Set(visibleOrders.map((o: any) => o.id));
+    return payments.filter(
+      (p) => (p.saleId && mySaleIds.has(p.saleId)) || (p.orderId && myOrderIds.has(p.orderId)),
+    );
+  }, [payments, hasPaiementsModule, paiementsScope, visibleSales, visibleOrders]);
+
+  // ── Historique : portée own/all, filtre chaque flux sous-jacent ──
+  const hasHistoriqueModule =
+    workspace.isOwner ||
+    workspace.memberPermissions === null ||
+    workspace.memberPermissions.includes("historique");
+  const historiqueScope = workspace.isOwner
+    ? "all"
+    : getModuleScope(workspace.memberPermissionsDetailed ?? {}, "historique");
+  const historiquePurchases = useMemo(() => {
+    if (!hasHistoriqueModule) return [];
+    if (historiqueScope === "all") return purchases;
+    // Le type Purchase (transformé) ne porte pas owner_id — on croise avec
+    // les données brutes de storeData, qui elles l'ont, pour obtenir les
+    // identifiants des achats appartenant à cet utilisateur.
+    const myPurchaseIds = new Set(
+      storeData.purchases.filter((p) => p.owner_id === user?.id).map((p) => p.id),
+    );
+    return purchases.filter((p) => myPurchaseIds.has(p.id));
+  }, [purchases, storeData.purchases, hasHistoriqueModule, historiqueScope, user?.id]);
+  const historiqueApports = useMemo(() => {
+    if (!hasHistoriqueModule) return [];
+    // Les apports en capital restent une donnée propriétaire uniquement,
+    // même en portée "own" (un collaborateur n'apporte pas de capital).
+    return historiqueScope === "all" ? apports : [];
+  }, [apports, hasHistoriqueModule, historiqueScope]);
+
   const computedCapital = useMemo(() => {
     const capitalInitial = workspace.activeStore?.capital_initial || 0;
     const seuilAlerte = workspace.activeStore?.seuil_alerte_tresorerie || 0;
@@ -842,40 +902,45 @@ function AppInner() {
         )}
         {activeTab === "depenses" && (
           <DepensesView
-            expenses={expenses}
+            expenses={visibleExpenses}
             sellers={computedSellers}
             locale={locale}
             settings={storeSettings}
             onAddExpense={handleAddExpense}
-            onEditExpense={handleEditExpense}
-            onDeleteExpense={handleDeleteExpense}
+            onEditExpense={depensesScope === "all" ? handleEditExpense : undefined}
+            onDeleteExpense={depensesScope === "all" ? handleDeleteExpense : undefined}
           />
         )}
         {activeTab === "rapports" && (
           <RapportsView
-            sales={sales}
+            sales={visibleSales}
             purchases={purchases}
-            expenses={expenses}
+            expenses={visibleExpenses}
             products={products}
             locale={locale}
           />
         )}
         {activeTab === "statistiques" && (
           <StatistiquesView
-            sales={sales}
+            sales={visibleSales}
             products={products}
-            sellers={computedSellers}
-            expenses={expenses}
+            sellers={
+              workspace.isOwner ||
+              getModuleScope(workspace.memberPermissionsDetailed ?? {}, "statistiques") === "all"
+                ? computedSellers
+                : computedSellers.filter((s) => s.nom === myName)
+            }
+            expenses={visibleExpenses}
             locale={locale}
           />
         )}
         {activeTab === "historique" && (
           <HistoriqueView
-            purchases={purchases}
-            sales={sales}
-            expenses={expenses}
-            apports={apports}
-            orders={storeData.orders}
+            purchases={historiquePurchases}
+            sales={visibleSales}
+            expenses={visibleExpenses}
+            apports={historiqueApports}
+            orders={visibleOrders}
             locale={locale}
             products={products}
           />
@@ -895,9 +960,9 @@ function AppInner() {
         )}
         {activeTab === "paiements" && (
           <PaiementsARecevoirView
-            sales={sales}
-            orders={storeData.orders}
-            payments={payments}
+            sales={visibleSales}
+            orders={visibleOrders}
+            payments={visiblePayments}
             products={products}
             onAddPaymentToSale={storeData.addPaymentToSale}
             onAddPaymentToOrder={storeData.addPaymentToOrder}
