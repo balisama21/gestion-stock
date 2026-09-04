@@ -451,8 +451,9 @@ td {
     backdrop-filter: none !important;
   }
 
-  /* Le cadre de prévisualisation du reçu plafonne sa hauteur à l'écran :
-     à l'impression il rognait le document au même endroit. */
+  /* Cadre de prévisualisation : à l'écran il plafonne la largeur et
+     permet le défilement horizontal d'une facture A4 sur téléphone. Sur
+     le papier, il ne doit ni rogner ni décaler quoi que ce soit. */
   .receipt-viewport {
     display: block !important;
     max-height: none !important;
@@ -461,6 +462,10 @@ td {
     border: 0 !important;
     border-radius: 0 !important;
     background: none !important;
+  }
+  .printable-receipt {
+    margin: 0 !important;
+    flex-shrink: 1 !important;
   }
 
   .printable-receipt {

@@ -1039,10 +1039,10 @@ ${settings?.receiptFooter || "Merci pour votre confiance ! Ni repris, ni échang
           }
         >
             {/* Print Container Rendering */}
-            <div className="receipt-viewport flex justify-center bg-background p-4 rounded-xl border border-border max-h-[60vh] overflow-y-auto">
+            <div className="receipt-viewport flex items-start justify-start overflow-x-auto rounded-xl border border-border bg-background p-4">
               {receiptMode === "ticket" ? (
                 /* Ticket Thermal Receipt Format */
-                <div className="printable-receipt bg-amber-50 text-slate-900 w-full max-w-[360px] p-6 rounded-lg shadow-lg font-mono text-xs leading-relaxed space-y-4 border border-amber-200">
+                <div className="printable-receipt mx-auto shrink-0 bg-amber-50 text-slate-900 w-full max-w-[360px] p-6 rounded-lg shadow-lg font-mono text-xs leading-relaxed space-y-4 border border-amber-200">
                   {/* Store Header */}
                   <div className="text-center space-y-1">
                     {settings?.logoUrl && (
@@ -1168,7 +1168,7 @@ ${settings?.receiptFooter || "Merci pour votre confiance ! Ni repris, ni échang
                 </div>
               ) : (
                 /* Facture Officielle A4 Format */
-                <div className="printable-receipt bg-white text-slate-900 w-full max-w-xl p-8 rounded-lg shadow-xl font-sans text-xs space-y-6 border border-slate-200">
+                <div className="printable-receipt mx-auto shrink-0 bg-white text-slate-900 w-full max-w-xl p-8 rounded-lg shadow-xl font-sans text-xs space-y-6 border border-slate-200">
                   {/* Top Header */}
                   <div className="flex justify-between items-start border-b border-slate-200 pb-6">
                     <div className="space-y-1.5">
