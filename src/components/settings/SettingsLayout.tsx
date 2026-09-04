@@ -80,7 +80,7 @@ export const SettingsLayout: React.FC<SettingsLayoutProps> = ({
           <select
             value={activeTab}
             onChange={(e) => onTabChange(e.target.value as SettingsTab)}
-            className="w-full appearance-none bg-background border border-border text-foreground font-semibold py-2.5 pl-4 pr-10 rounded-xl focus:outline-none focus:ring-2 focus:ring-emerald-500"
+            className="w-full appearance-none bg-background border border-border text-foreground font-semibold py-2.5 pl-4 pr-10 rounded-xl focus:outline-none focus:ring-2 focus:ring-ring"
           >
             {tabs.map((tab) => (
               <option key={tab.id} value={tab.id}>
@@ -115,11 +115,11 @@ export const SettingsLayout: React.FC<SettingsLayoutProps> = ({
               onClick={() => onTabChange(tab.id as SettingsTab)}
               className={`flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold transition-colors ${
                 activeTab === tab.id
-                  ? "bg-emerald-500/10 text-emerald-500"
+                  ? "bg-success-soft t-success"
                   : "text-muted-foreground hover:bg-muted hover:text-foreground"
               }`}
             >
-              <span className={activeTab === tab.id ? "text-emerald-500" : "text-muted-foreground"}>
+              <span className={activeTab === tab.id ? "t-success" : "text-muted-foreground"}>
                 {tab.icon}
               </span>
               {tab.label}
@@ -132,7 +132,7 @@ export const SettingsLayout: React.FC<SettingsLayoutProps> = ({
             onClick={() => {
               if (window.confirm("Voulez-vous vraiment vous déconnecter ?")) signOut();
             }}
-            className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold text-rose-500 hover:bg-rose-500/10 transition-colors"
+            className="flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-semibold t-danger hover:bg-danger-soft transition-colors"
           >
             <LogOut className="w-4 h-4" />
             Déconnexion

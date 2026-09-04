@@ -15,6 +15,7 @@ import {
   History,
 } from "lucide-react";
 import { formatCurrency } from "../utils/formulas";
+import { PageHeader } from "./shared/PageHeader";
 import type { Database } from "../lib/database.types";
 
 type Client = Database["public"]["Tables"]["clients"]["Row"];
@@ -115,25 +116,17 @@ export const ClientsView: React.FC<ClientsViewProps> = ({
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-        <div>
-          <h2 className="text-xl font-bold text-foreground flex items-center gap-2">
-            <User className="w-5 h-5 text-emerald-400" />
-            Clients ({clients.length})
-          </h2>
-          <p className="text-sm text-muted-foreground mt-0.5">
-            Gérez vos clients et consultez leur historique d'achats
-          </p>
-        </div>
-        <button
-          onClick={() => setShowForm(true)}
-          className="flex items-center gap-2 px-4 py-2.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl font-semibold text-sm transition-colors"
-        >
-          <Plus className="w-4 h-4" />
-          Nouveau Client
-        </button>
-      </div>
+      <PageHeader
+        icon={<User className="w-5 h-5 t-success" />}
+        title={`Clients (${clients.length})`}
+        subtitle="Vos clients et leur historique d'achats."
+        actions={
+          <button onClick={() => setShowForm(true)} className="app-btn-primary w-full sm:w-auto">
+            <Plus className="w-4 h-4" />
+            Nouveau client
+          </button>
+        }
+      />
 
       {/* Add client form */}
       {showForm && (
@@ -151,7 +144,7 @@ export const ClientsView: React.FC<ClientsViewProps> = ({
             </button>
           </div>
           {formError && (
-            <div className="mb-4 p-3 bg-red-500/10 border border-red-500/30 text-red-400 rounded-xl text-sm">
+            <div className="mb-4 p-3 bg-red-500/10 border border-red-500/30 t-danger rounded-xl text-sm">
               {formError}
             </div>
           )}
@@ -244,7 +237,7 @@ export const ClientsView: React.FC<ClientsViewProps> = ({
               <p className="text-sm">Aucun client trouvé.</p>
               <button
                 onClick={() => setShowForm(true)}
-                className="mt-3 text-emerald-400 text-sm hover:underline"
+                className="mt-3 t-success text-sm hover:underline"
               >
                 + Ajouter un client
               </button>
@@ -271,7 +264,7 @@ export const ClientsView: React.FC<ClientsViewProps> = ({
                         <div className="flex items-center gap-2 flex-wrap">
                           <h4 className="font-bold text-sm text-foreground">{client.nom}</h4>
                           {stats.impayes > 0 && (
-                            <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-red-500/15 text-red-400 border border-red-500/25">
+                            <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-red-500/15 t-danger border border-red-500/25">
                               ⚠️ Impayé
                             </span>
                           )}
@@ -299,7 +292,7 @@ export const ClientsView: React.FC<ClientsViewProps> = ({
                             {formatCurrency(stats.totalMontant)}
                           </span>
                           {stats.impayes > 0 && (
-                            <span className="text-red-400 font-mono">
+                            <span className="t-danger font-mono">
                               - {formatCurrency(stats.impayes)} dû
                             </span>
                           )}
@@ -374,13 +367,13 @@ export const ClientsView: React.FC<ClientsViewProps> = ({
                         label: "Déjà payé",
                         value: formatCurrency(stats.totalPaye),
                         mono: true,
-                        color: "text-emerald-400",
+                        color: "t-success",
                       },
                       {
                         label: "Reste dû",
                         value: formatCurrency(stats.impayes),
                         mono: true,
-                        color: stats.impayes > 0 ? "text-red-400" : "text-muted-foreground",
+                        color: stats.impayes > 0 ? "t-danger" : "text-muted-foreground",
                       },
                     ].map((s) => (
                       <div key={s.label} className="bg-muted rounded-xl p-3 text-center">
@@ -400,7 +393,7 @@ export const ClientsView: React.FC<ClientsViewProps> = ({
             {/* Order history */}
             <div className="bg-card border border-border rounded-2xl p-5">
               <h4 className="font-bold text-sm text-foreground flex items-center gap-2 mb-4">
-                <History className="w-4 h-4 text-blue-400" />
+                <History className="w-4 h-4 t-info" />
                 Historique des Commandes ({clientOrders.length})
               </h4>
               {clientOrders.length === 0 ? (
@@ -422,7 +415,7 @@ export const ClientsView: React.FC<ClientsViewProps> = ({
                           {new Date(order.created_at).toLocaleDateString("fr-FR")}
                           {" · "}
                           <span
-                            className={`font-semibold ${order.statut_commande === "livre" ? "text-emerald-400" : order.statut_commande === "annule" ? "text-red-400" : "text-amber-400"}`}
+                            className={`font-semibold ${order.statut_commande === "livre" ? "t-success" : order.statut_commande === "annule" ? "t-danger" : "t-warning"}`}
                           >
                             {order.statut_commande === "en_attente"
                               ? "En attente"
@@ -439,7 +432,7 @@ export const ClientsView: React.FC<ClientsViewProps> = ({
                           {formatCurrency(order.montant_total)}
                         </div>
                         <div
-                          className={`text-[11px] font-semibold ${order.statut_paiement === "paye" ? "text-emerald-400" : order.statut_paiement === "partiel" ? "text-amber-400" : "text-red-400"}`}
+                          className={`text-[11px] font-semibold ${order.statut_paiement === "paye" ? "t-success" : order.statut_paiement === "partiel" ? "t-warning" : "t-danger"}`}
                         >
                           {order.statut_paiement === "paye"
                             ? "✅ Payé"

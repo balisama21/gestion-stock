@@ -14,6 +14,8 @@ import {
   Filter,
 } from "lucide-react";
 import { formatCurrency, formatDateLocale } from "../utils/formulas";
+import { MobileCardList } from "./shared/MobileCardList";
+import { PageHeader } from "./shared/PageHeader";
 
 interface RapportsViewProps {
   sales: Sale[];
@@ -145,35 +147,22 @@ export const RapportsView: React.FC<RapportsViewProps> = ({
 
   return (
     <div className="space-y-6 pb-12">
-      {/* Header Banner */}
-      <div className="flex flex-wrap items-center justify-between gap-4 bg-card p-6 rounded-2xl border border-border shadow-sm">
-        <div className="flex items-center gap-3">
-          <div className="w-12 h-12 rounded-2xl bg-amber-500/20 border border-amber-500/30 flex items-center justify-center text-amber-400 shrink-0">
-            <CalendarRange className="w-6 h-6" />
-          </div>
-          <div>
-            <h2 className="text-xl font-bold text-foreground">
-              Rapports & Bilan Périodique (Jour, Mois, Année)
-            </h2>
-            <p className="text-xs text-muted-foreground mt-0.5">
-              Suivi consolidé du Chiffre d'Affaires (CA), des Achats de Stock, Dépenses Vendeurs et
-              Marges.
-            </p>
-          </div>
-        </div>
-
-        {/* Date Selector Filter */}
-        <div className="flex items-center gap-2 bg-muted/80 p-2 rounded-xl border border-muted-foreground/20/80 text-xs">
-          <Filter className="w-4 h-4 text-amber-400" />
-          <span className="text-muted-foreground font-medium">Changer la date :</span>
-          <input
-            type="date"
-            value={selectedDateInput}
-            onChange={(e) => setSelectedDateInput(e.target.value)}
-            className="bg-card border border-muted-foreground/20 text-foreground rounded-lg px-2.5 py-1 font-mono focus:outline-none focus:border-amber-500"
-          />
-        </div>
-      </div>
+      <PageHeader
+        icon={<CalendarRange className="w-5 h-5 t-warning" />}
+        title="Bilan"
+        subtitle="Vos ventes, achats, dépenses et marges sur la période choisie."
+        actions={
+          <label className="flex w-full flex-col gap-1.5 sm:w-auto">
+            <span className="text-xs font-semibold text-muted-foreground">Date de référence</span>
+            <input
+              type="date"
+              value={selectedDateInput}
+              onChange={(e) => setSelectedDateInput(e.target.value)}
+              className="app-field font-mono sm:w-44"
+            />
+          </label>
+        }
+      />
 
       {/* THREE CARDS FOR JOUR, MOIS, ANNÉE */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -181,12 +170,12 @@ export const RapportsView: React.FC<RapportsViewProps> = ({
         <div className="bg-card border border-border rounded-2xl p-5 space-y-4 relative overflow-hidden shadow-sm">
           <div className="flex items-center justify-between border-b border-border pb-3">
             <div className="flex items-center gap-2">
-              <CalendarDays className="w-5 h-5 text-emerald-400" />
+              <CalendarDays className="w-5 h-5 t-success" />
               <h3 className="font-bold text-sm text-foreground">
                 Bilan du Jour ({customFilterDate.toLocaleDateString("fr-FR")})
               </h3>
             </div>
-            <span className="text-[10px] px-2 py-0.5 bg-emerald-500/20 text-emerald-300 border border-emerald-500/30 rounded-full font-mono font-bold">
+            <span className="text-[10px] px-2 py-0.5 bg-emerald-500/20 t-success border border-emerald-500/30 rounded-full font-mono font-bold">
               {salesToday.length} vente(s)
             </span>
           </div>
@@ -194,10 +183,10 @@ export const RapportsView: React.FC<RapportsViewProps> = ({
           <div className="space-y-3">
             <div>
               <div className="text-xs text-muted-foreground font-medium flex items-center gap-1.5">
-                <DollarSign className="w-3.5 h-3.5 text-emerald-400" />
+                <DollarSign className="w-3.5 h-3.5 t-success" />
                 Chiffre d'Affaires (CA Ventes) :
               </div>
-              <div className="text-2xl font-extrabold font-mono text-emerald-400 mt-0.5">
+              <div className="text-2xl font-extrabold font-mono t-success mt-0.5">
                 {formatCurrency(caToday)}
               </div>
             </div>
@@ -205,28 +194,28 @@ export const RapportsView: React.FC<RapportsViewProps> = ({
             <div className="grid grid-cols-2 gap-2 pt-2 border-t border-border text-xs">
               <div>
                 <div className="text-muted-foreground text-[11px] flex items-center gap-1">
-                  <ShoppingCart className="w-3 h-3 text-sky-400" />
+                  <ShoppingCart className="w-3 h-3 t-info" />
                   Achats Stock :
                 </div>
-                <div className="font-bold font-mono text-sky-300 mt-0.5">
+                <div className="font-bold font-mono t-info mt-0.5">
                   {formatCurrency(achatsToday)}
                 </div>
               </div>
 
               <div>
                 <div className="text-muted-foreground text-[11px] flex items-center gap-1">
-                  <ArrowRightLeft className="w-3 h-3 text-rose-400" />
+                  <ArrowRightLeft className="w-3 h-3 t-danger" />
                   Dépenses/Retraits :
                 </div>
-                <div className="font-bold font-mono text-rose-400 mt-0.5">
+                <div className="font-bold font-mono t-danger mt-0.5">
                   {formatCurrency(depensesToday)}
                 </div>
               </div>
             </div>
 
-            <div className="p-3 bg-emerald-950/20 border border-emerald-500/30 rounded-xl flex items-center justify-between text-xs">
-              <span className="text-emerald-300 font-semibold">Marge Nette du Jour :</span>
-              <span className="font-bold font-mono text-emerald-400 text-sm">
+            <div className="p-3 bg-success-soft border border-success-border rounded-xl flex items-center justify-between text-xs">
+              <span className="t-success font-semibold">Marge Nette du Jour :</span>
+              <span className="font-bold font-mono t-success text-sm">
                 +{formatCurrency(margeToday)}
               </span>
             </div>
@@ -237,12 +226,12 @@ export const RapportsView: React.FC<RapportsViewProps> = ({
         <div className="bg-card border border-border rounded-2xl p-5 space-y-4 relative overflow-hidden shadow-sm">
           <div className="flex items-center justify-between border-b border-border pb-3">
             <div className="flex items-center gap-2">
-              <Calendar className="w-5 h-5 text-blue-400" />
+              <Calendar className="w-5 h-5 t-info" />
               <h3 className="font-bold text-sm text-foreground">
                 Bilan du Mois ({monthNames[filterMonth]} {filterYear})
               </h3>
             </div>
-            <span className="text-[10px] px-2 py-0.5 bg-blue-500/20 text-blue-300 border border-blue-500/30 rounded-full font-mono font-bold">
+            <span className="text-[10px] px-2 py-0.5 bg-blue-500/20 t-info border border-blue-500/30 rounded-full font-mono font-bold">
               {salesMonth.length} vente(s)
             </span>
           </div>
@@ -250,10 +239,10 @@ export const RapportsView: React.FC<RapportsViewProps> = ({
           <div className="space-y-3">
             <div>
               <div className="text-xs text-muted-foreground font-medium flex items-center gap-1.5">
-                <DollarSign className="w-3.5 h-3.5 text-blue-400" />
+                <DollarSign className="w-3.5 h-3.5 t-info" />
                 Chiffre d'Affaires du Mois :
               </div>
-              <div className="text-2xl font-extrabold font-mono text-blue-400 mt-0.5">
+              <div className="text-2xl font-extrabold font-mono t-info mt-0.5">
                 {formatCurrency(caMonth)}
               </div>
             </div>
@@ -261,28 +250,28 @@ export const RapportsView: React.FC<RapportsViewProps> = ({
             <div className="grid grid-cols-2 gap-2 pt-2 border-t border-border text-xs">
               <div>
                 <div className="text-muted-foreground text-[11px] flex items-center gap-1">
-                  <ShoppingCart className="w-3 h-3 text-sky-400" />
+                  <ShoppingCart className="w-3 h-3 t-info" />
                   Achats Stock :
                 </div>
-                <div className="font-bold font-mono text-sky-300 mt-0.5">
+                <div className="font-bold font-mono t-info mt-0.5">
                   {formatCurrency(achatsMonth)}
                 </div>
               </div>
 
               <div>
                 <div className="text-muted-foreground text-[11px] flex items-center gap-1">
-                  <ArrowRightLeft className="w-3 h-3 text-rose-400" />
+                  <ArrowRightLeft className="w-3 h-3 t-danger" />
                   Dépenses/Retraits :
                 </div>
-                <div className="font-bold font-mono text-rose-400 mt-0.5">
+                <div className="font-bold font-mono t-danger mt-0.5">
                   {formatCurrency(depensesMonth)}
                 </div>
               </div>
             </div>
 
-            <div className="p-3 bg-blue-950/20 border border-blue-500/30 rounded-xl flex items-center justify-between text-xs">
-              <span className="text-blue-300 font-semibold">Marge Nette du Mois :</span>
-              <span className="font-bold font-mono text-blue-400 text-sm">
+            <div className="p-3 bg-info-soft border border-info-border rounded-xl flex items-center justify-between text-xs">
+              <span className="t-info font-semibold">Marge Nette du Mois :</span>
+              <span className="font-bold font-mono t-info text-sm">
                 +{formatCurrency(margeMonth)}
               </span>
             </div>
@@ -293,10 +282,10 @@ export const RapportsView: React.FC<RapportsViewProps> = ({
         <div className="bg-card border border-border rounded-2xl p-5 space-y-4 relative overflow-hidden shadow-sm">
           <div className="flex items-center justify-between border-b border-border pb-3">
             <div className="flex items-center gap-2">
-              <BarChart3 className="w-5 h-5 text-purple-400" />
+              <BarChart3 className="w-5 h-5 t-violet" />
               <h3 className="font-bold text-sm text-foreground">Bilan Annuel ({filterYear})</h3>
             </div>
-            <span className="text-[10px] px-2 py-0.5 bg-purple-500/20 text-purple-300 border border-purple-500/30 rounded-full font-mono font-bold">
+            <span className="text-[10px] px-2 py-0.5 bg-purple-500/20 t-violet border border-purple-500/30 rounded-full font-mono font-bold">
               {salesYear.length} vente(s)
             </span>
           </div>
@@ -304,10 +293,10 @@ export const RapportsView: React.FC<RapportsViewProps> = ({
           <div className="space-y-3">
             <div>
               <div className="text-xs text-muted-foreground font-medium flex items-center gap-1.5">
-                <DollarSign className="w-3.5 h-3.5 text-purple-400" />
+                <DollarSign className="w-3.5 h-3.5 t-violet" />
                 CA Total Année :
               </div>
-              <div className="text-2xl font-extrabold font-mono text-purple-400 mt-0.5">
+              <div className="text-2xl font-extrabold font-mono t-violet mt-0.5">
                 {formatCurrency(caYear)}
               </div>
             </div>
@@ -315,28 +304,28 @@ export const RapportsView: React.FC<RapportsViewProps> = ({
             <div className="grid grid-cols-2 gap-2 pt-2 border-t border-border text-xs">
               <div>
                 <div className="text-muted-foreground text-[11px] flex items-center gap-1">
-                  <ShoppingCart className="w-3 h-3 text-sky-400" />
+                  <ShoppingCart className="w-3 h-3 t-info" />
                   Achats Stock :
                 </div>
-                <div className="font-bold font-mono text-sky-300 mt-0.5">
+                <div className="font-bold font-mono t-info mt-0.5">
                   {formatCurrency(achatsYear)}
                 </div>
               </div>
 
               <div>
                 <div className="text-muted-foreground text-[11px] flex items-center gap-1">
-                  <ArrowRightLeft className="w-3 h-3 text-rose-400" />
+                  <ArrowRightLeft className="w-3 h-3 t-danger" />
                   Dépenses/Retraits :
                 </div>
-                <div className="font-bold font-mono text-rose-400 mt-0.5">
+                <div className="font-bold font-mono t-danger mt-0.5">
                   {formatCurrency(depensesYear)}
                 </div>
               </div>
             </div>
 
-            <div className="p-3 bg-purple-950/20 border border-purple-500/30 rounded-xl flex items-center justify-between text-xs">
-              <span className="text-purple-300 font-semibold">Marge Nette Annuelle :</span>
-              <span className="font-bold font-mono text-purple-400 text-sm">
+            <div className="p-3 bg-violet-soft border border-violet-border rounded-xl flex items-center justify-between text-xs">
+              <span className="t-violet font-semibold">Marge Nette Annuelle :</span>
+              <span className="font-bold font-mono t-violet text-sm">
                 +{formatCurrency(margeYear)}
               </span>
             </div>
@@ -344,100 +333,122 @@ export const RapportsView: React.FC<RapportsViewProps> = ({
         </div>
       </div>
 
-      {/* COMPARATIVE SYNTHESIS TABLE */}
-      <div className="bg-card border border-border rounded-2xl p-6 space-y-4 shadow-sm">
-        <h3 className="font-bold text-base text-foreground flex items-center gap-2">
-          <PieChart className="w-5 h-5 text-amber-400" />
-          Tableau Récapitulatif Comparatif des Périodes
-        </h3>
+      {/* Comparatif des périodes — une seule source de données pour le
+          tableau desktop et les cartes mobiles, pour qu'ils ne puissent
+          pas diverger. */}
+      {(() => {
+        const periodes = [
+          {
+            id: "jour",
+            libelle: `Aujourd'hui (${customFilterDate.toLocaleDateString("fr-FR")})`,
+            ton: "t-success",
+            pastille: "bg-success",
+            ca: caToday,
+            achats: achatsToday,
+            depenses: depensesToday,
+            marge: margeToday,
+            nbVentes: salesToday.length,
+          },
+          {
+            id: "mois",
+            libelle: `Ce mois (${monthNames[filterMonth]} ${filterYear})`,
+            ton: "t-info",
+            pastille: "bg-info",
+            ca: caMonth,
+            achats: achatsMonth,
+            depenses: depensesMonth,
+            marge: margeMonth,
+            nbVentes: salesMonth.length,
+          },
+          {
+            id: "annee",
+            libelle: `Cette année (${filterYear})`,
+            ton: "t-violet",
+            pastille: "bg-violet",
+            ca: caYear,
+            achats: achatsYear,
+            depenses: depensesYear,
+            marge: margeYear,
+            nbVentes: salesYear.length,
+          },
+        ];
 
-        <div className="overflow-x-auto">
-          <table className="w-full text-left text-xs border-collapse">
-            <thead>
-              <tr className="bg-muted/80 text-muted-foreground uppercase font-semibold text-[11px] border-b border-muted-foreground/20">
-                <th className="p-3 rounded-tl-xl">Période</th>
-                <th className="p-3 text-right">CA Ventes (Ar)</th>
-                <th className="p-3 text-right">Achats Stock (Ar)</th>
-                <th className="p-3 text-right">Dépenses/Retraits (Ar)</th>
-                <th className="p-3 text-right">Marge Nette (Ar)</th>
-                <th className="p-3 text-center rounded-tr-xl">Nb Ventes</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-border">
-              <tr className="hover:bg-muted/40 transition-colors">
-                <td className="p-3 font-bold text-emerald-400 flex items-center gap-2">
-                  <span className="w-2 h-2 rounded-full bg-emerald-400"></span>
-                  Aujourd'hui ({customFilterDate.toLocaleDateString("fr-FR")})
-                </td>
-                <td className="p-3 text-right font-mono font-bold text-foreground">
-                  {formatCurrency(caToday)}
-                </td>
-                <td className="p-3 text-right font-mono text-sky-400">
-                  {formatCurrency(achatsToday)}
-                </td>
-                <td className="p-3 text-right font-mono text-rose-400">
-                  {formatCurrency(depensesToday)}
-                </td>
-                <td className="p-3 text-right font-mono font-bold text-emerald-400">
-                  +{formatCurrency(margeToday)}
-                </td>
-                <td className="p-3 text-center font-mono font-bold text-muted-foreground">
-                  {salesToday.length}
-                </td>
-              </tr>
+        return (
+          <div className="app-card space-y-4 p-4 sm:p-6">
+            <h3 className="flex items-center gap-2 text-base font-bold text-foreground">
+              <PieChart className="w-5 h-5 t-warning" />
+              Comparatif des périodes
+            </h3>
 
-              <tr className="hover:bg-muted/40 transition-colors">
-                <td className="p-3 font-bold text-blue-400 flex items-center gap-2">
-                  <span className="w-2 h-2 rounded-full bg-blue-400"></span>
-                  Ce Mois ({monthNames[filterMonth]} {filterYear})
-                </td>
-                <td className="p-3 text-right font-mono font-bold text-foreground">
-                  {formatCurrency(caMonth)}
-                </td>
-                <td className="p-3 text-right font-mono text-sky-400">
-                  {formatCurrency(achatsMonth)}
-                </td>
-                <td className="p-3 text-right font-mono text-rose-400">
-                  {formatCurrency(depensesMonth)}
-                </td>
-                <td className="p-3 text-right font-mono font-bold text-blue-400">
-                  +{formatCurrency(margeMonth)}
-                </td>
-                <td className="p-3 text-center font-mono font-bold text-muted-foreground">
-                  {salesMonth.length}
-                </td>
-              </tr>
+            {/* Cartes mobiles */}
+            <div className="lg:hidden">
+              <MobileCardList
+                items={periodes.map((p) => ({
+                  id: p.id,
+                  title: p.libelle,
+                  subtitle: `${p.nbVentes} vente${p.nbVentes > 1 ? "s" : ""}`,
+                  amount: formatCurrency(p.ca),
+                  fields: [
+                    { label: "Chiffre d'affaires", value: formatCurrency(p.ca) },
+                    { label: "Achats de stock", value: formatCurrency(p.achats) },
+                    { label: "Dépenses", value: formatCurrency(p.depenses) },
+                    {
+                      label: "Marge nette",
+                      value: <span className={p.ton}>+{formatCurrency(p.marge)}</span>,
+                    },
+                    { label: "Nombre de ventes", value: `${p.nbVentes}` },
+                  ],
+                }))}
+              />
+            </div>
 
-              <tr className="hover:bg-muted/40 transition-colors">
-                <td className="p-3 font-bold text-purple-400 flex items-center gap-2">
-                  <span className="w-2 h-2 rounded-full bg-purple-400"></span>
-                  Cette Année ({filterYear})
-                </td>
-                <td className="p-3 text-right font-mono font-bold text-foreground">
-                  {formatCurrency(caYear)}
-                </td>
-                <td className="p-3 text-right font-mono text-sky-400">
-                  {formatCurrency(achatsYear)}
-                </td>
-                <td className="p-3 text-right font-mono text-rose-400">
-                  {formatCurrency(depensesYear)}
-                </td>
-                <td className="p-3 text-right font-mono font-bold text-purple-400">
-                  +{formatCurrency(margeYear)}
-                </td>
-                <td className="p-3 text-center font-mono font-bold text-muted-foreground">
-                  {salesYear.length}
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </div>
+            <div className="hidden overflow-x-auto lg:block">
+              <table className="w-full border-collapse text-left text-xs">
+                <thead>
+                  <tr className="border-b border-border bg-muted/80 text-[11px] font-semibold uppercase text-muted-foreground">
+                    <th className="p-3">Période</th>
+                    <th className="p-3 text-right">Chiffre d'affaires</th>
+                    <th className="p-3 text-right">Achats de stock</th>
+                    <th className="p-3 text-right">Dépenses</th>
+                    <th className="p-3 text-right">Marge nette</th>
+                    <th className="p-3 text-center">Ventes</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-border">
+                  {periodes.map((p) => (
+                    <tr key={p.id} className="transition-colors hover:bg-muted/40">
+                      <td className={`flex items-center gap-2 p-3 font-bold ${p.ton}`}>
+                        <span className={`h-2 w-2 rounded-full ${p.pastille}`} />
+                        {p.libelle}
+                      </td>
+                      <td className="p-3 text-right font-mono font-bold text-foreground">
+                        {formatCurrency(p.ca)}
+                      </td>
+                      <td className="p-3 text-right font-mono t-info">
+                        {formatCurrency(p.achats)}
+                      </td>
+                      <td className="p-3 text-right font-mono t-danger">
+                        {formatCurrency(p.depenses)}
+                      </td>
+                      <td className={`p-3 text-right font-mono font-bold ${p.ton}`}>
+                        +{formatCurrency(p.marge)}
+                      </td>
+                      <td className="p-3 text-center font-mono font-bold text-muted-foreground">
+                        {p.nbVentes}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        );
+      })()}
 
       {/* MONTHLY BREAKDOWN BAR LIST (Jan - Dec) */}
       <div className="bg-card border border-border rounded-2xl p-6 space-y-4 shadow-sm">
         <h3 className="font-bold text-base text-foreground flex items-center gap-2">
-          <BarChart3 className="w-5 h-5 text-emerald-400" />
+          <BarChart3 className="w-5 h-5 t-success" />
           Répartition Mois par Mois (Année {filterYear})
         </h3>
 
@@ -450,13 +461,13 @@ export const RapportsView: React.FC<RapportsViewProps> = ({
                 className={`p-4 rounded-xl border transition-colors ${
                   isCurrentM
                     ? "bg-muted border-emerald-500/50 shadow-md ring-1 ring-emerald-500/30"
-                    : "bg-muted/50 border-muted-foreground/20/60 hover:border-slate-600"
+                    : "bg-muted/50 border-border hover:border-muted-foreground/40"
                 }`}
               >
-                <div className="flex items-center justify-between border-b border-muted-foreground/20/80 pb-2 mb-3">
+                <div className="flex items-center justify-between border-b border-border pb-2 mb-3">
                   <span className="font-bold text-foreground text-sm">{ms.month}</span>
                   {isCurrentM && (
-                    <span className="text-[9px] px-2 py-0.5 bg-emerald-500/20 text-emerald-300 rounded-full font-semibold">
+                    <span className="text-[9px] px-2 py-0.5 bg-emerald-500/20 t-success rounded-full font-semibold">
                       Mois Actuel
                     </span>
                   )}
@@ -465,24 +476,24 @@ export const RapportsView: React.FC<RapportsViewProps> = ({
                 <div className="space-y-1.5 text-xs">
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">CA Ventes:</span>
-                    <span className="font-bold font-mono text-emerald-400">
+                    <span className="font-bold font-mono t-success">
                       {formatCurrency(ms.ca)}
                     </span>
                   </div>
 
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Achats Stock:</span>
-                    <span className="font-mono text-sky-300">{formatCurrency(ms.achats)}</span>
+                    <span className="font-mono t-info">{formatCurrency(ms.achats)}</span>
                   </div>
 
                   <div className="flex justify-between">
                     <span className="text-muted-foreground">Dépenses:</span>
-                    <span className="font-mono text-rose-400">{formatCurrency(ms.depenses)}</span>
+                    <span className="font-mono t-danger">{formatCurrency(ms.depenses)}</span>
                   </div>
 
-                  <div className="flex justify-between pt-1.5 border-t border-muted-foreground/20/60 font-semibold">
+                  <div className="flex justify-between pt-1.5 border-t border-border font-semibold">
                     <span className="text-muted-foreground">Marge:</span>
-                    <span className="font-mono text-amber-300">+{formatCurrency(ms.marge)}</span>
+                    <span className="font-mono t-warning">+{formatCurrency(ms.marge)}</span>
                   </div>
                 </div>
               </div>

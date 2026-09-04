@@ -72,37 +72,38 @@ export const CreateStoreOnboarding: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center p-6 relative overflow-hidden">
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(16,185,129,0.10),transparent_60%)]" />
-      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[28rem] h-[28rem] bg-emerald-500/5 rounded-full blur-3xl" />
+    <div className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden bg-background p-6">
+      <div className="pointer-events-none absolute left-1/2 top-0 h-[28rem] w-[28rem] -translate-x-1/2 rounded-full bg-success-soft blur-3xl" />
 
       <div className="relative z-10 w-full max-w-md">
-        <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-2xl mb-5 shadow-lg shadow-emerald-500/25 ring-1 ring-white/10">
+        <div className="mb-8 text-center">
+          {/* Le carré de marque garde son dégradé et son texte blanc : c'est
+              un aplat coloré, lisible dans les deux thèmes. */}
+          <div className="mb-5 inline-flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 shadow-lg shadow-emerald-500/25">
             <Package className="w-8 h-8 text-white" />
           </div>
-          <p className="text-[11px] font-bold text-emerald-400/90 uppercase tracking-[0.2em] mb-2">
+          <p className="mb-2 text-[11px] font-bold uppercase tracking-[0.2em] t-success">
             {APP_NAME}
           </p>
-          <h1 className="text-2xl font-bold text-white tracking-tight">
+          <h1 className="text-2xl font-bold tracking-tight text-foreground">
             Bienvenue{profile?.full_name ? `, ${profile.full_name.split(" ")[0]}` : ""} !
           </h1>
-          <p className="text-sm text-slate-400 mt-2">
+          <p className="mt-2 text-sm text-muted-foreground">
             Créez votre boutique pour commencer — ou rejoignez-en une si vous avez été invité.
           </p>
         </div>
 
-        <div className="bg-slate-900/60 backdrop-blur-xl border border-slate-800 rounded-3xl shadow-2xl shadow-black/40 p-8">
-          <div className="flex items-center gap-2.5 mb-5">
-            <div className="w-9 h-9 rounded-lg bg-emerald-500/15 flex items-center justify-center">
-              <Store className="w-4.5 h-4.5 text-emerald-400" />
+        <div className="app-card p-6 sm:p-8" style={{ boxShadow: "var(--elev-3)" }}>
+          <div className="mb-5 flex items-center gap-2.5">
+            <div className="flex h-9 w-9 items-center justify-center rounded-lg border border-success-border bg-success-soft">
+              <Store className="h-4 w-4 t-success" />
             </div>
-            <h2 className="font-bold text-white">Créer ma boutique</h2>
+            <h2 className="font-bold text-foreground">Créer ma boutique</h2>
           </div>
 
           <form onSubmit={handleCreateStore} className="space-y-4">
             <div>
-              <label className="block text-xs font-semibold text-slate-300 mb-1.5 uppercase tracking-wide">
+              <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                 Nom de la boutique
               </label>
               <input
@@ -112,70 +113,66 @@ export const CreateStoreOnboarding: React.FC = () => {
                 value={storeName}
                 onChange={(e) => setStoreName(e.target.value)}
                 placeholder="Ex: Ma Quincaillerie"
-                className="w-full bg-slate-800/60 border border-slate-700 rounded-xl px-4 py-3 text-white text-sm placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/40 focus:border-emerald-500/50 transition-all"
+                className="app-field"
               />
             </div>
 
-            <div className="flex items-center gap-2 bg-emerald-500/10 border border-emerald-500/20 rounded-xl px-3.5 py-2.5 text-xs text-emerald-300/90">
+            <div className="flex items-center gap-2 rounded-xl border border-success-border bg-success-soft px-3.5 py-2.5 text-xs t-success">
               <Sparkles className="w-3.5 h-3.5 shrink-0" />
               <span>7 jours d'essai gratuit inclus, sans paiement à l'inscription.</span>
             </div>
 
-            {error && <p className="text-red-400 text-sm font-medium text-center">{error}</p>}
+            {error && <p className="text-center text-sm font-medium t-danger">{error}</p>}
 
-            <button
-              type="submit"
-              disabled={creating}
-              className="w-full py-3 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white font-bold rounded-xl transition-all shadow-lg shadow-emerald-600/20"
-            >
+            <button type="submit" disabled={creating} className="app-btn-primary w-full">
               {creating ? "Création..." : "Créer ma boutique"}
             </button>
           </form>
 
-          <div className="flex items-center gap-3 my-6">
-            <div className="h-px flex-1 bg-slate-800" />
-            <span className="text-[11px] text-slate-500 uppercase tracking-wide">ou</span>
-            <div className="h-px flex-1 bg-slate-800" />
+          <div className="my-6 flex items-center gap-3">
+            <div className="h-px flex-1 bg-border" />
+            <span className="text-[11px] uppercase tracking-wide text-muted-foreground">ou</span>
+            <div className="h-px flex-1 bg-border" />
           </div>
 
           <Link
             to="/accept-invite"
             search={{ token: undefined }}
-            className="w-full flex items-center justify-center gap-2 py-3 bg-slate-800/60 hover:bg-slate-800 border border-slate-700 text-slate-200 font-semibold rounded-xl transition-colors"
+            className="app-btn-secondary w-full"
           >
             <UserPlus className="w-4 h-4" />
             J'ai un lien d'invitation
           </Link>
 
-          <div className="flex items-center gap-3 my-6">
-            <div className="h-px flex-1 bg-slate-800" />
-            <span className="text-[11px] text-slate-500 uppercase tracking-wide">ou</span>
-            <div className="h-px flex-1 bg-slate-800" />
+          <div className="my-6 flex items-center gap-3">
+            <div className="h-px flex-1 bg-border" />
+            <span className="text-[11px] uppercase tracking-wide text-muted-foreground">ou</span>
+            <div className="h-px flex-1 bg-border" />
           </div>
 
           <form onSubmit={handleJoinWithCode} className="space-y-3">
-            <label className="flex items-center gap-1.5 text-xs font-semibold text-slate-300 uppercase tracking-wide">
+            <label className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
               <KeyRound className="w-3.5 h-3.5" />
               J'ai un code d'invitation
             </label>
-            <div className="flex gap-2">
+            <div className="flex flex-col gap-2 sm:flex-row">
               <input
                 type="text"
                 value={joinCode}
                 onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
                 placeholder="INV-XXXX-XXXX"
-                className="flex-1 bg-slate-800/60 border border-slate-700 rounded-xl px-4 py-2.5 text-white text-sm font-mono tracking-widest text-center placeholder:text-slate-600 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/50 transition-all"
+                className="app-field flex-1 text-center font-mono tracking-widest"
               />
               <button
                 type="submit"
                 disabled={joiningWithCode || !joinCode.trim()}
-                className="px-5 py-2.5 bg-blue-600 hover:bg-blue-500 disabled:opacity-50 text-white font-semibold rounded-xl transition-colors text-sm"
+                className="app-btn-secondary shrink-0"
               >
                 {joiningWithCode ? "..." : "Rejoindre"}
               </button>
             </div>
             {joinCodeError && (
-              <p className="text-red-400 text-sm font-medium text-center">{joinCodeError}</p>
+              <p className="text-center text-sm font-medium t-danger">{joinCodeError}</p>
             )}
           </form>
         </div>
@@ -183,7 +180,7 @@ export const CreateStoreOnboarding: React.FC = () => {
         <button
           type="button"
           onClick={signOut}
-          className="w-full flex items-center justify-center gap-1.5 text-sm text-slate-500 hover:text-slate-300 transition-colors py-4 mt-1"
+          className="mt-1 flex w-full items-center justify-center gap-1.5 py-4 text-sm text-muted-foreground transition-colors hover:text-foreground"
         >
           <LogOut className="w-3.5 h-3.5" />
           Me déconnecter

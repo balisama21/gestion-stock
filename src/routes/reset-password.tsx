@@ -76,9 +76,9 @@ function ResetPasswordPage() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 flex">
+    <div className="flex min-h-screen bg-background">
       <div className="hidden lg:flex lg:w-[42%] relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-emerald-600 via-teal-700 to-slate-900" />
+        <div className="absolute inset-0 bg-gradient-to-br from-emerald-700 via-teal-800 to-slate-900" />
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(255,255,255,0.12),transparent_50%)]" />
         <div className="relative z-10 flex flex-col justify-between p-12 text-white">
           <div>
@@ -89,11 +89,11 @@ function ResetPasswordPage() {
               <span className="font-bold text-lg tracking-wide">{APP_NAME}</span>
             </div>
             <h1 className="text-3xl font-bold leading-tight mb-4">Nouveau mot de passe</h1>
-            <p className="text-emerald-100/80 text-base leading-relaxed max-w-sm">
+            <p className="text-emerald-50 text-base leading-relaxed max-w-sm">
               Choisissez un mot de passe sécurisé pour continuer à accéder à votre espace.
             </p>
           </div>
-          <p className="text-xs text-emerald-200/50">Invitation sécurisée · Accès contrôlé</p>
+          <p className="text-xs text-emerald-50">Invitation sécurisée · Accès contrôlé</p>
         </div>
       </div>
 
@@ -108,7 +108,7 @@ function ResetPasswordPage() {
           </Link>
 
           <div className="bg-card border border-border/80 rounded-2xl shadow-2xl shadow-black/10 p-8 sm:p-10">
-            <div className="w-14 h-14 bg-emerald-500/10 text-emerald-500 rounded-2xl flex items-center justify-center mb-6">
+            <div className="w-14 h-14 bg-success-soft t-success rounded-2xl flex items-center justify-center mb-6">
               <KeyRound className="w-7 h-7" />
             </div>
 
@@ -126,8 +126,8 @@ function ResetPasswordPage() {
 
             {status === "success" && (
               <div className="text-center py-4">
-                <CheckCircle2 className="w-12 h-12 text-emerald-500 mx-auto mb-4" />
-                <p className="text-emerald-500 font-bold mb-2">Mot de passe mis à jour !</p>
+                <CheckCircle2 className="w-12 h-12 t-success mx-auto mb-4" />
+                <p className="t-success font-bold mb-2">Mot de passe mis à jour !</p>
                 <p className="text-sm text-muted-foreground">
                   Redirection vers la page de connexion...
                 </p>
@@ -136,7 +136,7 @@ function ResetPasswordPage() {
 
             {status === "error" && (
               <div>
-                <div className="flex items-start gap-3 bg-red-500/10 border border-red-500/25 text-red-500 rounded-xl p-4 mb-6 text-sm">
+                <div className="flex items-start gap-3 bg-danger-soft border border-danger-border t-danger rounded-xl p-4 mb-6 text-sm">
                   <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
                   {errorMsg}
                 </div>
@@ -152,7 +152,7 @@ function ResetPasswordPage() {
             {(status === "ready" || status === "submitting") && (
               <form onSubmit={handleSubmit} className="space-y-4">
                 {errorMsg && (
-                  <div className="flex items-center gap-2 bg-red-500/10 border border-red-500/25 text-red-500 rounded-xl p-3 mb-2 text-sm">
+                  <div className="flex items-center gap-2 bg-danger-soft border border-danger-border t-danger rounded-xl p-3 mb-2 text-sm">
                     <AlertCircle className="w-4 h-4 shrink-0" />
                     {errorMsg}
                   </div>
@@ -172,7 +172,7 @@ function ResetPasswordPage() {
                       minLength={8}
                       autoComplete="new-password"
                       placeholder="Minimum 8 caractères"
-                      className="w-full bg-muted/50 border border-border rounded-xl pl-10 pr-10 py-2.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-emerald-500/40 focus:border-emerald-500/50 transition-all"
+                      className="app-field pl-10 pr-10"
                     />
                     <button
                       type="button"
@@ -198,7 +198,7 @@ function ResetPasswordPage() {
                       minLength={8}
                       autoComplete="new-password"
                       placeholder="Répétez le mot de passe"
-                      className="w-full bg-muted/50 border border-border rounded-xl pl-10 pr-4 py-2.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-emerald-500/40 focus:border-emerald-500/50 transition-all"
+                      className="app-field pl-10"
                     />
                   </div>
                 </div>
@@ -206,7 +206,7 @@ function ResetPasswordPage() {
                 <button
                   type="submit"
                   disabled={status === "submitting"}
-                  className="w-full py-3 mt-1 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold rounded-xl transition-all shadow-lg shadow-emerald-600/20 hover:shadow-emerald-500/30 active:scale-[0.99]"
+                  className="app-btn-primary mt-1 w-full active:scale-[0.99]"
                 >
                   {status === "submitting" ? (
                     <span className="inline-flex items-center justify-center gap-2">

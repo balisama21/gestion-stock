@@ -16,6 +16,8 @@ import {
   Truck,
 } from "lucide-react";
 import { formatCurrency, formatDateLocale, getProductLabel } from "../utils/formulas";
+import { StatTile } from "./shared/StatTile";
+import { MobileCardList } from "./shared/MobileCardList";
 import type { Database } from "../lib/database.types";
 
 type Order = Database["public"]["Tables"]["orders"]["Row"] & {
@@ -64,17 +66,55 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   const isTresorerieNegative = capital.tresorerieGlobaleActuelle < 0;
   const isTresorerieLow = capital.tresorerieGlobaleActuelle < capital.seuilAlerteTresorerie;
 
+  // ── Tendances : mois en cours vs mois précédent ──
+  // Calcul purement local à partir des données déjà chargées (aucune
+  // requête supplémentaire). Les cartes sans période comparable simple
+  // (Trésorerie, Commandes, Stock) n'affichent pas de tendance : mieux
+  // vaut pas d'indicateur qu'un indicateur faux.
+  const now = new Date();
+  const monthKey = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
+  const currentMonth = monthKey(now);
+  const previousMonth = monthKey(new Date(now.getFullYear(), now.getMonth() - 1, 1));
+
+  const sumInMonth = <T,>(rows: T[], date: (r: T) => string, amount: (r: T) => number, m: string) =>
+    rows.filter((r) => (date(r) || "").startsWith(m)).reduce((acc, r) => acc + amount(r), 0);
+
+  const buildTrend = (current: number, previous: number, goodDirection: "up" | "down") => {
+    if (previous === 0) return { percent: 0, label: "ce mois-ci", noBaseline: true, goodDirection };
+    return {
+      percent: ((current - previous) / Math.abs(previous)) * 100,
+      label: "vs mois dernier",
+      goodDirection,
+    };
+  };
+
+  const salesTrend = buildTrend(
+    sumInMonth(sales, (s) => s.date, (s) => s.totalVente, currentMonth),
+    sumInMonth(sales, (s) => s.date, (s) => s.totalVente, previousMonth),
+    "up",
+  );
+  const purchasesTrend = buildTrend(
+    sumInMonth(purchases, (p) => p.date, (p) => p.totalAchat, currentMonth),
+    sumInMonth(purchases, (p) => p.date, (p) => p.totalAchat, previousMonth),
+    "down",
+  );
+  const expensesTrend = buildTrend(
+    sumInMonth(expenses, (e) => e.date, (e) => e.montant, currentMonth),
+    sumInMonth(expenses, (e) => e.date, (e) => e.montant, previousMonth),
+    "down",
+  );
+
   return (
     <div className="space-y-6">
       {/* ── Alert Banners ── */}
       {isTresorerieNegative && (
-        <div className="bg-red-900/30 border border-red-500/40 p-4 rounded-2xl flex items-center gap-4">
-          <AlertTriangle className="w-7 h-7 text-red-400 shrink-0 animate-bounce" />
+        <div className="bg-danger-soft border border-danger-border p-4 rounded-2xl flex items-center gap-4">
+          <AlertTriangle className="w-7 h-7 t-danger shrink-0 animate-bounce" />
           <div className="flex-1">
-            <h3 className="font-bold text-base text-red-300">
+            <h3 className="font-bold text-base t-danger">
               🚨 Trésorerie Négative ({formatCurrency(capital.tresorerieGlobaleActuelle)})
             </h3>
-            <p className="text-sm text-red-300/70 mt-0.5">
+            <p className="text-sm t-danger/70 mt-0.5">
               Les dépenses dépassent le capital. Injectez un apport ou enregistrez des ventes.
             </p>
           </div>
@@ -87,149 +127,94 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         </div>
       )}
       {isTresorerieLow && !isTresorerieNegative && (
-        <div className="bg-amber-900/20 border border-amber-500/30 p-4 rounded-2xl flex items-center gap-4">
-          <AlertTriangle className="w-6 h-6 text-amber-400 shrink-0" />
+        <div className="bg-warning-soft border border-warning-border p-4 rounded-2xl flex items-center gap-4">
+          <AlertTriangle className="w-6 h-6 t-warning shrink-0" />
           <div>
-            <h3 className="font-bold text-sm text-amber-300">
+            <h3 className="font-bold text-sm t-warning">
               ⚠️ Trésorerie sous le seuil ({formatCurrency(capital.seuilAlerteTresorerie)})
             </h3>
-            <p className="text-sm text-amber-300/70">
+            <p className="text-sm t-warning/70">
               Solde actuel : {formatCurrency(capital.tresorerieGlobaleActuelle)}
             </p>
           </div>
         </div>
       )}
 
-      {/* ── KPI Cards ── */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-5">
-        {/* Trésorerie */}
-        <div
+      {/* ── KPI Cards ──
+          Grille plus aérée : à six colonnes dès 1024px les montants
+          étaient à l'étroit. On ne passe à six qu'au-delà de 1280px. */}
+      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 xl:grid-cols-6 xl:gap-5">
+        <StatTile
+          label="Trésorerie"
+          value={formatCurrency(capital.tresorerieGlobaleActuelle)}
+          hint="argent disponible"
+          icon={<Wallet className="w-5 h-5" />}
+          tone={isTresorerieNegative ? "danger" : isTresorerieLow ? "warning" : "success"}
           onClick={() => onNavigateTab("capital")}
-          className="col-span-2 sm:col-span-1 relative bg-card border border-border p-6 rounded-2xl cursor-pointer hover:border-emerald-500/60 hover:shadow-lg hover:shadow-emerald-500/10 transition-all group overflow-hidden"
-        >
-          <div className="absolute inset-0 bg-gradient-to-br from-emerald-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-          <div className="flex items-center justify-between mb-3">
-            <span className="text-xs font-bold text-muted-foreground uppercase tracking-widest">
-              Trésorerie
-            </span>
-            <div className="w-9 h-9 rounded-xl bg-emerald-500/15 border border-emerald-500/25 text-emerald-400 flex items-center justify-center">
-              <Wallet className="w-5 h-5" />
-            </div>
-          </div>
-          <div
-            className={`text-2xl font-black font-mono ${isTresorerieNegative ? "text-red-400" : "text-emerald-400"}`}
-          >
-            {formatCurrency(capital.tresorerieGlobaleActuelle)}
-          </div>
-          <div className="text-xs text-muted-foreground mt-1">Capital disponible</div>
-        </div>
+        />
 
-        {/* Ventes */}
-        <div
+        <StatTile
+          label="Ventes"
+          value={formatCurrency(totalSalesAmount)}
+          hint={`Marge : ${formatCurrency(totalMarginAmount)}`}
+          hintTone="success"
+          icon={<DollarSign className="w-5 h-5" />}
+          tone="info"
+          trend={salesTrend}
           onClick={() => onNavigateTab("ventes")}
-          className="bg-card border border-border p-6 rounded-2xl cursor-pointer hover:border-blue-500/60 hover:shadow-lg hover:shadow-blue-500/10 transition-all group overflow-hidden relative"
-        >
-          <div className="absolute inset-0 bg-gradient-to-br from-blue-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-          <div className="flex items-center justify-between mb-3">
-            <span className="text-xs font-bold text-muted-foreground uppercase tracking-widest">
-              Ventes CA
-            </span>
-            <div className="w-9 h-9 rounded-xl bg-blue-500/15 border border-blue-500/25 text-blue-400 flex items-center justify-center">
-              <DollarSign className="w-5 h-5" />
-            </div>
-          </div>
-          <div className="text-2xl font-black font-mono text-foreground">
-            {formatCurrency(totalSalesAmount)}
-          </div>
-          <div className="text-xs text-emerald-400 mt-1 font-semibold">
-            Marge : {formatCurrency(totalMarginAmount)}
-          </div>
-        </div>
+        />
 
-        {/* Achats */}
-        <div
+        <StatTile
+          label="Achats"
+          value={formatCurrency(totalPurchasesAmount)}
+          hint={`${purchases.length} achat${purchases.length > 1 ? "s" : ""}`}
+          icon={<ShoppingCart className="w-5 h-5" />}
+          tone="warning"
+          trend={purchasesTrend}
           onClick={() => onNavigateTab("achats")}
-          className="bg-card border border-border p-6 rounded-2xl cursor-pointer hover:border-amber-500/60 hover:shadow-lg hover:shadow-amber-500/10 transition-all group overflow-hidden relative"
-        >
-          <div className="absolute inset-0 bg-gradient-to-br from-amber-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-          <div className="flex items-center justify-between mb-3">
-            <span className="text-xs font-bold text-muted-foreground uppercase tracking-widest">
-              Achats
-            </span>
-            <div className="w-9 h-9 rounded-xl bg-amber-500/15 border border-amber-500/25 text-amber-400 flex items-center justify-center">
-              <ShoppingCart className="w-5 h-5" />
-            </div>
-          </div>
-          <div className="text-2xl font-black font-mono text-foreground">
-            {formatCurrency(totalPurchasesAmount)}
-          </div>
-          <div className="text-xs text-muted-foreground mt-1">{purchases.length} achats</div>
-        </div>
+        />
 
-        {/* Dépenses */}
-        <div
+        <StatTile
+          label="Dépenses"
+          value={formatCurrency(totalExpensesAmount)}
+          hint={`${expenses.length} dépense${expenses.length > 1 ? "s" : ""}`}
+          icon={<ArrowDownRight className="w-5 h-5" />}
+          tone="danger"
+          trend={expensesTrend}
           onClick={() => onNavigateTab("depenses")}
-          className="bg-card border border-border p-6 rounded-2xl cursor-pointer hover:border-rose-500/60 hover:shadow-lg hover:shadow-rose-500/10 transition-all group overflow-hidden relative"
-        >
-          <div className="absolute inset-0 bg-gradient-to-br from-rose-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
-          <div className="flex items-center justify-between mb-3">
-            <span className="text-xs font-bold text-muted-foreground uppercase tracking-widest">
-              Dépenses
-            </span>
-            <div className="w-9 h-9 rounded-xl bg-rose-500/15 border border-rose-500/25 text-rose-400 flex items-center justify-center">
-              <ArrowDownRight className="w-5 h-5" />
-            </div>
-          </div>
-          <div className="text-2xl font-black font-mono text-rose-400">
-            {formatCurrency(totalExpensesAmount)}
-          </div>
-          <div className="text-xs text-muted-foreground mt-1">{expenses.length} dépenses</div>
-        </div>
+        />
 
-        {/* Commandes */}
-        <div
+        <StatTile
+          label="Commandes"
+          value={`${orders.length}`}
+          hint={
+            pendingOrders.length > 0
+              ? `${pendingOrders.length} en cours`
+              : "aucune commande en cours"
+          }
+          hintTone={pendingOrders.length > 0 ? "warning" : "neutral"}
+          icon={<ShoppingBag className="w-5 h-5" />}
+          tone="violet"
+          flag={pendingOrders.length > 0}
           onClick={() => onNavigateTab("commandes")}
-          className="bg-card border border-border p-6 rounded-2xl cursor-pointer hover:border-indigo-500/60 hover:shadow-lg hover:shadow-indigo-500/10 transition-all group overflow-hidden relative"
-        >
-          {pendingOrders.length > 0 && (
-            <span className="absolute top-3 right-3 w-2.5 h-2.5 bg-amber-400 rounded-full animate-ping" />
-          )}
-          <div className="flex items-center justify-between mb-3">
-            <span className="text-xs font-bold text-muted-foreground uppercase tracking-widest">
-              Commandes
-            </span>
-            <div className="w-9 h-9 rounded-xl bg-indigo-500/15 border border-indigo-500/25 text-indigo-400 flex items-center justify-center">
-              <ShoppingBag className="w-5 h-5" />
-            </div>
-          </div>
-          <div className="text-2xl font-black font-mono text-foreground">{orders.length}</div>
-          <div className="text-xs text-amber-400 mt-1 font-semibold">
-            {pendingOrders.length} en cours
-          </div>
-        </div>
+        />
 
-        {/* Stock */}
-        <div
+        <StatTile
+          label="Stock"
+          value={formatCurrency(totalStockValue)}
+          hint={
+            lowStockProducts.length > 0
+              ? `${lowStockProducts.length} à réapprovisionner`
+              : `${products.length} référence${products.length > 1 ? "s" : ""}`
+          }
+          hintTone={lowStockProducts.length > 0 ? "warning" : "neutral"}
+          icon={<Package className="w-5 h-5" />}
+          tone="violet"
+          flag={lowStockProducts.length > 0}
           onClick={() => onNavigateTab("produits")}
-          className="bg-card border border-border p-6 rounded-2xl cursor-pointer hover:border-purple-500/60 hover:shadow-lg hover:shadow-purple-500/10 transition-all group overflow-hidden relative"
-        >
-          {lowStockProducts.length > 0 && (
-            <span className="absolute top-3 right-3 w-2.5 h-2.5 bg-orange-400 rounded-full animate-ping" />
-          )}
-          <div className="flex items-center justify-between mb-3">
-            <span className="text-xs font-bold text-muted-foreground uppercase tracking-widest">
-              Stock
-            </span>
-            <div className="w-9 h-9 rounded-xl bg-purple-500/15 border border-purple-500/25 text-purple-400 flex items-center justify-center">
-              <Package className="w-5 h-5" />
-            </div>
-          </div>
-          <div className="text-2xl font-black font-mono text-foreground">
-            {formatCurrency(totalStockValue)}
-          </div>
-          <div className="text-xs text-muted-foreground mt-1">{products.length} références</div>
-        </div>
+        />
       </div>
+
 
       {/* ── Main Content Grid ── */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -239,11 +224,11 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           <div className="bg-card border border-border rounded-2xl p-5">
             <div className="flex items-center justify-between mb-4">
               <h3 className="font-bold text-base text-foreground flex items-center gap-2">
-                <Users className="w-4 h-4 text-emerald-400" /> Solde Net Vendeurs
+                <Users className="w-4 h-4 t-success" /> Solde Net Vendeurs
               </h3>
               <button
                 onClick={() => onNavigateTab("vendeurs")}
-                className="text-sm text-emerald-400 hover:text-emerald-300 font-semibold hover:underline transition-colors"
+                className="text-sm t-success hover:t-success font-semibold hover:underline transition-colors"
               >
                 Gérer →
               </button>
@@ -268,7 +253,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                         {formatCurrency(v.totalDepenses)}
                       </div>
                     </div>
-                    <div className="font-bold font-mono text-base text-emerald-400 whitespace-nowrap">
+                    <div className="font-bold font-mono text-base t-success whitespace-nowrap">
                       {formatCurrency(v.soldeNetEnPoche)}
                     </div>
                   </div>
@@ -281,19 +266,19 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           <div className="bg-card border border-border rounded-2xl p-5">
             <div className="flex items-center justify-between mb-3">
               <h3 className="font-bold text-base text-foreground flex items-center gap-2">
-                <AlertTriangle className="w-4 h-4 text-amber-400" /> Alertes Stock (
+                <AlertTriangle className="w-4 h-4 t-warning" /> Alertes Stock (
                 {lowStockProducts.length})
               </h3>
               <button
                 onClick={() => onNavigateTab("produits")}
-                className="text-sm text-emerald-400 hover:underline font-semibold"
+                className="text-sm t-success hover:underline font-semibold"
               >
                 Voir tout
               </button>
             </div>
             {lowStockProducts.length === 0 ? (
               <div className="flex items-center gap-2 text-sm text-muted-foreground bg-muted/40 p-3 rounded-xl border border-border">
-                <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" /> Stock suffisant sur
+                <CheckCircle2 className="w-4 h-4 t-success shrink-0" /> Stock suffisant sur
                 tous les produits.
               </div>
             ) : (
@@ -314,14 +299,14 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                           {getProductLabel(p, products)}
                         </div>
                         {isOut && (
-                          <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-red-500/20 text-red-300 border border-red-500/30">
+                          <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-red-500/20 t-danger border border-red-500/30">
                             Rupture
                           </span>
                         )}
                       </div>
                       <span
                         className={`text-sm font-bold font-mono ${
-                          isOut ? "text-red-400" : "text-amber-400"
+                          isOut ? "t-danger" : "t-warning"
                         }`}
                       >
                         {p.stockActuel}{" "}
@@ -339,12 +324,12 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             <div className="bg-card border border-indigo-500/30 rounded-2xl p-5">
               <div className="flex items-center justify-between mb-3">
                 <h3 className="font-bold text-base text-foreground flex items-center gap-2">
-                  <Truck className="w-4 h-4 text-indigo-400" /> Commandes en cours (
+                  <Truck className="w-4 h-4 t-violet" /> Commandes en cours (
                   {pendingOrders.length})
                 </h3>
                 <button
                   onClick={() => onNavigateTab("commandes")}
-                  className="text-sm text-emerald-400 hover:underline font-semibold"
+                  className="text-sm t-success hover:underline font-semibold"
                 >
                   Ouvrir
                 </button>
@@ -361,7 +346,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                         {o.client?.nom ?? "Sans client"}
                       </div>
                     </div>
-                    <span className="font-bold text-sm text-indigo-400 font-mono">
+                    <span className="font-bold text-sm t-violet font-mono">
                       {formatCurrency(o.montant_total)}
                     </span>
                   </div>
@@ -375,12 +360,12 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             <div className="bg-card border border-rose-500/30 rounded-2xl p-5">
               <div className="flex items-center justify-between mb-3">
                 <h3 className="font-bold text-base text-foreground flex items-center gap-2">
-                  <CreditCard className="w-4 h-4 text-rose-400" /> Paiements en attente (
+                  <CreditCard className="w-4 h-4 t-danger" /> Paiements en attente (
                   {unpaidOrders.length})
                 </h3>
                 <button
                   onClick={() => onNavigateTab("commandes")}
-                  className="text-sm text-emerald-400 hover:underline font-semibold"
+                  className="text-sm t-success hover:underline font-semibold"
                 >
                   Ouvrir
                 </button>
@@ -397,7 +382,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                         {o.client?.nom ?? "Sans client"}
                       </div>
                     </div>
-                    <span className="font-bold text-sm text-rose-400 font-mono">
+                    <span className="font-bold text-sm t-danger font-mono">
                       {formatCurrency(o.reste_a_payer ?? 0)}
                     </span>
                   </div>
@@ -413,16 +398,52 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           <div className="bg-card border border-border rounded-2xl p-5">
             <div className="flex items-center justify-between mb-4">
               <h3 className="font-bold text-base text-foreground flex items-center gap-2">
-                <TrendingUp className="w-4 h-4 text-blue-400" /> Activités Récentes : Ventes
+                <TrendingUp className="w-4 h-4 t-info" /> Activités Récentes : Ventes
               </h3>
               <button
                 onClick={() => onNavigateTab("ventes")}
-                className="text-sm text-emerald-400 hover:underline font-semibold"
+                className="text-sm t-success hover:underline font-semibold"
               >
                 Toutes les Ventes →
               </button>
             </div>
-            <div className="overflow-x-auto">
+            {/* Liste mobile — le tableau ci-dessous impose un défilement
+                horizontal illisible sous 768px. */}
+            <div className="lg:hidden">
+              <MobileCardList
+                emptyLabel="Aucune vente récente."
+                items={sales.slice(0, 6).map((s) => {
+                  const linkedProduct = products.find((prod) => prod.id === s.productId);
+                  return {
+                    id: s.id,
+                    title: `${linkedProduct ? getProductLabel(linkedProduct, products) : s.designation} ×${s.quantite}`,
+                    subtitle: `${formatDateLocale(s.date, locale)} · ${s.vendeur}`,
+                    amount: formatCurrency(s.totalVente),
+                    badge: (
+                      <span
+                        className={`app-badge ${
+                          s.statutCredit === "Payé"
+                            ? "app-badge-success"
+                            : s.statutCredit === "Partiel"
+                              ? "app-badge-warning"
+                              : "app-badge-danger"
+                        }`}
+                      >
+                        {s.statutCredit}
+                      </span>
+                    ),
+                    fields: [
+                      { label: "Date", value: formatDateLocale(s.date, locale) },
+                      { label: "Quantité", value: `${s.quantite}` },
+                      { label: "Vendeur", value: s.vendeur },
+                      { label: "Total", value: formatCurrency(s.totalVente) },
+                    ],
+                  };
+                })}
+              />
+            </div>
+
+            <div className="hidden overflow-x-auto lg:block">
               <table className="w-full text-left text-sm">
                 <thead>
                   <tr className="border-b border-border">
@@ -447,7 +468,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                       <td className="py-3.5 font-mono text-muted-foreground text-xs whitespace-nowrap">
                         {formatDateLocale(s.date, locale)}
                       </td>
-                      <td className="py-3.5 font-semibold text-emerald-300 font-mono">
+                      <td className="py-3.5 font-semibold t-success font-mono">
                         {(() => {
                           const linkedProduct = products.find((prod) => prod.id === s.productId);
                           return linkedProduct ? getProductLabel(linkedProduct, products) : s.designation;
@@ -464,12 +485,12 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                       </td>
                       <td className="py-3.5 whitespace-nowrap">
                         <span
-                          className={`px-2 py-0.5 rounded-md text-xs font-semibold ${
+                          className={`app-badge ${
                             s.statutCredit === "Payé"
-                              ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30"
+                              ? "app-badge-success"
                               : s.statutCredit === "Partiel"
-                                ? "bg-amber-500/20 text-amber-300 border border-amber-500/30"
-                                : "bg-rose-500/20 text-rose-300 border border-rose-500/30"
+                                ? "app-badge-warning"
+                                : "app-badge-danger"
                           }`}
                         >
                           {s.statutCredit}
@@ -493,7 +514,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
             <div className="bg-card border border-border rounded-2xl p-5">
               <h3 className="font-bold text-base text-foreground flex items-center gap-2 mb-4">
-                <ShoppingCart className="w-4 h-4 text-amber-400" /> Derniers Achats
+                <ShoppingCart className="w-4 h-4 t-warning" /> Derniers Achats
               </h3>
               <div className="space-y-3">
                 {purchases.slice(0, 4).map((p) => (
@@ -512,7 +533,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                         {formatDateLocale(p.date, locale)}
                       </div>
                     </div>
-                    <div className="font-mono font-bold text-amber-400 whitespace-nowrap">
+                    <div className="font-mono font-bold t-warning whitespace-nowrap">
                       {formatCurrency(p.totalAchat)}
                     </div>
                   </div>
@@ -527,7 +548,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
 
             <div className="bg-card border border-border rounded-2xl p-5">
               <h3 className="font-bold text-base text-foreground flex items-center gap-2 mb-4">
-                <ArrowRightLeft className="w-4 h-4 text-rose-400" /> Dernières Dépenses
+                <ArrowRightLeft className="w-4 h-4 t-danger" /> Dernières Dépenses
               </h3>
               <div className="space-y-3">
                 {expenses.slice(0, 4).map((e) => (
@@ -539,7 +560,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                       <div className="font-semibold text-foreground truncate">{e.vendeur}</div>
                       <div className="text-xs text-muted-foreground">{e.type}</div>
                     </div>
-                    <div className="font-mono font-bold text-rose-400 whitespace-nowrap">
+                    <div className="font-mono font-bold t-danger whitespace-nowrap">
                       {formatCurrency(e.montant)}
                     </div>
                   </div>

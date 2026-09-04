@@ -27,6 +27,7 @@ import {
   Building,
 } from "lucide-react";
 import { formatCurrency, formatDateLocale, getSaleLabel } from "../utils/formulas";
+import { MobileCardList } from "./shared/MobileCardList";
 
 interface VendeursViewProps {
   sellers: Seller[];
@@ -264,8 +265,8 @@ export const VendeursView: React.FC<VendeursViewProps> = ({
                 <div
                   className={`p-3 rounded-xl text-sm font-semibold flex items-center gap-2 ${
                     inviteStatus.type === "success"
-                      ? "bg-emerald-500/15 text-emerald-400 border border-emerald-500/30"
-                      : "bg-rose-500/15 text-rose-400 border border-rose-500/30"
+                      ? "bg-emerald-500/15 t-success border border-emerald-500/30"
+                      : "bg-rose-500/15 t-danger border border-rose-500/30"
                   }`}
                 >
                   {inviteStatus.type === "success" ? "✅" : "❌"} {inviteStatus.msg}
@@ -303,7 +304,7 @@ export const VendeursView: React.FC<VendeursViewProps> = ({
             </form>
 
             <div className="mt-4 p-3 bg-blue-500/10 border border-blue-500/20 rounded-xl">
-              <p className="text-xs text-blue-300">
+              <p className="text-xs t-info">
                 💡 Le vendeur recevra un e-mail avec un lien sécurisé pour créer son compte et
                 rejoindre votre boutique. Il n'a pas besoin de code d'activation payant.
               </p>
@@ -315,12 +316,11 @@ export const VendeursView: React.FC<VendeursViewProps> = ({
       <div className="flex flex-wrap items-center justify-between gap-4 bg-card p-6 rounded-2xl border border-border">
         <div>
           <h2 className="text-xl font-bold text-foreground flex items-center gap-2">
-            <Users className="w-6 h-6 text-emerald-400" />
-            Gestion des Vendeurs & Historique des Activités
+            <Users className="w-6 h-6 t-success" />
+            Vendeurs
           </h2>
           <p className="text-xs text-muted-foreground mt-1">
-            Visualisez, modifiez ou annulez les ventes, achats et dépenses effectués par chaque
-            vendeur avec traçabilité complète.
+            Suivez l'activité de chaque vendeur : ventes, dépenses et solde en poche.
           </p>
         </div>
 
@@ -330,10 +330,10 @@ export const VendeursView: React.FC<VendeursViewProps> = ({
               setSelectedReportSeller("all");
               setIsReportModalOpen(true);
             }}
-            className="flex items-center gap-1.5 px-3.5 py-2 bg-muted hover:bg-accent text-emerald-300 border border-emerald-500/30 rounded-xl text-xs font-semibold shadow-sm transition-colors"
+            className="flex items-center gap-1.5 px-3.5 py-2 bg-muted hover:bg-accent t-success border border-emerald-500/30 rounded-xl text-xs font-semibold shadow-sm transition-colors"
             title="Imprimer ou télécharger le bilan d'activité vendeur"
           >
-            <Printer className="w-4 h-4 text-emerald-400" />
+            <Printer className="w-4 h-4 t-success" />
             Relevé & Bilan Activité
           </button>
 
@@ -353,7 +353,7 @@ export const VendeursView: React.FC<VendeursViewProps> = ({
           <div className="text-xs font-semibold text-muted-foreground uppercase">
             Total Ventes Tous Vendeurs
           </div>
-          <div className="text-2xl font-bold font-mono text-blue-400 mt-1">
+          <div className="text-2xl font-bold font-mono t-info mt-1">
             {formatCurrency(grandTotalSales)}
           </div>
         </div>
@@ -362,16 +362,16 @@ export const VendeursView: React.FC<VendeursViewProps> = ({
           <div className="text-xs font-semibold text-muted-foreground uppercase">
             Total Dépenses Vendeurs
           </div>
-          <div className="text-2xl font-bold font-mono text-rose-400 mt-1">
+          <div className="text-2xl font-bold font-mono t-danger mt-1">
             {formatCurrency(grandTotalExpenses)}
           </div>
         </div>
 
-        <div className="bg-card border border-border p-4 rounded-2xl bg-emerald-950/20 border-emerald-500/30">
-          <div className="text-xs font-semibold text-emerald-300 uppercase">
+        <div className="bg-card border border-border p-4 rounded-2xl bg-success-soft border-success-border">
+          <div className="text-xs font-semibold t-success uppercase">
             Solde Net Cumulé ("Dans les poches")
           </div>
-          <div className="text-2xl font-bold font-mono text-emerald-400 mt-1">
+          <div className="text-2xl font-bold font-mono t-success mt-1">
             {formatCurrency(grandTotalPocket)}
           </div>
         </div>
@@ -391,12 +391,12 @@ export const VendeursView: React.FC<VendeursViewProps> = ({
               <div className="space-y-4">
                 <div className="flex items-center justify-between border-b border-border pb-3">
                   <div className="flex items-center gap-2.5">
-                    <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center font-bold text-emerald-400 text-base shadow-inner">
+                    <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center font-bold t-success text-base shadow-inner">
                       {v.nom.charAt(0)}
                     </div>
                     <div>
                       <h3 className="font-bold text-sm text-foreground">{v.nom}</h3>
-                      <span className="text-[10px] text-emerald-400 font-medium">
+                      <span className="text-[10px] t-success font-medium">
                         ● Vendeur Actif
                       </span>
                     </div>
@@ -410,7 +410,7 @@ export const VendeursView: React.FC<VendeursViewProps> = ({
                         onDeleteSeller(v.id);
                       }
                     }}
-                    className="p-1.5 text-muted-foreground hover:text-rose-400 bg-muted hover:bg-accent rounded-lg transition-colors"
+                    className="p-1.5 text-muted-foreground hover:t-danger bg-muted hover:bg-accent rounded-lg transition-colors"
                     title="Supprimer ce vendeur"
                   >
                     <Trash2 className="w-3.5 h-3.5" />
@@ -421,30 +421,30 @@ export const VendeursView: React.FC<VendeursViewProps> = ({
                 <div className="space-y-2 text-xs">
                   <div className="flex justify-between items-center py-1 border-b border-border/60">
                     <span className="text-muted-foreground flex items-center gap-1.5">
-                      <DollarSign className="w-3.5 h-3.5 text-blue-400" />
+                      <DollarSign className="w-3.5 h-3.5 t-info" />
                       Ventes Réalisées :
                     </span>
-                    <span className="font-bold font-mono text-blue-300">
+                    <span className="font-bold font-mono t-info">
                       {formatCurrency(v.totalVentesMontant)} ({v.totalVentesNombre} ventes)
                     </span>
                   </div>
 
                   <div className="flex justify-between items-center py-1 border-b border-border/60">
                     <span className="text-muted-foreground flex items-center gap-1.5">
-                      <ArrowRightLeft className="w-3.5 h-3.5 text-rose-400" />
+                      <ArrowRightLeft className="w-3.5 h-3.5 t-danger" />
                       Dépenses / Retraits :
                     </span>
-                    <span className="font-bold font-mono text-rose-400">
+                    <span className="font-bold font-mono t-danger">
                       - {formatCurrency(v.totalDepenses)}
                     </span>
                   </div>
 
                   <div className="flex justify-between items-center py-2 bg-muted/60 px-3 rounded-xl border border-muted-foreground/20">
                     <span className="font-semibold text-foreground flex items-center gap-1.5">
-                      <Wallet className="w-4 h-4 text-emerald-400" />
+                      <Wallet className="w-4 h-4 t-success" />
                       Solde Net en Poche :
                     </span>
-                    <span className="font-bold font-mono text-base text-emerald-400">
+                    <span className="font-bold font-mono text-base t-success">
                       {formatCurrency(v.soldeNetEnPoche)}
                     </span>
                   </div>
@@ -454,9 +454,9 @@ export const VendeursView: React.FC<VendeursViewProps> = ({
               <div className="flex items-center gap-2 mt-2">
                 <button
                   onClick={() => setActiveSellerModal(v)}
-                  className="flex-1 py-2 px-3 bg-muted hover:bg-accent text-blue-300 border border-blue-500/30 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition-all shadow-sm"
+                  className="flex-1 py-2 px-3 bg-muted hover:bg-accent t-info border border-blue-500/30 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition-all shadow-sm"
                 >
-                  <Eye className="w-3.5 h-3.5 text-blue-400" />
+                  <Eye className="w-3.5 h-3.5 t-info" />
                   Activités
                 </button>
                 <button
@@ -464,10 +464,10 @@ export const VendeursView: React.FC<VendeursViewProps> = ({
                     setSelectedReportSeller(v.nom);
                     setIsReportModalOpen(true);
                   }}
-                  className="py-2 px-3 bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 border border-emerald-500/30 rounded-xl text-xs font-semibold flex items-center justify-center gap-1 transition-all shadow-sm"
+                  className="py-2 px-3 bg-emerald-600/20 hover:bg-emerald-600/30 t-success border border-emerald-500/30 rounded-xl text-xs font-semibold flex items-center justify-center gap-1 transition-all shadow-sm"
                   title="Imprimer le relevé/bilan d'activité de ce vendeur"
                 >
-                  <Printer className="w-3.5 h-3.5 text-emerald-400" />
+                  <Printer className="w-3.5 h-3.5 t-success" />
                   Relevé
                 </button>
               </div>
@@ -483,13 +483,13 @@ export const VendeursView: React.FC<VendeursViewProps> = ({
             {/* Modal Header */}
             <div className="flex items-center justify-between border-b border-border pb-4">
               <div className="flex items-center gap-3">
-                <div className="w-12 h-12 rounded-2xl bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center font-bold text-emerald-400 text-xl shadow-inner">
+                <div className="w-12 h-12 rounded-2xl bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center font-bold t-success text-xl shadow-inner">
                   {activeSellerModal.nom.charAt(0)}
                 </div>
                 <div>
                   <h3 className="text-xl font-bold text-foreground flex items-center gap-2">
                     Fiche & Activités de{" "}
-                    <span className="text-emerald-400">{activeSellerModal.nom}</span>
+                    <span className="t-success">{activeSellerModal.nom}</span>
                   </h3>
                   <p className="text-xs text-muted-foreground">
                     Journal détaillé de toutes les ventes et dépenses associées à ce vendeur.
@@ -525,7 +525,7 @@ export const VendeursView: React.FC<VendeursViewProps> = ({
                 <span className="text-muted-foreground block text-[10px] uppercase font-semibold">
                   Ventes Totales
                 </span>
-                <span className="text-base font-bold font-mono text-blue-300">
+                <span className="text-base font-bold font-mono t-info">
                   {formatCurrency(activeSellerModal.totalVentesMontant)}
                 </span>
                 <span className="text-[10px] text-muted-foreground block">
@@ -537,7 +537,7 @@ export const VendeursView: React.FC<VendeursViewProps> = ({
                 <span className="text-muted-foreground block text-[10px] uppercase font-semibold">
                   Marge Totale Générée
                 </span>
-                <span className="text-base font-bold font-mono text-emerald-400">
+                <span className="text-base font-bold font-mono t-success">
                   +{formatCurrency(totalMarginGenerated)}
                 </span>
                 <span className="text-[10px] text-muted-foreground block">Bénéfice magasin</span>
@@ -547,7 +547,7 @@ export const VendeursView: React.FC<VendeursViewProps> = ({
                 <span className="text-muted-foreground block text-[10px] uppercase font-semibold">
                   Dépenses & Retraits
                 </span>
-                <span className="text-base font-bold font-mono text-rose-400">
+                <span className="text-base font-bold font-mono t-danger">
                   - {formatCurrency(activeSellerModal.totalDepenses)}
                 </span>
                 <span className="text-[10px] text-muted-foreground block">
@@ -555,14 +555,14 @@ export const VendeursView: React.FC<VendeursViewProps> = ({
                 </span>
               </div>
 
-              <div className="bg-emerald-950/40 p-3 rounded-xl border border-emerald-500/40">
-                <span className="text-emerald-300 block text-[10px] uppercase font-semibold">
+              <div className="bg-success-soft p-3 rounded-xl border border-success-border">
+                <span className="t-success block text-[10px] uppercase font-semibold">
                   Solde Net en Poche
                 </span>
-                <span className="text-lg font-bold font-mono text-emerald-400">
+                <span className="text-lg font-bold font-mono t-success">
                   {formatCurrency(activeSellerModal.soldeNetEnPoche)}
                 </span>
-                <span className="text-[10px] text-emerald-500 block">En espèces</span>
+                <span className="text-[10px] t-success block">En espèces</span>
               </div>
             </div>
 
@@ -616,21 +616,79 @@ export const VendeursView: React.FC<VendeursViewProps> = ({
             {/* Sales Table section */}
             {(activeTab === "all" || activeTab === "ventes") && (
               <div className="space-y-2">
-                <h4 className="text-xs font-bold text-blue-400 uppercase tracking-wider flex items-center gap-1.5">
-                  <DollarSign className="w-4 h-4 text-blue-400" />
+                <h4 className="text-xs font-bold t-info uppercase tracking-wider flex items-center gap-1.5">
+                  <DollarSign className="w-4 h-4 t-info" />
                   Ventes de {activeSellerModal.nom}
                 </h4>
 
-                <div className="bg-background rounded-xl border border-border overflow-x-auto">
+                {/* Liste mobile — remplace le tableau sous 1024px */}
+                <div className="lg:hidden">
+                  <MobileCardList
+                    emptyLabel="Aucune vente enregistrée pour ce vendeur."
+                    items={activeSellerSales
+                      .filter(
+                        (s) =>
+                          !searchQuery ||
+                          s.designation.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                          s.id.toLowerCase().includes(searchQuery.toLowerCase()),
+                      )
+                      .map((s) => ({
+                        id: s.id,
+                        title: getSaleLabel(s, products),
+                        subtitle: `${formatDateLocale(s.date, locale)} · ×${s.quantite}`,
+                        amount: formatCurrency(s.totalVente),
+                        fields: [
+                          { label: "Date", value: formatDateLocale(s.date, locale) },
+                          { label: "Quantité", value: `${s.quantite}` },
+                          { label: "Prix unitaire", value: formatCurrency(s.prixVenteUnit) },
+                          {
+                            label: "Marge",
+                            value: <span className="t-success">+{formatCurrency(s.margeTotale)}</span>,
+                          },
+                        ],
+                        actions: (
+                          <>
+                            {onEditSale && (
+                              <button
+                                onClick={() => onEditSale(s)}
+                                className="app-btn-secondary flex-1 text-xs"
+                              >
+                                <Edit3 className="w-3.5 h-3.5" />
+                                Modifier
+                              </button>
+                            )}
+                            {onDeleteSale && (
+                              <button
+                                onClick={() => {
+                                  if (
+                                    window.confirm(
+                                      `Supprimer la vente ${s.id} (${getSaleLabel(s, products)}) ?`,
+                                    )
+                                  ) {
+                                    onDeleteSale(s.id);
+                                  }
+                                }}
+                                className="app-btn-danger flex-1 text-xs"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                                Supprimer
+                              </button>
+                            )}
+                          </>
+                        ),
+                      }))}
+                  />
+                </div>
+
+                <div className="hidden overflow-x-auto rounded-xl border border-border bg-background lg:block">
                   <table className="w-full text-left text-xs">
                     <thead>
-                      <tr className="bg-muted/60 border-b border-muted-foreground/20 text-muted-foreground text-[10px] font-semibold uppercase">
-                        <th className="p-2.5">ID Vente</th>
+                      <tr className="border-b border-border bg-muted/60 text-[10px] font-semibold uppercase text-muted-foreground">
                         <th className="p-2.5">Date</th>
-                        <th className="p-2.5">Désignation</th>
+                        <th className="p-2.5">Produit</th>
                         <th className="p-2.5 text-right">Qté</th>
-                        <th className="p-2.5 text-right">Prix Unit.</th>
-                        <th className="p-2.5 text-right">Total Vente</th>
+                        <th className="p-2.5 text-right">Prix unitaire</th>
+                        <th className="p-2.5 text-right">Total</th>
                         <th className="p-2.5 text-right">Marge</th>
                         <th className="p-2.5 text-center">Actions</th>
                       </tr>
@@ -638,7 +696,7 @@ export const VendeursView: React.FC<VendeursViewProps> = ({
                     <tbody className="divide-y divide-border text-foreground">
                       {activeSellerSales.length === 0 ? (
                         <tr>
-                          <td colSpan={8} className="p-4 text-center text-muted-foreground italic">
+                          <td colSpan={7} className="p-4 text-center text-muted-foreground italic">
                             Aucune vente enregistrée pour ce vendeur.
                           </td>
                         </tr>
@@ -652,7 +710,6 @@ export const VendeursView: React.FC<VendeursViewProps> = ({
                           )
                           .map((s) => (
                             <tr key={s.id} className="hover:bg-muted/40">
-                              <td className="p-2.5 font-mono text-muted-foreground">{s.id}</td>
                               <td className="p-2.5 font-mono text-muted-foreground">
                                 {formatDateLocale(s.date, locale)}
                               </td>
@@ -660,13 +717,13 @@ export const VendeursView: React.FC<VendeursViewProps> = ({
                               <td className="p-2.5 text-right font-mono font-semibold">
                                 {s.quantite}
                               </td>
-                              <td className="p-2.5 text-right font-mono text-blue-300">
+                              <td className="p-2.5 text-right font-mono t-info">
                                 {formatCurrency(s.prixVenteUnit)}
                               </td>
                               <td className="p-2.5 text-right font-mono font-bold text-foreground">
                                 {formatCurrency(s.totalVente)}
                               </td>
-                              <td className="p-2.5 text-right font-mono text-emerald-400">
+                              <td className="p-2.5 text-right font-mono t-success">
                                 +{formatCurrency(s.margeTotale)}
                               </td>
                               <td className="p-2.5 text-center">
@@ -674,7 +731,7 @@ export const VendeursView: React.FC<VendeursViewProps> = ({
                                   {onEditSale && (
                                     <button
                                       onClick={() => onEditSale(s)}
-                                      className="p-1 text-muted-foreground hover:text-blue-400 bg-muted hover:bg-accent rounded transition-colors"
+                                      className="p-1 text-muted-foreground hover:t-info bg-muted hover:bg-accent rounded transition-colors"
                                       title="Modifier"
                                     >
                                       <Edit3 className="w-3.5 h-3.5" />
@@ -691,7 +748,7 @@ export const VendeursView: React.FC<VendeursViewProps> = ({
                                           onDeleteSale(s.id);
                                         }
                                       }}
-                                      className="p-1 text-muted-foreground hover:text-rose-400 bg-muted hover:bg-accent rounded transition-colors"
+                                      className="p-1 text-muted-foreground hover:t-danger bg-muted hover:bg-accent rounded transition-colors"
                                       title="Supprimer"
                                     >
                                       <Trash2 className="w-3.5 h-3.5" />
@@ -711,27 +768,79 @@ export const VendeursView: React.FC<VendeursViewProps> = ({
             {/* Expenses Table section */}
             {(activeTab === "all" || activeTab === "depenses") && (
               <div className="space-y-2">
-                <h4 className="text-xs font-bold text-rose-400 uppercase tracking-wider flex items-center gap-1.5">
-                  <ArrowRightLeft className="w-4 h-4 text-rose-400" />
+                <h4 className="text-xs font-bold t-danger uppercase tracking-wider flex items-center gap-1.5">
+                  <ArrowRightLeft className="w-4 h-4 t-danger" />
                   Dépenses & Retraits de {activeSellerModal.nom}
                 </h4>
 
-                <div className="bg-background rounded-xl border border-border overflow-x-auto">
+                {/* Liste mobile — remplace le tableau sous 1024px */}
+                <div className="lg:hidden">
+                  <MobileCardList
+                    emptyLabel="Aucune dépense enregistrée pour ce vendeur."
+                    items={activeSellerExpenses
+                      .filter(
+                        (e) =>
+                          !searchQuery ||
+                          e.note.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                          e.type.toLowerCase().includes(searchQuery.toLowerCase()) ||
+                          e.id.toLowerCase().includes(searchQuery.toLowerCase()),
+                      )
+                      .map((e) => ({
+                        id: e.id,
+                        title: e.type,
+                        subtitle: formatDateLocale(e.date, locale),
+                        amount: `- ${formatCurrency(e.montant)}`,
+                        amountTone: "danger" as const,
+                        fields: [
+                          { label: "Date", value: formatDateLocale(e.date, locale) },
+                          { label: "Type", value: e.type },
+                          { label: "Note", value: e.note || "Aucune note" },
+                        ],
+                        actions: (
+                          <>
+                            {onEditExpense && (
+                              <button
+                                onClick={() => onEditExpense(e)}
+                                className="app-btn-secondary flex-1 text-xs"
+                              >
+                                <Edit3 className="w-3.5 h-3.5" />
+                                Modifier
+                              </button>
+                            )}
+                            {onDeleteExpense && (
+                              <button
+                                onClick={() => {
+                                  if (window.confirm(`Supprimer la dépense ${e.numero} ?`)) {
+                                    onDeleteExpense(e.id);
+                                  }
+                                }}
+                                className="app-btn-danger flex-1 text-xs"
+                              >
+                                <Trash2 className="w-3.5 h-3.5" />
+                                Supprimer
+                              </button>
+                            )}
+                          </>
+                        ),
+                      }))}
+                  />
+                </div>
+
+                <div className="hidden overflow-x-auto rounded-xl border border-border bg-background lg:block">
                   <table className="w-full text-left text-xs">
                     <thead>
-                      <tr className="bg-muted/60 border-b border-muted-foreground/20 text-muted-foreground text-[10px] font-semibold uppercase">
-                        <th className="p-2.5">ID Dépense</th>
+                      <tr className="border-b border-border bg-muted/60 text-[10px] font-semibold uppercase text-muted-foreground">
                         <th className="p-2.5">Date</th>
                         <th className="p-2.5">Type</th>
                         <th className="p-2.5">Note</th>
-                        <th className="p-2.5 text-right">Montant (Ar)</th>
+                        <th className="p-2.5 text-right">Montant</th>
                         <th className="p-2.5 text-center">Actions</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-border text-foreground">
                       {activeSellerExpenses.length === 0 ? (
                         <tr>
-                          <td colSpan={6} className="p-4 text-center text-muted-foreground italic">
+                          <td colSpan={5} className="p-4 text-center text-muted-foreground italic">
                             Aucune dépense enregistrée pour ce vendeur.
                           </td>
                         </tr>
@@ -746,19 +855,16 @@ export const VendeursView: React.FC<VendeursViewProps> = ({
                           )
                           .map((e) => (
                             <tr key={e.id} className="hover:bg-muted/40">
-                              <td className="p-2.5 font-mono text-muted-foreground">{e.id}</td>
                               <td className="p-2.5 font-mono text-muted-foreground">
                                 {formatDateLocale(e.date, locale)}
                               </td>
                               <td className="p-2.5">
-                                <span className="px-2 py-0.5 rounded text-[10px] font-semibold bg-amber-500/20 text-amber-300 border border-amber-500/30">
-                                  {e.type}
-                                </span>
+                                <span className="app-badge app-badge-warning">{e.type}</span>
                               </td>
                               <td className="p-2.5 text-muted-foreground italic">
                                 {e.note || "Aucune note"}
                               </td>
-                              <td className="p-2.5 text-right font-mono font-bold text-rose-400">
+                              <td className="p-2.5 text-right font-mono font-bold t-danger">
                                 - {formatCurrency(e.montant)}
                               </td>
                               <td className="p-2.5 text-center">
@@ -766,7 +872,7 @@ export const VendeursView: React.FC<VendeursViewProps> = ({
                                   {onEditExpense && (
                                     <button
                                       onClick={() => onEditExpense(e)}
-                                      className="p-1 text-muted-foreground hover:text-blue-400 bg-muted hover:bg-accent rounded transition-colors"
+                                      className="p-1 text-muted-foreground hover:t-info bg-muted hover:bg-accent rounded transition-colors"
                                       title="Modifier"
                                     >
                                       <Edit3 className="w-3.5 h-3.5" />
@@ -775,11 +881,11 @@ export const VendeursView: React.FC<VendeursViewProps> = ({
                                   {onDeleteExpense && (
                                     <button
                                       onClick={() => {
-                                        if (window.confirm(`Supprimer la dépense ${e.id} ?`)) {
+                                        if (window.confirm(`Supprimer la dépense ${e.numero} ?`)) {
                                           onDeleteExpense(e.id);
                                         }
                                       }}
-                                      className="p-1 text-muted-foreground hover:text-rose-400 bg-muted hover:bg-accent rounded transition-colors"
+                                      className="p-1 text-muted-foreground hover:t-danger bg-muted hover:bg-accent rounded transition-colors"
                                       title="Supprimer"
                                     >
                                       <Trash2 className="w-3.5 h-3.5" />
@@ -807,7 +913,7 @@ export const VendeursView: React.FC<VendeursViewProps> = ({
             <div className="space-y-4 border-b border-border pb-4 no-print">
               <div className="flex flex-wrap items-center justify-between gap-4">
                 <div className="flex items-center gap-2">
-                  <Printer className="w-5 h-5 text-emerald-400" />
+                  <Printer className="w-5 h-5 t-success" />
                   <h3 className="text-base font-bold text-foreground">
                     Bilan & Relevé d'Activité Vendeur
                   </h3>

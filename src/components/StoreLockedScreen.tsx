@@ -57,46 +57,49 @@ export const StoreLockedScreen: React.FC<StoreLockedScreenProps> = ({
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center p-6 relative overflow-hidden">
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(244,63,94,0.10),transparent_60%)]" />
-      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[28rem] h-[28rem] bg-rose-500/5 rounded-full blur-3xl" />
+    <div className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden bg-background p-6">
+      {/* Halo décoratif : opacité faible, il fonctionne sur fond clair
+          comme sur fond sombre sans être redéfini par thème. */}
+      <div className="pointer-events-none absolute left-1/2 top-0 h-[28rem] w-[28rem] -translate-x-1/2 rounded-full bg-danger-soft blur-3xl" />
 
       <div className="relative z-10 w-full max-w-md">
-        <div className="bg-slate-900/60 backdrop-blur-xl border border-slate-800 rounded-3xl shadow-2xl shadow-black/40 p-8">
-          <div className="text-center mb-6">
-            <div className="inline-flex items-center justify-center w-16 h-16 bg-rose-500/15 border border-rose-500/25 rounded-2xl mb-5">
-              <Lock className="w-8 h-8 text-rose-400" />
+        <div className="app-card p-6 sm:p-8" style={{ boxShadow: "var(--elev-3)" }}>
+          <div className="mb-6 text-center">
+            <div className="mb-5 inline-flex h-16 w-16 items-center justify-center rounded-2xl border border-danger-border bg-danger-soft">
+              <Lock className="w-8 h-8 t-danger" />
             </div>
-            <p className="text-[11px] font-bold text-rose-400/90 uppercase tracking-[0.2em] mb-2">
+            <p className="mb-2 text-[11px] font-bold uppercase tracking-[0.2em] t-danger">
               {APP_NAME}
             </p>
-            <h1 className="text-xl font-bold text-white tracking-tight">
+            <h1 className="text-xl font-bold tracking-tight text-foreground">
               Votre période d'essai est terminée
             </h1>
-            <p className="text-sm text-slate-400 mt-2 leading-relaxed">
-              <span className="text-slate-200 font-semibold">{storeName}</span> est
+            <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+              <span className="font-semibold text-foreground">{storeName}</span> est
               temporairement verrouillée. Activez-la pour retrouver un accès normal.
             </p>
           </div>
 
-          <div className="bg-slate-800/50 border border-slate-700 rounded-2xl p-4 mb-5">
-            <div className="flex items-center gap-2.5 mb-2">
-              <Phone className="w-4 h-4 text-emerald-400" />
-              <span className="text-sm font-semibold text-slate-200">Activer par paiement</span>
+          <div className="mb-5 rounded-2xl border border-border bg-muted/60 p-4">
+            <div className="mb-2 flex items-center gap-2.5">
+              <Phone className="w-4 h-4 t-success" />
+              <span className="text-sm font-semibold text-foreground">Activer par paiement</span>
             </div>
-            <p className="text-xs text-slate-400 mb-3 leading-relaxed">
+            <p className="mb-3 text-xs leading-relaxed text-muted-foreground">
               Payez 100 000 Ar via MVola, puis envoyez la référence à l'administrateur pour
               recevoir votre code.
             </p>
-            <div className="bg-slate-900/70 rounded-xl p-3 text-center mb-3">
-              <p className="text-[10px] uppercase tracking-wide text-slate-500 mb-0.5">MVola</p>
-              <p className="text-lg font-mono font-bold text-white tracking-wider">
+            <div className="mb-3 rounded-xl bg-card p-3 text-center">
+              <p className="mb-0.5 text-[10px] uppercase tracking-wide text-muted-foreground">
+                MVola
+              </p>
+              <p className="font-mono text-lg font-bold tracking-wider text-foreground">
                 {MVOLA_NUMBER}
               </p>
             </div>
             <a
               href={`tel:${ADMIN_CONTACT.replace(/\s/g, "")}`}
-              className="flex items-center justify-center gap-2 text-xs text-emerald-400 hover:text-emerald-300 font-medium"
+              className="flex items-center justify-center gap-2 text-xs font-medium t-success hover:underline"
             >
               <Phone className="w-3.5 h-3.5" />
               {ADMIN_CONTACT}
@@ -104,7 +107,7 @@ export const StoreLockedScreen: React.FC<StoreLockedScreenProps> = ({
           </div>
 
           <form onSubmit={handleActivate} className="space-y-3">
-            <label className="flex items-center gap-1.5 text-xs font-semibold text-slate-300 uppercase tracking-wide">
+            <label className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
               <KeyRound className="w-3.5 h-3.5" />
               Code d'activation
             </label>
@@ -115,16 +118,10 @@ export const StoreLockedScreen: React.FC<StoreLockedScreenProps> = ({
               placeholder="BLSM-XXXX-XXXX"
               maxLength={20}
               autoFocus
-              className="w-full bg-slate-800/60 border border-slate-700 rounded-xl px-4 py-3 text-white text-sm font-mono tracking-widest text-center placeholder:text-slate-600 focus:outline-none focus:ring-2 focus:ring-emerald-500/40 focus:border-emerald-500/50 transition-all"
+              className="app-field text-center font-mono tracking-widest"
             />
-            {error && (
-              <p className="text-rose-400 text-sm font-medium text-center">{error}</p>
-            )}
-            <button
-              type="submit"
-              disabled={loading}
-              className="w-full py-3 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white font-bold rounded-xl transition-all shadow-lg shadow-emerald-600/20"
-            >
+            {error && <p className="text-center text-sm font-medium t-danger">{error}</p>}
+            <button type="submit" disabled={loading} className="app-btn-primary w-full">
               {loading ? "Vérification..." : "Activer ma boutique"}
             </button>
           </form>
@@ -133,7 +130,7 @@ export const StoreLockedScreen: React.FC<StoreLockedScreenProps> = ({
         <button
           type="button"
           onClick={signOut}
-          className="w-full flex items-center justify-center gap-1.5 text-sm text-slate-500 hover:text-slate-300 transition-colors py-4 mt-1"
+          className="mt-1 flex w-full items-center justify-center gap-1.5 py-4 text-sm text-muted-foreground transition-colors hover:text-foreground"
         >
           <LogOut className="w-3.5 h-3.5" />
           Me déconnecter

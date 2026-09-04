@@ -2,6 +2,7 @@ import React from "react";
 import { Sale, Product, Seller, Expense, LocaleSetting } from "../types";
 import { Store, TrendingUp, Users, Package, Award } from "lucide-react";
 import { formatCurrency, getProductLabel } from "../utils/formulas";
+import { PageHeader } from "./shared/PageHeader";
 interface StatistiquesViewProps {
   sales: Sale[];
   products: Product[];
@@ -37,17 +38,11 @@ export const StatistiquesView: React.FC<StatistiquesViewProps> = ({
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between bg-card p-6 rounded-2xl border border-border">
-        <div>
-          <h2 className="text-xl font-bold text-foreground flex items-center gap-2">
-            <Store className="w-6 h-6 text-sky-400" />
-            Statistiques & Analyses de Performance
-          </h2>
-          <p className="text-xs text-muted-foreground mt-1">
-            Indicateurs de rentabilité, taux de marge brute et classements des vendeurs et produits.
-          </p>
-        </div>
-      </div>
+      <PageHeader
+        icon={<Store className="w-5 h-5 t-info" />}
+        title="Statistiques"
+        subtitle="Vos meilleurs vendeurs, vos produits les plus rentables."
+      />
 
       {/* Margins Breakdown */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-5">
@@ -64,7 +59,7 @@ export const StatistiquesView: React.FC<StatistiquesViewProps> = ({
           <div className="text-xs font-semibold uppercase text-muted-foreground mb-1">
             Marge Brute Cumulée
           </div>
-          <div className="text-2xl font-bold font-mono text-emerald-400">
+          <div className="text-2xl font-bold font-mono t-success">
             +{formatCurrency(totalMarge)}
           </div>
         </div>
@@ -73,7 +68,7 @@ export const StatistiquesView: React.FC<StatistiquesViewProps> = ({
           <div className="text-xs font-semibold uppercase text-muted-foreground mb-1">
             Taux de Marge Moyen
           </div>
-          <div className="text-2xl font-bold font-mono text-sky-400">
+          <div className="text-2xl font-bold font-mono t-info">
             {averageMarginRate.toFixed(1)}%
           </div>
         </div>
@@ -83,7 +78,7 @@ export const StatistiquesView: React.FC<StatistiquesViewProps> = ({
         {/* Performance Vendeurs */}
         <div className="bg-card border border-border rounded-2xl p-5 space-y-4">
           <h3 className="font-bold text-sm text-foreground flex items-center gap-2">
-            <Users className="w-4 h-4 text-emerald-400" />
+            <Users className="w-4 h-4 t-success" />
             Classement & Performance des Vendeurs
           </h3>
 
@@ -93,7 +88,7 @@ export const StatistiquesView: React.FC<StatistiquesViewProps> = ({
               return (
                 <div
                   key={v.id}
-                  className="bg-muted/50 p-3 rounded-xl border border-muted-foreground/20/60"
+                  className="bg-muted/50 p-3 rounded-xl border border-border"
                 >
                   <div className="flex items-center justify-between mb-1">
                     <span className="font-bold text-xs text-foreground flex items-center gap-2">
@@ -102,7 +97,7 @@ export const StatistiquesView: React.FC<StatistiquesViewProps> = ({
                       </span>
                       {v.nom}
                     </span>
-                    <span className="font-mono text-xs font-bold text-emerald-400">
+                    <span className="font-mono text-xs font-bold t-success">
                       {formatCurrency(v.totalVentesMontant)}
                     </span>
                   </div>
@@ -127,7 +122,7 @@ export const StatistiquesView: React.FC<StatistiquesViewProps> = ({
         {/* Ventilation Produits */}
         <div className="bg-card border border-border rounded-2xl p-5 space-y-4">
           <h3 className="font-bold text-sm text-foreground flex items-center gap-2">
-            <Package className="w-4 h-4 text-purple-400" />
+            <Package className="w-4 h-4 t-violet" />
             Ventes par Référence & Variantes
           </h3>
 
@@ -135,7 +130,7 @@ export const StatistiquesView: React.FC<StatistiquesViewProps> = ({
             {productStats.map((p) => (
               <div
                 key={p.id}
-                className="bg-muted/50 p-3 rounded-xl border border-muted-foreground/20/60 flex items-center justify-between text-xs"
+                className="bg-muted/50 p-3 rounded-xl border border-border flex items-center justify-between text-xs"
               >
                 <div>
                   <div className="font-bold font-mono text-foreground">{p.displayName}</div>
@@ -146,7 +141,7 @@ export const StatistiquesView: React.FC<StatistiquesViewProps> = ({
 
                 <div className="text-right font-mono">
                   <div className="font-bold text-foreground">{formatCurrency(p.caSold)}</div>
-                  <div className="text-[10px] text-emerald-400">
+                  <div className="text-[10px] t-success">
                     Marge: +{formatCurrency(p.margeSold)}
                   </div>
                 </div>

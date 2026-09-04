@@ -52,8 +52,6 @@ interface ParametresViewProps {
   capital: CapitalSummary;
   onUpdateCapitalInitial: (val: number) => void;
   onUpdateSeuil: (val: number) => void;
-  onOpenScriptModal: () => void;
-  onOpenFormulaModal: () => void;
   onDownloadExcel: () => void;
   isFounder?: boolean;
   /**
@@ -665,7 +663,7 @@ export const ParametresView: React.FC<ParametresViewProps> = ({
                   value={fullName}
                   onChange={(e) => setFullName(e.target.value)}
                   placeholder="Votre nom complet"
-                  className="w-full bg-muted border border-border rounded-xl px-4 py-2.5 text-foreground focus:outline-none focus:border-emerald-500"
+                  className="app-field"
                 />
               </div>
               <div>
@@ -676,7 +674,7 @@ export const ParametresView: React.FC<ParametresViewProps> = ({
                   type="email"
                   value={accountEmail}
                   onChange={(e) => setAccountEmail(e.target.value)}
-                  className="w-full bg-muted border border-border rounded-xl px-4 py-2.5 text-foreground focus:outline-none focus:border-emerald-500"
+                  className="app-field"
                 />
                 <p className="text-xs text-muted-foreground mt-1">
                   Changer l'e-mail envoie un lien de confirmation à la nouvelle adresse.
@@ -690,7 +688,7 @@ export const ParametresView: React.FC<ParametresViewProps> = ({
                   type="tel"
                   value={accountPhone}
                   onChange={(e) => setAccountPhone(e.target.value)}
-                  className="w-full bg-muted border border-border rounded-xl px-4 py-2.5 text-foreground focus:outline-none focus:border-emerald-500"
+                  className="app-field"
                 />
               </div>
 
@@ -720,7 +718,7 @@ export const ParametresView: React.FC<ParametresViewProps> = ({
                 {passwordChangeMessage && (
                   <p
                     className={`text-sm font-semibold mt-2 ${
-                      passwordChangeMessage.type === "success" ? "text-emerald-500" : "text-rose-500"
+                      passwordChangeMessage.type === "success" ? "t-success" : "t-danger"
                     }`}
                   >
                     {passwordChangeMessage.text}
@@ -740,13 +738,13 @@ export const ParametresView: React.FC<ParametresViewProps> = ({
               <button
                 onClick={handleSaveAccount}
                 disabled={savingAccount}
-                className="mt-4 px-6 py-2.5 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-60 text-white font-bold rounded-xl flex items-center gap-2"
+                className="app-btn-primary mt-4"
               >
                 <Save className="w-4 h-4" />
                 {savingAccount ? "Enregistrement..." : "Enregistrer les modifications"}
               </button>
               {accountSaved && (
-                <p className="text-emerald-500 text-sm font-semibold">
+                <p className="t-success text-sm font-semibold">
                   Modifications du compte sauvegardées !
                 </p>
               )}
@@ -766,7 +764,7 @@ export const ParametresView: React.FC<ParametresViewProps> = ({
 
             <div className="space-y-6 max-w-xl">
               <div className="bg-muted border border-border rounded-2xl p-5 space-y-4">
-                <div className="flex items-center gap-3 text-amber-500 font-bold">
+                <div className="flex items-center gap-3 t-warning font-bold">
                   <Lock className="w-5 h-5" /> Code PIN pour reconnexion rapide
                 </div>
                 <p className="text-sm text-muted-foreground">
@@ -786,7 +784,7 @@ export const ParametresView: React.FC<ParametresViewProps> = ({
                     onChange={(e) => setMasterPin(e.target.value.replace(/\D/g, ""))}
                     placeholder="****"
                     maxLength={6}
-                    className="w-full bg-background border border-border rounded-xl px-4 py-2.5 text-foreground font-mono tracking-widest focus:outline-none focus:border-emerald-500"
+                    className="app-field bg-background font-mono tracking-widest"
                   />
                 </div>
               </div>
@@ -801,7 +799,7 @@ export const ParametresView: React.FC<ParametresViewProps> = ({
                 <select
                   value={sessionTimeoutMinutes}
                   onChange={(e) => setSessionTimeoutMinutes(Number(e.target.value))}
-                  className="w-full bg-background border border-border rounded-xl px-4 py-2.5 text-foreground focus:outline-none focus:border-emerald-500"
+                  className="app-field bg-background"
                 >
                   <option value={0}>Jamais</option>
                   <option value={3}>Après 3 minutes d'inactivité</option>
@@ -820,13 +818,13 @@ export const ParametresView: React.FC<ParametresViewProps> = ({
                 <button
                   onClick={handleSaveSecurity}
                   disabled={savingSecurity}
-                  className="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-60 text-white font-bold rounded-xl flex items-center gap-2"
+                  className="app-btn-primary"
                 >
                   <Save className="w-4 h-4" />
                   {savingSecurity ? "Sauvegarde..." : "Sauvegarder la sécurité"}
                 </button>
                 {securitySaved && (
-                  <p className="text-emerald-500 text-sm font-semibold mt-2">
+                  <p className="t-success text-sm font-semibold mt-2">
                     Paramètres de sécurité sauvegardés !
                   </p>
                 )}
@@ -883,7 +881,7 @@ export const ParametresView: React.FC<ParametresViewProps> = ({
                     type="text"
                     value={storeName}
                     onChange={(e) => setStoreName(e.target.value)}
-                    className="w-full bg-muted border border-border rounded-xl px-4 py-2.5 text-foreground focus:outline-none focus:border-emerald-500"
+                    className="app-field"
                   />
                 </div>
                 <div>
@@ -894,7 +892,7 @@ export const ParametresView: React.FC<ParametresViewProps> = ({
                     type="text"
                     value={subtitle}
                     onChange={(e) => setSubtitle(e.target.value)}
-                    className="w-full bg-muted border border-border rounded-xl px-4 py-2.5 text-foreground focus:outline-none focus:border-emerald-500"
+                    className="app-field"
                   />
                 </div>
               </div>
@@ -937,12 +935,12 @@ export const ParametresView: React.FC<ParametresViewProps> = ({
                 <div className="pt-4">
                   <button
                     onClick={handleSaveGeneral}
-                    className="w-full px-6 py-2.5 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl flex items-center justify-center gap-2"
+                    className="app-btn-primary w-full"
                   >
                     <Save className="w-4 h-4" /> Enregistrer Boutique
                   </button>
                   {savedSuccess && (
-                    <p className="text-emerald-500 text-sm text-center mt-2 font-semibold">
+                    <p className="t-success text-sm text-center mt-2 font-semibold">
                       Modifications sauvegardées !
                     </p>
                   )}
@@ -980,7 +978,7 @@ export const ParametresView: React.FC<ParametresViewProps> = ({
 
               {inviteStatus && (
                 <p
-                  className={`text-sm font-semibold ${inviteStatus.includes("Erreur") ? "text-rose-500" : "text-emerald-500"}`}
+                  className={`text-sm font-semibold ${inviteStatus.includes("Erreur") ? "t-danger" : "t-success"}`}
                 >
                   {inviteStatus}
                 </p>
@@ -988,7 +986,7 @@ export const ParametresView: React.FC<ParametresViewProps> = ({
 
               {(lastInviteLink || lastInviteCode) && (
                 <div className="bg-background border border-emerald-500/30 rounded-xl p-4 space-y-3">
-                  <p className="text-xs font-semibold text-emerald-500 uppercase tracking-wide">
+                  <p className="text-xs font-semibold t-success uppercase tracking-wide">
                     À partager manuellement (l'envoi automatique par e-mail est peu fiable sans
                     domaine pro pour l'instant)
                   </p>
@@ -1079,13 +1077,13 @@ export const ParametresView: React.FC<ParametresViewProps> = ({
                     <div className="flex gap-2">
                       <button
                         onClick={() => onToggleSellerStatus(seller.id)}
-                        className={`px-3 py-1 rounded-lg text-xs font-bold ${seller.statut === "Actif" ? "bg-emerald-500/20 text-emerald-500" : "bg-rose-500/20 text-rose-500"}`}
+                        className={`px-3 py-1 rounded-lg text-xs font-bold ${seller.statut === "Actif" ? "bg-success-soft t-success" : "bg-danger-soft t-danger"}`}
                       >
                         {seller.statut}
                       </button>
                       <button
                         onClick={() => onDeleteSeller(seller.id)}
-                        className="p-2 text-muted-foreground hover:text-rose-500 bg-muted rounded-lg"
+                        className="p-2 text-muted-foreground hover:t-danger bg-muted rounded-lg"
                       >
                         <Trash2 className="w-4 h-4" />
                       </button>
@@ -1144,7 +1142,7 @@ export const ParametresView: React.FC<ParametresViewProps> = ({
                               type="button"
                               onClick={handleSaveMemberPermissions}
                               disabled={savingMemberPermissions}
-                              className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-60 text-white rounded-lg text-sm font-bold"
+                              className="app-btn-primary px-3 text-sm"
                             >
                               {savingMemberPermissions ? "Sauvegarde..." : "Enregistrer"}
                             </button>
@@ -1193,14 +1191,14 @@ export const ParametresView: React.FC<ParametresViewProps> = ({
 
             {/* ── BOUTIQUE DÉJÀ ACTIVE À VIE ── */}
             {storeIsActive && (
-              <div className="relative overflow-hidden bg-gradient-to-br from-emerald-500/15 via-emerald-500/5 to-transparent border border-emerald-500/25 rounded-2xl p-6">
-                <div className="absolute -top-10 -right-10 w-32 h-32 bg-emerald-500/10 rounded-full blur-2xl" />
+              <div className="relative overflow-hidden bg-gradient-to-br from-emerald-500/15 via-emerald-500/5 to-transparent border border-success-border rounded-2xl p-6">
+                <div className="absolute -top-10 -right-10 w-32 h-32 bg-success-soft rounded-full blur-2xl" />
                 <div className="relative">
                   <div className="flex items-center justify-between mb-4">
-                    <div className="w-12 h-12 bg-emerald-500/20 rounded-full flex items-center justify-center">
-                      <CheckCircle2 className="w-6 h-6 text-emerald-500" />
+                    <div className="w-12 h-12 bg-success-soft rounded-full flex items-center justify-center">
+                      <CheckCircle2 className="w-6 h-6 t-success" />
                     </div>
-                    <span className="text-[10px] font-bold uppercase tracking-wider text-emerald-400 bg-emerald-500/10 border border-emerald-500/25 rounded-full px-2.5 py-1">
+                    <span className="text-[10px] font-bold uppercase tracking-wider t-success bg-success-soft border border-success-border rounded-full px-2.5 py-1">
                       Active — à vie
                     </span>
                   </div>
@@ -1235,12 +1233,12 @@ export const ParametresView: React.FC<ParametresViewProps> = ({
 
             {/* ── ESSAI GRATUIT EN COURS ── */}
             {storeActivationStatus === "trial" && !storeIsLocked && (
-              <div className="relative overflow-hidden bg-gradient-to-br from-blue-500/15 via-blue-500/5 to-transparent border border-blue-500/25 rounded-2xl p-6">
+              <div className="relative overflow-hidden bg-gradient-to-br from-blue-500/15 via-blue-500/5 to-transparent border border-info-border rounded-2xl p-6">
                 <div className="flex items-center justify-between mb-4">
-                  <div className="w-12 h-12 bg-blue-500/20 rounded-full flex items-center justify-center">
-                    <Sparkles className="w-6 h-6 text-blue-400" />
+                  <div className="w-12 h-12 bg-info-soft rounded-full flex items-center justify-center">
+                    <Sparkles className="w-6 h-6 t-info" />
                   </div>
-                  <span className="text-[10px] font-bold uppercase tracking-wider text-blue-300 bg-blue-500/10 border border-blue-500/25 rounded-full px-2.5 py-1">
+                  <span className="text-[10px] font-bold uppercase tracking-wider t-info bg-info-soft border border-info-border rounded-full px-2.5 py-1">
                     Essai gratuit
                   </span>
                 </div>
@@ -1268,8 +1266,8 @@ export const ParametresView: React.FC<ParametresViewProps> = ({
             {/* ── VERROUILLÉE (essai expiré, non activée) ── */}
             {storeIsLocked && (
               <div className="relative overflow-hidden bg-gradient-to-br from-rose-500/15 via-rose-500/5 to-transparent border border-rose-500/25 rounded-2xl p-6">
-                <div className="w-12 h-12 bg-rose-500/20 rounded-full flex items-center justify-center mb-4">
-                  <Lock className="w-6 h-6 text-rose-400" />
+                <div className="w-12 h-12 bg-danger-soft rounded-full flex items-center justify-center mb-4">
+                  <Lock className="w-6 h-6 t-danger" />
                 </div>
                 <h3 className="text-lg font-bold text-foreground mb-1">
                   Votre période d'essai est terminée
@@ -1286,8 +1284,8 @@ export const ParametresView: React.FC<ParametresViewProps> = ({
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div className="bg-card border border-border rounded-2xl p-6">
                   <div className="flex items-center gap-2.5 mb-4">
-                    <div className="w-9 h-9 rounded-lg bg-emerald-500/10 flex items-center justify-center">
-                      <Phone className="w-4.5 h-4.5 text-emerald-500" />
+                    <div className="w-9 h-9 rounded-lg bg-success-soft flex items-center justify-center">
+                      <Phone className="w-4.5 h-4.5 t-success" />
                     </div>
                     <h3 className="font-bold text-foreground">Activer par paiement</h3>
                   </div>
@@ -1310,7 +1308,7 @@ export const ParametresView: React.FC<ParametresViewProps> = ({
                     className="flex items-center gap-3 bg-muted/60 hover:bg-muted border border-border rounded-xl p-3.5 text-sm transition-colors"
                   >
                     <div className="w-8 h-8 rounded-full bg-emerald-500/15 flex items-center justify-center shrink-0">
-                      <Phone className="w-4 h-4 text-emerald-500" />
+                      <Phone className="w-4 h-4 t-success" />
                     </div>
                     <div>
                       <span className="block font-semibold text-foreground text-xs">
@@ -1325,8 +1323,8 @@ export const ParametresView: React.FC<ParametresViewProps> = ({
 
                 <div className="bg-card border border-border rounded-2xl p-6">
                   <div className="flex items-center gap-2.5 mb-4">
-                    <div className="w-9 h-9 rounded-lg bg-blue-500/10 flex items-center justify-center">
-                      <KeyRound className="w-4.5 h-4.5 text-blue-500" />
+                    <div className="w-9 h-9 rounded-lg bg-info-soft flex items-center justify-center">
+                      <KeyRound className="w-4.5 h-4.5 t-info" />
                     </div>
                     <h3 className="font-bold text-foreground">Activer avec un code</h3>
                   </div>
@@ -1342,17 +1340,17 @@ export const ParametresView: React.FC<ParametresViewProps> = ({
                       onChange={(e) => setStoreActivationCode(e.target.value.toUpperCase())}
                       placeholder="BLSM-XXXX-XXXX"
                       maxLength={20}
-                      className="w-full bg-muted border border-border rounded-xl px-4 py-3 text-foreground font-mono tracking-widest text-center focus:outline-none focus:border-emerald-500"
+                      className="app-field text-center font-mono tracking-widest"
                     />
                     {storeActivationError && (
-                      <p className="text-rose-500 text-sm font-semibold text-center">
+                      <p className="t-danger text-sm font-semibold text-center">
                         {storeActivationError}
                       </p>
                     )}
                     <button
                       type="submit"
                       disabled={activatingStore}
-                      className="w-full px-6 py-3 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-60 text-white font-bold rounded-xl transition-colors"
+                      className="app-btn-primary w-full"
                     >
                       {activatingStore ? "Vérification..." : "Activer ma boutique"}
                     </button>
@@ -1376,9 +1374,9 @@ export const ParametresView: React.FC<ParametresViewProps> = ({
             )}
 
             {isPlatformAdmin && (
-              <div className="bg-emerald-500/10 border border-emerald-500/20 rounded-2xl p-5">
+              <div className="bg-success-soft border border-emerald-500/20 rounded-2xl p-5">
                 <div className="flex items-center gap-3 mb-4">
-                  <ShieldCheck className="w-5 h-5 text-emerald-500" />
+                  <ShieldCheck className="w-5 h-5 t-success" />
                   <h3 className="font-bold text-foreground">Gestion des codes d’activation</h3>
                 </div>
 
@@ -1433,7 +1431,7 @@ export const ParametresView: React.FC<ParametresViewProps> = ({
                       type="button"
                       onClick={handleGenerateActivationCode}
                       disabled={generatingCode || !selectedStoreToActivateId}
-                      className="px-4 py-3 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-60 text-white font-bold rounded-xl"
+                      className="app-btn-primary"
                     >
                       {generatingCode ? "Génération..." : "Générer un code"}
                     </button>
@@ -1444,7 +1442,7 @@ export const ParametresView: React.FC<ParametresViewProps> = ({
 
                   <div className="bg-background rounded-xl p-4 border border-border text-sm">
                     <div className="flex items-center gap-2 text-foreground font-semibold mb-2">
-                      <Users className="w-4 h-4 text-emerald-500" />
+                      <Users className="w-4 h-4 t-success" />
                       Boutiques non activées ({storesNeedingActivation.length})
                     </div>
                     {loadingStoresNeedingActivation ? (
@@ -1468,7 +1466,7 @@ export const ParametresView: React.FC<ParametresViewProps> = ({
                             <li key={store.id}>
                               • {store.name} ({store.owner_email}) —{" "}
                               {expired ? (
-                                <span className="text-rose-400 font-semibold">
+                                <span className="t-danger font-semibold">
                                   essai expiré, verrouillée
                                 </span>
                               ) : (
@@ -1509,11 +1507,11 @@ export const ParametresView: React.FC<ParametresViewProps> = ({
               </div>
 
               <div className="pt-6 mt-6 border-t border-border">
-                <h3 className="font-bold text-foreground mb-4 text-rose-500 flex items-center gap-2">
+                <h3 className="font-bold text-foreground mb-4 t-danger flex items-center gap-2">
                   <ShieldAlert className="w-5 h-5" /> Zone Dangereuse
                 </h3>
                 <div className="space-y-3">
-                  <button className="w-full px-4 py-3 bg-rose-500/10 hover:bg-rose-500/20 text-rose-500 font-bold rounded-xl flex items-center justify-center gap-2 border border-rose-500/20">
+                  <button className="w-full px-4 py-3 bg-danger-soft hover:brightness-95 t-danger font-bold rounded-xl flex items-center justify-center gap-2 border border-danger-border">
                     <RefreshCw className="w-4 h-4" /> Réinitialiser la base de données
                   </button>
                   <button
@@ -1523,7 +1521,7 @@ export const ParametresView: React.FC<ParametresViewProps> = ({
                       setDeleteAccountPassword("");
                       setShowDeleteAccountModal(true);
                     }}
-                    className="w-full px-4 py-3 bg-rose-600 hover:bg-rose-500 text-white font-bold rounded-xl flex items-center justify-center gap-2"
+                    className="app-btn w-full bg-destructive text-white hover:opacity-90"
                   >
                     <Trash2 className="w-4 h-4" /> Supprimer définitivement mon compte
                   </button>
@@ -1553,7 +1551,7 @@ export const ParametresView: React.FC<ParametresViewProps> = ({
       {showDeleteAccountModal && (
         <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-card border border-rose-500/30 rounded-2xl w-full max-w-md p-6 shadow-xl text-foreground space-y-4">
-            <h3 className="text-lg font-bold flex items-center gap-2 text-rose-500">
+            <h3 className="text-lg font-bold flex items-center gap-2 t-danger">
               <Trash2 className="w-5 h-5" />
               Supprimer définitivement mon compte
             </h3>
@@ -1579,7 +1577,7 @@ export const ParametresView: React.FC<ParametresViewProps> = ({
             </div>
 
             {deleteAccountError && (
-              <p className="text-rose-500 text-sm font-semibold">{deleteAccountError}</p>
+              <p className="t-danger text-sm font-semibold">{deleteAccountError}</p>
             )}
 
             <div className="flex items-center justify-end gap-2 pt-1">
@@ -1595,7 +1593,7 @@ export const ParametresView: React.FC<ParametresViewProps> = ({
                 type="button"
                 onClick={handleConfirmDeleteAccount}
                 disabled={deletingAccount}
-                className="px-4 py-2 bg-rose-600 hover:bg-rose-500 disabled:opacity-60 text-white font-bold rounded-xl text-sm"
+                className="app-btn bg-destructive text-white hover:opacity-90 text-sm"
               >
                 {deletingAccount ? "Suppression..." : "Supprimer mon compte"}
               </button>

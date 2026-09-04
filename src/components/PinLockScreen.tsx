@@ -108,32 +108,30 @@ export const PinLockScreen: React.FC<PinLockScreenProps> = ({ onUnlock }) => {
   const initial = firstName.charAt(0).toUpperCase();
 
   return (
-    <div className="min-h-screen bg-slate-950 flex flex-col items-center justify-center p-6 relative overflow-hidden">
-      <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top,rgba(16,185,129,0.10),transparent_60%)]" />
-      <div className="absolute inset-0 bg-[linear-gradient(to_bottom,transparent,rgba(2,6,23,0.6))]" />
-      <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[28rem] h-[28rem] bg-emerald-500/5 rounded-full blur-3xl" />
-      <div className="absolute bottom-0 right-1/4 w-72 h-72 bg-teal-500/5 rounded-full blur-3xl" />
+    <div className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden bg-background p-6">
+      <div className="pointer-events-none absolute left-1/2 top-0 h-[28rem] w-[28rem] -translate-x-1/2 rounded-full bg-success-soft blur-3xl" />
+      <div className="pointer-events-none absolute bottom-0 right-1/4 h-72 w-72 rounded-full bg-info-soft blur-3xl" />
 
       <div className="relative z-10 w-full max-w-sm">
-        <div className="bg-slate-900/60 backdrop-blur-xl border border-slate-800 rounded-3xl shadow-2xl shadow-black/40 p-8">
+        <div className="app-card p-6 sm:p-8" style={{ boxShadow: "var(--elev-3)" }}>
           {mode === "pin" ? (
             <>
               <div className="text-center mb-8">
-                <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-2xl mb-5 shadow-lg shadow-emerald-500/25 ring-1 ring-white/10">
+                <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-2xl mb-5 shadow-lg shadow-emerald-500/25 ">
                   <Package className="w-8 h-8 text-white" />
                 </div>
-                <p className="text-[11px] font-bold text-emerald-400/90 uppercase tracking-[0.2em] mb-2">
+                <p className="text-[11px] font-bold t-success uppercase tracking-[0.2em] mb-2">
                   {APP_NAME}
                 </p>
-                <h1 className="text-2xl font-bold text-white tracking-tight">
+                <h1 className="text-2xl font-bold tracking-tight text-foreground">
                   Session verrouillée
                 </h1>
                 <div className="flex items-center justify-center gap-2 mt-3">
-                  <div className="w-6 h-6 rounded-full bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center text-[11px] font-bold text-emerald-400">
+                  <div className="w-6 h-6 rounded-full border border-success-border bg-success-soft flex items-center justify-center text-[11px] font-bold t-success">
                     {initial}
                   </div>
-                  <p className="text-sm text-slate-400">
-                    Bonjour <span className="text-slate-200 font-semibold">{firstName}</span>,
+                  <p className="text-sm text-muted-foreground">
+                    Bonjour <span className="font-semibold text-foreground">{firstName}</span>,
                     entrez votre PIN
                   </p>
                 </div>
@@ -148,9 +146,9 @@ export const PinLockScreen: React.FC<PinLockScreenProps> = ({ onUnlock }) => {
                     className={`w-3.5 h-3.5 rounded-full border-2 transition-all duration-200 ${
                       i < pin.length
                         ? error
-                          ? "border-red-500 bg-red-500 scale-110"
-                          : "border-emerald-400 bg-emerald-400 scale-110"
-                        : "border-slate-700 bg-transparent"
+                          ? "border-danger bg-danger scale-110"
+                          : "border-success bg-success scale-110"
+                        : "border-border bg-transparent"
                     }`}
                   />
                 ))}
@@ -169,8 +167,8 @@ export const PinLockScreen: React.FC<PinLockScreenProps> = ({ onUnlock }) => {
                       key === ""
                         ? "cursor-default opacity-0"
                         : key === "del"
-                          ? "bg-slate-800/70 text-slate-400 hover:bg-slate-700 hover:text-white border border-slate-700/80"
-                          : "bg-slate-800/50 text-white hover:bg-slate-700/80 border border-slate-700/60 hover:border-emerald-500/50 shadow-sm"
+                          ? "bg-muted text-muted-foreground hover:bg-accent hover:text-foreground border border-border"
+                          : "bg-muted text-foreground hover:bg-accent border border-border hover:border-success-border shadow-sm"
                     }`}
                   >
                     {key === "del" ? <Delete className="w-5 h-5" /> : key}
@@ -180,7 +178,7 @@ export const PinLockScreen: React.FC<PinLockScreenProps> = ({ onUnlock }) => {
 
               <div className="h-5 mb-2">
                 {error && (
-                  <div className="flex items-center justify-center gap-1.5 text-red-400 text-sm font-medium">
+                  <div className="flex items-center justify-center gap-1.5 t-danger text-sm font-medium">
                     <Lock className="w-3.5 h-3.5" />
                     Code PIN incorrect
                   </div>
@@ -194,7 +192,7 @@ export const PinLockScreen: React.FC<PinLockScreenProps> = ({ onUnlock }) => {
                   setResetError(null);
                   setResetPassword("");
                 }}
-                className="block w-full text-center text-sm text-emerald-400/90 hover:text-emerald-300 font-medium transition-colors py-2"
+                className="block w-full text-center text-sm t-success hover:underline font-medium transition-colors py-2"
               >
                 Code PIN oublié ?
               </button>
@@ -204,20 +202,20 @@ export const PinLockScreen: React.FC<PinLockScreenProps> = ({ onUnlock }) => {
               <button
                 type="button"
                 onClick={() => setMode("pin")}
-                className="inline-flex items-center gap-1.5 text-xs text-slate-400 hover:text-slate-200 mb-5 transition-colors"
+                className="inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground mb-5 transition-colors"
               >
                 <ArrowLeft className="w-3.5 h-3.5" />
                 Retour au code PIN
               </button>
 
               <div className="text-center mb-6">
-                <div className="inline-flex items-center justify-center w-14 h-14 bg-amber-500/15 border border-amber-500/25 rounded-2xl mb-4">
-                  <KeyRound className="w-6 h-6 text-amber-400" />
+                <div className="inline-flex items-center justify-center w-14 h-14 border border-warning-border bg-warning-soft rounded-2xl mb-4">
+                  <KeyRound className="w-6 h-6 t-warning" />
                 </div>
-                <h1 className="text-xl font-bold text-white tracking-tight">
+                <h1 className="text-xl font-bold tracking-tight text-foreground">
                   Réinitialiser le code PIN
                 </h1>
-                <p className="text-sm text-slate-400 mt-2 leading-relaxed">
+                <p className="text-sm text-muted-foreground mt-2 leading-relaxed">
                   Confirmez avec votre mot de passe pour supprimer le code PIN actuel. Vous
                   pourrez en définir un nouveau depuis les Paramètres.
                 </p>
@@ -232,12 +230,12 @@ export const PinLockScreen: React.FC<PinLockScreenProps> = ({ onUnlock }) => {
                     placeholder="Mot de passe du compte"
                     autoComplete="current-password"
                     autoFocus
-                    className="w-full bg-slate-800/60 border border-slate-700 rounded-xl px-4 py-3 pr-11 text-white text-sm placeholder:text-slate-500 focus:outline-none focus:ring-2 focus:ring-emerald-500/40 focus:border-emerald-500/50 transition-all"
+                    className="app-field pr-11"
                   />
                   <button
                     type="button"
                     onClick={() => setShowResetPassword((v) => !v)}
-                    className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-slate-300"
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground"
                     aria-label={showResetPassword ? "Masquer" : "Afficher"}
                   >
                     {showResetPassword ? (
@@ -249,13 +247,13 @@ export const PinLockScreen: React.FC<PinLockScreenProps> = ({ onUnlock }) => {
                 </div>
 
                 {resetError && (
-                  <p className="text-red-400 text-sm font-medium text-center">{resetError}</p>
+                  <p className="t-danger text-sm font-medium text-center">{resetError}</p>
                 )}
 
                 <button
                   type="submit"
                   disabled={resetLoading}
-                  className="w-full py-3 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white font-bold rounded-xl transition-all shadow-lg shadow-emerald-600/20"
+                  className="app-btn-primary w-full"
                 >
                   {resetLoading ? "Vérification..." : "Réinitialiser le code PIN"}
                 </button>
@@ -264,7 +262,7 @@ export const PinLockScreen: React.FC<PinLockScreenProps> = ({ onUnlock }) => {
           )}
         </div>
 
-        <div className="flex items-center justify-center gap-2 text-slate-500 text-xs mt-6">
+        <div className="flex items-center justify-center gap-2 text-muted-foreground text-xs mt-6">
           <ShieldCheck className="w-3.5 h-3.5" />
           <span>Sécurité renforcée par code PIN</span>
         </div>
@@ -272,7 +270,7 @@ export const PinLockScreen: React.FC<PinLockScreenProps> = ({ onUnlock }) => {
         <button
           type="button"
           onClick={signOut}
-          className="block w-full text-center text-sm text-slate-500 hover:text-slate-300 transition-colors py-3 mt-1"
+          className="block w-full text-center text-sm text-muted-foreground hover:text-foreground transition-colors py-3 mt-1"
         >
           Me déconnecter complètement
         </button>

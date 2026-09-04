@@ -38,6 +38,29 @@
   --color-chart-3: var(--chart-3);
   --color-chart-4: var(--chart-4);
   --color-chart-5: var(--chart-5);
+
+  /* ── Palette sémantique (voir :root / .dark plus bas) ──
+     Un sens = une couleur, partout dans l'application :
+       success = argent qui rentre, état sain
+       warning = attention, seuil approché, paiement partiel
+       danger  = argent qui sort, erreur, impayé
+       info    = neutre / informatif (commandes, références)
+       violet  = stock & inventaire                                   */
+  --color-success: var(--success);
+  --color-success-soft: var(--success-soft);
+  --color-success-border: var(--success-border);
+  --color-warning: var(--warning);
+  --color-warning-soft: var(--warning-soft);
+  --color-warning-border: var(--warning-border);
+  --color-danger: var(--danger);
+  --color-danger-soft: var(--danger-soft);
+  --color-danger-border: var(--danger-border);
+  --color-info: var(--info);
+  --color-info-soft: var(--info-soft);
+  --color-info-border: var(--info-border);
+  --color-violet: var(--violet);
+  --color-violet-soft: var(--violet-soft);
+  --color-violet-border: var(--violet-border);
   --color-sidebar: var(--sidebar);
   --color-sidebar-foreground: var(--sidebar-foreground);
   --color-sidebar-primary: var(--sidebar-primary);
@@ -58,12 +81,16 @@
   --card-foreground: oklch(0.129 0.042 264.695);
   --popover: oklch(1 0 0);
   --popover-foreground: oklch(0.129 0.042 264.695);
-  --primary: oklch(0.55 0.18 162);
+  /* Assombri (0.55 → 0.52) : à 0.55, le texte blanc des boutons
+     principaux tombait à 4,17:1, sous le seuil de 4,5:1. */
+  --primary: oklch(0.52 0.18 162);
   --primary-foreground: oklch(1 0 0);
   --secondary: oklch(0.968 0.007 247.896);
   --secondary-foreground: oklch(0.208 0.042 265.755);
   --muted: oklch(0.96 0.005 250);
-  --muted-foreground: oklch(0.5 0.04 258);
+  /* Assombri (0.50 → 0.44) : à 0.50 le texte secondaire gris sur fond
+     blanc tombait sous le contraste 4.5:1 exigé pour du petit texte. */
+  --muted-foreground: oklch(0.44 0.04 258);
   --accent: oklch(0.96 0.005 250);
   --accent-foreground: oklch(0.208 0.042 265.755);
   --destructive: oklch(0.577 0.245 27.325);
@@ -78,12 +105,38 @@
   --chart-5: oklch(0.769 0.188 70.08);
   --sidebar: oklch(0.984 0.003 247.858);
   --sidebar-foreground: oklch(0.129 0.042 264.695);
-  --sidebar-primary: oklch(0.55 0.18 162);
+  --sidebar-primary: oklch(0.52 0.18 162);
   --sidebar-primary-foreground: oklch(1 0 0);
   --sidebar-accent: oklch(0.96 0.005 250);
   --sidebar-accent-foreground: oklch(0.208 0.042 265.755);
   --sidebar-border: oklch(0.91 0.01 256);
   --sidebar-ring: oklch(0.55 0.18 162 / 40%);
+
+  /* Palette sémantique — mode clair.
+     Les teintes "-soft" servent de fond de badge, les "-border" de
+     contour. Les couleurs de texte sont volontairement assombries
+     (L ≈ 0.50) pour rester lisibles sur fond blanc : les nuances
+     claires type emerald-400 passaient sous le seuil de contraste. */
+  --success: oklch(0.5 0.13 162);
+  --success-soft: oklch(0.96 0.032 162);
+  --success-border: oklch(0.86 0.07 162);
+  --warning: oklch(0.52 0.13 70);
+  --warning-soft: oklch(0.96 0.04 80);
+  --warning-border: oklch(0.86 0.08 75);
+  --danger: oklch(0.52 0.19 25);
+  --danger-soft: oklch(0.96 0.028 25);
+  --danger-border: oklch(0.87 0.065 25);
+  --info: oklch(0.51 0.16 250);
+  --info-soft: oklch(0.96 0.03 250);
+  --info-border: oklch(0.86 0.06 250);
+  --violet: oklch(0.51 0.18 292);
+  --violet-soft: oklch(0.96 0.03 292);
+  --violet-border: oklch(0.87 0.06 292);
+
+  /* Élévation — ombres douces et progressives */
+  --elev-1: 0 1px 2px oklch(0.2 0.03 260 / 6%);
+  --elev-2: 0 2px 6px oklch(0.2 0.03 260 / 8%), 0 1px 2px oklch(0.2 0.03 260 / 5%);
+  --elev-3: 0 8px 24px oklch(0.2 0.03 260 / 10%), 0 2px 6px oklch(0.2 0.03 260 / 6%);
 }
 
 /* ── Dark Mode — rich, deep navy ── */
@@ -120,6 +173,29 @@
   --sidebar-accent-foreground: oklch(0.94 0.008 250);
   --sidebar-border: oklch(1 0 0 / 7%);
   --sidebar-ring: oklch(0.62 0.2 162 / 50%);
+
+  /* Palette sémantique — mode sombre (mêmes rôles, teintes éclaircies) */
+  --success: oklch(0.76 0.16 162);
+  --success-soft: oklch(0.7 0.17 162 / 15%);
+  --success-border: oklch(0.7 0.17 162 / 32%);
+  --warning: oklch(0.79 0.15 78);
+  --warning-soft: oklch(0.75 0.16 78 / 15%);
+  --warning-border: oklch(0.75 0.16 78 / 32%);
+  --danger: oklch(0.71 0.18 22);
+  --danger-soft: oklch(0.65 0.2 22 / 16%);
+  --danger-border: oklch(0.65 0.2 22 / 34%);
+  --info: oklch(0.73 0.14 250);
+  --info-soft: oklch(0.65 0.16 250 / 16%);
+  --info-border: oklch(0.65 0.16 250 / 32%);
+  --violet: oklch(0.73 0.15 292);
+  --violet-soft: oklch(0.65 0.18 292 / 16%);
+  --violet-border: oklch(0.65 0.18 292 / 32%);
+
+  /* En mode sombre l'élévation vient surtout du contraste de surface :
+     les ombres restent discrètes pour ne pas créer de halo noir. */
+  --elev-1: 0 1px 2px oklch(0 0 0 / 30%);
+  --elev-2: 0 2px 8px oklch(0 0 0 / 35%);
+  --elev-3: 0 10px 30px oklch(0 0 0 / 45%);
 }
 
 @layer base {
@@ -296,15 +372,6 @@ td {
   -webkit-overflow-scrolling: touch;
 }
 
-@media (max-width: 767px) {
-  .overflow-x-auto > table {
-    min-width: 44rem;
-  }
-  .overflow-x-auto > table th,
-  .overflow-x-auto > table td {
-    white-space: nowrap;
-  }
-}
 
 /* ── Print ── */
 @media print {
@@ -358,7 +425,8 @@ td {
     @apply border-b border-border/50 last:border-0 hover:bg-muted/30 transition-colors;
   }
   .app-table .cell-id {
-    @apply font-mono text-[11px] font-bold text-emerald-400 tracking-wide;
+    @apply font-mono text-[11px] font-bold tracking-wide;
+    color: var(--success);
   }
   .app-table .cell-muted {
     @apply font-mono text-xs text-muted-foreground;
@@ -366,20 +434,35 @@ td {
   .app-table .cell-truncate {
     @apply max-w-[220px] truncate;
   }
+
+  /* Badges — sur la palette sémantique (voir :root / .dark).
+     Les anciennes nuances figées (emerald-400, amber-400…) étaient
+     pensées pour un fond sombre et devenaient illisibles en mode clair. */
   .app-badge {
     @apply inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-[11px] font-semibold border whitespace-nowrap;
   }
   .app-badge-success {
-    @apply bg-emerald-500/15 text-emerald-400 border-emerald-500/30;
+    background: var(--success-soft);
+    color: var(--success);
+    border-color: var(--success-border);
   }
   .app-badge-warning {
-    @apply bg-amber-500/15 text-amber-400 border-amber-500/30;
+    background: var(--warning-soft);
+    color: var(--warning);
+    border-color: var(--warning-border);
   }
   .app-badge-danger {
-    @apply bg-rose-500/15 text-rose-400 border-rose-500/30;
+    background: var(--danger-soft);
+    color: var(--danger);
+    border-color: var(--danger-border);
+  }
+  .app-badge-info {
+    background: var(--info-soft);
+    color: var(--info);
+    border-color: var(--info-border);
   }
   .app-badge-neutral {
-    @apply bg-muted text-muted-foreground border-muted-foreground/20;
+    @apply bg-muted text-muted-foreground border-border;
   }
 }
 
@@ -418,4 +501,183 @@ td {
   background-size: 200% 100%;
   animation: shimmer 1.5s infinite;
   border-radius: 0.5rem;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   DESIGN SYSTEM — primitives partagées
+   Ajouté lors de la refonte design. Ces classes sont la source unique
+   de vérité pour les cartes, en-têtes de page, barres d'outils, champs
+   et boutons. Modifier ici change l'apparence de toute l'application.
+
+   Note Tailwind v4 : `@apply` ne sait pas appliquer une classe
+   personnalisée définie ailleurs dans cette feuille (`@apply app-card`
+   échoue). Les variantes partagent donc leur base via une liste de
+   sélecteurs plutôt que par composition.
+   ═══════════════════════════════════════════════════════════════════ */
+@layer components {
+  /* ── Base commune à toutes les surfaces ── */
+  .app-card,
+  .app-card-interactive,
+  .app-page-head,
+  .app-toolbar,
+  .app-mcard {
+    @apply bg-card border border-border rounded-2xl;
+    box-shadow: var(--elev-1);
+  }
+
+  /* Carte cliquable : légère élévation au survol. Restreint aux
+     appareils à pointeur — sur mobile un :hover reste collé après le
+     tap et la carte semble bloquée en état survolé. */
+  .app-card-interactive {
+    @apply cursor-pointer transition-all duration-200;
+  }
+  @media (hover: hover) {
+    .app-card-interactive:hover {
+      box-shadow: var(--elev-3);
+      transform: translateY(-2px);
+    }
+  }
+
+  .app-mcard {
+    @apply overflow-hidden;
+  }
+
+  /* ── En-tête de page ──
+     Empilé sur mobile, sur une ligne dès 640px. Le bloc titre porte
+     min-w-0 pour que le titre puisse tronquer au lieu de pousser les
+     actions hors de l'écran. */
+  .app-page-head {
+    @apply flex flex-col gap-4 p-4 sm:flex-row sm:items-start sm:justify-between sm:p-6;
+  }
+  .app-page-head-text {
+    @apply min-w-0 flex-1;
+  }
+  .app-page-title {
+    @apply flex items-center gap-2.5 text-lg font-bold tracking-tight text-foreground sm:text-xl;
+  }
+  .app-page-subtitle {
+    @apply mt-1 text-sm text-muted-foreground;
+  }
+  .app-page-actions {
+    @apply flex w-full shrink-0 flex-col gap-2 sm:w-auto sm:flex-row sm:items-center sm:gap-3;
+  }
+
+  /* ── Barre d'outils (recherche + filtres) ── */
+  .app-toolbar {
+    @apply flex flex-col gap-3 p-3 sm:flex-row sm:items-center sm:p-4;
+  }
+
+  /* ── Champs de saisie ──
+     w-full par défaut : c'est l'absence de largeur fluide qui faisait
+     déborder les recherches et les <select> sur petit écran. */
+  .app-field,
+  .app-field-sm {
+    @apply w-full rounded-xl border border-border bg-muted px-3 py-2.5 text-sm text-foreground
+      transition-colors placeholder:text-muted-foreground/70
+      focus:border-primary focus:outline-none focus:ring-2 focus:ring-ring;
+  }
+  .app-field-sm {
+    @apply py-2 text-xs;
+  }
+
+  /* ── Boutons ──
+     min-h-11 = 44px : cible tactile minimale sur mobile. */
+  .app-btn,
+  .app-btn-primary,
+  .app-btn-secondary,
+  .app-btn-ghost,
+  .app-btn-danger {
+    @apply inline-flex min-h-11 items-center justify-center gap-2 whitespace-nowrap rounded-xl
+      px-4 text-sm font-semibold transition-colors focus-visible:outline-none
+      focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50;
+  }
+  .app-btn-primary {
+    @apply bg-primary text-primary-foreground hover:opacity-90;
+    box-shadow: var(--elev-1);
+  }
+  .app-btn-secondary {
+    @apply border border-border bg-card text-foreground hover:bg-muted;
+  }
+  .app-btn-ghost {
+    @apply text-muted-foreground hover:bg-muted hover:text-foreground;
+  }
+  .app-btn-danger {
+    background: var(--danger-soft);
+    color: var(--danger);
+    border: 1px solid var(--danger-border);
+  }
+  .app-btn-danger:hover {
+    filter: brightness(0.95);
+  }
+  .app-btn-icon {
+    @apply inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-border
+      bg-muted text-foreground transition-colors hover:bg-accent focus-visible:outline-none
+      focus-visible:ring-2 focus-visible:ring-ring;
+  }
+
+  /* ── Cartes de liste mobile (remplacent les tableaux < 768px) ── */
+  .app-mcard-head {
+    @apply flex w-full items-start justify-between gap-3 p-4 text-left;
+  }
+  .app-mcard-title {
+    @apply truncate text-sm font-semibold text-foreground;
+  }
+  .app-mcard-sub {
+    @apply mt-0.5 truncate text-xs text-muted-foreground;
+  }
+  .app-mcard-amount {
+    @apply font-mono text-sm font-bold tabular-nums;
+  }
+  .app-mcard-body {
+    @apply space-y-2 border-t border-border bg-muted/40 px-4 py-3;
+  }
+  .app-mcard-row {
+    @apply flex items-baseline justify-between gap-3 text-xs;
+  }
+  .app-mcard-label {
+    @apply shrink-0 text-muted-foreground;
+  }
+  .app-mcard-value {
+    @apply min-w-0 truncate text-right font-medium text-foreground;
+  }
+
+  /* ── Textes sémantiques réutilisables ── */
+  .t-success {
+    color: var(--success);
+  }
+  .t-warning {
+    color: var(--warning);
+  }
+  .t-danger {
+    color: var(--danger);
+  }
+  .t-info {
+    color: var(--info);
+  }
+  .t-violet {
+    color: var(--violet);
+  }
+}
+
+/* ── Défilement horizontal sans barre visible ── */
+.app-scroll-x {
+  overflow-x: auto;
+  scrollbar-width: none;
+  -webkit-overflow-scrolling: touch;
+}
+.app-scroll-x::-webkit-scrollbar {
+  display: none;
+}
+
+/* ── Ergonomie tactile ── (jusqu'à 1023px : en dessous de cette largeur
+   l'interface est en mode compact, cartes + navigation basse) */
+@media (max-width: 1023px) {
+  input,
+  textarea {
+    /* 16px : en dessous, iOS zoome automatiquement au focus. */
+    font-size: 16px;
+  }
+  input:not([type="checkbox"]):not([type="radio"]) {
+    min-height: 44px;
+  }
 }

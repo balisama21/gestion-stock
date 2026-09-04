@@ -19,6 +19,10 @@ import {
   Receipt,
 } from "lucide-react";
 import { formatCurrency, formatDateLocale, getProductLabel, getPurchaseLabel } from "../utils/formulas";
+import { PageHeader } from "./shared/PageHeader";
+import { FilterBar, FilterField } from "./shared/FilterBar";
+import { MobileCardList } from "./shared/MobileCardList";
+import { StatTile } from "./shared/StatTile";
 
 interface AchatsViewProps {
   purchases: Purchase[];
@@ -177,151 +181,150 @@ export const AchatsView: React.FC<AchatsViewProps> = ({
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-wrap items-center justify-between gap-4 bg-card p-6 rounded-2xl border border-border">
-        <div>
-          <h2 className="text-xl font-bold text-foreground flex items-center gap-2">
-            <ShoppingCart className="w-6 h-6 text-rose-400" />
-            Gestion des Achats & Approvisionnement Stock
-          </h2>
-          <p className="text-xs text-muted-foreground mt-1">
-            Enregistrez les entrées en stock et alimentez automatiquement votre catalogue produits
-            et trésorerie.
-          </p>
-        </div>
+      <PageHeader
+        icon={<ShoppingCart className="w-5 h-5 t-danger" />}
+        title="Achats"
+        subtitle="Enregistrez vos entrées en stock et ce qu'elles vous ont coûté."
+        actions={
+          <>
+            <button
+              onClick={() => setIsReportModalOpen(true)}
+              className="app-btn-secondary w-full sm:w-auto"
+            >
+              <Printer className="w-4 h-4" />
+              Imprimer
+            </button>
+            <button onClick={() => setIsModalOpen(true)} className="app-btn-primary w-full sm:w-auto">
+              <Plus className="w-4 h-4" />
+              Nouvel achat
+            </button>
+          </>
+        }
+      />
 
-        <div className="flex items-center gap-3">
-          <button
-            onClick={() => setIsReportModalOpen(true)}
-            className="flex items-center gap-1.5 px-3 py-2 bg-muted hover:bg-accent text-muted-foreground rounded-xl text-xs font-semibold border border-muted-foreground/20 transition-colors"
-          >
-            <Printer className="w-4 h-4 text-emerald-400" />
-            Imprimer / Exporter
-          </button>
+      {/* Indicateurs */}
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 sm:gap-4">
+        {showPrix && (
+          <StatTile
+            label="Total des achats"
+            value={formatCurrency(totalAchatsMontant)}
+            hint="sorti de la trésorerie"
+            icon={<DollarSign className="w-5 h-5" />}
+            tone="danger"
+          />
+        )}
 
-          <button
-            onClick={() => setIsModalOpen(true)}
-            className="flex items-center gap-1.5 px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-semibold shadow-sm transition-colors"
-          >
-            <Plus className="w-4 h-4" />
-            Enregistrer un Achat
-          </button>
-        </div>
+        <StatTile
+          label="Articles reçus"
+          value={`${totalArticlesReappro}`}
+          hint="unités entrées en stock"
+          icon={<PackageCheck className="w-5 h-5" />}
+          tone="success"
+        />
+
+        {showFournisseur && (
+          <StatTile
+            label="Fournisseurs"
+            value={`${suppliersList.length}`}
+            hint={`partenaire${suppliersList.length > 1 ? "s" : ""} actif${suppliersList.length > 1 ? "s" : ""}`}
+            icon={<Truck className="w-5 h-5" />}
+            tone="info"
+          />
+        )}
       </div>
 
-      {/* KPI Cards & Filters Toolbar */}
-      <div className="bg-card border border-border p-4 rounded-2xl space-y-4 shadow-sm text-xs">
-        {/* KPI Mini Summary */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-          {showPrix && (
-            <div className="bg-muted/80 p-3 rounded-xl border border-muted-foreground/20/80 flex items-center justify-between">
-              <div>
-                <span className="text-muted-foreground font-medium block">
-                  Total Achats Effectués :
-                </span>
-                <span className="text-base font-bold font-mono text-rose-400">
-                  {formatCurrency(totalAchatsMontant)}
-                </span>
-              </div>
-              <DollarSign className="w-5 h-5 text-rose-400" />
-            </div>
-          )}
+      {/* Recherche et filtres */}
+      <FilterBar
+        searchValue={searchTerm}
+        onSearchChange={setSearchTerm}
+        searchPlaceholder={
+          showFournisseur
+            ? "Rechercher un produit, une référence, un fournisseur…"
+            : "Rechercher un produit, une référence…"
+        }
+        activeFilterCount={supplierFilter !== "Tous" ? 1 : 0}
+        onReset={() => {
+          setSearchTerm("");
+          setSupplierFilter("Tous");
+        }}
+      >
+        {showFournisseur && (
+          <FilterField label="Fournisseur">
+            <select
+              value={supplierFilter}
+              onChange={(e) => setSupplierFilter(e.target.value)}
+              className="app-field-sm lg:w-auto"
+            >
+              <option value="Tous">Tous les fournisseurs</option>
+              {suppliersList.map((sup) => (
+                <option key={sup} value={sup}>
+                  {sup}
+                </option>
+              ))}
+            </select>
+          </FilterField>
+        )}
+      </FilterBar>
 
-          <div className="bg-muted/80 p-3 rounded-xl border border-muted-foreground/20/80 flex items-center justify-between">
-            <div>
-              <span className="text-muted-foreground font-medium block">
-                Articles Réapprovisionnés :
-              </span>
-              <span className="text-base font-bold font-mono text-emerald-400">
-                {totalArticlesReappro} unités
-              </span>
-            </div>
-            <PackageCheck className="w-5 h-5 text-emerald-400" />
-          </div>
-
-          {showFournisseur && (
-            <div className="bg-muted/80 p-3 rounded-xl border border-muted-foreground/20/80 flex items-center justify-between">
-              <div>
-                <span className="text-muted-foreground font-medium block">
-                  Fournisseurs Actifs :
-                </span>
-                <span className="text-base font-bold font-mono text-sky-400">
-                  {suppliersList.length} partenaire{suppliersList.length > 1 ? "s" : ""}
-                </span>
-              </div>
-              <Truck className="w-5 h-5 text-sky-400" />
-            </div>
-          )}
-        </div>
-
-        {/* Search & Filter Bar */}
-        <div className="flex flex-wrap items-center justify-between gap-3 pt-2 border-t border-border">
-          <div className="relative flex-1 max-w-xs">
-            <Search className="w-3.5 h-3.5 absolute left-3 top-2.5 text-muted-foreground" />
-            <input
-              type="text"
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder={
-                showFournisseur
-                  ? "Rechercher désignation, ID, fournisseur..."
-                  : "Rechercher désignation, ID..."
-              }
-              className="w-full bg-muted border border-muted-foreground/20 rounded-xl pl-9 pr-3 py-1.5 text-foreground placeholder-slate-500 focus:outline-none focus:border-emerald-500 font-medium"
-            />
-          </div>
-
-          <div className="flex items-center gap-2">
-            {showFournisseur && (
-              <>
-                <Filter className="w-3.5 h-3.5 text-muted-foreground" />
-                <span className="text-muted-foreground font-semibold">Fournisseur :</span>
-                <select
-                  value={supplierFilter}
-                  onChange={(e) => setSupplierFilter(e.target.value)}
-                  className="bg-muted border border-muted-foreground/20 text-foreground rounded-xl px-3 py-1.5 focus:outline-none focus:border-emerald-500 font-medium"
-                >
-                  <option value="Tous">Tous les fournisseurs</option>
-                  {suppliersList.map((sup) => (
-                    <option key={sup} value={sup}>
-                      {sup}
-                    </option>
-                  ))}
-                </select>
-              </>
-            )}
-
-            {(searchTerm || supplierFilter !== "Tous") && (
+      {/* Liste mobile — remplace le tableau sous 768px */}
+      <div className="lg:hidden">
+        <MobileCardList
+          emptyLabel="Aucun achat ne correspond à ces filtres."
+          items={filteredPurchases.map((p) => ({
+            id: p.id,
+            title: getPurchaseLabel(p, products),
+            subtitle: `${formatDateLocale(p.date, locale)} · ×${p.quantite}`,
+            amount: showPrix ? formatCurrency(p.totalAchat) : undefined,
+            amountTone: "danger" as const,
+            fields: [
+              { label: "Référence", value: p.numero },
+              { label: "Date", value: formatDateLocale(p.date, locale) },
+              { label: "Quantité", value: `${p.quantite}` },
+              ...(showPrix
+                ? [
+                    { label: "Prix unitaire", value: formatCurrency(p.prixAchatUnit) },
+                    { label: "Total", value: formatCurrency(p.totalAchat) },
+                    {
+                      label: "Effet sur la trésorerie",
+                      value: (
+                        <span className="t-danger">{formatCurrency(p.impactTresorerie)}</span>
+                      ),
+                    },
+                  ]
+                : []),
+              ...(showFournisseur
+                ? [{ label: "Fournisseur", value: p.fournisseur || "Non renseigné" }]
+                : []),
+            ],
+            actions: (
               <button
-                onClick={() => {
-                  setSearchTerm("");
-                  setSupplierFilter("Tous");
-                }}
-                className="p-1.5 text-muted-foreground hover:text-foreground bg-muted border border-muted-foreground/20 rounded-xl transition-colors"
-                title="Réinitialiser filtres"
+                onClick={() => setSelectedPurchaseReceipt(p)}
+                className="app-btn-secondary flex-1 text-xs"
               >
-                <RefreshCw className="w-3.5 h-3.5" />
+                <Eye className="w-3.5 h-3.5" />
+                Voir le bon
               </button>
-            )}
-          </div>
-        </div>
+            ),
+          }))}
+        />
       </div>
 
       {/* Purchases Table */}
-      <div className="app-table-wrap">
+      <div className="app-table-wrap hidden lg:block">
         <div className="app-table-scroll">
           <table className="app-table">
             <thead>
               <tr>
-                <th className="px-4 py-3.5">ID Achat</th>
+                <th className="px-4 py-3.5">Référence</th>
                 <th className="px-4 py-3.5">Date</th>
-                <th className="px-4 py-3.5">ID Produit Auto</th>
-                <th className="px-4 py-3.5">Désignation (Variante)</th>
+                <th className="px-4 py-3.5">Code produit</th>
+                <th className="px-4 py-3.5">Produit</th>
                 <th className="px-4 py-3.5 text-right">Qté</th>
-                {showPrix && <th className="px-4 py-3.5 text-right">Prix Achat Unit.</th>}
-                {showPrix && <th className="px-4 py-3.5 text-right">Total Achat</th>}
+                {showPrix && <th className="px-4 py-3.5 text-right">Prix unitaire</th>}
+                {showPrix && <th className="px-4 py-3.5 text-right">Total</th>}
                 {showFournisseur && <th className="px-4 py-3.5">Fournisseur</th>}
-                {showPrix && <th className="px-4 py-3.5 text-right">Impact Trésorerie</th>}
-                <th className="px-4 py-3.5 text-center">Bon / Reçu</th>
+                {showPrix && <th className="px-4 py-3.5 text-right">Effet trésorerie</th>}
+                <th className="px-4 py-3.5 text-center">Bon</th>
               </tr>
             </thead>
             <tbody className="text-foreground">
@@ -341,7 +344,7 @@ export const AchatsView: React.FC<AchatsViewProps> = ({
                     <td className="px-4 py-3.5 font-mono text-muted-foreground">
                       {formatDateLocale(p.date, locale)}
                     </td>
-                    <td className="px-4 py-3.5 font-mono font-bold text-emerald-400">
+                    <td className="px-4 py-3.5 font-mono font-bold t-success">
                       {products.find((prod) => prod.id === p.productId)?.numero || "—"}
                     </td>
                    <td className="px-4 py-3.5 font-mono font-bold text-foreground">
@@ -364,14 +367,14 @@ export const AchatsView: React.FC<AchatsViewProps> = ({
                       </td>
                     )}
                     {showPrix && (
-                      <td className="px-4 py-3.5 text-right font-mono font-bold text-rose-400">
+                      <td className="px-4 py-3.5 text-right font-mono font-bold t-danger">
                         {formatCurrency(p.impactTresorerie)}
                       </td>
                     )}
                     <td className="px-4 py-3.5 text-center">
                       <button
                         onClick={() => setSelectedPurchaseReceipt(p)}
-                        className="p-1.5 text-muted-foreground hover:text-emerald-400 bg-muted hover:bg-accent rounded-lg transition-colors inline-flex items-center gap-1"
+                        className="p-1.5 text-muted-foreground hover:t-success bg-muted hover:bg-accent rounded-lg transition-colors inline-flex items-center gap-1"
                         title="Voir le bon de commande"
                       >
                         <Eye className="w-3.5 h-3.5" />
@@ -392,7 +395,7 @@ export const AchatsView: React.FC<AchatsViewProps> = ({
           <div className="bg-card border border-muted-foreground/20 rounded-2xl w-full max-w-md p-6 shadow-2xl text-foreground space-y-4">
             <div className="flex items-center justify-between border-b border-border pb-3">
               <div className="flex items-center gap-2">
-                <FileText className="w-5 h-5 text-emerald-400" />
+                <FileText className="w-5 h-5 t-success" />
                 <h3 className="font-bold text-base">
                   Bon d'Approvisionnement #{selectedPurchaseReceipt.numero}
                 </h3>
@@ -413,14 +416,14 @@ export const AchatsView: React.FC<AchatsViewProps> = ({
                 </span>
               </div>
               <div className="flex justify-between">
-                <span className="text-muted-foreground">ID Produit Associé :</span>
-                <span className="text-emerald-400 font-bold">
+                <span className="text-muted-foreground">Code produit :</span>
+                <span className="t-success font-bold">
                   {products.find((prod) => prod.id === selectedPurchaseReceipt.productId)
                     ?.numero || selectedPurchaseReceipt.productId}
                 </span>
               </div>
               <div className="flex justify-between">
-                <span className="text-muted-foreground">Désignation Variante :</span>
+                <span className="text-muted-foreground">Produit :</span>
                 <span className="text-foreground font-bold">
                   {getPurchaseLabel(selectedPurchaseReceipt, products)}
                 </span>
@@ -428,20 +431,20 @@ export const AchatsView: React.FC<AchatsViewProps> = ({
               {showFournisseur && (
                 <div className="flex justify-between">
                   <span className="text-muted-foreground">Fournisseur :</span>
-                  <span className="text-sky-300">
+                  <span className="t-info">
                     {selectedPurchaseReceipt.fournisseur || "Grossiste Général"}
                   </span>
                 </div>
               )}
               <div className="border-t border-border pt-2 flex justify-between">
-                <span className="text-muted-foreground">Quantité Achetée :</span>
+                <span className="text-muted-foreground">Quantité :</span>
                 <span className="text-foreground font-bold">
                   {selectedPurchaseReceipt.quantite} unités
                 </span>
               </div>
               {showPrix && (
                 <div className="flex justify-between">
-                  <span className="text-muted-foreground">Prix d'Achat Unitaire :</span>
+                  <span className="text-muted-foreground">Prix unitaire :</span>
                   <span className="text-foreground">
                     {formatCurrency(selectedPurchaseReceipt.prixAchatUnit)}
                   </span>
@@ -450,7 +453,7 @@ export const AchatsView: React.FC<AchatsViewProps> = ({
               {showPrix && (
                 <div className="border-t border-border pt-2 flex justify-between text-sm">
                   <span className="text-muted-foreground font-bold">Total Décaissement :</span>
-                  <span className="text-rose-400 font-bold">
+                  <span className="t-danger font-bold">
                     {formatCurrency(selectedPurchaseReceipt.totalAchat)}
                   </span>
                 </div>
@@ -480,7 +483,7 @@ export const AchatsView: React.FC<AchatsViewProps> = ({
         <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-card border border-muted-foreground/20 rounded-2xl w-full max-w-md p-6 shadow-xl text-foreground space-y-4">
             <h3 className="text-lg font-bold flex items-center gap-2">
-              <ShoppingCart className="w-5 h-5 text-rose-400" />
+              <ShoppingCart className="w-5 h-5 t-danger" />
               Saisie d'un Nouvel Achat
             </h3>
 
@@ -573,7 +576,7 @@ export const AchatsView: React.FC<AchatsViewProps> = ({
                 <span className="text-muted-foreground text-[11px] block">
                   Total Achat Calculé :
                 </span>
-                <span className="text-base font-bold text-rose-400">
+                <span className="text-base font-bold t-danger">
                   {formatCurrency(quantite * prixAchatUnit)}
                 </span>
               </div>
@@ -605,7 +608,7 @@ export const AchatsView: React.FC<AchatsViewProps> = ({
             <div className="space-y-4 border-b border-border pb-4 no-print">
               <div className="flex flex-wrap items-center justify-between gap-4">
                 <div className="flex items-center gap-2">
-                  <Printer className="w-5 h-5 text-emerald-400" />
+                  <Printer className="w-5 h-5 t-success" />
                   <h3 className="text-base font-bold text-foreground">
                     Journal & Bilan des Achats / Approvisionnements Stock
                   </h3>
@@ -894,7 +897,7 @@ ${reportPurchases
                     <thead>
                       <tr className="bg-slate-100 text-slate-700 font-bold uppercase text-[10px] border-y border-slate-300">
                         <th className="p-2">Date</th>
-                        <th className="p-2">ID Produit</th>
+                        <th className="p-2">Code</th>
                         <th className="p-2">Désignation</th>
                         <th className="p-2 text-center">Qté</th>
                         {showPrix && <th className="p-2 text-right">Prix Unit.</th>}

@@ -32,8 +32,6 @@ import { ParametresView } from "./components/ParametresView";
 import { CommandesView } from "./components/CommandesView";
 import { ClientsView } from "./components/ClientsView";
 import { PaiementsARecevoirView } from "./components/PaiementsARecevoirView";
-import { ScriptViewerModal } from "./components/ScriptViewerModal";
-import { FormulaGuideModal } from "./components/FormulaGuideModal";
 import { AuthPage } from "./components/AuthPage";
 import { CreateStoreOnboarding } from "./components/CreateStoreOnboarding";
 import { StoreLockedScreen } from "./components/StoreLockedScreen";
@@ -56,12 +54,30 @@ function AppInner() {
 
   const [activeTab, setActiveTab] = useState<ActiveTab>("dashboard");
   const [locale, setLocale] = useState<LocaleSetting>("FR");
-  const [theme, setTheme] = useState<"dark" | "light">("dark");
+  // Mode clair par défaut : c'est ce que voit un nouvel utilisateur au
+  // tout premier chargement. Les utilisateurs existants ne sont pas
+  // affectés — le useEffect ci-dessous relit leur choix dans
+  // localStorage et le réapplique aussitôt.
+  const [theme, setTheme] = useState<"dark" | "light">("light");
+
+  // Sidebar repliée en mode icônes. L'état vit ici, et non dans Header,
+  // parce que la largeur de la sidebar conditionne aussi le décalage du
+  // <main> : les deux doivent bouger ensemble.
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
   useEffect(() => {
     const saved = window.localStorage.getItem("balsama-theme");
     if (saved === "light" || saved === "dark") setTheme(saved);
+    setSidebarCollapsed(window.localStorage.getItem("balsama-sidebar") === "collapsed");
   }, []);
+
+  const toggleSidebar = () => {
+    setSidebarCollapsed((prev) => {
+      const next = !prev;
+      window.localStorage.setItem("balsama-sidebar", next ? "collapsed" : "expanded");
+      return next;
+    });
+  };
 
   useEffect(() => {
     const root = document.documentElement;
@@ -70,7 +86,10 @@ function AppInner() {
       root.classList.add("dark");
       root.style.backgroundColor = "#020617";
     } else {
-      root.style.backgroundColor = "#f8fafc";
+      // Doit correspondre au token --background du mode clair
+      // (oklch(1 0 0) = blanc) : un gris légèrement différent créait
+      // un aplat visible le temps du chargement.
+      root.style.backgroundColor = "#ffffff";
     }
     window.localStorage.setItem("balsama-theme", theme);
   }, [theme]);
@@ -470,8 +489,6 @@ function AppInner() {
     [products],
   );
 
-  const [isScriptModalOpen, setIsScriptModalOpen] = useState(false);
-  const [isFormulaModalOpen, setIsFormulaModalOpen] = useState(false);
   const [activityToast, setActivityToast] = useState<{
     id: string;
     vendeur: string;
@@ -801,7 +818,16 @@ function AppInner() {
   }
 
   return (
-    <div className="min-h-screen flex flex-col font-sans bg-background text-foreground selection:bg-emerald-500 selection:text-slate-950 transition-colors duration-200">
+    /* Le décalage à gauche libère la place de la sidebar fixe (voir
+       src/components/Sidebar.tsx : 16rem ouverte, 4.5rem repliée). Il est
+       posé ici plutôt que sur .app-container, dont il écraserait la
+       gouttière interne, et il s'applique du coup à la barre du haut
+       comme au contenu. */
+    <div
+      className={`min-h-screen flex flex-col font-sans bg-background text-foreground selection:bg-emerald-500 selection:text-slate-950 transition-[padding] duration-200 ${
+        sidebarCollapsed ? "lg:pl-18" : "lg:pl-64"
+      }`}
+    >
       <Header
         activeTab={activeTab}
         setActiveTab={setActiveTab}
@@ -817,9 +843,11 @@ function AppInner() {
         expenses={expenses}
         apports={apports}
         products={products}
+        sidebarCollapsed={sidebarCollapsed}
+        onToggleSidebar={toggleSidebar}
       />
 
-      <main className="app-container flex-1 py-4 md:py-6 pb-24 md:pb-6">
+      <main className="app-container flex-1 py-4 md:py-6 pb-24 lg:pb-6">
         {activeTab === "dashboard" && (
           hasDashboardAccess ? (
             <DashboardView
@@ -1009,8 +1037,6 @@ function AppInner() {
             capital={computedCapital}
             onUpdateCapitalInitial={handleUpdateCapitalInitial}
             onUpdateSeuil={handleUpdateSeuil}
-            onOpenScriptModal={() => setIsScriptModalOpen(true)}
-            onOpenFormulaModal={() => setIsFormulaModalOpen(true)}
             onDownloadExcel={handleDownloadExcel}
             isFounder={isFounder}
             isPlatformAdmin={profile?.is_platform_admin ?? false}
@@ -1019,23 +1045,15 @@ function AppInner() {
         )}
       </main>
 
-      <ScriptViewerModal isOpen={isScriptModalOpen} onClose={() => setIsScriptModalOpen(false)} />
-      <FormulaGuideModal
-        isOpen={isFormulaModalOpen}
-        onClose={() => setIsFormulaModalOpen(false)}
-        locale={locale}
-        setLocale={setLocale}
-      />
-
       {activityToast && (
-        <div className="fixed inset-x-3 bottom-3 sm:inset-x-auto sm:bottom-6 sm:right-6 z-50 sm:max-w-md bg-card/95 border-2 border-emerald-500 rounded-2xl p-4 shadow-2xl flex items-start gap-3 backdrop-blur-md">
-          <div className="p-2.5 rounded-xl bg-emerald-500/20 text-emerald-400 shrink-0 mt-0.5">
+        <div className="fixed inset-x-3 bottom-3 sm:inset-x-auto sm:bottom-6 sm:right-6 z-50 sm:max-w-md bg-card/95 border-2 border-success-border rounded-2xl p-4 shadow-2xl flex items-start gap-3 backdrop-blur-md">
+          <div className="p-2.5 rounded-xl bg-success-soft t-success shrink-0 mt-0.5">
             <Zap className="w-5 h-5 animate-pulse" />
           </div>
           <div className="flex-1 text-xs">
             <div className="flex items-center justify-between mb-1">
-              <span className="font-bold text-emerald-400 uppercase tracking-wider text-[10px] flex items-center gap-1">
-                <span className="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span>
+              <span className="font-bold t-success uppercase tracking-wider text-[10px] flex items-center gap-1">
+                <span className="w-2 h-2 rounded-full bg-success animate-ping"></span>
                 Alerte Activité
               </span>
               <span className="text-[10px] text-muted-foreground font-mono">
@@ -1043,7 +1061,7 @@ function AppInner() {
               </span>
             </div>
             <p className="text-foreground font-medium leading-relaxed">
-              <span className="font-bold text-amber-300 bg-amber-500/10 px-1.5 py-0.5 rounded mr-1">
+              <span className="font-bold t-warning bg-warning-soft px-1.5 py-0.5 rounded mr-1">
                 {activityToast.vendeur}
               </span>{" "}
               {activityToast.message}

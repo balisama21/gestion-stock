@@ -156,10 +156,10 @@ export const AuthPage: React.FC = () => {
   ];
 
   return (
-    <div className="min-h-screen flex bg-slate-950">
+    <div className="flex min-h-screen bg-background">
       {/* Panneau branding — desktop */}
       <div className="hidden lg:flex lg:w-[44%] xl:w-[42%] relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-emerald-600 via-teal-700 to-slate-900" />
+        <div className="absolute inset-0 bg-gradient-to-br from-emerald-700 via-teal-800 to-slate-900" />
         <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_left,rgba(255,255,255,0.14),transparent_55%)]" />
         <div className="absolute -bottom-24 -right-24 w-96 h-96 rounded-full bg-emerald-400/10 blur-3xl" />
         <div className="absolute top-1/3 -left-16 w-64 h-64 rounded-full bg-teal-300/10 blur-2xl" />
@@ -172,7 +172,7 @@ export const AuthPage: React.FC = () => {
               </div>
               <div>
                 <p className="font-bold text-xl tracking-tight">{APP_NAME}</p>
-                <p className="text-emerald-200/70 text-xs font-medium">Gestion professionnelle</p>
+                <p className="text-emerald-50/90 text-xs font-medium">Gestion professionnelle</p>
               </div>
             </div>
 
@@ -181,7 +181,7 @@ export const AuthPage: React.FC = () => {
               <br />
               <span className="text-emerald-200">avec précision.</span>
             </h1>
-            <p className="text-emerald-100/75 text-base leading-relaxed max-w-md mb-10">
+            <p className="text-emerald-50 text-base leading-relaxed max-w-md mb-10">
               {APP_TAGLINE}. Ventes, achats, commandes clients et trésorerie — tout en un seul
               tableau de bord.
             </p>
@@ -190,16 +190,16 @@ export const AuthPage: React.FC = () => {
               {features.map(({ icon: Icon, label }) => (
                 <div
                   key={label}
-                  className="flex items-center gap-2.5 px-3.5 py-3 rounded-xl bg-white/10 backdrop-blur-sm border border-white/10"
+                  className="flex items-center gap-2.5 px-3.5 py-3 rounded-xl bg-white/5 backdrop-blur-sm border border-white/15"
                 >
-                  <Icon className="w-4 h-4 text-emerald-200 shrink-0" />
-                  <span className="text-sm font-medium text-emerald-50/90">{label}</span>
+                  <Icon className="w-4 h-4 text-emerald-50 shrink-0" />
+                  <span className="text-sm font-medium text-white">{label}</span>
                 </div>
               ))}
             </div>
           </div>
 
-          <div className="flex items-center gap-2 text-emerald-200/50 text-xs">
+          <div className="flex items-center gap-2 text-emerald-50 text-xs">
             <Sparkles className="w-3.5 h-3.5" />
             <span>Plateforme sécurisée · Données chiffrées · Multi-boutiques</span>
           </div>
@@ -253,7 +253,7 @@ export const AuthPage: React.FC = () => {
               {mode === "activate" && (
                 <div className="flex items-center gap-2 mb-6">
                   <div className="w-9 h-9 rounded-lg bg-emerald-500/10 flex items-center justify-center">
-                    <KeyRound className="w-4 h-4 text-emerald-500" />
+                    <KeyRound className="w-4 h-4 t-success" />
                   </div>
                   <div>
                     <h2 className="text-lg font-bold text-foreground">Activation du compte</h2>
@@ -300,13 +300,13 @@ export const AuthPage: React.FC = () => {
               )}
 
               {error && (
-                <div className="flex items-start gap-3 bg-red-500/10 border border-red-500/25 text-red-500 rounded-xl p-3.5 mb-5 text-sm">
+                <div className="flex items-start gap-3 bg-danger-soft border border-danger-border t-danger rounded-xl p-3.5 mb-5 text-sm">
                   <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
                   <span>{error}</span>
                 </div>
               )}
               {success && (
-                <div className="flex items-start gap-3 bg-emerald-500/10 border border-emerald-500/25 text-emerald-600 dark:text-emerald-400 rounded-xl p-3.5 mb-5 text-sm">
+                <div className="flex items-start gap-3 bg-success-soft border border-success-border t-success rounded-xl p-3.5 mb-5 text-sm">
                   <CheckCircle2 className="w-5 h-5 shrink-0 mt-0.5" />
                   <span>{success}</span>
                 </div>
@@ -387,7 +387,7 @@ export const AuthPage: React.FC = () => {
                     <button
                       type="button"
                       onClick={() => switchMode("forgot-password")}
-                      className="text-xs font-semibold text-emerald-500 hover:underline"
+                      className="text-xs font-semibold t-success hover:underline"
                     >
                       Mot de passe oublié ?
                     </button>
@@ -441,11 +441,11 @@ export const AuthPage: React.FC = () => {
                     </div>
                   </Field>
 
-                  <div className="rounded-xl border border-emerald-500/25 bg-emerald-500/8 p-4 text-sm">
-                    <p className="font-semibold text-emerald-600 dark:text-emerald-400 mb-1">
+                  <div className="rounded-xl border border-success-border bg-success-soft p-4 text-sm">
+                    <p className="font-semibold t-success mb-1">
                       7 jours d'essai gratuit
                     </p>
-                    <p className="text-emerald-700/80 dark:text-emerald-300/70 text-xs leading-relaxed">
+                    <p className="t-success text-xs leading-relaxed">
                       Créez votre boutique et utilisez-la immédiatement. Aucun paiement requis
                       pour commencer.
                     </p>
@@ -462,7 +462,7 @@ export const AuthPage: React.FC = () => {
               {mode === "forgot-password" &&
                 (forgotSent ? (
                   <div className="text-center py-2">
-                    <CheckCircle2 className="w-12 h-12 text-emerald-500 mx-auto mb-4" />
+                    <CheckCircle2 className="w-12 h-12 t-success mx-auto mb-4" />
                     <p className="text-foreground font-semibold mb-2">E-mail envoyé</p>
                     <p className="text-sm text-muted-foreground leading-relaxed">
                       Si un compte existe pour{" "}
@@ -510,21 +510,21 @@ export const AuthPage: React.FC = () => {
                       Statut : {profile?.status ?? "—"} · Rôle : {profile?.role ?? "—"}
                     </p>
                     {profileError && (
-                      <p className="text-red-500 mt-2 font-mono text-xs">
+                      <p className="t-danger mt-2 font-mono text-xs">
                         Erreur DB : {profileError}
                       </p>
                     )}
                   </div>
 
                   <div className="rounded-xl border border-blue-500/25 bg-blue-500/8 p-4 text-sm mb-5">
-                    <p className="font-semibold text-blue-600 dark:text-blue-400 mb-2">
+                    <p className="font-semibold t-info mb-2">
                       Comment obtenir votre code ?
                     </p>
                     <p className="text-muted-foreground text-xs mb-2">
                       Virement de <strong className="text-foreground">100 000 Ar</strong> par Orange
                       Money au :
                     </p>
-                    <p className="font-bold text-center py-2.5 rounded-lg bg-blue-500/15 text-blue-600 dark:text-blue-300 tracking-wide">
+                    <p className="font-bold text-center py-2.5 rounded-lg bg-info-soft t-info tracking-wide">
                       +261 38 97 234 12
                     </p>
                     <p className="text-muted-foreground text-xs mt-2 leading-relaxed">
@@ -558,7 +558,7 @@ export const AuthPage: React.FC = () => {
                     <Link
                       to="/accept-invite"
                       search={{ token: undefined }}
-                      className="text-emerald-500 font-semibold hover:underline"
+                      className="t-success font-semibold hover:underline"
                     >
                       Accepter via e-mail
                     </Link>
@@ -578,7 +578,7 @@ export const AuthPage: React.FC = () => {
                         await signOut();
                         switchMode("login");
                       }}
-                      className="w-full py-2.5 text-red-500 hover:bg-red-500/10 text-sm font-semibold rounded-xl transition-colors"
+                      className="w-full py-2.5 t-danger hover:bg-danger-soft text-sm font-semibold rounded-xl transition-colors"
                     >
                       Se déconnecter
                     </button>
@@ -598,7 +598,7 @@ export const AuthPage: React.FC = () => {
 };
 
 const inputClass =
-  "w-full bg-muted/40 border border-border rounded-xl pl-10 pr-4 py-2.5 text-foreground text-sm placeholder:text-muted-foreground/60 focus:outline-none focus:ring-2 focus:ring-emerald-500/35 focus:border-emerald-500/50 transition-all";
+  "app-field pl-10";
 
 function Field({
   label,
@@ -648,7 +648,7 @@ function SubmitButton({
     <button
       type="submit"
       disabled={loading}
-      className="w-full py-3 mt-1 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed text-white font-bold rounded-xl transition-all shadow-lg shadow-emerald-600/20 hover:shadow-emerald-500/30 active:scale-[0.99]"
+      className="app-btn-primary mt-1 w-full active:scale-[0.99]"
     >
       {loading ? (
         <span className="inline-flex items-center gap-2">

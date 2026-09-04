@@ -137,9 +137,9 @@ function AcceptInvitePage() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-950 flex">
+    <div className="flex min-h-screen bg-background">
       <div className="hidden lg:flex lg:w-[42%] relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-emerald-600 via-teal-700 to-slate-900" />
+        <div className="absolute inset-0 bg-gradient-to-br from-emerald-700 via-teal-800 to-slate-900" />
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,rgba(255,255,255,0.12),transparent_50%)]" />
         <div className="relative z-10 flex flex-col justify-between p-12 text-white">
           <div>
@@ -150,12 +150,12 @@ function AcceptInvitePage() {
               <span className="font-bold text-lg tracking-wide">{APP_NAME}</span>
             </div>
             <h1 className="text-3xl font-bold leading-tight mb-4">Rejoignez une équipe</h1>
-            <p className="text-emerald-100/80 text-base leading-relaxed max-w-sm">
+            <p className="text-emerald-50 text-base leading-relaxed max-w-sm">
               Acceptez votre invitation pour accéder à l&apos;espace de travail partagé et
               collaborer sur la gestion du stock.
             </p>
           </div>
-          <p className="text-xs text-emerald-200/50">Invitation sécurisée · Accès contrôlé</p>
+          <p className="text-xs text-emerald-50">Invitation sécurisée · Accès contrôlé</p>
         </div>
       </div>
 
@@ -170,7 +170,7 @@ function AcceptInvitePage() {
           </Link>
 
           <div className="bg-card border border-border/80 rounded-2xl shadow-2xl shadow-black/10 p-8 sm:p-10">
-            <div className="w-14 h-14 bg-emerald-500/10 text-emerald-500 rounded-2xl flex items-center justify-center mb-6">
+            <div className="w-14 h-14 bg-success-soft t-success rounded-2xl flex items-center justify-center mb-6">
               <Users className="w-7 h-7" />
             </div>
 
@@ -185,7 +185,7 @@ function AcceptInvitePage() {
             )}
 
             {status === "processing" && (
-              <div className="flex items-center gap-3 text-emerald-500">
+              <div className="flex items-center gap-3 t-success">
                 <div className="w-5 h-5 border-2 border-emerald-500/30 border-t-emerald-500 rounded-full animate-spin" />
                 Traitement de l&apos;invitation...
               </div>
@@ -193,8 +193,8 @@ function AcceptInvitePage() {
 
             {status === "success" && (
               <div className="text-center py-4">
-                <CheckCircle2 className="w-12 h-12 text-emerald-500 mx-auto mb-4" />
-                <p className="text-emerald-500 font-bold mb-2">Invitation acceptée !</p>
+                <CheckCircle2 className="w-12 h-12 t-success mx-auto mb-4" />
+                <p className="t-success font-bold mb-2">Invitation acceptée !</p>
                 {joinedStoreName && (
                   <p className="text-sm text-foreground mb-1">
                     Vous avez rejoint <strong>{joinedStoreName}</strong>.
@@ -206,7 +206,7 @@ function AcceptInvitePage() {
 
             {status === "error" && (
               <div>
-                <div className="flex items-start gap-3 bg-red-500/10 border border-red-500/25 text-red-500 rounded-xl p-4 mb-6 text-sm">
+                <div className="flex items-start gap-3 bg-danger-soft border border-danger-border t-danger rounded-xl p-4 mb-6 text-sm">
                   <AlertCircle className="w-5 h-5 shrink-0 mt-0.5" />
                   {errorMsg}
                 </div>
@@ -219,7 +219,7 @@ function AcceptInvitePage() {
                       setStatus("auth-required");
                       setErrorMsg("");
                     }}
-                    className="block w-full text-center py-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-sm font-bold transition-colors"
+                    className="app-btn-primary w-full"
                   >
                     Se déconnecter et utiliser le bon compte
                   </button>
@@ -236,7 +236,7 @@ function AcceptInvitePage() {
 
             {status === "auth-required" && needsEmailConfirmation && (
               <div className="text-center py-4">
-                <Mail className="w-12 h-12 text-emerald-500 mx-auto mb-4" />
+                <Mail className="w-12 h-12 t-success mx-auto mb-4" />
                 <p className="text-foreground font-bold mb-2">Confirmez votre e-mail</p>
                 <p className="text-sm text-muted-foreground leading-relaxed">
                   Un e-mail de confirmation a été envoyé à <strong>{email}</strong>. Ouvrez le
@@ -253,7 +253,7 @@ function AcceptInvitePage() {
                 </p>
 
                 {errorMsg && (
-                  <div className="flex items-center gap-2 bg-red-500/10 border border-red-500/25 text-red-500 rounded-xl p-3 mb-4 text-sm">
+                  <div className="flex items-center gap-2 bg-danger-soft border border-danger-border t-danger rounded-xl p-3 mb-4 text-sm">
                     <AlertCircle className="w-4 h-4 shrink-0" />
                     {errorMsg}
                   </div>
@@ -273,7 +273,7 @@ function AcceptInvitePage() {
                           onChange={(e) => setFullName(e.target.value)}
                           required
                           placeholder="Prénom et nom"
-                          className="w-full bg-muted/50 border border-border rounded-xl pl-10 pr-4 py-2.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-emerald-500/40 focus:border-emerald-500/50 transition-all"
+                          className="app-field pl-10"
                         />
                       </div>
                     </div>
@@ -291,7 +291,7 @@ function AcceptInvitePage() {
                         required
                         autoComplete="email"
                         placeholder="votre@email.com"
-                        className="w-full bg-muted/50 border border-border rounded-xl pl-10 pr-4 py-2.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-emerald-500/40 focus:border-emerald-500/50 transition-all"
+                        className="app-field pl-10"
                       />
                     </div>
                   </div>
@@ -309,7 +309,7 @@ function AcceptInvitePage() {
                         minLength={6}
                         autoComplete={isLogin ? "current-password" : "new-password"}
                         placeholder="••••••••"
-                        className="w-full bg-muted/50 border border-border rounded-xl pl-10 pr-10 py-2.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-emerald-500/40 focus:border-emerald-500/50 transition-all"
+                        className="app-field pl-10 pr-10"
                       />
                       <button
                         type="button"
@@ -326,7 +326,7 @@ function AcceptInvitePage() {
                   </div>
                   <button
                     type="submit"
-                    className="w-full py-3 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-sm font-bold transition-all shadow-lg shadow-emerald-600/20 hover:shadow-emerald-500/30"
+                    className="app-btn-primary w-full"
                   >
                     {isLogin ? "Se connecter & accepter" : "Créer le compte & accepter"}
                   </button>
@@ -340,7 +340,7 @@ function AcceptInvitePage() {
                       setIsLogin(!isLogin);
                       setErrorMsg("");
                     }}
-                    className="text-emerald-500 font-semibold ml-1 hover:underline"
+                    className="t-success font-semibold ml-1 hover:underline"
                   >
                     {isLogin ? "S'inscrire" : "Se connecter"}
                   </button>

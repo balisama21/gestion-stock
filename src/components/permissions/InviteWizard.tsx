@@ -93,7 +93,7 @@ export const InviteWizard: React.FC<InviteWizardProps> = ({
                     active
                       ? "bg-emerald-600 text-white"
                       : done
-                        ? "bg-emerald-500/20 text-emerald-500"
+                        ? "bg-success-soft t-success"
                         : "bg-muted text-muted-foreground"
                   }`}
                 >
@@ -184,28 +184,28 @@ export const InviteWizard: React.FC<InviteWizardProps> = ({
         <div className="space-y-4">
           <div className="bg-emerald-500/10 border border-emerald-500/25 rounded-2xl p-5">
             <div className="flex items-center gap-2 mb-3">
-              <Sparkles className="w-4.5 h-4.5 text-emerald-500" />
+              <Sparkles className="w-4.5 h-4.5 t-success" />
               <h4 className="font-bold text-foreground">
                 Profil recommandé pour : {ROLE_LABELS[roleKey].toUpperCase()}
               </h4>
             </div>
             <div className="grid grid-cols-3 gap-3 text-center">
               <div className="bg-background rounded-xl p-3">
-                <div className="text-xl font-bold text-emerald-500">{summary.modulesCount}</div>
+                <div className="text-xl font-bold t-success">{summary.modulesCount}</div>
                 <div className="text-[11px] text-muted-foreground mt-0.5">
                   module{summary.modulesCount > 1 ? "s" : ""} accessible
                   {summary.modulesCount > 1 ? "s" : ""}
                 </div>
               </div>
               <div className="bg-background rounded-xl p-3">
-                <div className="text-xl font-bold text-blue-500">{summary.actionsCount}</div>
+                <div className="text-xl font-bold t-info">{summary.actionsCount}</div>
                 <div className="text-[11px] text-muted-foreground mt-0.5">
                   permission{summary.actionsCount > 1 ? "s" : ""} activée
                   {summary.actionsCount > 1 ? "s" : ""}
                 </div>
               </div>
               <div className="bg-background rounded-xl p-3">
-                <div className="text-xl font-bold text-amber-500">{summary.hiddenFieldsCount}</div>
+                <div className="text-xl font-bold t-warning">{summary.hiddenFieldsCount}</div>
                 <div className="text-[11px] text-muted-foreground mt-0.5">
                   info{summary.hiddenFieldsCount > 1 ? "s" : ""} masquée
                   {summary.hiddenFieldsCount > 1 ? "s" : ""}
@@ -222,7 +222,7 @@ export const InviteWizard: React.FC<InviteWizardProps> = ({
                   key={def.key}
                   className={`px-2.5 py-1 rounded-full text-[11px] font-semibold border ${
                     visible
-                      ? "bg-emerald-500/10 border-emerald-500/30 text-emerald-600 dark:text-emerald-400"
+                      ? "bg-success-soft border-success-border t-success"
                       : "bg-muted border-border text-muted-foreground line-through"
                   }`}
                 >
@@ -268,7 +268,7 @@ export const InviteWizard: React.FC<InviteWizardProps> = ({
               actions, informations visibles).
             </p>
             {customized && (
-              <span className="flex items-center gap-1 text-[11px] font-semibold text-amber-500 shrink-0 ml-3">
+              <span className="flex items-center gap-1 text-[11px] font-semibold t-warning shrink-0 ml-3">
                 <ShieldOff className="w-3.5 h-3.5" /> Personnalisé
               </span>
             )}

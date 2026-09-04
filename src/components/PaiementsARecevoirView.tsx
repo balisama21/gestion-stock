@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from "react";
 import { CreditCard, X, History, ShoppingBag, DollarSign, Search } from "lucide-react";
 import { formatCurrency, getSaleLabel } from "../utils/formulas";
+import { PageHeader } from "./shared/PageHeader";
 import { Sale, Payment, Product } from "../types";
 import type { Database } from "../lib/database.types";
 
@@ -156,25 +157,19 @@ export const PaiementsARecevoirView: React.FC<PaiementsARecevoirViewProps> = ({
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3">
-        <div>
-          <h2 className="text-xl font-bold text-foreground flex items-center gap-2">
-            <CreditCard className="w-5 h-5 text-rose-400" />
-            Paiements à recevoir
-          </h2>
-          <p className="text-sm text-muted-foreground mt-0.5">
-            Ventes et commandes avec un solde impayé.
-          </p>
-        </div>
-      </div>
+      <PageHeader
+        icon={<CreditCard className="w-5 h-5 t-danger" />}
+        title="Paiements à recevoir"
+        subtitle="Ventes et commandes qu'il vous reste à encaisser."
+      />
 
       {/* Bandeau total à recevoir */}
-      <div className="bg-rose-500/10 border border-rose-500/25 rounded-2xl p-5 flex items-center justify-between">
+      <div className="app-card flex items-center justify-between border-danger-border bg-danger-soft p-4 sm:p-5">
         <div>
-          <div className="text-xs text-rose-300 uppercase tracking-wider font-semibold mb-1">
+          <div className="text-xs t-danger uppercase tracking-wider font-semibold mb-1">
             Total à recevoir
           </div>
-          <div className="text-2xl font-bold font-mono text-rose-300">
+          <div className="text-2xl font-bold font-mono t-danger">
             {formatCurrency(totalARecevoir)}
           </div>
         </div>
@@ -215,9 +210,9 @@ export const PaiementsARecevoirView: React.FC<PaiementsARecevoirViewProps> = ({
                   className={`p-2 rounded-xl shrink-0 ${r.type === "vente" ? "bg-emerald-500/10" : "bg-indigo-500/10"}`}
                 >
                   {r.type === "vente" ? (
-                    <DollarSign className="w-4 h-4 text-emerald-400" />
+                    <DollarSign className="w-4 h-4 t-success" />
                   ) : (
-                    <ShoppingBag className="w-4 h-4 text-indigo-400" />
+                    <ShoppingBag className="w-4 h-4 t-violet" />
                   )}
                 </div>
                 <div className="min-w-0">
@@ -235,7 +230,7 @@ export const PaiementsARecevoirView: React.FC<PaiementsARecevoirViewProps> = ({
 
               <div className="flex items-center gap-4 shrink-0 w-full sm:w-auto justify-between sm:justify-end">
                 <div className="text-right">
-                  <div className="font-mono font-bold text-sm text-red-400">
+                  <div className="font-mono font-bold text-sm t-danger">
                     {formatCurrency(r.reste)}
                   </div>
                   <div className="text-[11px] text-muted-foreground">
@@ -283,10 +278,10 @@ export const PaiementsARecevoirView: React.FC<PaiementsARecevoirViewProps> = ({
               {selected.type === "vente" ? "Vente" : "Commande"}{" "}
               <strong className="text-foreground font-mono">{selected.label}</strong> — Reste à
               payer :{" "}
-              <strong className="text-red-400 font-mono">{formatCurrency(selected.reste)}</strong>
+              <strong className="t-danger font-mono">{formatCurrency(selected.reste)}</strong>
             </div>
             {error && (
-              <div className="mb-4 p-3 bg-red-500/10 border border-red-500/30 text-red-400 rounded-xl text-xs">
+              <div className="mb-4 p-3 bg-red-500/10 border border-red-500/30 t-danger rounded-xl text-xs">
                 {error}
               </div>
             )}
@@ -384,7 +379,7 @@ export const PaiementsARecevoirView: React.FC<PaiementsARecevoirViewProps> = ({
                     className="flex items-center justify-between p-3 bg-muted/40 rounded-xl text-sm"
                   >
                     <div>
-                      <div className="font-mono font-bold text-emerald-400">
+                      <div className="font-mono font-bold t-success">
                         {formatCurrency(p.montant)}
                       </div>
                       <div className="text-[11px] text-muted-foreground">

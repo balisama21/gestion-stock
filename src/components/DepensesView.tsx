@@ -18,6 +18,10 @@ import {
   TrendingDown,
 } from "lucide-react";
 import { formatCurrency, formatDateLocale } from "../utils/formulas";
+import { PageHeader } from "./shared/PageHeader";
+import { FilterBar, FilterField } from "./shared/FilterBar";
+import { MobileCardList } from "./shared/MobileCardList";
+import { StatTile } from "./shared/StatTile";
 
 interface DepensesViewProps {
   expenses: Expense[];
@@ -136,155 +140,172 @@ export const DepensesView: React.FC<DepensesViewProps> = ({
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex flex-wrap items-center justify-between gap-4 bg-card p-6 rounded-2xl border border-border">
-        <div>
-          <h2 className="text-xl font-bold text-foreground flex items-center gap-2">
-            <ArrowRightLeft className="w-6 h-6 text-rose-400" />
-            Onglet Dépenses Vendeurs & Retraits de Caisse
-          </h2>
-          <p className="text-xs text-muted-foreground mt-1">
-            Impact unifié : Réduit la Trésorerie Globale (Capital) ET le solde individuel en poche
-            du vendeur en une seule saisie.
-          </p>
-        </div>
-
-        <div className="flex items-center gap-3">
-          <button
-            onClick={() => setIsReportModalOpen(true)}
-            className="flex items-center gap-1.5 px-3.5 py-2 bg-muted hover:bg-accent text-rose-300 border border-rose-500/30 rounded-xl text-xs font-semibold shadow-sm transition-colors"
-            title="Imprimer ou exporter le journal des dépenses et retraits"
-          >
-            <Printer className="w-4 h-4 text-rose-400" />
-            Imprimer / Exporter
-          </button>
-
-          <button
-            onClick={() => setIsModalOpen(true)}
-            className="flex items-center gap-1.5 px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-semibold shadow-sm transition-colors"
-          >
-            <Plus className="w-4 h-4" />
-            Enregistrer une Dépense
-          </button>
-        </div>
-      </div>
-
-      {/* Replacement: Interactive Actions & Category Summary Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 text-xs">
-        <div className="bg-card border border-border p-3.5 rounded-2xl flex items-center justify-between">
-          <div>
-            <span className="text-muted-foreground font-medium block">Total Dépenses :</span>
-            <span className="text-base font-bold font-mono text-rose-400">
-              {formatCurrency(totalDepenses)}
-            </span>
-          </div>
-          <TrendingDown className="w-5 h-5 text-rose-400" />
-        </div>
-
-        <div className="bg-card border border-border p-3.5 rounded-2xl flex items-center justify-between">
-          <div>
-            <span className="text-muted-foreground font-medium block">Retraits d'Argent :</span>
-            <span className="text-base font-bold font-mono text-amber-400">
-              {formatCurrency(totalRetraits)}
-            </span>
-          </div>
-          <Wallet className="w-5 h-5 text-amber-400" />
-        </div>
-
-        <div className="bg-card border border-border p-3.5 rounded-2xl flex items-center justify-between">
-          <div>
-            <span className="text-muted-foreground font-medium block">Achats de Stock :</span>
-            <span className="text-base font-bold font-mono text-purple-400">
-              {formatCurrency(totalAchatsStock)}
-            </span>
-          </div>
-          <ShoppingBag className="w-5 h-5 text-purple-400" />
-        </div>
-
-        <div className="bg-card border border-border p-3.5 rounded-2xl flex items-center justify-between">
-          <div>
-            <span className="text-muted-foreground font-medium block">Autres Frais :</span>
-            <span className="text-base font-bold font-mono text-sky-400">
-              {formatCurrency(totalAutres)}
-            </span>
-          </div>
-          <ArrowRightLeft className="w-5 h-5 text-sky-400" />
-        </div>
-      </div>
-
-      {/* Filter and Search Bar */}
-      <div className="bg-card border border-border p-4 rounded-2xl flex flex-wrap items-center justify-between gap-3 text-xs shadow-sm">
-        <div className="relative flex-1 max-w-xs">
-          <Search className="w-3.5 h-3.5 absolute left-3 top-2.5 text-muted-foreground" />
-          <input
-            type="text"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            placeholder="Rechercher vendeur, note, ID..."
-            className="w-full bg-muted border border-muted-foreground/20 rounded-xl pl-9 pr-3 py-1.5 text-foreground placeholder-slate-500 focus:outline-none focus:border-emerald-500 font-medium"
-          />
-        </div>
-
-        <div className="flex flex-wrap items-center gap-3">
-          <div className="flex items-center gap-1.5">
-            <Filter className="w-3.5 h-3.5 text-muted-foreground" />
-            <span className="text-muted-foreground font-semibold">Vendeur :</span>
-            <select
-              value={sellerFilter}
-              onChange={(e) => setSellerFilter(e.target.value)}
-              className="bg-muted border border-muted-foreground/20 text-foreground rounded-xl px-3 py-1.5 focus:outline-none focus:border-emerald-500 font-medium"
-            >
-              <option value="Tous">Tous les vendeurs</option>
-              {sellers.map((s) => (
-                <option key={s.id} value={s.nom}>
-                  {s.nom}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div className="flex items-center gap-1.5">
-            <span className="text-muted-foreground font-semibold">Type :</span>
-            <select
-              value={typeFilter}
-              onChange={(e) => setTypeFilter(e.target.value)}
-              className="bg-muted border border-muted-foreground/20 text-foreground rounded-xl px-3 py-1.5 focus:outline-none focus:border-emerald-500 font-medium"
-            >
-              <option value="Tous">Tous les types</option>
-              <option value="Retrait d'argent">Retrait d'argent</option>
-              <option value="Achat de stock">Achat de stock</option>
-              <option value="Autre dépense">Autre dépense</option>
-            </select>
-          </div>
-
-          {(searchTerm || sellerFilter !== "Tous" || typeFilter !== "Tous") && (
+      <PageHeader
+        icon={<ArrowRightLeft className="w-5 h-5 t-danger" />}
+        title="Dépenses"
+        subtitle="Sorties d'argent et retraits de caisse de vos vendeurs."
+        actions={
+          <>
             <button
-              onClick={() => {
-                setSearchTerm("");
-                setSellerFilter("Tous");
-                setTypeFilter("Tous");
-              }}
-              className="p-1.5 text-muted-foreground hover:text-foreground bg-muted border border-muted-foreground/20 rounded-xl transition-colors"
-              title="Réinitialiser filtres"
+              onClick={() => setIsReportModalOpen(true)}
+              className="app-btn-secondary w-full sm:w-auto"
             >
-              <RefreshCw className="w-3.5 h-3.5" />
+              <Printer className="w-4 h-4" />
+              Imprimer
             </button>
-          )}
-        </div>
+            <button onClick={() => setIsModalOpen(true)} className="app-btn-primary w-full sm:w-auto">
+              <Plus className="w-4 h-4" />
+              Nouvelle dépense
+            </button>
+          </>
+        }
+      />
+
+      {/* Indicateurs */}
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4 sm:gap-4">
+        <StatTile
+          label="Total"
+          value={formatCurrency(totalDepenses)}
+          hint="toutes dépenses"
+          icon={<TrendingDown className="w-5 h-5" />}
+          tone="danger"
+        />
+        <StatTile
+          label="Retraits"
+          value={formatCurrency(totalRetraits)}
+          hint="argent sorti de caisse"
+          icon={<Wallet className="w-5 h-5" />}
+          tone="warning"
+        />
+        <StatTile
+          label="Achats de stock"
+          value={formatCurrency(totalAchatsStock)}
+          hint="réapprovisionnement"
+          icon={<ShoppingBag className="w-5 h-5" />}
+          tone="violet"
+        />
+        <StatTile
+          label="Autres frais"
+          value={formatCurrency(totalAutres)}
+          hint="frais divers"
+          icon={<ArrowRightLeft className="w-5 h-5" />}
+          tone="info"
+        />
+      </div>
+
+      {/* Recherche et filtres */}
+      <FilterBar
+        searchValue={searchTerm}
+        onSearchChange={setSearchTerm}
+        searchPlaceholder="Rechercher un vendeur, une note, une référence…"
+        activeFilterCount={(sellerFilter !== "Tous" ? 1 : 0) + (typeFilter !== "Tous" ? 1 : 0)}
+        onReset={() => {
+          setSearchTerm("");
+          setSellerFilter("Tous");
+          setTypeFilter("Tous");
+        }}
+      >
+        <FilterField label="Vendeur">
+          <select
+            value={sellerFilter}
+            onChange={(e) => setSellerFilter(e.target.value)}
+            className="app-field-sm lg:w-auto"
+          >
+            <option value="Tous">Tous les vendeurs</option>
+            {sellers.map((s) => (
+              <option key={s.id} value={s.nom}>
+                {s.nom}
+              </option>
+            ))}
+          </select>
+        </FilterField>
+
+        <FilterField label="Type">
+          <select
+            value={typeFilter}
+            onChange={(e) => setTypeFilter(e.target.value)}
+            className="app-field-sm lg:w-auto"
+          >
+            <option value="Tous">Tous les types</option>
+            <option value="Retrait d'argent">Retrait d'argent</option>
+            <option value="Achat de stock">Achat de stock</option>
+            <option value="Autre dépense">Autre dépense</option>
+          </select>
+        </FilterField>
+      </FilterBar>
+
+      {/* Liste mobile — remplace le tableau sous 768px */}
+      <div className="lg:hidden">
+        <MobileCardList
+          emptyLabel="Aucune dépense ne correspond à ces filtres."
+          items={filteredExpenses.map((e) => ({
+            id: e.id,
+            title: e.vendeur,
+            subtitle: `${formatDateLocale(e.date, locale)} · ${e.type}`,
+            amount: `- ${formatCurrency(e.montant)}`,
+            amountTone: "danger" as const,
+            badge: (
+              <span
+                className={`app-badge ${
+                  e.type === "Achat de stock"
+                    ? "app-badge-info"
+                    : e.type === "Retrait d'argent"
+                      ? "app-badge-warning"
+                      : "app-badge-neutral"
+                }`}
+              >
+                {e.type}
+              </span>
+            ),
+            fields: [
+              { label: "Référence", value: e.numero },
+              { label: "Date", value: formatDateLocale(e.date, locale) },
+              { label: "Montant", value: formatCurrency(e.montant) },
+              { label: "Note", value: e.note || "Aucune note" },
+            ],
+            actions: (
+              <>
+                {onEditExpense && (
+                  <button
+                    onClick={() => setEditingExpense(e)}
+                    className="app-btn-secondary flex-1 text-xs"
+                  >
+                    <Edit3 className="w-3.5 h-3.5" />
+                    Modifier
+                  </button>
+                )}
+                {onDeleteExpense && (
+                  <button
+                    onClick={() => {
+                      if (window.confirm(`Supprimer la dépense ${e.numero} (${e.vendeur}) ?`)) {
+                        onDeleteExpense(e.id);
+                      }
+                    }}
+                    className="app-btn-danger flex-1 text-xs"
+                  >
+                    <Trash2 className="w-3.5 h-3.5" />
+                    Supprimer
+                  </button>
+                )}
+              </>
+            ),
+          }))}
+        />
       </div>
 
       {/* Table */}
-      <div className="app-table-wrap">
+      <div className="app-table-wrap hidden lg:block">
         <div className="app-table-scroll">
           <table className="app-table">
             <thead>
               <tr>
-                <th className="px-4 py-3.5">ID Dépense</th>
+                <th className="px-4 py-3.5">Référence</th>
                 <th className="px-4 py-3.5">Date</th>
-                <th className="px-4 py-3.5">Vendeur Concerné</th>
-                <th className="px-4 py-3.5">Type de Mouvement</th>
-                <th className="px-4 py-3.5 text-right">Montant (Ar)</th>
-                <th className="px-4 py-3.5">Note / Commentaire</th>
-                <th className="px-4 py-3.5 text-right">Impact Trésorerie</th>
+                <th className="px-4 py-3.5">Vendeur</th>
+                <th className="px-4 py-3.5">Type</th>
+                <th className="px-4 py-3.5 text-right">Montant</th>
+                <th className="px-4 py-3.5">Note</th>
+                <th className="px-4 py-3.5 text-right">Effet trésorerie</th>
                 <th className="px-4 py-3.5 text-center">Actions</th>
               </tr>
             </thead>
@@ -305,24 +326,24 @@ export const DepensesView: React.FC<DepensesViewProps> = ({
                     <td className="px-4 py-3.5 font-bold text-foreground">{e.vendeur}</td>
                     <td className="px-4 py-3.5">
                       <span
-                        className={`px-2 py-0.5 rounded text-[10px] font-semibold ${
+                        className={`app-badge ${
                           e.type === "Achat de stock"
-                            ? "bg-purple-500/20 text-purple-300 border border-purple-500/30"
+                            ? "app-badge-info"
                             : e.type === "Retrait d'argent"
-                              ? "bg-amber-500/20 text-amber-300 border border-amber-500/30"
-                              : "bg-accent text-muted-foreground"
+                              ? "app-badge-warning"
+                              : "app-badge-neutral"
                         }`}
                       >
                         {e.type}
                       </span>
                     </td>
-                    <td className="px-4 py-3.5 text-right font-mono font-bold text-rose-400">
+                    <td className="px-4 py-3.5 text-right font-mono font-bold t-danger">
                       {formatCurrency(e.montant)}
                     </td>
                     <td className="px-4 py-3.5 text-muted-foreground italic max-w-xs truncate">
                       {e.note || "Aucune note"}
                     </td>
-                    <td className="px-4 py-3.5 text-right font-mono font-bold text-rose-400">
+                    <td className="px-4 py-3.5 text-right font-mono font-bold t-danger">
                       - {formatCurrency(e.montant)}
                     </td>
                     <td className="px-4 py-3.5 text-center">
@@ -330,7 +351,7 @@ export const DepensesView: React.FC<DepensesViewProps> = ({
                         {onEditExpense && (
                           <button
                             onClick={() => setEditingExpense(e)}
-                            className="p-1.5 text-muted-foreground hover:text-blue-400 bg-muted hover:bg-accent rounded-lg transition-colors"
+                            className="p-1.5 text-muted-foreground hover:t-info bg-muted hover:bg-accent rounded-lg transition-colors"
                             title="Modifier cette dépense"
                           >
                             <Edit3 className="w-3.5 h-3.5" />
@@ -343,7 +364,7 @@ export const DepensesView: React.FC<DepensesViewProps> = ({
                                 onDeleteExpense(e.id);
                               }
                             }}
-                            className="p-1.5 text-muted-foreground hover:text-rose-400 bg-muted hover:bg-accent rounded-lg transition-colors"
+                            className="p-1.5 text-muted-foreground hover:t-danger bg-muted hover:bg-accent rounded-lg transition-colors"
                             title="Supprimer cette dépense"
                           >
                             <Trash2 className="w-3.5 h-3.5" />
@@ -367,7 +388,7 @@ export const DepensesView: React.FC<DepensesViewProps> = ({
             <div className="space-y-4 border-b border-border pb-4 no-print">
               <div className="flex flex-wrap items-center justify-between gap-4">
                 <div className="flex items-center gap-2">
-                  <Printer className="w-5 h-5 text-rose-400" />
+                  <Printer className="w-5 h-5 t-danger" />
                   <h3 className="text-base font-bold text-foreground">
                     Journal & Relevé des Dépenses Vendeurs
                   </h3>
@@ -668,7 +689,7 @@ ${reportExpenses
         <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-card border border-muted-foreground/20 rounded-2xl w-full max-w-md p-6 shadow-xl text-foreground space-y-4">
             <h3 className="text-lg font-bold flex items-center gap-2">
-              <ArrowRightLeft className="w-5 h-5 text-rose-400" />
+              <ArrowRightLeft className="w-5 h-5 t-danger" />
               Saisie d'une Dépense / Retrait Vendeur
             </h3>
 
@@ -768,7 +789,7 @@ ${reportExpenses
         <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-card border border-muted-foreground/20 rounded-2xl w-full max-w-md p-6 shadow-xl text-foreground space-y-4">
             <h3 className="text-lg font-bold flex items-center gap-2">
-              <Edit3 className="w-5 h-5 text-blue-400" />
+              <Edit3 className="w-5 h-5 t-info" />
               Modification Dépense {editingExpense.numero}
             </h3>
 

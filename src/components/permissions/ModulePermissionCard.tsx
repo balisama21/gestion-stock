@@ -247,7 +247,7 @@ export const ModulePermissionCard: React.FC<ModulePermissionCardProps> = ({
       )}
 
       {visible && !open && hasDetail && (
-        <div className="px-4 pb-3 -mt-1 flex items-center gap-1.5 text-xs text-emerald-600 dark:text-emerald-400">
+        <div className="px-4 pb-3 -mt-1 flex items-center gap-1.5 text-xs t-success">
           <Check className="w-3 h-3" />
           Configuré — cliquez pour ajuster
         </div>

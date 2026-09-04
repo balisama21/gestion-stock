@@ -31,7 +31,7 @@ export const MyActivityView: React.FC<MyActivityViewProps> = ({
     <div className="space-y-6">
       <div className="bg-card border border-amber-500/20 rounded-2xl p-5 flex items-start gap-3">
         <div className="w-10 h-10 rounded-xl bg-amber-500/10 flex items-center justify-center shrink-0">
-          <Lock className="w-5 h-5 text-amber-500" />
+          <Lock className="w-5 h-5 t-warning" />
         </div>
         <div>
           <h2 className="font-bold text-foreground">{title}</h2>
@@ -65,17 +65,17 @@ export const MyActivityView: React.FC<MyActivityViewProps> = ({
               <TrendingUp className="w-4 h-4" />
               Mes dépenses enregistrées
             </div>
-            <p className="text-2xl font-bold text-rose-400">
+            <p className="text-2xl font-bold t-danger">
               {formatCurrency(mySellerData.totalDepenses)}
             </p>
           </div>
 
           <div className="bg-card border border-emerald-500/20 rounded-2xl p-5">
-            <div className="flex items-center gap-2 text-emerald-500 text-xs font-semibold uppercase tracking-wide mb-2">
+            <div className="flex items-center gap-2 t-success text-xs font-semibold uppercase tracking-wide mb-2">
               <Wallet className="w-4 h-4" />
               Mon solde net en poche
             </div>
-            <p className="text-2xl font-bold text-emerald-400">
+            <p className="text-2xl font-bold t-success">
               {formatCurrency(mySellerData.soldeNetEnPoche)}
             </p>
           </div>

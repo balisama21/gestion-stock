@@ -2,7 +2,23 @@ import React from "react";
 import { Purchase, Sale, Expense, CapitalApport, LocaleSetting, Product } from "../types";
 import { History, ShoppingCart, DollarSign, ArrowRightLeft, PlusCircle } from "lucide-react";
 import { formatCurrency, formatDateLocale, getPurchaseLabel, getSaleLabel } from "../utils/formulas";
+import { PageHeader } from "./shared/PageHeader";
+import { MobileCardList } from "./shared/MobileCardList";
 import type { Database } from "../lib/database.types";
+
+type MovementType = "ACHAT" | "VENTE" | "DÉPENSE" | "APPORT";
+
+/** Libellés lisibles — les codes en majuscules sont réservés au code. */
+const labelFor = (type: MovementType) =>
+  ({ ACHAT: "Achat", VENTE: "Vente", DÉPENSE: "Dépense", APPORT: "Apport" })[type];
+
+const badgeClassFor = (type: MovementType) =>
+  ({
+    VENTE: "app-badge-success",
+    ACHAT: "app-badge-danger",
+    APPORT: "app-badge-info",
+    DÉPENSE: "app-badge-warning",
+  })[type];
 
 type Order = Database["public"]["Tables"]["orders"]["Row"] & {
   client?: Database["public"]["Tables"]["clients"]["Row"] | null;
@@ -38,7 +54,7 @@ export const HistoriqueView: React.FC<HistoriqueViewProps> = ({
       description: `Achat stock : ${getPurchaseLabel(p, products)} (${p.quantite} pcs)`,
       actor: p.fournisseur || "Fournisseur",
       montant: -p.totalAchat,
-      icon: <ShoppingCart className="w-4 h-4 text-rose-400" />,
+      icon: <ShoppingCart className="w-4 h-4 t-danger" />,
     })),
     ...sales.map((s) => ({
       id: s.id,
@@ -48,7 +64,7 @@ export const HistoriqueView: React.FC<HistoriqueViewProps> = ({
       description: `Vente : ${getSaleLabel(s, products)} (${s.quantite} pcs à ${s.prixVenteUnit} Ar)`,
       actor: s.vendeur,
       montant: s.montantPaye,
-      icon: <DollarSign className="w-4 h-4 text-emerald-400" />,
+      icon: <DollarSign className="w-4 h-4 t-success" />,
     })),
     // Commandes livrées ET payées : elles sont économiquement équivalentes
     // à une vente terminée, donc on les affiche dans la timeline avec le
@@ -75,7 +91,7 @@ export const HistoriqueView: React.FC<HistoriqueViewProps> = ({
           description: `Commande livrée : ${articles} (${items.length} article(s))`,
           actor: o.client?.nom || "Client comptoir",
           montant: o.montant_paye,
-          icon: <DollarSign className="w-4 h-4 text-emerald-400" />,
+          icon: <DollarSign className="w-4 h-4 t-success" />,
         };
       }),
     ...expenses.map((e) => ({
@@ -86,7 +102,7 @@ export const HistoriqueView: React.FC<HistoriqueViewProps> = ({
       description: `Dépense : ${e.type} (${e.note || "Pas de motif"})`,
       actor: e.vendeur,
       montant: -e.montant,
-      icon: <ArrowRightLeft className="w-4 h-4 text-amber-400" />,
+      icon: <ArrowRightLeft className="w-4 h-4 t-warning" />,
     })),
     ...apports.map((a) => ({
       id: a.id,
@@ -96,35 +112,52 @@ export const HistoriqueView: React.FC<HistoriqueViewProps> = ({
       description: `Apport Capital : ${a.note || a.source}`,
       actor: a.source,
       montant: a.montant,
-      icon: <PlusCircle className="w-4 h-4 text-blue-400" />,
+      icon: <PlusCircle className="w-4 h-4 t-info" />,
     })),
   ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
   return (
     <div className="space-y-6">
-      <div className="flex items-center justify-between bg-card p-6 rounded-2xl border border-border">
-        <div>
-          <h2 className="text-xl font-bold text-foreground flex items-center gap-2">
-            <History className="w-6 h-6 text-emerald-400" />
-            Onglet Historique & Audit Trail
-          </h2>
-          <p className="text-xs text-muted-foreground mt-1">
-            Journal unifié chronologique de tous les mouvements de stock, ventes et dépenses.
-          </p>
-        </div>
+      <PageHeader
+        icon={<History className="w-5 h-5 t-success" />}
+        title="Historique"
+        subtitle="Tous vos mouvements d'argent et de stock, du plus récent au plus ancien."
+      />
+
+      {/* Liste mobile — remplace le tableau sous 768px */}
+      <div className="lg:hidden">
+        <MobileCardList
+          emptyLabel="Aucun mouvement enregistré pour le moment."
+          items={timeline.map((item) => ({
+            id: `${item.type}-${item.id}`,
+            title: item.description,
+            subtitle: `${formatDateLocale(item.date, locale)} · ${item.actor}`,
+            amount: `${item.montant >= 0 ? "+" : ""}${formatCurrency(item.montant)}`,
+            amountTone: item.montant >= 0 ? ("success" as const) : ("danger" as const),
+            badge: (
+              <span className={`app-badge ${badgeClassFor(item.type)}`}>{labelFor(item.type)}</span>
+            ),
+            fields: [
+              { label: "Référence", value: item.ref },
+              { label: "Date", value: formatDateLocale(item.date, locale) },
+              { label: "Type", value: labelFor(item.type) },
+              { label: "Concerné", value: item.actor, hideIfEmpty: true },
+            ],
+          }))}
+        />
       </div>
 
-      <div className="app-table-wrap">
+      <div className="app-table-wrap hidden lg:block">
         <div className="app-table-scroll">
           <table className="app-table">
             <thead>
               <tr>
-                <th className="px-4 py-3.5">Réf</th>
+                <th className="px-4 py-3.5">Référence</th>
                 <th className="px-4 py-3.5">Date</th>
-                <th className="px-4 py-3.5">Mouvement</th>
+                <th className="px-4 py-3.5">Type</th>
                 <th className="px-4 py-3.5">Description</th>
-                <th className="px-4 py-3.5">Acteur / Vendeur / Fournisseur</th>
-                <th className="px-4 py-3.5 text-right">Impact Trésorerie</th>
+                <th className="px-4 py-3.5">Concerné</th>
+                <th className="px-4 py-3.5 text-right">Effet trésorerie</th>
               </tr>
             </thead>
             <tbody className="text-foreground">
@@ -135,26 +168,16 @@ export const HistoriqueView: React.FC<HistoriqueViewProps> = ({
                     {formatDateLocale(item.date, locale)}
                   </td>
                   <td className="px-4 py-3.5">
-                    <span
-                      className={`inline-flex items-center gap-1.5 px-2 py-0.5 rounded text-[10px] font-bold ${
-                        item.type === "VENTE"
-                          ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30"
-                          : item.type === "ACHAT"
-                            ? "bg-rose-500/20 text-rose-300 border border-rose-500/30"
-                            : item.type === "APPORT"
-                              ? "bg-blue-500/20 text-blue-300 border border-blue-500/30"
-                              : "bg-amber-500/20 text-amber-300 border border-amber-500/30"
-                      }`}
-                    >
+                    <span className={`app-badge ${badgeClassFor(item.type)}`}>
                       {item.icon}
-                      {item.type}
+                      {labelFor(item.type)}
                     </span>
                   </td>
                   <td className="px-4 py-3.5 font-medium text-foreground">{item.description}</td>
                   <td className="px-4 py-3.5 text-muted-foreground">{item.actor}</td>
                   <td
                     className={`p-3 text-right font-mono font-bold ${
-                      item.montant >= 0 ? "text-emerald-400" : "text-rose-400"
+                      item.montant >= 0 ? "t-success" : "t-danger"
                     }`}
                   >
                     {item.montant >= 0 ? "+" : ""}

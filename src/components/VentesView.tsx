@@ -26,6 +26,10 @@ import {
   Check,
 } from "lucide-react";
 import { formatCurrency, formatDateLocale, getProductLabel, getSaleLabel } from "../utils/formulas";
+import { PageHeader, HeaderMetric } from "./shared/PageHeader";
+import { FilterBar, FilterField } from "./shared/FilterBar";
+import { MobileCardList } from "./shared/MobileCardList";
+import { StatTile } from "./shared/StatTile";
 
 interface VentesViewProps {
   sales: Sale[];
@@ -233,7 +237,7 @@ export const VentesView: React.FC<VentesViewProps> = ({
   return (
     <div className="space-y-6">
       {restrictedToOwnSales && (
-        <div className="flex items-center gap-3 bg-amber-500/10 border border-amber-500/25 rounded-2xl p-4 text-sm text-amber-600 dark:text-amber-400">
+        <div className="flex items-center gap-3 bg-amber-500/10 border border-amber-500/25 rounded-2xl p-4 text-sm text-amber-600 dark:t-warning">
           <Lock className="w-5 h-5 shrink-0" />
           <span>
             Vous n'avez pas accès à l'historique complet des ventes de la boutique — seules{" "}
@@ -242,170 +246,233 @@ export const VentesView: React.FC<VentesViewProps> = ({
         </div>
       )}
       {/* Header */}
-      <div className="flex flex-wrap items-center justify-between gap-4 bg-card p-6 rounded-2xl border border-border">
-        <div>
-          <h2 className="text-xl font-bold text-foreground flex items-center gap-2">
-            <DollarSign className="w-6 h-6 text-blue-400" />
-            Onglet Ventes (Prix de vente saisi manuellement & Vendeurs)
-          </h2>
-          <p className="text-xs text-muted-foreground mt-1">
-            Préremplissage automatique du prix par défaut (
-            <code className="text-blue-300">Produits!E</code>) modifiable ligne par ligne, avec
-            sélection du Vendeur et suivi des créances.
-          </p>
-        </div>
-
-        <div className="flex items-center gap-4">
-          {showMontant && (
-            <div className="bg-muted px-4 py-2 rounded-xl border border-muted-foreground/20 text-right">
-              <div className="text-[10px] uppercase font-semibold text-muted-foreground">
-                Total CA Ventes
-              </div>
-              <div className="text-lg font-bold font-mono text-blue-400">
-                {formatCurrency(totalVentesCA)}
-              </div>
-              {showMargeCumulee && (
-                <div className="text-[10px] text-emerald-400 font-mono">
-                  Marge: +{formatCurrency(totalMarges)}
-                </div>
-              )}
-            </div>
-          )}
-
-          <button
-            onClick={() => setIsModalOpen(true)}
-            className="flex items-center gap-1.5 px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-semibold shadow-sm transition-colors"
-          >
-            <Plus className="w-4 h-4" />
-            Nouvelle Vente
-          </button>
-        </div>
-      </div>
-
-      {/* Interactive Toolbar & Filters (Replaces static instructions box) */}
-      <div className="bg-card border border-border p-4 rounded-2xl space-y-4 shadow-sm">
-        {/* KPI Mini Summary Row */}
-        {(showPaiement || showSolde || showMargeCumulee) && (
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
-            {showPaiement && (
-              <div className="bg-muted/80 p-3 rounded-xl border border-muted-foreground/20/80 flex items-center justify-between">
-                <div>
-                  <span className="text-muted-foreground font-medium block">
-                    Total Encaissé (Reçu) :
-                  </span>
-                  <span className="text-base font-bold font-mono text-emerald-400">
-                    {formatCurrency(totalPayeEncaisse)}
-                  </span>
-                </div>
-                <CheckCircle2 className="w-5 h-5 text-emerald-400" />
-              </div>
-            )}
-
-            {showSolde && (
-              <div className="bg-muted/80 p-3 rounded-xl border border-muted-foreground/20/80 flex items-center justify-between">
-                <div>
-                  <span className="text-muted-foreground font-medium block">
-                    Total Crédits / Reste Dû :
-                  </span>
-                  <span className="text-base font-bold font-mono text-amber-400">
-                    {formatCurrency(totalSoldeDuCredit)}
-                  </span>
-                </div>
-                <Clock className="w-5 h-5 text-amber-400" />
-              </div>
-            )}
-
-            {showMargeCumulee && (
-              <div className="bg-muted/80 p-3 rounded-xl border border-muted-foreground/20/80 flex items-center justify-between">
-                <div>
-                  <span className="text-muted-foreground font-medium block">
-                    Marge Brute Cumulée :
-                  </span>
-                  <span className="text-base font-bold font-mono text-blue-400">
-                    +{formatCurrency(totalMarges)}
-                  </span>
-                </div>
-                <TrendingUp className="w-5 h-5 text-blue-400" />
-              </div>
-            )}
-          </div>
-        )}
-
-        {/* Search and Filters Bar */}
-        <div className="flex flex-wrap items-center justify-between gap-3 pt-2 border-t border-border text-xs">
-          {/* Search Box */}
-          <div className="relative flex-1 min-w-[220px]">
-            <Search className="w-4 h-4 text-muted-foreground absolute left-3 top-1/2 -translate-y-1/2" />
-            <input
-              type="text"
-              placeholder="Rechercher produit, client, ID vente..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full bg-muted border border-muted-foreground/20 rounded-xl pl-9 pr-3 py-2 text-foreground placeholder-slate-500 focus:outline-none focus:border-blue-500"
+      <PageHeader
+        icon={<DollarSign className="w-5 h-5 t-info" />}
+        title="Ventes"
+        subtitle="Enregistrez vos ventes et suivez les paiements de vos clients."
+        metric={
+          showMontant ? (
+            <HeaderMetric
+              label="Chiffre d'affaires"
+              value={formatCurrency(totalVentesCA)}
+              hint={showMargeCumulee ? `Marge : +${formatCurrency(totalMarges)}` : undefined}
+              tone="info"
             />
-          </div>
+          ) : undefined
+        }
+        actions={
+          <button onClick={() => setIsModalOpen(true)} className="app-btn-primary w-full sm:w-auto">
+            <Plus className="w-4 h-4" />
+            Nouvelle vente
+          </button>
+        }
+      />
 
-          {/* Seller Filter */}
-          <div className="flex items-center gap-1.5">
-            <Filter className="w-3.5 h-3.5 text-muted-foreground" />
-            <span className="text-muted-foreground font-medium">Vendeur:</span>
-            <select
-              value={selectedSellerFilter}
-              onChange={(e) => setSelectedSellerFilter(e.target.value)}
-              className="bg-muted border border-muted-foreground/20 text-foreground rounded-xl px-2.5 py-1.5 focus:outline-none focus:border-blue-500 font-medium"
-            >
-              <option value="Tous">Tous les vendeurs</option>
-              {sellers.map((s) => (
-                <option key={s.id} value={s.nom}>
-                  {s.nom}
-                </option>
-              ))}
-            </select>
-          </div>
-
-          {/* Status Filter */}
-          <div className="flex items-center gap-1.5">
-            <span className="text-muted-foreground font-medium">Statut Crédit:</span>
-            <select
-              value={selectedStatusFilter}
-              onChange={(e) => setSelectedStatusFilter(e.target.value)}
-              className="bg-muted border border-muted-foreground/20 text-foreground rounded-xl px-2.5 py-1.5 focus:outline-none focus:border-blue-500 font-medium"
-            >
-              <option value="Tous">Tous les statuts</option>
-              <option value="Payé">Payé (Comptant)</option>
-              <option value="Partiel">Partiel (Acompte)</option>
-              <option value="Impayé">Impayé (Crédit total)</option>
-            </select>
-          </div>
+      {/* Indicateurs */}
+      {(showPaiement || showSolde || showMargeCumulee) && (
+        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 sm:gap-4">
+          {showPaiement && (
+            <StatTile
+              label="Encaissé"
+              value={formatCurrency(totalPayeEncaisse)}
+              hint="déjà reçu des clients"
+              icon={<CheckCircle2 className="w-5 h-5" />}
+              tone="success"
+            />
+          )}
+          {showSolde && (
+            <StatTile
+              label="Reste à encaisser"
+              value={formatCurrency(totalSoldeDuCredit)}
+              hint="crédits clients en cours"
+              icon={<Clock className="w-5 h-5" />}
+              tone={totalSoldeDuCredit > 0 ? "warning" : "neutral"}
+            />
+          )}
+          {showMargeCumulee && (
+            <StatTile
+              label="Marge"
+              value={`+${formatCurrency(totalMarges)}`}
+              hint="bénéfice brut cumulé"
+              icon={<TrendingUp className="w-5 h-5" />}
+              tone="info"
+            />
+          )}
         </div>
+      )}
+
+      {/* Recherche et filtres */}
+      <FilterBar
+        searchValue={searchQuery}
+        onSearchChange={setSearchQuery}
+        searchPlaceholder="Rechercher un produit, un client, une référence…"
+        activeFilterCount={
+          (selectedSellerFilter !== "Tous" ? 1 : 0) + (selectedStatusFilter !== "Tous" ? 1 : 0)
+        }
+        onReset={() => {
+          setSelectedSellerFilter("Tous");
+          setSelectedStatusFilter("Tous");
+          setSearchQuery("");
+        }}
+      >
+        <FilterField label="Vendeur">
+          <select
+            value={selectedSellerFilter}
+            onChange={(e) => setSelectedSellerFilter(e.target.value)}
+            className="app-field-sm lg:w-auto"
+          >
+            <option value="Tous">Tous les vendeurs</option>
+            {sellers.map((s) => (
+              <option key={s.id} value={s.nom}>
+                {s.nom}
+              </option>
+            ))}
+          </select>
+        </FilterField>
+
+        <FilterField label="Paiement">
+          <select
+            value={selectedStatusFilter}
+            onChange={(e) => setSelectedStatusFilter(e.target.value)}
+            className="app-field-sm lg:w-auto"
+          >
+            <option value="Tous">Tous les statuts</option>
+            <option value="Payé">Payé</option>
+            <option value="Partiel">Partiellement payé</option>
+            <option value="Impayé">Impayé</option>
+          </select>
+        </FilterField>
+      </FilterBar>
+
+      {/* Liste mobile — remplace le tableau sous 768px */}
+      <div className="lg:hidden">
+        <MobileCardList
+          emptyLabel="Aucune vente ne correspond à ces filtres."
+          items={filteredSales.map((s) => {
+            const linkedProduct = products.find((p) => p.id === s.productId);
+            return {
+              id: s.id,
+              title: linkedProduct ? getProductLabel(linkedProduct, products) : s.designation,
+              subtitle: `${formatDateLocale(s.date, locale)} · ${s.vendeur} · ×${s.quantite}`,
+              amount: showMontant ? formatCurrency(s.totalVente) : undefined,
+              amountTone: "neutral" as const,
+              badge: (
+                <span
+                  className={`app-badge ${
+                    s.statutCredit === "Payé"
+                      ? "app-badge-success"
+                      : s.statutCredit === "Partiel"
+                        ? "app-badge-warning"
+                        : "app-badge-danger"
+                  }`}
+                >
+                  {s.statutCredit}
+                </span>
+              ),
+              fields: [
+                { label: "Référence", value: s.numero },
+                { label: "Date", value: formatDateLocale(s.date, locale) },
+                { label: "Quantité", value: `${s.quantite}` },
+                ...(showMontant
+                  ? [{ label: "Prix unitaire", value: formatCurrency(s.prixVenteUnit) }]
+                  : []),
+                ...(showMargeLigne
+                  ? [
+                      {
+                        label: "Marge",
+                        value: (
+                          <span className="t-success">+{formatCurrency(s.margeTotale)}</span>
+                        ),
+                      },
+                    ]
+                  : []),
+                { label: "Vendeur", value: s.vendeur },
+                { label: "Client", value: s.clientCredit || "-", hideIfEmpty: true },
+                ...(showPaiement
+                  ? [
+                      {
+                        label: "Payé",
+                        value: <span className="t-success">{formatCurrency(s.montantPaye)}</span>,
+                      },
+                    ]
+                  : []),
+                ...(showSolde
+                  ? [
+                      {
+                        label: "Reste à payer",
+                        value: (
+                          <span className={s.soldeDu > 0 ? "t-warning" : ""}>
+                            {formatCurrency(s.soldeDu)}
+                          </span>
+                        ),
+                      },
+                    ]
+                  : []),
+              ],
+              actions: (
+                <>
+                  <button
+                    onClick={() => setSelectedReceiptSale(s)}
+                    className="app-btn-secondary flex-1 text-xs"
+                  >
+                    <Receipt className="w-3.5 h-3.5" />
+                    Reçu
+                  </button>
+                  {onEditSale && (
+                    <button onClick={() => setEditingSale(s)} className="app-btn-secondary text-xs">
+                      <Edit3 className="w-3.5 h-3.5" />
+                      Modifier
+                    </button>
+                  )}
+                  {onDeleteSale && (
+                    <button
+                      onClick={() => {
+                        if (
+                          window.confirm(
+                            `Supprimer la vente ${s.numero} (${getSaleLabel(s, products)}) ?`,
+                          )
+                        ) {
+                          onDeleteSale(s.id);
+                        }
+                      }}
+                      className="app-btn-danger text-xs"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                    </button>
+                  )}
+                </>
+              ),
+            };
+          })}
+        />
       </div>
 
       {/* Table */}
-      <div className="app-table-wrap">
+      <div className="app-table-wrap hidden lg:block">
         <div className="app-table-scroll">
           <table className="app-table">
             <thead>
               <tr>
-                <th className="px-4 py-3.5">ID Vente</th>
+                <th className="px-4 py-3.5">Référence</th>
                 <th className="px-4 py-3.5">Date</th>
-                <th className="px-4 py-3.5">ID Produit</th>
-                <th className="px-4 py-3.5">Désignation</th>
+                <th className="px-4 py-3.5">Code produit</th>
+                <th className="px-4 py-3.5">Produit</th>
                 <th className="px-4 py-3.5 text-right">Qté</th>
                 {/* Le prix unitaire est masqué avec le montant : sinon
                     prix unitaire × quantité redonne trivialement le total,
                     et le masquage ne serait que cosmétique. */}
                 {showMontant && (
-                  <th className="px-4 py-3.5 text-right bg-blue-950/40 text-blue-300 border-x border-blue-500/20">
-                    Prix Vente Saisi (E)
+                  <th className="px-4 py-3.5 text-right bg-info-soft border-x border-info-border">
+                    Prix unitaire
                   </th>
                 )}
-                {showMontant && <th className="px-4 py-3.5 text-right">Total Vente (F)</th>}
-                {showMargeLigne && <th className="px-4 py-3.5 text-right">Marge (I)</th>}
-                <th className="px-4 py-3.5">Vendeur (N)</th>
-                <th className="px-4 py-3.5">Client Crédit (O)</th>
-                {showPaiement && <th className="px-4 py-3.5 text-right">Payé (P)</th>}
-                {showSolde && <th className="px-4 py-3.5 text-right">Solde Dû (Q)</th>}
-                <th className="px-4 py-3.5 text-center">Statut (R)</th>
+                {showMontant && <th className="px-4 py-3.5 text-right">Total</th>}
+                {showMargeLigne && <th className="px-4 py-3.5 text-right">Marge</th>}
+                <th className="px-4 py-3.5">Vendeur</th>
+                <th className="px-4 py-3.5">Client</th>
+                {showPaiement && <th className="px-4 py-3.5 text-right">Payé</th>}
+                {showSolde && <th className="px-4 py-3.5 text-right">Reste à payer</th>}
+                <th className="px-4 py-3.5 text-center">Statut</th>
                 <th className="px-4 py-3.5 text-center">Actions</th>
               </tr>
             </thead>
@@ -434,7 +501,7 @@ export const VentesView: React.FC<VentesViewProps> = ({
                     <td className="px-4 py-3.5 font-mono text-muted-foreground">
                       {formatDateLocale(s.date, locale)}
                     </td>
-                    <td className="px-4 py-3.5 font-mono font-bold text-emerald-400">
+                    <td className="px-4 py-3.5 font-mono font-bold t-success">
                       {linkedProduct?.numero || "—"}
                     </td>
                     <td className="px-4 py-3.5 font-mono font-bold text-foreground">
@@ -442,7 +509,7 @@ export const VentesView: React.FC<VentesViewProps> = ({
                     </td>
                     <td className="px-4 py-3.5 text-right font-mono font-semibold">{s.quantite}</td>
                     {showMontant && (
-                      <td className="px-4 py-3.5 text-right font-mono font-bold text-blue-300 bg-blue-950/20 border-x border-blue-500/10">
+                      <td className="px-4 py-3.5 text-right font-mono font-bold t-info bg-info-soft border-x border-info-border">
                         {formatCurrency(s.prixVenteUnit)}
                       </td>
                     )}
@@ -452,30 +519,30 @@ export const VentesView: React.FC<VentesViewProps> = ({
                       </td>
                     )}
                     {showMargeLigne && (
-                      <td className="px-4 py-3.5 text-right font-mono font-bold text-emerald-400">
+                      <td className="px-4 py-3.5 text-right font-mono font-bold t-success">
                         +{formatCurrency(s.margeTotale)}
                       </td>
                     )}
                     <td className="px-4 py-3.5 font-semibold text-foreground">{s.vendeur}</td>
                     <td className="px-4 py-3.5 text-muted-foreground">{s.clientCredit || "-"}</td>
                     {showPaiement && (
-                      <td className="px-4 py-3.5 text-right font-mono text-emerald-400">
+                      <td className="px-4 py-3.5 text-right font-mono t-success">
                         {formatCurrency(s.montantPaye)}
                       </td>
                     )}
                     {showSolde && (
-                      <td className="px-4 py-3.5 text-right font-mono text-amber-400">
+                      <td className="px-4 py-3.5 text-right font-mono t-warning">
                         {formatCurrency(s.soldeDu)}
                       </td>
                     )}
                     <td className="px-4 py-3.5 text-center">
                       <span
-                        className={`px-2 py-0.5 rounded text-[10px] font-semibold ${
+                        className={`app-badge ${
                           s.statutCredit === "Payé"
-                            ? "bg-emerald-500/20 text-emerald-300 border border-emerald-500/30"
+                            ? "app-badge-success"
                             : s.statutCredit === "Partiel"
-                              ? "bg-amber-500/20 text-amber-300 border border-amber-500/30"
-                              : "bg-rose-500/20 text-rose-300 border border-rose-500/30"
+                              ? "app-badge-warning"
+                              : "app-badge-danger"
                         }`}
                       >
                         {s.statutCredit}
@@ -485,17 +552,17 @@ export const VentesView: React.FC<VentesViewProps> = ({
                       <div className="flex items-center justify-center gap-1.5">
                         <button
                           onClick={() => setSelectedReceiptSale(s)}
-                          className="px-2 py-1 bg-emerald-600/20 hover:bg-emerald-600/30 text-emerald-300 border border-emerald-500/30 rounded-lg text-[10px] font-bold flex items-center gap-1 transition-colors"
+                          className="px-2 py-1 bg-emerald-600/20 hover:bg-emerald-600/30 t-success border border-emerald-500/30 rounded-lg text-[10px] font-bold flex items-center gap-1 transition-colors"
                           title="Imprimer / Télécharger Reçu ou Facture"
                         >
-                          <Receipt className="w-3 h-3 text-emerald-400" />
+                          <Receipt className="w-3 h-3 t-success" />
                           Reçu
                         </button>
 
                         {onEditSale && (
                           <button
                             onClick={() => setEditingSale(s)}
-                            className="p-1.5 text-muted-foreground hover:text-blue-400 bg-muted hover:bg-accent rounded-lg transition-colors"
+                            className="p-1.5 text-muted-foreground hover:t-info bg-muted hover:bg-accent rounded-lg transition-colors"
                             title="Modifier cette vente"
                           >
                             <Edit3 className="w-3.5 h-3.5" />
@@ -510,7 +577,7 @@ export const VentesView: React.FC<VentesViewProps> = ({
                                 onDeleteSale(s.id);
                               }
                             }}
-                            className="p-1.5 text-muted-foreground hover:text-rose-400 bg-muted hover:bg-accent rounded-lg transition-colors"
+                            className="p-1.5 text-muted-foreground hover:t-danger bg-muted hover:bg-accent rounded-lg transition-colors"
                             title="Annuler/Supprimer cette vente"
                           >
                             <Trash2 className="w-3.5 h-3.5" />
@@ -532,7 +599,7 @@ export const VentesView: React.FC<VentesViewProps> = ({
         <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-card border border-muted-foreground/20 rounded-2xl w-full max-w-lg p-6 shadow-xl text-foreground space-y-4">
             <h3 className="text-lg font-bold flex items-center gap-2">
-              <DollarSign className="w-5 h-5 text-blue-400" />
+              <DollarSign className="w-5 h-5 t-info" />
               Saisie d'une Nouvelle Vente (Prix Libre & Vendeur)
             </h3>
 
@@ -551,7 +618,7 @@ export const VentesView: React.FC<VentesViewProps> = ({
 
                 <div>
                   <label className="block text-muted-foreground font-medium mb-1">
-                    Vendeur ayant réalisé la vente (N) :
+                    Vendeur :
                   </label>
                   <select
                     value={vendeur}
@@ -614,9 +681,9 @@ export const VentesView: React.FC<VentesViewProps> = ({
                 </div>
 
                 <div>
-                  <label className="block text-blue-300 font-bold mb-1 flex items-center justify-between">
-                    <span>Prix Vente Unit. Saisi (E) :</span>
-                    <span className="text-[10px] text-emerald-400 font-normal">Saisie libre</span>
+                  <label className="block t-info font-bold mb-1 flex items-center justify-between">
+                    <span>Prix de vente unitaire :</span>
+                    <span className="text-[10px] t-success font-normal">Saisie libre</span>
                   </label>
                   <input
                     type="number"
@@ -627,7 +694,7 @@ export const VentesView: React.FC<VentesViewProps> = ({
                       setPrixVenteUnit(Number(e.target.value));
                       setIsCustomPrice(true);
                     }}
-                    className="w-full bg-blue-950/40 border border-blue-500/50 rounded-xl px-3 py-2 text-blue-200 font-mono font-bold focus:outline-none focus:border-blue-400"
+                    className="w-full bg-info-soft border border-info-border rounded-xl px-3 py-2 t-info font-mono font-bold focus:outline-none focus:border-primary"
                   />
                   <span className="text-[10px] text-muted-foreground mt-1 block">
                     Prérempli avec prix réf ({currentProduct?.prixVenteDefaut} Ar), modifiable.
@@ -638,7 +705,7 @@ export const VentesView: React.FC<VentesViewProps> = ({
               {/* Credit Customer section */}
               <div className="border-t border-border pt-3 space-y-2">
                 <div className="flex items-center justify-between">
-                  <label className="text-xs font-semibold text-amber-300">
+                  <label className="text-xs font-semibold t-warning">
                     Vente à Crédit / Paiement Partiel (Optionnel) :
                   </label>
                 </div>
@@ -674,21 +741,21 @@ export const VentesView: React.FC<VentesViewProps> = ({
               {/* Summary */}
               <div className="bg-muted/80 p-3 rounded-xl border border-muted-foreground/20 flex justify-between items-center font-mono">
                 <div>
-                  <span className="text-muted-foreground text-[10px] block">Total Vente (F) :</span>
-                  <span className="text-lg font-bold text-blue-300">
+                  <span className="text-muted-foreground text-[10px] block">Total de la vente :</span>
+                  <span className="text-lg font-bold t-info">
                     {formatCurrency(calculatedTotalVente)}
                   </span>
                 </div>
                 <div className="text-right">
-                  <span className="text-muted-foreground text-[10px] block">Solde Dû (Q) :</span>
-                  <span className="text-base font-bold text-amber-400">
+                  <span className="text-muted-foreground text-[10px] block">Reste à payer :</span>
+                  <span className="text-base font-bold t-warning">
                     {formatCurrency(calculatedTotalVente - montantPaye)}
                   </span>
                 </div>
               </div>
 
               {formError && (
-                <div className="flex items-center gap-1.5 text-xs text-red-400 bg-red-500/10 border border-red-500/25 rounded-lg px-3 py-2">
+                <div className="flex items-center gap-1.5 text-xs t-danger bg-red-500/10 border border-red-500/25 rounded-lg px-3 py-2">
                   <AlertCircle className="w-3.5 h-3.5 shrink-0" />
                   {formError}
                 </div>
@@ -721,7 +788,7 @@ export const VentesView: React.FC<VentesViewProps> = ({
         <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-card border border-muted-foreground/20 rounded-2xl w-full max-w-lg p-6 shadow-xl text-foreground space-y-4">
             <h3 className="text-lg font-bold flex items-center gap-2">
-              <Edit3 className="w-5 h-5 text-blue-400" />
+              <Edit3 className="w-5 h-5 t-info" />
               Modification de la Vente {editingSale.numero} ({getSaleLabel(editingSale, products)})
             </h3>
 
@@ -803,7 +870,7 @@ export const VentesView: React.FC<VentesViewProps> = ({
                 </div>
 
                 <div>
-                  <label className="block text-blue-300 font-bold mb-1">
+                  <label className="block t-info font-bold mb-1">
                     Prix Vente Unit. (Ar) :
                   </label>
                   <input
@@ -814,7 +881,7 @@ export const VentesView: React.FC<VentesViewProps> = ({
                     onChange={(e) =>
                       setEditingSale({ ...editingSale, prixVenteUnit: Number(e.target.value) })
                     }
-                    className="w-full bg-blue-950/40 border border-blue-500/50 rounded-xl px-3 py-2 text-blue-200 font-mono font-bold focus:outline-none focus:border-blue-400"
+                    className="w-full bg-info-soft border border-info-border rounded-xl px-3 py-2 t-info font-mono font-bold focus:outline-none focus:border-primary"
                   />
                 </div>
               </div>
@@ -885,7 +952,7 @@ export const VentesView: React.FC<VentesViewProps> = ({
             {/* Modal Controls Bar (hidden during printing) */}
             <div className="flex flex-wrap items-center justify-between gap-4 border-b border-border pb-4 no-print">
               <div className="flex items-center gap-2">
-                <Receipt className="w-5 h-5 text-emerald-400" />
+                <Receipt className="w-5 h-5 t-success" />
                 <h3 className="text-base font-bold text-foreground">
                   Téléchargement & Impression du Reçu / Facture
                 </h3>

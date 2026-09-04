@@ -16,6 +16,10 @@ import {
   Ban,
 } from "lucide-react";
 import { formatCurrency, toSubscript, getProductLabel } from "../utils/formulas";
+import { PageHeader } from "./shared/PageHeader";
+import { FilterBar, FilterField } from "./shared/FilterBar";
+import { MobileCardList } from "./shared/MobileCardList";
+import { StatTile } from "./shared/StatTile";
 
 interface ProduitsViewProps {
   products: Product[];
@@ -261,171 +265,189 @@ export const ProduitsView: React.FC<ProduitsViewProps> = ({
   return (
     <div className="space-y-6">
       {/* Page Header */}
-      <div className="flex flex-wrap items-center justify-between gap-4 bg-card p-6 rounded-2xl border border-border">
-        <div>
-          <h2 className="text-xl font-bold text-foreground flex items-center gap-2">
-            <Package className="w-6 h-6 text-emerald-400" />
-            Catalogue des Produits & Variantes de Prix
-          </h2>
-          <p className="text-xs text-muted-foreground mt-1">
-            Génération automatique d'ID (P001, P002) et indices de distinction visuelle (kapa₁₀₀₀ vs
-            kapa[Fournisseur B]).
-          </p>
-        </div>
-
-        <div className="flex items-center gap-3">
-          <div className="relative">
-            <Search className="w-4 h-4 text-muted-foreground absolute left-3 top-2.5" />
-            <input
-              type="text"
-              placeholder="Rechercher désignation, ID, fournisseur..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="bg-muted border border-muted-foreground/20 rounded-xl pl-9 pr-4 py-1.5 text-xs text-foreground placeholder-slate-500 focus:outline-none focus:border-emerald-500 w-64"
-            />
-          </div>
-
-          {canCreate && (
-            <button
-              onClick={() => setIsAddModalOpen(true)}
-              className="flex items-center gap-1.5 px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-semibold shadow-sm transition-colors"
-            >
+      <PageHeader
+        icon={<Package className="w-5 h-5 t-success" />}
+        title="Produits"
+        subtitle="Vos produits, leurs prix et leur stock disponible."
+        actions={
+          canCreate && (
+            <button onClick={() => setIsAddModalOpen(true)} className="app-btn-primary w-full sm:w-auto">
               <Plus className="w-4 h-4" />
-              Nouveau Produit
+              Nouveau produit
             </button>
-          )}
-        </div>
+          )
+        }
+      />
+
+      {/* Indicateurs */}
+      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 sm:gap-4">
+        <StatTile
+          label="Références"
+          value={`${totalReferences}`}
+          hint={`produit${totalReferences > 1 ? "s" : ""} au catalogue`}
+          icon={<Layers className="w-5 h-5" />}
+          tone="success"
+        />
+
+        {showValeurStock && (
+          <StatTile
+            label="Valeur du stock"
+            value={formatCurrency(totalValeurStock)}
+            hint="au prix d'achat"
+            icon={<DollarSign className="w-5 h-5" />}
+            tone="info"
+          />
+        )}
+
+        <StatTile
+          label="Stock bas"
+          value={`${totalAlertesStock}`}
+          hint={
+            totalAlertesStock > 0
+              ? `produit${totalAlertesStock > 1 ? "s" : ""} à réapprovisionner`
+              : "tout est approvisionné"
+          }
+          hintTone={totalAlertesStock > 0 ? "warning" : "neutral"}
+          icon={<AlertTriangle className="w-5 h-5" />}
+          tone={totalAlertesStock > 0 ? "warning" : "neutral"}
+        />
       </div>
 
-      {/* Interactive Functional Bar (Replaces static yellow instruction box) */}
-      <div className="bg-card border border-border p-4 rounded-2xl space-y-4 shadow-sm text-xs">
-        {/* KPI Mini Cards */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-          <div className="bg-muted/80 p-3 rounded-xl border border-muted-foreground/20/80 flex items-center justify-between">
-            <div>
-              <span className="text-muted-foreground font-medium block">Total Références :</span>
-              <span className="text-base font-bold font-mono text-emerald-400">
-                {totalReferences} produits
-              </span>
-            </div>
-            <Layers className="w-5 h-5 text-emerald-400" />
+      {/* Recherche et filtres */}
+      <FilterBar
+        searchValue={searchTerm}
+        onSearchChange={setSearchTerm}
+        searchPlaceholder="Rechercher un produit, une référence, un fournisseur…"
+        activeFilterCount={
+          (stockFilter !== "Tous" ? 1 : 0) + (supplierFilter !== "Tous" ? 1 : 0)
+        }
+        onReset={() => {
+          setStockFilter("Tous");
+          setSupplierFilter("Tous");
+          setSearchTerm("");
+        }}
+      >
+        <FilterField label="Stock">
+          <div className="flex w-full items-center gap-1 rounded-xl border border-border bg-muted p-1 lg:w-auto">
+            {(
+              [
+                { key: "Tous", label: "Tous", count: products.length },
+                { key: "OK", label: "OK", count: products.length - totalAlertesStock },
+                { key: "Alerte", label: "Alertes", count: totalAlertesStock },
+              ] as const
+            ).map((opt) => (
+              <button
+                key={opt.key}
+                type="button"
+                onClick={() => setStockFilter(opt.key)}
+                className={`flex-1 whitespace-nowrap rounded-lg px-2.5 py-2 text-xs font-medium transition-colors lg:flex-none ${
+                  stockFilter === opt.key
+                    ? "bg-primary text-primary-foreground font-semibold"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                {opt.label} ({opt.count})
+              </button>
+            ))}
           </div>
+        </FilterField>
 
-          {showValeurStock && (
-            <div className="bg-muted/80 p-3 rounded-xl border border-muted-foreground/20/80 flex items-center justify-between">
-              <div>
-                <span className="text-muted-foreground font-medium block">
-                  Valeur Totale du Stock :
+        <FilterField label="Fournisseur">
+          <select
+            value={supplierFilter}
+            onChange={(e) => setSupplierFilter(e.target.value)}
+            className="app-field-sm lg:w-auto"
+          >
+            <option value="Tous">Tous les fournisseurs</option>
+            {uniqueSuppliers.map((sup) => (
+              <option key={sup} value={sup}>
+                {sup}
+              </option>
+            ))}
+          </select>
+        </FilterField>
+
+        {ruptureIdsInView.length > 0 && canDelete && (
+          <button
+            type="button"
+            onClick={selectAllRuptures}
+            className="app-btn-danger w-full text-xs lg:w-auto"
+            title="Cocher tous les produits en rupture de stock visibles"
+          >
+            <Ban className="w-3.5 h-3.5" />
+            Sélectionner les ruptures ({ruptureIdsInView.length})
+          </button>
+        )}
+      </FilterBar>
+
+      {/* Liste mobile — remplace le tableau sous 768px */}
+      <div className="lg:hidden">
+        <MobileCardList
+          emptyLabel="Aucun produit ne correspond à ces filtres."
+          items={filteredProducts.map((p) => {
+            const isOut = p.stockActuel <= 0;
+            const isLow = !isOut && p.stockActuel <= p.seuilAlerte;
+            return {
+              id: p.id,
+              leading: onDeleteProducts && canDelete && (
+                <input
+                  type="checkbox"
+                  checked={selectedIds.has(p.id)}
+                  onChange={() => toggleOne(p.id)}
+                  className="h-5 w-5 cursor-pointer rounded border-muted-foreground/40 accent-emerald-500"
+                  aria-label={`Sélectionner ${getProductLabel(p, products)}`}
+                />
+              ),
+              title: getProductLabel(p, products),
+              subtitle: p.numero,
+              amount: formatCurrency(p.prixVenteDefaut),
+              amountTone: "info" as const,
+              badge: (
+                <span
+                  className={`app-badge ${
+                    isOut ? "app-badge-danger" : isLow ? "app-badge-warning" : "app-badge-success"
+                  }`}
+                >
+                  {isOut ? "Rupture" : isLow ? `Stock bas · ${p.stockActuel}` : `Stock ${p.stockActuel}`}
                 </span>
-                <span className="text-base font-bold font-mono text-blue-400">
-                  {formatCurrency(totalValeurStock)}
-                </span>
-              </div>
-              <DollarSign className="w-5 h-5 text-blue-400" />
-            </div>
-          )}
-
-          <div className="bg-muted/80 p-3 rounded-xl border border-muted-foreground/20/80 flex items-center justify-between">
-            <div>
-              <span className="text-muted-foreground font-medium block">Alertes Stock Bas :</span>
-              <span
-                className={`text-base font-bold font-mono ${
-                  totalAlertesStock > 0 ? "text-amber-400" : "text-foreground"
-                }`}
-              >
-                {totalAlertesStock} produit{totalAlertesStock > 1 ? "s" : ""}
-              </span>
-            </div>
-            <AlertTriangle
-              className={`w-5 h-5 ${totalAlertesStock > 0 ? "text-amber-400" : "text-muted-foreground"}`}
-            />
-          </div>
-        </div>
-
-        {/* Filters and Controls */}
-        <div className="flex flex-wrap items-center justify-between gap-3 pt-2 border-t border-border">
-          <div className="flex items-center gap-2">
-            <Filter className="w-3.5 h-3.5 text-muted-foreground" />
-            <span className="text-muted-foreground font-semibold">Filtrer par Statut Stock :</span>
-            <div className="flex items-center gap-1 bg-muted p-1 rounded-xl border border-muted-foreground/20">
-              <button
-                onClick={() => setStockFilter("Tous")}
-                className={`px-2.5 py-1 rounded-lg text-[11px] font-medium transition-colors ${
-                  stockFilter === "Tous"
-                    ? "bg-emerald-600 text-white font-semibold shadow"
-                    : "text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                Tous ({products.length})
-              </button>
-              <button
-                onClick={() => setStockFilter("OK")}
-                className={`px-2.5 py-1 rounded-lg text-[11px] font-medium transition-colors ${
-                  stockFilter === "OK"
-                    ? "bg-emerald-600 text-white font-semibold shadow"
-                    : "text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                Stock OK ({products.length - totalAlertesStock})
-              </button>
-              <button
-                onClick={() => setStockFilter("Alerte")}
-                className={`px-2.5 py-1 rounded-lg text-[11px] font-medium transition-colors ${
-                  stockFilter === "Alerte"
-                    ? "bg-amber-600 text-white font-semibold shadow"
-                    : "text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                Alertes ({totalAlertesStock})
-              </button>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2">
-            {ruptureIdsInView.length > 0 && (
-              <button
-                onClick={selectAllRuptures}
-                className="flex items-center gap-1.5 px-2.5 py-1.5 bg-red-500/10 hover:bg-red-500/20 text-red-300 border border-red-500/30 rounded-xl text-[11px] font-semibold transition-colors"
-                title="Cocher tous les produits en rupture de stock visibles"
-              >
-                <Ban className="w-3.5 h-3.5" />
-                Sélectionner les ruptures ({ruptureIdsInView.length})
-              </button>
-            )}
-
-            <span className="text-muted-foreground font-semibold">Fournisseur :</span>
-            <select
-              value={supplierFilter}
-              onChange={(e) => setSupplierFilter(e.target.value)}
-              className="bg-muted border border-muted-foreground/20 text-foreground rounded-xl px-2.5 py-1.5 focus:outline-none focus:border-emerald-500 font-medium"
-            >
-              <option value="Tous">Tous les fournisseurs</option>
-              {uniqueSuppliers.map((sup) => (
-                <option key={sup} value={sup}>
-                  {sup}
-                </option>
-              ))}
-            </select>
-
-            {(stockFilter !== "Tous" || supplierFilter !== "Tous" || searchTerm) && (
-              <button
-                onClick={() => {
-                  setStockFilter("Tous");
-                  setSupplierFilter("Tous");
-                  setSearchTerm("");
-                }}
-                className="p-1.5 text-muted-foreground hover:text-foreground bg-muted border border-muted-foreground/20 rounded-xl transition-colors"
-                title="Réinitialiser tous les filtres"
-              >
-                <RefreshCw className="w-3.5 h-3.5" />
-              </button>
-            )}
-          </div>
-        </div>
+              ),
+              fields: [
+                { label: "Stock actuel", value: `${p.stockActuel}` },
+                { label: "Seuil d'alerte", value: `${p.seuilAlerte}` },
+                ...(showPrixAchat
+                  ? [{ label: "Prix d'achat", value: formatCurrency(p.prixAchat) }]
+                  : []),
+                { label: "Prix de vente", value: formatCurrency(p.prixVenteDefaut) },
+                ...(showFournisseur
+                  ? [{ label: "Fournisseur", value: p.fournisseur || "Non renseigné" }]
+                  : []),
+              ],
+              actions: (
+                <>
+                  {onEditProduct && canEdit && (
+                    <button onClick={() => openEditModal(p)} className="app-btn-secondary flex-1 text-xs">
+                      <Pencil className="w-3.5 h-3.5" />
+                      Modifier
+                    </button>
+                  )}
+                  {onDeleteProducts && canDelete && (
+                    <button
+                      onClick={() => setConfirmDeleteIds([p.id])}
+                      className="app-btn-danger flex-1 text-xs"
+                    >
+                      <Trash2 className="w-3.5 h-3.5" />
+                      Supprimer
+                    </button>
+                  )}
+                </>
+              ),
+            };
+          })}
+        />
       </div>
 
       {/* Table */}
-      <div className="app-table-wrap">
+      <div className="app-table-wrap hidden lg:block">
         <div className="app-table-scroll">
           <table className="app-table">
             <thead>
@@ -440,13 +462,13 @@ export const ProduitsView: React.FC<ProduitsViewProps> = ({
                     title="Tout sélectionner"
                   />
                 </th>
-                <th className="px-4 py-3.5">ID Produit</th>
-                <th className="px-4 py-3.5">Nom Affiché (Désignation + Indice)</th>
-                {showPrixAchat && <th className="px-4 py-3.5 text-right">Prix Achat</th>}
-                <th className="px-4 py-3.5 text-right">Prix Vente Défaut (E)</th>
+                <th className="px-4 py-3.5">Référence</th>
+                <th className="px-4 py-3.5">Produit</th>
+                {showPrixAchat && <th className="px-4 py-3.5 text-right">Prix d'achat</th>}
+                <th className="px-4 py-3.5 text-right">Prix de vente</th>
                 {showFournisseur && <th className="px-4 py-3.5">Fournisseur</th>}
-                <th className="px-4 py-3.5 text-right">Stock Actuel</th>
-                <th className="px-4 py-3.5 text-right">Seuil Alerte</th>
+                <th className="px-4 py-3.5 text-right">Stock</th>
+                <th className="px-4 py-3.5 text-right">Seuil</th>
                 <th className="px-4 py-3.5 text-center">Statut</th>
                 <th className="px-4 py-3.5 text-center">Actions</th>
               </tr>
@@ -469,7 +491,7 @@ export const ProduitsView: React.FC<ProduitsViewProps> = ({
                         className="w-4 h-4 rounded border-muted-foreground/40 accent-emerald-500 cursor-pointer"
                       />
                     </td>
-                    <td className="px-4 py-3.5 font-mono font-bold text-emerald-400">{p.numero}</td>
+                    <td className="px-4 py-3.5 font-mono font-bold t-success">{p.numero}</td>
                     <td className="px-4 py-3.5 font-mono text-sm font-bold text-foreground flex items-center gap-1.5">
                       {getProductLabel(p, products)}
                     </td>
@@ -478,7 +500,7 @@ export const ProduitsView: React.FC<ProduitsViewProps> = ({
                         {formatCurrency(p.prixAchat)}
                       </td>
                     )}
-                    <td className="px-4 py-3.5 text-right font-mono font-bold text-blue-400">
+                    <td className="px-4 py-3.5 text-right font-mono font-bold t-info">
                       {formatCurrency(p.prixVenteDefaut)}
                     </td>
                     {showFournisseur && (
@@ -494,19 +516,17 @@ export const ProduitsView: React.FC<ProduitsViewProps> = ({
                     </td>
                     <td className="px-4 py-3.5 text-center">
                       {isOut ? (
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-red-500/20 text-red-300 text-[10px] font-semibold border border-red-500/30">
+                        <span className="app-badge app-badge-danger">
                           <AlertTriangle className="w-3 h-3" />
                           Rupture
                         </span>
                       ) : isLow ? (
-                        <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded bg-amber-500/20 text-amber-300 text-[10px] font-semibold border border-amber-500/30">
+                        <span className="app-badge app-badge-warning">
                           <AlertTriangle className="w-3 h-3" />
-                          Stock Bas
+                          Stock bas
                         </span>
                       ) : (
-                        <span className="px-2 py-0.5 rounded bg-emerald-500/20 text-emerald-300 text-[10px] font-semibold border border-emerald-500/30">
-                          OK
-                        </span>
+                        <span className="app-badge app-badge-success">OK</span>
                       )}
                     </td>
                     <td className="px-4 py-3.5 text-center">
@@ -514,7 +534,7 @@ export const ProduitsView: React.FC<ProduitsViewProps> = ({
                         {onEditProduct && canEdit && (
                           <button
                             onClick={() => openEditModal(p)}
-                            className="p-1.5 text-muted-foreground hover:text-blue-400 bg-muted hover:bg-accent rounded-lg transition-colors"
+                            className="p-1.5 text-muted-foreground hover:t-info bg-muted hover:bg-accent rounded-lg transition-colors"
                             title="Modifier"
                           >
                             <Pencil className="w-3.5 h-3.5" />
@@ -523,7 +543,7 @@ export const ProduitsView: React.FC<ProduitsViewProps> = ({
                         {onDeleteProducts && canDelete && (
                           <button
                             onClick={() => setConfirmDeleteIds([p.id])}
-                            className="p-1.5 text-muted-foreground hover:text-red-400 bg-muted hover:bg-red-500/10 rounded-lg transition-colors"
+                            className="p-1.5 text-muted-foreground hover:t-danger bg-muted hover:bg-red-500/10 rounded-lg transition-colors"
                             title="Supprimer"
                           >
                             <Trash2 className="w-3.5 h-3.5" />
@@ -551,22 +571,23 @@ export const ProduitsView: React.FC<ProduitsViewProps> = ({
 
       {/* Barre d'action flottante — sélection multiple */}
       {selectedIds.size > 0 && (
-        <div className="fixed bottom-6 left-1/2 -translate-x-1/2 z-40 bg-card border border-emerald-500/40 shadow-2xl rounded-2xl px-5 py-3 flex items-center gap-4">
+        /* bottom-24 sur mobile : au-dessus de la barre de navigation basse,
+           qui masquerait sinon les boutons de cette barre de sélection. */
+        <div className="fixed inset-x-3 bottom-24 z-40 flex flex-wrap items-center justify-center gap-3 rounded-2xl border border-success-border bg-card px-4 py-3 shadow-2xl sm:inset-x-auto sm:left-1/2 sm:-translate-x-1/2 md:bottom-6">
           <span className="text-sm font-semibold text-foreground">
             {selectedIds.size} produit{selectedIds.size > 1 ? "s" : ""} sélectionné
             {selectedIds.size > 1 ? "s" : ""}
           </span>
-          <div className="h-5 w-px bg-border" />
           <button
             onClick={clearSelection}
-            className="text-xs font-medium text-muted-foreground hover:text-foreground transition-colors"
+            className="text-xs font-medium text-muted-foreground transition-colors hover:text-foreground"
           >
             Tout désélectionner
           </button>
           {onDeleteProducts && canDelete && (
             <button
               onClick={() => setConfirmDeleteIds(Array.from(selectedIds))}
-              className="flex items-center gap-1.5 px-3.5 py-1.5 bg-red-600 hover:bg-red-500 text-white rounded-xl text-xs font-semibold shadow-sm transition-colors"
+              className="app-btn-danger text-xs"
             >
               <Trash2 className="w-3.5 h-3.5" />
               Supprimer ({selectedIds.size})
@@ -580,7 +601,7 @@ export const ProduitsView: React.FC<ProduitsViewProps> = ({
         <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-card border border-muted-foreground/20 rounded-2xl w-full max-w-md p-6 shadow-xl text-foreground space-y-4">
             <h3 className="text-lg font-bold flex items-center gap-2">
-              <Package className="w-5 h-5 text-emerald-400" />
+              <Package className="w-5 h-5 t-success" />
               Ajouter un Nouveau Produit / Variante
             </h3>
 
@@ -692,7 +713,7 @@ export const ProduitsView: React.FC<ProduitsViewProps> = ({
           <div className="bg-card border border-muted-foreground/20 rounded-2xl w-full max-w-md p-6 shadow-xl text-foreground space-y-4">
             <div className="flex items-center justify-between">
               <h3 className="text-lg font-bold flex items-center gap-2">
-                <Pencil className="w-5 h-5 text-blue-400" />
+                <Pencil className="w-5 h-5 t-info" />
                 Modifier {getProductLabel(editingProduct, products)}
               </h3>
               <button
@@ -704,7 +725,7 @@ export const ProduitsView: React.FC<ProduitsViewProps> = ({
             </div>
 
             {editingProduct.stockActuel > 0 && (
-              <div className="flex items-start gap-2 bg-amber-500/10 border border-amber-500/30 rounded-xl px-3 py-2 text-[11px] text-amber-300">
+              <div className="flex items-start gap-2 bg-amber-500/10 border border-amber-500/30 rounded-xl px-3 py-2 text-[11px] t-warning">
                 <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
                 <span>
                   Ce produit a encore <strong>{editingProduct.stockActuel}</strong> unité(s) en
@@ -805,7 +826,7 @@ export const ProduitsView: React.FC<ProduitsViewProps> = ({
       {confirmDeleteIds && (
         <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-card border border-red-500/30 rounded-2xl w-full max-w-md p-6 shadow-xl text-foreground space-y-4">
-            <h3 className="text-lg font-bold flex items-center gap-2 text-red-300">
+            <h3 className="text-lg font-bold flex items-center gap-2 t-danger">
               <Trash2 className="w-5 h-5" />
               Supprimer {productsToDelete.length} produit{productsToDelete.length > 1 ? "s" : ""} ?
             </h3>
@@ -817,7 +838,7 @@ export const ProduitsView: React.FC<ProduitsViewProps> = ({
                     {getProductLabel(p, products)}
                   </span>
                   {p.stockActuel > 0 && (
-                    <span className="text-amber-400 font-mono text-[10px]">
+                    <span className="t-warning font-mono text-[10px]">
                       {p.stockActuel} en stock
                     </span>
                   )}
@@ -826,7 +847,7 @@ export const ProduitsView: React.FC<ProduitsViewProps> = ({
             </div>
 
             {stockRemainingCount > 0 && (
-              <div className="flex items-start gap-2 bg-amber-500/10 border border-amber-500/30 rounded-xl px-3 py-2 text-[11px] text-amber-300">
+              <div className="flex items-start gap-2 bg-amber-500/10 border border-amber-500/30 rounded-xl px-3 py-2 text-[11px] t-warning">
                 <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
                 <span>
                   {stockRemainingCount} de ces produits ont encore du stock. Ce stock ne sera plus
