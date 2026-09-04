@@ -8,26 +8,20 @@ import {
   Plus,
   DollarSign,
   ArrowRightLeft,
-  Wallet,
-  TrendingUp,
-  History,
   Trash2,
   Edit3,
   Search,
-  Filter,
-  Eye,
-  X,
-  Zap,
-  ShoppingBag,
+  ChevronRight,
   Printer,
   FileText,
   Receipt,
   Download,
-  Calendar,
-  Building,
 } from "lucide-react";
 import { formatCurrency, formatDateLocale, getSaleLabel } from "../utils/formulas";
-import { MobileCardList } from "./shared/MobileCardList";
+import { PageHeader } from "./shared/PageHeader";
+import { StatCol } from "./shared/StatBar";
+import { DataList } from "./shared/DataList";
+import { Modal } from "./shared/Modal";
 
 interface VendeursViewProps {
   sellers: Seller[];
@@ -206,731 +200,525 @@ export const VendeursView: React.FC<VendeursViewProps> = ({
     return activeSellerSales.reduce((acc, s) => acc + s.margeTotale, 0);
   }, [activeSellerSales]);
 
+  const totalSalesCount = useMemo(
+    () => sellers.reduce((acc, v) => acc + v.totalVentesNombre, 0),
+    [sellers],
+  );
+
+  // Recherche à l'intérieur de la fiche vendeur. Elle porte sur le
+  // numéro affiché (V001, DEP004…) et non sur l'identifiant technique,
+  // que personne ne saurait taper.
+  const filteredSellerSales = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    if (!q) return activeSellerSales;
+    return activeSellerSales.filter(
+      (s) => s.designation.toLowerCase().includes(q) || s.numero.toLowerCase().includes(q),
+    );
+  }, [activeSellerSales, searchQuery]);
+
+  const filteredSellerExpenses = useMemo(() => {
+    const q = searchQuery.trim().toLowerCase();
+    if (!q) return activeSellerExpenses;
+    return activeSellerExpenses.filter(
+      (e) =>
+        e.note.toLowerCase().includes(q) ||
+        e.type.toLowerCase().includes(q) ||
+        e.numero.toLowerCase().includes(q),
+    );
+  }, [activeSellerExpenses, searchQuery]);
+
   return (
     <div className="space-y-6">
-      {/* ── Invite Modal ── */}
-      {isAddModalOpen && (
-        <div
-          className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4"
-          onClick={(e) => {
-            if (e.target === e.currentTarget) setIsAddModalOpen(false);
-          }}
-        >
-          <div className="bg-card border border-border rounded-2xl p-6 w-full max-w-md shadow-2xl animate-in fade-in zoom-in-95 duration-200">
-            <div className="flex items-center justify-between mb-5">
-              <div>
-                <h2 className="text-lg font-bold text-foreground">Inviter un Vendeur</h2>
-                <p className="text-sm text-muted-foreground mt-0.5">
-                  Une invitation sécurisée sera envoyée par e-mail
-                </p>
-              </div>
-              <button
-                onClick={() => {
-                  setIsAddModalOpen(false);
-                  setInviteStatus(null);
-                }}
-                className="p-2 rounded-xl hover:bg-muted text-muted-foreground hover:text-foreground transition-colors"
-              >
-                <X className="w-5 h-5" />
-              </button>
-            </div>
+      <PageHeader
+        icon={<Users className="h-5 w-5 text-muted-foreground" />}
+        title="Vendeurs"
+        subtitle="Ce que chaque vendeur a vendu, ce qu'il a dépensé, et ce qui lui reste en poche."
+        actions={
+          <>
+            <button
+              onClick={() => {
+                setSelectedReportSeller("all");
+                setIsReportModalOpen(true);
+              }}
+              className="app-btn-secondary"
+              title="Imprimer ou télécharger le bilan d'activité vendeur"
+            >
+              <Printer className="h-4 w-4" />
+              Relevé &amp; bilan
+            </button>
 
-            <form onSubmit={handleAdd} className="space-y-4">
-              <div>
-                <label className="block text-sm font-semibold text-foreground mb-2">
-                  Adresse e-mail *
-                </label>
-                <input
-                  type="email"
-                  required
-                  value={inviteEmail}
-                  onChange={(e) => setInviteEmail(e.target.value)}
-                  placeholder="vendeur@exemple.com"
-                  className="w-full bg-muted border border-border rounded-xl px-4 py-3 text-foreground placeholder:text-muted-foreground focus:outline-none focus:border-emerald-500 transition-colors text-sm"
-                />
-              </div>
-              <div>
-                <label className="block text-sm font-semibold text-foreground mb-2">Rôle</label>
-                <select
-                  value={inviteRole}
-                  onChange={(e) => setInviteRole(e.target.value)}
-                  className="w-full bg-muted border border-border rounded-xl px-4 py-3 text-foreground focus:outline-none focus:border-emerald-500 transition-colors text-sm"
-                >
-                  <option value="seller">Vendeur — Peut enregistrer des ventes</option>
-                  <option value="collaborator">Collaborateur — Accès étendu</option>
-                </select>
-              </div>
+            <button onClick={() => setIsAddModalOpen(true)} className="app-btn-primary">
+              <Plus className="h-4 w-4" />
+              Ajouter un vendeur
+            </button>
+          </>
+        }
+      />
 
-              {inviteStatus && (
-                <div
-                  className={`p-3 rounded-xl text-sm font-semibold flex items-center gap-2 ${
-                    inviteStatus.type === "success"
-                      ? "bg-emerald-500/15 t-success border border-emerald-500/30"
-                      : "bg-rose-500/15 t-danger border border-rose-500/30"
-                  }`}
-                >
-                  {inviteStatus.type === "success" ? "✅" : "❌"} {inviteStatus.msg}
-                </div>
-              )}
-
-              <div className="flex gap-3 pt-2">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setIsAddModalOpen(false);
-                    setInviteStatus(null);
-                  }}
-                  className="flex-1 px-4 py-3 bg-muted border border-border rounded-xl text-foreground text-sm font-semibold hover:bg-accent transition-colors"
-                >
-                  Annuler
-                </button>
-                <button
-                  type="submit"
-                  disabled={inviting || !inviteEmail.trim()}
-                  className="flex-1 px-4 py-3 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded-xl text-sm font-bold transition-colors flex items-center justify-center gap-2"
-                >
-                  {inviting ? (
-                    <>
-                      <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />{" "}
-                      Envoi...
-                    </>
-                  ) : (
-                    <>
-                      <Plus className="w-4 h-4" /> Envoyer l'invitation
-                    </>
-                  )}
-                </button>
-              </div>
-            </form>
-
-            <div className="mt-4 p-3 bg-blue-500/10 border border-blue-500/20 rounded-xl">
-              <p className="text-xs t-info">
-                💡 Le vendeur recevra un e-mail avec un lien sécurisé pour créer son compte et
-                rejoindre votre boutique. Il n'a pas besoin de code d'activation payant.
-              </p>
-            </div>
+      {/* Le solde net cumulé est le chiffre qui décide s'il faut aller
+          récupérer de l'argent : il est posé seul, avant tout le reste. */}
+      <div className="app-card flex items-center justify-between gap-4 border-l-2 border-l-primary p-4">
+        <div className="min-w-0">
+          <div className="mb-0.5 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+            Solde net en poche — tous vendeurs
           </div>
-        </div>
-      )}
-      {/* Header */}
-      <div className="flex flex-wrap items-center justify-between gap-4 bg-card p-6 rounded-2xl border border-border">
-        <div>
-          <h2 className="text-xl font-bold text-foreground flex items-center gap-2">
-            <Users className="w-6 h-6 t-success" />
-            Vendeurs
-          </h2>
-          <p className="text-xs text-muted-foreground mt-1">
-            Suivez l'activité de chaque vendeur : ventes, dépenses et solde en poche.
-          </p>
-        </div>
-
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => {
-              setSelectedReportSeller("all");
-              setIsReportModalOpen(true);
-            }}
-            className="flex items-center gap-1.5 px-3.5 py-2 bg-muted hover:bg-accent t-success border border-emerald-500/30 rounded-xl text-xs font-semibold shadow-sm transition-colors"
-            title="Imprimer ou télécharger le bilan d'activité vendeur"
-          >
-            <Printer className="w-4 h-4 t-success" />
-            Relevé & Bilan Activité
-          </button>
-
-          <button
-            onClick={() => setIsAddModalOpen(true)}
-            className="flex items-center gap-1.5 px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-semibold shadow-sm transition-colors"
-          >
-            <Plus className="w-4 h-4" />
-            Ajouter un Vendeur
-          </button>
-        </div>
-      </div>
-
-      {/* Summary KPI Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <div className="bg-card border border-border p-4 rounded-2xl">
-          <div className="text-xs font-semibold text-muted-foreground uppercase">
-            Total Ventes Tous Vendeurs
-          </div>
-          <div className="text-2xl font-bold font-mono t-info mt-1">
-            {formatCurrency(grandTotalSales)}
-          </div>
-        </div>
-
-        <div className="bg-card border border-border p-4 rounded-2xl">
-          <div className="text-xs font-semibold text-muted-foreground uppercase">
-            Total Dépenses Vendeurs
-          </div>
-          <div className="text-2xl font-bold font-mono t-danger mt-1">
-            {formatCurrency(grandTotalExpenses)}
-          </div>
-        </div>
-
-        <div className="bg-card border border-border p-4 rounded-2xl bg-success-soft border-success-border">
-          <div className="text-xs font-semibold t-success uppercase">
-            Solde Net Cumulé ("Dans les poches")
-          </div>
-          <div className="text-2xl font-bold font-mono t-success mt-1">
+          <div className="font-mono text-xl font-semibold tabular-nums text-foreground">
             {formatCurrency(grandTotalPocket)}
           </div>
         </div>
+        <div className="shrink-0 text-right text-xs text-muted-foreground">
+          {sellers.length} vendeur{sellers.length > 1 ? "s" : ""}
+        </div>
       </div>
 
-      {/* Sellers Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-        {sellers.map((v) => {
-          const sellerSales = sales.filter((s) => s.vendeur === v.nom);
-          const sellerExpenses = expenses.filter((e) => e.vendeur === v.nom);
+      {/* Les deux composantes de ce solde, en second rang. */}
+      <div className="app-statbar grid-cols-1 sm:grid-cols-2">
+        <StatCol
+          label="Ventes réalisées"
+          value={formatCurrency(grandTotalSales)}
+          hint={`${totalSalesCount} vente${totalSalesCount > 1 ? "s" : ""}`}
+          icon={<DollarSign className="h-3.5 w-3.5" />}
+        />
+        <StatCol
+          label="Dépenses & retraits"
+          value={formatCurrency(grandTotalExpenses)}
+          hint="Sorties de caisse vendeur"
+          icon={<ArrowRightLeft className="h-3.5 w-3.5" />}
+        />
+      </div>
 
-          return (
-            <div
-              key={v.id}
-              className="bg-card border border-border rounded-2xl p-5 space-y-4 hover:border-muted-foreground/20 transition-colors flex flex-col justify-between"
-            >
-              <div className="space-y-4">
-                <div className="flex items-center justify-between border-b border-border pb-3">
-                  <div className="flex items-center gap-2.5">
-                    <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/30 flex items-center justify-center font-bold t-success text-base shadow-inner">
-                      {v.nom.charAt(0)}
-                    </div>
-                    <div>
-                      <h3 className="font-bold text-sm text-foreground">{v.nom}</h3>
-                      <span className="text-[10px] t-success font-medium">
-                        ● Vendeur Actif
-                      </span>
-                    </div>
-                  </div>
+      {/* Une ligne par vendeur : le nom à gauche, son activité résumée
+          en dessous, le solde en poche à droite. Le clic ouvre la fiche
+          détaillée plutôt que d'étaler l'information en colonnes. */}
+      <div className="app-card overflow-hidden">
+        {sellers.length === 0 ? (
+          <div className="px-4 py-12 text-center">
+            <Users className="mx-auto mb-3 h-10 w-10 text-muted-foreground opacity-30" />
+            <p className="text-sm text-muted-foreground">
+              Aucun vendeur pour l'instant. Invitez votre premier vendeur pour suivre son activité.
+            </p>
+          </div>
+        ) : (
+          <div className="app-list">
+            {sellers.map((v) => (
+              <div key={v.id} className="app-list-row gap-3">
+                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-border bg-muted text-sm font-medium text-muted-foreground">
+                  {v.nom.charAt(0).toUpperCase()}
+                </span>
 
-                  <button
-                    onClick={() => {
-                      if (
-                        window.confirm(`Voulez-vous vraiment supprimer le vendeur "${v.nom}" ?`)
-                      ) {
-                        onDeleteSeller(v.id);
-                      }
-                    }}
-                    className="p-1.5 text-muted-foreground hover:t-danger bg-muted hover:bg-accent rounded-lg transition-colors"
-                    title="Supprimer ce vendeur"
-                  >
-                    <Trash2 className="w-3.5 h-3.5" />
-                  </button>
-                </div>
-
-                {/* Stats */}
-                <div className="space-y-2 text-xs">
-                  <div className="flex justify-between items-center py-1 border-b border-border/60">
-                    <span className="text-muted-foreground flex items-center gap-1.5">
-                      <DollarSign className="w-3.5 h-3.5 t-info" />
-                      Ventes Réalisées :
-                    </span>
-                    <span className="font-bold font-mono t-info">
-                      {formatCurrency(v.totalVentesMontant)} ({v.totalVentesNombre} ventes)
-                    </span>
-                  </div>
-
-                  <div className="flex justify-between items-center py-1 border-b border-border/60">
-                    <span className="text-muted-foreground flex items-center gap-1.5">
-                      <ArrowRightLeft className="w-3.5 h-3.5 t-danger" />
-                      Dépenses / Retraits :
-                    </span>
-                    <span className="font-bold font-mono t-danger">
-                      - {formatCurrency(v.totalDepenses)}
-                    </span>
-                  </div>
-
-                  <div className="flex justify-between items-center py-2 bg-muted/60 px-3 rounded-xl border border-muted-foreground/20">
-                    <span className="font-semibold text-foreground flex items-center gap-1.5">
-                      <Wallet className="w-4 h-4 t-success" />
-                      Solde Net en Poche :
-                    </span>
-                    <span className="font-bold font-mono text-base t-success">
-                      {formatCurrency(v.soldeNetEnPoche)}
-                    </span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-2 mt-2">
                 <button
+                  type="button"
                   onClick={() => setActiveSellerModal(v)}
-                  className="flex-1 py-2 px-3 bg-muted hover:bg-accent t-info border border-blue-500/30 rounded-xl text-xs font-semibold flex items-center justify-center gap-1.5 transition-all shadow-sm"
+                  className="flex min-w-0 flex-1 items-center justify-between gap-3 text-left"
                 >
-                  <Eye className="w-3.5 h-3.5 t-info" />
-                  Activités
+                  <span className="min-w-0 flex-1">
+                    <span className="app-list-primary block">{v.nom}</span>
+                    <span className="app-list-secondary block">
+                      {[
+                        `${v.totalVentesNombre} vente${v.totalVentesNombre > 1 ? "s" : ""}`,
+                        `${formatCurrency(v.totalVentesMontant)} vendus`,
+                        v.totalDepenses > 0
+                          ? `${formatCurrency(v.totalDepenses)} de dépenses`
+                          : null,
+                      ]
+                        .filter(Boolean)
+                        .join(" · ")}
+                    </span>
+                  </span>
+
+                  <span className="flex shrink-0 items-center gap-2 sm:gap-3">
+                    <span className="text-right">
+                      <span className="block font-mono text-base font-medium tabular-nums text-foreground">
+                        {formatCurrency(v.soldeNetEnPoche)}
+                      </span>
+                      <span className="app-list-secondary block">en poche</span>
+                    </span>
+                    {v.statut === "Inactif" && (
+                      <span className="app-badge app-badge-neutral">Inactif</span>
+                    )}
+                    <ChevronRight className="hidden h-4 w-4 shrink-0 text-muted-foreground/50 sm:block" />
+                  </span>
                 </button>
+
                 <button
+                  type="button"
                   onClick={() => {
-                    setSelectedReportSeller(v.nom);
-                    setIsReportModalOpen(true);
+                    if (window.confirm(`Voulez-vous vraiment supprimer le vendeur "${v.nom}" ?`)) {
+                      onDeleteSeller(v.id);
+                    }
                   }}
-                  className="py-2 px-3 bg-emerald-600/20 hover:bg-emerald-600/30 t-success border border-emerald-500/30 rounded-xl text-xs font-semibold flex items-center justify-center gap-1 transition-all shadow-sm"
-                  title="Imprimer le relevé/bilan d'activité de ce vendeur"
+                  className="app-btn-icon h-9 w-9 shrink-0"
+                  title="Supprimer ce vendeur"
+                  aria-label={`Supprimer ${v.nom}`}
                 >
-                  <Printer className="w-3.5 h-3.5 t-success" />
-                  Relevé
+                  <Trash2 className="h-4 w-4" />
                 </button>
               </div>
-            </div>
-          );
-        })}
+            ))}
+          </div>
+        )}
       </div>
 
-      {/* Seller Drill-down Modal */}
+      {/* ── Invitation d'un vendeur ── */}
+      <Modal
+        open={isAddModalOpen}
+        onClose={() => {
+          setIsAddModalOpen(false);
+          setInviteStatus(null);
+        }}
+        size="md"
+        icon={<Plus className="h-4 w-4" />}
+        title="Inviter un vendeur"
+        description="Une invitation sécurisée sera envoyée par e-mail. Le vendeur créera lui-même son compte."
+      >
+        <form onSubmit={handleAdd} className="space-y-4">
+          <div>
+            <label className="mb-1.5 block text-sm font-medium text-foreground">
+              Adresse e-mail *
+            </label>
+            <input
+              type="email"
+              required
+              value={inviteEmail}
+              onChange={(e) => setInviteEmail(e.target.value)}
+              placeholder="vendeur@exemple.com"
+              className="app-field"
+            />
+          </div>
+
+          <div>
+            <label className="mb-1.5 block text-sm font-medium text-foreground">Rôle</label>
+            <select
+              value={inviteRole}
+              onChange={(e) => setInviteRole(e.target.value)}
+              className="app-field"
+            >
+              <option value="seller">Vendeur — peut enregistrer des ventes</option>
+              <option value="collaborator">Collaborateur — accès étendu</option>
+            </select>
+          </div>
+
+          {inviteStatus && (
+            <div
+              className={`rounded-xl border px-3 py-2.5 text-sm ${
+                inviteStatus.type === "success"
+                  ? "border-success-border bg-success-soft t-success"
+                  : "border-danger-border bg-danger-soft t-danger"
+              }`}
+            >
+              {inviteStatus.msg}
+            </div>
+          )}
+
+          <div className="flex flex-col-reverse gap-2 pt-1 sm:flex-row sm:justify-end">
+            <button
+              type="button"
+              onClick={() => {
+                setIsAddModalOpen(false);
+                setInviteStatus(null);
+              }}
+              className="app-btn-secondary"
+            >
+              Annuler
+            </button>
+            <button
+              type="submit"
+              disabled={inviting || !inviteEmail.trim()}
+              className="app-btn-primary"
+            >
+              {inviting ? (
+                <>
+                  <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+                  Envoi...
+                </>
+              ) : (
+                <>
+                  <Plus className="h-4 w-4" />
+                  Envoyer l'invitation
+                </>
+              )}
+            </button>
+          </div>
+        </form>
+      </Modal>
+
+      {/* ── Fiche vendeur ──
+          Les deux tableaux à sept et cinq colonnes ont laissé place à
+          deux listes : la vente ou la dépense se lit d'un coup d'œil, et
+          le reste des champs s'ouvre au clic dans un panneau de détails. */}
       {activeSellerModal && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex items-center justify-center p-4 overflow-y-auto">
-          <div className="bg-card border border-muted-foreground/20 rounded-2xl w-full max-w-4xl p-6 shadow-2xl text-foreground space-y-6 my-8 max-h-[90vh] overflow-y-auto">
-            {/* Modal Header */}
-            <div className="flex items-center justify-between border-b border-border pb-4">
-              <div className="flex items-center gap-3">
-                <div className="w-12 h-12 rounded-2xl bg-emerald-500/20 border border-emerald-500/40 flex items-center justify-center font-bold t-success text-xl shadow-inner">
-                  {activeSellerModal.nom.charAt(0)}
-                </div>
-                <div>
-                  <h3 className="text-xl font-bold text-foreground flex items-center gap-2">
-                    Fiche & Activités de{" "}
-                    <span className="t-success">{activeSellerModal.nom}</span>
-                  </h3>
-                  <p className="text-xs text-muted-foreground">
-                    Journal détaillé de toutes les ventes et dépenses associées à ce vendeur.
-                  </p>
-                </div>
-              </div>
+        <Modal
+          open
+          onClose={() => setActiveSellerModal(null)}
+          size="3xl"
+          icon={<Users className="h-4 w-4" />}
+          title={activeSellerModal.nom}
+          description="Journal des ventes et des dépenses de ce vendeur."
+          bodyClassName="space-y-5"
+          headerAside={
+            <button
+              onClick={() => {
+                setSelectedReportSeller(activeSellerModal.nom);
+                setIsReportModalOpen(true);
+              }}
+              className="app-btn-secondary h-9 px-3 text-xs"
+              style={{ minHeight: "36px" }}
+              title="Générer le relevé d'activité de ce vendeur"
+            >
+              <Printer className="h-3.5 w-3.5" />
+              Relevé
+            </button>
+          }
+        >
+          {/* Indicateurs du vendeur, dans le même bandeau que les listes. */}
+          <div className="app-statbar grid-cols-2 sm:grid-cols-4">
+            <StatCol
+              label="Ventes"
+              value={formatCurrency(activeSellerModal.totalVentesMontant)}
+              hint={`${activeSellerSales.length} opération${activeSellerSales.length > 1 ? "s" : ""}`}
+            />
+            <StatCol
+              label="Marge générée"
+              value={formatCurrency(totalMarginGenerated)}
+              hint="Bénéfice magasin"
+            />
+            <StatCol
+              label="Dépenses"
+              value={formatCurrency(activeSellerModal.totalDepenses)}
+              hint={`${activeSellerExpenses.length} retrait${activeSellerExpenses.length > 1 ? "s" : ""}`}
+            />
+            <StatCol
+              label="Solde en poche"
+              value={formatCurrency(activeSellerModal.soldeNetEnPoche)}
+              hint="En espèces"
+            />
+          </div>
 
-              <div className="flex items-center gap-2">
+          {/* Filtres */}
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+            <div className="flex flex-wrap items-center gap-2">
+              {(
+                [
+                  {
+                    key: "all",
+                    label: "Tout",
+                    count: activeSellerSales.length + activeSellerExpenses.length,
+                  },
+                  { key: "ventes", label: "Ventes", count: activeSellerSales.length },
+                  { key: "depenses", label: "Dépenses", count: activeSellerExpenses.length },
+                ] as const
+              ).map((t) => (
                 <button
-                  onClick={() => {
-                    setSelectedReportSeller(activeSellerModal.nom);
-                    setIsReportModalOpen(true);
-                  }}
-                  className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-semibold shadow-sm transition-colors"
-                  title="Générer et imprimer le bilan/reçu d'activité pour ce vendeur"
+                  key={t.key}
+                  onClick={() => setActiveTab(t.key)}
+                  className={`app-chip ${activeTab === t.key ? "app-chip-active" : ""}`}
                 >
-                  <Printer className="w-3.5 h-3.5" />
-                  Imprimer Bilan / Relevé
+                  {t.label}
+                  <span className="app-chip-count">{t.count}</span>
                 </button>
-
-                <button
-                  onClick={() => setActiveSellerModal(null)}
-                  className="p-2 text-muted-foreground hover:text-foreground bg-muted rounded-xl transition-colors"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
+              ))}
             </div>
 
-            {/* Seller KPI Bar */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
-              <div className="bg-muted/80 p-3 rounded-xl border border-muted-foreground/20">
-                <span className="text-muted-foreground block text-[10px] uppercase font-semibold">
-                  Ventes Totales
-                </span>
-                <span className="text-base font-bold font-mono t-info">
-                  {formatCurrency(activeSellerModal.totalVentesMontant)}
-                </span>
-                <span className="text-[10px] text-muted-foreground block">
-                  ({activeSellerSales.length} opérations)
-                </span>
-              </div>
-
-              <div className="bg-muted/80 p-3 rounded-xl border border-muted-foreground/20">
-                <span className="text-muted-foreground block text-[10px] uppercase font-semibold">
-                  Marge Totale Générée
-                </span>
-                <span className="text-base font-bold font-mono t-success">
-                  +{formatCurrency(totalMarginGenerated)}
-                </span>
-                <span className="text-[10px] text-muted-foreground block">Bénéfice magasin</span>
-              </div>
-
-              <div className="bg-muted/80 p-3 rounded-xl border border-muted-foreground/20">
-                <span className="text-muted-foreground block text-[10px] uppercase font-semibold">
-                  Dépenses & Retraits
-                </span>
-                <span className="text-base font-bold font-mono t-danger">
-                  - {formatCurrency(activeSellerModal.totalDepenses)}
-                </span>
-                <span className="text-[10px] text-muted-foreground block">
-                  ({activeSellerExpenses.length} retraits)
-                </span>
-              </div>
-
-              <div className="bg-success-soft p-3 rounded-xl border border-success-border">
-                <span className="t-success block text-[10px] uppercase font-semibold">
-                  Solde Net en Poche
-                </span>
-                <span className="text-lg font-bold font-mono t-success">
-                  {formatCurrency(activeSellerModal.soldeNetEnPoche)}
-                </span>
-                <span className="text-[10px] t-success block">En espèces</span>
-              </div>
+            <div className="relative sm:w-56">
+              <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <input
+                type="text"
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                placeholder="Rechercher..."
+                className="app-field-sm pl-9"
+              />
             </div>
+          </div>
 
-            {/* Filter Tabs */}
-            <div className="flex items-center justify-between border-b border-border pb-2">
-              <div className="flex items-center gap-2 text-xs">
-                <button
-                  onClick={() => setActiveTab("all")}
-                  className={`px-3 py-1.5 rounded-lg font-medium transition-colors ${
-                    activeTab === "all"
-                      ? "bg-emerald-600 text-white font-semibold"
-                      : "bg-muted text-muted-foreground hover:text-foreground"
-                  }`}
-                >
-                  Toutes Activités
-                </button>
-                <button
-                  onClick={() => setActiveTab("ventes")}
-                  className={`px-3 py-1.5 rounded-lg font-medium transition-colors ${
-                    activeTab === "ventes"
-                      ? "bg-blue-600 text-white font-semibold"
-                      : "bg-muted text-muted-foreground hover:text-foreground"
-                  }`}
-                >
-                  Ventes ({activeSellerSales.length})
-                </button>
-                <button
-                  onClick={() => setActiveTab("depenses")}
-                  className={`px-3 py-1.5 rounded-lg font-medium transition-colors ${
-                    activeTab === "depenses"
-                      ? "bg-rose-600 text-white font-semibold"
-                      : "bg-muted text-muted-foreground hover:text-foreground"
-                  }`}
-                >
-                  Dépenses ({activeSellerExpenses.length})
-                </button>
-              </div>
+          {/* Ventes */}
+          {(activeTab === "all" || activeTab === "ventes") && (
+            <section className="space-y-2">
+              <h4 className="app-section-title">
+                <DollarSign className="h-4 w-4" />
+                Ventes
+              </h4>
 
-              <div className="relative w-48">
-                <Search className="w-3.5 h-3.5 absolute left-2.5 top-2.5 text-muted-foreground" />
-                <input
-                  type="text"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  placeholder="Rechercher..."
-                  className="w-full bg-muted border border-muted-foreground/20 rounded-lg pl-8 pr-3 py-1 text-xs text-foreground focus:outline-none focus:border-emerald-500"
+              <div className="app-card overflow-hidden">
+                <DataList
+                  emptyLabel="Aucune vente enregistrée pour ce vendeur."
+                  items={filteredSellerSales.map((s) => ({
+                    id: s.id,
+                    primary: getSaleLabel(s, products),
+                    meta: [
+                      formatDateLocale(s.date, locale),
+                      `×${s.quantite}`,
+                      formatCurrency(s.prixVenteUnit),
+                    ],
+                    amount: formatCurrency(s.totalVente),
+                    amountHint: (
+                      <span className="t-success">+{formatCurrency(s.margeTotale)}</span>
+                    ),
+                    detailTitle: getSaleLabel(s, products),
+                    detailSubtitle: `Vente n° ${s.numero}`,
+                    details: [
+                      { label: "Date", value: formatDateLocale(s.date, locale) },
+                      { label: "Quantité", value: `${s.quantite}` },
+                      { label: "Prix unitaire", value: formatCurrency(s.prixVenteUnit) },
+                      { label: "Total", value: formatCurrency(s.totalVente) },
+                      {
+                        label: "Marge",
+                        value: (
+                          <span className="t-success">+{formatCurrency(s.margeTotale)}</span>
+                        ),
+                      },
+                      { label: "Client", value: s.clientCredit || "", hideIfEmpty: true },
+                      {
+                        label: "Reste dû",
+                        value: s.soldeDu > 0 ? formatCurrency(s.soldeDu) : "",
+                        hideIfEmpty: true,
+                      },
+                    ],
+                    actions: (
+                      <>
+                        {onEditSale && (
+                          <button
+                            onClick={() => onEditSale(s)}
+                            className="app-btn-secondary sm:flex-none"
+                          >
+                            <Edit3 className="h-4 w-4" />
+                            Modifier
+                          </button>
+                        )}
+                        {onDeleteSale && (
+                          <button
+                            onClick={() => {
+                              if (
+                                window.confirm(
+                                  `Supprimer la vente ${s.numero} (${getSaleLabel(s, products)}) ?`,
+                                )
+                              ) {
+                                onDeleteSale(s.id);
+                              }
+                            }}
+                            className="app-btn-danger sm:flex-none"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                            Supprimer
+                          </button>
+                        )}
+                      </>
+                    ),
+                  }))}
                 />
               </div>
-            </div>
+            </section>
+          )}
 
-            {/* Sales Table section */}
-            {(activeTab === "all" || activeTab === "ventes") && (
-              <div className="space-y-2">
-                <h4 className="text-xs font-bold t-info uppercase tracking-wider flex items-center gap-1.5">
-                  <DollarSign className="w-4 h-4 t-info" />
-                  Ventes de {activeSellerModal.nom}
-                </h4>
+          {/* Dépenses & retraits */}
+          {(activeTab === "all" || activeTab === "depenses") && (
+            <section className="space-y-2">
+              <h4 className="app-section-title">
+                <ArrowRightLeft className="h-4 w-4" />
+                Dépenses &amp; retraits
+              </h4>
 
-                {/* Liste mobile — remplace le tableau sous 1024px */}
-                <div className="lg:hidden">
-                  <MobileCardList
-                    emptyLabel="Aucune vente enregistrée pour ce vendeur."
-                    items={activeSellerSales
-                      .filter(
-                        (s) =>
-                          !searchQuery ||
-                          s.designation.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                          s.id.toLowerCase().includes(searchQuery.toLowerCase()),
-                      )
-                      .map((s) => ({
-                        id: s.id,
-                        title: getSaleLabel(s, products),
-                        subtitle: `${formatDateLocale(s.date, locale)} · ×${s.quantite}`,
-                        amount: formatCurrency(s.totalVente),
-                        fields: [
-                          { label: "Date", value: formatDateLocale(s.date, locale) },
-                          { label: "Quantité", value: `${s.quantite}` },
-                          { label: "Prix unitaire", value: formatCurrency(s.prixVenteUnit) },
-                          {
-                            label: "Marge",
-                            value: <span className="t-success">+{formatCurrency(s.margeTotale)}</span>,
-                          },
-                        ],
-                        actions: (
-                          <>
-                            {onEditSale && (
-                              <button
-                                onClick={() => onEditSale(s)}
-                                className="app-btn-secondary flex-1 text-xs"
-                              >
-                                <Edit3 className="w-3.5 h-3.5" />
-                                Modifier
-                              </button>
-                            )}
-                            {onDeleteSale && (
-                              <button
-                                onClick={() => {
-                                  if (
-                                    window.confirm(
-                                      `Supprimer la vente ${s.id} (${getSaleLabel(s, products)}) ?`,
-                                    )
-                                  ) {
-                                    onDeleteSale(s.id);
-                                  }
-                                }}
-                                className="app-btn-danger flex-1 text-xs"
-                              >
-                                <Trash2 className="w-3.5 h-3.5" />
-                                Supprimer
-                              </button>
-                            )}
-                          </>
-                        ),
-                      }))}
-                  />
-                </div>
-
-                <div className="hidden overflow-x-auto rounded-xl border border-border bg-background lg:block">
-                  <table className="w-full text-left text-xs">
-                    <thead>
-                      <tr className="border-b border-border bg-muted/60 text-[10px] font-semibold uppercase text-muted-foreground">
-                        <th className="p-2.5">Date</th>
-                        <th className="p-2.5">Produit</th>
-                        <th className="p-2.5 text-right">Qté</th>
-                        <th className="p-2.5 text-right">Prix unitaire</th>
-                        <th className="p-2.5 text-right">Total</th>
-                        <th className="p-2.5 text-right">Marge</th>
-                        <th className="p-2.5 text-center">Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-border text-foreground">
-                      {activeSellerSales.length === 0 ? (
-                        <tr>
-                          <td colSpan={7} className="p-4 text-center text-muted-foreground italic">
-                            Aucune vente enregistrée pour ce vendeur.
-                          </td>
-                        </tr>
-                      ) : (
-                        activeSellerSales
-                          .filter(
-                            (s) =>
-                              !searchQuery ||
-                              s.designation.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                              s.id.toLowerCase().includes(searchQuery.toLowerCase()),
-                          )
-                          .map((s) => (
-                            <tr key={s.id} className="hover:bg-muted/40">
-                              <td className="p-2.5 font-mono text-muted-foreground">
-                                {formatDateLocale(s.date, locale)}
-                              </td>
-                              <td className="p-2.5 font-bold text-foreground">{getSaleLabel(s, products)}</td>
-                              <td className="p-2.5 text-right font-mono font-semibold">
-                                {s.quantite}
-                              </td>
-                              <td className="p-2.5 text-right font-mono t-info">
-                                {formatCurrency(s.prixVenteUnit)}
-                              </td>
-                              <td className="p-2.5 text-right font-mono font-bold text-foreground">
-                                {formatCurrency(s.totalVente)}
-                              </td>
-                              <td className="p-2.5 text-right font-mono t-success">
-                                +{formatCurrency(s.margeTotale)}
-                              </td>
-                              <td className="p-2.5 text-center">
-                                <div className="flex items-center justify-center gap-1">
-                                  {onEditSale && (
-                                    <button
-                                      onClick={() => onEditSale(s)}
-                                      className="p-1 text-muted-foreground hover:t-info bg-muted hover:bg-accent rounded transition-colors"
-                                      title="Modifier"
-                                    >
-                                      <Edit3 className="w-3.5 h-3.5" />
-                                    </button>
-                                  )}
-                                  {onDeleteSale && (
-                                    <button
-                                      onClick={() => {
-                                        if (
-                                          window.confirm(
-                                            `Supprimer la vente ${s.id} (${getSaleLabel(s, products)}) ?`,
-                                          )
-                                        ) {
-                                          onDeleteSale(s.id);
-                                        }
-                                      }}
-                                      className="p-1 text-muted-foreground hover:t-danger bg-muted hover:bg-accent rounded transition-colors"
-                                      title="Supprimer"
-                                    >
-                                      <Trash2 className="w-3.5 h-3.5" />
-                                    </button>
-                                  )}
-                                </div>
-                              </td>
-                            </tr>
-                          ))
-                      )}
-                    </tbody>
-                  </table>
-                </div>
+              <div className="app-card overflow-hidden">
+                <DataList
+                  emptyLabel="Aucune dépense enregistrée pour ce vendeur."
+                  items={filteredSellerExpenses.map((e) => ({
+                    id: e.id,
+                    primary: e.type,
+                    meta: [formatDateLocale(e.date, locale), e.note || null],
+                    amount: `- ${formatCurrency(e.montant)}`,
+                    detailTitle: e.type,
+                    detailSubtitle: `Dépense n° ${e.numero}`,
+                    details: [
+                      { label: "Date", value: formatDateLocale(e.date, locale) },
+                      { label: "Type", value: e.type },
+                      { label: "Montant", value: formatCurrency(e.montant) },
+                      { label: "Note", value: e.note || "", hideIfEmpty: true },
+                    ],
+                    actions: (
+                      <>
+                        {onEditExpense && (
+                          <button
+                            onClick={() => onEditExpense(e)}
+                            className="app-btn-secondary sm:flex-none"
+                          >
+                            <Edit3 className="h-4 w-4" />
+                            Modifier
+                          </button>
+                        )}
+                        {onDeleteExpense && (
+                          <button
+                            onClick={() => {
+                              if (window.confirm(`Supprimer la dépense ${e.numero} ?`)) {
+                                onDeleteExpense(e.id);
+                              }
+                            }}
+                            className="app-btn-danger sm:flex-none"
+                          >
+                            <Trash2 className="h-4 w-4" />
+                            Supprimer
+                          </button>
+                        )}
+                      </>
+                    ),
+                  }))}
+                />
               </div>
-            )}
-
-            {/* Expenses Table section */}
-            {(activeTab === "all" || activeTab === "depenses") && (
-              <div className="space-y-2">
-                <h4 className="text-xs font-bold t-danger uppercase tracking-wider flex items-center gap-1.5">
-                  <ArrowRightLeft className="w-4 h-4 t-danger" />
-                  Dépenses & Retraits de {activeSellerModal.nom}
-                </h4>
-
-                {/* Liste mobile — remplace le tableau sous 1024px */}
-                <div className="lg:hidden">
-                  <MobileCardList
-                    emptyLabel="Aucune dépense enregistrée pour ce vendeur."
-                    items={activeSellerExpenses
-                      .filter(
-                        (e) =>
-                          !searchQuery ||
-                          e.note.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                          e.type.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                          e.id.toLowerCase().includes(searchQuery.toLowerCase()),
-                      )
-                      .map((e) => ({
-                        id: e.id,
-                        title: e.type,
-                        subtitle: formatDateLocale(e.date, locale),
-                        amount: `- ${formatCurrency(e.montant)}`,
-                        amountTone: "danger" as const,
-                        fields: [
-                          { label: "Date", value: formatDateLocale(e.date, locale) },
-                          { label: "Type", value: e.type },
-                          { label: "Note", value: e.note || "Aucune note" },
-                        ],
-                        actions: (
-                          <>
-                            {onEditExpense && (
-                              <button
-                                onClick={() => onEditExpense(e)}
-                                className="app-btn-secondary flex-1 text-xs"
-                              >
-                                <Edit3 className="w-3.5 h-3.5" />
-                                Modifier
-                              </button>
-                            )}
-                            {onDeleteExpense && (
-                              <button
-                                onClick={() => {
-                                  if (window.confirm(`Supprimer la dépense ${e.numero} ?`)) {
-                                    onDeleteExpense(e.id);
-                                  }
-                                }}
-                                className="app-btn-danger flex-1 text-xs"
-                              >
-                                <Trash2 className="w-3.5 h-3.5" />
-                                Supprimer
-                              </button>
-                            )}
-                          </>
-                        ),
-                      }))}
-                  />
-                </div>
-
-                <div className="hidden overflow-x-auto rounded-xl border border-border bg-background lg:block">
-                  <table className="w-full text-left text-xs">
-                    <thead>
-                      <tr className="border-b border-border bg-muted/60 text-[10px] font-semibold uppercase text-muted-foreground">
-                        <th className="p-2.5">Date</th>
-                        <th className="p-2.5">Type</th>
-                        <th className="p-2.5">Note</th>
-                        <th className="p-2.5 text-right">Montant</th>
-                        <th className="p-2.5 text-center">Actions</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-border text-foreground">
-                      {activeSellerExpenses.length === 0 ? (
-                        <tr>
-                          <td colSpan={5} className="p-4 text-center text-muted-foreground italic">
-                            Aucune dépense enregistrée pour ce vendeur.
-                          </td>
-                        </tr>
-                      ) : (
-                        activeSellerExpenses
-                          .filter(
-                            (e) =>
-                              !searchQuery ||
-                              e.note.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                              e.type.toLowerCase().includes(searchQuery.toLowerCase()) ||
-                              e.id.toLowerCase().includes(searchQuery.toLowerCase()),
-                          )
-                          .map((e) => (
-                            <tr key={e.id} className="hover:bg-muted/40">
-                              <td className="p-2.5 font-mono text-muted-foreground">
-                                {formatDateLocale(e.date, locale)}
-                              </td>
-                              <td className="p-2.5">
-                                <span className="app-badge app-badge-warning">{e.type}</span>
-                              </td>
-                              <td className="p-2.5 text-muted-foreground italic">
-                                {e.note || "Aucune note"}
-                              </td>
-                              <td className="p-2.5 text-right font-mono font-bold t-danger">
-                                - {formatCurrency(e.montant)}
-                              </td>
-                              <td className="p-2.5 text-center">
-                                <div className="flex items-center justify-center gap-1">
-                                  {onEditExpense && (
-                                    <button
-                                      onClick={() => onEditExpense(e)}
-                                      className="p-1 text-muted-foreground hover:t-info bg-muted hover:bg-accent rounded transition-colors"
-                                      title="Modifier"
-                                    >
-                                      <Edit3 className="w-3.5 h-3.5" />
-                                    </button>
-                                  )}
-                                  {onDeleteExpense && (
-                                    <button
-                                      onClick={() => {
-                                        if (window.confirm(`Supprimer la dépense ${e.numero} ?`)) {
-                                          onDeleteExpense(e.id);
-                                        }
-                                      }}
-                                      className="p-1 text-muted-foreground hover:t-danger bg-muted hover:bg-accent rounded transition-colors"
-                                      title="Supprimer"
-                                    >
-                                      <Trash2 className="w-3.5 h-3.5" />
-                                    </button>
-                                  )}
-                                </div>
-                              </td>
-                            </tr>
-                          ))
-                      )}
-                    </tbody>
-                  </table>
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
+            </section>
+          )}
+        </Modal>
       )}
 
-      {/* Seller Activity Report & Receipt Modal */}
+      {/* ── Relevé & bilan d'activité ──
+          Le document imprimable est conservé tel quel : ses tableaux
+          sont ceux du papier, pas de l'écran. */}
       {isReportModalOpen && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex items-center justify-center p-4 overflow-y-auto">
-          <div className="bg-card border border-muted-foreground/20 rounded-2xl w-full max-w-3xl p-6 shadow-2xl text-foreground space-y-6 my-8">
-            {/* Modal Controls Bar (hidden during printing) */}
-            <div className="space-y-4 border-b border-border pb-4 no-print">
-              <div className="flex flex-wrap items-center justify-between gap-4">
-                <div className="flex items-center gap-2">
-                  <Printer className="w-5 h-5 t-success" />
-                  <h3 className="text-base font-bold text-foreground">
-                    Bilan & Relevé d'Activité Vendeur
-                  </h3>
-                </div>
-
-                {/* Print / Download / Close Actions */}
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => window.print()}
-                    className="flex items-center gap-1.5 px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-semibold shadow-sm transition-colors"
-                  >
-                    <Printer className="w-4 h-4" />
-                    Imprimer Document
-                  </button>
-                  <button
-                    onClick={() => {
-                      const textContent = `
+        <Modal
+          open
+          onClose={() => setIsReportModalOpen(false)}
+          size="3xl"
+          icon={<Printer className="h-4 w-4" />}
+          title="Relevé & bilan d'activité"
+          description={
+            selectedReportSeller === "all" ? "Tous les vendeurs cumulés" : selectedReportSeller
+          }
+          bodyClassName="space-y-4"
+          headerAside={
+            <div className="flex items-center gap-1 rounded-xl border border-border bg-muted p-1">
+              <button
+                onClick={() => setReportMode("ticket")}
+                aria-pressed={reportMode === "ticket"}
+                className={`flex items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-semibold transition-colors ${
+                  reportMode === "ticket"
+                    ? "bg-card text-foreground shadow-sm"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                <Receipt className="h-3.5 w-3.5" />
+                Ticket
+              </button>
+              <button
+                onClick={() => setReportMode("a4")}
+                aria-pressed={reportMode === "a4"}
+                className={`flex items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-semibold transition-colors ${
+                  reportMode === "a4"
+                    ? "bg-card text-foreground shadow-sm"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                <FileText className="h-3.5 w-3.5" />
+                Bilan A4
+              </button>
+            </div>
+          }
+          footer={
+            <>
+              <button onClick={() => window.print()} className="app-btn-primary">
+                <Printer className="h-4 w-4" />
+                Imprimer
+              </button>
+              <button
+                onClick={() => {
+                  const textContent = `
 === ${settings?.storeName || "BALSAMA AUTO GESTION"} ===
 RELEVÉ D'ACTIVITÉ VENDEUR (${selectedPeriod === "today" ? "Aujourd'hui" : selectedPeriod === "month" ? "Ce Mois-ci" : "Tout l'historique"})
 VENDEUR: ${selectedReportSeller === "all" ? "TOUS LES VENDEURS CUMULÉS" : selectedReportSeller.toUpperCase()}
@@ -947,99 +735,61 @@ MARGE BRUTE GÉNÉRÉE: +${formatCurrency(reportStats.totalMarge)}
 ------------------------------------------------
 SOLDE NET EN CAISSE VENDEUR: ${formatCurrency(reportStats.soldeNetCaisse)}
 ================================================
-                      `.trim();
+                  `.trim();
 
-                      const element = document.createElement("a");
-                      const file = new Blob([textContent], { type: "text/plain" });
-                      element.href = URL.createObjectURL(file);
-                      element.download = `Releve_Activite_${selectedReportSeller}_${selectedPeriod}.txt`;
-                      document.body.appendChild(element);
-                      element.click();
-                      document.body.removeChild(element);
-                    }}
-                    className="flex items-center gap-1.5 px-3 py-1.5 bg-muted hover:bg-accent text-foreground border border-muted-foreground/20 rounded-xl text-xs font-semibold transition-colors"
-                    title="Télécharger résumé texte"
-                  >
-                    <Download className="w-3.5 h-3.5" />
-                    Télécharger (.TXT)
-                  </button>
-                  <button
-                    onClick={() => setIsReportModalOpen(false)}
-                    className="p-1.5 text-muted-foreground hover:text-foreground bg-muted hover:bg-accent rounded-xl transition-colors"
-                  >
-                    <X className="w-5 h-5" />
-                  </button>
-                </div>
+                  const element = document.createElement("a");
+                  const file = new Blob([textContent], { type: "text/plain" });
+                  element.href = URL.createObjectURL(file);
+                  element.download = `Releve_Activite_${selectedReportSeller}_${selectedPeriod}.txt`;
+                  document.body.appendChild(element);
+                  element.click();
+                  document.body.removeChild(element);
+                }}
+                className="app-btn-secondary"
+                title="Télécharger un résumé au format texte"
+              >
+                <Download className="h-4 w-4" />
+                Télécharger (.txt)
+              </button>
+            </>
+          }
+        >
+            {/* Portée du document — masqué à l'impression. */}
+            <div className="no-print grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <div>
+                <label className="mb-1 block text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+                  Vendeur
+                </label>
+                <select
+                  value={selectedReportSeller}
+                  onChange={(e) => setSelectedReportSeller(e.target.value)}
+                  className="app-field-sm"
+                >
+                  <option value="all">Tous les vendeurs (cumulé)</option>
+                  {sellers.map((s) => (
+                    <option key={s.id} value={s.nom}>
+                      {s.nom}
+                    </option>
+                  ))}
+                </select>
               </div>
 
-              {/* Filters Bar: Select Seller, Select Period, Select Format */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 bg-background p-3 rounded-xl border border-border text-xs">
-                <div>
-                  <label className="block text-[10px] uppercase font-bold text-muted-foreground mb-1">
-                    Vendeur Sélectionné :
-                  </label>
-                  <select
-                    value={selectedReportSeller}
-                    onChange={(e) => setSelectedReportSeller(e.target.value)}
-                    className="w-full bg-muted border border-muted-foreground/20 text-foreground rounded-lg px-2.5 py-1.5 focus:outline-none focus:border-emerald-500 font-medium"
-                  >
-                    <option value="all">Tous les Vendeurs (Cumulé)</option>
-                    {sellers.map((s) => (
-                      <option key={s.id} value={s.nom}>
-                        {s.nom}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-[10px] uppercase font-bold text-muted-foreground mb-1">
-                    Période d'Activité :
-                  </label>
-                  <select
-                    value={selectedPeriod}
-                    onChange={(e) => setSelectedPeriod(e.target.value as any)}
-                    className="w-full bg-muted border border-muted-foreground/20 text-foreground rounded-lg px-2.5 py-1.5 focus:outline-none focus:border-emerald-500 font-medium"
-                  >
-                    <option value="today">Aujourd'hui ({todayStr})</option>
-                    <option value="month">Ce Mois-ci ({currentMonthStr})</option>
-                    <option value="all">Historique Complet</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-[10px] uppercase font-bold text-muted-foreground mb-1">
-                    Format du Document :
-                  </label>
-                  <div className="flex items-center bg-muted p-0.5 rounded-lg border border-muted-foreground/20">
-                    <button
-                      onClick={() => setReportMode("ticket")}
-                      className={`flex-1 py-1 rounded text-[11px] font-semibold transition-colors flex items-center justify-center gap-1 ${
-                        reportMode === "ticket"
-                          ? "bg-emerald-600 text-white"
-                          : "text-muted-foreground hover:text-foreground"
-                      }`}
-                    >
-                      <Receipt className="w-3 h-3" />
-                      Ticket Caisse
-                    </button>
-                    <button
-                      onClick={() => setReportMode("a4")}
-                      className={`flex-1 py-1 rounded text-[11px] font-semibold transition-colors flex items-center justify-center gap-1 ${
-                        reportMode === "a4"
-                          ? "bg-blue-600 text-white"
-                          : "text-muted-foreground hover:text-foreground"
-                      }`}
-                    >
-                      <FileText className="w-3 h-3" />
-                      Bilan A4
-                    </button>
-                  </div>
-                </div>
+              <div>
+                <label className="mb-1 block text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+                  Période
+                </label>
+                <select
+                  value={selectedPeriod}
+                  onChange={(e) => setSelectedPeriod(e.target.value as any)}
+                  className="app-field-sm"
+                >
+                  <option value="today">Aujourd'hui ({todayStr})</option>
+                  <option value="month">Ce mois-ci ({currentMonthStr})</option>
+                  <option value="all">Historique complet</option>
+                </select>
               </div>
             </div>
 
-            {/* Print Container Rendering */}
             <div className="receipt-viewport flex items-start justify-start overflow-x-auto rounded-xl border border-border bg-background p-4">
               {reportMode === "ticket" ? (
                 /* Ticket Thermal Receipt Format */
@@ -1366,8 +1116,7 @@ SOLDE NET EN CAISSE VENDEUR: ${formatCurrency(reportStats.soldeNetCaisse)}
                 </div>
               )}
             </div>
-          </div>
-        </div>
+        </Modal>
       )}
     </div>
   );

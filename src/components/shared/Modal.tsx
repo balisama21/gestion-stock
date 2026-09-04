@@ -26,6 +26,14 @@ interface ModalProps {
   bodyClassName?: string;
 }
 
+/**
+ * Pile des modales ouvertes. Une fiche peut en ouvrir une seconde — le
+ * panneau de détails d'une ligne, par exemple. Sans cette pile, les deux
+ * écoutent Échap sur le document et une seule frappe referme tout
+ * l'empilement d'un coup. Seule la modale au sommet réagit.
+ */
+const openStack: symbol[] = [];
+
 const SIZES: Record<ModalSize, string> = {
   sm: "max-w-sm",
   md: "max-w-md",
@@ -69,12 +77,26 @@ export const Modal: React.FC<ModalProps> = ({
   bodyClassName = "",
 }) => {
   const panelRef = useRef<HTMLDivElement>(null);
+  const idRef = useRef<symbol>(Symbol("modal"));
 
-  // Échap ferme la modale.
+  // Inscription dans la pile des modales ouvertes.
+  useEffect(() => {
+    if (!open) return;
+    const id = idRef.current;
+    openStack.push(id);
+    return () => {
+      const i = openStack.indexOf(id);
+      if (i !== -1) openStack.splice(i, 1);
+    };
+  }, [open]);
+
+  // Échap ferme la modale, à condition qu'elle soit celle du dessus.
   useEffect(() => {
     if (!open || !dismissible) return;
     const onKey = (e: KeyboardEvent) => {
-      if (e.key === "Escape") onClose();
+      if (e.key !== "Escape") return;
+      if (openStack[openStack.length - 1] !== idRef.current) return;
+      onClose();
     };
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
