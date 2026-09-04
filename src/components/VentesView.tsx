@@ -28,8 +28,8 @@ import {
 import { formatCurrency, formatDateLocale, getProductLabel, getSaleLabel } from "../utils/formulas";
 import { PageHeader, HeaderMetric } from "./shared/PageHeader";
 import { FilterBar, FilterField } from "./shared/FilterBar";
-import { MobileCardList } from "./shared/MobileCardList";
-import { StatTile } from "./shared/StatTile";
+import { DataList } from "./shared/DataList";
+import { StatBar } from "./shared/StatBar";
 import { Modal } from "./shared/Modal";
 
 interface VentesViewProps {
@@ -271,35 +271,45 @@ export const VentesView: React.FC<VentesViewProps> = ({
 
       {/* Indicateurs */}
       {(showPaiement || showSolde || showMargeCumulee) && (
-        <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 sm:gap-4">
-          {showPaiement && (
-            <StatTile
-              label="Encaissé"
-              value={formatCurrency(totalPayeEncaisse)}
-              hint="déjà reçu des clients"
-              icon={<CheckCircle2 className="w-5 h-5" />}
-              tone="success"
-            />
-          )}
-          {showSolde && (
-            <StatTile
-              label="Reste à encaisser"
-              value={formatCurrency(totalSoldeDuCredit)}
-              hint="crédits clients en cours"
-              icon={<Clock className="w-5 h-5" />}
-              tone={totalSoldeDuCredit > 0 ? "warning" : "neutral"}
-            />
-          )}
-          {showMargeCumulee && (
-            <StatTile
-              label="Marge"
-              value={`+${formatCurrency(totalMarges)}`}
-              hint="bénéfice brut cumulé"
-              icon={<TrendingUp className="w-5 h-5" />}
-              tone="info"
-            />
-          )}
-        </div>
+        <StatBar
+          className="sm:grid-cols-3 xl:grid-cols-3"
+          items={[
+            ...(showPaiement
+              ? [
+                  {
+                    key: "encaisse",
+                    label: "Encaissé",
+                    value: formatCurrency(totalPayeEncaisse),
+                    hint: "déjà reçu des clients",
+                    icon: <CheckCircle2 className="h-3.5 w-3.5" />,
+                  },
+                ]
+              : []),
+            ...(showSolde
+              ? [
+                  {
+                    key: "solde",
+                    label: "Reste à encaisser",
+                    value: formatCurrency(totalSoldeDuCredit),
+                    hint: "crédits clients en cours",
+                    alert: totalSoldeDuCredit > 0,
+                    icon: <Clock className="h-3.5 w-3.5" />,
+                  },
+                ]
+              : []),
+            ...(showMargeCumulee
+              ? [
+                  {
+                    key: "marge",
+                    label: "Marge",
+                    value: `+${formatCurrency(totalMarges)}`,
+                    hint: "bénéfice brut cumulé",
+                    icon: <TrendingUp className="h-3.5 w-3.5" />,
+                  },
+                ]
+              : []),
+          ]}
+        />
       )}
 
       {/* Recherche et filtres */}
@@ -345,18 +355,33 @@ export const VentesView: React.FC<VentesViewProps> = ({
         </FilterField>
       </FilterBar>
 
-      {/* Liste mobile — remplace le tableau sous 768px */}
-      <div className="lg:hidden">
-        <MobileCardList
+      {/* Liste unique — desktop ET mobile.
+          L'ancien tableau alignait treize colonnes : sur grand écran il
+          fallait faire glisser une barre en bas pour lire la fin d'une
+          ligne, et suivre cette ligne du regard sur toute la largeur.
+          Ici l'essentiel tient à gauche, le montant à droite, le statut
+          à l'extrême droite, et le reste s'ouvre au clic. */}
+      <div className="app-card overflow-hidden">
+        <DataList
           emptyLabel="Aucune vente ne correspond à ces filtres."
           items={filteredSales.map((s) => {
-            const linkedProduct = products.find((p) => p.id === s.productId);
+            const prod = products.find((p) => p.id === s.productId);
+            const nom = prod ? getProductLabel(prod, products) : s.designation;
             return {
               id: s.id,
-              title: linkedProduct ? getProductLabel(linkedProduct, products) : s.designation,
-              subtitle: `${formatDateLocale(s.date, locale)} · ${s.vendeur} · ×${s.quantite}`,
+              primary: `${nom} ×${s.quantite}`,
+              meta: [
+                formatDateLocale(s.date, locale),
+                s.vendeur,
+                showMontant ? `${formatCurrency(s.prixVenteUnit)} / u` : null,
+                showMargeLigne ? `marge +${formatCurrency(s.margeTotale)}` : null,
+                s.clientCredit || null,
+              ],
               amount: showMontant ? formatCurrency(s.totalVente) : undefined,
-              amountTone: "neutral" as const,
+              amountHint:
+                showSolde && s.soldeDu > 0 ? (
+                  <span className="t-warning">reste {formatCurrency(s.soldeDu)}</span>
+                ) : undefined,
               badge: (
                 <span
                   className={`app-badge ${
@@ -370,75 +395,68 @@ export const VentesView: React.FC<VentesViewProps> = ({
                   {s.statutCredit}
                 </span>
               ),
-              fields: [
-                { label: "Référence", value: s.numero },
+              detailTitle: nom,
+              detailSubtitle: `Vente ${s.numero}`,
+              details: [
                 { label: "Date", value: formatDateLocale(s.date, locale) },
+                { label: "Référence", value: s.numero },
+                { label: "Code produit", value: prod?.numero ?? "—" },
                 { label: "Quantité", value: `${s.quantite}` },
                 ...(showMontant
-                  ? [{ label: "Prix unitaire", value: formatCurrency(s.prixVenteUnit) }]
+                  ? [
+                      { label: "Prix unitaire", value: formatCurrency(s.prixVenteUnit) },
+                      { label: "Total", value: formatCurrency(s.totalVente) },
+                    ]
                   : []),
                 ...(showMargeLigne
                   ? [
                       {
                         label: "Marge",
-                        value: (
-                          <span className="t-success">+{formatCurrency(s.margeTotale)}</span>
-                        ),
+                        value: <span className="t-success">+{formatCurrency(s.margeTotale)}</span>,
                       },
                     ]
                   : []),
                 { label: "Vendeur", value: s.vendeur },
                 { label: "Client", value: s.clientCredit || "-", hideIfEmpty: true },
                 ...(showPaiement
-                  ? [
-                      {
-                        label: "Payé",
-                        value: <span className="t-success">{formatCurrency(s.montantPaye)}</span>,
-                      },
-                    ]
+                  ? [{ label: "Payé", value: formatCurrency(s.montantPaye) }]
                   : []),
-                ...(showSolde
+                ...(showSolde && s.soldeDu > 0
                   ? [
                       {
                         label: "Reste à payer",
-                        value: (
-                          <span className={s.soldeDu > 0 ? "t-warning" : ""}>
-                            {formatCurrency(s.soldeDu)}
-                          </span>
-                        ),
+                        value: <span className="t-warning">{formatCurrency(s.soldeDu)}</span>,
                       },
                     ]
                   : []),
+                { label: "Statut", value: s.statutCredit },
               ],
               actions: (
                 <>
                   <button
                     onClick={() => setSelectedReceiptSale(s)}
-                    className="app-btn-secondary flex-1 text-xs"
+                    className="app-btn-secondary"
                   >
-                    <Receipt className="w-3.5 h-3.5" />
+                    <Receipt className="w-4 h-4" />
                     Reçu
                   </button>
                   {onEditSale && (
-                    <button onClick={() => setEditingSale(s)} className="app-btn-secondary text-xs">
-                      <Edit3 className="w-3.5 h-3.5" />
+                    <button onClick={() => setEditingSale(s)} className="app-btn-secondary">
+                      <Edit3 className="w-4 h-4" />
                       Modifier
                     </button>
                   )}
                   {onDeleteSale && (
                     <button
                       onClick={() => {
-                        if (
-                          window.confirm(
-                            `Supprimer la vente ${s.numero} (${getSaleLabel(s, products)}) ?`,
-                          )
-                        ) {
+                        if (window.confirm(`Supprimer la vente ${s.numero} (${nom}) ?`)) {
                           onDeleteSale(s.id);
                         }
                       }}
-                      className="app-btn-danger text-xs"
+                      className="app-btn-danger"
                     >
-                      <Trash2 className="w-3.5 h-3.5" />
+                      <Trash2 className="w-4 h-4" />
+                      Supprimer
                     </button>
                   )}
                 </>
@@ -446,153 +464,6 @@ export const VentesView: React.FC<VentesViewProps> = ({
             };
           })}
         />
-      </div>
-
-      {/* Table */}
-      <div className="app-table-wrap hidden lg:block">
-        <div className="app-table-scroll">
-          <table className="app-table">
-            <thead>
-              <tr>
-                <th className="px-4 py-3.5">Référence</th>
-                <th className="px-4 py-3.5">Date</th>
-                <th className="px-4 py-3.5">Code produit</th>
-                <th className="px-4 py-3.5">Produit</th>
-                <th className="px-4 py-3.5 text-right">Qté</th>
-                {/* Le prix unitaire est masqué avec le montant : sinon
-                    prix unitaire × quantité redonne trivialement le total,
-                    et le masquage ne serait que cosmétique. */}
-                {showMontant && (
-                  <th className="px-4 py-3.5 text-right bg-info-soft border-x border-info-border">
-                    Prix unitaire
-                  </th>
-                )}
-                {showMontant && <th className="px-4 py-3.5 text-right">Total</th>}
-                {showMargeLigne && <th className="px-4 py-3.5 text-right">Marge</th>}
-                <th className="px-4 py-3.5">Vendeur</th>
-                <th className="px-4 py-3.5">Client</th>
-                {showPaiement && <th className="px-4 py-3.5 text-right">Payé</th>}
-                {showSolde && <th className="px-4 py-3.5 text-right">Reste à payer</th>}
-                <th className="px-4 py-3.5 text-center">Statut</th>
-                <th className="px-4 py-3.5 text-center">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="text-foreground">
-              {filteredSales.length === 0 ? (
-                <tr>
-                  <td
-                    colSpan={
-                      9 +
-                      (showMontant ? 2 : 0) +
-                      (showMargeLigne ? 1 : 0) +
-                      (showPaiement ? 1 : 0) +
-                      (showSolde ? 1 : 0)
-                    }
-                    className="p-8 text-center text-muted-foreground"
-                  >
-                    Aucune vente ne correspond à vos critères de recherche.
-                  </td>
-                </tr>
-              ) : (
-                filteredSales.map((s) => {
-                  const linkedProduct = products.find((p) => p.id === s.productId);
-                  return (
-                  <tr key={s.id} className="hover:bg-muted/40">
-                    <td className="px-4 py-3.5 font-mono text-muted-foreground">{s.numero}</td>
-                    <td className="px-4 py-3.5 font-mono text-muted-foreground">
-                      {formatDateLocale(s.date, locale)}
-                    </td>
-                    <td className="px-4 py-3.5 font-mono font-bold t-success">
-                      {linkedProduct?.numero || "—"}
-                    </td>
-                    <td className="px-4 py-3.5 font-mono font-bold text-foreground">
-                      {linkedProduct ? getProductLabel(linkedProduct, products) : s.designation}
-                    </td>
-                    <td className="px-4 py-3.5 text-right font-mono font-semibold">{s.quantite}</td>
-                    {showMontant && (
-                      <td className="px-4 py-3.5 text-right font-mono font-bold t-info bg-info-soft border-x border-info-border">
-                        {formatCurrency(s.prixVenteUnit)}
-                      </td>
-                    )}
-                    {showMontant && (
-                      <td className="px-4 py-3.5 text-right font-mono font-bold text-foreground">
-                        {formatCurrency(s.totalVente)}
-                      </td>
-                    )}
-                    {showMargeLigne && (
-                      <td className="px-4 py-3.5 text-right font-mono font-bold t-success">
-                        +{formatCurrency(s.margeTotale)}
-                      </td>
-                    )}
-                    <td className="px-4 py-3.5 font-semibold text-foreground">{s.vendeur}</td>
-                    <td className="px-4 py-3.5 text-muted-foreground">{s.clientCredit || "-"}</td>
-                    {showPaiement && (
-                      <td className="px-4 py-3.5 text-right font-mono t-success">
-                        {formatCurrency(s.montantPaye)}
-                      </td>
-                    )}
-                    {showSolde && (
-                      <td className="px-4 py-3.5 text-right font-mono t-warning">
-                        {formatCurrency(s.soldeDu)}
-                      </td>
-                    )}
-                    <td className="px-4 py-3.5 text-center">
-                      <span
-                        className={`app-badge ${
-                          s.statutCredit === "Payé"
-                            ? "app-badge-success"
-                            : s.statutCredit === "Partiel"
-                              ? "app-badge-warning"
-                              : "app-badge-danger"
-                        }`}
-                      >
-                        {s.statutCredit}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3.5 text-center">
-                      <div className="flex items-center justify-center gap-1.5">
-                        <button
-                          onClick={() => setSelectedReceiptSale(s)}
-                          className="px-2 py-1 bg-emerald-600/20 hover:bg-emerald-600/30 t-success border border-emerald-500/30 rounded-lg text-[10px] font-bold flex items-center gap-1 transition-colors"
-                          title="Imprimer / Télécharger Reçu ou Facture"
-                        >
-                          <Receipt className="w-3 h-3 t-success" />
-                          Reçu
-                        </button>
-
-                        {onEditSale && (
-                          <button
-                            onClick={() => setEditingSale(s)}
-                            className="p-1.5 text-muted-foreground hover:t-info bg-muted hover:bg-accent rounded-lg transition-colors"
-                            title="Modifier cette vente"
-                          >
-                            <Edit3 className="w-3.5 h-3.5" />
-                          </button>
-                        )}
-                        {onDeleteSale && (
-                          <button
-                            onClick={() => {
-                              if (
-                                window.confirm(`Supprimer la vente ${s.numero} (${getSaleLabel(s, products)}) ?`)
-                              ) {
-                                onDeleteSale(s.id);
-                              }
-                            }}
-                            className="p-1.5 text-muted-foreground hover:t-danger bg-muted hover:bg-accent rounded-lg transition-colors"
-                            title="Annuler/Supprimer cette vente"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                  );
-                })
-              )}
-            </tbody>
-          </table>
-        </div>
       </div>
 
       {/* Modal */}

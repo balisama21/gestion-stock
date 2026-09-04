@@ -17,7 +17,7 @@ import {
 } from "lucide-react";
 import { formatCurrency, formatDateLocale, getProductLabel } from "../utils/formulas";
 import { StatBar } from "./shared/StatBar";
-import { MobileCardList } from "./shared/MobileCardList";
+import { DataList } from "./shared/DataList";
 import { useNotificationPrefs } from "../lib/notificationPrefs";
 import type { Database } from "../lib/database.types";
 
@@ -371,107 +371,31 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                 Tout voir
               </button>
             </div>
-            {/* Liste mobile — le tableau ci-dessous impose un défilement
-                horizontal illisible sous 768px. */}
-            <div className="lg:hidden">
-              <MobileCardList
-                emptyLabel="Aucune vente récente."
-                items={sales.slice(0, 6).map((s) => {
-                  const linkedProduct = products.find((prod) => prod.id === s.productId);
-                  return {
-                    id: s.id,
-                    title: `${linkedProduct ? getProductLabel(linkedProduct, products) : s.designation} ×${s.quantite}`,
-                    subtitle: `${formatDateLocale(s.date, locale)} · ${s.vendeur}`,
-                    amount: formatCurrency(s.totalVente),
-                    badge: (
-                      <span
-                        className={`app-badge ${
-                          s.statutCredit === "Payé"
-                            ? "app-badge-success"
-                            : s.statutCredit === "Partiel"
-                              ? "app-badge-warning"
-                              : "app-badge-danger"
-                        }`}
-                      >
-                        {s.statutCredit}
-                      </span>
-                    ),
-                    fields: [
-                      { label: "Date", value: formatDateLocale(s.date, locale) },
-                      { label: "Quantité", value: `${s.quantite}` },
-                      { label: "Vendeur", value: s.vendeur },
-                      { label: "Total", value: formatCurrency(s.totalVente) },
-                    ],
-                  };
-                })}
-              />
-            </div>
-
-            <div className="hidden overflow-x-auto lg:block">
-              <table className="w-full text-left text-sm">
-                <thead>
-                  <tr className="border-b border-border">
-                    <th className="pb-3.5 font-semibold text-muted-foreground whitespace-nowrap">
-                      Date
-                    </th>
-                    <th className="pb-3.5 font-semibold text-muted-foreground">Produit</th>
-                    <th className="pb-3.5 font-semibold text-muted-foreground text-right whitespace-nowrap">
-                      Total
-                    </th>
-                    <th className="pb-3.5 font-semibold text-muted-foreground pl-4 whitespace-nowrap">
-                      Vendeur
-                    </th>
-                    <th className="pb-3.5 font-semibold text-muted-foreground whitespace-nowrap">
-                      Statut
-                    </th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-border/60">
-                  {sales.slice(0, 6).map((s) => (
-                    <tr key={s.id} className="hover:bg-muted/30 transition-colors">
-                      <td className="py-3.5 font-mono text-muted-foreground text-xs whitespace-nowrap">
-                        {formatDateLocale(s.date, locale)}
-                      </td>
-                      <td className="py-3.5 font-semibold t-success font-mono">
-                        {(() => {
-                          const linkedProduct = products.find((prod) => prod.id === s.productId);
-                          return linkedProduct ? getProductLabel(linkedProduct, products) : s.designation;
-                        })()}{" "}
-                        <span className="text-muted-foreground font-sans font-normal">
-                          ×{s.quantite}
-                        </span>
-                      </td>
-                      <td className="py-3.5 text-right font-mono font-bold text-foreground whitespace-nowrap">
-                        {formatCurrency(s.totalVente)}
-                      </td>
-                      <td className="py-3.5 text-muted-foreground pl-4 whitespace-nowrap">
-                        {s.vendeur}
-                      </td>
-                      <td className="py-3.5 whitespace-nowrap">
-                        <span
-                          className={`app-badge ${
-                            s.statutCredit === "Payé"
-                              ? "app-badge-success"
-                              : s.statutCredit === "Partiel"
-                                ? "app-badge-warning"
-                                : "app-badge-danger"
-                          }`}
-                        >
-                          {s.statutCredit}
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
-                  {sales.length === 0 && (
-                    <tr>
-                      <td colSpan={5} className="py-8 text-center text-muted-foreground">
-                        Aucune vente récente.
-                      </td>
-                    </tr>
-                  )}
-                </tbody>
-              </table>
-            </div>
+            <DataList
+              emptyLabel="Aucune vente récente."
+              items={sales.slice(0, 6).map((s) => {
+                const prod = products.find((p) => p.id === s.productId);
+                return {
+                  id: s.id,
+                  primary: `${prod ? getProductLabel(prod, products) : s.designation} ×${s.quantite}`,
+                  meta: [formatDateLocale(s.date, locale), s.vendeur],
+                  amount: formatCurrency(s.totalVente),
+                  badge: (
+                    <span
+                      className={`app-badge ${
+                        s.statutCredit === "Payé"
+                          ? "app-badge-success"
+                          : s.statutCredit === "Partiel"
+                            ? "app-badge-warning"
+                            : "app-badge-danger"
+                      }`}
+                    >
+                      {s.statutCredit}
+                    </span>
+                  ),
+                };
+              })}
+            />
           </div>
 
           {/* Achats & Dépenses */}
