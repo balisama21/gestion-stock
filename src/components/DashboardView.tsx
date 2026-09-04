@@ -18,6 +18,7 @@ import {
 import { formatCurrency, formatDateLocale, getProductLabel } from "../utils/formulas";
 import { StatTile } from "./shared/StatTile";
 import { MobileCardList } from "./shared/MobileCardList";
+import { useNotificationPrefs } from "../lib/notificationPrefs";
 import type { Database } from "../lib/database.types";
 
 type Order = Database["public"]["Tables"]["orders"]["Row"] & {
@@ -51,6 +52,9 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   locale,
   onNavigateTab,
 }) => {
+  // Réglage « Alertes de trésorerie » (Paramètres → Notifications).
+  const [notificationPrefs] = useNotificationPrefs();
+
   const lowStockProducts = products
     .filter((p) => p.stockActuel <= p.seuilAlerte)
     .sort((a, b) => a.stockActuel - b.stockActuel);
@@ -107,33 +111,33 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   return (
     <div className="space-y-6">
       {/* ── Alert Banners ── */}
-      {isTresorerieNegative && (
+      {notificationPrefs.treasuryAlerts && isTresorerieNegative && (
         <div className="bg-danger-soft border border-danger-border p-4 rounded-2xl flex items-center gap-4">
           <AlertTriangle className="w-7 h-7 t-danger shrink-0 animate-bounce" />
           <div className="flex-1">
             <h3 className="font-bold text-base t-danger">
               🚨 Trésorerie Négative ({formatCurrency(capital.tresorerieGlobaleActuelle)})
             </h3>
-            <p className="text-sm t-danger/70 mt-0.5">
+            <p className="text-sm text-muted-foreground mt-0.5">
               Les dépenses dépassent le capital. Injectez un apport ou enregistrez des ventes.
             </p>
           </div>
           <button
             onClick={() => onNavigateTab("capital")}
-            className="px-4 py-2 bg-red-600 hover:bg-red-500 text-white rounded-xl text-sm font-bold shrink-0 transition-colors"
+            className="app-btn bg-destructive text-white hover:opacity-90 shrink-0 text-sm"
           >
             Ajuster Capital
           </button>
         </div>
       )}
-      {isTresorerieLow && !isTresorerieNegative && (
+      {notificationPrefs.treasuryAlerts && isTresorerieLow && !isTresorerieNegative && (
         <div className="bg-warning-soft border border-warning-border p-4 rounded-2xl flex items-center gap-4">
           <AlertTriangle className="w-6 h-6 t-warning shrink-0" />
           <div>
             <h3 className="font-bold text-sm t-warning">
               ⚠️ Trésorerie sous le seuil ({formatCurrency(capital.seuilAlerteTresorerie)})
             </h3>
-            <p className="text-sm t-warning/70">
+            <p className="text-sm text-muted-foreground">
               Solde actuel : {formatCurrency(capital.tresorerieGlobaleActuelle)}
             </p>
           </div>

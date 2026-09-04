@@ -875,7 +875,7 @@ export const ProduitsView: React.FC<ProduitsViewProps> = ({
                 type="button"
                 onClick={handleConfirmDelete}
                 disabled={deleting}
-                className="px-4 py-2 bg-red-600 hover:bg-red-500 disabled:opacity-60 text-white rounded-xl font-semibold shadow-sm text-xs"
+                className="app-btn bg-destructive text-white hover:opacity-90 text-xs"
               >
                 {deleting ? "Suppression..." : `Supprimer (${productsToDelete.length})`}
               </button>

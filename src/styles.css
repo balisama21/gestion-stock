@@ -300,9 +300,21 @@ body {
   html {
     font-size: 15px;
   }
+}
+
+/* Cibles tactiles — jusqu'à 1023px, c'est-à-dire tant que l'interface est
+   en mode compact. Les liens stylés en bouton (.app-btn*) sont inclus :
+   un <a> sans role="button" échappait à cette règle et retombait à
+   41,25px, la taille racine étant réduite à 15px sous 640px. */
+@media (max-width: 1023px) {
   button,
+  select,
   a[role="button"],
-  select {
+  a.app-btn,
+  a.app-btn-primary,
+  a.app-btn-secondary,
+  a.app-btn-ghost,
+  a.app-btn-danger {
     touch-action: manipulation;
     min-height: 44px;
   }
@@ -580,16 +592,19 @@ td {
     @apply py-2 text-xs;
   }
 
-  /* ── Boutons ──
-     min-h-11 = 44px : cible tactile minimale sur mobile. */
+  /* ── Boutons ── */
   .app-btn,
   .app-btn-primary,
   .app-btn-secondary,
   .app-btn-ghost,
   .app-btn-danger {
-    @apply inline-flex min-h-11 items-center justify-center gap-2 whitespace-nowrap rounded-xl
+    @apply inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-xl
       px-4 text-sm font-semibold transition-colors focus-visible:outline-none
       focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50;
+    /* En pixels, pas en rem : la taille de police racine descend à 15px
+       sous 640px, où min-h-11 (2.75rem) ne vaut plus que 41,25px et rate
+       la cible tactile minimale de 44px. */
+    min-height: 44px;
   }
   .app-btn-primary {
     @apply bg-primary text-primary-foreground hover:opacity-90;
@@ -610,9 +625,11 @@ td {
     filter: brightness(0.95);
   }
   .app-btn-icon {
-    @apply inline-flex h-11 w-11 shrink-0 items-center justify-center rounded-xl border border-border
+    @apply inline-flex shrink-0 items-center justify-center rounded-xl border border-border
       bg-muted text-foreground transition-colors hover:bg-accent focus-visible:outline-none
       focus-visible:ring-2 focus-visible:ring-ring;
+    height: 44px;
+    width: 44px;
   }
 
   /* ── Cartes de liste mobile (remplacent les tableaux < 768px) ── */

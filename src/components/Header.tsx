@@ -41,6 +41,7 @@ import {
 } from "lucide-react";
 import { formatCurrency, getProductLabel } from "../utils/formulas";
 import { Sidebar } from "./Sidebar";
+import { useNotificationPrefs } from "../lib/notificationPrefs";
 import {
   visibleNavGroups,
   visibleNavItems,
@@ -175,6 +176,7 @@ export const Header: React.FC<HeaderProps> = ({
     }
   };
 
+  const [notificationPrefs] = useNotificationPrefs();
   const [readNotifIds, setReadNotifIds] = useState<string[]>([]);
 
   const workspace = useWorkspace();
@@ -202,6 +204,9 @@ export const Header: React.FC<HeaderProps> = ({
       badgeColor: string;
     }> = [];
 
+    // Réglage « Alertes de stock bas » (Paramètres → Notifications).
+    if (!notificationPrefs.stockAlerts) return list;
+
     // Stock alert notifications
     products
       .filter((p) => p.stockActuel <= p.seuilAlerte)
@@ -217,7 +222,7 @@ export const Header: React.FC<HeaderProps> = ({
       });
 
     return list;
-  }, [products]);
+  }, [products, notificationPrefs.stockAlerts]);
 
   const unreadCount = allNotifications.filter((n) => !readNotifIds.includes(n.id)).length;
   const markAllRead = () => setReadNotifIds(allNotifications.map((n) => n.id));

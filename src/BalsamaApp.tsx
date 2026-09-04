@@ -42,6 +42,7 @@ import { useSessionTimeout } from "./hooks/useSessionTimeout";
 import { workspaceContext, useWorkspaceState, useWorkspace } from "./hooks/useWorkspace";
 import { useStoreData } from "./hooks/useStoreData";
 import { useStoreMembers } from "./hooks/useStoreMembers";
+import { useNotificationPrefs } from "./lib/notificationPrefs";
 
 // ─── AppInner : rendered inside both authContext & workspaceContext providers ───
 function AppInner() {
@@ -64,6 +65,9 @@ function AppInner() {
   // parce que la largeur de la sidebar conditionne aussi le décalage du
   // <main> : les deux doivent bouger ensemble.
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+
+  // Préférences d'affichage des alertes (Paramètres → Notifications).
+  const [notificationPrefs] = useNotificationPrefs();
 
   useEffect(() => {
     const saved = window.localStorage.getItem("balsama-theme");
@@ -243,6 +247,10 @@ function AppInner() {
     if (newSettings.receiptFooter !== undefined) updates.receipt_footer = newSettings.receiptFooter;
     if (newSettings.currencySymbol !== undefined) updates.currency_symbol = newSettings.currencySymbol;
     if (newSettings.tvaRate !== undefined) updates.tva_rate = newSettings.tvaRate;
+    // La colonne `suppliers` existait déjà et était lue (voir storeSettings
+    // plus haut, et AchatsView) mais n'était jamais réécrite : la liste des
+    // fournisseurs n'était donc modifiable nulle part.
+    if (newSettings.suppliers !== undefined) updates.suppliers = newSettings.suppliers;
     if (newSettings.enablePinSecurity !== undefined)
       updates.enable_pin_security = newSettings.enablePinSecurity;
 
@@ -498,6 +506,9 @@ function AppInner() {
   } | null>(null);
 
   const triggerActivityAlert = (vendeur: string, type: any, message: string) => {
+    // Réglage « Activité des vendeurs » (Paramètres → Notifications).
+    if (!notificationPrefs.activityAlerts) return;
+
     const toast = {
       id: String(Date.now()),
       vendeur,
@@ -1029,16 +1040,13 @@ function AppInner() {
             settings={storeSettings}
             onUpdateSettings={handleUpdateSettings}
             sellers={computedSellers}
-            onAddSeller={() => {}}
             onDeleteSeller={handleDeleteSeller}
-            onToggleSellerStatus={() => {}}
             locale={locale}
             setLocale={setLocale}
             capital={computedCapital}
-            onUpdateCapitalInitial={handleUpdateCapitalInitial}
-            onUpdateSeuil={handleUpdateSeuil}
             onDownloadExcel={handleDownloadExcel}
-            isFounder={isFounder}
+            theme={theme}
+            setTheme={setTheme}
             isPlatformAdmin={profile?.is_platform_admin ?? false}
             currentUserId={user?.id ?? undefined}
           />

@@ -276,7 +276,7 @@ export const CapitalView: React.FC<CapitalViewProps> = ({
           <div className="text-2xl font-extrabold font-mono t-danger">
             - {formatCurrency(capital.depensesVendeursTotal)}
           </div>
-          <p className="text-[11px] t-danger/70 pt-2 border-t border-rose-500/20">
+          <p className="text-[11px] text-muted-foreground pt-2 border-t border-danger-border">
             Achats urgents, retraits et frais de terrain enregistrés
           </p>
         </div>
