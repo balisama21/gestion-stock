@@ -51,6 +51,14 @@ interface VentesViewProps {
    * explicatif, pas à refiltrer quoi que ce soit ici.
    */
   restrictedToOwnSales?: boolean;
+  /**
+   * Champs visibles pour l'utilisateur courant — `null`/`undefined` = tout
+   * visible (propriétaire). Pour un collaborateur restreint, masque les
+   * colonnes et totaux sensibles plutôt que de cacher tout l'onglet.
+   * Clés possibles : montant, paiement, solde, benefice, marge
+   * (voir src/lib/permissions.ts).
+   */
+  visibleFields?: string[] | null;
 }
 
 export const VentesView: React.FC<VentesViewProps> = ({
@@ -63,7 +71,21 @@ export const VentesView: React.FC<VentesViewProps> = ({
   onEditSale,
   onDeleteSale,
   restrictedToOwnSales,
+  visibleFields,
 }) => {
+  // null/undefined = tout visible (propriétaire). Sinon, seuls les champs
+  // explicitement listés sont montrés.
+  const showField = (key: string) => !visibleFields || visibleFields.includes(key);
+  const showMontant = showField("montant");
+  const showPaiement = showField("paiement");
+  const showSolde = showField("solde");
+  // Marge par ligne = "marge". Les cumuls (marge brute totale de la
+  // boutique) révèlent la rentabilité globale : ils exigent EN PLUS la
+  // permission "benefice", sinon un vendeur autorisé à voir la marge
+  // d'une vente déduirait le bénéfice de toute l'entreprise.
+  const showMargeLigne = showField("marge");
+  const showMargeCumulee = showMargeLigne && showField("benefice");
+
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingSale, setEditingSale] = useState<Sale | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
@@ -234,17 +256,21 @@ export const VentesView: React.FC<VentesViewProps> = ({
         </div>
 
         <div className="flex items-center gap-4">
-          <div className="bg-muted px-4 py-2 rounded-xl border border-muted-foreground/20 text-right">
-            <div className="text-[10px] uppercase font-semibold text-muted-foreground">
-              Total CA Ventes
+          {showMontant && (
+            <div className="bg-muted px-4 py-2 rounded-xl border border-muted-foreground/20 text-right">
+              <div className="text-[10px] uppercase font-semibold text-muted-foreground">
+                Total CA Ventes
+              </div>
+              <div className="text-lg font-bold font-mono text-blue-400">
+                {formatCurrency(totalVentesCA)}
+              </div>
+              {showMargeCumulee && (
+                <div className="text-[10px] text-emerald-400 font-mono">
+                  Marge: +{formatCurrency(totalMarges)}
+                </div>
+              )}
             </div>
-            <div className="text-lg font-bold font-mono text-blue-400">
-              {formatCurrency(totalVentesCA)}
-            </div>
-            <div className="text-[10px] text-emerald-400 font-mono">
-              Marge: +{formatCurrency(totalMarges)}
-            </div>
-          </div>
+          )}
 
           <button
             onClick={() => setIsModalOpen(true)}
@@ -259,41 +285,51 @@ export const VentesView: React.FC<VentesViewProps> = ({
       {/* Interactive Toolbar & Filters (Replaces static instructions box) */}
       <div className="bg-card border border-border p-4 rounded-2xl space-y-4 shadow-sm">
         {/* KPI Mini Summary Row */}
-        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
-          <div className="bg-muted/80 p-3 rounded-xl border border-muted-foreground/20/80 flex items-center justify-between">
-            <div>
-              <span className="text-muted-foreground font-medium block">
-                Total Encaissé (Reçu) :
-              </span>
-              <span className="text-base font-bold font-mono text-emerald-400">
-                {formatCurrency(totalPayeEncaisse)}
-              </span>
-            </div>
-            <CheckCircle2 className="w-5 h-5 text-emerald-400" />
-          </div>
+        {(showPaiement || showSolde || showMargeCumulee) && (
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs">
+            {showPaiement && (
+              <div className="bg-muted/80 p-3 rounded-xl border border-muted-foreground/20/80 flex items-center justify-between">
+                <div>
+                  <span className="text-muted-foreground font-medium block">
+                    Total Encaissé (Reçu) :
+                  </span>
+                  <span className="text-base font-bold font-mono text-emerald-400">
+                    {formatCurrency(totalPayeEncaisse)}
+                  </span>
+                </div>
+                <CheckCircle2 className="w-5 h-5 text-emerald-400" />
+              </div>
+            )}
 
-          <div className="bg-muted/80 p-3 rounded-xl border border-muted-foreground/20/80 flex items-center justify-between">
-            <div>
-              <span className="text-muted-foreground font-medium block">
-                Total Crédits / Reste Dû :
-              </span>
-              <span className="text-base font-bold font-mono text-amber-400">
-                {formatCurrency(totalSoldeDuCredit)}
-              </span>
-            </div>
-            <Clock className="w-5 h-5 text-amber-400" />
-          </div>
+            {showSolde && (
+              <div className="bg-muted/80 p-3 rounded-xl border border-muted-foreground/20/80 flex items-center justify-between">
+                <div>
+                  <span className="text-muted-foreground font-medium block">
+                    Total Crédits / Reste Dû :
+                  </span>
+                  <span className="text-base font-bold font-mono text-amber-400">
+                    {formatCurrency(totalSoldeDuCredit)}
+                  </span>
+                </div>
+                <Clock className="w-5 h-5 text-amber-400" />
+              </div>
+            )}
 
-          <div className="bg-muted/80 p-3 rounded-xl border border-muted-foreground/20/80 flex items-center justify-between">
-            <div>
-              <span className="text-muted-foreground font-medium block">Marge Brute Cumulée :</span>
-              <span className="text-base font-bold font-mono text-blue-400">
-                +{formatCurrency(totalMarges)}
-              </span>
-            </div>
-            <TrendingUp className="w-5 h-5 text-blue-400" />
+            {showMargeCumulee && (
+              <div className="bg-muted/80 p-3 rounded-xl border border-muted-foreground/20/80 flex items-center justify-between">
+                <div>
+                  <span className="text-muted-foreground font-medium block">
+                    Marge Brute Cumulée :
+                  </span>
+                  <span className="text-base font-bold font-mono text-blue-400">
+                    +{formatCurrency(totalMarges)}
+                  </span>
+                </div>
+                <TrendingUp className="w-5 h-5 text-blue-400" />
+              </div>
+            )}
           </div>
-        </div>
+        )}
 
         {/* Search and Filters Bar */}
         <div className="flex flex-wrap items-center justify-between gap-3 pt-2 border-t border-border text-xs">
@@ -355,15 +391,20 @@ export const VentesView: React.FC<VentesViewProps> = ({
                 <th className="px-4 py-3.5">ID Produit</th>
                 <th className="px-4 py-3.5">Désignation</th>
                 <th className="px-4 py-3.5 text-right">Qté</th>
-                <th className="px-4 py-3.5 text-right bg-blue-950/40 text-blue-300 border-x border-blue-500/20">
-                  Prix Vente Saisi (E)
-                </th>
-                <th className="px-4 py-3.5 text-right">Total Vente (F)</th>
-                <th className="px-4 py-3.5 text-right">Marge (I)</th>
+                {/* Le prix unitaire est masqué avec le montant : sinon
+                    prix unitaire × quantité redonne trivialement le total,
+                    et le masquage ne serait que cosmétique. */}
+                {showMontant && (
+                  <th className="px-4 py-3.5 text-right bg-blue-950/40 text-blue-300 border-x border-blue-500/20">
+                    Prix Vente Saisi (E)
+                  </th>
+                )}
+                {showMontant && <th className="px-4 py-3.5 text-right">Total Vente (F)</th>}
+                {showMargeLigne && <th className="px-4 py-3.5 text-right">Marge (I)</th>}
                 <th className="px-4 py-3.5">Vendeur (N)</th>
                 <th className="px-4 py-3.5">Client Crédit (O)</th>
-                <th className="px-4 py-3.5 text-right">Payé (P)</th>
-                <th className="px-4 py-3.5 text-right">Solde Dû (Q)</th>
+                {showPaiement && <th className="px-4 py-3.5 text-right">Payé (P)</th>}
+                {showSolde && <th className="px-4 py-3.5 text-right">Solde Dû (Q)</th>}
                 <th className="px-4 py-3.5 text-center">Statut (R)</th>
                 <th className="px-4 py-3.5 text-center">Actions</th>
               </tr>
@@ -371,7 +412,16 @@ export const VentesView: React.FC<VentesViewProps> = ({
             <tbody className="text-foreground">
               {filteredSales.length === 0 ? (
                 <tr>
-                  <td colSpan={14} className="p-8 text-center text-muted-foreground">
+                  <td
+                    colSpan={
+                      9 +
+                      (showMontant ? 2 : 0) +
+                      (showMargeLigne ? 1 : 0) +
+                      (showPaiement ? 1 : 0) +
+                      (showSolde ? 1 : 0)
+                    }
+                    className="p-8 text-center text-muted-foreground"
+                  >
                     Aucune vente ne correspond à vos critères de recherche.
                   </td>
                 </tr>
@@ -391,23 +441,33 @@ export const VentesView: React.FC<VentesViewProps> = ({
                       {linkedProduct ? getProductLabel(linkedProduct, products) : s.designation}
                     </td>
                     <td className="px-4 py-3.5 text-right font-mono font-semibold">{s.quantite}</td>
-                    <td className="px-4 py-3.5 text-right font-mono font-bold text-blue-300 bg-blue-950/20 border-x border-blue-500/10">
-                      {formatCurrency(s.prixVenteUnit)}
-                    </td>
-                    <td className="px-4 py-3.5 text-right font-mono font-bold text-foreground">
-                      {formatCurrency(s.totalVente)}
-                    </td>
-                    <td className="px-4 py-3.5 text-right font-mono font-bold text-emerald-400">
-                      +{formatCurrency(s.margeTotale)}
-                    </td>
+                    {showMontant && (
+                      <td className="px-4 py-3.5 text-right font-mono font-bold text-blue-300 bg-blue-950/20 border-x border-blue-500/10">
+                        {formatCurrency(s.prixVenteUnit)}
+                      </td>
+                    )}
+                    {showMontant && (
+                      <td className="px-4 py-3.5 text-right font-mono font-bold text-foreground">
+                        {formatCurrency(s.totalVente)}
+                      </td>
+                    )}
+                    {showMargeLigne && (
+                      <td className="px-4 py-3.5 text-right font-mono font-bold text-emerald-400">
+                        +{formatCurrency(s.margeTotale)}
+                      </td>
+                    )}
                     <td className="px-4 py-3.5 font-semibold text-foreground">{s.vendeur}</td>
                     <td className="px-4 py-3.5 text-muted-foreground">{s.clientCredit || "-"}</td>
-                    <td className="px-4 py-3.5 text-right font-mono text-emerald-400">
-                      {formatCurrency(s.montantPaye)}
-                    </td>
-                    <td className="px-4 py-3.5 text-right font-mono text-amber-400">
-                      {formatCurrency(s.soldeDu)}
-                    </td>
+                    {showPaiement && (
+                      <td className="px-4 py-3.5 text-right font-mono text-emerald-400">
+                        {formatCurrency(s.montantPaye)}
+                      </td>
+                    )}
+                    {showSolde && (
+                      <td className="px-4 py-3.5 text-right font-mono text-amber-400">
+                        {formatCurrency(s.soldeDu)}
+                      </td>
+                    )}
                     <td className="px-4 py-3.5 text-center">
                       <span
                         className={`px-2 py-0.5 rounded text-[10px] font-semibold ${

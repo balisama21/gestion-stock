@@ -354,6 +354,22 @@ function AppInner() {
         hasModuleAction(workspace.memberPermissionsDetailed ?? {}, "produits", a),
       );
 
+  // ── Ventes : champs sensibles (la portée own/all est déjà gérée plus
+  // haut via `visibleSales`) ──
+  const ventesVisibleFields = workspace.isOwner
+    ? null
+    : ["montant", "paiement", "solde", "benefice", "marge"].filter((f) =>
+        isFieldVisible(workspace.memberPermissionsDetailed ?? {}, "ventes", f),
+      );
+
+  // ── Achats : champs sensibles (prix négociés, identité des
+  // fournisseurs). Pas de portée : le stock est commun à la boutique. ──
+  const achatsVisibleFields = workspace.isOwner
+    ? null
+    : ["prix_fournisseurs", "fournisseur", "paiements_fournisseurs"].filter((f) =>
+        isFieldVisible(workspace.memberPermissionsDetailed ?? {}, "achats", f),
+      );
+
   // ── Dépenses : portée own/all, même principe que Ventes ──
   const hasDepensesModule =
     workspace.isOwner ||
@@ -864,6 +880,7 @@ function AppInner() {
             locale={locale}
             settings={storeSettings}
             onAddPurchase={handleAddPurchase}
+            visibleFields={achatsVisibleFields}
           />
         )}
         {activeTab === "ventes" && (
@@ -877,6 +894,7 @@ function AppInner() {
             onEditSale={hasVentesAccess ? handleEditSale : undefined}
             onDeleteSale={hasVentesAccess ? handleDeleteSale : undefined}
             restrictedToOwnSales={!hasVentesAccess}
+            visibleFields={ventesVisibleFields}
           />
         )}
         {activeTab === "vendeurs" && (

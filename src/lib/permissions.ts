@@ -14,11 +14,20 @@
  * toujours l'ancien vers le nouveau à la volée — aucune donnée existante
  * n'est perdue ni cassée.
  *
- * DÉPLOIEMENT PROGRESSIF : pour l'instant, seuls les modules Dashboard,
- * Capital et Ventes appliquent réellement scope/actions/fields (Étapes
- * précédentes + Étape C à venir). Les autres modules n'utilisent encore
- * que `visible` (comportement identique à avant) tant qu'ils n'ont pas
- * été mis à niveau un par un.
+ * DÉPLOIEMENT PROGRESSIF : les modules sont mis à niveau un par un.
+ * État au 03/09/2026 :
+ *   - PORTÉE (own/all) appliquée : Dashboard, Capital, Ventes, Clients,
+ *     Produits, Commandes, Dépenses, Paiements à recevoir, Historique,
+ *     Statistiques/Rapports.
+ *   - CHAMPS SENSIBLES appliqués : Produits (prix d'achat, fournisseur,
+ *     valeur du stock), Ventes (montant, paiement, solde, marge,
+ *     bénéfice), Achats (prix d'achat, fournisseur) — Étape E.
+ *   - Les autres modules n'utilisent encore que `visible` (comportement
+ *     identique à avant).
+ *
+ * ATTENTION : tout ceci est un filtrage d'AFFICHAGE côté client. La
+ * sécurisation réelle au niveau des données (RLS Postgres) est l'Étape F,
+ * pas encore faite.
  */
 
 export type DataScope = "own" | "team" | "all";
@@ -243,7 +252,13 @@ export const MODULE_DEFINITIONS: ModuleDef[] = [
       { key: "delete", label: "Supprimer" },
     ],
     fields: [
-      { key: "prix_fournisseurs", label: "Prix fournisseurs" },
+      { key: "prix_fournisseurs", label: "Prix d'achat / montants fournisseurs" },
+      // Séparé de `prix_fournisseurs` : savoir COMBIEN on achète et savoir
+      // CHEZ QUI on achète sont deux secrets commerciaux distincts. Un
+      // magasinier peut avoir besoin des quantités et du nom du fournisseur
+      // pour réceptionner sans jamais voir les prix négociés — et
+      // inversement.
+      { key: "fournisseur", label: "Nom des fournisseurs" },
       { key: "paiements_fournisseurs", label: "Paiements fournisseurs" },
     ],
   },

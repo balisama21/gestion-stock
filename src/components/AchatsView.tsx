@@ -32,6 +32,15 @@ interface AchatsViewProps {
     prixAchatUnit: number;
     fournisseur: string;
   }) => Promise<{ error: string | null }>;
+  /**
+   * Champs visibles pour l'utilisateur courant — `null`/`undefined` = tout
+   * visible (propriétaire). Permet à un collaborateur de consulter les
+   * approvisionnements (quoi, combien, quand) sans voir les prix négociés
+   * ni l'identité des fournisseurs.
+   * Clés possibles : prix_fournisseurs, fournisseur, paiements_fournisseurs
+   * (voir src/lib/permissions.ts).
+   */
+  visibleFields?: string[] | null;
 }
 
 export const AchatsView: React.FC<AchatsViewProps> = ({
@@ -40,7 +49,18 @@ export const AchatsView: React.FC<AchatsViewProps> = ({
   locale,
   settings,
   onAddPurchase,
+  visibleFields,
 }) => {
+  // null/undefined = tout visible (propriétaire). Sinon, seuls les champs
+  // explicitement listés sont montrés.
+  const showField = (key: string) => !visibleFields || visibleFields.includes(key);
+  // `prix_fournisseurs` couvre le prix unitaire ET tous les montants qui
+  // en découlent (total achat, impact trésorerie, cumuls) : afficher un
+  // total en masquant le prix unitaire ne masquerait rien, puisque
+  // total ÷ quantité redonne le prix.
+  const showPrix = showField("prix_fournisseurs");
+  const showFournisseur = showField("fournisseur");
+
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedPurchaseReceipt, setSelectedPurchaseReceipt] = useState<Purchase | null>(null);
   const [saving, setSaving] = useState(false);
@@ -113,13 +133,17 @@ export const AchatsView: React.FC<AchatsViewProps> = ({
         p.numero.toLowerCase().includes(searchTerm.toLowerCase()) ||
         p.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
         p.productId.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        p.fournisseur.toLowerCase().includes(searchTerm.toLowerCase());
+        // Recherche par fournisseur uniquement si le champ est autorisé :
+        // sinon la barre de recherche permettrait de deviner les noms de
+        // fournisseurs masqués en tâtonnant.
+        (showFournisseur && p.fournisseur.toLowerCase().includes(searchTerm.toLowerCase()));
 
-      const matchSupplier = supplierFilter === "Tous" || p.fournisseur === supplierFilter;
+      const matchSupplier =
+        !showFournisseur || supplierFilter === "Tous" || p.fournisseur === supplierFilter;
 
       return matchSearch && matchSupplier;
     });
-  }, [purchases, searchTerm, supplierFilter]);
+  }, [purchases, searchTerm, supplierFilter, showFournisseur]);
 
   // Key KPIs
   const totalAchatsMontant = purchases.reduce((acc, p) => acc + p.totalAchat, 0);
@@ -188,17 +212,19 @@ export const AchatsView: React.FC<AchatsViewProps> = ({
       <div className="bg-card border border-border p-4 rounded-2xl space-y-4 shadow-sm text-xs">
         {/* KPI Mini Summary */}
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-          <div className="bg-muted/80 p-3 rounded-xl border border-muted-foreground/20/80 flex items-center justify-between">
-            <div>
-              <span className="text-muted-foreground font-medium block">
-                Total Achats Effectués :
-              </span>
-              <span className="text-base font-bold font-mono text-rose-400">
-                {formatCurrency(totalAchatsMontant)}
-              </span>
+          {showPrix && (
+            <div className="bg-muted/80 p-3 rounded-xl border border-muted-foreground/20/80 flex items-center justify-between">
+              <div>
+                <span className="text-muted-foreground font-medium block">
+                  Total Achats Effectués :
+                </span>
+                <span className="text-base font-bold font-mono text-rose-400">
+                  {formatCurrency(totalAchatsMontant)}
+                </span>
+              </div>
+              <DollarSign className="w-5 h-5 text-rose-400" />
             </div>
-            <DollarSign className="w-5 h-5 text-rose-400" />
-          </div>
+          )}
 
           <div className="bg-muted/80 p-3 rounded-xl border border-muted-foreground/20/80 flex items-center justify-between">
             <div>
@@ -212,15 +238,19 @@ export const AchatsView: React.FC<AchatsViewProps> = ({
             <PackageCheck className="w-5 h-5 text-emerald-400" />
           </div>
 
-          <div className="bg-muted/80 p-3 rounded-xl border border-muted-foreground/20/80 flex items-center justify-between">
-            <div>
-              <span className="text-muted-foreground font-medium block">Fournisseurs Actifs :</span>
-              <span className="text-base font-bold font-mono text-sky-400">
-                {suppliersList.length} partenaire{suppliersList.length > 1 ? "s" : ""}
-              </span>
+          {showFournisseur && (
+            <div className="bg-muted/80 p-3 rounded-xl border border-muted-foreground/20/80 flex items-center justify-between">
+              <div>
+                <span className="text-muted-foreground font-medium block">
+                  Fournisseurs Actifs :
+                </span>
+                <span className="text-base font-bold font-mono text-sky-400">
+                  {suppliersList.length} partenaire{suppliersList.length > 1 ? "s" : ""}
+                </span>
+              </div>
+              <Truck className="w-5 h-5 text-sky-400" />
             </div>
-            <Truck className="w-5 h-5 text-sky-400" />
-          </div>
+          )}
         </div>
 
         {/* Search & Filter Bar */}
@@ -231,26 +261,34 @@ export const AchatsView: React.FC<AchatsViewProps> = ({
               type="text"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              placeholder="Rechercher désignation, ID, fournisseur..."
+              placeholder={
+                showFournisseur
+                  ? "Rechercher désignation, ID, fournisseur..."
+                  : "Rechercher désignation, ID..."
+              }
               className="w-full bg-muted border border-muted-foreground/20 rounded-xl pl-9 pr-3 py-1.5 text-foreground placeholder-slate-500 focus:outline-none focus:border-emerald-500 font-medium"
             />
           </div>
 
           <div className="flex items-center gap-2">
-            <Filter className="w-3.5 h-3.5 text-muted-foreground" />
-            <span className="text-muted-foreground font-semibold">Fournisseur :</span>
-            <select
-              value={supplierFilter}
-              onChange={(e) => setSupplierFilter(e.target.value)}
-              className="bg-muted border border-muted-foreground/20 text-foreground rounded-xl px-3 py-1.5 focus:outline-none focus:border-emerald-500 font-medium"
-            >
-              <option value="Tous">Tous les fournisseurs</option>
-              {suppliersList.map((sup) => (
-                <option key={sup} value={sup}>
-                  {sup}
-                </option>
-              ))}
-            </select>
+            {showFournisseur && (
+              <>
+                <Filter className="w-3.5 h-3.5 text-muted-foreground" />
+                <span className="text-muted-foreground font-semibold">Fournisseur :</span>
+                <select
+                  value={supplierFilter}
+                  onChange={(e) => setSupplierFilter(e.target.value)}
+                  className="bg-muted border border-muted-foreground/20 text-foreground rounded-xl px-3 py-1.5 focus:outline-none focus:border-emerald-500 font-medium"
+                >
+                  <option value="Tous">Tous les fournisseurs</option>
+                  {suppliersList.map((sup) => (
+                    <option key={sup} value={sup}>
+                      {sup}
+                    </option>
+                  ))}
+                </select>
+              </>
+            )}
 
             {(searchTerm || supplierFilter !== "Tous") && (
               <button
@@ -279,17 +317,20 @@ export const AchatsView: React.FC<AchatsViewProps> = ({
                 <th className="px-4 py-3.5">ID Produit Auto</th>
                 <th className="px-4 py-3.5">Désignation (Variante)</th>
                 <th className="px-4 py-3.5 text-right">Qté</th>
-                <th className="px-4 py-3.5 text-right">Prix Achat Unit.</th>
-                <th className="px-4 py-3.5 text-right">Total Achat</th>
-                <th className="px-4 py-3.5">Fournisseur</th>
-                <th className="px-4 py-3.5 text-right">Impact Trésorerie</th>
+                {showPrix && <th className="px-4 py-3.5 text-right">Prix Achat Unit.</th>}
+                {showPrix && <th className="px-4 py-3.5 text-right">Total Achat</th>}
+                {showFournisseur && <th className="px-4 py-3.5">Fournisseur</th>}
+                {showPrix && <th className="px-4 py-3.5 text-right">Impact Trésorerie</th>}
                 <th className="px-4 py-3.5 text-center">Bon / Reçu</th>
               </tr>
             </thead>
             <tbody className="text-foreground">
               {filteredPurchases.length === 0 ? (
                 <tr>
-                  <td colSpan={10} className="p-8 text-center text-muted-foreground">
+                  <td
+                    colSpan={6 + (showPrix ? 3 : 0) + (showFournisseur ? 1 : 0)}
+                    className="p-8 text-center text-muted-foreground"
+                  >
                     Aucun achat ne correspond à vos filtres.
                   </td>
                 </tr>
@@ -307,14 +348,26 @@ export const AchatsView: React.FC<AchatsViewProps> = ({
                       {getPurchaseLabel(p, products)}
                     </td>
                     <td className="px-4 py-3.5 text-right font-mono font-semibold">{p.quantite}</td>
-                    <td className="px-4 py-3.5 text-right font-mono">{formatCurrency(p.prixAchatUnit)}</td>
-                    <td className="px-4 py-3.5 text-right font-mono font-bold text-foreground">
-                      {formatCurrency(p.totalAchat)}
-                    </td>
-                    <td className="px-4 py-3.5 text-muted-foreground">{p.fournisseur || "Non spécifié"}</td>
-                    <td className="px-4 py-3.5 text-right font-mono font-bold text-rose-400">
-                      {formatCurrency(p.impactTresorerie)}
-                    </td>
+                    {showPrix && (
+                      <td className="px-4 py-3.5 text-right font-mono">
+                        {formatCurrency(p.prixAchatUnit)}
+                      </td>
+                    )}
+                    {showPrix && (
+                      <td className="px-4 py-3.5 text-right font-mono font-bold text-foreground">
+                        {formatCurrency(p.totalAchat)}
+                      </td>
+                    )}
+                    {showFournisseur && (
+                      <td className="px-4 py-3.5 text-muted-foreground">
+                        {p.fournisseur || "Non spécifié"}
+                      </td>
+                    )}
+                    {showPrix && (
+                      <td className="px-4 py-3.5 text-right font-mono font-bold text-rose-400">
+                        {formatCurrency(p.impactTresorerie)}
+                      </td>
+                    )}
                     <td className="px-4 py-3.5 text-center">
                       <button
                         onClick={() => setSelectedPurchaseReceipt(p)}
@@ -372,30 +425,36 @@ export const AchatsView: React.FC<AchatsViewProps> = ({
                   {getPurchaseLabel(selectedPurchaseReceipt, products)}
                 </span>
               </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Fournisseur :</span>
-                <span className="text-sky-300">
-                  {selectedPurchaseReceipt.fournisseur || "Grossiste Général"}
-                </span>
-              </div>
+              {showFournisseur && (
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Fournisseur :</span>
+                  <span className="text-sky-300">
+                    {selectedPurchaseReceipt.fournisseur || "Grossiste Général"}
+                  </span>
+                </div>
+              )}
               <div className="border-t border-border pt-2 flex justify-between">
                 <span className="text-muted-foreground">Quantité Achetée :</span>
                 <span className="text-foreground font-bold">
                   {selectedPurchaseReceipt.quantite} unités
                 </span>
               </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Prix d'Achat Unitaire :</span>
-                <span className="text-foreground">
-                  {formatCurrency(selectedPurchaseReceipt.prixAchatUnit)}
-                </span>
-              </div>
-              <div className="border-t border-border pt-2 flex justify-between text-sm">
-                <span className="text-muted-foreground font-bold">Total Décaissement :</span>
-                <span className="text-rose-400 font-bold">
-                  {formatCurrency(selectedPurchaseReceipt.totalAchat)}
-                </span>
-              </div>
+              {showPrix && (
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Prix d'Achat Unitaire :</span>
+                  <span className="text-foreground">
+                    {formatCurrency(selectedPurchaseReceipt.prixAchatUnit)}
+                  </span>
+                </div>
+              )}
+              {showPrix && (
+                <div className="border-t border-border pt-2 flex justify-between text-sm">
+                  <span className="text-muted-foreground font-bold">Total Décaissement :</span>
+                  <span className="text-rose-400 font-bold">
+                    {formatCurrency(selectedPurchaseReceipt.totalAchat)}
+                  </span>
+                </div>
+              )}
             </div>
 
             <div className="flex items-center justify-between pt-2">
@@ -562,20 +621,22 @@ export const AchatsView: React.FC<AchatsViewProps> = ({
                   </button>
                   <button
                     onClick={() => {
+                      // Le fichier exporté doit respecter exactement les
+                      // mêmes masquages que l'écran : sinon un
+                      // collaborateur contournerait la restriction en
+                      // téléchargeant le journal.
                       const textContent = `
 === ${settings?.storeName || "BALSAMA AUTO GESTION"} ===
 JOURNAL & BILAN DES ACHATS / APPROVISIONNEMENT STOCK
-FOURNISSEUR: ${selectedReportSupplier === "all" ? "TOUS LES FOURNISSEURS" : selectedReportSupplier.toUpperCase()}
-PÉRIODE: ${reportPeriod === "today" ? "Aujourd'hui" : reportPeriod === "month" ? "Ce Mois-ci" : "Tout l'historique"}
+${showFournisseur ? `FOURNISSEUR: ${selectedReportSupplier === "all" ? "TOUS LES FOURNISSEURS" : selectedReportSupplier.toUpperCase()}\n` : ""}PÉRIODE: ${reportPeriod === "today" ? "Aujourd'hui" : reportPeriod === "month" ? "Ce Mois-ci" : "Tout l'historique"}
 Date de génération: ${new Date().toLocaleString()}
 ------------------------------------------------
-TOTAL ACHATS: ${formatCurrency(reportTotalAmount)}
-TOTAL ARTICLES RÉAPPROVISIONNÉS: ${reportTotalQty} unités (${reportPurchases.length} achats)
+${showPrix ? `TOTAL ACHATS: ${formatCurrency(reportTotalAmount)}\n` : ""}TOTAL ARTICLES RÉAPPROVISIONNÉS: ${reportTotalQty} unités (${reportPurchases.length} achats)
 ------------------------------------------------
 ${reportPurchases
   .map(
     (p) =>
-      `[${p.date}] ${p.numero} | Prod: ${products.find((prod) => prod.id === p.productId)?.numero || p.productId} - ${getPurchaseLabel(p, products)} | Qté: ${p.quantite} | Prix unit: ${formatCurrency(p.prixAchatUnit)} | Total: ${formatCurrency(p.totalAchat)} | Fournisseur: ${p.fournisseur || "Non spécifié"}`,
+      `[${p.date}] ${p.numero} | Prod: ${products.find((prod) => prod.id === p.productId)?.numero || p.productId} - ${getPurchaseLabel(p, products)} | Qté: ${p.quantite}${showPrix ? ` | Prix unit: ${formatCurrency(p.prixAchatUnit)} | Total: ${formatCurrency(p.totalAchat)}` : ""}${showFournisseur ? ` | Fournisseur: ${p.fournisseur || "Non spécifié"}` : ""}`,
   )
   .join("\n")}
 ================================================
@@ -605,23 +666,25 @@ ${reportPurchases
 
               {/* Controls */}
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 bg-background p-3 rounded-xl border border-border text-xs">
-                <div>
-                  <label className="block text-[10px] uppercase font-bold text-muted-foreground mb-1">
-                    Fournisseur Sélectionné :
-                  </label>
-                  <select
-                    value={selectedReportSupplier}
-                    onChange={(e) => setSelectedReportSupplier(e.target.value)}
-                    className="w-full bg-muted border border-muted-foreground/20 text-foreground rounded-lg px-2.5 py-1.5 focus:outline-none focus:border-emerald-500 font-medium"
-                  >
-                    <option value="all">Tous les Fournisseurs</option>
-                    {suppliersList.map((sup) => (
-                      <option key={sup} value={sup}>
-                        {sup}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+                {showFournisseur && (
+                  <div>
+                    <label className="block text-[10px] uppercase font-bold text-muted-foreground mb-1">
+                      Fournisseur Sélectionné :
+                    </label>
+                    <select
+                      value={selectedReportSupplier}
+                      onChange={(e) => setSelectedReportSupplier(e.target.value)}
+                      className="w-full bg-muted border border-muted-foreground/20 text-foreground rounded-lg px-2.5 py-1.5 focus:outline-none focus:border-emerald-500 font-medium"
+                    >
+                      <option value="all">Tous les Fournisseurs</option>
+                      {suppliersList.map((sup) => (
+                        <option key={sup} value={sup}>
+                          {sup}
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                )}
 
                 <div>
                   <label className="block text-[10px] uppercase font-bold text-muted-foreground mb-1">
@@ -696,23 +759,27 @@ ${reportPurchases
                     <h3 className="font-bold text-xs uppercase bg-emerald-200 py-0.5 rounded text-emerald-950">
                       BILAN D'APPROVISIONNEMENT
                     </h3>
-                    <p className="text-[10px] font-semibold text-slate-800">
-                      FOURNISSEUR :{" "}
-                      <span className="font-bold uppercase text-slate-950">
-                        {selectedReportSupplier === "all"
-                          ? "TOUS LES FOURNISSEURS"
-                          : selectedReportSupplier}
-                      </span>
-                    </p>
+                    {showFournisseur && (
+                      <p className="text-[10px] font-semibold text-slate-800">
+                        FOURNISSEUR :{" "}
+                        <span className="font-bold uppercase text-slate-950">
+                          {selectedReportSupplier === "all"
+                            ? "TOUS LES FOURNISSEURS"
+                            : selectedReportSupplier}
+                        </span>
+                      </p>
+                    )}
                   </div>
 
                   <div className="border-b border-dashed border-slate-400 my-2"></div>
 
                   <div className="space-y-1.5 text-[10px]">
-                    <div className="flex justify-between font-bold text-emerald-900 bg-emerald-100 p-1.5 rounded">
-                      <span>TOTAL ACHATS :</span>
-                      <span>{formatCurrency(reportTotalAmount)}</span>
-                    </div>
+                    {showPrix && (
+                      <div className="flex justify-between font-bold text-emerald-900 bg-emerald-100 p-1.5 rounded">
+                        <span>TOTAL ACHATS :</span>
+                        <span>{formatCurrency(reportTotalAmount)}</span>
+                      </div>
+                    )}
                     <div className="flex justify-between text-slate-700 px-1">
                       <span>RÉAPPROVISIONNEMENT :</span>
                       <span className="font-bold">{reportTotalQty} unités</span>
@@ -735,7 +802,7 @@ ${reportPurchases
                           <tr className="border-b border-slate-300 font-bold uppercase">
                             <th className="py-1">Produit</th>
                             <th className="py-1 text-center">Qté</th>
-                            <th className="py-1 text-right">Total</th>
+                            {showPrix && <th className="py-1 text-right">Total</th>}
                           </tr>
                         </thead>
                         <tbody className="divide-y divide-slate-200">
@@ -747,14 +814,16 @@ ${reportPurchases
                                 </span>
                                 <span className="text-[8px] text-slate-600 block">
                                   ID: {products.find((prod) => prod.id === p.productId)?.numero ||
-                                    p.productId}{" "}
-                                  | {p.fournisseur || "Grossiste"}
+                                    p.productId}
+                                  {showFournisseur ? ` | ${p.fournisseur || "Grossiste"}` : ""}
                                 </span>
                               </td>
                               <td className="py-1 text-center font-semibold">{p.quantite}</td>
-                              <td className="py-1 text-right font-bold text-emerald-900">
-                                {formatCurrency(p.totalAchat)}
-                              </td>
+                              {showPrix && (
+                                <td className="py-1 text-right font-bold text-emerald-900">
+                                  {formatCurrency(p.totalAchat)}
+                                </td>
+                              )}
                             </tr>
                           ))}
                         </tbody>
@@ -789,16 +858,18 @@ ${reportPurchases
                   </div>
 
                   <div className="grid grid-cols-3 gap-4 bg-slate-50 p-4 rounded-xl border border-slate-200">
-                    <div>
-                      <span className="text-[10px] uppercase font-bold text-muted-foreground block">
-                        Fournisseur :
-                      </span>
-                      <span className="font-black text-slate-900 text-sm">
-                        {selectedReportSupplier === "all"
-                          ? "TOUS LES FOURNISSEURS"
-                          : selectedReportSupplier}
-                      </span>
-                    </div>
+                    {showFournisseur && (
+                      <div>
+                        <span className="text-[10px] uppercase font-bold text-muted-foreground block">
+                          Fournisseur :
+                        </span>
+                        <span className="font-black text-slate-900 text-sm">
+                          {selectedReportSupplier === "all"
+                            ? "TOUS LES FOURNISSEURS"
+                            : selectedReportSupplier}
+                        </span>
+                      </div>
+                    )}
                     <div>
                       <span className="text-[10px] uppercase font-bold text-muted-foreground block">
                         Qté Réapprovisionnée :
@@ -807,14 +878,16 @@ ${reportPurchases
                         {reportTotalQty} unités
                       </span>
                     </div>
-                    <div className="text-right">
-                      <span className="text-[10px] uppercase font-bold text-muted-foreground block">
-                        Total Décaissements :
-                      </span>
-                      <span className="font-black text-rose-600 text-sm font-mono">
-                        {formatCurrency(reportTotalAmount)}
-                      </span>
-                    </div>
+                    {showPrix && (
+                      <div className="text-right">
+                        <span className="text-[10px] uppercase font-bold text-muted-foreground block">
+                          Total Décaissements :
+                        </span>
+                        <span className="font-black text-rose-600 text-sm font-mono">
+                          {formatCurrency(reportTotalAmount)}
+                        </span>
+                      </div>
+                    )}
                   </div>
 
                   <table className="w-full text-left border-collapse text-xs">
@@ -824,15 +897,18 @@ ${reportPurchases
                         <th className="p-2">ID Produit</th>
                         <th className="p-2">Désignation</th>
                         <th className="p-2 text-center">Qté</th>
-                        <th className="p-2 text-right">Prix Unit.</th>
-                        <th className="p-2 text-right">Total</th>
-                        <th className="p-2">Fournisseur</th>
+                        {showPrix && <th className="p-2 text-right">Prix Unit.</th>}
+                        {showPrix && <th className="p-2 text-right">Total</th>}
+                        {showFournisseur && <th className="p-2">Fournisseur</th>}
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-200">
                       {reportPurchases.length === 0 ? (
                         <tr>
-                          <td colSpan={7} className="p-4 text-center text-muted-foreground italic">
+                          <td
+                            colSpan={4 + (showPrix ? 2 : 0) + (showFournisseur ? 1 : 0)}
+                            className="p-4 text-center text-muted-foreground italic"
+                          >
                             Aucun achat enregistré.
                           </td>
                         </tr>
@@ -846,13 +922,19 @@ ${reportPurchases
                             </td>
                             <td className="p-2 font-bold text-slate-900">{getPurchaseLabel(p, products)}</td>
                             <td className="p-2 text-center font-bold">{p.quantite}</td>
-                            <td className="p-2 text-right font-mono text-slate-600">
-                              {formatCurrency(p.prixAchatUnit)}
-                            </td>
-                            <td className="p-2 text-right font-bold text-slate-900 font-mono">
-                              {formatCurrency(p.totalAchat)}
-                            </td>
-                            <td className="p-2 text-slate-600">{p.fournisseur || "-"}</td>
+                            {showPrix && (
+                              <td className="p-2 text-right font-mono text-slate-600">
+                                {formatCurrency(p.prixAchatUnit)}
+                              </td>
+                            )}
+                            {showPrix && (
+                              <td className="p-2 text-right font-bold text-slate-900 font-mono">
+                                {formatCurrency(p.totalAchat)}
+                              </td>
+                            )}
+                            {showFournisseur && (
+                              <td className="p-2 text-slate-600">{p.fournisseur || "-"}</td>
+                            )}
                           </tr>
                         ))
                       )}
