@@ -11,7 +11,6 @@ import {
   Search,
   Filter,
   Download,
-  X,
   Receipt,
   RefreshCw,
   ShoppingBag,
@@ -22,6 +21,7 @@ import { PageHeader } from "./shared/PageHeader";
 import { FilterBar, FilterField } from "./shared/FilterBar";
 import { DataList } from "./shared/DataList";
 import { StatCol } from "./shared/StatBar";
+import { Modal } from "./shared/Modal";
 
 interface DepensesViewProps {
   expenses: Expense[];
@@ -304,31 +304,56 @@ export const DepensesView: React.FC<DepensesViewProps> = ({
         />
       </div>
 
-      {/* Print & Export Report Modal for Expenses */}
+      {/* ── Journal & relevé des dépenses ──
+          Le document imprimable est conservé tel quel. */}
       {isReportModalOpen && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex items-center justify-center p-4 overflow-y-auto">
-          <div className="bg-card border border-muted-foreground/20 rounded-2xl w-full max-w-3xl p-6 shadow-2xl text-foreground space-y-6 my-8">
-            {/* Modal Header */}
-            <div className="space-y-4 border-b border-border pb-4 no-print">
-              <div className="flex flex-wrap items-center justify-between gap-4">
-                <div className="flex items-center gap-2">
-                  <Printer className="w-5 h-5 t-danger" />
-                  <h3 className="text-base font-bold text-foreground">
-                    Journal & Relevé des Dépenses Vendeurs
-                  </h3>
-                </div>
-
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => window.print()}
-                    className="flex items-center gap-1.5 px-3.5 py-1.5 bg-rose-600 hover:bg-rose-500 text-white rounded-xl text-xs font-semibold shadow-sm transition-colors"
-                  >
-                    <Printer className="w-4 h-4" />
-                    Imprimer Document
-                  </button>
-                  <button
-                    onClick={() => {
-                      const textContent = `
+        <Modal
+          open
+          onClose={() => setIsReportModalOpen(false)}
+          size="3xl"
+          icon={<Printer className="h-4 w-4" />}
+          title="Journal des dépenses"
+          description={
+            selectedReportSeller === "all" ? "Tous les vendeurs" : selectedReportSeller
+          }
+          bodyClassName="space-y-4"
+          headerAside={
+            <div className="flex items-center gap-1 rounded-xl border border-border bg-muted p-1">
+              <button
+                onClick={() => setReportFormat("ticket")}
+                aria-pressed={reportFormat === "ticket"}
+                className={`flex items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-semibold transition-colors ${
+                  reportFormat === "ticket"
+                    ? "bg-card text-foreground shadow-sm"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                <Receipt className="h-3.5 w-3.5" />
+                Ticket
+              </button>
+              <button
+                onClick={() => setReportFormat("a4")}
+                aria-pressed={reportFormat === "a4"}
+                className={`flex items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-semibold transition-colors ${
+                  reportFormat === "a4"
+                    ? "bg-card text-foreground shadow-sm"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                <FileText className="h-3.5 w-3.5" />
+                A4
+              </button>
+            </div>
+          }
+          footer={
+            <>
+              <button onClick={() => window.print()} className="app-btn-primary">
+                <Printer className="h-4 w-4" />
+                Imprimer
+              </button>
+              <button
+                onClick={() => {
+                  const textContent = `
 === ${settings?.storeName || "BALSAMA AUTO GESTION"} ===
 JOURNAL DES DÉPENSES & RETRAITS VENDEURS
 VENDEUR: ${selectedReportSeller === "all" ? "TOUS LES VENDEURS" : selectedReportSeller.toUpperCase()}
@@ -346,94 +371,58 @@ ${reportExpenses
   )
   .join("\n")}
 ================================================
-                      `.trim();
+                  `.trim();
 
-                      const element = document.createElement("a");
-                      const file = new Blob([textContent], { type: "text/plain" });
-                      element.href = URL.createObjectURL(file);
-                      element.download = `Journal_Depenses_${selectedReportSeller}_${reportPeriod}.txt`;
-                      document.body.appendChild(element);
-                      element.click();
-                      document.body.removeChild(element);
-                    }}
-                    className="flex items-center gap-1.5 px-3 py-1.5 bg-muted hover:bg-accent text-foreground border border-muted-foreground/20 rounded-xl text-xs font-semibold transition-colors"
-                  >
-                    <Download className="w-3.5 h-3.5" />
-                    Exporter (.TXT)
-                  </button>
-                  <button
-                    onClick={() => setIsReportModalOpen(false)}
-                    className="p-1.5 text-muted-foreground hover:text-foreground bg-muted hover:bg-accent rounded-xl transition-colors"
-                  >
-                    <X className="w-5 h-5" />
-                  </button>
-                </div>
+                  const element = document.createElement("a");
+                  const file = new Blob([textContent], { type: "text/plain" });
+                  element.href = URL.createObjectURL(file);
+                  element.download = `Journal_Depenses_${selectedReportSeller}_${reportPeriod}.txt`;
+                  document.body.appendChild(element);
+                  element.click();
+                  document.body.removeChild(element);
+                }}
+                className="app-btn-secondary"
+                title="Télécharger un résumé au format texte"
+              >
+                <Download className="h-4 w-4" />
+                Exporter (.txt)
+              </button>
+            </>
+          }
+        >
+            {/* Portée du document — masquée à l'impression. */}
+            <div className="no-print grid grid-cols-1 gap-3 sm:grid-cols-2">
+              <div>
+                <label className="mb-1 block text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+                  Vendeur
+                </label>
+                <select
+                  value={selectedReportSeller}
+                  onChange={(e) => setSelectedReportSeller(e.target.value)}
+                  className="app-field-sm"
+                >
+                  <option value="all">Tous les vendeurs</option>
+                  {sellers.map((s) => (
+                    <option key={s.id} value={s.nom}>
+                      {s.nom}
+                    </option>
+                  ))}
+                </select>
               </div>
 
-              {/* Controls */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 bg-background p-3 rounded-xl border border-border text-xs">
-                <div>
-                  <label className="block text-[10px] uppercase font-bold text-muted-foreground mb-1">
-                    Vendeur Sélectionné :
-                  </label>
-                  <select
-                    value={selectedReportSeller}
-                    onChange={(e) => setSelectedReportSeller(e.target.value)}
-                    className="w-full bg-muted border border-muted-foreground/20 text-foreground rounded-lg px-2.5 py-1.5 focus:outline-none focus:border-rose-500 font-medium"
-                  >
-                    <option value="all">Tous les Vendeurs</option>
-                    {sellers.map((s) => (
-                      <option key={s.id} value={s.nom}>
-                        {s.nom}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-[10px] uppercase font-bold text-muted-foreground mb-1">
-                    Période d'Activité :
-                  </label>
-                  <select
-                    value={reportPeriod}
-                    onChange={(e) => setReportPeriod(e.target.value as any)}
-                    className="w-full bg-muted border border-muted-foreground/20 text-foreground rounded-lg px-2.5 py-1.5 focus:outline-none focus:border-rose-500 font-medium"
-                  >
-                    <option value="today">Aujourd'hui ({todayStr})</option>
-                    <option value="month">Ce Mois-ci ({currentMonthStr})</option>
-                    <option value="all">Tout l'historique</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label className="block text-[10px] uppercase font-bold text-muted-foreground mb-1">
-                    Format :
-                  </label>
-                  <div className="flex items-center bg-muted p-0.5 rounded-lg border border-muted-foreground/20">
-                    <button
-                      onClick={() => setReportFormat("ticket")}
-                      className={`flex-1 py-1 rounded text-[11px] font-semibold transition-colors flex items-center justify-center gap-1 ${
-                        reportFormat === "ticket"
-                          ? "bg-rose-600 text-white"
-                          : "text-muted-foreground hover:text-foreground"
-                      }`}
-                    >
-                      <Receipt className="w-3 h-3" />
-                      Ticket
-                    </button>
-                    <button
-                      onClick={() => setReportFormat("a4")}
-                      className={`flex-1 py-1 rounded text-[11px] font-semibold transition-colors flex items-center justify-center gap-1 ${
-                        reportFormat === "a4"
-                          ? "bg-blue-600 text-white"
-                          : "text-muted-foreground hover:text-foreground"
-                      }`}
-                    >
-                      <FileText className="w-3 h-3" />
-                      A4
-                    </button>
-                  </div>
-                </div>
+              <div>
+                <label className="mb-1 block text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+                  Période
+                </label>
+                <select
+                  value={reportPeriod}
+                  onChange={(e) => setReportPeriod(e.target.value as any)}
+                  className="app-field-sm"
+                >
+                  <option value="today">Aujourd'hui ({todayStr})</option>
+                  <option value="month">Ce mois-ci ({currentMonthStr})</option>
+                  <option value="all">Tout l'historique</option>
+                </select>
               </div>
             </div>
 
@@ -604,224 +593,206 @@ ${reportExpenses
                 </div>
               )}
             </div>
-          </div>
-        </div>
+        </Modal>
       )}
 
-      {/* New Expense Modal */}
-      {isModalOpen && (
-        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-card border border-muted-foreground/20 rounded-2xl w-full max-w-md p-6 shadow-xl text-foreground space-y-4">
-            <h3 className="text-lg font-bold flex items-center gap-2">
-              <ArrowRightLeft className="w-5 h-5 t-danger" />
-              Saisie d'une Dépense / Retrait Vendeur
-            </h3>
-
-            <form onSubmit={handleSubmit} className="space-y-3 text-xs">
-              <div>
-                <label className="block text-muted-foreground font-medium mb-1">Date :</label>
-                <input
-                  type="date"
-                  required
-                  value={date}
-                  onChange={(e) => setDate(e.target.value)}
-                  className="w-full bg-muted border border-muted-foreground/20 rounded-xl px-3 py-2 text-foreground font-mono focus:outline-none focus:border-emerald-500"
-                />
-              </div>
-
-              <div>
-                <label className="block text-muted-foreground font-medium mb-1">
-                  Vendeur concerné :
-                </label>
-                <select
-                  value={vendeur}
-                  onChange={(e) => setVendeur(e.target.value)}
-                  className="w-full bg-muted border border-muted-foreground/20 rounded-xl px-3 py-2 text-foreground font-semibold focus:outline-none focus:border-emerald-500"
-                >
-                  {sellers.map((v) => (
-                    <option key={v.id} value={v.nom}>
-                      {v.nom} (Solde en poche actuel : {v.soldeNetEnPoche} Ar)
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-muted-foreground font-medium mb-1">
-                  Type de dépense :
-                </label>
-                <select
-                  value={type}
-                  onChange={(e: any) => setType(e.target.value)}
-                  className="w-full bg-muted border border-muted-foreground/20 rounded-xl px-3 py-2 text-foreground focus:outline-none focus:border-emerald-500"
-                >
-                  <option value="Retrait d'argent">Retrait d'argent (Avance / Commission)</option>
-                  <option value="Achat de stock">Achat de stock / Matériel d'urgence</option>
-                  <option value="Autre dépense">Autre dépense (Transport, Repas...)</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-muted-foreground font-medium mb-1">
-                  Montant (Ar) :
-                </label>
-                <input
-                  type="number"
-                  required
-                  min="1"
-                  value={montant}
-                  onChange={(e) => setMontant(Number(e.target.value))}
-                  className="w-full bg-muted border border-muted-foreground/20 rounded-xl px-3 py-2 text-foreground font-mono font-bold focus:outline-none focus:border-emerald-500"
-                />
-              </div>
-
-              <div>
-                <label className="block text-muted-foreground font-medium mb-1">
-                  Motif / Note :
-                </label>
-                <textarea
-                  rows={2}
-                  value={note}
-                  onChange={(e) => setNote(e.target.value)}
-                  placeholder="ex: Transport livraison ou avance commission"
-                  className="w-full bg-muted border border-muted-foreground/20 rounded-xl px-3 py-2 text-foreground focus:outline-none focus:border-emerald-500"
-                />
-              </div>
-
-              <div className="flex items-center justify-end gap-2 pt-2">
-                <button
-                  type="button"
-                  onClick={() => setIsModalOpen(false)}
-                  className="px-4 py-2 bg-muted hover:bg-accent text-muted-foreground rounded-xl font-medium"
-                >
-                  Annuler
-                </button>
-                <button
-                  type="submit"
-                  className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl font-semibold shadow-sm"
-                >
-                  Valider la Dépense
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* Edit Expense Modal */}
-      {editingExpense && (
-        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-card border border-muted-foreground/20 rounded-2xl w-full max-w-md p-6 shadow-xl text-foreground space-y-4">
-            <h3 className="text-lg font-bold flex items-center gap-2">
-              <Edit3 className="w-5 h-5 t-info" />
-              Modification Dépense {editingExpense.numero}
-            </h3>
-
-            <form
-              onSubmit={(e) => {
-                e.preventDefault();
-                if (!onEditExpense) return;
-                onEditExpense({
-                  ...editingExpense,
-                  impactTresorerieGlobale: -editingExpense.montant,
-                });
-                setEditingExpense(null);
-              }}
-              className="space-y-3 text-xs"
+      {/* ── Nouvelle dépense ── */}
+      <Modal
+        open={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        size="md"
+        icon={<ArrowRightLeft className="h-4 w-4" />}
+        title="Nouvelle dépense"
+        description="Une sortie de caisse imputée à un vendeur : retrait, achat urgent, frais de terrain."
+        footer={
+          <>
+            <button
+              type="button"
+              onClick={() => setIsModalOpen(false)}
+              className="app-btn-secondary"
             >
-              <div>
-                <label className="block text-muted-foreground font-medium mb-1">Date :</label>
-                <input
-                  type="date"
-                  required
-                  value={editingExpense.date}
-                  onChange={(ev) => setEditingExpense({ ...editingExpense, date: ev.target.value })}
-                  className="w-full bg-muted border border-muted-foreground/20 rounded-xl px-3 py-2 text-foreground font-mono focus:outline-none focus:border-blue-500"
-                />
-              </div>
-
-              <div>
-                <label className="block text-muted-foreground font-medium mb-1">
-                  Vendeur concerné :
-                </label>
-                <select
-                  value={editingExpense.vendeur}
-                  onChange={(ev) =>
-                    setEditingExpense({ ...editingExpense, vendeur: ev.target.value })
-                  }
-                  className="w-full bg-muted border border-muted-foreground/20 rounded-xl px-3 py-2 text-foreground font-semibold focus:outline-none focus:border-blue-500"
-                >
-                  {sellers.map((v) => (
-                    <option key={v.id} value={v.nom}>
-                      {v.nom}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-muted-foreground font-medium mb-1">
-                  Type de dépense :
-                </label>
-                <select
-                  value={editingExpense.type}
-                  onChange={(ev: any) =>
-                    setEditingExpense({ ...editingExpense, type: ev.target.value })
-                  }
-                  className="w-full bg-muted border border-muted-foreground/20 rounded-xl px-3 py-2 text-foreground focus:outline-none focus:border-blue-500"
-                >
-                  <option value="Retrait d'argent">Retrait d'argent (Avance / Commission)</option>
-                  <option value="Achat de stock">Achat de stock / Matériel d'urgence</option>
-                  <option value="Autre dépense">Autre dépense (Transport, Repas...)</option>
-                </select>
-              </div>
-
-              <div>
-                <label className="block text-muted-foreground font-medium mb-1">
-                  Montant (Ar) :
-                </label>
-                <input
-                  type="number"
-                  required
-                  min="1"
-                  value={editingExpense.montant}
-                  onChange={(ev) =>
-                    setEditingExpense({ ...editingExpense, montant: Number(ev.target.value) })
-                  }
-                  className="w-full bg-muted border border-muted-foreground/20 rounded-xl px-3 py-2 text-foreground font-mono font-bold focus:outline-none focus:border-blue-500"
-                />
-              </div>
-
-              <div>
-                <label className="block text-muted-foreground font-medium mb-1">
-                  Motif / Note :
-                </label>
-                <textarea
-                  rows={2}
-                  value={editingExpense.note}
-                  onChange={(ev) => setEditingExpense({ ...editingExpense, note: ev.target.value })}
-                  className="w-full bg-muted border border-muted-foreground/20 rounded-xl px-3 py-2 text-foreground focus:outline-none focus:border-blue-500"
-                />
-              </div>
-
-              <div className="flex items-center justify-end gap-2 pt-2">
-                <button
-                  type="button"
-                  onClick={() => setEditingExpense(null)}
-                  className="px-4 py-2 bg-muted hover:bg-accent text-muted-foreground rounded-xl font-medium"
-                >
-                  Annuler
-                </button>
-                <button
-                  type="submit"
-                  className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-semibold shadow-sm"
-                >
-                  Enregistrer Modifications
-                </button>
-              </div>
-            </form>
+              Annuler
+            </button>
+            <button type="submit" form="expense-add-form" className="app-btn-primary">
+              Valider la dépense
+            </button>
+          </>
+        }
+      >
+        <form id="expense-add-form" onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="mb-1.5 block text-sm font-medium text-foreground">Date *</label>
+            <input
+              type="date"
+              required
+              value={date}
+              onChange={(e) => setDate(e.target.value)}
+              className="app-field font-mono"
+            />
           </div>
-        </div>
+
+          <div>
+            <label className="mb-1.5 block text-sm font-medium text-foreground">Vendeur</label>
+            <select
+              value={vendeur}
+              onChange={(e) => setVendeur(e.target.value)}
+              className="app-field"
+            >
+              {sellers.map((v) => (
+                <option key={v.id} value={v.nom}>
+                  {v.nom} — {formatCurrency(v.soldeNetEnPoche)} en poche
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div>
+            <label className="mb-1.5 block text-sm font-medium text-foreground">Type</label>
+            <select
+              value={type}
+              onChange={(e: any) => setType(e.target.value)}
+              className="app-field"
+            >
+              <option value="Retrait d'argent">Retrait d'argent (avance, commission)</option>
+              <option value="Achat de stock">Achat de stock ou matériel d'urgence</option>
+              <option value="Autre dépense">Autre dépense (transport, repas...)</option>
+            </select>
+          </div>
+
+          <div>
+            <label className="mb-1.5 block text-sm font-medium text-foreground">
+              Montant (Ar) *
+            </label>
+            <input
+              type="number"
+              required
+              min="1"
+              value={montant}
+              onChange={(e) => setMontant(Number(e.target.value))}
+              className="app-field font-mono"
+            />
+          </div>
+
+          <div>
+            <label className="mb-1.5 block text-sm font-medium text-foreground">Motif</label>
+            <textarea
+              rows={2}
+              value={note}
+              onChange={(e) => setNote(e.target.value)}
+              placeholder="ex : transport livraison, avance commission"
+              className="app-field"
+            />
+          </div>
+        </form>
+      </Modal>
+
+      {/* ── Modification d'une dépense ── */}
+      {editingExpense && (
+        <Modal
+          open
+          onClose={() => setEditingExpense(null)}
+          size="md"
+          icon={<Edit3 className="h-4 w-4" />}
+          title={`Dépense ${editingExpense.numero}`}
+          description={editingExpense.vendeur}
+          footer={
+            <>
+              <button
+                type="button"
+                onClick={() => setEditingExpense(null)}
+                className="app-btn-secondary"
+              >
+                Annuler
+              </button>
+              <button type="submit" form="expense-edit-form" className="app-btn-primary">
+                Enregistrer
+              </button>
+            </>
+          }
+        >
+          <form
+            id="expense-edit-form"
+            onSubmit={(e) => {
+              e.preventDefault();
+              if (!onEditExpense) return;
+              onEditExpense({
+                ...editingExpense,
+                impactTresorerieGlobale: -editingExpense.montant,
+              });
+              setEditingExpense(null);
+            }}
+            className="space-y-4"
+          >
+            <div>
+              <label className="mb-1.5 block text-sm font-medium text-foreground">Date *</label>
+              <input
+                type="date"
+                required
+                value={editingExpense.date}
+                onChange={(ev) => setEditingExpense({ ...editingExpense, date: ev.target.value })}
+                className="app-field font-mono"
+              />
+            </div>
+
+            <div>
+              <label className="mb-1.5 block text-sm font-medium text-foreground">Vendeur</label>
+              <select
+                value={editingExpense.vendeur}
+                onChange={(ev) =>
+                  setEditingExpense({ ...editingExpense, vendeur: ev.target.value })
+                }
+                className="app-field"
+              >
+                {sellers.map((v) => (
+                  <option key={v.id} value={v.nom}>
+                    {v.nom}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="mb-1.5 block text-sm font-medium text-foreground">Type</label>
+              <select
+                value={editingExpense.type}
+                onChange={(ev: any) =>
+                  setEditingExpense({ ...editingExpense, type: ev.target.value })
+                }
+                className="app-field"
+              >
+                <option value="Retrait d'argent">Retrait d'argent (avance, commission)</option>
+                <option value="Achat de stock">Achat de stock ou matériel d'urgence</option>
+                <option value="Autre dépense">Autre dépense (transport, repas...)</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="mb-1.5 block text-sm font-medium text-foreground">
+                Montant (Ar) *
+              </label>
+              <input
+                type="number"
+                required
+                min="1"
+                value={editingExpense.montant}
+                onChange={(ev) =>
+                  setEditingExpense({ ...editingExpense, montant: Number(ev.target.value) })
+                }
+                className="app-field font-mono"
+              />
+            </div>
+
+            <div>
+              <label className="mb-1.5 block text-sm font-medium text-foreground">Motif</label>
+              <textarea
+                rows={2}
+                value={editingExpense.note}
+                onChange={(ev) => setEditingExpense({ ...editingExpense, note: ev.target.value })}
+                className="app-field"
+              />
+            </div>
+          </form>
+        </Modal>
       )}
     </div>
   );

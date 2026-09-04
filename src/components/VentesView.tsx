@@ -29,7 +29,7 @@ import { formatCurrency, formatDateLocale, getProductLabel, getSaleLabel } from 
 import { PageHeader, HeaderMetric } from "./shared/PageHeader";
 import { FilterBar, FilterField } from "./shared/FilterBar";
 import { DataList } from "./shared/DataList";
-import { StatBar } from "./shared/StatBar";
+import { StatBar, StatCol } from "./shared/StatBar";
 import { Modal } from "./shared/Modal";
 
 interface VentesViewProps {
@@ -466,355 +466,331 @@ export const VentesView: React.FC<VentesViewProps> = ({
         />
       </div>
 
-      {/* Modal */}
-      {isModalOpen && (
-        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-card border border-muted-foreground/20 rounded-2xl w-full max-w-lg p-6 shadow-xl text-foreground space-y-4">
-            <h3 className="text-lg font-bold flex items-center gap-2">
-              <DollarSign className="w-5 h-5 t-info" />
-              Saisie d'une Nouvelle Vente (Prix Libre & Vendeur)
-            </h3>
+      {/* ── Nouvelle vente ── */}
+      <Modal
+        open={isModalOpen}
+        onClose={() => {
+          setIsModalOpen(false);
+          setFormError(null);
+        }}
+        size="lg"
+        icon={<DollarSign className="h-4 w-4" />}
+        title="Nouvelle vente"
+        description="Le prix de vente est libre : il est prérempli, puis modifiable."
+        footer={
+          <>
+            <button
+              type="button"
+              onClick={() => {
+                setIsModalOpen(false);
+                setFormError(null);
+              }}
+              className="app-btn-secondary"
+            >
+              Annuler
+            </button>
+            <button type="submit" form="sale-add-form" className="app-btn-primary">
+              Valider la vente
+            </button>
+          </>
+        }
+      >
+        <form id="sale-add-form" onSubmit={handleSubmit} className="space-y-4">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div>
+              <label className="mb-1.5 block text-sm font-medium text-foreground">Date</label>
+              <input
+                type="date"
+                required
+                value={date}
+                onChange={(e) => setDate(e.target.value)}
+                className="app-field font-mono"
+              />
+            </div>
 
-            <form onSubmit={handleSubmit} className="space-y-3 text-xs">
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-muted-foreground font-medium mb-1">Date :</label>
-                  <input
-                    type="date"
-                    required
-                    value={date}
-                    onChange={(e) => setDate(e.target.value)}
-                    className="w-full bg-muted border border-muted-foreground/20 rounded-xl px-3 py-2 text-foreground font-mono focus:outline-none focus:border-emerald-500"
-                  />
-                </div>
+            <div>
+              <label className="mb-1.5 block text-sm font-medium text-foreground">Vendeur</label>
+              <select
+                value={vendeur}
+                onChange={(e) => setVendeur(e.target.value)}
+                className="app-field"
+              >
+                {sellers.map((v) => (
+                  <option key={v.id} value={v.nom}>
+                    {v.nom}
+                  </option>
+                ))}
+              </select>
+            </div>
+          </div>
 
-                <div>
-                  <label className="block text-muted-foreground font-medium mb-1">
-                    Vendeur :
-                  </label>
-                  <select
-                    value={vendeur}
-                    onChange={(e) => setVendeur(e.target.value)}
-                    className="w-full bg-muted border border-muted-foreground/20 rounded-xl px-3 py-2 text-foreground font-semibold focus:outline-none focus:border-emerald-500"
-                  >
-                    {sellers.map((v) => (
-                      <option key={v.id} value={v.nom}>
-                        {v.nom}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+          <div>
+            <label className="mb-1.5 block text-sm font-medium text-foreground">Produit</label>
+            <select
+              value={selectedProductId}
+              onChange={(e) => {
+                setSelectedProductId(e.target.value);
+                setIsCustomPrice(false);
+              }}
+              className="app-field font-mono"
+            >
+              {products.map((p) => (
+                <option key={p.id} value={p.id}>
+                  [{p.numero}] {getProductLabel(p, products)} (réf {p.prixVenteDefaut} Ar |
+                  disponible {p.stockDisponible}
+                  {p.stockReserve > 0 ? ` / ${p.stockActuel} total` : ""})
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div>
+              <label className="mb-1.5 block text-sm font-medium text-foreground">Quantité</label>
+              <input
+                type="number"
+                required
+                min="1"
+                max={currentProduct?.stockDisponible || 999}
+                value={quantite}
+                onChange={(e) => setQuantite(Number(e.target.value))}
+                className="app-field font-mono"
+              />
+              {currentProduct && (
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Disponible : {currentProduct.stockDisponible}
+                  {currentProduct.stockReserve > 0
+                    ? ` (${currentProduct.stockActuel} en stock, ${currentProduct.stockReserve} réservés par des commandes)`
+                    : ""}
+                </p>
+              )}
+            </div>
+
+            <div>
+              <label className="mb-1.5 block text-sm font-medium text-foreground">
+                Prix de vente unitaire
+              </label>
+              <input
+                type="number"
+                required
+                min="0"
+                value={prixVenteUnit}
+                onChange={(e) => {
+                  setPrixVenteUnit(Number(e.target.value));
+                  setIsCustomPrice(true);
+                }}
+                className="app-field font-mono"
+              />
+              <p className="mt-1 text-xs text-muted-foreground">
+                Prérempli au prix de référence ({currentProduct?.prixVenteDefaut} Ar).
+              </p>
+            </div>
+          </div>
+
+          <div className="space-y-4 border-t border-border pt-4">
+            <h4 className="app-section-title">Crédit ou paiement partiel</h4>
+
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div>
+                <label className="mb-1.5 block text-sm font-medium text-foreground">Client</label>
+                <input
+                  type="text"
+                  value={clientCredit}
+                  onChange={(e) => setClientCredit(e.target.value)}
+                  placeholder="Laisser vide si comptant"
+                  className="app-field"
+                />
               </div>
 
               <div>
-                <label className="block text-muted-foreground font-medium mb-1">
-                  Sélection du Produit / Variante :
+                <label className="mb-1.5 block text-sm font-medium text-foreground">
+                  Montant payé comptant
                 </label>
+                <input
+                  type="number"
+                  value={montantPaye}
+                  onChange={(e) => setMontantPaye(Number(e.target.value))}
+                  className="app-field font-mono"
+                />
+              </div>
+            </div>
+          </div>
+
+          {/* Récapitulatif */}
+          <div className="app-statbar grid-cols-2">
+            <StatCol label="Total de la vente" value={formatCurrency(calculatedTotalVente)} />
+            <StatCol
+              label="Reste à payer"
+              value={formatCurrency(calculatedTotalVente - montantPaye)}
+              alert={calculatedTotalVente - montantPaye > 0}
+              hint={calculatedTotalVente - montantPaye > 0 ? "Vente à crédit" : undefined}
+            />
+          </div>
+
+          {formError && (
+            <div className="flex items-center gap-2 rounded-xl border border-danger-border bg-danger-soft px-3 py-2.5 text-sm t-danger">
+              <AlertCircle className="h-4 w-4 shrink-0" />
+              {formError}
+            </div>
+          )}
+        </form>
+      </Modal>
+
+      {/* ── Modification d'une vente ── */}
+      {editingSale && (
+        <Modal
+          open
+          onClose={() => setEditingSale(null)}
+          size="lg"
+          icon={<Edit3 className="h-4 w-4" />}
+          title={`Vente ${editingSale.numero}`}
+          description={getSaleLabel(editingSale, products)}
+          footer={
+            <>
+              <button
+                type="button"
+                onClick={() => setEditingSale(null)}
+                className="app-btn-secondary"
+              >
+                Annuler
+              </button>
+              <button type="submit" form="sale-edit-form" className="app-btn-primary">
+                Enregistrer
+              </button>
+            </>
+          }
+        >
+          <form
+            id="sale-edit-form"
+            onSubmit={(e) => {
+              e.preventDefault();
+              if (!onEditSale) return;
+
+              const totalVente = editingSale.quantite * editingSale.prixVenteUnit;
+              const totalAchatRef = editingSale.quantite * editingSale.prixAchatUnitRef;
+              const margeTotale = totalVente - totalAchatRef;
+              const soldeDu = totalVente - editingSale.montantPaye;
+
+              let statutCredit: "Payé" | "Partiel" | "Impayé" = "Payé";
+              if (soldeDu > 0 && editingSale.montantPaye > 0) {
+                statutCredit = "Partiel";
+              } else if (soldeDu === totalVente) {
+                statutCredit = "Impayé";
+              }
+
+              onEditSale({
+                ...editingSale,
+                totalVente,
+                totalAchatRef,
+                margeTotale,
+                soldeDu,
+                statutCredit,
+              });
+
+              setEditingSale(null);
+            }}
+            className="space-y-4"
+          >
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div>
+                <label className="mb-1.5 block text-sm font-medium text-foreground">Date</label>
+                <input
+                  type="date"
+                  required
+                  value={editingSale.date}
+                  onChange={(e) => setEditingSale({ ...editingSale, date: e.target.value })}
+                  className="app-field font-mono"
+                />
+              </div>
+
+              <div>
+                <label className="mb-1.5 block text-sm font-medium text-foreground">Vendeur</label>
                 <select
-                  value={selectedProductId}
-                  onChange={(e) => {
-                    setSelectedProductId(e.target.value);
-                    setIsCustomPrice(false);
-                  }}
-                  className="w-full bg-muted border border-muted-foreground/20 rounded-xl px-3 py-2 text-foreground font-mono font-bold focus:outline-none focus:border-emerald-500"
+                  value={editingSale.vendeur}
+                  onChange={(e) => setEditingSale({ ...editingSale, vendeur: e.target.value })}
+                  className="app-field"
                 >
-                  {products.map((p) => (
-                    <option key={p.id} value={p.id}>
-                      [{p.numero}] {getProductLabel(p, products)} (Prix Réf : {p.prixVenteDefaut} Ar | Disponible :{" "}
-                      {p.stockDisponible}
-                      {p.stockReserve > 0 ? ` / ${p.stockActuel} total` : ""})
+                  {sellers.map((v) => (
+                    <option key={v.id} value={v.nom}>
+                      {v.nom}
                     </option>
                   ))}
                 </select>
               </div>
+            </div>
 
-              <div className="grid grid-cols-2 gap-3">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div>
+                <label className="mb-1.5 block text-sm font-medium text-foreground">Quantité</label>
+                <input
+                  type="number"
+                  required
+                  min="1"
+                  value={editingSale.quantite}
+                  onChange={(e) =>
+                    setEditingSale({ ...editingSale, quantite: Number(e.target.value) })
+                  }
+                  className="app-field font-mono"
+                />
+              </div>
+
+              <div>
+                <label className="mb-1.5 block text-sm font-medium text-foreground">
+                  Prix de vente unitaire (Ar)
+                </label>
+                <input
+                  type="number"
+                  required
+                  min="0"
+                  value={editingSale.prixVenteUnit}
+                  onChange={(e) =>
+                    setEditingSale({ ...editingSale, prixVenteUnit: Number(e.target.value) })
+                  }
+                  className="app-field font-mono"
+                />
+              </div>
+            </div>
+
+            <div className="space-y-4 border-t border-border pt-4">
+              <h4 className="app-section-title">Crédit ou paiement partiel</h4>
+
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 <div>
-                  <label className="block text-muted-foreground font-medium mb-1">
-                    Quantité Vendue :
-                  </label>
+                  <label className="mb-1.5 block text-sm font-medium text-foreground">Client</label>
                   <input
-                    type="number"
-                    required
-                    min="1"
-                    max={currentProduct?.stockDisponible || 999}
-                    value={quantite}
-                    onChange={(e) => setQuantite(Number(e.target.value))}
-                    className="w-full bg-muted border border-muted-foreground/20 rounded-xl px-3 py-2 text-foreground font-mono focus:outline-none focus:border-emerald-500"
-                  />
-                  {currentProduct && (
-                    <span className="text-[10px] text-muted-foreground mt-1 block">
-                      Disponible : {currentProduct.stockDisponible}
-                      {currentProduct.stockReserve > 0
-                        ? ` (${currentProduct.stockActuel} en stock, ${currentProduct.stockReserve} réservé(s) par des commandes)`
-                        : ""}
-                    </span>
-                  )}
-                </div>
-
-                <div>
-                  <label className="block t-info font-bold mb-1 flex items-center justify-between">
-                    <span>Prix de vente unitaire :</span>
-                    <span className="text-[10px] t-success font-normal">Saisie libre</span>
-                  </label>
-                  <input
-                    type="number"
-                    required
-                    min="0"
-                    value={prixVenteUnit}
-                    onChange={(e) => {
-                      setPrixVenteUnit(Number(e.target.value));
-                      setIsCustomPrice(true);
-                    }}
-                    className="w-full bg-info-soft border border-info-border rounded-xl px-3 py-2 t-info font-mono font-bold focus:outline-none focus:border-primary"
-                  />
-                  <span className="text-[10px] text-muted-foreground mt-1 block">
-                    Prérempli avec prix réf ({currentProduct?.prixVenteDefaut} Ar), modifiable.
-                  </span>
-                </div>
-              </div>
-
-              {/* Credit Customer section */}
-              <div className="border-t border-border pt-3 space-y-2">
-                <div className="flex items-center justify-between">
-                  <label className="text-xs font-semibold t-warning">
-                    Vente à Crédit / Paiement Partiel (Optionnel) :
-                  </label>
-                </div>
-
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-muted-foreground text-[11px] mb-1">
-                      Nom du Client :
-                    </label>
-                    <input
-                      type="text"
-                      value={clientCredit}
-                      onChange={(e) => setClientCredit(e.target.value)}
-                      placeholder="laisser vide si comptant"
-                      className="w-full bg-muted border border-muted-foreground/20 rounded-xl px-3 py-2 text-foreground focus:outline-none focus:border-emerald-500"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-muted-foreground text-[11px] mb-1">
-                      Montant Payé Comptant :
-                    </label>
-                    <input
-                      type="number"
-                      value={montantPaye}
-                      onChange={(e) => setMontantPaye(Number(e.target.value))}
-                      className="w-full bg-muted border border-muted-foreground/20 rounded-xl px-3 py-2 text-foreground font-mono focus:outline-none focus:border-emerald-500"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              {/* Summary */}
-              <div className="bg-muted/80 p-3 rounded-xl border border-muted-foreground/20 flex justify-between items-center font-mono">
-                <div>
-                  <span className="text-muted-foreground text-[10px] block">Total de la vente :</span>
-                  <span className="text-lg font-bold t-info">
-                    {formatCurrency(calculatedTotalVente)}
-                  </span>
-                </div>
-                <div className="text-right">
-                  <span className="text-muted-foreground text-[10px] block">Reste à payer :</span>
-                  <span className="text-base font-bold t-warning">
-                    {formatCurrency(calculatedTotalVente - montantPaye)}
-                  </span>
-                </div>
-              </div>
-
-              {formError && (
-                <div className="flex items-center gap-1.5 text-xs t-danger bg-red-500/10 border border-red-500/25 rounded-lg px-3 py-2">
-                  <AlertCircle className="w-3.5 h-3.5 shrink-0" />
-                  {formError}
-                </div>
-              )}
-
-              <div className="flex items-center justify-end gap-2 pt-2">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setIsModalOpen(false);
-                    setFormError(null);
-                  }}
-                  className="px-4 py-2 bg-muted hover:bg-accent text-muted-foreground rounded-xl font-medium"
-                >
-                  Annuler
-                </button>
-                <button
-                  type="submit"
-                  className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl font-semibold shadow-sm"
-                >
-                  Valider la Vente
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-      {/* Edit Sale Modal */}
-      {editingSale && (
-        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-card border border-muted-foreground/20 rounded-2xl w-full max-w-lg p-6 shadow-xl text-foreground space-y-4">
-            <h3 className="text-lg font-bold flex items-center gap-2">
-              <Edit3 className="w-5 h-5 t-info" />
-              Modification de la Vente {editingSale.numero} ({getSaleLabel(editingSale, products)})
-            </h3>
-
-            <form
-              onSubmit={(e) => {
-                e.preventDefault();
-                if (!onEditSale) return;
-
-                const totalVente = editingSale.quantite * editingSale.prixVenteUnit;
-                const totalAchatRef = editingSale.quantite * editingSale.prixAchatUnitRef;
-                const margeTotale = totalVente - totalAchatRef;
-                const soldeDu = totalVente - editingSale.montantPaye;
-
-                let statutCredit: "Payé" | "Partiel" | "Impayé" = "Payé";
-                if (soldeDu > 0 && editingSale.montantPaye > 0) {
-                  statutCredit = "Partiel";
-                } else if (soldeDu === totalVente) {
-                  statutCredit = "Impayé";
-                }
-
-                onEditSale({
-                  ...editingSale,
-                  totalVente,
-                  totalAchatRef,
-                  margeTotale,
-                  soldeDu,
-                  statutCredit,
-                });
-
-                setEditingSale(null);
-              }}
-              className="space-y-3 text-xs"
-            >
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-muted-foreground font-medium mb-1">Date :</label>
-                  <input
-                    type="date"
-                    required
-                    value={editingSale.date}
-                    onChange={(e) => setEditingSale({ ...editingSale, date: e.target.value })}
-                    className="w-full bg-muted border border-muted-foreground/20 rounded-xl px-3 py-2 text-foreground font-mono focus:outline-none focus:border-blue-500"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-muted-foreground font-medium mb-1">
-                    Vendeur affecté :
-                  </label>
-                  <select
-                    value={editingSale.vendeur}
-                    onChange={(e) => setEditingSale({ ...editingSale, vendeur: e.target.value })}
-                    className="w-full bg-muted border border-muted-foreground/20 rounded-xl px-3 py-2 text-foreground font-semibold focus:outline-none focus:border-blue-500"
-                  >
-                    {sellers.map((v) => (
-                      <option key={v.id} value={v.nom}>
-                        {v.nom}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-muted-foreground font-medium mb-1">
-                    Quantité Vendue :
-                  </label>
-                  <input
-                    type="number"
-                    required
-                    min="1"
-                    value={editingSale.quantite}
+                    type="text"
+                    value={editingSale.clientCredit || ""}
                     onChange={(e) =>
-                      setEditingSale({ ...editingSale, quantite: Number(e.target.value) })
+                      setEditingSale({
+                        ...editingSale,
+                        clientCredit: e.target.value || undefined,
+                      })
                     }
-                    className="w-full bg-muted border border-muted-foreground/20 rounded-xl px-3 py-2 text-foreground font-mono focus:outline-none focus:border-blue-500"
+                    placeholder="Laisser vide si comptant"
+                    className="app-field"
                   />
                 </div>
 
                 <div>
-                  <label className="block t-info font-bold mb-1">
-                    Prix Vente Unit. (Ar) :
+                  <label className="mb-1.5 block text-sm font-medium text-foreground">
+                    Montant payé comptant
                   </label>
                   <input
                     type="number"
-                    required
-                    min="0"
-                    value={editingSale.prixVenteUnit}
+                    value={editingSale.montantPaye}
                     onChange={(e) =>
-                      setEditingSale({ ...editingSale, prixVenteUnit: Number(e.target.value) })
+                      setEditingSale({
+                        ...editingSale,
+                        montantPaye: Number(e.target.value),
+                      })
                     }
-                    className="w-full bg-info-soft border border-info-border rounded-xl px-3 py-2 t-info font-mono font-bold focus:outline-none focus:border-primary"
+                    className="app-field font-mono"
                   />
                 </div>
               </div>
-
-              <div className="border-t border-border pt-3 space-y-2">
-                <div className="grid grid-cols-2 gap-3">
-                  <div>
-                    <label className="block text-muted-foreground text-[11px] mb-1">
-                      Client Crédit :
-                    </label>
-                    <input
-                      type="text"
-                      value={editingSale.clientCredit || ""}
-                      onChange={(e) =>
-                        setEditingSale({
-                          ...editingSale,
-                          clientCredit: e.target.value || undefined,
-                        })
-                      }
-                      placeholder="laisser vide si comptant"
-                      className="w-full bg-muted border border-muted-foreground/20 rounded-xl px-3 py-2 text-foreground focus:outline-none focus:border-blue-500"
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-muted-foreground text-[11px] mb-1">
-                      Montant Payé Comptant :
-                    </label>
-                    <input
-                      type="number"
-                      value={editingSale.montantPaye}
-                      onChange={(e) =>
-                        setEditingSale({
-                          ...editingSale,
-                          montantPaye: Number(e.target.value),
-                        })
-                      }
-                      className="w-full bg-muted border border-muted-foreground/20 rounded-xl px-3 py-2 text-foreground font-mono focus:outline-none focus:border-blue-500"
-                    />
-                  </div>
-                </div>
-              </div>
-
-              <div className="flex items-center justify-end gap-2 pt-2">
-                <button
-                  type="button"
-                  onClick={() => setEditingSale(null)}
-                  className="px-4 py-2 bg-muted hover:bg-accent text-muted-foreground rounded-xl font-medium"
-                >
-                  Annuler
-                </button>
-                <button
-                  type="submit"
-                  className="px-4 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-xl font-semibold shadow-sm"
-                >
-                  Sauvegarder Modifications
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
+            </div>
+          </form>
+        </Modal>
       )}
 
       {/* Receipt / Facture Preview & Printing Modal */}

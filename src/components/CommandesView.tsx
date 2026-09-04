@@ -21,6 +21,8 @@ import {
 } from "lucide-react";
 import { formatCurrency, getProductLabel, getSaleLabel } from "../utils/formulas";
 import { PageHeader } from "./shared/PageHeader";
+import { StatCol } from "./shared/StatBar";
+import { Modal } from "./shared/Modal";
 
 /**
  * Adaptateur : le type Product ici vient directement de Supabase (snake_case),
@@ -673,353 +675,375 @@ export const CommandesView: React.FC<CommandesViewProps> = ({
         </div>
       )}
 
-      {/* Payment modal */}
+      {/* ── Annulation avec remboursement ── */}
       {cancelTarget && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-card border border-border rounded-2xl p-6 w-full max-w-md shadow-2xl">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="font-bold text-foreground">Annuler la commande</h3>
+        <Modal
+          open
+          onClose={() => setCancelTarget(null)}
+          size="md"
+          tone="danger"
+          icon={<AlertCircle className="h-4 w-4" />}
+          title="Annuler la commande"
+          description={`Commande ${cancelTarget.numero}`}
+          dismissible={!cancelling}
+          footer={
+            <>
               <button
-                onClick={() => setCancelTarget(null)}
-                className="p-1 text-muted-foreground hover:text-foreground rounded-lg"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-            <div className="text-sm text-muted-foreground mb-5">
-              La commande{" "}
-              <strong className="text-foreground font-mono">{cancelTarget.numero}</strong> a déjà
-              reçu{" "}
-              <strong className="t-success font-mono">
-                {formatCurrency(cancelTarget.montant_paye)}
-              </strong>{" "}
-              de paiement. L'annulation remboursera automatiquement le montant réellement encaissé
-              dans la même transaction, sans supprimer le paiement d'origine.
-            </div>
-            <div className="space-y-2">
-              <button
-                onClick={confirmCancelRefund}
-                disabled={cancelling}
-                className="w-full flex items-center justify-center gap-2 px-4 py-2.5 bg-red-500/10 hover:bg-red-500/20 t-danger border border-red-500/25 rounded-xl text-sm font-semibold transition-colors disabled:opacity-60"
-              >
-                {cancelling ? "Annulation en cours…" : "Rembourser et annuler"}
-                <span className="text-xs font-normal opacity-75">
-                  ({formatCurrency(cancelTarget.montant_paye - (cancelTarget.montant_rembourse ?? 0))} à rembourser)
-                </span>
-              </button>
-              <button
+                type="button"
                 onClick={() => setCancelTarget(null)}
                 disabled={cancelling}
-                className="w-full px-4 py-2 text-xs text-muted-foreground hover:text-foreground transition-colors"
+                className="app-btn-secondary"
               >
                 Retour, ne rien faire
               </button>
-            </div>
+              <button
+                type="button"
+                onClick={confirmCancelRefund}
+                disabled={cancelling}
+                className="app-btn-danger"
+              >
+                {cancelling ? "Annulation en cours..." : "Rembourser et annuler"}
+              </button>
+            </>
+          }
+        >
+          <p className="text-sm text-muted-foreground">
+            Cette commande a déjà reçu{" "}
+            <strong className="font-mono text-foreground">
+              {formatCurrency(cancelTarget.montant_paye)}
+            </strong>{" "}
+            de paiement. L'annulation remboursera automatiquement le montant réellement encaissé
+            dans la même transaction, sans supprimer le paiement d'origine.
+          </p>
+
+          <div className="app-statbar mt-4 grid-cols-1">
+            <StatCol
+              label="À rembourser"
+              value={formatCurrency(
+                cancelTarget.montant_paye - (cancelTarget.montant_rembourse ?? 0),
+              )}
+            />
           </div>
-        </div>
+        </Modal>
       )}
 
+      {/* ── Encaissement d'une commande ── */}
       {showPaymentModal && selectedOrder && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-card border border-border rounded-2xl p-6 w-full max-w-md shadow-2xl">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="font-bold text-foreground">Enregistrer un paiement</h3>
+        <Modal
+          open
+          onClose={() => {
+            setShowPaymentModal(false);
+            setError(null);
+          }}
+          size="md"
+          icon={<CreditCard className="h-4 w-4" />}
+          title="Enregistrer un paiement"
+          description={`Commande ${selectedOrder.numero} — reste à payer ${formatCurrency(selectedOrder.reste_a_payer ?? 0)}`}
+          footer={
+            <>
               <button
+                type="button"
                 onClick={() => {
                   setShowPaymentModal(false);
                   setError(null);
                 }}
-                className="p-1 text-muted-foreground hover:text-foreground rounded-lg"
+                className="app-btn-secondary"
               >
-                <X className="w-4 h-4" />
+                Annuler
               </button>
+              <button
+                type="submit"
+                form="order-payment-form"
+                disabled={saving}
+                className="app-btn-primary"
+              >
+                {saving ? "Enregistrement..." : "Confirmer le paiement"}
+              </button>
+            </>
+          }
+        >
+          {error && (
+            <div className="mb-4 rounded-xl border border-danger-border bg-danger-soft px-3 py-2.5 text-sm t-danger">
+              {error}
             </div>
-            <div className="text-sm text-muted-foreground mb-4">
-              Commande <strong className="text-foreground font-mono">{selectedOrder.numero}</strong>{" "}
-              — Reste à payer :{" "}
-              <strong className="t-danger font-mono">
-                {formatCurrency(selectedOrder.reste_a_payer ?? 0)}
-              </strong>
+          )}
+
+          <form id="order-payment-form" onSubmit={handleAddPayment} className="space-y-4">
+            <div>
+              <label className="mb-1.5 block text-sm font-medium text-foreground">
+                Montant reçu *
+              </label>
+              <input
+                type="number"
+                value={paymentAmount}
+                onChange={(e) => setPaymentAmount(e.target.value)}
+                max={selectedOrder.reste_a_payer ?? 0}
+                className="app-field font-mono"
+                placeholder="0"
+                required
+              />
             </div>
-            {error && (
-              <div className="mb-4 p-3 bg-red-500/10 border border-red-500/30 t-danger rounded-xl text-xs">
-                {error}
-              </div>
-            )}
-            <form onSubmit={handleAddPayment} className="space-y-4">
-              <div>
-                <label className="block text-xs font-medium text-muted-foreground mb-1">
-                  Montant reçu *
-                </label>
-                <input
-                  type="number"
-                  value={paymentAmount}
-                  onChange={(e) => setPaymentAmount(e.target.value)}
-                  max={selectedOrder.reste_a_payer ?? 0}
-                  className="w-full bg-muted border border-border rounded-xl px-3 py-2.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
-                  placeholder="0"
-                  required
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-muted-foreground mb-1">
-                  Mode de paiement
-                </label>
-                <select
-                  value={paymentMethod}
-                  onChange={(e) => setPaymentMethod(e.target.value)}
-                  className="w-full bg-muted border border-border rounded-xl px-3 py-2.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
-                >
-                  <option value="especes">Espèces</option>
-                  <option value="mobile_money">Mobile Money</option>
-                  <option value="virement">Virement</option>
-                </select>
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-muted-foreground mb-1">
-                  Note (optionnel)
-                </label>
-                <input
-                  type="text"
-                  value={paymentNote}
-                  onChange={(e) => setPaymentNote(e.target.value)}
-                  className="w-full bg-muted border border-border rounded-xl px-3 py-2.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
-                  placeholder="Référence, note..."
-                />
-              </div>
-              <div className="flex justify-end gap-3 pt-1">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setShowPaymentModal(false);
-                    setError(null);
-                  }}
-                  className="px-4 py-2 text-sm text-muted-foreground hover:text-foreground border border-border rounded-xl transition-colors"
-                >
-                  Annuler
-                </button>
-                <button
-                  type="submit"
-                  disabled={saving}
-                  className="px-5 py-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl text-sm font-semibold transition-colors disabled:opacity-60"
-                >
-                  {saving ? "Enregistrement..." : "Confirmer le paiement"}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
+
+            <div>
+              <label className="mb-1.5 block text-sm font-medium text-foreground">
+                Mode de paiement
+              </label>
+              <select
+                value={paymentMethod}
+                onChange={(e) => setPaymentMethod(e.target.value)}
+                className="app-field"
+              >
+                <option value="especes">Espèces</option>
+                <option value="mobile_money">Mobile Money</option>
+                <option value="virement">Virement</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="mb-1.5 block text-sm font-medium text-foreground">
+                Note (optionnel)
+              </label>
+              <input
+                type="text"
+                value={paymentNote}
+                onChange={(e) => setPaymentNote(e.target.value)}
+                className="app-field"
+                placeholder="Référence, note..."
+              />
+            </div>
+          </form>
+        </Modal>
       )}
 
-      {/* New order modal */}
-      {showNewOrder && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto">
-          <div className="bg-card border border-border rounded-2xl p-6 w-full max-w-2xl shadow-2xl my-4">
-            <div className="flex items-center justify-between mb-6">
-              <h3 className="font-bold text-foreground text-lg">Nouvelle Commande</h3>
-              <button
-                onClick={() => {
-                  setShowNewOrder(false);
-                  setError(null);
-                  setOrderItems([]);
-                }}
-                className="p-1 text-muted-foreground hover:text-foreground rounded-lg"
+      {/* ── Nouvelle commande ── */}
+      <Modal
+        open={showNewOrder}
+        onClose={() => {
+          setShowNewOrder(false);
+          setError(null);
+          setOrderItems([]);
+        }}
+        size="2xl"
+        icon={<Plus className="h-4 w-4" />}
+        title="Nouvelle commande"
+        description="Une commande réserve le stock jusqu'à sa livraison."
+        footer={
+          <>
+            <button
+              type="button"
+              onClick={() => {
+                setShowNewOrder(false);
+                setError(null);
+                setOrderItems([]);
+              }}
+              className="app-btn-secondary"
+            >
+              Annuler
+            </button>
+            <button
+              type="submit"
+              form="order-create-form"
+              disabled={saving || stockErrors.length > 0}
+              className="app-btn-primary"
+            >
+              {saving ? "Création..." : "Créer la commande"}
+            </button>
+          </>
+        }
+      >
+        {error && (
+          <div className="mb-4 rounded-xl border border-danger-border bg-danger-soft px-3 py-2.5 text-sm t-danger">
+            {error}
+          </div>
+        )}
+
+        <form id="order-create-form" onSubmit={handleCreateOrder} className="space-y-5">
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div>
+              <label className="mb-1.5 block text-sm font-medium text-foreground">Client</label>
+              <select
+                value={newOrder.client_id}
+                onChange={(e) => setNewOrder((p) => ({ ...p, client_id: e.target.value }))}
+                className="app-field"
               >
-                <X className="w-5 h-5" />
+                <option value="">Sélectionner un client...</option>
+                {clients.map((c) => (
+                  <option key={c.id} value={c.id}>
+                    {c.nom}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="mb-1.5 block text-sm font-medium text-foreground">
+                Statut initial
+              </label>
+              <select
+                value={newOrder.statut_commande}
+                onChange={(e) =>
+                  setNewOrder((p) => ({ ...p, statut_commande: e.target.value as OrderStatus }))
+                }
+                className="app-field"
+              >
+                <option value="en_attente">En attente</option>
+                <option value="en_cours">En cours</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="mb-1.5 block text-sm font-medium text-foreground">
+                Livraison prévue
+              </label>
+              <input
+                type="date"
+                value={newOrder.date_livraison}
+                onChange={(e) => setNewOrder((p) => ({ ...p, date_livraison: e.target.value }))}
+                className="app-field font-mono"
+              />
+            </div>
+
+            <div>
+              <label className="mb-1.5 block text-sm font-medium text-foreground">Note</label>
+              <input
+                type="text"
+                value={newOrder.note}
+                onChange={(e) => setNewOrder((p) => ({ ...p, note: e.target.value }))}
+                className="app-field"
+                placeholder="Note optionnelle..."
+              />
+            </div>
+          </div>
+
+          {/* Lignes de la commande.
+              Elles tenaient sur une grille de douze colonnes, y compris
+              sur téléphone où chaque champ se réduisait à trente pixels.
+              Chaque ligne est maintenant un bloc qui s'empile en dessous
+              de 640 px et retrouve sa grille au-delà. */}
+          <div>
+            <div className="mb-2 flex items-center justify-between gap-3">
+              <h4 className="app-section-title">Produits *</h4>
+              <button
+                type="button"
+                onClick={addItem}
+                className="inline-flex items-center gap-1 text-xs font-semibold text-primary hover:underline"
+              >
+                <Plus className="h-3.5 w-3.5" />
+                Ajouter un produit
               </button>
             </div>
-            {error && (
-              <div className="mb-4 p-3 bg-red-500/10 border border-red-500/30 t-danger rounded-xl text-sm">
-                {error}
+
+            {orderItems.length === 0 && (
+              <div className="rounded-xl border border-dashed border-border px-4 py-6 text-center text-sm text-muted-foreground">
+                Aucun produit pour l'instant. Ajoutez-en un pour continuer.
               </div>
             )}
-            <form onSubmit={handleCreateOrder} className="space-y-5">
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-xs font-medium text-muted-foreground mb-1">
-                    Client
-                  </label>
-                  <select
-                    value={newOrder.client_id}
-                    onChange={(e) => setNewOrder((p) => ({ ...p, client_id: e.target.value }))}
-                    className="w-full bg-muted border border-border rounded-xl px-3 py-2.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
-                  >
-                    <option value="">-- Sélectionner un client --</option>
-                    {clients.map((c) => (
-                      <option key={c.id} value={c.id}>
-                        {c.nom}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-muted-foreground mb-1">
-                    Statut initial
-                  </label>
-                  <select
-                    value={newOrder.statut_commande}
-                    onChange={(e) =>
-                      setNewOrder((p) => ({ ...p, statut_commande: e.target.value as OrderStatus }))
-                    }
-                    className="w-full bg-muted border border-border rounded-xl px-3 py-2.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
-                  >
-                    <option value="en_attente">En attente</option>
-                    <option value="en_cours">En cours</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-muted-foreground mb-1">
-                    Date de livraison prévue
-                  </label>
-                  <input
-                    type="date"
-                    value={newOrder.date_livraison}
-                    onChange={(e) => setNewOrder((p) => ({ ...p, date_livraison: e.target.value }))}
-                    className="w-full bg-muted border border-border rounded-xl px-3 py-2.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-medium text-muted-foreground mb-1">
-                    Note
-                  </label>
-                  <input
-                    type="text"
-                    value={newOrder.note}
-                    onChange={(e) => setNewOrder((p) => ({ ...p, note: e.target.value }))}
-                    className="w-full bg-muted border border-border rounded-xl px-3 py-2.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
-                    placeholder="Note optionnelle..."
-                  />
-                </div>
-              </div>
 
-              {/* Order items */}
-              <div>
-                <div className="flex items-center justify-between mb-2">
-                  <label className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                    Produits *
-                  </label>
-                  <button
-                    type="button"
-                    onClick={addItem}
-                    className="text-xs t-success hover:underline flex items-center gap-1"
-                  >
-                    <Plus className="w-3.5 h-3.5" />
-                    Ajouter un produit
-                  </button>
-                </div>
-                {orderItems.length === 0 && (
-                  <div className="border border-dashed border-border rounded-xl p-4 text-center text-xs text-muted-foreground">
-                    Aucun produit ajouté. Cliquez sur "Ajouter un produit".
-                  </div>
-                )}
-                <div className="space-y-2">
-                  {orderItems.map((item, idx) => {
-                    const selectedProduct = products.find((p) => p.id === item.product_id);
-                    const isOut = selectedProduct ? selectedProduct.stock_actuel <= 0 : false;
-                    const isInsufficient =
-                      selectedProduct &&
-                      !isOut &&
-                      item.quantite > selectedProduct.stock_actuel;
-                    return (
-                      <div key={idx}>
-                        <div className="grid grid-cols-12 gap-2 items-center">
-                          <select
-                            value={item.product_id}
-                            onChange={(e) => updateItem(idx, "product_id", e.target.value)}
-                            className="col-span-4 bg-muted border border-border rounded-lg px-2 py-2 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-emerald-500/50"
-                          >
-                            <option value="">Produit libre</option>
-                            {products.map((p) => (
-                              <option key={p.id} value={p.id}>
-                                {getProdLabel(p, products)} — {p.stock_actuel <= 0 ? "Rupture" : `Stock: ${p.stock_actuel}`}
-                              </option>
-                            ))}
-                          </select>
-                          {!item.product_id && (
-                            <input
-                              type="text"
-                              value={item.designation}
-                              onChange={(e) => updateItem(idx, "designation", e.target.value)}
-                              placeholder="Désignation"
-                              className="col-span-3 bg-muted border border-border rounded-lg px-2 py-2 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-emerald-500/50"
-                            />
-                          )}
+            <div className="space-y-3">
+              {orderItems.map((item, idx) => {
+                const selectedProduct = products.find((p) => p.id === item.product_id);
+                const isOut = selectedProduct ? selectedProduct.stock_actuel <= 0 : false;
+                const isInsufficient =
+                  selectedProduct && !isOut && item.quantite > selectedProduct.stock_actuel;
+
+                return (
+                  <div key={idx} className="rounded-xl border border-border bg-muted/40 p-3">
+                    <div className="flex items-start gap-2">
+                      <div className="grid min-w-0 flex-1 grid-cols-1 gap-2 sm:grid-cols-2">
+                        <select
+                          value={item.product_id}
+                          onChange={(e) => updateItem(idx, "product_id", e.target.value)}
+                          className="app-field-sm sm:col-span-2"
+                        >
+                          <option value="">Produit libre</option>
+                          {products.map((p) => (
+                            <option key={p.id} value={p.id}>
+                              {getProdLabel(p, products)} —{" "}
+                              {p.stock_actuel <= 0 ? "rupture" : `stock ${p.stock_actuel}`}
+                            </option>
+                          ))}
+                        </select>
+
+                        {!item.product_id && (
+                          <input
+                            type="text"
+                            value={item.designation}
+                            onChange={(e) => updateItem(idx, "designation", e.target.value)}
+                            placeholder="Désignation"
+                            className="app-field-sm sm:col-span-2"
+                          />
+                        )}
+
+                        <label className="block">
+                          <span className="mb-1 block text-[11px] text-muted-foreground">
+                            Quantité
+                          </span>
                           <input
                             type="number"
                             value={item.quantite}
-                            onChange={(e) => updateItem(idx, "quantite", parseInt(e.target.value) || 1)}
+                            onChange={(e) =>
+                              updateItem(idx, "quantite", parseInt(e.target.value) || 1)
+                            }
                             min={1}
-                            className={`${item.product_id ? "col-span-2" : "col-span-2"} bg-muted border border-border rounded-lg px-2 py-2 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-emerald-500/50`}
+                            className="app-field-sm font-mono"
                           />
+                        </label>
+
+                        <label className="block">
+                          <span className="mb-1 block text-[11px] text-muted-foreground">
+                            Prix unitaire
+                          </span>
                           <input
                             type="number"
                             value={item.prix_vente_unit}
                             onChange={(e) =>
                               updateItem(idx, "prix_vente_unit", parseFloat(e.target.value) || 0)
                             }
-                            className="col-span-2 bg-muted border border-border rounded-lg px-2 py-2 text-xs text-foreground focus:outline-none focus:ring-1 focus:ring-emerald-500/50"
+                            className="app-field-sm font-mono"
                             placeholder="Prix"
                           />
-                          <div className="col-span-1 text-xs font-mono t-success text-right">
-                            {formatCurrency(item.quantite * item.prix_vente_unit)}
-                          </div>
-                          <button
-                            type="button"
-                            onClick={() => removeItem(idx)}
-                            className="col-span-1 p-1 t-danger hover:t-danger flex items-center justify-center"
-                          >
-                            <X className="w-3.5 h-3.5" />
-                          </button>
-                        </div>
-                        {(isOut || isInsufficient) && (
-                          <div className="mt-1 ml-1 text-[11px] t-danger flex items-center gap-1">
-                            <AlertCircle className="w-3 h-3" />
-                            {isOut
-                              ? "Ce produit est en rupture de stock."
-                              : `Stock insuffisant. Il reste seulement ${selectedProduct?.stock_actuel} unité(s) disponible(s).`}
-                          </div>
-                        )}
+                        </label>
                       </div>
-                    );
-                  })}
-                </div>
-              </div>
 
-              {orderItems.length > 0 && (
-                <div className="flex justify-end">
-                  <div className="bg-muted/50 rounded-xl px-4 py-2 text-right">
-                    <div className="text-xs text-muted-foreground">Total commande</div>
-                    <div className="text-lg font-bold font-mono t-success">
-                      {formatCurrency(totalOrder)}
+                      <button
+                        type="button"
+                        onClick={() => removeItem(idx)}
+                        className="app-btn-icon h-9 w-9 shrink-0"
+                        title="Retirer cette ligne"
+                        aria-label="Retirer cette ligne"
+                      >
+                        <X className="h-4 w-4" />
+                      </button>
                     </div>
-                  </div>
-                </div>
-              )}
 
-              <div className="flex justify-end gap-3 pt-1">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setShowNewOrder(false);
-                    setError(null);
-                    setOrderItems([]);
-                  }}
-                  className="px-4 py-2 text-sm text-muted-foreground hover:text-foreground border border-border rounded-xl transition-colors"
-                >
-                  Annuler
-                </button>
-                <button
-                  type="submit"
-                  disabled={saving || stockErrors.length > 0}
-                  className="px-5 py-2.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl text-sm font-semibold transition-colors disabled:opacity-60"
-                >
-                  {saving ? "Création..." : "Créer la commande"}
-                </button>
-              </div>
-            </form>
+                    <div className="mt-2 flex items-center justify-between gap-3 border-t border-border pt-2">
+                      <span className="text-xs text-muted-foreground">Sous-total</span>
+                      <span className="app-list-amount">
+                        {formatCurrency(item.quantite * item.prix_vente_unit)}
+                      </span>
+                    </div>
+
+                    {(isOut || isInsufficient) && (
+                      <div className="mt-2 flex items-center gap-1.5 text-xs t-danger">
+                        <AlertCircle className="h-3.5 w-3.5 shrink-0" />
+                        {isOut
+                          ? "Ce produit est en rupture de stock."
+                          : `Stock insuffisant : il reste ${selectedProduct?.stock_actuel} unité(s).`}
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
           </div>
-        </div>
-      )}
+
+          {orderItems.length > 0 && (
+            <div className="app-statbar grid-cols-1">
+              <StatCol label="Total de la commande" value={formatCurrency(totalOrder)} />
+            </div>
+          )}
+        </form>
+      </Modal>
     </div>
   );
 };

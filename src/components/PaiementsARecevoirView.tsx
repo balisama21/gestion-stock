@@ -1,7 +1,8 @@
 import React, { useMemo, useState } from "react";
-import { CreditCard, X, History, ShoppingBag, DollarSign, Search } from "lucide-react";
+import { CreditCard, History, Search } from "lucide-react";
 import { formatCurrency, getSaleLabel } from "../utils/formulas";
 import { PageHeader } from "./shared/PageHeader";
+import { Modal } from "./shared/Modal";
 import { Sale, Payment, Product } from "../types";
 import type { Database } from "../lib/database.types";
 
@@ -245,141 +246,126 @@ export const PaiementsARecevoirView: React.FC<PaiementsARecevoirViewProps> = ({
         )}
       </div>
 
-      {/* Modal paiement */}
+      {/* Encaissement */}
       {showPaymentModal && selected && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-card border border-border rounded-2xl p-6 w-full max-w-md shadow-2xl">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="font-bold text-foreground">Recevoir un paiement</h3>
+        <Modal
+          open
+          onClose={() => {
+            setShowPaymentModal(false);
+            setError(null);
+          }}
+          size="md"
+          icon={<CreditCard className="h-4 w-4" />}
+          title="Recevoir un paiement"
+          description={`${selected.type === "vente" ? "Vente" : "Commande"} ${selected.label} — reste à payer ${formatCurrency(selected.reste)}`}
+          footer={
+            <>
               <button
+                type="button"
                 onClick={() => {
                   setShowPaymentModal(false);
                   setError(null);
                 }}
-                className="p-1 text-muted-foreground hover:text-foreground rounded-lg"
+                className="app-btn-secondary"
               >
-                <X className="w-4 h-4" />
+                Annuler
               </button>
+              <button
+                type="submit"
+                form="receivable-payment-form"
+                disabled={saving}
+                className="app-btn-primary"
+              >
+                {saving ? "Enregistrement..." : "Confirmer le paiement"}
+              </button>
+            </>
+          }
+        >
+          {error && (
+            <div className="mb-4 rounded-xl border border-danger-border bg-danger-soft px-3 py-2.5 text-sm t-danger">
+              {error}
             </div>
-            <div className="text-sm text-muted-foreground mb-4">
-              {selected.type === "vente" ? "Vente" : "Commande"}{" "}
-              <strong className="text-foreground font-mono">{selected.label}</strong> — Reste à
-              payer :{" "}
-              <strong className="t-danger font-mono">{formatCurrency(selected.reste)}</strong>
+          )}
+
+          <form id="receivable-payment-form" onSubmit={handleSubmitPayment} className="space-y-4">
+            <div>
+              <label className="mb-1.5 block text-sm font-medium text-foreground">
+                Montant reçu *
+              </label>
+              <input
+                type="number"
+                value={paymentAmount}
+                onChange={(e) => setPaymentAmount(e.target.value)}
+                max={selected.reste}
+                className="app-field font-mono"
+                placeholder="0"
+                required
+              />
             </div>
-            {error && (
-              <div className="mb-4 p-3 bg-red-500/10 border border-red-500/30 t-danger rounded-xl text-xs">
-                {error}
-              </div>
-            )}
-            <form onSubmit={handleSubmitPayment} className="space-y-4">
-              <div>
-                <label className="block text-xs font-medium text-muted-foreground mb-1">
-                  Montant reçu *
-                </label>
-                <input
-                  type="number"
-                  value={paymentAmount}
-                  onChange={(e) => setPaymentAmount(e.target.value)}
-                  max={selected.reste}
-                  className="w-full bg-muted border border-border rounded-xl px-3 py-2.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
-                  placeholder="0"
-                  required
-                />
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-muted-foreground mb-1">
-                  Mode de paiement
-                </label>
-                <select
-                  value={paymentMethod}
-                  onChange={(e) => setPaymentMethod(e.target.value)}
-                  className="w-full bg-muted border border-border rounded-xl px-3 py-2.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
-                >
-                  <option value="especes">Espèces</option>
-                  <option value="mobile_money">Mobile Money</option>
-                  <option value="virement">Virement</option>
-                </select>
-              </div>
-              <div>
-                <label className="block text-xs font-medium text-muted-foreground mb-1">
-                  Note (optionnel)
-                </label>
-                <input
-                  type="text"
-                  value={paymentNote}
-                  onChange={(e) => setPaymentNote(e.target.value)}
-                  className="w-full bg-muted border border-border rounded-xl px-3 py-2.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
-                  placeholder="Référence, note..."
-                />
-              </div>
-              <div className="flex justify-end gap-3 pt-1">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setShowPaymentModal(false);
-                    setError(null);
-                  }}
-                  className="px-4 py-2 text-sm text-muted-foreground hover:text-foreground border border-border rounded-xl transition-colors"
-                >
-                  Annuler
-                </button>
-                <button
-                  type="submit"
-                  disabled={saving}
-                  className="px-5 py-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl text-sm font-semibold transition-colors disabled:opacity-60"
-                >
-                  {saving ? "Enregistrement..." : "Confirmer le paiement"}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
+
+            <div>
+              <label className="mb-1.5 block text-sm font-medium text-foreground">
+                Mode de paiement
+              </label>
+              <select
+                value={paymentMethod}
+                onChange={(e) => setPaymentMethod(e.target.value)}
+                className="app-field"
+              >
+                <option value="especes">Espèces</option>
+                <option value="mobile_money">Mobile Money</option>
+                <option value="virement">Virement</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="mb-1.5 block text-sm font-medium text-foreground">
+                Note (optionnel)
+              </label>
+              <input
+                type="text"
+                value={paymentNote}
+                onChange={(e) => setPaymentNote(e.target.value)}
+                className="app-field"
+                placeholder="Référence, note..."
+              />
+            </div>
+          </form>
+        </Modal>
       )}
 
-      {/* Modal historique */}
+      {/* Historique des encaissements */}
       {showHistoryModal && selected && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-card border border-border rounded-2xl p-6 w-full max-w-md shadow-2xl max-h-[80vh] overflow-y-auto">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="font-bold text-foreground">Historique des paiements</h3>
-              <button
-                onClick={() => setShowHistoryModal(false)}
-                className="p-1 text-muted-foreground hover:text-foreground rounded-lg"
-              >
-                <X className="w-4 h-4" />
-              </button>
+        <Modal
+          open
+          onClose={() => setShowHistoryModal(false)}
+          size="md"
+          icon={<History className="h-4 w-4" />}
+          title="Historique des paiements"
+          description={`${selected.type === "vente" ? "Vente" : "Commande"} ${selected.label}`}
+        >
+          {historyFor(selected).length === 0 ? (
+            <p className="py-6 text-center text-sm text-muted-foreground">
+              Aucun paiement enregistré pour l'instant.
+            </p>
+          ) : (
+            <div className="app-list">
+              {historyFor(selected).map((p) => (
+                <div key={p.id} className="flex items-center justify-between gap-3 py-2.5">
+                  <span className="min-w-0 flex-1">
+                    <span className="app-list-primary block">{p.methode}</span>
+                    <span className="app-list-secondary block">
+                      {[new Date(p.createdAt).toLocaleString("fr-FR"), p.note]
+                        .filter(Boolean)
+                        .join(" · ")}
+                    </span>
+                  </span>
+                  <span className="app-list-amount">{formatCurrency(p.montant)}</span>
+                </div>
+              ))}
             </div>
-            <div className="text-sm text-muted-foreground mb-4">
-              {selected.type === "vente" ? "Vente" : "Commande"}{" "}
-              <strong className="text-foreground font-mono">{selected.label}</strong>
-            </div>
-            {historyFor(selected).length === 0 ? (
-              <p className="text-sm text-muted-foreground text-center py-6">
-                Aucun paiement enregistré pour l'instant.
-              </p>
-            ) : (
-              <div className="space-y-2">
-                {historyFor(selected).map((p) => (
-                  <div
-                    key={p.id}
-                    className="flex items-center justify-between p-3 bg-muted/40 rounded-xl text-sm"
-                  >
-                    <div>
-                      <div className="font-mono font-bold t-success">
-                        {formatCurrency(p.montant)}
-                      </div>
-                      <div className="text-[11px] text-muted-foreground">
-                        {new Date(p.createdAt).toLocaleString("fr-FR")} · {p.methode}
-                        {p.note ? ` · ${p.note}` : ""}
-                      </div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
+          )}
+        </Modal>
       )}
     </div>
   );

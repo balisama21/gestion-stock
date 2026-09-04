@@ -40,6 +40,7 @@ import {
   KeyRound,
 } from "lucide-react";
 import { formatCurrency, getProductLabel } from "../utils/formulas";
+import { Modal } from "./shared/Modal";
 import { Sidebar } from "./Sidebar";
 import { useNotificationPrefs } from "../lib/notificationPrefs";
 import {
@@ -601,173 +602,170 @@ export const Header: React.FC<HeaderProps> = ({
         </div>
       </nav>
 
-      {/* Modale : créer une nouvelle boutique (multi-boutiques) */}
-
-
-
-      {/* Modale : dupliquer la boutique active (config uniquement) */}
+      {/* ── Dupliquer la boutique active (configuration seulement) ── */}
       {showCopyStoreModal && workspace.activeStore && (
-        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-[60] flex items-center justify-center p-4">
-          <div className="bg-card border border-border rounded-2xl w-full max-w-sm p-6 shadow-xl text-foreground space-y-4">
-            <div className="flex items-center gap-2.5">
-              <div className="w-9 h-9 rounded-lg bg-blue-500/15 flex items-center justify-center">
-                <Copy className="w-4.5 h-4.5 t-info" />
-              </div>
-              <h3 className="text-lg font-bold">Dupliquer {workspace.activeStore.name}</h3>
-            </div>
-            <p className="text-sm text-muted-foreground leading-relaxed">
-              Reprend la configuration (devise, TVA, fournisseurs, coordonnées...) dans une
-              nouvelle boutique. Les produits, ventes et données ne sont PAS copiés — c'est une
-              boutique neuve, indépendante.
-              {workspace.activeStore.activation_status === "active" ? (
-                <span className="block mt-2 t-success font-medium">
-                  Cette boutique est active à vie : la copie le sera aussi, immédiatement.
-                </span>
-              ) : (
-                <span className="block mt-2 t-warning font-medium">
-                  Cette boutique est en essai : la copie héritera de la même date de fin d'essai
-                  (pas d'un nouvel essai de 7 jours).
-                </span>
-              )}
-            </p>
-            <form onSubmit={handleCopyStore} className="space-y-3">
-              <input
-                type="text"
-                required
-                autoFocus
-                value={copyStoreName}
-                onChange={(e) => setCopyStoreName(e.target.value)}
-                placeholder="Nom de la nouvelle boutique"
-                className="w-full bg-muted border border-border rounded-xl px-4 py-2.5 text-foreground focus:outline-none focus:border-blue-500"
-              />
-              {copyStoreError && (
-                <p className="t-danger text-sm font-semibold">{copyStoreError}</p>
-              )}
-              <div className="flex items-center justify-end gap-2 pt-1">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setShowCopyStoreModal(false);
-                    setCopyStoreError(null);
-                  }}
-                  className="px-4 py-2 bg-muted hover:bg-accent text-muted-foreground rounded-xl font-medium text-sm"
-                >
-                  Annuler
-                </button>
-                <button
-                  type="submit"
-                  disabled={copyingStore}
-                  className="px-4 py-2 bg-blue-600 hover:bg-blue-500 disabled:opacity-60 text-white rounded-xl font-semibold text-sm"
-                >
-                  {copyingStore ? "Copie..." : "Dupliquer"}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
+        <Modal
+          open
+          onClose={() => {
+            setShowCopyStoreModal(false);
+            setCopyStoreError(null);
+          }}
+          size="sm"
+          icon={<Copy className="h-4 w-4" />}
+          title="Dupliquer la boutique"
+          description={workspace.activeStore.name}
+          dismissible={!copyingStore}
+          footer={
+            <>
+              <button
+                type="button"
+                onClick={() => {
+                  setShowCopyStoreModal(false);
+                  setCopyStoreError(null);
+                }}
+                className="app-btn-secondary"
+              >
+                Annuler
+              </button>
+              <button
+                type="submit"
+                form="copy-store-form"
+                disabled={copyingStore}
+                className="app-btn-primary"
+              >
+                {copyingStore ? "Copie..." : "Dupliquer"}
+              </button>
+            </>
+          }
+        >
+          <p className="text-sm leading-relaxed text-muted-foreground">
+            Reprend la configuration (devise, TVA, fournisseurs, coordonnées...) dans une nouvelle
+            boutique. Les produits, ventes et données ne sont pas copiés : c'est une boutique
+            neuve, indépendante.
+          </p>
+
+          <p
+            className={`mt-3 text-sm font-medium ${
+              workspace.activeStore.activation_status === "active" ? "t-success" : "t-warning"
+            }`}
+          >
+            {workspace.activeStore.activation_status === "active"
+              ? "Cette boutique est active à vie : la copie le sera aussi, immédiatement."
+              : "Cette boutique est en essai : la copie héritera de la même date de fin d'essai, pas d'un nouvel essai de 7 jours."}
+          </p>
+
+          <form onSubmit={handleCopyStore} id="copy-store-form" className="mt-4 space-y-3">
+            <input
+              type="text"
+              required
+              autoFocus
+              value={copyStoreName}
+              onChange={(e) => setCopyStoreName(e.target.value)}
+              placeholder="Nom de la nouvelle boutique"
+              className="app-field"
+            />
+            {copyStoreError && <p className="text-sm font-medium t-danger">{copyStoreError}</p>}
+          </form>
+        </Modal>
       )}
 
-      {/* Modale : créer une boutique INDÉPENDANTE (nouvel essai de 7 jours,
-          proposée aux collaborateurs invités — jamais un héritage de la
-          boutique où ils collaborent déjà) */}
-      {showCreateStoreModal && (
-        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-[60] flex items-center justify-center p-4">
-          <div className="bg-card border border-border rounded-2xl w-full max-w-sm p-6 shadow-xl text-foreground space-y-4">
-            <div className="flex items-center gap-2.5">
-              <div className="w-9 h-9 rounded-lg bg-emerald-500/15 flex items-center justify-center">
-                <Store className="w-4.5 h-4.5 t-success" />
-              </div>
-              <h3 className="text-lg font-bold">Créer une nouvelle boutique</h3>
-            </div>
-            <p className="text-sm text-muted-foreground">
-              Vous devenez propriétaire de cette nouvelle boutique, avec son propre essai gratuit
-              de 7 jours. Elle est totalement indépendante de la boutique où vous collaborez
-              actuellement.
-            </p>
-            <form onSubmit={handleCreateStore} className="space-y-3">
-              <input
-                type="text"
-                required
-                autoFocus
-                value={newStoreName}
-                onChange={(e) => setNewStoreName(e.target.value)}
-                placeholder="Nom de votre boutique"
-                className="w-full bg-muted border border-border rounded-xl px-4 py-2.5 text-foreground focus:outline-none focus:border-emerald-500"
-              />
-              {createStoreError && (
-                <p className="t-danger text-sm font-semibold">{createStoreError}</p>
-              )}
-              <div className="flex items-center justify-end gap-2 pt-1">
-                <button
-                  type="button"
-                  onClick={() => {
-                    setShowCreateStoreModal(false);
-                    setCreateStoreError(null);
-                  }}
-                  className="px-4 py-2 bg-muted hover:bg-accent text-muted-foreground rounded-xl font-medium text-sm"
-                >
-                  Annuler
-                </button>
-                <button
-                  type="submit"
-                  disabled={creatingStore}
-                  className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-60 text-white rounded-xl font-semibold text-sm"
-                >
-                  {creatingStore ? "Création..." : "Créer la boutique"}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+      {/* ── Créer une boutique indépendante ──
+          Proposée aux collaborateurs invités : elle ouvre un nouvel essai
+          de 7 jours et n'hérite jamais de la boutique où ils collaborent. */}
+      <Modal
+        open={showCreateStoreModal}
+        onClose={() => {
+          setShowCreateStoreModal(false);
+          setCreateStoreError(null);
+        }}
+        size="sm"
+        icon={<Store className="h-4 w-4" />}
+        title="Créer une boutique"
+        description="Vous en devenez propriétaire, avec son propre essai gratuit de 7 jours."
+        dismissible={!creatingStore}
+        footer={
+          <>
+            <button
+              type="button"
+              onClick={() => {
+                setShowCreateStoreModal(false);
+                setCreateStoreError(null);
+              }}
+              className="app-btn-secondary"
+            >
+              Annuler
+            </button>
+            <button
+              type="submit"
+              form="create-store-form"
+              disabled={creatingStore}
+              className="app-btn-primary"
+            >
+              {creatingStore ? "Création..." : "Créer la boutique"}
+            </button>
+          </>
+        }
+      >
+        <p className="text-sm leading-relaxed text-muted-foreground">
+          Elle est totalement indépendante de la boutique où vous collaborez actuellement.
+        </p>
 
-      {/* Modale : rejoindre une boutique avec un code d'invitation */}
-      {showJoinCodeModal && (
-        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-[60] flex items-center justify-center p-4">
-          <div className="bg-card border border-border rounded-2xl w-full max-w-sm p-6 shadow-xl text-foreground space-y-4">
-            <div className="flex items-center gap-2.5">
-              <div className="w-9 h-9 rounded-lg bg-blue-500/15 flex items-center justify-center">
-                <KeyRound className="w-4.5 h-4.5 t-info" />
-              </div>
-              <h3 className="text-lg font-bold">Rejoindre avec un code</h3>
-            </div>
-            <p className="text-sm text-muted-foreground">
-              Entrez le code d'invitation reçu du propriétaire de la boutique. Le code ne
-              fonctionne qu'avec l'adresse e-mail à laquelle il a été destiné.
-            </p>
-            <form onSubmit={handleJoinWithCode} className="space-y-3">
-              <input
-                type="text"
-                required
-                autoFocus
-                value={joinCode}
-                onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
-                placeholder="INV-XXXX-XXXX"
-                className="w-full bg-muted border border-border rounded-xl px-4 py-2.5 text-foreground font-mono tracking-widest text-center focus:outline-none focus:border-blue-500"
-              />
-              {joinCodeError && (
-                <p className="t-danger text-sm font-semibold">{joinCodeError}</p>
-              )}
-              <div className="flex items-center justify-end gap-2 pt-1">
-                <button
-                  type="button"
-                  onClick={() => setShowJoinCodeModal(false)}
-                  className="px-4 py-2 bg-muted hover:bg-accent text-muted-foreground rounded-xl font-medium text-sm"
-                >
-                  Annuler
-                </button>
-                <button
-                  type="submit"
-                  disabled={joiningWithCode}
-                  className="px-4 py-2 bg-blue-600 hover:bg-blue-500 disabled:opacity-60 text-white rounded-xl font-semibold text-sm"
-                >
-                  {joiningWithCode ? "Vérification..." : "Rejoindre"}
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
+        <form onSubmit={handleCreateStore} id="create-store-form" className="mt-4 space-y-3">
+          <input
+            type="text"
+            required
+            autoFocus
+            value={newStoreName}
+            onChange={(e) => setNewStoreName(e.target.value)}
+            placeholder="Nom de votre boutique"
+            className="app-field"
+          />
+          {createStoreError && <p className="text-sm font-medium t-danger">{createStoreError}</p>}
+        </form>
+      </Modal>
+
+      {/* ── Rejoindre une boutique avec un code d'invitation ── */}
+      <Modal
+        open={showJoinCodeModal}
+        onClose={() => setShowJoinCodeModal(false)}
+        size="sm"
+        icon={<KeyRound className="h-4 w-4" />}
+        title="Rejoindre avec un code"
+        description="Le code ne fonctionne qu'avec l'adresse e-mail à laquelle il a été destiné."
+        dismissible={!joiningWithCode}
+        footer={
+          <>
+            <button
+              type="button"
+              onClick={() => setShowJoinCodeModal(false)}
+              className="app-btn-secondary"
+            >
+              Annuler
+            </button>
+            <button
+              type="submit"
+              form="join-code-form"
+              disabled={joiningWithCode}
+              className="app-btn-primary"
+            >
+              {joiningWithCode ? "Vérification..." : "Rejoindre"}
+            </button>
+          </>
+        }
+      >
+        <form onSubmit={handleJoinWithCode} id="join-code-form" className="space-y-3">
+          <input
+            type="text"
+            required
+            autoFocus
+            value={joinCode}
+            onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
+            placeholder="INV-XXXX-XXXX"
+            className="app-field text-center font-mono tracking-widest"
+          />
+          {joinCodeError && <p className="text-sm font-medium t-danger">{joinCodeError}</p>}
+        </form>
+      </Modal>
       </header>
     </>
   );

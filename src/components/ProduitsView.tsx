@@ -12,7 +12,6 @@ import {
   RefreshCw,
   Pencil,
   Trash2,
-  X,
   Ban,
 } from "lucide-react";
 import { formatCurrency, toSubscript, getProductLabel } from "../utils/formulas";
@@ -20,6 +19,7 @@ import { PageHeader } from "./shared/PageHeader";
 import { FilterBar, FilterField } from "./shared/FilterBar";
 import { DataList } from "./shared/DataList";
 import { StatCol } from "./shared/StatBar";
+import { Modal } from "./shared/Modal";
 
 interface ProduitsViewProps {
   products: Product[];
@@ -488,278 +488,238 @@ export const ProduitsView: React.FC<ProduitsViewProps> = ({
         </div>
       )}
 
-      {/* Add Product Modal */}
-      {isAddModalOpen && (
-        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-card border border-muted-foreground/20 rounded-2xl w-full max-w-md p-6 shadow-xl text-foreground space-y-4">
-            <h3 className="text-lg font-bold flex items-center gap-2">
-              <Package className="w-5 h-5 t-success" />
-              Ajouter un Nouveau Produit / Variante
-            </h3>
-
-            <form onSubmit={handleSubmit} className="space-y-3 text-xs">
-              <div>
-                <label className="block text-muted-foreground font-medium mb-1">
-                  Désignation de Base (ex: kapa, savon) :
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={designation}
-                  onChange={(e) => setDesignation(e.target.value)}
-                  placeholder="ex: kapa"
-                  className="w-full bg-muted border border-muted-foreground/20 rounded-xl px-3 py-2 text-foreground focus:outline-none focus:border-emerald-500"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-muted-foreground font-medium mb-1">
-                    Prix Achat (Ar) :
-                  </label>
-                  <input
-                    type="number"
-                    required
-                    value={prixAchat}
-                    onChange={(e) => setPrixAchat(Number(e.target.value))}
-                    className="w-full bg-muted border border-muted-foreground/20 rounded-xl px-3 py-2 text-foreground font-mono focus:outline-none focus:border-emerald-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-muted-foreground font-medium mb-1">
-                    Prix Vente Défaut (Ar) :
-                  </label>
-                  <input
-                    type="number"
-                    required
-                    value={prixVenteDefaut}
-                    onChange={(e) => setPrixVenteDefaut(Number(e.target.value))}
-                    className="w-full bg-muted border border-muted-foreground/20 rounded-xl px-3 py-2 text-foreground font-mono focus:outline-none focus:border-emerald-500"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-muted-foreground font-medium mb-1">
-                  Fournisseur :
-                </label>
-                <input
-                  type="text"
-                  value={fournisseur}
-                  onChange={(e) => setFournisseur(e.target.value)}
-                  placeholder="ex: Grossiste Antanimena"
-                  className="w-full bg-muted border border-muted-foreground/20 rounded-xl px-3 py-2 text-foreground focus:outline-none focus:border-emerald-500"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-muted-foreground font-medium mb-1">
-                    Stock Initial :
-                  </label>
-                  <input
-                    type="number"
-                    required
-                    value={stockInitial}
-                    onChange={(e) => setStockInitial(Number(e.target.value))}
-                    className="w-full bg-muted border border-muted-foreground/20 rounded-xl px-3 py-2 text-foreground font-mono focus:outline-none focus:border-emerald-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-muted-foreground font-medium mb-1">
-                    Seuil Alerte :
-                  </label>
-                  <input
-                    type="number"
-                    required
-                    value={seuilAlerte}
-                    onChange={(e) => setSeuilAlerte(Number(e.target.value))}
-                    className="w-full bg-muted border border-muted-foreground/20 rounded-xl px-3 py-2 text-foreground font-mono focus:outline-none focus:border-emerald-500"
-                  />
-                </div>
-              </div>
-
-              <div className="flex items-center justify-end gap-2 pt-3">
-                <button
-                  type="button"
-                  onClick={() => setIsAddModalOpen(false)}
-                  className="px-4 py-2 bg-muted hover:bg-accent text-muted-foreground rounded-xl font-medium"
-                >
-                  Annuler
-                </button>
-                <button
-                  type="submit"
-                  className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl font-semibold shadow-sm"
-                >
-                  Enregistrer
-                </button>
-              </div>
-            </form>
+      {/* ── Nouveau produit ── */}
+      <Modal
+        open={isAddModalOpen}
+        onClose={() => setIsAddModalOpen(false)}
+        size="md"
+        icon={<Package className="h-4 w-4" />}
+        title="Nouveau produit"
+        description="Une variante se crée comme un produit à part entière, avec son propre prix."
+        footer={
+          <>
+            <button
+              type="button"
+              onClick={() => setIsAddModalOpen(false)}
+              className="app-btn-secondary"
+            >
+              Annuler
+            </button>
+            <button type="submit" form="product-add-form" className="app-btn-primary">
+              Enregistrer
+            </button>
+          </>
+        }
+      >
+        <form id="product-add-form" onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="mb-1.5 block text-sm font-medium text-foreground">
+              Désignation *
+            </label>
+            <input
+              type="text"
+              required
+              value={designation}
+              onChange={(e) => setDesignation(e.target.value)}
+              placeholder="ex : kapa"
+              className="app-field"
+            />
           </div>
-        </div>
-      )}
 
-      {/* Edit Product Modal */}
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div>
+              <label className="mb-1.5 block text-sm font-medium text-foreground">
+                Prix d'achat (Ar) *
+              </label>
+              <input
+                type="number"
+                required
+                value={prixAchat}
+                onChange={(e) => setPrixAchat(Number(e.target.value))}
+                className="app-field font-mono"
+              />
+            </div>
+            <div>
+              <label className="mb-1.5 block text-sm font-medium text-foreground">
+                Prix de vente (Ar) *
+              </label>
+              <input
+                type="number"
+                required
+                value={prixVenteDefaut}
+                onChange={(e) => setPrixVenteDefaut(Number(e.target.value))}
+                className="app-field font-mono"
+              />
+            </div>
+          </div>
+
+          <div>
+            <label className="mb-1.5 block text-sm font-medium text-foreground">Fournisseur</label>
+            <input
+              type="text"
+              value={fournisseur}
+              onChange={(e) => setFournisseur(e.target.value)}
+              placeholder="ex : Grossiste Antanimena"
+              className="app-field"
+            />
+          </div>
+
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <div>
+              <label className="mb-1.5 block text-sm font-medium text-foreground">
+                Stock initial *
+              </label>
+              <input
+                type="number"
+                required
+                value={stockInitial}
+                onChange={(e) => setStockInitial(Number(e.target.value))}
+                className="app-field font-mono"
+              />
+            </div>
+            <div>
+              <label className="mb-1.5 block text-sm font-medium text-foreground">
+                Seuil d'alerte *
+              </label>
+              <input
+                type="number"
+                required
+                value={seuilAlerte}
+                onChange={(e) => setSeuilAlerte(Number(e.target.value))}
+                className="app-field font-mono"
+              />
+            </div>
+          </div>
+        </form>
+      </Modal>
+
+      {/* ── Modification d'un produit ── */}
       {editingProduct && (
-        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-card border border-muted-foreground/20 rounded-2xl w-full max-w-md p-6 shadow-xl text-foreground space-y-4">
-            <div className="flex items-center justify-between">
-              <h3 className="text-lg font-bold flex items-center gap-2">
-                <Pencil className="w-5 h-5 t-info" />
-                Modifier {getProductLabel(editingProduct, products)}
-              </h3>
+        <Modal
+          open
+          onClose={() => setEditingProduct(null)}
+          size="md"
+          icon={<Pencil className="h-4 w-4" />}
+          title={getProductLabel(editingProduct, products)}
+          description="Modifier la fiche produit."
+          footer={
+            <>
               <button
+                type="button"
                 onClick={() => setEditingProduct(null)}
-                className="text-muted-foreground hover:text-foreground"
+                className="app-btn-secondary"
               >
-                <X className="w-5 h-5" />
+                Annuler
               </button>
+              <button
+                type="submit"
+                form="product-edit-form"
+                disabled={editSaving}
+                className="app-btn-primary"
+              >
+                {editSaving ? "Enregistrement..." : "Enregistrer"}
+              </button>
+            </>
+          }
+        >
+          {editingProduct.stockActuel > 0 && (
+            <div className="mb-4 flex items-start gap-2 rounded-xl border border-warning-border bg-warning-soft px-3 py-2.5 text-xs t-warning">
+              <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+              <span>
+                Ce produit a encore <strong>{editingProduct.stockActuel}</strong> unité
+                {editingProduct.stockActuel > 1 ? "s" : ""} en stock. Vous pouvez modifier ses
+                informations sans risque : les ventes et achats déjà enregistrés ne sont pas
+                affectés.
+              </span>
+            </div>
+          )}
+
+          <form id="product-edit-form" onSubmit={handleEditSubmit} className="space-y-4">
+            <div>
+              <label className="mb-1.5 block text-sm font-medium text-foreground">
+                Désignation *
+              </label>
+              <input
+                type="text"
+                required
+                value={editDesignation}
+                onChange={(e) => setEditDesignation(e.target.value)}
+                className="app-field"
+              />
             </div>
 
-            {editingProduct.stockActuel > 0 && (
-              <div className="flex items-start gap-2 bg-amber-500/10 border border-amber-500/30 rounded-xl px-3 py-2 text-[11px] t-warning">
-                <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
-                <span>
-                  Ce produit a encore <strong>{editingProduct.stockActuel}</strong> unité(s) en
-                  stock. Tu peux modifier ses informations sans risque — l'historique des
-                  ventes/achats déjà enregistrés n'est pas affecté.
-                </span>
-              </div>
-            )}
-
-            <form onSubmit={handleEditSubmit} className="space-y-3 text-xs">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div>
-                <label className="block text-muted-foreground font-medium mb-1">
-                  Désignation de Base :
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={editDesignation}
-                  onChange={(e) => setEditDesignation(e.target.value)}
-                  className="w-full bg-muted border border-muted-foreground/20 rounded-xl px-3 py-2 text-foreground focus:outline-none focus:border-blue-500"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-muted-foreground font-medium mb-1">
-                    Prix Achat (Ar) :
-                  </label>
-                  <input
-                    type="number"
-                    required
-                    value={editPrixAchat}
-                    onChange={(e) => setEditPrixAchat(Number(e.target.value))}
-                    className="w-full bg-muted border border-muted-foreground/20 rounded-xl px-3 py-2 text-foreground font-mono focus:outline-none focus:border-blue-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-muted-foreground font-medium mb-1">
-                    Prix Vente Défaut (Ar) :
-                  </label>
-                  <input
-                    type="number"
-                    required
-                    value={editPrixVenteDefaut}
-                    onChange={(e) => setEditPrixVenteDefaut(Number(e.target.value))}
-                    className="w-full bg-muted border border-muted-foreground/20 rounded-xl px-3 py-2 text-foreground font-mono focus:outline-none focus:border-blue-500"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-muted-foreground font-medium mb-1">
-                  Fournisseur :
-                </label>
-                <input
-                  type="text"
-                  value={editFournisseur}
-                  onChange={(e) => setEditFournisseur(e.target.value)}
-                  className="w-full bg-muted border border-muted-foreground/20 rounded-xl px-3 py-2 text-foreground focus:outline-none focus:border-blue-500"
-                />
-              </div>
-
-              <div>
-                <label className="block text-muted-foreground font-medium mb-1">
-                  Seuil Alerte :
+                <label className="mb-1.5 block text-sm font-medium text-foreground">
+                  Prix d'achat (Ar) *
                 </label>
                 <input
                   type="number"
                   required
-                  value={editSeuilAlerte}
-                  onChange={(e) => setEditSeuilAlerte(Number(e.target.value))}
-                  className="w-full bg-muted border border-muted-foreground/20 rounded-xl px-3 py-2 text-foreground font-mono focus:outline-none focus:border-blue-500"
+                  value={editPrixAchat}
+                  onChange={(e) => setEditPrixAchat(Number(e.target.value))}
+                  className="app-field font-mono"
                 />
               </div>
-
-              <div className="flex items-center justify-end gap-2 pt-3">
-                <button
-                  type="button"
-                  onClick={() => setEditingProduct(null)}
-                  className="px-4 py-2 bg-muted hover:bg-accent text-muted-foreground rounded-xl font-medium"
-                >
-                  Annuler
-                </button>
-                <button
-                  type="submit"
-                  disabled={editSaving}
-                  className="px-4 py-2 bg-blue-600 hover:bg-blue-500 disabled:opacity-60 text-white rounded-xl font-semibold shadow-sm"
-                >
-                  {editSaving ? "Enregistrement..." : "Enregistrer"}
-                </button>
+              <div>
+                <label className="mb-1.5 block text-sm font-medium text-foreground">
+                  Prix de vente (Ar) *
+                </label>
+                <input
+                  type="number"
+                  required
+                  value={editPrixVenteDefaut}
+                  onChange={(e) => setEditPrixVenteDefaut(Number(e.target.value))}
+                  className="app-field font-mono"
+                />
               </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* Confirm Delete Modal (unique ou multiple) */}
-      {confirmDeleteIds && (
-        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-card border border-red-500/30 rounded-2xl w-full max-w-md p-6 shadow-xl text-foreground space-y-4">
-            <h3 className="text-lg font-bold flex items-center gap-2 t-danger">
-              <Trash2 className="w-5 h-5" />
-              Supprimer {productsToDelete.length} produit{productsToDelete.length > 1 ? "s" : ""} ?
-            </h3>
-
-            <div className="max-h-48 overflow-y-auto space-y-1 bg-muted/60 rounded-xl p-3 text-xs">
-              {productsToDelete.map((p) => (
-                <div key={p.id} className="flex items-center justify-between">
-                  <span className="font-mono font-semibold text-foreground">
-                    {getProductLabel(p, products)}
-                  </span>
-                  {p.stockActuel > 0 && (
-                    <span className="t-warning font-mono text-[10px]">
-                      {p.stockActuel} en stock
-                    </span>
-                  )}
-                </div>
-              ))}
             </div>
 
-            {stockRemainingCount > 0 && (
-              <div className="flex items-start gap-2 bg-amber-500/10 border border-amber-500/30 rounded-xl px-3 py-2 text-[11px] t-warning">
-                <AlertTriangle className="w-4 h-4 shrink-0 mt-0.5" />
-                <span>
-                  {stockRemainingCount} de ces produits ont encore du stock. Ce stock ne sera plus
-                  suivi après suppression. L'historique des ventes et achats déjà enregistrés
-                  restera néanmoins intact.
-                </span>
-              </div>
-            )}
+            <div>
+              <label className="mb-1.5 block text-sm font-medium text-foreground">
+                Fournisseur
+              </label>
+              <input
+                type="text"
+                value={editFournisseur}
+                onChange={(e) => setEditFournisseur(e.target.value)}
+                className="app-field"
+              />
+            </div>
 
-            <p className="text-xs text-muted-foreground">
-              Cette action est définitive. Les ventes et achats déjà enregistrés pour{" "}
-              {productsToDelete.length > 1 ? "ces produits" : "ce produit"} resteront visibles dans
-              l'historique, mais ne seront plus liés à une fiche produit.
-            </p>
+            <div>
+              <label className="mb-1.5 block text-sm font-medium text-foreground">
+                Seuil d'alerte *
+              </label>
+              <input
+                type="number"
+                required
+                value={editSeuilAlerte}
+                onChange={(e) => setEditSeuilAlerte(Number(e.target.value))}
+                className="app-field font-mono"
+              />
+            </div>
+          </form>
+        </Modal>
+      )}
 
-            <div className="flex items-center justify-end gap-2 pt-1">
+      {/* ── Confirmation de suppression (une ou plusieurs fiches) ── */}
+      {confirmDeleteIds && (
+        <Modal
+          open
+          onClose={() => setConfirmDeleteIds(null)}
+          size="md"
+          tone="danger"
+          icon={<Trash2 className="h-4 w-4" />}
+          title={`Supprimer ${productsToDelete.length} produit${productsToDelete.length > 1 ? "s" : ""} ?`}
+          description="Cette action est définitive."
+          dismissible={!deleting}
+          footer={
+            <>
               <button
                 type="button"
                 onClick={() => setConfirmDeleteIds(null)}
-                className="px-4 py-2 bg-muted hover:bg-accent text-muted-foreground rounded-xl font-medium text-xs"
+                className="app-btn-secondary"
               >
                 Annuler
               </button>
@@ -767,13 +727,42 @@ export const ProduitsView: React.FC<ProduitsViewProps> = ({
                 type="button"
                 onClick={handleConfirmDelete}
                 disabled={deleting}
-                className="app-btn bg-destructive text-white hover:opacity-90 text-xs"
+                className="app-btn-danger"
               >
                 {deleting ? "Suppression..." : `Supprimer (${productsToDelete.length})`}
               </button>
-            </div>
+            </>
+          }
+        >
+          <div className="app-list max-h-48 overflow-y-auto rounded-lg border border-border">
+            {productsToDelete.map((p) => (
+              <div key={p.id} className="flex items-center justify-between gap-3 px-3 py-2 text-sm">
+                <span className="app-list-primary">{getProductLabel(p, products)}</span>
+                {p.stockActuel > 0 && (
+                  <span className="app-badge app-badge-warning shrink-0">
+                    {p.stockActuel} en stock
+                  </span>
+                )}
+              </div>
+            ))}
           </div>
-        </div>
+
+          {stockRemainingCount > 0 && (
+            <div className="mt-4 flex items-start gap-2 rounded-xl border border-warning-border bg-warning-soft px-3 py-2.5 text-xs t-warning">
+              <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+              <span>
+                {stockRemainingCount} de ces produits ont encore du stock. Ce stock ne sera plus
+                suivi après suppression.
+              </span>
+            </div>
+          )}
+
+          <p className="mt-4 text-xs text-muted-foreground">
+            Les ventes et achats déjà enregistrés pour{" "}
+            {productsToDelete.length > 1 ? "ces produits" : "ce produit"} resteront visibles dans
+            l'historique, mais ne seront plus liés à une fiche produit.
+          </p>
+        </Modal>
       )}
     </div>
   );

@@ -10,7 +10,6 @@ import {
   Truck,
   FileText,
   Printer,
-  X,
   Eye,
   RefreshCw,
   AlertCircle,
@@ -23,6 +22,7 @@ import { PageHeader } from "./shared/PageHeader";
 import { FilterBar, FilterField } from "./shared/FilterBar";
 import { DataList } from "./shared/DataList";
 import { StatCol } from "./shared/StatBar";
+import { Modal } from "./shared/Modal";
 
 interface AchatsViewProps {
   purchases: Purchase[];
@@ -321,246 +321,281 @@ export const AchatsView: React.FC<AchatsViewProps> = ({
         />
       </div>
 
-      {/* Bon de Commande Modal */}
+      {/* ── Bon d'approvisionnement ──
+          Le bloc porte `printable-receipt` : sans cette accroche, la
+          feuille d'impression masque tout et le bouton « Imprimer »
+          sortait une page blanche. */}
       {selectedPurchaseReceipt && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex items-center justify-center p-4">
-          <div className="bg-card border border-muted-foreground/20 rounded-2xl w-full max-w-md p-6 shadow-2xl text-foreground space-y-4">
-            <div className="flex items-center justify-between border-b border-border pb-3">
-              <div className="flex items-center gap-2">
-                <FileText className="w-5 h-5 t-success" />
-                <h3 className="font-bold text-base">
-                  Bon d'Approvisionnement #{selectedPurchaseReceipt.numero}
-                </h3>
-              </div>
-              <button
-                onClick={() => setSelectedPurchaseReceipt(null)}
-                className="p-1 text-muted-foreground hover:text-foreground bg-muted rounded-lg"
-              >
-                <X className="w-4 h-4" />
-              </button>
-            </div>
-
-            <div className="space-y-3 text-xs bg-background p-4 rounded-xl border border-border font-mono">
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Date :</span>
-                <span className="text-foreground">
-                  {formatDateLocale(selectedPurchaseReceipt.date, locale)}
-                </span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Code produit :</span>
-                <span className="t-success font-bold">
-                  {products.find((prod) => prod.id === selectedPurchaseReceipt.productId)
-                    ?.numero || selectedPurchaseReceipt.productId}
-                </span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Produit :</span>
-                <span className="text-foreground font-bold">
-                  {getPurchaseLabel(selectedPurchaseReceipt, products)}
-                </span>
-              </div>
-              {showFournisseur && (
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Fournisseur :</span>
-                  <span className="t-info">
-                    {selectedPurchaseReceipt.fournisseur || "Grossiste Général"}
-                  </span>
-                </div>
-              )}
-              <div className="border-t border-border pt-2 flex justify-between">
-                <span className="text-muted-foreground">Quantité :</span>
-                <span className="text-foreground font-bold">
-                  {selectedPurchaseReceipt.quantite} unités
-                </span>
-              </div>
-              {showPrix && (
-                <div className="flex justify-between">
-                  <span className="text-muted-foreground">Prix unitaire :</span>
-                  <span className="text-foreground">
-                    {formatCurrency(selectedPurchaseReceipt.prixAchatUnit)}
-                  </span>
-                </div>
-              )}
-              {showPrix && (
-                <div className="border-t border-border pt-2 flex justify-between text-sm">
-                  <span className="text-muted-foreground font-bold">Total Décaissement :</span>
-                  <span className="t-danger font-bold">
-                    {formatCurrency(selectedPurchaseReceipt.totalAchat)}
-                  </span>
-                </div>
-              )}
-            </div>
-
-            <div className="flex items-center justify-between pt-2">
-              <button
-                onClick={() => window.print()}
-                className="px-3 py-2 bg-muted hover:bg-accent text-muted-foreground rounded-xl font-medium text-xs flex items-center gap-1.5"
-              >
-                <Printer className="w-3.5 h-3.5" /> Imprimer Bon
+        <Modal
+          open
+          onClose={() => setSelectedPurchaseReceipt(null)}
+          size="md"
+          icon={<FileText className="h-4 w-4" />}
+          title="Bon d'approvisionnement"
+          description={`N° ${selectedPurchaseReceipt.numero}`}
+          footer={
+            <>
+              <button onClick={() => window.print()} className="app-btn-secondary">
+                <Printer className="h-4 w-4" />
+                Imprimer
               </button>
               <button
                 onClick={() => setSelectedPurchaseReceipt(null)}
-                className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl font-semibold text-xs"
+                className="app-btn-primary"
               >
                 Fermer
               </button>
+            </>
+          }
+        >
+          <div className="printable-receipt rounded-xl border border-border p-4">
+            <div className="mb-3 border-b border-border pb-3 text-center">
+              <p className="text-sm font-semibold uppercase tracking-wide text-foreground">
+                {settings?.storeName || "BALSAMA AUTO GESTION"}
+              </p>
+              <p className="text-xs text-muted-foreground">
+                Bon d'approvisionnement n° {selectedPurchaseReceipt.numero}
+              </p>
+            </div>
+
+            <dl className="divide-y divide-border">
+              <div className="flex items-baseline justify-between gap-4 py-2.5 text-sm">
+                <dt className="shrink-0 text-muted-foreground">Date</dt>
+                <dd className="text-right font-medium text-foreground">
+                  {formatDateLocale(selectedPurchaseReceipt.date, locale)}
+                </dd>
+              </div>
+
+              <div className="flex items-baseline justify-between gap-4 py-2.5 text-sm">
+                <dt className="shrink-0 text-muted-foreground">Code produit</dt>
+                <dd className="text-right font-mono font-medium text-foreground">
+                  {products.find((prod) => prod.id === selectedPurchaseReceipt.productId)?.numero ||
+                    selectedPurchaseReceipt.productId}
+                </dd>
+              </div>
+
+              <div className="flex items-baseline justify-between gap-4 py-2.5 text-sm">
+                <dt className="shrink-0 text-muted-foreground">Produit</dt>
+                <dd className="min-w-0 text-right font-medium text-foreground">
+                  {getPurchaseLabel(selectedPurchaseReceipt, products)}
+                </dd>
+              </div>
+
+              {showFournisseur && (
+                <div className="flex items-baseline justify-between gap-4 py-2.5 text-sm">
+                  <dt className="shrink-0 text-muted-foreground">Fournisseur</dt>
+                  <dd className="min-w-0 text-right font-medium text-foreground">
+                    {selectedPurchaseReceipt.fournisseur || "Grossiste général"}
+                  </dd>
+                </div>
+              )}
+
+              <div className="flex items-baseline justify-between gap-4 py-2.5 text-sm">
+                <dt className="shrink-0 text-muted-foreground">Quantité</dt>
+                <dd className="text-right font-mono font-medium text-foreground">
+                  {selectedPurchaseReceipt.quantite} unité
+                  {selectedPurchaseReceipt.quantite > 1 ? "s" : ""}
+                </dd>
+              </div>
+
+              {showPrix && (
+                <div className="flex items-baseline justify-between gap-4 py-2.5 text-sm">
+                  <dt className="shrink-0 text-muted-foreground">Prix unitaire</dt>
+                  <dd className="text-right font-mono font-medium text-foreground">
+                    {formatCurrency(selectedPurchaseReceipt.prixAchatUnit)}
+                  </dd>
+                </div>
+              )}
+
+              {showPrix && (
+                <div className="flex items-baseline justify-between gap-4 py-2.5">
+                  <dt className="shrink-0 text-sm font-medium text-foreground">
+                    Total décaissement
+                  </dt>
+                  <dd className="text-right font-mono text-base font-semibold text-foreground">
+                    {formatCurrency(selectedPurchaseReceipt.totalAchat)}
+                  </dd>
+                </div>
+              )}
+            </dl>
+          </div>
+        </Modal>
+      )}
+
+      {/* ── Nouvel achat ── */}
+      <Modal
+        open={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+        size="md"
+        icon={<ShoppingCart className="h-4 w-4" />}
+        title="Nouvel achat"
+        description="Un approvisionnement de stock, avec sa sortie de trésorerie."
+        footer={
+          <>
+            <button
+              type="button"
+              onClick={() => setIsModalOpen(false)}
+              className="app-btn-secondary"
+            >
+              Annuler
+            </button>
+            <button type="submit" form="purchase-add-form" className="app-btn-primary">
+              Enregistrer l'achat
+            </button>
+          </>
+        }
+      >
+        <form id="purchase-add-form" onSubmit={handleSubmit} className="space-y-4">
+          <div>
+            <label className="mb-1.5 block text-sm font-medium text-foreground">
+              Recharge rapide depuis le catalogue
+            </label>
+            <select
+              onChange={(e) => handleSelectExistingProduct(e.target.value)}
+              className="app-field"
+            >
+              <option value="">Choisir un produit existant...</option>
+              {products.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.numero} — {getProductLabel(p, products)} ({formatCurrency(p.prixAchat)})
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="space-y-4 border-t border-border pt-4">
+            <div>
+              <label className="mb-1.5 block text-sm font-medium text-foreground">
+                Date d'achat *
+              </label>
+              <input
+                type="date"
+                required
+                value={date}
+                onChange={(e) => setDate(e.target.value)}
+                className="app-field font-mono"
+              />
+            </div>
+
+            <div>
+              <label className="mb-1.5 block text-sm font-medium text-foreground">
+                Désignation *
+              </label>
+              <input
+                type="text"
+                required
+                value={designation}
+                onChange={(e) => setDesignation(e.target.value)}
+                placeholder="ex : kapa"
+                className="app-field"
+              />
+            </div>
+
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div>
+                <label className="mb-1.5 block text-sm font-medium text-foreground">
+                  Quantité *
+                </label>
+                <input
+                  type="number"
+                  required
+                  min="1"
+                  value={quantite}
+                  onChange={(e) => setQuantite(Number(e.target.value))}
+                  className="app-field font-mono"
+                />
+              </div>
+              <div>
+                <label className="mb-1.5 block text-sm font-medium text-foreground">
+                  Prix d'achat unitaire (Ar) *
+                </label>
+                <input
+                  type="number"
+                  required
+                  min="1"
+                  value={prixAchatUnit}
+                  onChange={(e) => setPrixAchatUnit(Number(e.target.value))}
+                  className="app-field font-mono"
+                />
+              </div>
+            </div>
+
+            <div>
+              <label className="mb-1.5 block text-sm font-medium text-foreground">
+                Fournisseur
+              </label>
+              <input
+                type="text"
+                value={fournisseur}
+                onChange={(e) => setFournisseur(e.target.value)}
+                placeholder="ex : Grossiste Antanimena"
+                className="app-field"
+              />
             </div>
           </div>
-        </div>
-      )}
 
-      {/* New Purchase Modal */}
-      {isModalOpen && (
-        <div className="fixed inset-0 bg-black/70 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-card border border-muted-foreground/20 rounded-2xl w-full max-w-md p-6 shadow-xl text-foreground space-y-4">
-            <h3 className="text-lg font-bold flex items-center gap-2">
-              <ShoppingCart className="w-5 h-5 t-danger" />
-              Saisie d'un Nouvel Achat
-            </h3>
-
-            <form onSubmit={handleSubmit} className="space-y-3 text-xs">
-              <div>
-                <label className="block text-muted-foreground font-medium mb-1">
-                  Recharge rapide depuis le catalogue (Optionnel) :
-                </label>
-                <select
-                  onChange={(e) => handleSelectExistingProduct(e.target.value)}
-                  className="w-full bg-muted border border-muted-foreground/20 rounded-xl px-3 py-2 text-foreground focus:outline-none focus:border-emerald-500"
-                >
-                  <option value="">-- Choisir un produit existant --</option>
-                  {products.map((p) => (
-                    <option key={p.id} value={p.id}>
-                      {p.numero} - {getProductLabel(p, products)} ({formatCurrency(p.prixAchat)})
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div className="border-t border-border pt-2">
-                <label className="block text-muted-foreground font-medium mb-1">
-                  Date d'achat :
-                </label>
-                <input
-                  type="date"
-                  required
-                  value={date}
-                  onChange={(e) => setDate(e.target.value)}
-                  className="w-full bg-muted border border-muted-foreground/20 rounded-xl px-3 py-2 text-foreground font-mono focus:outline-none focus:border-emerald-500"
-                />
-              </div>
-
-              <div>
-                <label className="block text-muted-foreground font-medium mb-1">
-                  Désignation du produit (ex: kapa) :
-                </label>
-                <input
-                  type="text"
-                  required
-                  value={designation}
-                  onChange={(e) => setDesignation(e.target.value)}
-                  placeholder="ex: kapa"
-                  className="w-full bg-muted border border-muted-foreground/20 rounded-xl px-3 py-2 text-foreground focus:outline-none focus:border-emerald-500"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-3">
-                <div>
-                  <label className="block text-muted-foreground font-medium mb-1">Quantité :</label>
-                  <input
-                    type="number"
-                    required
-                    min="1"
-                    value={quantite}
-                    onChange={(e) => setQuantite(Number(e.target.value))}
-                    className="w-full bg-muted border border-muted-foreground/20 rounded-xl px-3 py-2 text-foreground font-mono focus:outline-none focus:border-emerald-500"
-                  />
-                </div>
-                <div>
-                  <label className="block text-muted-foreground font-medium mb-1">
-                    Prix Achat Unit. (Ar) :
-                  </label>
-                  <input
-                    type="number"
-                    required
-                    min="1"
-                    value={prixAchatUnit}
-                    onChange={(e) => setPrixAchatUnit(Number(e.target.value))}
-                    className="w-full bg-muted border border-muted-foreground/20 rounded-xl px-3 py-2 text-foreground font-mono focus:outline-none focus:border-emerald-500"
-                  />
-                </div>
-              </div>
-
-              <div>
-                <label className="block text-muted-foreground font-medium mb-1">
-                  Fournisseur :
-                </label>
-                <input
-                  type="text"
-                  value={fournisseur}
-                  onChange={(e) => setFournisseur(e.target.value)}
-                  placeholder="ex: Grossiste Antanimena"
-                  className="w-full bg-muted border border-muted-foreground/20 rounded-xl px-3 py-2 text-foreground focus:outline-none focus:border-emerald-500"
-                />
-              </div>
-
-              <div className="bg-muted/80 p-3 rounded-xl border border-muted-foreground/20 text-right font-mono">
-                <span className="text-muted-foreground text-[11px] block">
-                  Total Achat Calculé :
-                </span>
-                <span className="text-base font-bold t-danger">
-                  {formatCurrency(quantite * prixAchatUnit)}
-                </span>
-              </div>
-
-              <div className="flex items-center justify-end gap-2 pt-2">
-                <button
-                  type="button"
-                  onClick={() => setIsModalOpen(false)}
-                  className="px-4 py-2 bg-muted hover:bg-accent text-muted-foreground rounded-xl font-medium"
-                >
-                  Annuler
-                </button>
-                <button
-                  type="submit"
-                  className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl font-semibold shadow-sm"
-                >
-                  Enregistrer l'Achat
-                </button>
-              </div>
-            </form>
+          <div className="app-statbar grid-cols-1">
+            <StatCol label="Total de l'achat" value={formatCurrency(quantite * prixAchatUnit)} />
           </div>
-        </div>
-      )}
-      {/* Print & Export Report Modal for Achats */}
-      {isReportModalOpen && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex items-center justify-center p-4 overflow-y-auto">
-          <div className="bg-card border border-muted-foreground/20 rounded-2xl w-full max-w-3xl p-6 shadow-2xl text-foreground space-y-6 my-8">
-            {/* Modal Header */}
-            <div className="space-y-4 border-b border-border pb-4 no-print">
-              <div className="flex flex-wrap items-center justify-between gap-4">
-                <div className="flex items-center gap-2">
-                  <Printer className="w-5 h-5 t-success" />
-                  <h3 className="text-base font-bold text-foreground">
-                    Journal & Bilan des Achats / Approvisionnements Stock
-                  </h3>
-                </div>
+        </form>
+      </Modal>
 
-                <div className="flex items-center gap-2">
-                  <button
-                    onClick={() => window.print()}
-                    className="flex items-center gap-1.5 px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-semibold shadow-sm transition-colors"
-                  >
-                    <Printer className="w-4 h-4" />
-                    Imprimer Document
-                  </button>
-                  <button
-                    onClick={() => {
-                      // Le fichier exporté doit respecter exactement les
-                      // mêmes masquages que l'écran : sinon un
-                      // collaborateur contournerait la restriction en
-                      // téléchargeant le journal.
-                      const textContent = `
+      {/* ── Journal & bilan des achats ──
+          Le document imprimable est conservé tel quel. */}
+      {isReportModalOpen && (
+        <Modal
+          open
+          onClose={() => setIsReportModalOpen(false)}
+          size="3xl"
+          icon={<Printer className="h-4 w-4" />}
+          title="Journal des achats"
+          description={
+            showFournisseur && selectedReportSupplier !== "all"
+              ? selectedReportSupplier
+              : "Approvisionnements de stock"
+          }
+          bodyClassName="space-y-4"
+          headerAside={
+            <div className="flex items-center gap-1 rounded-xl border border-border bg-muted p-1">
+              <button
+                onClick={() => setReportFormat("ticket")}
+                aria-pressed={reportFormat === "ticket"}
+                className={`flex items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-semibold transition-colors ${
+                  reportFormat === "ticket"
+                    ? "bg-card text-foreground shadow-sm"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                <Receipt className="h-3.5 w-3.5" />
+                Ticket
+              </button>
+              <button
+                onClick={() => setReportFormat("a4")}
+                aria-pressed={reportFormat === "a4"}
+                className={`flex items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-semibold transition-colors ${
+                  reportFormat === "a4"
+                    ? "bg-card text-foreground shadow-sm"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                <FileText className="h-3.5 w-3.5" />
+                A4
+              </button>
+            </div>
+          }
+          footer={
+            <>
+              <button onClick={() => window.print()} className="app-btn-primary">
+                <Printer className="h-4 w-4" />
+                Imprimer
+              </button>
+              <button
+                onClick={() => {
+                  // Le fichier exporté doit respecter exactement les
+                  // mêmes masquages que l'écran : sinon un
+                  // collaborateur contournerait la restriction en
+                  // téléchargeant le journal.
+                  const textContent = `
 === ${settings?.storeName || "BALSAMA AUTO GESTION"} ===
 JOURNAL & BILAN DES ACHATS / APPROVISIONNEMENT STOCK
 ${showFournisseur ? `FOURNISSEUR: ${selectedReportSupplier === "all" ? "TOUS LES FOURNISSEURS" : selectedReportSupplier.toUpperCase()}\n` : ""}PÉRIODE: ${reportPeriod === "today" ? "Aujourd'hui" : reportPeriod === "month" ? "Ce Mois-ci" : "Tout l'historique"}
@@ -575,96 +610,62 @@ ${reportPurchases
   )
   .join("\n")}
 ================================================
-                      `.trim();
+                  `.trim();
 
-                      const element = document.createElement("a");
-                      const file = new Blob([textContent], { type: "text/plain" });
-                      element.href = URL.createObjectURL(file);
-                      element.download = `Journal_Achats_${selectedReportSupplier}_${reportPeriod}.txt`;
-                      document.body.appendChild(element);
-                      element.click();
-                      document.body.removeChild(element);
-                    }}
-                    className="flex items-center gap-1.5 px-3 py-1.5 bg-muted hover:bg-accent text-foreground border border-muted-foreground/20 rounded-xl text-xs font-semibold transition-colors"
-                  >
-                    <Download className="w-3.5 h-3.5" />
-                    Exporter (.TXT)
-                  </button>
-                  <button
-                    onClick={() => setIsReportModalOpen(false)}
-                    className="p-1.5 text-muted-foreground hover:text-foreground bg-muted hover:bg-accent rounded-xl transition-colors"
-                  >
-                    <X className="w-5 h-5" />
-                  </button>
-                </div>
-              </div>
-
-              {/* Controls */}
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 bg-background p-3 rounded-xl border border-border text-xs">
-                {showFournisseur && (
-                  <div>
-                    <label className="block text-[10px] uppercase font-bold text-muted-foreground mb-1">
-                      Fournisseur Sélectionné :
-                    </label>
-                    <select
-                      value={selectedReportSupplier}
-                      onChange={(e) => setSelectedReportSupplier(e.target.value)}
-                      className="w-full bg-muted border border-muted-foreground/20 text-foreground rounded-lg px-2.5 py-1.5 focus:outline-none focus:border-emerald-500 font-medium"
-                    >
-                      <option value="all">Tous les Fournisseurs</option>
-                      {suppliersList.map((sup) => (
-                        <option key={sup} value={sup}>
-                          {sup}
-                        </option>
-                      ))}
-                    </select>
-                  </div>
-                )}
-
+                  const element = document.createElement("a");
+                  const file = new Blob([textContent], { type: "text/plain" });
+                  element.href = URL.createObjectURL(file);
+                  element.download = `Journal_Achats_${selectedReportSupplier}_${reportPeriod}.txt`;
+                  document.body.appendChild(element);
+                  element.click();
+                  document.body.removeChild(element);
+                }}
+                className="app-btn-secondary"
+                title="Télécharger un résumé au format texte"
+              >
+                <Download className="h-4 w-4" />
+                Exporter (.txt)
+              </button>
+            </>
+          }
+        >
+            {/* Portée du document — masquée à l'impression. */}
+            <div
+              className={`no-print grid grid-cols-1 gap-3 ${showFournisseur ? "sm:grid-cols-2" : ""}`}
+            >
+              {showFournisseur && (
                 <div>
-                  <label className="block text-[10px] uppercase font-bold text-muted-foreground mb-1">
-                    Période d'Activité :
+                  <label className="mb-1 block text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+                    Fournisseur
                   </label>
                   <select
-                    value={reportPeriod}
-                    onChange={(e) => setReportPeriod(e.target.value as any)}
-                    className="w-full bg-muted border border-muted-foreground/20 text-foreground rounded-lg px-2.5 py-1.5 focus:outline-none focus:border-emerald-500 font-medium"
+                    value={selectedReportSupplier}
+                    onChange={(e) => setSelectedReportSupplier(e.target.value)}
+                    className="app-field-sm"
                   >
-                    <option value="today">Aujourd'hui ({todayStr})</option>
-                    <option value="month">Ce Mois-ci ({currentMonthStr})</option>
-                    <option value="all">Tout l'historique</option>
+                    <option value="all">Tous les fournisseurs</option>
+                    {suppliersList.map((sup) => (
+                      <option key={sup} value={sup}>
+                        {sup}
+                      </option>
+                    ))}
                   </select>
                 </div>
+              )}
 
-                <div>
-                  <label className="block text-[10px] uppercase font-bold text-muted-foreground mb-1">
-                    Format :
-                  </label>
-                  <div className="flex items-center bg-muted p-0.5 rounded-lg border border-muted-foreground/20">
-                    <button
-                      onClick={() => setReportFormat("ticket")}
-                      className={`flex-1 py-1 rounded text-[11px] font-semibold transition-colors flex items-center justify-center gap-1 ${
-                        reportFormat === "ticket"
-                          ? "bg-emerald-600 text-white"
-                          : "text-muted-foreground hover:text-foreground"
-                      }`}
-                    >
-                      <Receipt className="w-3 h-3" />
-                      Ticket
-                    </button>
-                    <button
-                      onClick={() => setReportFormat("a4")}
-                      className={`flex-1 py-1 rounded text-[11px] font-semibold transition-colors flex items-center justify-center gap-1 ${
-                        reportFormat === "a4"
-                          ? "bg-blue-600 text-white"
-                          : "text-muted-foreground hover:text-foreground"
-                      }`}
-                    >
-                      <FileText className="w-3 h-3" />
-                      A4
-                    </button>
-                  </div>
-                </div>
+              <div>
+                <label className="mb-1 block text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+                  Période
+                </label>
+                <select
+                  value={reportPeriod}
+                  onChange={(e) => setReportPeriod(e.target.value as any)}
+                  className="app-field-sm"
+                >
+                  <option value="today">Aujourd'hui ({todayStr})</option>
+                  <option value="month">Ce mois-ci ({currentMonthStr})</option>
+                  <option value="all">Tout l'historique</option>
+                </select>
               </div>
             </div>
 
@@ -878,8 +879,7 @@ ${reportPurchases
                 </div>
               )}
             </div>
-          </div>
-        </div>
+        </Modal>
       )}
     </div>
   );

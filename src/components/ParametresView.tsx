@@ -14,6 +14,7 @@ import { SecuritySection } from "./settings/SecuritySection";
 import { StoreSection, type StoreFormValues } from "./settings/StoreSection";
 import { TeamSection, type TeamMember } from "./settings/TeamSection";
 import { BillingSection } from "./settings/BillingSection";
+import { Modal } from "./shared/Modal";
 import { PreferencesSection } from "./settings/PreferencesSection";
 import { NotificationsSection } from "./settings/NotificationsSection";
 import { InvoiceSection } from "./settings/InvoiceSection";
@@ -751,64 +752,64 @@ export const ParametresView: React.FC<ParametresViewProps> = ({
         />
       )}
 
-      {/* Modale de confirmation — Supprimer mon compte */}
-      {showDeleteAccountModal && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 p-4 backdrop-blur-sm">
-          <div className="app-card w-full max-w-md space-y-4 border-danger-border p-6">
-            <h3 className="flex items-center gap-2 text-lg font-bold t-danger">
-              <Trash2 className="h-5 w-5" />
-              Supprimer définitivement mon compte
-            </h3>
+      {/* ── Suppression définitive du compte ── */}
+      <Modal
+        open={showDeleteAccountModal}
+        onClose={() => setShowDeleteAccountModal(false)}
+        size="md"
+        tone="danger"
+        icon={<Trash2 className="h-4 w-4" />}
+        title="Supprimer mon compte"
+        description="Cette action est irréversible."
+        dismissible={!deletingAccount}
+        footer={
+          <>
+            <button
+              type="button"
+              onClick={() => setShowDeleteAccountModal(false)}
+              disabled={deletingAccount}
+              className="app-btn-secondary"
+            >
+              Annuler
+            </button>
+            <button
+              type="button"
+              onClick={handleConfirmDeleteAccount}
+              disabled={deletingAccount}
+              className="app-btn-danger"
+            >
+              {deletingAccount ? "Suppression..." : "Supprimer mon compte"}
+            </button>
+          </>
+        }
+      >
+        <p className="text-sm leading-relaxed text-muted-foreground">
+          Votre compte, votre boutique et toutes ses données — produits, ventes, achats, clients,
+          historique — seront supprimés définitivement.
+        </p>
 
-            <p className="text-sm leading-relaxed text-muted-foreground">
-              Cette action est <strong className="text-foreground">irréversible</strong>. Votre
-              compte, votre boutique et toutes ses données — produits, ventes, achats, clients,
-              historique — seront supprimés définitivement.
-            </p>
-
-            <div>
-              <label
-                htmlFor="delete-account-pw"
-                className="mb-1 block text-sm font-semibold text-foreground"
-              >
-                Confirmez avec votre mot de passe
-              </label>
-              <input
-                id="delete-account-pw"
-                type="password"
-                value={deleteAccountPassword}
-                onChange={(e) => setDeleteAccountPassword(e.target.value)}
-                autoComplete="current-password"
-                placeholder="Mot de passe actuel"
-                className="app-field"
-              />
-            </div>
-
-            {deleteAccountError && (
-              <p className="text-sm font-semibold t-danger">{deleteAccountError}</p>
-            )}
-
-            <div className="flex flex-col gap-2 pt-1 sm:flex-row sm:justify-end">
-              <button
-                type="button"
-                onClick={() => setShowDeleteAccountModal(false)}
-                disabled={deletingAccount}
-                className="app-btn-ghost"
-              >
-                Annuler
-              </button>
-              <button
-                type="button"
-                onClick={handleConfirmDeleteAccount}
-                disabled={deletingAccount}
-                className="app-btn bg-destructive text-white hover:opacity-90"
-              >
-                {deletingAccount ? "Suppression…" : "Supprimer mon compte"}
-              </button>
-            </div>
-          </div>
+        <div className="mt-4">
+          <label
+            htmlFor="delete-account-pw"
+            className="mb-1.5 block text-sm font-medium text-foreground"
+          >
+            Confirmez avec votre mot de passe
+          </label>
+          <input
+            id="delete-account-pw"
+            type="password"
+            value={deleteAccountPassword}
+            onChange={(e) => setDeleteAccountPassword(e.target.value)}
+            autoComplete="current-password"
+            placeholder="Mot de passe actuel"
+            className="app-field"
+          />
         </div>
-      )}
+
+        {deleteAccountError && (
+          <p className="mt-3 text-sm font-medium t-danger">{deleteAccountError}</p>
+        )}
+      </Modal>
     </SettingsLayout>
   );
 };
