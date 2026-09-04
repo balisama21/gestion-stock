@@ -50,18 +50,18 @@ export const Sidebar: React.FC<SidebarProps> = ({
     </div>
 
     {/* Navigation */}
-    <nav className="flex-1 overflow-y-auto overflow-x-hidden px-2 py-3">
+    <nav className="flex-1 overflow-y-auto overflow-x-hidden px-4 py-4">
       {groups.map((group) => (
-        <div key={group.title} className="mb-4 last:mb-0">
+        <div key={group.title} className="mb-5 last:mb-0">
           {collapsed ? (
             <div className="mx-auto mb-2 h-px w-6 bg-sidebar-border" />
           ) : (
-            <div className="px-2 pb-1.5 text-[10px] font-bold uppercase tracking-widest text-muted-foreground">
+            <div className="px-1 pb-2 text-[10px] font-medium uppercase tracking-widest text-muted-foreground/70">
               {group.title}
             </div>
           )}
 
-          <div className="space-y-0.5">
+          <div className="space-y-1">
             {group.items.map((item) => {
               const isActive = activeTab === item.id;
               return (
@@ -70,21 +70,22 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   onClick={() => onTabClick(item.id)}
                   title={collapsed ? item.label : undefined}
                   aria-current={isActive ? "page" : undefined}
-                  className={`relative flex w-full items-center gap-3 rounded-xl py-2.5 text-sm font-medium transition-colors ${
+                  className={`relative flex w-full items-center gap-3 rounded-md py-2.5 text-sm transition-colors ${
                     collapsed ? "justify-center px-0" : "px-3"
                   } ${
                     isActive
-                      ? "bg-sidebar-accent font-semibold text-sidebar-primary"
+                      ? "font-medium text-foreground"
                       : "text-muted-foreground hover:bg-sidebar-accent/60 hover:text-sidebar-foreground"
                   }`}
                 >
-                  {/* Barre d'accent : l'état actif ne repose pas uniquement
-                      sur la couleur du texte, difficile à repérer d'un
-                      coup d'œil dans une liste de douze entrées. */}
+                  {/* L'état actif se marque par un filet vertical et un
+                      texte plus contrasté, pas par un aplat de couleur :
+                      douze entrées surlignées en plein feraient une
+                      colonne bariolée. */}
                   {isActive && (
-                    <span className="absolute left-0 top-1/2 h-6 w-1 -translate-y-1/2 rounded-r-full bg-sidebar-primary" />
+                    <span className="absolute -left-2 top-1/2 h-5 w-0.5 -translate-y-1/2 rounded-full bg-primary" />
                   )}
-                  <span className={isActive ? "text-sidebar-primary" : ""}>{item.icon}</span>
+                  <span className={isActive ? "text-primary" : "opacity-80"}>{item.icon}</span>
                   {!collapsed && <span className="truncate">{item.label}</span>}
                 </button>
               );

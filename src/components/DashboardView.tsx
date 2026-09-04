@@ -16,7 +16,7 @@ import {
   Truck,
 } from "lucide-react";
 import { formatCurrency, formatDateLocale, getProductLabel } from "../utils/formulas";
-import { StatTile } from "./shared/StatTile";
+import { StatBar } from "./shared/StatBar";
 import { MobileCardList } from "./shared/MobileCardList";
 import { useNotificationPrefs } from "../lib/notificationPrefs";
 import type { Database } from "../lib/database.types";
@@ -111,210 +111,184 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   return (
     <div className="space-y-6">
       {/* ── Alert Banners ── */}
+      {/* Bandeaux d'alerte : carte blanche avec un simple filet coloré à
+          gauche. Un aplat de couleur pleine largeur attire l'œil bien
+          au-delà de son importance réelle et fatigue à l'usage. */}
       {notificationPrefs.treasuryAlerts && isTresorerieNegative && (
-        <div className="bg-danger-soft border border-danger-border p-4 rounded-2xl flex items-center gap-4">
-          <AlertTriangle className="w-7 h-7 t-danger shrink-0 animate-bounce" />
-          <div className="flex-1">
-            <h3 className="font-bold text-base t-danger">
-              🚨 Trésorerie Négative ({formatCurrency(capital.tresorerieGlobaleActuelle)})
-            </h3>
-            <p className="text-sm text-muted-foreground mt-0.5">
+        <div className="app-card flex items-center gap-3 overflow-hidden border-l-2 border-l-danger p-3.5 sm:gap-4">
+          <AlertTriangle className="h-4 w-4 shrink-0 t-danger" />
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-semibold text-foreground">
+              Trésorerie négative — {formatCurrency(capital.tresorerieGlobaleActuelle)}
+            </p>
+            <p className="mt-0.5 text-xs text-muted-foreground">
               Les dépenses dépassent le capital. Injectez un apport ou enregistrez des ventes.
             </p>
           </div>
           <button
             onClick={() => onNavigateTab("capital")}
-            className="app-btn bg-destructive text-white hover:opacity-90 shrink-0 text-sm"
+            className="app-btn-secondary shrink-0 text-xs"
           >
-            Ajuster Capital
+            Ajuster
           </button>
         </div>
       )}
       {notificationPrefs.treasuryAlerts && isTresorerieLow && !isTresorerieNegative && (
-        <div className="bg-warning-soft border border-warning-border p-4 rounded-2xl flex items-center gap-4">
-          <AlertTriangle className="w-6 h-6 t-warning shrink-0" />
-          <div>
-            <h3 className="font-bold text-sm t-warning">
-              ⚠️ Trésorerie sous le seuil ({formatCurrency(capital.seuilAlerteTresorerie)})
-            </h3>
-            <p className="text-sm text-muted-foreground">
+        <div className="app-card flex items-center gap-3 overflow-hidden border-l-2 border-l-warning p-3.5 sm:gap-4">
+          <AlertTriangle className="h-4 w-4 shrink-0 t-warning" />
+          <div className="min-w-0 flex-1">
+            <p className="text-sm font-semibold text-foreground">
+              Trésorerie sous le seuil de {formatCurrency(capital.seuilAlerteTresorerie)}
+            </p>
+            <p className="mt-0.5 text-xs text-muted-foreground">
               Solde actuel : {formatCurrency(capital.tresorerieGlobaleActuelle)}
             </p>
           </div>
         </div>
       )}
 
-      {/* ── KPI Cards ──
-          Grille plus aérée : à six colonnes dès 1024px les montants
-          étaient à l'étroit. On ne passe à six qu'au-delà de 1280px. */}
-      <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 xl:grid-cols-6 xl:gap-5">
-        <StatTile
-          label="Trésorerie"
-          value={formatCurrency(capital.tresorerieGlobaleActuelle)}
-          hint="argent disponible"
-          icon={<Wallet className="w-5 h-5" />}
-          tone={isTresorerieNegative ? "danger" : isTresorerieLow ? "warning" : "success"}
-          onClick={() => onNavigateTab("capital")}
-        />
-
-        <StatTile
-          label="Ventes"
-          value={formatCurrency(totalSalesAmount)}
-          hint={`Marge : ${formatCurrency(totalMarginAmount)}`}
-          hintTone="success"
-          icon={<DollarSign className="w-5 h-5" />}
-          tone="info"
-          trend={salesTrend}
-          onClick={() => onNavigateTab("ventes")}
-        />
-
-        <StatTile
-          label="Achats"
-          value={formatCurrency(totalPurchasesAmount)}
-          hint={`${purchases.length} achat${purchases.length > 1 ? "s" : ""}`}
-          icon={<ShoppingCart className="w-5 h-5" />}
-          tone="warning"
-          trend={purchasesTrend}
-          onClick={() => onNavigateTab("achats")}
-        />
-
-        <StatTile
-          label="Dépenses"
-          value={formatCurrency(totalExpensesAmount)}
-          hint={`${expenses.length} dépense${expenses.length > 1 ? "s" : ""}`}
-          icon={<ArrowDownRight className="w-5 h-5" />}
-          tone="danger"
-          trend={expensesTrend}
-          onClick={() => onNavigateTab("depenses")}
-        />
-
-        <StatTile
-          label="Commandes"
-          value={`${orders.length}`}
-          hint={
-            pendingOrders.length > 0
-              ? `${pendingOrders.length} en cours`
-              : "aucune commande en cours"
-          }
-          hintTone={pendingOrders.length > 0 ? "warning" : "neutral"}
-          icon={<ShoppingBag className="w-5 h-5" />}
-          tone="violet"
-          flag={pendingOrders.length > 0}
-          onClick={() => onNavigateTab("commandes")}
-        />
-
-        <StatTile
-          label="Stock"
-          value={formatCurrency(totalStockValue)}
-          hint={
-            lowStockProducts.length > 0
-              ? `${lowStockProducts.length} à réapprovisionner`
-              : `${products.length} référence${products.length > 1 ? "s" : ""}`
-          }
-          hintTone={lowStockProducts.length > 0 ? "warning" : "neutral"}
-          icon={<Package className="w-5 h-5" />}
-          tone="violet"
-          flag={lowStockProducts.length > 0}
-          onClick={() => onNavigateTab("produits")}
-        />
-      </div>
-
+      {/* ── Barre d'indicateurs ──
+          Une seule bande compacte plutôt que six cartes colorées : à
+          cette densité de chiffres, le fond de couleur et la pastille
+          d'icône fatiguent plus qu'ils n'orientent. */}
+      <StatBar
+        items={[
+          {
+            key: "tresorerie",
+            label: "Trésorerie",
+            value: formatCurrency(capital.tresorerieGlobaleActuelle),
+            hint: isTresorerieNegative
+              ? "solde négatif"
+              : isTresorerieLow
+                ? "sous le seuil"
+                : "argent disponible",
+            alert: isTresorerieNegative || isTresorerieLow,
+            icon: <Wallet className="h-3.5 w-3.5" />,
+            onClick: () => onNavigateTab("capital"),
+          },
+          {
+            key: "ventes",
+            label: "Ventes",
+            value: formatCurrency(totalSalesAmount),
+            trend: salesTrend,
+            icon: <DollarSign className="h-3.5 w-3.5" />,
+            onClick: () => onNavigateTab("ventes"),
+          },
+          {
+            key: "achats",
+            label: "Achats",
+            value: formatCurrency(totalPurchasesAmount),
+            trend: purchasesTrend,
+            icon: <ShoppingCart className="h-3.5 w-3.5" />,
+            onClick: () => onNavigateTab("achats"),
+          },
+          {
+            key: "depenses",
+            label: "Dépenses",
+            value: formatCurrency(totalExpensesAmount),
+            trend: expensesTrend,
+            icon: <ArrowDownRight className="h-3.5 w-3.5" />,
+            onClick: () => onNavigateTab("depenses"),
+          },
+          {
+            key: "commandes",
+            label: "Commandes",
+            value: `${orders.length}`,
+            hint:
+              pendingOrders.length > 0 ? `${pendingOrders.length} en cours` : "aucune en cours",
+            alert: pendingOrders.length > 0,
+            icon: <ShoppingBag className="h-3.5 w-3.5" />,
+            onClick: () => onNavigateTab("commandes"),
+          },
+          {
+            key: "stock",
+            label: "Stock",
+            value: formatCurrency(totalStockValue),
+            hint:
+              lowStockProducts.length > 0
+                ? `${lowStockProducts.length} à réapprovisionner`
+                : `${products.length} référence${products.length > 1 ? "s" : ""}`,
+            alert: lowStockProducts.length > 0,
+            icon: <Package className="h-3.5 w-3.5" />,
+            onClick: () => onNavigateTab("produits"),
+          },
+        ]}
+      />
 
       {/* ── Main Content Grid ── */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Left column */}
         <div className="space-y-5">
-          {/* Sellers */}
-          <div className="bg-card border border-border rounded-2xl p-5">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="font-bold text-base text-foreground flex items-center gap-2">
-                <Users className="w-4 h-4 t-success" /> Solde Net Vendeurs
+          {/* Vendeurs — liste dense, sans fond ni encadré par ligne */}
+          <div className="app-card overflow-hidden">
+            <div className="flex items-center justify-between border-b border-border px-4 py-3">
+              <h3 className="app-section-title">
+                <Users className="h-3.5 w-3.5" /> Solde net vendeurs
               </h3>
               <button
                 onClick={() => onNavigateTab("vendeurs")}
-                className="text-sm t-success hover:t-success font-semibold hover:underline transition-colors"
+                className="text-xs font-medium text-primary hover:underline"
               >
-                Gérer →
+                Gérer
               </button>
             </div>
             {sellers.length === 0 ? (
-              <div className="text-sm text-muted-foreground text-center py-4">
+              <p className="px-4 py-6 text-center text-sm text-muted-foreground">
                 Aucun vendeur actif.
-              </div>
+              </p>
             ) : (
-              <div className="space-y-3">
+              <div className="app-list">
                 {sellers.map((v) => (
-                  <div
-                    key={v.id}
-                    className="bg-muted/50 p-3.5 rounded-xl border border-border/60 flex items-center justify-between gap-3 hover:bg-muted transition-colors"
-                  >
+                  <div key={v.id} className="app-list-row justify-between">
                     <div className="min-w-0">
-                      <div className="font-semibold text-sm text-foreground truncate">
-                        {v.nom}
-                      </div>
-                      <div className="text-xs text-muted-foreground whitespace-nowrap">
-                        V: {formatCurrency(v.totalVentesMontant)} · D:{" "}
+                      <div className="app-list-primary">{v.nom}</div>
+                      <div className="app-list-secondary">
+                        Ventes {formatCurrency(v.totalVentesMontant)} · Dépenses{" "}
                         {formatCurrency(v.totalDepenses)}
                       </div>
                     </div>
-                    <div className="font-bold font-mono text-base t-success whitespace-nowrap">
-                      {formatCurrency(v.soldeNetEnPoche)}
-                    </div>
+                    <div className="app-list-amount">{formatCurrency(v.soldeNetEnPoche)}</div>
                   </div>
                 ))}
               </div>
             )}
           </div>
 
-          {/* Low Stock */}
-          <div className="bg-card border border-border rounded-2xl p-5">
-            <div className="flex items-center justify-between mb-3">
-              <h3 className="font-bold text-base text-foreground flex items-center gap-2">
-                <AlertTriangle className="w-4 h-4 t-warning" /> Alertes Stock (
-                {lowStockProducts.length})
+          {/* Alertes de stock — la couleur ne sert qu'au badge de statut */}
+          <div className="app-card overflow-hidden">
+            <div className="flex items-center justify-between border-b border-border px-4 py-3">
+              <h3 className="app-section-title">
+                <AlertTriangle className="h-3.5 w-3.5" /> Alertes stock
+                {lowStockProducts.length > 0 && (
+                  <span className="text-muted-foreground">({lowStockProducts.length})</span>
+                )}
               </h3>
               <button
                 onClick={() => onNavigateTab("produits")}
-                className="text-sm t-success hover:underline font-semibold"
+                className="text-xs font-medium text-primary hover:underline"
               >
                 Voir tout
               </button>
             </div>
             {lowStockProducts.length === 0 ? (
-              <div className="flex items-center gap-2 text-sm text-muted-foreground bg-muted/40 p-3 rounded-xl border border-border">
-                <CheckCircle2 className="w-4 h-4 t-success shrink-0" /> Stock suffisant sur
-                tous les produits.
-              </div>
+              <p className="flex items-center gap-2 px-4 py-6 text-sm text-muted-foreground">
+                <CheckCircle2 className="h-4 w-4 shrink-0 t-success" />
+                Stock suffisant sur tous les produits.
+              </p>
             ) : (
-              <div className="space-y-2">
+              <div className="app-list">
                 {lowStockProducts.map((p) => {
                   const isOut = p.stockActuel <= 0;
                   return (
-                    <div
-                      key={p.id}
-                      className={`flex items-center justify-between p-2.5 rounded-xl border ${
-                        isOut
-                          ? "bg-red-500/10 border-red-500/20"
-                          : "bg-amber-500/10 border-amber-500/20"
-                      }`}
-                    >
-                      <div className="flex items-center gap-2">
-                        <div className="font-semibold text-sm text-foreground font-mono">
-                          {getProductLabel(p, products)}
-                        </div>
-                        {isOut && (
-                          <span className="text-[10px] font-semibold px-1.5 py-0.5 rounded bg-red-500/20 t-danger border border-red-500/30">
-                            Rupture
-                          </span>
-                        )}
+                    <div key={p.id} className="app-list-row justify-between">
+                      <div className="min-w-0 flex-1">
+                        <div className="app-list-primary">{getProductLabel(p, products)}</div>
+                        <div className="app-list-secondary">seuil {p.seuilAlerte}</div>
                       </div>
                       <span
-                        className={`text-sm font-bold font-mono ${
-                          isOut ? "t-danger" : "t-warning"
-                        }`}
+                        className={`app-badge shrink-0 ${isOut ? "app-badge-danger" : "app-badge-warning"}`}
                       >
-                        {p.stockActuel}{" "}
-                        <span className="text-xs text-muted-foreground">/ {p.seuilAlerte}</span>
+                        {isOut ? "Rupture" : `${p.stockActuel} restant`}
                       </span>
                     </div>
                   );
@@ -325,34 +299,27 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
 
           {/* Pending Orders */}
           {pendingOrders.length > 0 && (
-            <div className="bg-card border border-indigo-500/30 rounded-2xl p-5">
-              <div className="flex items-center justify-between mb-3">
-                <h3 className="font-bold text-base text-foreground flex items-center gap-2">
-                  <Truck className="w-4 h-4 t-violet" /> Commandes en cours (
-                  {pendingOrders.length})
+            <div className="app-card overflow-hidden">
+              <div className="flex items-center justify-between border-b border-border px-4 py-3">
+                <h3 className="app-section-title">
+                  <Truck className="h-3.5 w-3.5" /> Commandes en cours
+                  <span className="text-muted-foreground">({pendingOrders.length})</span>
                 </h3>
                 <button
                   onClick={() => onNavigateTab("commandes")}
-                  className="text-sm t-success hover:underline font-semibold"
+                  className="text-xs font-medium text-primary hover:underline"
                 >
                   Ouvrir
                 </button>
               </div>
-              <div className="space-y-2">
+              <div className="app-list">
                 {pendingOrders.slice(0, 3).map((o) => (
-                  <div
-                    key={o.id}
-                    className="flex items-center justify-between p-2.5 rounded-xl bg-indigo-500/10 border border-indigo-500/20"
-                  >
-                    <div>
-                      <div className="font-bold text-sm font-mono text-foreground">{o.numero}</div>
-                      <div className="text-xs text-muted-foreground">
-                        {o.client?.nom ?? "Sans client"}
-                      </div>
+                  <div key={o.id} className="app-list-row justify-between">
+                    <div className="min-w-0">
+                      <div className="app-list-primary font-mono">{o.numero}</div>
+                      <div className="app-list-secondary">{o.client?.nom ?? "Sans client"}</div>
                     </div>
-                    <span className="font-bold text-sm t-violet font-mono">
-                      {formatCurrency(o.montant_total)}
-                    </span>
+                    <span className="app-list-amount">{formatCurrency(o.montant_total)}</span>
                   </div>
                 ))}
               </div>
@@ -361,34 +328,27 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
 
           {/* Unpaid Orders */}
           {unpaidOrders.length > 0 && (
-            <div className="bg-card border border-rose-500/30 rounded-2xl p-5">
-              <div className="flex items-center justify-between mb-3">
-                <h3 className="font-bold text-base text-foreground flex items-center gap-2">
-                  <CreditCard className="w-4 h-4 t-danger" /> Paiements en attente (
-                  {unpaidOrders.length})
+            <div className="app-card overflow-hidden">
+              <div className="flex items-center justify-between border-b border-border px-4 py-3">
+                <h3 className="app-section-title">
+                  <CreditCard className="h-3.5 w-3.5" /> Paiements en attente
+                  <span className="text-muted-foreground">({unpaidOrders.length})</span>
                 </h3>
                 <button
                   onClick={() => onNavigateTab("commandes")}
-                  className="text-sm t-success hover:underline font-semibold"
+                  className="text-xs font-medium text-primary hover:underline"
                 >
                   Ouvrir
                 </button>
               </div>
-              <div className="space-y-2">
+              <div className="app-list">
                 {unpaidOrders.slice(0, 3).map((o) => (
-                  <div
-                    key={o.id}
-                    className="flex items-center justify-between p-2.5 rounded-xl bg-rose-500/10 border border-rose-500/20"
-                  >
-                    <div>
-                      <div className="font-bold text-sm font-mono text-foreground">{o.numero}</div>
-                      <div className="text-xs text-muted-foreground">
-                        {o.client?.nom ?? "Sans client"}
-                      </div>
+                  <div key={o.id} className="app-list-row justify-between">
+                    <div className="min-w-0">
+                      <div className="app-list-primary font-mono">{o.numero}</div>
+                      <div className="app-list-secondary">{o.client?.nom ?? "Sans client"}</div>
                     </div>
-                    <span className="font-bold text-sm t-danger font-mono">
-                      {formatCurrency(o.reste_a_payer ?? 0)}
-                    </span>
+                    <span className="app-list-amount t-danger">{formatCurrency(o.reste_a_payer ?? 0)}</span>
                   </div>
                 ))}
               </div>
@@ -399,16 +359,16 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         {/* Right column */}
         <div className="lg:col-span-2 space-y-5">
           {/* Recent Sales */}
-          <div className="bg-card border border-border rounded-2xl p-5">
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="font-bold text-base text-foreground flex items-center gap-2">
-                <TrendingUp className="w-4 h-4 t-info" /> Activités Récentes : Ventes
+          <div className="app-card overflow-hidden">
+            <div className="flex items-center justify-between border-b border-border px-4 py-3">
+              <h3 className="app-section-title">
+                <TrendingUp className="h-3.5 w-3.5" /> Ventes récentes
               </h3>
               <button
                 onClick={() => onNavigateTab("ventes")}
-                className="text-sm t-success hover:underline font-semibold"
+                className="text-xs font-medium text-primary hover:underline"
               >
-                Toutes les Ventes →
+                Tout voir
               </button>
             </div>
             {/* Liste mobile — le tableau ci-dessous impose un défilement
@@ -516,8 +476,8 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
 
           {/* Achats & Dépenses */}
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-            <div className="bg-card border border-border rounded-2xl p-5">
-              <h3 className="font-bold text-base text-foreground flex items-center gap-2 mb-4">
+            <div className="app-card p-4">
+              <h3 className="app-section-title mb-3">
                 <ShoppingCart className="w-4 h-4 t-warning" /> Derniers Achats
               </h3>
               <div className="space-y-3">
@@ -550,8 +510,8 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               </div>
             </div>
 
-            <div className="bg-card border border-border rounded-2xl p-5">
-              <h3 className="font-bold text-base text-foreground flex items-center gap-2 mb-4">
+            <div className="app-card p-4">
+              <h3 className="app-section-title mb-3">
                 <ArrowRightLeft className="w-4 h-4 t-danger" /> Dernières Dépenses
               </h3>
               <div className="space-y-3">
