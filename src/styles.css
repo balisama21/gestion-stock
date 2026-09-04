@@ -385,29 +385,109 @@ td {
 }
 
 
-/* ── Print ── */
+/* ═══════════════════════════════════════════════════════════════════
+   IMPRESSION
+   Le reçu était en `position: fixed`, ce qui explique qu'il ressortait
+   coupé : un élément fixe ne se répartit pas sur plusieurs pages, le
+   navigateur n'en imprime que ce qui tient sur la première et tronque le
+   reste. Il est désormais remis dans le flux normal, et tout le reste de
+   l'interface est masqué autour de lui.
+   ═══════════════════════════════════════════════════════════════════ */
 @media print {
-  body {
-    background: white !important;
-    color: black !important;
+  @page {
+    margin: 10mm;
   }
+
+  html,
+  body {
+    height: auto !important;
+    overflow: visible !important;
+    background: #fff !important;
+    color: #000 !important;
+  }
+
+  /* On masque tout par `visibility` plutôt que par `display` : le reçu
+     n'est pas forcément un enfant direct de <body> (certaines modales
+     sont encore rendues dans l'arbre de l'application, d'autres dans un
+     portail), et `visibility` se réhérite sélectivement sur la seule
+     branche du document à imprimer. */
+  body * {
+    visibility: hidden !important;
+    box-shadow: none !important;
+  }
+  .printable-receipt,
+  .printable-receipt * {
+    visibility: visible !important;
+  }
+
+  /* Les commandes d'écran n'ont rien à faire sur le papier. */
   header,
   nav,
-  .no-print {
+  aside,
+  .no-print,
+  .app-modal-header,
+  .app-modal-footer {
     display: none !important;
   }
-  .printable-receipt {
-    position: fixed !important;
-    top: 0 !important;
-    left: 0 !important;
+
+  /* Neutralise tout conteneur susceptible de rogner le reçu ou de le
+     figer sur une seule page : l'enveloppe de modale (nouvelle ou
+     ancienne, d'où `.fixed`), son corps défilant et le cadre d'aperçu. */
+  .fixed,
+  .app-modal-overlay,
+  .app-modal-panel,
+  .app-modal-body {
+    position: static !important;
+    display: block !important;
+    overflow: visible !important;
+    max-height: none !important;
+    max-width: none !important;
     width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    background: none !important;
+    backdrop-filter: none !important;
+  }
+
+  /* Le cadre de prévisualisation du reçu plafonne sa hauteur à l'écran :
+     à l'impression il rognait le document au même endroit. */
+  .receipt-viewport {
+    display: block !important;
+    max-height: none !important;
+    overflow: visible !important;
+    padding: 0 !important;
+    border: 0 !important;
+    border-radius: 0 !important;
+    background: none !important;
+  }
+
+  .printable-receipt {
+    position: static !important;
+    width: 100% !important;
+    max-width: none !important;
     height: auto !important;
-    background: white !important;
-    color: black !important;
-    padding: 20px !important;
+    max-height: none !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #fff !important;
+    color: #000 !important;
     box-shadow: none !important;
     border: none !important;
-    z-index: 9999 !important;
+    border-radius: 0 !important;
+  }
+
+  /* Évite qu'une ligne de tableau ou un bloc soit coupé en deux entre
+     deux pages. */
+  .printable-receipt table,
+  .printable-receipt tr,
+  .printable-receipt img {
+    page-break-inside: avoid;
+    break-inside: avoid;
+  }
+  .printable-receipt thead {
+    display: table-header-group;
   }
 }
 

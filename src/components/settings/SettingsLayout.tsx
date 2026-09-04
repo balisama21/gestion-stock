@@ -7,6 +7,7 @@ import {
   Users,
   CreditCard,
   Bell,
+  Receipt,
   Settings as SettingsIcon,
   LogOut,
 } from "lucide-react";
@@ -15,6 +16,7 @@ export type SettingsTab =
   | "compte"
   | "securite"
   | "boutique"
+  | "facture"
   | "equipe"
   | "paiement"
   | "notifications"
@@ -86,6 +88,13 @@ const GROUPS: GroupDef[] = [
         label: "Ma boutique",
         hint: "Identité, devise, TVA",
         icon: <Store className="w-4 h-4" />,
+        ownerOnly: true,
+      },
+      {
+        id: "facture",
+        label: "Reçus et factures",
+        hint: "Contenu des documents",
+        icon: <Receipt className="w-4 h-4" />,
         ownerOnly: true,
       },
       {

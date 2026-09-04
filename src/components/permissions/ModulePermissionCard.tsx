@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { ChevronDown, Check } from "lucide-react";
+import { Toggle } from "../shared/Toggle";
 import {
   ModuleDef,
   ModulePermission,
@@ -96,19 +97,12 @@ export const ModulePermissionCard: React.FC<ModulePermissionCardProps> = ({
       }`}
     >
       <div className="flex items-center gap-3 p-4">
-        <button
-          type="button"
-          onClick={toggleVisible}
-          className={`w-10 h-6 rounded-full relative shrink-0 transition-colors ${
-            visible ? "bg-emerald-500" : "bg-muted-foreground/30"
-          }`}
-        >
-          <span
-            className={`absolute top-0.5 w-5 h-5 bg-white rounded-full transition-transform ${
-              visible ? "translate-x-4" : "translate-x-0.5"
-            }`}
-          />
-        </button>
+        <Toggle
+          checked={visible}
+          onChange={toggleVisible}
+          label={`Activer le module ${def.label}`}
+          size="sm"
+        />
 
         <button
           type="button"

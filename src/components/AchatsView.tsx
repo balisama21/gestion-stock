@@ -737,7 +737,7 @@ ${reportPurchases
             </div>
 
             {/* Printable Area */}
-            <div className="flex justify-center bg-background p-4 rounded-xl border border-border max-h-[60vh] overflow-y-auto">
+            <div className="receipt-viewport flex justify-center bg-background p-4 rounded-xl border border-border max-h-[60vh] overflow-y-auto">
               {reportFormat === "ticket" ? (
                 <div className="printable-receipt bg-emerald-50 text-slate-900 w-full max-w-[360px] p-6 rounded-lg shadow-lg font-mono text-xs leading-relaxed space-y-4 border border-emerald-200">
                   <div className="text-center space-y-1">

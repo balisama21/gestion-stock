@@ -1,5 +1,6 @@
 import React from "react";
 import { Check, Loader2 } from "lucide-react";
+import { Toggle } from "../shared/Toggle";
 
 /**
  * Briques communes à toutes les sections de réglages.
@@ -103,41 +104,8 @@ export const SettingsBlock: React.FC<{ children: React.ReactNode; className?: st
   className = "",
 }) => <div className={`px-4 py-4 sm:px-6 ${className}`}>{children}</div>;
 
-interface ToggleProps {
-  checked: boolean;
-  onChange: (value: boolean) => void;
-  id?: string;
-  label: string;
-  disabled?: boolean;
-}
-
 /** Interrupteur accessible — bouton réel, pas une case déguisée. */
-export const SettingsToggle: React.FC<ToggleProps> = ({
-  checked,
-  onChange,
-  id,
-  label,
-  disabled,
-}) => (
-  <button
-    type="button"
-    id={id}
-    role="switch"
-    aria-checked={checked}
-    aria-label={label}
-    disabled={disabled}
-    onClick={() => onChange(!checked)}
-    className={`relative inline-flex h-7 w-12 shrink-0 items-center rounded-full border transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50 ${
-      checked ? "border-transparent bg-primary" : "border-border bg-muted"
-    }`}
-  >
-    <span
-      className={`inline-block h-5 w-5 transform rounded-full bg-card shadow transition-transform ${
-        checked ? "translate-x-6" : "translate-x-1"
-      }`}
-    />
-  </button>
-);
+export const SettingsToggle = Toggle;
 
 interface SaveBarProps {
   /** Vrai dès qu'un champ diffère de la valeur enregistrée. */

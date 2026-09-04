@@ -16,6 +16,7 @@ import { TeamSection, type TeamMember } from "./settings/TeamSection";
 import { BillingSection } from "./settings/BillingSection";
 import { PreferencesSection } from "./settings/PreferencesSection";
 import { NotificationsSection } from "./settings/NotificationsSection";
+import { InvoiceSection } from "./settings/InvoiceSection";
 import { Trash2 } from "lucide-react";
 
 interface ParametresViewProps {
@@ -695,6 +696,8 @@ export const ParametresView: React.FC<ParametresViewProps> = ({
           onLogoChange={handleLogoChange}
         />
       )}
+
+      {activeTab === "facture" && <InvoiceSection settings={settings} />}
 
       {activeTab === "equipe" && (
         <TeamSection

@@ -30,6 +30,7 @@ import { PageHeader, HeaderMetric } from "./shared/PageHeader";
 import { FilterBar, FilterField } from "./shared/FilterBar";
 import { MobileCardList } from "./shared/MobileCardList";
 import { StatTile } from "./shared/StatTile";
+import { Modal } from "./shared/Modal";
 
 interface VentesViewProps {
   sales: Sale[];
@@ -947,48 +948,47 @@ export const VentesView: React.FC<VentesViewProps> = ({
 
       {/* Receipt / Facture Preview & Printing Modal */}
       {selectedReceiptSale && (
-        <div className="fixed inset-0 bg-black/80 backdrop-blur-md z-50 flex items-center justify-center p-4 overflow-y-auto">
-          <div className="bg-card border border-muted-foreground/20 rounded-2xl w-full max-w-2xl p-6 shadow-2xl text-foreground space-y-6 my-8">
-            {/* Modal Controls Bar (hidden during printing) */}
-            <div className="flex flex-wrap items-center justify-between gap-4 border-b border-border pb-4 no-print">
-              <div className="flex items-center gap-2">
-                <Receipt className="w-5 h-5 t-success" />
-                <h3 className="text-base font-bold text-foreground">
-                  Téléchargement & Impression du Reçu / Facture
-                </h3>
-              </div>
-
-              {/* Toggle Mode: Ticket Caisse vs Facture A4 */}
-              <div className="flex items-center bg-muted p-1 rounded-xl border border-muted-foreground/20 text-xs font-semibold">
-                <button
-                  onClick={() => setReceiptMode("ticket")}
-                  className={`flex items-center gap-1 px-3 py-1.5 rounded-lg transition-colors ${
-                    receiptMode === "ticket"
-                      ? "bg-emerald-600 text-white shadow-sm"
-                      : "text-muted-foreground hover:text-foreground"
-                  }`}
-                >
-                  <Receipt className="w-3.5 h-3.5" />
-                  Ticket Caisse (80mm)
-                </button>
-                <button
-                  onClick={() => setReceiptMode("facture")}
-                  className={`flex items-center gap-1 px-3 py-1.5 rounded-lg transition-colors ${
-                    receiptMode === "facture"
-                      ? "bg-blue-600 text-white shadow-sm"
-                      : "text-muted-foreground hover:text-foreground"
-                  }`}
-                >
-                  <FileText className="w-3.5 h-3.5" />
-                  Facture Officielle (A4)
-                </button>
-              </div>
-
-              {/* Print / Download / Close Actions */}
-              <div className="flex items-center gap-2">
-                <button
+        <Modal
+          open
+          onClose={() => setSelectedReceiptSale(null)}
+          size="2xl"
+          icon={<Receipt className="w-4 h-4" />}
+          title={receiptMode === "facture" ? "Facture" : "Reçu de caisse"}
+          description={`N° ${selectedReceiptSale.numero}`}
+          bodyClassName="space-y-4"
+          headerAside={
+            <div className="flex items-center gap-1 rounded-xl border border-border bg-muted p-1">
+              <button
+                onClick={() => setReceiptMode("ticket")}
+                aria-pressed={receiptMode === "ticket"}
+                className={`flex items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-semibold transition-colors ${
+                  receiptMode === "ticket"
+                    ? "bg-card text-foreground shadow-sm"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                <Receipt className="w-3.5 h-3.5" />
+                Ticket
+              </button>
+              <button
+                onClick={() => setReceiptMode("facture")}
+                aria-pressed={receiptMode === "facture"}
+                className={`flex items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-semibold transition-colors ${
+                  receiptMode === "facture"
+                    ? "bg-card text-foreground shadow-sm"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                <FileText className="w-3.5 h-3.5" />
+                Facture A4
+              </button>
+            </div>
+          }
+          footer={
+            <>
+              <button
                   onClick={() => window.print()}
-                  className="flex items-center gap-1.5 px-3.5 py-1.5 bg-emerald-600 hover:bg-emerald-500 text-white rounded-xl text-xs font-semibold shadow-sm transition-colors"
+                  className="app-btn-primary"
                 >
                   <Printer className="w-4 h-4" />
                   Imprimer
@@ -1029,23 +1029,17 @@ ${settings?.receiptFooter || "Merci pour votre confiance ! Ni repris, ni échang
                     element.click();
                     document.body.removeChild(element);
                   }}
-                  className="flex items-center gap-1.5 px-3 py-1.5 bg-muted hover:bg-accent text-foreground border border-muted-foreground/20 rounded-xl text-xs font-semibold transition-colors"
-                  title="Télécharger résumé texte"
+                  className="app-btn-secondary"
+                  title="Télécharger un résumé au format texte"
                 >
-                  <Download className="w-3.5 h-3.5" />
-                  Télécharger (.TXT)
+                  <Download className="w-4 h-4" />
+                  Télécharger (.txt)
                 </button>
-                <button
-                  onClick={() => setSelectedReceiptSale(null)}
-                  className="p-1.5 text-muted-foreground hover:text-foreground bg-muted hover:bg-accent rounded-xl transition-colors"
-                >
-                  <X className="w-5 h-5" />
-                </button>
-              </div>
-            </div>
-
+            </>
+          }
+        >
             {/* Print Container Rendering */}
-            <div className="flex justify-center bg-background p-4 rounded-xl border border-border max-h-[60vh] overflow-y-auto">
+            <div className="receipt-viewport flex justify-center bg-background p-4 rounded-xl border border-border max-h-[60vh] overflow-y-auto">
               {receiptMode === "ticket" ? (
                 /* Ticket Thermal Receipt Format */
                 <div className="printable-receipt bg-amber-50 text-slate-900 w-full max-w-[360px] p-6 rounded-lg shadow-lg font-mono text-xs leading-relaxed space-y-4 border border-amber-200">
@@ -1323,8 +1317,7 @@ ${settings?.receiptFooter || "Merci pour votre confiance ! Ni repris, ni échang
                 </div>
               )}
             </div>
-          </div>
-        </div>
+        </Modal>
       )}
     </div>
   );
