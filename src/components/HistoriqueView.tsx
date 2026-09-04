@@ -3,7 +3,7 @@ import { Purchase, Sale, Expense, CapitalApport, LocaleSetting, Product } from "
 import { History, ShoppingCart, DollarSign, ArrowRightLeft, PlusCircle } from "lucide-react";
 import { formatCurrency, formatDateLocale, getPurchaseLabel, getSaleLabel } from "../utils/formulas";
 import { PageHeader } from "./shared/PageHeader";
-import { MobileCardList } from "./shared/MobileCardList";
+
 import type { Database } from "../lib/database.types";
 
 type MovementType = "ACHAT" | "VENTE" | "DÉPENSE" | "APPORT";
@@ -11,14 +11,6 @@ type MovementType = "ACHAT" | "VENTE" | "DÉPENSE" | "APPORT";
 /** Libellés lisibles — les codes en majuscules sont réservés au code. */
 const labelFor = (type: MovementType) =>
   ({ ACHAT: "Achat", VENTE: "Vente", DÉPENSE: "Dépense", APPORT: "Apport" })[type];
-
-const badgeClassFor = (type: MovementType) =>
-  ({
-    VENTE: "app-badge-success",
-    ACHAT: "app-badge-danger",
-    APPORT: "app-badge-info",
-    DÉPENSE: "app-badge-warning",
-  })[type];
 
 type Order = Database["public"]["Tables"]["orders"]["Row"] & {
   client?: Database["public"]["Tables"]["clients"]["Row"] | null;
@@ -116,6 +108,17 @@ export const HistoriqueView: React.FC<HistoriqueViewProps> = ({
     })),
   ].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
 
+  // Regroupement par journée, en conservant l'ordre décroissant du tri
+  // ci-dessus : une Map préserve l'ordre d'insertion des clés.
+  const groupedByDay = Array.from(
+    timeline.reduce((acc, item) => {
+      const list = acc.get(item.date);
+      if (list) list.push(item);
+      else acc.set(item.date, [item]);
+      return acc;
+    }, new Map<string, typeof timeline>()),
+  );
+
   return (
     <div className="space-y-6">
       <PageHeader
@@ -124,70 +127,66 @@ export const HistoriqueView: React.FC<HistoriqueViewProps> = ({
         subtitle="Tous vos mouvements d'argent et de stock, du plus récent au plus ancien."
       />
 
-      {/* Liste mobile — remplace le tableau sous 768px */}
-      <div className="lg:hidden">
-        <MobileCardList
-          emptyLabel="Aucun mouvement enregistré pour le moment."
-          items={timeline.map((item) => ({
-            id: `${item.type}-${item.id}`,
-            title: item.description,
-            subtitle: `${formatDateLocale(item.date, locale)} · ${item.actor}`,
-            amount: `${item.montant >= 0 ? "+" : ""}${formatCurrency(item.montant)}`,
-            amountTone: item.montant >= 0 ? ("success" as const) : ("danger" as const),
-            badge: (
-              <span className={`app-badge ${badgeClassFor(item.type)}`}>{labelFor(item.type)}</span>
-            ),
-            fields: [
-              { label: "Référence", value: item.ref },
-              { label: "Date", value: formatDateLocale(item.date, locale) },
-              { label: "Type", value: labelFor(item.type) },
-              { label: "Concerné", value: item.actor, hideIfEmpty: true },
-            ],
-          }))}
-        />
-      </div>
-
-      <div className="app-table-wrap hidden lg:block">
-        <div className="app-table-scroll">
-          <table className="app-table">
-            <thead>
-              <tr>
-                <th className="px-4 py-3.5">Référence</th>
-                <th className="px-4 py-3.5">Date</th>
-                <th className="px-4 py-3.5">Type</th>
-                <th className="px-4 py-3.5">Description</th>
-                <th className="px-4 py-3.5">Concerné</th>
-                <th className="px-4 py-3.5 text-right">Effet trésorerie</th>
-              </tr>
-            </thead>
-            <tbody className="text-foreground">
-              {timeline.map((item) => (
-                <tr key={`${item.type}-${item.id}`} className="hover:bg-muted/40">
-                  <td className="px-4 py-3.5 font-mono text-muted-foreground">{item.ref}</td>
-                  <td className="px-4 py-3.5 font-mono text-muted-foreground">
-                    {formatDateLocale(item.date, locale)}
-                  </td>
-                  <td className="px-4 py-3.5">
-                    <span className={`app-badge ${badgeClassFor(item.type)}`}>
-                      {item.icon}
-                      {labelFor(item.type)}
-                    </span>
-                  </td>
-                  <td className="px-4 py-3.5 font-medium text-foreground">{item.description}</td>
-                  <td className="px-4 py-3.5 text-muted-foreground">{item.actor}</td>
-                  <td
-                    className={`p-3 text-right font-mono font-bold ${
-                      item.montant >= 0 ? "t-success" : "t-danger"
-                    }`}
+      {/* Journal chronologique — desktop ET mobile.
+          Contrairement aux autres listes, l'Historique n'est pas un
+          inventaire d'objets mais une suite d'événements : il est donc
+          groupé par jour, avec le type d'action porté par une icône en
+          rail à gauche, comme un relevé. */}
+      <div className="app-card overflow-hidden">
+        {timeline.length === 0 ? (
+          <p className="px-4 py-10 text-center text-sm text-muted-foreground">
+            Aucun mouvement enregistré pour le moment.
+          </p>
+        ) : (
+          groupedByDay.map(([jour, evenements]) => {
+            const net = evenements.reduce((acc, e) => acc + e.montant, 0);
+            return (
+              <section key={jour}>
+                {/* Séparateur de journée, avec le solde net du jour */}
+                <header className="flex items-baseline justify-between gap-3 border-b border-border bg-muted/40 px-4 py-2">
+                  <span className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+                    {formatDateLocale(jour, locale)}
+                  </span>
+                  <span
+                    className={`font-mono text-xs tabular-nums ${net >= 0 ? "t-success" : "t-danger"}`}
                   >
-                    {item.montant >= 0 ? "+" : ""}
-                    {formatCurrency(item.montant)}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
+                    {net >= 0 ? "+" : ""}
+                    {formatCurrency(net)}
+                  </span>
+                </header>
+
+                <div className="app-list">
+                  {evenements.map((item) => (
+                    <div
+                      key={`${item.type}-${item.id}`}
+                      className="app-list-row items-start gap-3"
+                    >
+                      {/* Rail d'icônes : le type d'action se lit en
+                          balayant la colonne de gauche, sans lire le texte. */}
+                      <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center rounded-full border border-border bg-card">
+                        {item.icon}
+                      </span>
+
+                      <span className="min-w-0 flex-1">
+                        <span className="app-list-primary block">{item.description}</span>
+                        <span className="app-list-secondary block">
+                          {[labelFor(item.type), item.actor, item.ref].filter(Boolean).join(" · ")}
+                        </span>
+                      </span>
+
+                      <span
+                        className={`app-list-amount ${item.montant >= 0 ? "t-success" : "t-danger"}`}
+                      >
+                        {item.montant >= 0 ? "+" : ""}
+                        {formatCurrency(item.montant)}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              </section>
+            );
+          })
+        )}
       </div>
     </div>
   );

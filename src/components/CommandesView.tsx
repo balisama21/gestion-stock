@@ -499,7 +499,7 @@ export const CommandesView: React.FC<CommandesViewProps> = ({
             return (
               <div
                 key={order.id}
-                className={`bg-card border rounded-2xl transition-all ${isSelected ? "border-emerald-500/60 ring-1 ring-emerald-500/25" : "border-border hover:border-border/80"}`}
+                className={`app-card overflow-hidden transition-colors ${isSelected ? "bg-muted/40" : ""}`}
               >
                 <div
                   className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 p-4 cursor-pointer"
@@ -512,13 +512,13 @@ export const CommandesView: React.FC<CommandesViewProps> = ({
                           {order.numero}
                         </span>
                         <span
-                          className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-semibold border ${sc.bg} ${sc.color}`}
+                          className={`app-badge ${sc.color === "t-success" ? "app-badge-success" : sc.color === "t-warning" ? "app-badge-warning" : sc.color === "t-danger" ? "app-badge-danger" : "app-badge-info"}`}
                         >
                           {sc.icon}
                           {sc.label}
                         </span>
                         <span
-                          className={`px-2 py-0.5 rounded-full text-[11px] font-semibold border ${pc.bg} ${pc.color}`}
+                          className={`app-badge ${pc.color === "t-success" ? "app-badge-success" : pc.color === "t-warning" ? "app-badge-warning" : "app-badge-danger"}`}
                         >
                           {pc.label}
                         </span>
@@ -638,7 +638,7 @@ export const CommandesView: React.FC<CommandesViewProps> = ({
                             );
                             setShowPaymentModal(true);
                           }}
-                          className="flex items-center gap-1.5 px-3 py-1.5 bg-emerald-500 hover:bg-emerald-600 text-white rounded-lg text-xs font-semibold transition-colors"
+                          className="app-btn-primary text-xs"
                         >
                           <CreditCard className="w-3.5 h-3.5" />
                           Enregistrer paiement
@@ -648,7 +648,7 @@ export const CommandesView: React.FC<CommandesViewProps> = ({
                         <button
                           onClick={() => handleDeliver(order)}
                           disabled={processingOrderId === order.id}
-                          className="flex items-center gap-1.5 px-3 py-1.5 bg-blue-500/20 hover:bg-blue-500/30 t-info border border-blue-500/30 rounded-lg text-xs font-semibold transition-colors disabled:opacity-60"
+                          className="app-btn-secondary text-xs"
                         >
                           <Truck className="w-3.5 h-3.5" />
                           {processingOrderId === order.id ? "..." : "Marquer livré"}
@@ -658,7 +658,7 @@ export const CommandesView: React.FC<CommandesViewProps> = ({
                         <button
                           onClick={() => requestCancel(order)}
                           disabled={processingOrderId === order.id}
-                          className="flex items-center gap-1.5 px-3 py-1.5 bg-red-500/10 hover:bg-red-500/20 t-danger border border-red-500/25 rounded-lg text-xs font-semibold transition-colors disabled:opacity-60"
+                          className="app-btn-danger text-xs"
                         >
                           <XCircle className="w-3.5 h-3.5" />
                           {processingOrderId === order.id ? "..." : "Annuler"}

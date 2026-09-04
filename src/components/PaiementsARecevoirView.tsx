@@ -164,12 +164,12 @@ export const PaiementsARecevoirView: React.FC<PaiementsARecevoirViewProps> = ({
       />
 
       {/* Bandeau total à recevoir */}
-      <div className="app-card flex items-center justify-between border-danger-border bg-danger-soft p-4 sm:p-5">
+      <div className="app-card flex items-center justify-between overflow-hidden border-l-2 border-l-danger p-4">
         <div>
-          <div className="text-xs t-danger uppercase tracking-wider font-semibold mb-1">
+          <div className="mb-0.5 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
             Total à recevoir
           </div>
-          <div className="text-2xl font-bold font-mono t-danger">
+          <div className="font-mono text-xl font-semibold tabular-nums t-danger">
             {formatCurrency(totalARecevoir)}
           </div>
         </div>
@@ -186,77 +186,64 @@ export const PaiementsARecevoirView: React.FC<PaiementsARecevoirViewProps> = ({
           value={search}
           onChange={(e) => setSearch(e.target.value)}
           placeholder="Rechercher un client, une vente, une commande..."
-          className="w-full bg-muted border border-border rounded-xl pl-9 pr-3 py-2.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
+          className="app-field pl-9"
         />
       </div>
 
       {/* Liste */}
-      {receivables.length === 0 ? (
-        <div className="bg-card border border-border rounded-2xl p-12 text-center">
-          <CreditCard className="w-12 h-12 mx-auto mb-3 text-muted-foreground opacity-30" />
-          <p className="text-muted-foreground text-sm">
-            Aucun paiement en attente. Tout est à jour !
-          </p>
-        </div>
-      ) : (
-        <div className="space-y-3">
-          {receivables.map((r) => (
-            <div
-              key={r.key}
-              className="bg-card border border-border rounded-2xl p-4 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3"
-            >
-              <div className="flex items-start gap-3 min-w-0">
-                <div
-                  className={`p-2 rounded-xl shrink-0 ${r.type === "vente" ? "bg-emerald-500/10" : "bg-indigo-500/10"}`}
-                >
-                  {r.type === "vente" ? (
-                    <DollarSign className="w-4 h-4 t-success" />
-                  ) : (
-                    <ShoppingBag className="w-4 h-4 t-violet" />
-                  )}
-                </div>
-                <div className="min-w-0">
-                  <div className="flex items-center gap-2 flex-wrap">
-                    <span className="font-mono font-bold text-sm text-foreground truncate">
-                      {r.label}
-                    </span>
-                    <span className="text-[11px] px-2 py-0.5 rounded-full border border-border text-muted-foreground">
-                      {r.type === "vente" ? "Vente" : "Commande"}
-                    </span>
-                  </div>
-                  <div className="text-xs text-muted-foreground truncate">{r.clientLabel}</div>
-                </div>
-              </div>
+      {/* Liste dense — chaque ligne est une créance à solder. Ce qui
+          compte est le reste dû, mis en avant à droite, et l'action
+          « recevoir » directement accessible sans ouvrir de détail. */}
+      <div className="app-card overflow-hidden">
+        {receivables.length === 0 ? (
+          <div className="px-4 py-12 text-center">
+            <CreditCard className="mx-auto mb-3 h-10 w-10 text-muted-foreground opacity-30" />
+            <p className="text-sm text-muted-foreground">
+              Aucun paiement en attente. Tout est à jour.
+            </p>
+          </div>
+        ) : (
+          <div className="app-list">
+            {receivables.map((r) => (
+              <div key={r.key} className="app-list-row flex-wrap justify-between gap-3">
+                <span className="min-w-0 flex-1">
+                  <span className="app-list-primary block">{r.label}</span>
+                  <span className="app-list-secondary block">
+                    {[r.type === "vente" ? "Vente" : "Commande", r.clientLabel]
+                      .filter(Boolean)
+                      .join(" · ")}
+                  </span>
+                </span>
 
-              <div className="flex items-center gap-4 shrink-0 w-full sm:w-auto justify-between sm:justify-end">
-                <div className="text-right">
-                  <div className="font-mono font-bold text-sm t-danger">
-                    {formatCurrency(r.reste)}
-                  </div>
-                  <div className="text-[11px] text-muted-foreground">
-                    sur {formatCurrency(r.total)}
-                  </div>
-                </div>
-                <div className="flex items-center gap-2">
+                <span className="flex shrink-0 items-center gap-3">
+                  <span className="text-right">
+                    <span className="app-list-amount block t-danger">
+                      {formatCurrency(r.reste)}
+                    </span>
+                    <span className="app-list-secondary block">
+                      sur {formatCurrency(r.total)}
+                    </span>
+                  </span>
                   <button
                     onClick={() => openHistoryModal(r)}
-                    className="p-2 text-muted-foreground hover:text-foreground border border-border rounded-xl transition-colors"
+                    className="app-btn-icon h-9 w-9 shrink-0"
                     title="Historique des paiements"
+                    aria-label="Historique des paiements"
                   >
-                    <History className="w-4 h-4" />
+                    <History className="h-4 w-4" />
                   </button>
                   <button
                     onClick={() => openPaymentModal(r)}
-                    className="px-4 py-2 bg-emerald-500 hover:bg-emerald-600 text-white rounded-xl text-xs font-semibold transition-colors"
+                    className="app-btn-primary shrink-0 text-xs"
                   >
-                    Recevoir un paiement
+                    Recevoir
                   </button>
-                </div>
+                </span>
               </div>
-            </div>
-          ))}
-        </div>
-      )}
+            ))}
+          </div>
+        )}
+      </div>
 
       {/* Modal paiement */}
       {showPaymentModal && selected && (

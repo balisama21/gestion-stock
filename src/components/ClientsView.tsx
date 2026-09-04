@@ -243,68 +243,62 @@ export const ClientsView: React.FC<ClientsViewProps> = ({
               </button>
             </div>
           ) : (
-            <div className="space-y-3">
-              {filtered.map((client) => {
-                const stats = clientStats[client.id] ?? {
-                  totalCommandes: 0,
-                  totalMontant: 0,
-                  totalPaye: 0,
-                  impayes: 0,
-                  enCours: 0,
-                };
-                const isSelected = selectedClient?.id === client.id;
-                return (
-                  <div
-                    key={client.id}
-                    onClick={() => setSelectedClient(isSelected ? null : client)}
-                    className={`bg-card border rounded-2xl p-4 cursor-pointer transition-all hover:border-emerald-500/50 ${isSelected ? "border-emerald-500/70 ring-1 ring-emerald-500/30" : "border-border"}`}
-                  >
-                    <div className="flex items-start justify-between">
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <h4 className="font-bold text-sm text-foreground">{client.nom}</h4>
-                          {stats.impayes > 0 && (
-                            <span className="px-2 py-0.5 rounded-full text-[10px] font-semibold bg-red-500/15 t-danger border border-red-500/25">
-                              ⚠️ Impayé
-                            </span>
-                          )}
-                        </div>
-                        <div className="flex flex-wrap gap-x-3 gap-y-1 mt-1">
-                          {client.telephone && (
-                            <span className="text-xs text-muted-foreground flex items-center gap-1">
-                              <Phone className="w-3 h-3" />
-                              {client.telephone}
-                            </span>
-                          )}
-                          {client.email && (
-                            <span className="text-xs text-muted-foreground flex items-center gap-1">
-                              <Mail className="w-3 h-3" />
-                              {client.email}
-                            </span>
-                          )}
-                        </div>
-                        <div className="flex gap-4 mt-2 text-xs">
-                          <span className="text-muted-foreground">
-                            <ShoppingBag className="w-3 h-3 inline mr-1" />
-                            {stats.totalCommandes} cmdes
-                          </span>
-                          <span className="text-foreground font-mono font-semibold">
+            <div className="app-card overflow-hidden">
+              {/* Liste dense — le clic SÉLECTIONNE le client pour le
+                  panneau de droite, il n'ouvre pas une modale : c'est un
+                  écran maître-détail, pas un journal. */}
+              <div className="app-list">
+                {filtered.map((client) => {
+                  const stats = clientStats[client.id] ?? {
+                    totalCommandes: 0,
+                    totalMontant: 0,
+                    totalPaye: 0,
+                    impayes: 0,
+                    enCours: 0,
+                  };
+                  const isSelected = selectedClient?.id === client.id;
+                  return (
+                    <button
+                      key={client.id}
+                      type="button"
+                      onClick={() => setSelectedClient(isSelected ? null : client)}
+                      aria-pressed={isSelected}
+                      className={`app-list-row w-full justify-between gap-3 text-left ${
+                        isSelected ? "bg-muted" : ""
+                      }`}
+                    >
+                      <span className="min-w-0 flex-1">
+                        <span className="app-list-primary block">{client.nom}</span>
+                        <span className="app-list-secondary block">
+                          {[
+                            client.telephone || null,
+                            `${stats.totalCommandes} commande${stats.totalCommandes > 1 ? "s" : ""}`,
+                            stats.enCours > 0 ? `${stats.enCours} en cours` : null,
+                          ]
+                            .filter(Boolean)
+                            .join(" · ")}
+                        </span>
+                      </span>
+
+                      <span className="flex shrink-0 items-center gap-2 sm:gap-3">
+                        <span className="text-right">
+                          <span className="app-list-amount block">
                             {formatCurrency(stats.totalMontant)}
                           </span>
                           {stats.impayes > 0 && (
-                            <span className="t-danger font-mono">
-                              - {formatCurrency(stats.impayes)} dû
+                            <span className="app-list-secondary block t-danger">
+                              {formatCurrency(stats.impayes)} dû
                             </span>
                           )}
-                        </div>
-                      </div>
-                      <ChevronRight
-                        className={`w-4 h-4 text-muted-foreground shrink-0 transition-transform ${isSelected ? "rotate-90" : ""}`}
-                      />
-                    </div>
-                  </div>
-                );
-              })}
+                        </span>
+                        {stats.impayes > 0 && (
+                          <span className="app-badge app-badge-danger shrink-0">Impayé</span>
+                        )}
+                      </span>
+                    </button>
+                  );
+                })}
+              </div>
             </div>
           )}
         </div>
