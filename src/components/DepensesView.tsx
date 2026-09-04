@@ -20,8 +20,8 @@ import {
 import { formatCurrency, formatDateLocale } from "../utils/formulas";
 import { PageHeader } from "./shared/PageHeader";
 import { FilterBar, FilterField } from "./shared/FilterBar";
-import { MobileCardList } from "./shared/MobileCardList";
-import { StatTile } from "./shared/StatTile";
+import { DataList } from "./shared/DataList";
+import { StatCol } from "./shared/StatBar";
 
 interface DepensesViewProps {
   expenses: Expense[];
@@ -162,29 +162,29 @@ export const DepensesView: React.FC<DepensesViewProps> = ({
       />
 
       {/* Indicateurs */}
-      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4 sm:gap-4">
-        <StatTile
+      <div className="app-statbar grid-cols-2 lg:grid-cols-4">
+        <StatCol
           label="Total"
           value={formatCurrency(totalDepenses)}
           hint="toutes dépenses"
           icon={<TrendingDown className="w-5 h-5" />}
           tone="danger"
         />
-        <StatTile
+        <StatCol
           label="Retraits"
           value={formatCurrency(totalRetraits)}
           hint="argent sorti de caisse"
           icon={<Wallet className="w-5 h-5" />}
           tone="warning"
         />
-        <StatTile
+        <StatCol
           label="Achats de stock"
           value={formatCurrency(totalAchatsStock)}
           hint="réapprovisionnement"
           icon={<ShoppingBag className="w-5 h-5" />}
           tone="violet"
         />
-        <StatTile
+        <StatCol
           label="Autres frais"
           value={formatCurrency(totalAutres)}
           hint="frais divers"
@@ -234,16 +234,18 @@ export const DepensesView: React.FC<DepensesViewProps> = ({
         </FilterField>
       </FilterBar>
 
-      {/* Liste mobile — remplace le tableau sous 768px */}
-      <div className="lg:hidden">
-        <MobileCardList
+      {/* Liste unique — desktop ET mobile.
+          Sur une dépense, ce qu'on cherche c'est « qui a sorti combien
+          et pourquoi » : le motif devient donc la ligne principale, le
+          vendeur et la date passent en gris, et le type sert de badge. */}
+      <div className="app-card overflow-hidden">
+        <DataList
           emptyLabel="Aucune dépense ne correspond à ces filtres."
           items={filteredExpenses.map((e) => ({
             id: e.id,
-            title: e.vendeur,
-            subtitle: `${formatDateLocale(e.date, locale)} · ${e.type}`,
+            primary: e.note?.trim() || e.type,
+            meta: [formatDateLocale(e.date, locale), e.vendeur],
             amount: `- ${formatCurrency(e.montant)}`,
-            amountTone: "danger" as const,
             badge: (
               <span
                 className={`app-badge ${
@@ -257,33 +259,42 @@ export const DepensesView: React.FC<DepensesViewProps> = ({
                 {e.type}
               </span>
             ),
-            fields: [
-              { label: "Référence", value: e.numero },
+            detailTitle: e.note?.trim() || e.type,
+            detailSubtitle: `Dépense ${e.numero}`,
+            details: [
               { label: "Date", value: formatDateLocale(e.date, locale) },
+              { label: "Référence", value: e.numero },
+              { label: "Vendeur", value: e.vendeur },
+              { label: "Type", value: e.type },
+              { label: "Note", value: e.note || "-", hideIfEmpty: true },
               { label: "Montant", value: formatCurrency(e.montant) },
-              { label: "Note", value: e.note || "Aucune note" },
+              {
+                label: "Effet sur la trésorerie",
+                value: (
+                  <span className="t-danger">
+                    {formatCurrency(e.impactTresorerieGlobale)}
+                  </span>
+                ),
+              },
             ],
             actions: (
               <>
                 {onEditExpense && (
-                  <button
-                    onClick={() => setEditingExpense(e)}
-                    className="app-btn-secondary flex-1 text-xs"
-                  >
-                    <Edit3 className="w-3.5 h-3.5" />
+                  <button onClick={() => setEditingExpense(e)} className="app-btn-secondary">
+                    <Edit3 className="w-4 h-4" />
                     Modifier
                   </button>
                 )}
                 {onDeleteExpense && (
                   <button
                     onClick={() => {
-                      if (window.confirm(`Supprimer la dépense ${e.numero} (${e.vendeur}) ?`)) {
+                      if (window.confirm(`Supprimer la dépense ${e.numero} ?`)) {
                         onDeleteExpense(e.id);
                       }
                     }}
-                    className="app-btn-danger flex-1 text-xs"
+                    className="app-btn-danger"
                   >
-                    <Trash2 className="w-3.5 h-3.5" />
+                    <Trash2 className="w-4 h-4" />
                     Supprimer
                   </button>
                 )}
@@ -291,93 +302,6 @@ export const DepensesView: React.FC<DepensesViewProps> = ({
             ),
           }))}
         />
-      </div>
-
-      {/* Table */}
-      <div className="app-table-wrap hidden lg:block">
-        <div className="app-table-scroll">
-          <table className="app-table">
-            <thead>
-              <tr>
-                <th className="px-4 py-3.5">Référence</th>
-                <th className="px-4 py-3.5">Date</th>
-                <th className="px-4 py-3.5">Vendeur</th>
-                <th className="px-4 py-3.5">Type</th>
-                <th className="px-4 py-3.5 text-right">Montant</th>
-                <th className="px-4 py-3.5">Note</th>
-                <th className="px-4 py-3.5 text-right">Effet trésorerie</th>
-                <th className="px-4 py-3.5 text-center">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="text-foreground">
-              {filteredExpenses.length === 0 ? (
-                <tr>
-                  <td colSpan={8} className="p-8 text-center text-muted-foreground">
-                    Aucune dépense ne correspond à votre sélection.
-                  </td>
-                </tr>
-              ) : (
-                filteredExpenses.map((e) => (
-                  <tr key={e.id} className="hover:bg-muted/40">
-                    <td className="px-4 py-3.5 font-mono text-muted-foreground">{e.numero}</td>
-                    <td className="px-4 py-3.5 font-mono text-muted-foreground">
-                      {formatDateLocale(e.date, locale)}
-                    </td>
-                    <td className="px-4 py-3.5 font-bold text-foreground">{e.vendeur}</td>
-                    <td className="px-4 py-3.5">
-                      <span
-                        className={`app-badge ${
-                          e.type === "Achat de stock"
-                            ? "app-badge-info"
-                            : e.type === "Retrait d'argent"
-                              ? "app-badge-warning"
-                              : "app-badge-neutral"
-                        }`}
-                      >
-                        {e.type}
-                      </span>
-                    </td>
-                    <td className="px-4 py-3.5 text-right font-mono font-bold t-danger">
-                      {formatCurrency(e.montant)}
-                    </td>
-                    <td className="px-4 py-3.5 text-muted-foreground italic max-w-xs truncate">
-                      {e.note || "Aucune note"}
-                    </td>
-                    <td className="px-4 py-3.5 text-right font-mono font-bold t-danger">
-                      - {formatCurrency(e.montant)}
-                    </td>
-                    <td className="px-4 py-3.5 text-center">
-                      <div className="flex items-center justify-center gap-1.5">
-                        {onEditExpense && (
-                          <button
-                            onClick={() => setEditingExpense(e)}
-                            className="p-1.5 text-muted-foreground hover:t-info bg-muted hover:bg-accent rounded-lg transition-colors"
-                            title="Modifier cette dépense"
-                          >
-                            <Edit3 className="w-3.5 h-3.5" />
-                          </button>
-                        )}
-                        {onDeleteExpense && (
-                          <button
-                            onClick={() => {
-                              if (window.confirm(`Supprimer la dépense ${e.numero} (${e.vendeur}) ?`)) {
-                                onDeleteExpense(e.id);
-                              }
-                            }}
-                            className="p-1.5 text-muted-foreground hover:t-danger bg-muted hover:bg-accent rounded-lg transition-colors"
-                            title="Supprimer cette dépense"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
       </div>
 
       {/* Print & Export Report Modal for Expenses */}

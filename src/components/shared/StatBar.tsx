@@ -55,6 +55,51 @@ const Trend: React.FC<{ trend: NonNullable<StatItem["trend"]> }> = ({ trend }) =
   );
 };
 
+interface StatColProps {
+  label: string;
+  value: string;
+  hint?: string;
+  icon?: React.ReactNode;
+  /** Signale une valeur qui demande une action ; colore le seul texte. */
+  alert?: boolean;
+  /** Conservé pour compatibilité d'appel — sans effet visuel. */
+  tone?: string;
+  hintTone?: string;
+  onClick?: () => void;
+}
+
+/**
+ * Une colonne de la barre d'indicateurs, à utiliser directement quand la
+ * liste des colonnes est conditionnelle (permissions) et se prête mal à
+ * un tableau d'objets.
+ *
+ * `tone` et `hintTone` sont acceptés mais ignorés : la couleur de fond
+ * et la pastille d'icône ont disparu avec le passage au style sobre.
+ */
+export const StatCol: React.FC<StatColProps> = ({
+  label,
+  value,
+  hint,
+  icon,
+  alert,
+  onClick,
+}) => {
+  const Wrapper = onClick ? "button" : "div";
+  return (
+    <Wrapper
+      {...(onClick ? { onClick, type: "button" as const } : {})}
+      className="app-statbar-item"
+    >
+      <span className="app-statbar-label">
+        {icon && <span className="shrink-0 opacity-70">{icon}</span>}
+        <span className="truncate">{label}</span>
+      </span>
+      <span className="app-statbar-value truncate">{value}</span>
+      {hint && <span className={`app-statbar-hint ${alert ? "t-warning" : ""}`}>{hint}</span>}
+    </Wrapper>
+  );
+};
+
 /**
  * Bande d'indicateurs compacte, à la manière des barres de statistiques
  * en haut des listes d'un ERP.

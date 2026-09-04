@@ -18,8 +18,8 @@ import {
 import { formatCurrency, toSubscript, getProductLabel } from "../utils/formulas";
 import { PageHeader } from "./shared/PageHeader";
 import { FilterBar, FilterField } from "./shared/FilterBar";
-import { MobileCardList } from "./shared/MobileCardList";
-import { StatTile } from "./shared/StatTile";
+import { DataList } from "./shared/DataList";
+import { StatCol } from "./shared/StatBar";
 
 interface ProduitsViewProps {
   products: Product[];
@@ -280,8 +280,8 @@ export const ProduitsView: React.FC<ProduitsViewProps> = ({
       />
 
       {/* Indicateurs */}
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 sm:gap-4">
-        <StatTile
+      <div className="app-statbar grid-cols-1 sm:grid-cols-3">
+        <StatCol
           label="Références"
           value={`${totalReferences}`}
           hint={`produit${totalReferences > 1 ? "s" : ""} au catalogue`}
@@ -290,7 +290,7 @@ export const ProduitsView: React.FC<ProduitsViewProps> = ({
         />
 
         {showValeurStock && (
-          <StatTile
+          <StatCol
             label="Valeur du stock"
             value={formatCurrency(totalValeurStock)}
             hint="au prix d'achat"
@@ -299,7 +299,7 @@ export const ProduitsView: React.FC<ProduitsViewProps> = ({
           />
         )}
 
-        <StatTile
+        <StatCol
           label="Stock bas"
           value={`${totalAlertesStock}`}
           hint={
@@ -380,62 +380,77 @@ export const ProduitsView: React.FC<ProduitsViewProps> = ({
         )}
       </FilterBar>
 
-      {/* Liste mobile — remplace le tableau sous 768px */}
-      <div className="lg:hidden">
-        <MobileCardList
+      {/* Liste unique — desktop ET mobile.
+          Une fiche produit ne se lit pas comme une transaction : ce qui
+          compte ici est le nom, l'état du stock et le prix de vente,
+          pas un montant total. Le stock devient donc le badge, et le
+          prix le montant de droite. */}
+      <div className="app-card overflow-hidden">
+        <DataList
           emptyLabel="Aucun produit ne correspond à ces filtres."
           items={filteredProducts.map((p) => {
-            const isOut = p.stockActuel <= 0;
-            const isLow = !isOut && p.stockActuel <= p.seuilAlerte;
+            const rupture = p.stockActuel <= 0;
+            const bas = !rupture && p.stockActuel <= p.seuilAlerte;
             return {
               id: p.id,
-              leading: onDeleteProducts && canDelete && (
-                <input
-                  type="checkbox"
-                  checked={selectedIds.has(p.id)}
-                  onChange={() => toggleOne(p.id)}
-                  className="h-5 w-5 cursor-pointer rounded border-muted-foreground/40 accent-emerald-500"
-                  aria-label={`Sélectionner ${getProductLabel(p, products)}`}
-                />
-              ),
-              title: getProductLabel(p, products),
-              subtitle: p.numero,
+              leading:
+                onDeleteProducts && canDelete ? (
+                  <input
+                    type="checkbox"
+                    checked={selectedIds.has(p.id)}
+                    onChange={() => toggleOne(p.id)}
+                    onClick={(e) => e.stopPropagation()}
+                    className="h-4 w-4 cursor-pointer rounded border-muted-foreground/40 accent-emerald-600"
+                    aria-label={`Sélectionner ${getProductLabel(p, products)}`}
+                  />
+                ) : undefined,
+              primary: getProductLabel(p, products),
+              meta: [
+                p.numero,
+                showFournisseur ? p.fournisseur || null : null,
+                `seuil ${p.seuilAlerte}`,
+              ],
               amount: formatCurrency(p.prixVenteDefaut),
-              amountTone: "info" as const,
+              amountHint: showPrixAchat ? `achat ${formatCurrency(p.prixAchat)}` : undefined,
               badge: (
                 <span
                   className={`app-badge ${
-                    isOut ? "app-badge-danger" : isLow ? "app-badge-warning" : "app-badge-success"
+                    rupture ? "app-badge-danger" : bas ? "app-badge-warning" : "app-badge-neutral"
                   }`}
                 >
-                  {isOut ? "Rupture" : isLow ? `Stock bas · ${p.stockActuel}` : `Stock ${p.stockActuel}`}
+                  {rupture ? "Rupture" : `${p.stockActuel} en stock`}
                 </span>
               ),
-              fields: [
+              detailTitle: getProductLabel(p, products),
+              detailSubtitle: p.numero,
+              details: [
+                { label: "Référence", value: p.numero },
                 { label: "Stock actuel", value: `${p.stockActuel}` },
+                { label: "Stock réservé", value: `${p.stockReserve}`, hideIfEmpty: true },
+                { label: "Stock disponible", value: `${p.stockDisponible}` },
                 { label: "Seuil d'alerte", value: `${p.seuilAlerte}` },
                 ...(showPrixAchat
                   ? [{ label: "Prix d'achat", value: formatCurrency(p.prixAchat) }]
                   : []),
                 { label: "Prix de vente", value: formatCurrency(p.prixVenteDefaut) },
                 ...(showFournisseur
-                  ? [{ label: "Fournisseur", value: p.fournisseur || "Non renseigné" }]
+                  ? [{ label: "Fournisseur", value: p.fournisseur || "-", hideIfEmpty: true }]
                   : []),
               ],
               actions: (
                 <>
                   {onEditProduct && canEdit && (
-                    <button onClick={() => openEditModal(p)} className="app-btn-secondary flex-1 text-xs">
-                      <Pencil className="w-3.5 h-3.5" />
+                    <button onClick={() => openEditModal(p)} className="app-btn-secondary">
+                      <Pencil className="w-4 h-4" />
                       Modifier
                     </button>
                   )}
                   {onDeleteProducts && canDelete && (
                     <button
                       onClick={() => setConfirmDeleteIds([p.id])}
-                      className="app-btn-danger flex-1 text-xs"
+                      className="app-btn-danger"
                     >
-                      <Trash2 className="w-3.5 h-3.5" />
+                      <Trash2 className="w-4 h-4" />
                       Supprimer
                     </button>
                   )}
@@ -444,129 +459,6 @@ export const ProduitsView: React.FC<ProduitsViewProps> = ({
             };
           })}
         />
-      </div>
-
-      {/* Table */}
-      <div className="app-table-wrap hidden lg:block">
-        <div className="app-table-scroll">
-          <table className="app-table">
-            <thead>
-              <tr>
-                <th className="px-4 py-3.5 w-10">
-                  <input
-                    ref={headerCheckboxRef}
-                    type="checkbox"
-                    checked={allVisibleSelected}
-                    onChange={toggleAllVisible}
-                    className="w-4 h-4 rounded border-muted-foreground/40 accent-emerald-500 cursor-pointer"
-                    title="Tout sélectionner"
-                  />
-                </th>
-                <th className="px-4 py-3.5">Référence</th>
-                <th className="px-4 py-3.5">Produit</th>
-                {showPrixAchat && <th className="px-4 py-3.5 text-right">Prix d'achat</th>}
-                <th className="px-4 py-3.5 text-right">Prix de vente</th>
-                {showFournisseur && <th className="px-4 py-3.5">Fournisseur</th>}
-                <th className="px-4 py-3.5 text-right">Stock</th>
-                <th className="px-4 py-3.5 text-right">Seuil</th>
-                <th className="px-4 py-3.5 text-center">Statut</th>
-                <th className="px-4 py-3.5 text-center">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="text-foreground">
-              {filteredProducts.map((p) => {
-                const isOut = p.stockActuel <= 0;
-                const isLow = !isOut && p.stockActuel <= p.seuilAlerte;
-                const isSelected = selectedIds.has(p.id);
-                return (
-                  <tr
-                    key={p.id}
-                    className={`hover:bg-muted/40 ${isSelected ? "bg-emerald-500/5" : ""}`}
-                  >
-                    <td className="px-4 py-3.5">
-                      <input
-                        type="checkbox"
-                        checked={isSelected}
-                        onChange={() => toggleOne(p.id)}
-                        className="w-4 h-4 rounded border-muted-foreground/40 accent-emerald-500 cursor-pointer"
-                      />
-                    </td>
-                    <td className="px-4 py-3.5 font-mono font-bold t-success">{p.numero}</td>
-                    <td className="px-4 py-3.5 font-mono text-sm font-bold text-foreground flex items-center gap-1.5">
-                      {getProductLabel(p, products)}
-                    </td>
-                    {showPrixAchat && (
-                      <td className="px-4 py-3.5 text-right font-mono">
-                        {formatCurrency(p.prixAchat)}
-                      </td>
-                    )}
-                    <td className="px-4 py-3.5 text-right font-mono font-bold t-info">
-                      {formatCurrency(p.prixVenteDefaut)}
-                    </td>
-                    {showFournisseur && (
-                      <td className="px-4 py-3.5 text-muted-foreground">
-                        {p.fournisseur || "Non renseigné"}
-                      </td>
-                    )}
-                    <td className="px-4 py-3.5 text-right font-mono font-bold text-foreground">
-                      {p.stockActuel}
-                    </td>
-                    <td className="px-4 py-3.5 text-right font-mono text-muted-foreground">
-                      {p.seuilAlerte}
-                    </td>
-                    <td className="px-4 py-3.5 text-center">
-                      {isOut ? (
-                        <span className="app-badge app-badge-danger">
-                          <AlertTriangle className="w-3 h-3" />
-                          Rupture
-                        </span>
-                      ) : isLow ? (
-                        <span className="app-badge app-badge-warning">
-                          <AlertTriangle className="w-3 h-3" />
-                          Stock bas
-                        </span>
-                      ) : (
-                        <span className="app-badge app-badge-success">OK</span>
-                      )}
-                    </td>
-                    <td className="px-4 py-3.5 text-center">
-                      <div className="flex items-center justify-center gap-1">
-                        {onEditProduct && canEdit && (
-                          <button
-                            onClick={() => openEditModal(p)}
-                            className="p-1.5 text-muted-foreground hover:t-info bg-muted hover:bg-accent rounded-lg transition-colors"
-                            title="Modifier"
-                          >
-                            <Pencil className="w-3.5 h-3.5" />
-                          </button>
-                        )}
-                        {onDeleteProducts && canDelete && (
-                          <button
-                            onClick={() => setConfirmDeleteIds([p.id])}
-                            className="p-1.5 text-muted-foreground hover:t-danger bg-muted hover:bg-red-500/10 rounded-lg transition-colors"
-                            title="Supprimer"
-                          >
-                            <Trash2 className="w-3.5 h-3.5" />
-                          </button>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                );
-              })}
-              {filteredProducts.length === 0 && (
-                <tr>
-                  <td
-                    colSpan={7 + (showPrixAchat ? 1 : 0) + (showFournisseur ? 1 : 0)}
-                    className="px-4 py-8 text-center text-muted-foreground italic"
-                  >
-                    Aucun produit ne correspond à ces filtres.
-                  </td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
       </div>
 
       {/* Barre d'action flottante — sélection multiple */}

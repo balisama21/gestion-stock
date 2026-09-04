@@ -21,8 +21,8 @@ import {
 import { formatCurrency, formatDateLocale, getProductLabel, getPurchaseLabel } from "../utils/formulas";
 import { PageHeader } from "./shared/PageHeader";
 import { FilterBar, FilterField } from "./shared/FilterBar";
-import { MobileCardList } from "./shared/MobileCardList";
-import { StatTile } from "./shared/StatTile";
+import { DataList } from "./shared/DataList";
+import { StatCol } from "./shared/StatBar";
 
 interface AchatsViewProps {
   purchases: Purchase[];
@@ -203,9 +203,9 @@ export const AchatsView: React.FC<AchatsViewProps> = ({
       />
 
       {/* Indicateurs */}
-      <div className="grid grid-cols-1 gap-3 sm:grid-cols-3 sm:gap-4">
+      <div className="app-statbar grid-cols-1 sm:grid-cols-3">
         {showPrix && (
-          <StatTile
+          <StatCol
             label="Total des achats"
             value={formatCurrency(totalAchatsMontant)}
             hint="sorti de la trésorerie"
@@ -214,7 +214,7 @@ export const AchatsView: React.FC<AchatsViewProps> = ({
           />
         )}
 
-        <StatTile
+        <StatCol
           label="Articles reçus"
           value={`${totalArticlesReappro}`}
           hint="unités entrées en stock"
@@ -223,7 +223,7 @@ export const AchatsView: React.FC<AchatsViewProps> = ({
         />
 
         {showFournisseur && (
-          <StatTile
+          <StatCol
             label="Fournisseurs"
             value={`${suppliersList.length}`}
             hint={`partenaire${suppliersList.length > 1 ? "s" : ""} actif${suppliersList.length > 1 ? "s" : ""}`}
@@ -266,19 +266,31 @@ export const AchatsView: React.FC<AchatsViewProps> = ({
         )}
       </FilterBar>
 
-      {/* Liste mobile — remplace le tableau sous 768px */}
-      <div className="lg:hidden">
-        <MobileCardList
+      {/* Liste unique — desktop ET mobile.
+          Un achat se lit par « quel produit, chez qui, pour combien » :
+          le fournisseur monte donc dans la ligne grise, et l'effet sur
+          la trésorerie devient le complément du montant plutôt qu'une
+          colonne à part. */}
+      <div className="app-card overflow-hidden">
+        <DataList
           emptyLabel="Aucun achat ne correspond à ces filtres."
           items={filteredPurchases.map((p) => ({
             id: p.id,
-            title: getPurchaseLabel(p, products),
-            subtitle: `${formatDateLocale(p.date, locale)} · ×${p.quantite}`,
+            primary: `${getPurchaseLabel(p, products)} ×${p.quantite}`,
+            meta: [
+              formatDateLocale(p.date, locale),
+              showFournisseur ? p.fournisseur || null : null,
+              showPrix ? `${formatCurrency(p.prixAchatUnit)} / u` : null,
+            ],
             amount: showPrix ? formatCurrency(p.totalAchat) : undefined,
-            amountTone: "danger" as const,
-            fields: [
-              { label: "Référence", value: p.numero },
+            amountHint: showPrix ? (
+              <span className="t-danger">{formatCurrency(p.impactTresorerie)} en caisse</span>
+            ) : undefined,
+            detailTitle: getPurchaseLabel(p, products),
+            detailSubtitle: `Achat ${p.numero}`,
+            details: [
               { label: "Date", value: formatDateLocale(p.date, locale) },
+              { label: "Référence", value: p.numero },
               { label: "Quantité", value: `${p.quantite}` },
               ...(showPrix
                 ? [
@@ -293,100 +305,20 @@ export const AchatsView: React.FC<AchatsViewProps> = ({
                   ]
                 : []),
               ...(showFournisseur
-                ? [{ label: "Fournisseur", value: p.fournisseur || "Non renseigné" }]
+                ? [{ label: "Fournisseur", value: p.fournisseur || "-", hideIfEmpty: true }]
                 : []),
             ],
             actions: (
               <button
                 onClick={() => setSelectedPurchaseReceipt(p)}
-                className="app-btn-secondary flex-1 text-xs"
+                className="app-btn-secondary"
               >
-                <Eye className="w-3.5 h-3.5" />
+                <Eye className="w-4 h-4" />
                 Voir le bon
               </button>
             ),
           }))}
         />
-      </div>
-
-      {/* Purchases Table */}
-      <div className="app-table-wrap hidden lg:block">
-        <div className="app-table-scroll">
-          <table className="app-table">
-            <thead>
-              <tr>
-                <th className="px-4 py-3.5">Référence</th>
-                <th className="px-4 py-3.5">Date</th>
-                <th className="px-4 py-3.5">Code produit</th>
-                <th className="px-4 py-3.5">Produit</th>
-                <th className="px-4 py-3.5 text-right">Qté</th>
-                {showPrix && <th className="px-4 py-3.5 text-right">Prix unitaire</th>}
-                {showPrix && <th className="px-4 py-3.5 text-right">Total</th>}
-                {showFournisseur && <th className="px-4 py-3.5">Fournisseur</th>}
-                {showPrix && <th className="px-4 py-3.5 text-right">Effet trésorerie</th>}
-                <th className="px-4 py-3.5 text-center">Bon</th>
-              </tr>
-            </thead>
-            <tbody className="text-foreground">
-              {filteredPurchases.length === 0 ? (
-                <tr>
-                  <td
-                    colSpan={6 + (showPrix ? 3 : 0) + (showFournisseur ? 1 : 0)}
-                    className="p-8 text-center text-muted-foreground"
-                  >
-                    Aucun achat ne correspond à vos filtres.
-                  </td>
-                </tr>
-              ) : (
-                filteredPurchases.map((p) => (
-                  <tr key={p.id} className="hover:bg-muted/40">
-                    <td className="px-4 py-3.5 font-mono text-muted-foreground">{p.numero}</td>
-                    <td className="px-4 py-3.5 font-mono text-muted-foreground">
-                      {formatDateLocale(p.date, locale)}
-                    </td>
-                    <td className="px-4 py-3.5 font-mono font-bold t-success">
-                      {products.find((prod) => prod.id === p.productId)?.numero || "—"}
-                    </td>
-                   <td className="px-4 py-3.5 font-mono font-bold text-foreground">
-                      {getPurchaseLabel(p, products)}
-                    </td>
-                    <td className="px-4 py-3.5 text-right font-mono font-semibold">{p.quantite}</td>
-                    {showPrix && (
-                      <td className="px-4 py-3.5 text-right font-mono">
-                        {formatCurrency(p.prixAchatUnit)}
-                      </td>
-                    )}
-                    {showPrix && (
-                      <td className="px-4 py-3.5 text-right font-mono font-bold text-foreground">
-                        {formatCurrency(p.totalAchat)}
-                      </td>
-                    )}
-                    {showFournisseur && (
-                      <td className="px-4 py-3.5 text-muted-foreground">
-                        {p.fournisseur || "Non spécifié"}
-                      </td>
-                    )}
-                    {showPrix && (
-                      <td className="px-4 py-3.5 text-right font-mono font-bold t-danger">
-                        {formatCurrency(p.impactTresorerie)}
-                      </td>
-                    )}
-                    <td className="px-4 py-3.5 text-center">
-                      <button
-                        onClick={() => setSelectedPurchaseReceipt(p)}
-                        className="p-1.5 text-muted-foreground hover:t-success bg-muted hover:bg-accent rounded-lg transition-colors inline-flex items-center gap-1"
-                        title="Voir le bon de commande"
-                      >
-                        <Eye className="w-3.5 h-3.5" />
-                        <span className="text-[10px]">Bon</span>
-                      </button>
-                    </td>
-                  </tr>
-                ))
-              )}
-            </tbody>
-          </table>
-        </div>
       </div>
 
       {/* Bon de Commande Modal */}
