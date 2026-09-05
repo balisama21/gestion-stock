@@ -46,7 +46,14 @@ export function formatCurrency(amount: number): string {
   return (
     new Intl.NumberFormat("fr-FR", {
       maximumFractionDigits: 0,
-    }).format(amount) + " Ar"
+    })
+      .format(amount)
+      //  , l’espace fine insécable que la locale française place
+      // entre les milliers, est un caractère exotique : il ne survit ni à
+      // un encodage sur un octet ni à tous les éditeurs de texte. On lui
+      // substitue l’espace insécable ordinaire, qui s’affiche pareil et
+      // empêche toujours « 6 » et « 500 » de se retrouver sur deux lignes.
+      .replace(/ /g, " ") + " Ar"
   );
 }
 

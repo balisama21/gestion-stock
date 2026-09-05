@@ -32,8 +32,15 @@ export interface PaperFormat {
    * voit est ce qui s'imprime, y compris les retours à la ligne.
    */
   previewWidth: number;
-  /** Classe portant la page nommée correspondante (voir styles.css). */
-  pageClass: string;
+  /** Largeur du papier, en millimètres. */
+  widthMm: number;
+  /**
+   * Hauteur du papier en millimètres, ou `null` pour un rouleau : sa
+   * hauteur suit le contenu, personne ne coupe un ticket à l avance.
+   */
+  heightMm: number | null;
+  /** Marge d impression, en millimètres. */
+  marginMm: number;
 }
 
 /** Conversion millimètres → pixels CSS, à 96 points par pouce. */
@@ -42,43 +49,53 @@ const mm = (v: number) => Math.round((v * 96) / 25.4);
 export const PAPER_FORMATS: PaperFormat[] = [
   {
     id: "a4",
+    widthMm: 210,
+    heightMm: 297,
+    marginMm: 12,
     label: "A4",
     hint: "210 × 297 mm — facture standard",
     layout: "invoice",
     previewWidth: mm(210 - 24), // marges de 12 mm
-    pageClass: "paper-a4",
   },
   {
     id: "a5",
+    widthMm: 148,
+    heightMm: 210,
+    marginMm: 10,
     label: "A5",
     hint: "148 × 210 mm — facture compacte",
     layout: "invoice",
     previewWidth: mm(148 - 20), // marges de 10 mm
-    pageClass: "paper-a5",
   },
   {
     id: "letter",
+    widthMm: 216,
+    heightMm: 279,
+    marginMm: 12,
     label: "Letter",
     hint: "216 × 279 mm — format nord-américain",
     layout: "invoice",
     previewWidth: mm(216 - 24),
-    pageClass: "paper-letter",
   },
   {
     id: "t80",
+    widthMm: 80,
+    heightMm: null,
+    marginMm: 3,
     label: "Ticket 80 mm",
     hint: "Imprimante thermique de caisse",
     layout: "ticket",
     previewWidth: mm(80 - 6), // marges de 3 mm
-    pageClass: "paper-t80",
   },
   {
     id: "t58",
+    widthMm: 58,
+    heightMm: null,
+    marginMm: 2,
     label: "Ticket 58 mm",
     hint: "Imprimante thermique compacte",
     layout: "ticket",
     previewWidth: mm(58 - 4), // marges de 2 mm
-    pageClass: "paper-t58",
   },
 ];
 

@@ -404,63 +404,16 @@ td {
    l'interface est masqué autour de lui.
    ═══════════════════════════════════════════════════════════════════ */
 @media print {
-  /* Le format du papier dépend du document : une facture part sur du
-     A4, un ticket de caisse sur ce que la boîte de dialogue propose. Les
-     pages nommées permettent de distinguer les deux, ce qu'une règle
-     `@page` unique ne sait pas faire. */
+  /* La taille de page n’est pas déclarée ici : elle dépend du format
+     choisi dans la fenêtre du document et est injectée juste avant
+     l’appel à window.print() — voir lib/documentExport.ts.
+
+     Les pages nommées qui remplissaient ce rôle ont été retirées : en
+     CSS paginé, un élément dont le nom de page diffère du contexte
+     courant force un saut. Le document sortait donc systématiquement
+     précédé d’une page blanche. */
   @page {
     margin: 12mm;
-  }
-
-  /* Un format de papier par famille d'imprimante. La hauteur des
-     rouleaux thermiques est laissée à `auto` : le pilote coupe au bout
-     du contenu, ce qu'aucune hauteur fixe ne saurait faire sans
-     gaspiller du papier ni tronquer le ticket. Les marges d'un rouleau
-     sont réduites au minimum — sur 58 mm de large, 12 mm de marge
-     mangeraient plus de 40 % de la surface utile. */
-  @page a4 {
-    size: A4;
-    margin: 12mm;
-  }
-  @page a5 {
-    size: A5;
-    margin: 10mm;
-  }
-  @page letter {
-    size: Letter;
-    margin: 12mm;
-  }
-  @page t80 {
-    size: 80mm auto;
-    margin: 3mm;
-  }
-  @page t58 {
-    size: 58mm auto;
-    margin: 2mm;
-  }
-
-  .paper-a4 {
-    page: a4;
-  }
-  .paper-a5 {
-    page: a5;
-  }
-  .paper-letter {
-    page: letter;
-  }
-  .paper-t80 {
-    page: t80;
-  }
-  .paper-t58 {
-    page: t58;
-  }
-
-  /* Les journaux d'Achats, de Dépenses et de Vendeurs n'ont pas encore de
-     sélecteur de format : leurs bilans sont des documents A4, et leurs
-     tickets restent sur le papier choisi dans la boîte de dialogue.
-     `.printable-ticket` ne porte donc volontairement aucune page nommée. */
-  .printable-invoice {
-    page: a4;
   }
 
   html,
@@ -549,8 +502,12 @@ td {
 
   .printable-receipt {
     position: static !important;
-    width: 100% !important;
-    max-width: none !important;
+    /* La largeur de l'aperçu est conservée : c'est elle qui correspond
+       au papier choisi. La forcer à 100 % étalait un ticket de 80 mm sur
+       toute une A4, et c'était la première cause d'écart entre ce qui
+       s'affiche et ce qui sort. */
+    margin-left: auto !important;
+    margin-right: auto !important;
     height: auto !important;
     max-height: none !important;
     margin: 0 !important;

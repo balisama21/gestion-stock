@@ -1,4 +1,4 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useRef } from "react";
 import { Purchase, Product, LocaleSetting, StoreSettings } from "../types";
 import {
   ShoppingCart,
@@ -10,6 +10,7 @@ import {
   Truck,
   FileText,
 
+  Image as ImageIcon,
   Printer,
   Eye,
   RefreshCw,
@@ -30,7 +31,12 @@ import { FilterBar, FilterField } from "./shared/FilterBar";
 import { DataList } from "./shared/DataList";
 import { StatCol } from "./shared/StatBar";
 import { Modal } from "./shared/Modal";
-import { telechargerPdf } from "../lib/documentPdf";
+import {
+  exporterPdf,
+  exporterImage,
+  imprimerDocument,
+  nomDeFichier,
+} from "../lib/documentExport";
 import {
   PAPER_FORMATS,
   getPaperFormat,
@@ -207,85 +213,30 @@ export const AchatsView: React.FC<AchatsViewProps> = ({
     [reportPurchases],
   );
 
-  const [pdfEnCours, setPdfEnCours] = useState(false);
-  const [pdfErreur, setPdfErreur] = useState<string | null>(null);
-
   /**
-   * Le PDF reprend exactement ce que l'écran montre, masquages compris.
-   * Sans cela, un collaborateur dont les prix sont cachés les
-   * retrouverait en téléchargeant le journal.
+   * Le document exporté est une capture de l'élément ci-dessous, pas une
+   * seconde mise en page : ce que l'utilisateur voit est exactement ce
+   * qu'il télécharge.
    */
-  const telecharger = async () => {
-    if (pdfEnCours) return;
-    setPdfEnCours(true);
-    setPdfErreur(null);
+  const documentRef = useRef<HTMLDivElement>(null);
+  const [exportEnCours, setExportEnCours] = useState<null | "pdf" | "image">(null);
+  const [exportErreur, setExportErreur] = useState<string | null>(null);
+
+  const exporter = async (type: "pdf" | "image") => {
+    const noeud = documentRef.current;
+    if (!noeud || exportEnCours) return;
+    setExportEnCours(type);
+    setExportErreur(null);
     try {
-      await telechargerPdf(
-        {
-          fileName: `Journal_achats_${reportPeriod}`,
-          boutique: {
-            nom: settings?.storeName || "BALSAMA AUTO GESTION",
-            adresse: settings?.address,
-            telephone: settings?.phone,
-          },
-          intitule: "Journal des achats",
-          reference: periodeLabel,
-          meta: [
-            { label: "Édité le", value: new Date().toLocaleDateString("fr-FR") },
-            ...(showFournisseur
-              ? [
-                  {
-                    label: "Fournisseur",
-                    value:
-                      selectedReportSupplier === "all"
-                        ? "Tous les fournisseurs"
-                        : selectedReportSupplier,
-                  },
-                ]
-              : []),
-          ],
-          portee: [
-            { label: "Réappro.", value: `${reportTotalQty} u` },
-            { label: "Mouvements", value: String(reportPurchases.length) },
-            ...(showPrix
-              ? [{ label: "Total décaissé", value: formatCurrency(reportTotalAmount) }]
-              : []),
-          ],
-          colonnes: [
-            { key: "date", label: "Date", part: 18 },
-            { key: "designation", label: "Désignation" },
-            { key: "qte", label: "Qté", align: "center" as const, part: 12 },
-            ...(showPrix
-              ? [{ key: "total", label: "Total", align: "right" as const, part: 22 }]
-              : []),
-          ],
-          lignes: reportPurchases.map((a) => ({
-            cells: {
-              date: formatDateLocale(a.date, locale),
-              designation: getPurchaseLabel(a, products),
-              qte: String(a.quantite),
-              total: showPrix ? formatCurrency(a.totalAchat) : "",
-            },
-            hint: showFournisseur ? a.fournisseur || undefined : undefined,
-          })),
-          vide: "Aucun achat sur cette période.",
-          totaux: showPrix
-            ? [
-                { label: "Mouvements", value: String(reportPurchases.length) },
-                {
-                  label: "Total décaissé",
-                  value: formatCurrency(reportTotalAmount),
-                  fort: true,
-                },
-              ]
-            : [{ label: "Mouvements", value: String(reportPurchases.length), fort: true }],
-        },
-        paper,
-      );
+      const nom = nomDeFichier("Journal_achats", reportPeriod);
+      if (type === "pdf") await exporterPdf(noeud, paper, nom);
+      else await exporterImage(noeud, nom, "png");
     } catch (err) {
-      setPdfErreur(err instanceof Error ? err.message : "Le PDF n'a pas pu être créé.");
+      setExportErreur(
+        err instanceof Error ? err.message : "Le document n'a pas pu être exporté.",
+      );
     } finally {
-      setPdfEnCours(false);
+      setExportEnCours(null);
     }
   };
 
@@ -692,18 +643,30 @@ export const AchatsView: React.FC<AchatsViewProps> = ({
           }
           footer={
             <>
-              <button onClick={() => window.print()} className="app-btn-secondary">
+              <button
+                onClick={() => imprimerDocument(paper)}
+                className="app-btn-secondary"
+              >
                 <Printer className="h-4 w-4" />
                 Imprimer
               </button>
               <button
-                onClick={telecharger}
-                disabled={pdfEnCours}
+                onClick={() => exporter("image")}
+                disabled={exportEnCours !== null}
+                className="app-btn-secondary"
+                title="Télécharger une image, pratique à envoyer par messagerie"
+              >
+                <ImageIcon className="h-4 w-4" />
+                {exportEnCours === "image" ? "Création..." : "Image"}
+              </button>
+              <button
+                onClick={() => exporter("pdf")}
+                disabled={exportEnCours !== null}
                 className="app-btn-primary"
                 title={`Télécharger le PDF au format ${paper.label}`}
               >
                 <Download className="h-4 w-4" />
-                {pdfEnCours ? "Création..." : "Télécharger le PDF"}
+                {exportEnCours === "pdf" ? "Création..." : "PDF"}
               </button>
               <button
                 onClick={() => {
@@ -789,9 +752,9 @@ ${reportPurchases
                 Même grammaire que la facture de vente : identité à
                 gauche, référence du document à droite, encart de portée
                 sur fond très léger, tableau à filets fins. */}
-            {pdfErreur && (
+            {exportErreur && (
               <p className="no-print rounded-xl border border-danger-border bg-danger-soft px-3 py-2.5 text-sm t-danger">
-                {pdfErreur}
+                {exportErreur}
               </p>
             )}
 
@@ -799,7 +762,8 @@ ${reportPurchases
               {isTicket ? (
                 /* ── Ticket ── */
                 <div
-                  className={`printable-receipt ${paper.pageClass} mx-auto min-w-0 w-full rounded-lg border border-slate-200 bg-white p-4 font-mono leading-relaxed text-slate-900 shadow-sm ${paperId === "t58" ? "text-[10px]" : "text-[11px]"}`}
+                  ref={documentRef}
+                  className={`printable-receipt mx-auto min-w-0 w-full rounded-lg border border-slate-200 bg-white p-4 font-mono leading-relaxed text-slate-900 shadow-sm ${paperId === "t58" ? "text-[10px]" : "text-[11px]"}`}
                   style={{ maxWidth: paper.previewWidth }}
                 >
                   <div className="space-y-0.5 text-center">
@@ -901,7 +865,8 @@ ${reportPurchases
               ) : (
                 /* ── Journal A4 ── */
                 <div
-                  className={`printable-receipt ${paper.pageClass} mx-auto min-w-0 w-full rounded-lg border border-slate-200 bg-white font-sans text-xs text-slate-900 shadow-sm ${paperId === "a5" ? "p-6" : "p-8"}`}
+                  ref={documentRef}
+                  className={`printable-receipt mx-auto min-w-0 w-full rounded-lg border border-slate-200 bg-white font-sans text-xs text-slate-900 shadow-sm ${paperId === "a5" ? "p-6" : "p-8"}`}
                   style={{ maxWidth: paper.previewWidth }}
                 >
                   <header className="flex flex-wrap items-start justify-between gap-6 pb-6">
