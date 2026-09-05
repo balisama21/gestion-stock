@@ -1231,20 +1231,21 @@ ${settings?.receiptFooter || "Merci pour votre confiance ! Ni repris, ni échang
                           {formatCurrency(selectedReceiptSale.montantPaye)}
                         </dd>
                       </div>
-                      {selectedReceiptSale.soldeDu > 0 && (
-                        <div className="flex justify-between gap-4 text-slate-500">
-                          <dt>Reste dû</dt>
-                          <dd className="font-mono tabular-nums text-slate-700">
-                            {formatCurrency(selectedReceiptSale.soldeDu)}
-                          </dd>
-                        </div>
-                      )}
+                      {/* « Net à payer » porte le solde restant dû, et non
+                          le total de la vente. C'est le sens de la mention
+                          sur une facture : ce que le client doit encore
+                          sortir. Elle répétait jusqu'ici le total, si bien
+                          qu'un acompte de 3 000 sur 6 500 donnait
+                          « encaissé 3 000 » suivi de « net à payer 6 500 » —
+                          de quoi faire payer deux fois.
+                          La ligne « Reste dû » disparaît : elle disait
+                          désormais la même chose. */}
                       <div className="flex justify-between gap-4 border-t-2 border-slate-900 pt-2">
                         <dt className="text-[11px] font-bold uppercase tracking-wider text-slate-900">
                           Net à payer
                         </dt>
                         <dd className="font-mono text-base font-bold tabular-nums text-slate-900">
-                          {formatCurrency(selectedReceiptSale.totalVente)}
+                          {formatCurrency(selectedReceiptSale.soldeDu)}
                         </dd>
                       </div>
                     </dl>
