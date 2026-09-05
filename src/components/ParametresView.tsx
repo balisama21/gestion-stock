@@ -22,7 +22,12 @@ import { Trash2 } from "lucide-react";
 
 interface ParametresViewProps {
   settings: StoreSettings;
-  onUpdateSettings: (newSettings: Partial<StoreSettings>) => void;
+  /**
+   * Le type déclarait `void` alors que l'implémentation est asynchrone.
+   * Rien n'empêchait donc d'oublier le `await` — c'est exactement ce qui
+   * s'était produit à l'enregistrement de la boutique.
+   */
+  onUpdateSettings: (newSettings: Partial<StoreSettings>) => Promise<void> | void;
   sellers: Seller[];
   onDeleteSeller: (id: string) => void;
   locale: LocaleSetting;
@@ -98,28 +103,69 @@ export const ParametresView: React.FC<ParametresViewProps> = ({
   const patchStore = (patch: Partial<StoreFormValues>) =>
     setStoreForm((prev) => ({ ...prev, ...patch }));
 
-  const handleSaveStore = () => {
+  /**
+   * `onUpdateSettings` est asynchrone : il écrit dans Supabase et attend
+   * la réponse. Il n'était pas attendu ici, si bien que `savingStore`
+   * repassait à faux dans la foulée — le bouton n'affichait jamais son
+   * indicateur et annonçait « enregistré » avant même que la requête
+   * soit partie. Pendant tout le temps réel de l'écriture, l'interface
+   * semblait donc figée sans rien dire.
+   *
+   * Seuls les champs réellement modifiés sont envoyés. C'est ce qui pèse
+   * le plus : le logo est stocké en base64 dans la même colonne, et un
+   * cliché de téléphone y occupe plusieurs mégaoctets. Le renvoyer à
+   * chaque correction de numéro de téléphone rendait l'enregistrement
+   * interminable en 3G.
+   */
+  const handleSaveStore = async () => {
+    if (savingStore) return; // anti double-clic
+
+    const champs: (keyof StoreFormValues)[] = [
+      "storeName",
+      "subtitle",
+      "address",
+      "phone",
+      "email",
+      "nifStat",
+      "logoUrl",
+      "currencySymbol",
+      "tvaRate",
+      "receiptFooter",
+      "suppliers",
+    ];
+
+    const modifies: Partial<StoreFormValues> = {};
+    for (const champ of champs) {
+      const avant = storeBaseline[champ];
+      const apres = storeForm[champ];
+      const identique = Array.isArray(avant)
+        ? Array.isArray(apres) &&
+          avant.length === apres.length &&
+          avant.every((v, i) => v === apres[i])
+        : avant === apres;
+      if (!identique) {
+        (modifies as Record<string, unknown>)[champ] = apres;
+      }
+    }
+
+    if (Object.keys(modifies).length === 0) {
+      setStoreSaved(true);
+      setTimeout(() => setStoreSaved(false), 3000);
+      return;
+    }
+
     setSavingStore(true);
-    // masterPin et enablePinSecurity ne sont volontairement PAS envoyés
-    // ici : ils s'éditent dans l'onglet Sécurité et sont stockés dans
-    // `profiles`. Les inclure faisait réécrire, depuis cet onglet, une
-    // valeur venue d'un autre.
-    onUpdateSettings({
-      storeName: storeForm.storeName,
-      subtitle: storeForm.subtitle,
-      address: storeForm.address,
-      phone: storeForm.phone,
-      email: storeForm.email,
-      nifStat: storeForm.nifStat,
-      logoUrl: storeForm.logoUrl,
-      currencySymbol: storeForm.currencySymbol,
-      tvaRate: storeForm.tvaRate,
-      receiptFooter: storeForm.receiptFooter,
-      suppliers: storeForm.suppliers,
-    });
-    setSavingStore(false);
-    setStoreSaved(true);
-    setTimeout(() => setStoreSaved(false), 3000);
+    try {
+      // masterPin et enablePinSecurity ne sont volontairement PAS envoyés
+      // ici : ils s'éditent dans l'onglet Sécurité et sont stockés dans
+      // `profiles`. Les inclure faisait réécrire, depuis cet onglet, une
+      // valeur venue d'un autre.
+      await onUpdateSettings(modifies);
+      setStoreSaved(true);
+      setTimeout(() => setStoreSaved(false), 3000);
+    } finally {
+      setSavingStore(false);
+    }
   };
 
   const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
