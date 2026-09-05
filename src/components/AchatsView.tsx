@@ -30,6 +30,7 @@ import { FilterBar, FilterField } from "./shared/FilterBar";
 import { DataList } from "./shared/DataList";
 import { StatCol } from "./shared/StatBar";
 import { Modal } from "./shared/Modal";
+import { telechargerPdf } from "../lib/documentPdf";
 import {
   PAPER_FORMATS,
   getPaperFormat,
@@ -205,6 +206,88 @@ export const AchatsView: React.FC<AchatsViewProps> = ({
     () => reportPurchases.reduce((acc, p) => acc + p.quantite, 0),
     [reportPurchases],
   );
+
+  const [pdfEnCours, setPdfEnCours] = useState(false);
+  const [pdfErreur, setPdfErreur] = useState<string | null>(null);
+
+  /**
+   * Le PDF reprend exactement ce que l'écran montre, masquages compris.
+   * Sans cela, un collaborateur dont les prix sont cachés les
+   * retrouverait en téléchargeant le journal.
+   */
+  const telecharger = async () => {
+    if (pdfEnCours) return;
+    setPdfEnCours(true);
+    setPdfErreur(null);
+    try {
+      await telechargerPdf(
+        {
+          fileName: `Journal_achats_${reportPeriod}`,
+          boutique: {
+            nom: settings?.storeName || "BALSAMA AUTO GESTION",
+            adresse: settings?.address,
+            telephone: settings?.phone,
+          },
+          intitule: "Journal des achats",
+          reference: periodeLabel,
+          meta: [
+            { label: "Édité le", value: new Date().toLocaleDateString("fr-FR") },
+            ...(showFournisseur
+              ? [
+                  {
+                    label: "Fournisseur",
+                    value:
+                      selectedReportSupplier === "all"
+                        ? "Tous les fournisseurs"
+                        : selectedReportSupplier,
+                  },
+                ]
+              : []),
+          ],
+          portee: [
+            { label: "Réappro.", value: `${reportTotalQty} u` },
+            { label: "Mouvements", value: String(reportPurchases.length) },
+            ...(showPrix
+              ? [{ label: "Total décaissé", value: formatCurrency(reportTotalAmount) }]
+              : []),
+          ],
+          colonnes: [
+            { key: "date", label: "Date", part: 18 },
+            { key: "designation", label: "Désignation" },
+            { key: "qte", label: "Qté", align: "center" as const, part: 12 },
+            ...(showPrix
+              ? [{ key: "total", label: "Total", align: "right" as const, part: 22 }]
+              : []),
+          ],
+          lignes: reportPurchases.map((a) => ({
+            cells: {
+              date: formatDateLocale(a.date, locale),
+              designation: getPurchaseLabel(a, products),
+              qte: String(a.quantite),
+              total: showPrix ? formatCurrency(a.totalAchat) : "",
+            },
+            hint: showFournisseur ? a.fournisseur || undefined : undefined,
+          })),
+          vide: "Aucun achat sur cette période.",
+          totaux: showPrix
+            ? [
+                { label: "Mouvements", value: String(reportPurchases.length) },
+                {
+                  label: "Total décaissé",
+                  value: formatCurrency(reportTotalAmount),
+                  fort: true,
+                },
+              ]
+            : [{ label: "Mouvements", value: String(reportPurchases.length), fort: true }],
+        },
+        paper,
+      );
+    } catch (err) {
+      setPdfErreur(err instanceof Error ? err.message : "Le PDF n'a pas pu être créé.");
+    } finally {
+      setPdfEnCours(false);
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -609,9 +692,18 @@ export const AchatsView: React.FC<AchatsViewProps> = ({
           }
           footer={
             <>
-              <button onClick={() => window.print()} className="app-btn-primary">
+              <button onClick={() => window.print()} className="app-btn-secondary">
                 <Printer className="h-4 w-4" />
                 Imprimer
+              </button>
+              <button
+                onClick={telecharger}
+                disabled={pdfEnCours}
+                className="app-btn-primary"
+                title={`Télécharger le PDF au format ${paper.label}`}
+              >
+                <Download className="h-4 w-4" />
+                {pdfEnCours ? "Création..." : "Télécharger le PDF"}
               </button>
               <button
                 onClick={() => {
@@ -697,6 +789,12 @@ ${reportPurchases
                 Même grammaire que la facture de vente : identité à
                 gauche, référence du document à droite, encart de portée
                 sur fond très léger, tableau à filets fins. */}
+            {pdfErreur && (
+              <p className="no-print rounded-xl border border-danger-border bg-danger-soft px-3 py-2.5 text-sm t-danger">
+                {pdfErreur}
+              </p>
+            )}
+
             <div className="receipt-viewport flex items-start justify-start overflow-x-auto rounded-xl border border-border bg-background p-4">
               {isTicket ? (
                 /* ── Ticket ── */

@@ -20,6 +20,7 @@ import { PageHeader } from "./shared/PageHeader";
 import { StatCol } from "./shared/StatBar";
 import { DataList } from "./shared/DataList";
 import { Modal } from "./shared/Modal";
+import { telechargerPdf } from "../lib/documentPdf";
 import {
   PAPER_FORMATS,
   getPaperFormat,
@@ -245,6 +246,76 @@ export const VendeursView: React.FC<VendeursViewProps> = ({
         e.numero.toLowerCase().includes(q),
     );
   }, [activeSellerExpenses, searchQuery]);
+
+  const [pdfEnCours, setPdfEnCours] = useState(false);
+  const [pdfErreur, setPdfErreur] = useState<string | null>(null);
+
+  /**
+   * Le PDF reprend exactement ce que l'écran montre, masquages compris.
+   * Sans cela, un collaborateur dont les prix sont cachés les
+   * retrouverait en téléchargeant le journal.
+   */
+  const telecharger = async () => {
+    if (pdfEnCours) return;
+    setPdfEnCours(true);
+    setPdfErreur(null);
+    try {
+      await telechargerPdf(
+        {
+          fileName: `Bilan_vendeur_${selectedReportSeller}_${selectedPeriod}`,
+          boutique: {
+            nom: settings?.storeName || "BALSAMA AUTO GESTION",
+            adresse: settings?.address,
+            telephone: settings?.phone,
+          },
+          intitule: "Bilan d'activité",
+          reference:
+            selectedReportSeller === "all" ? "Tous les vendeurs" : selectedReportSeller,
+          meta: [
+            { label: "Période", value: periodeLabel },
+            { label: "Édité le", value: new Date().toLocaleDateString("fr-FR") },
+          ],
+          portee: [
+            { label: "Encaissé", value: formatCurrency(reportStats.totalEncaisse) },
+            { label: "Dépenses", value: formatCurrency(reportStats.totalDepenses) },
+            { label: "En poche", value: formatCurrency(reportStats.soldeNetCaisse) },
+          ],
+          colonnes: [
+            { key: "date", label: "Date", part: 18 },
+            { key: "article", label: "Article" },
+            { key: "qte", label: "Qté", align: "center" as const, part: 12 },
+            { key: "total", label: "Total", align: "right" as const, part: 22 },
+          ],
+          lignes: reportSales.map((v) => ({
+            cells: {
+              date: formatDateLocale(v.date, locale),
+              article: getSaleLabel(v, products),
+              qte: String(v.quantite),
+              total: formatCurrency(v.totalVente),
+            },
+            hint: selectedReportSeller === "all" ? v.vendeur : undefined,
+          })),
+          vide: "Aucune vente sur cette période.",
+          totaux: [
+            { label: "Ventes", value: String(reportSales.length) },
+            { label: "Chiffre d'affaires", value: formatCurrency(reportStats.totalCA) },
+            { label: "Encaissé", value: formatCurrency(reportStats.totalEncaisse) },
+            { label: "Dépenses", value: formatCurrency(reportStats.totalDepenses) },
+            {
+              label: "Solde en poche",
+              value: formatCurrency(reportStats.soldeNetCaisse),
+              fort: true,
+            },
+          ],
+        },
+        paper,
+      );
+    } catch (err) {
+      setPdfErreur(err instanceof Error ? err.message : "Le PDF n'a pas pu être créé.");
+    } finally {
+      setPdfEnCours(false);
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -720,9 +791,18 @@ export const VendeursView: React.FC<VendeursViewProps> = ({
           }
           footer={
             <>
-              <button onClick={() => window.print()} className="app-btn-primary">
+              <button onClick={() => window.print()} className="app-btn-secondary">
                 <Printer className="h-4 w-4" />
                 Imprimer
+              </button>
+              <button
+                onClick={telecharger}
+                disabled={pdfEnCours}
+                className="app-btn-primary"
+                title={`Télécharger le PDF au format ${paper.label}`}
+              >
+                <Download className="h-4 w-4" />
+                {pdfEnCours ? "Création..." : "Télécharger le PDF"}
               </button>
               <button
                 onClick={() => {
@@ -797,6 +877,12 @@ SOLDE NET EN CAISSE VENDEUR: ${formatCurrency(reportStats.soldeNetCaisse)}
                 </select>
               </div>
             </div>
+
+            {pdfErreur && (
+              <p className="no-print rounded-xl border border-danger-border bg-danger-soft px-3 py-2.5 text-sm t-danger">
+                {pdfErreur}
+              </p>
+            )}
 
             <div className="receipt-viewport flex items-start justify-start overflow-x-auto rounded-xl border border-border bg-background p-4">
               {isTicket ? (
