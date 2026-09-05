@@ -9,13 +9,13 @@ import {
   PackageCheck,
   Truck,
   FileText,
+
   Printer,
   Eye,
   RefreshCw,
   AlertCircle,
   Tag,
   Download,
-  Receipt,
 } from "lucide-react";
 import { formatCurrency, formatDateLocale, getProductLabel, getPurchaseLabel } from "../utils/formulas";
 import { PageHeader } from "./shared/PageHeader";
@@ -23,6 +23,11 @@ import { FilterBar, FilterField } from "./shared/FilterBar";
 import { DataList } from "./shared/DataList";
 import { StatCol } from "./shared/StatBar";
 import { Modal } from "./shared/Modal";
+import {
+  PAPER_FORMATS,
+  getPaperFormat,
+  type PaperFormatId,
+} from "../lib/paperFormats";
 
 interface AchatsViewProps {
   purchases: Purchase[];
@@ -77,7 +82,14 @@ export const AchatsView: React.FC<AchatsViewProps> = ({
   const [isReportModalOpen, setIsReportModalOpen] = useState(false);
   const [selectedReportSupplier, setSelectedReportSupplier] = useState("all");
   const [reportPeriod, setReportPeriod] = useState<"today" | "month" | "all">("today");
-  const [reportFormat, setReportFormat] = useState<"ticket" | "a4">("ticket");
+  /**
+   * Format de papier du journal. Il détermine la disposition — ticket en
+   * pleine largeur ou bilan tabulaire —, la largeur exacte de l'aperçu et
+   * le format proposé par la boîte d'impression, donc celui du PDF.
+   */
+  const [paperId, setPaperId] = useState<PaperFormatId>("t80");
+  const paper = getPaperFormat(paperId);
+  const isTicket = paper.layout === "ticket";
 
   const todayStr = useMemo(() => new Date().toISOString().split("T")[0], []);
   const currentMonthStr = useMemo(() => todayStr.slice(0, 7), [todayStr]);
@@ -556,32 +568,21 @@ export const AchatsView: React.FC<AchatsViewProps> = ({
           }
           bodyClassName="space-y-4"
           headerAside={
-            <div className="flex items-center gap-1 rounded-xl border border-border bg-muted p-1">
-              <button
-                onClick={() => setReportFormat("ticket")}
-                aria-pressed={reportFormat === "ticket"}
-                className={`flex items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-semibold transition-colors ${
-                  reportFormat === "ticket"
-                    ? "bg-card text-foreground shadow-sm"
-                    : "text-muted-foreground hover:text-foreground"
-                }`}
+            <label className="flex items-center gap-2">
+              <span className="sr-only">Format du papier</span>
+              <select
+                value={paperId}
+                onChange={(e) => setPaperId(e.target.value as PaperFormatId)}
+                className="app-field-sm w-auto min-w-[9.5rem]"
+                title="Format de papier — détermine aussi le format du PDF enregistré"
               >
-                <Receipt className="h-3.5 w-3.5" />
-                Ticket
-              </button>
-              <button
-                onClick={() => setReportFormat("a4")}
-                aria-pressed={reportFormat === "a4"}
-                className={`flex items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-semibold transition-colors ${
-                  reportFormat === "a4"
-                    ? "bg-card text-foreground shadow-sm"
-                    : "text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                <FileText className="h-3.5 w-3.5" />
-                A4
-              </button>
-            </div>
+                {PAPER_FORMATS.map((f) => (
+                  <option key={f.id} value={f.id}>
+                    {f.label}
+                  </option>
+                ))}
+              </select>
+            </label>
           }
           footer={
             <>
@@ -671,8 +672,11 @@ ${reportPurchases
 
             {/* Printable Area */}
             <div className="receipt-viewport flex items-start justify-start overflow-x-auto rounded-xl border border-border bg-background p-4">
-              {reportFormat === "ticket" ? (
-                <div className="printable-receipt printable-ticket mx-auto min-w-0 bg-emerald-50 text-slate-900 w-full max-w-[360px] p-6 rounded-lg shadow-lg font-mono text-xs leading-relaxed space-y-4 border border-emerald-200">
+              {isTicket ? (
+                <div
+                  className={`printable-receipt ${paper.pageClass} mx-auto min-w-0 w-full rounded-lg border border-slate-200 bg-white p-4 space-y-3 font-mono text-[11px] leading-relaxed text-slate-900 shadow-sm`}
+                  style={{ maxWidth: paper.previewWidth }}
+                >
                   <div className="text-center space-y-1">
                     {settings?.logoUrl && (
                       <img
@@ -773,7 +777,10 @@ ${reportPurchases
                   </div>
                 </div>
               ) : (
-                <div className="printable-receipt printable-invoice mx-auto min-w-0 bg-white text-slate-900 w-full max-w-2xl p-8 rounded-lg shadow-xl font-sans text-xs space-y-6 border border-slate-200">
+                <div
+                  className={`printable-receipt ${paper.pageClass} mx-auto min-w-0 w-full rounded-lg border border-slate-200 bg-white p-8 space-y-6 font-sans text-xs text-slate-900 shadow-sm`}
+                  style={{ maxWidth: paper.previewWidth }}
+                >
                   <div className="flex flex-wrap items-start justify-between gap-4 border-b border-slate-200 pb-6">
                     <div>
                       <h1 className="text-lg font-black text-slate-900 uppercase">
