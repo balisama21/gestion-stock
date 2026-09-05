@@ -50,17 +50,39 @@ const telechargerBlob = (blob: Blob, nom: string) => {
 };
 
 /**
- * Photographie le document. Le fond est forcé en blanc : l'élément est
- * transparent par endroits, et une capture transparente donnerait un PDF
- * au fond noir chez certains lecteurs.
+ * Photographie le document.
+ *
+ * Deux précautions qui font toute la différence, et qui manquaient à la
+ * version précédente.
+ *
+ * La première : la taille de capture est prise sur `offsetWidth` et
+ * `offsetHeight` du document lui-même, jamais déduite de son
+ * environnement. html2canvas clonait le nœud dans une iframe et le
+ * laissait s'y remettre en page librement ; privé de la chaîne de
+ * parents qui le contraignait, il ressortait à sa `max-width` plutôt
+ * qu'à sa largeur réelle — 280 px capturés pour 245 px affichés. Et sur
+ * un téléphone, la feuille de style que ce clone rechargeait arrivait
+ * parfois après la photo : le document sortait alors entièrement sans
+ * mise en forme, police à empattements et blocs empilés.
+ *
+ * La seconde : `modern-screenshot` reporte les styles CALCULÉS sur
+ * chaque élément avant de rastériser. Il ne dépend donc d'aucun
+ * rechargement de feuille de style, et toute cette catégorie de panne
+ * disparaît — ce n'est plus une course à gagner.
+ *
+ * On attend enfin que les polices soient prêtes : capturer avant, c'est
+ * photographier un texte encore rendu dans la police de repli.
  */
 async function capturer(element: HTMLElement): Promise<HTMLCanvasElement> {
-  const { default: html2canvas } = await import("html2canvas-pro");
-  return html2canvas(element, {
+  const { domToCanvas } = await import("modern-screenshot");
+  if (document.fonts?.ready) await document.fonts.ready;
+  return domToCanvas(element, {
     scale: ECHELLE,
     backgroundColor: "#ffffff",
-    useCORS: true,
-    logging: false,
+    // Dimensions de mise en page, insensibles à un éventuel zoom appliqué
+    // à l'aperçu pour le faire tenir sur un écran étroit.
+    width: element.offsetWidth,
+    height: element.offsetHeight,
   });
 }
 
