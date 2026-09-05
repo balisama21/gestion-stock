@@ -859,6 +859,21 @@ td {
   --border: oklch(0.925 0.005 250);
   --muted: oklch(0.968 0.005 250);
   --card: oklch(1 0 0);
+
+  /* Le badge de statut est la seule couleur du document. En mode sombre
+     les nuances sémantiques s'éclaircissent pour ressortir sur fond
+     foncé — un vert à 0.76 de luminosité, illisible sur du papier. On
+     reprend donc ici les valeurs du mode clair, calibrées pour le
+     contraste sur blanc. */
+  --success: oklch(0.5 0.13 162);
+  --success-soft: oklch(0.96 0.032 162);
+  --success-border: oklch(0.86 0.07 162);
+  --warning: oklch(0.52 0.13 70);
+  --warning-soft: oklch(0.96 0.04 80);
+  --warning-border: oklch(0.86 0.08 75);
+  --danger: oklch(0.52 0.19 25);
+  --danger-soft: oklch(0.96 0.028 25);
+  --danger-border: oklch(0.87 0.065 25);
 }
 
 /* Le logo est fourni par l'utilisateur : ses proportions sont

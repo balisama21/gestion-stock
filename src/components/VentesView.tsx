@@ -31,6 +31,7 @@ import { FilterBar, FilterField } from "./shared/FilterBar";
 import { DataList } from "./shared/DataList";
 import { StatBar, StatCol } from "./shared/StatBar";
 import { Modal } from "./shared/Modal";
+import { useInvoicePrefs } from "../lib/invoicePrefs";
 
 interface VentesViewProps {
   sales: Sale[];
@@ -98,7 +99,55 @@ export const VentesView: React.FC<VentesViewProps> = ({
 
   // Receipt / Facture Modal state
   const [selectedReceiptSale, setSelectedReceiptSale] = useState<Sale | null>(null);
-  const [receiptMode, setReceiptMode] = useState<"ticket" | "facture">("ticket");
+
+  /**
+   * Les préférences d'impression étaient réglables dans Paramètres →
+   * Facturation, avec un aperçu qui les reflétait fidèlement… mais le
+   * document réel ne les lisait nulle part. Cocher « ne pas imprimer le
+   * logo » ou « afficher l'e-mail » n'avait donc aucun effet sur ce qui
+   * sortait de l'imprimante. Elles pilotent désormais le reçu comme la
+   * facture, `defaultFormat` compris.
+   */
+  const [invoicePrefs] = useInvoicePrefs();
+  const [receiptMode, setReceiptMode] = useState<"ticket" | "facture">(
+    invoicePrefs.defaultFormat,
+  );
+
+  // Le format par défaut est lu depuis le stockage local après le premier
+  // rendu : on aligne l'état une fois qu'il est connu, tant qu'aucun reçu
+  // n'est ouvert pour ne pas changer le format sous les yeux de
+  // l'utilisateur.
+  useEffect(() => {
+    if (!selectedReceiptSale) setReceiptMode(invoicePrefs.defaultFormat);
+  }, [invoicePrefs.defaultFormat, selectedReceiptSale]);
+
+  /**
+   * Lignes du document. Une vente ne porte aujourd'hui qu'un seul
+   * produit, mais le document est écrit pour une liste : le jour où une
+   * commande sera facturable, seule cette valeur changera.
+   */
+  const lignesDocument = useMemo(() => {
+    if (!selectedReceiptSale) return [];
+    return [
+      {
+        id: selectedReceiptSale.id,
+        designation: getSaleLabel(selectedReceiptSale, products),
+        reference:
+          products.find((p) => p.id === selectedReceiptSale.productId)?.numero ?? null,
+        quantite: selectedReceiptSale.quantite,
+        prixUnitaire: selectedReceiptSale.prixVenteUnit,
+        total: selectedReceiptSale.totalVente,
+      },
+    ];
+  }, [selectedReceiptSale, products]);
+
+  // Seule couleur du document : le statut de règlement, où elle informe.
+  const badgeStatut =
+    selectedReceiptSale?.statutCredit === "Payé"
+      ? "app-badge-success"
+      : selectedReceiptSale?.statutCredit === "Partiel"
+        ? "app-badge-warning"
+        : "app-badge-danger";
 
   // Form State for New Sale
   const [date, setDate] = useState(new Date().toISOString().split("T")[0]);
@@ -885,282 +934,313 @@ ${settings?.receiptFooter || "Merci pour votre confiance ! Ni repris, ni échang
             </>
           }
         >
-            {/* Print Container Rendering */}
+            {/* ── Documents imprimables ──
+                Couleurs figées en `slate` et non en jetons de thème : une
+                feuille de reçu est du papier blanc, en mode clair comme
+                en mode sombre. Le vert n'apparaît que sur le badge de
+                statut, seul endroit où il porte une information.
+
+                Le fond de l'aperçu est blanc, comme le papier : ce qui
+                s'affiche est exactement ce qui s'imprime. */}
             <div className="receipt-viewport flex items-start justify-start overflow-x-auto rounded-xl border border-border bg-background p-4">
               {receiptMode === "ticket" ? (
-                /* Ticket Thermal Receipt Format */
-                <div className="printable-receipt printable-ticket mx-auto min-w-0 bg-amber-50 text-slate-900 w-full max-w-[360px] p-6 rounded-lg shadow-lg font-mono text-xs leading-relaxed space-y-4 border border-amber-200">
-                  {/* Store Header */}
-                  <div className="text-center space-y-1">
-                    {settings?.logoUrl && (
+                /* ── Reçu de caisse ── */
+                <div className="printable-receipt printable-ticket mx-auto min-w-0 w-full max-w-[340px] rounded-lg border border-slate-200 bg-white p-5 font-mono text-[11px] leading-relaxed text-slate-900 shadow-sm">
+                  {/* En-tête boutique */}
+                  <div className="space-y-0.5 text-center">
+                    {invoicePrefs.showLogo && settings?.logoUrl && (
                       <img
                         src={settings.logoUrl}
-                        alt="Logo"
-                        className="w-12 h-12 mx-auto mb-1 object-cover rounded-full"
+                        alt=""
+                        className="mx-auto mb-2 h-12 w-12 rounded object-contain"
                       />
                     )}
-                    <h2 className="font-bold text-sm tracking-wide text-slate-950 uppercase">
+                    <h2 className="text-[13px] font-bold uppercase tracking-wide text-slate-900">
                       {settings?.storeName || "BALSAMA AUTO GESTION"}
                     </h2>
-                    <p className="text-[10px] text-slate-600">
-                      {settings?.subtitle || "Système unifié Stock & Ventes"}
-                    </p>
-                    <p className="text-[10px] text-slate-600">
-                      {settings?.address || "Lot IVG 124, Antananarivo 101"}
-                    </p>
-                    <p className="text-[10px] text-slate-600">
-                      Tél: {settings?.phone || "+261 34 12 345 67"}
-                    </p>
-                    {settings?.nifStat && (
-                      <p className="text-[9px] text-muted-foreground font-semibold pt-0.5">
-                        {settings.nifStat}
+                    {invoicePrefs.showAddress && (
+                      <p className="text-[10px] text-slate-500">
+                        {settings?.address || "Lot IVG 124, Antananarivo 101"}
                       </p>
+                    )}
+                    {invoicePrefs.showPhone && (
+                      <p className="text-[10px] text-slate-500">
+                        Tél. {settings?.phone || "+261 34 12 345 67"}
+                      </p>
+                    )}
+                    {invoicePrefs.showEmail && settings?.email && (
+                      <p className="text-[10px] text-slate-500">{settings.email}</p>
+                    )}
+                    {invoicePrefs.showNif && settings?.nifStat && (
+                      <p className="text-[9px] text-slate-400">{settings.nifStat}</p>
                     )}
                   </div>
 
-                  <div className="border-b border-dashed border-slate-400 my-2"></div>
+                  <div className="my-3 border-t border-dashed border-slate-300" />
 
-                  {/* Metadata */}
-                  <div className="grid grid-cols-2 text-[10px] gap-1">
-                    <div>
-                      <span className="text-muted-foreground">Reçu N°:</span>{" "}
-                      <span className="font-bold">#{selectedReceiptSale.numero}</span>
+                  {/* Références */}
+                  <dl className="space-y-0.5 text-[10px]">
+                    <div className="flex justify-between gap-3">
+                      <dt className="text-slate-500">Reçu n°</dt>
+                      <dd className="font-bold text-slate-900">{selectedReceiptSale.numero}</dd>
                     </div>
-                    <div className="text-right">
-                      <span className="text-muted-foreground">Date:</span>{" "}
-                      <span>{selectedReceiptSale.date}</span>
+                    <div className="flex justify-between gap-3">
+                      <dt className="text-slate-500">Date</dt>
+                      <dd className="text-slate-900">
+                        {formatDateLocale(selectedReceiptSale.date, locale)}
+                      </dd>
                     </div>
-                    <div>
-                      <span className="text-muted-foreground">Vendeur:</span>{" "}
-                      <span className="font-semibold">{selectedReceiptSale.vendeur}</span>
-                    </div>
-                    <div className="text-right">
-                      <span className="text-muted-foreground">Client:</span>{" "}
-                      <span className="font-semibold">
+                    {invoicePrefs.showSeller && (
+                      <div className="flex justify-between gap-3">
+                        <dt className="text-slate-500">Vendeur</dt>
+                        <dd className="text-slate-900">{selectedReceiptSale.vendeur}</dd>
+                      </div>
+                    )}
+                    <div className="flex justify-between gap-3">
+                      <dt className="text-slate-500">Client</dt>
+                      <dd className="min-w-0 text-right text-slate-900">
                         {selectedReceiptSale.clientCredit || "Comptoir"}
-                      </span>
+                      </dd>
                     </div>
+                  </dl>
+
+                  <div className="my-3 border-t border-dashed border-slate-300" />
+
+                  {/* Articles.
+                      Sur 80 mm, quatre colonnes serrées deviennent
+                      illisibles. La désignation prend donc toute la
+                      largeur, et la ligne de calcul se lit en dessous —
+                      c'est la disposition des tickets de caisse. */}
+                  <div className="space-y-2">
+                    {lignesDocument.map((l) => (
+                      <div key={l.id}>
+                        <p className="font-semibold text-slate-900">{l.designation}</p>
+                        <div className="flex justify-between gap-3 text-[10px] text-slate-600">
+                          <span>
+                            {l.quantite} × {formatCurrency(l.prixUnitaire)}
+                          </span>
+                          <span className="font-semibold text-slate-900">
+                            {formatCurrency(l.total)}
+                          </span>
+                        </div>
+                        {l.reference && (
+                          <p className="text-[9px] text-slate-400">Réf. {l.reference}</p>
+                        )}
+                      </div>
+                    ))}
                   </div>
 
-                  <div className="border-b border-dashed border-slate-400 my-2"></div>
+                  <div className="my-3 border-t border-dashed border-slate-300" />
 
-                  {/* Itemized Table */}
-                  <table className="w-full text-left text-[10px]">
-                    <thead>
-                      <tr className="border-b border-slate-300 font-bold uppercase text-slate-700">
-                        <th className="py-1">ART.</th>
-                        <th className="py-1 text-center">QTÉ</th>
-                        <th className="py-1 text-right">P.U</th>
-                        <th className="py-1 text-right">TOTAL</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-200">
-                     <tr>
-                        <td className="py-1.5 font-semibold text-slate-900 break-words pr-1">
-                          {getSaleLabel(selectedReceiptSale, products)}
-                          <div className="text-[9px] text-muted-foreground font-normal">
-                            Ref:{" "}
-                            {products.find((p) => p.id === selectedReceiptSale.productId)
-                              ?.numero || selectedReceiptSale.productId}
-                          </div>
-                        </td>
-                        <td className="py-1.5 text-center font-bold">
-                          {selectedReceiptSale.quantite}
-                        </td>
-                        <td className="py-1.5 text-right font-semibold">
-                          {formatCurrency(selectedReceiptSale.prixVenteUnit)}
-                        </td>
-                        <td className="py-1.5 text-right font-bold">
-                          {formatCurrency(selectedReceiptSale.totalVente)}
-                        </td>
-                      </tr>
-                    </tbody>
-                  </table>
-
-                  <div className="border-b border-dashed border-slate-400 my-2"></div>
-
-                  {/* Totals Breakdown */}
-                  <div className="space-y-1 text-[11px]">
-                    <div className="flex justify-between font-bold text-sm text-slate-950 pt-1">
-                      <span>TOTAL NET :</span>
+                  {/* Totaux */}
+                  <div className="space-y-1 text-[10px]">
+                    <div className="flex justify-between gap-3 border-b border-slate-900 pb-1 text-[13px] font-bold text-slate-900">
+                      <span>TOTAL</span>
                       <span>{formatCurrency(selectedReceiptSale.totalVente)}</span>
                     </div>
-                    <div className="flex justify-between text-[10px] text-slate-700">
-                      <span>Montant Payé (Espèces/Mobile) :</span>
-                      <span className="font-semibold text-emerald-800">
+                    <div className="flex justify-between gap-3 pt-1 text-slate-600">
+                      <span>Payé</span>
+                      <span className="text-slate-900">
                         {formatCurrency(selectedReceiptSale.montantPaye)}
                       </span>
                     </div>
                     {selectedReceiptSale.soldeDu > 0 && (
-                      <div className="flex justify-between text-[10px] text-amber-900 font-semibold bg-amber-100 p-1 rounded">
-                        <span>Reste à Payer (Crédit) :</span>
+                      <div className="flex justify-between gap-3 font-semibold text-slate-900">
+                        <span>Reste à payer</span>
                         <span>{formatCurrency(selectedReceiptSale.soldeDu)}</span>
                       </div>
                     )}
-                    <div className="flex justify-between text-[10px] pt-1">
-                      <span className="text-muted-foreground">Statut Règlement :</span>
-                      <span className="font-bold uppercase tracking-wider text-slate-900">
-                        {selectedReceiptSale.statutCredit}
-                      </span>
-                    </div>
                   </div>
 
-                  <div className="border-b border-dashed border-slate-400 my-2"></div>
-
-                  {/* Footer Note */}
-                  <div className="text-center text-[9px] text-slate-600 italic">
-                    {settings?.receiptFooter ||
-                      "Merci pour votre confiance ! Ni repris, ni échangé après 48h."}
+                  <div className="mt-3 text-center">
+                    <span className={`app-badge ${badgeStatut} text-[9px]`}>
+                      {selectedReceiptSale.statutCredit}
+                    </span>
                   </div>
+
+                  {invoicePrefs.showFooter && (
+                    <>
+                      <div className="my-3 border-t border-dashed border-slate-300" />
+                      <p className="text-center text-[9px] italic text-slate-500">
+                        {settings?.receiptFooter ||
+                          "Merci pour votre confiance ! Ni repris, ni échangé après 48h."}
+                      </p>
+                    </>
+                  )}
                 </div>
               ) : (
-                /* Facture Officielle A4 Format */
-                <div className="printable-receipt printable-invoice mx-auto min-w-0 bg-white text-slate-900 w-full max-w-xl p-8 rounded-lg shadow-xl font-sans text-xs space-y-6 border border-slate-200">
-                  {/* Top Header */}
-                  <div className="flex flex-wrap items-start justify-between gap-4 border-b border-slate-200 pb-6">
-                    <div className="space-y-1.5">
-                      {settings?.logoUrl && (
+                /* ── Facture A4 ── */
+                <div className="printable-receipt printable-invoice mx-auto min-w-0 w-full max-w-xl rounded-lg border border-slate-200 bg-white p-8 font-sans text-xs text-slate-900 shadow-sm">
+                  {/* En-tête : identité à gauche, référence du document à
+                      droite. `flex-wrap` pour que le second bloc passe
+                      dessous plutôt que de se serrer sur écran étroit. */}
+                  <header className="flex flex-wrap items-start justify-between gap-6 pb-6">
+                    <div className="min-w-0 space-y-2">
+                      {invoicePrefs.showLogo && settings?.logoUrl && (
                         <img
                           src={settings.logoUrl}
-                          alt="Logo"
-                          className="w-16 h-16 object-cover rounded-full mb-2"
+                          alt=""
+                          className="h-14 w-14 rounded object-contain"
                         />
                       )}
-                      <h1 className="text-lg font-black text-slate-900 uppercase tracking-tight">
-                        {settings?.storeName || "BALSAMA AUTO GESTION"}
-                      </h1>
-                      <p className="text-muted-foreground text-[11px]">
-                        {settings?.subtitle || "Vente de pièces détachées & accessoires auto"}
-                      </p>
-                      <p className="text-slate-600 text-[11px]">
-                        {settings?.address || "Lot IVG 124, Antananarivo 101"}
-                      </p>
-                      <p className="text-slate-600 text-[11px]">
-                        Tél: {settings?.phone || "+261 34 12 345 67"} | Email:{" "}
-                        {settings?.email || "contact@balsama-auto.mg"}
-                      </p>
-                      {settings?.nifStat && (
-                        <p className="text-[10px] font-semibold text-slate-700 bg-slate-100 px-2 py-0.5 rounded inline-block">
-                          {settings.nifStat}
+                      <div className="space-y-0.5">
+                        <p className="text-base font-bold uppercase tracking-tight text-slate-900">
+                          {settings?.storeName || "BALSAMA AUTO GESTION"}
                         </p>
-                      )}
-                    </div>
-
-                    <div className="text-right space-y-2">
-                      <div className="inline-block rounded-lg bg-slate-900 px-4 py-1.5 text-sm font-bold uppercase tracking-wider text-white">
-                        FACTURE N° #{selectedReceiptSale.numero}
-                      </div>
-                      <div className="text-[11px] text-slate-600 space-y-0.5">
-                        <p>
-                          <span className="font-semibold text-slate-800">Date d'émission :</span>{" "}
-                          {selectedReceiptSale.date}
+                        {settings?.subtitle && (
+                          <p className="text-[11px] text-slate-500">{settings.subtitle}</p>
+                        )}
+                        {invoicePrefs.showAddress && (
+                          <p className="text-[11px] text-slate-500">
+                            {settings?.address || "Lot IVG 124, Antananarivo 101"}
+                          </p>
+                        )}
+                        <p className="text-[11px] text-slate-500">
+                          {[
+                            invoicePrefs.showPhone
+                              ? `Tél. ${settings?.phone || "+261 34 12 345 67"}`
+                              : null,
+                            invoicePrefs.showEmail ? settings?.email : null,
+                          ]
+                            .filter(Boolean)
+                            .join(" · ")}
                         </p>
-                        <p>
-                          <span className="font-semibold text-slate-800">
-                            Vendeur responsable :
-                          </span>{" "}
-                          {selectedReceiptSale.vendeur}
-                        </p>
+                        {invoicePrefs.showNif && settings?.nifStat && (
+                          <p className="text-[10px] text-slate-400">{settings.nifStat}</p>
+                        )}
                       </div>
                     </div>
-                  </div>
 
-                  {/* Customer Info Box */}
-                  <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-200 bg-slate-50 p-4">
-                    <div>
-                      <span className="text-[10px] uppercase font-bold text-muted-foreground block tracking-wider">
-                        Facturé À (Client) :
-                      </span>
-                      <span className="text-sm font-bold text-slate-900">
-                        {selectedReceiptSale.clientCredit || "Client Comptoir / Anonyme"}
-                      </span>
+                    {/* Référence du document : le numéro domine, la date
+                        et le vendeur restent discrets sous lui. */}
+                    <div className="min-w-0 space-y-1 sm:text-right">
+                      <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-slate-400">
+                        Facture
+                      </p>
+                      <p className="font-mono text-xl font-bold tracking-tight text-slate-900">
+                        {selectedReceiptSale.numero}
+                      </p>
+                      <dl className="space-y-0.5 pt-1 text-[11px] text-slate-500">
+                        <div className="flex gap-2 sm:justify-end">
+                          <dt>Émise le</dt>
+                          <dd className="font-medium text-slate-700">
+                            {formatDateLocale(selectedReceiptSale.date, locale)}
+                          </dd>
+                        </div>
+                        {invoicePrefs.showSeller && (
+                          <div className="flex gap-2 sm:justify-end">
+                            <dt>Vendeur</dt>
+                            <dd className="font-medium text-slate-700">
+                              {selectedReceiptSale.vendeur}
+                            </dd>
+                          </div>
+                        )}
+                      </dl>
                     </div>
+                  </header>
 
-                    <div className="text-right">
-                      <span className="text-[10px] uppercase font-bold text-muted-foreground block tracking-wider">
-                        Statut de Paiement :
-                      </span>
-                      <span
-                        className={`inline-block px-2.5 py-0.5 rounded-full text-[10px] font-bold ${
-                          selectedReceiptSale.statutCredit === "Payé"
-                            ? "bg-emerald-100 text-emerald-800 border border-emerald-300"
-                            : selectedReceiptSale.statutCredit === "Partiel"
-                              ? "bg-amber-100 text-amber-800 border border-amber-300"
-                              : "bg-rose-100 text-rose-800 border border-rose-300"
-                        }`}
-                      >
+                  {/* Client et statut, sur un fond très léger qui les
+                      détache du reste sans peser à l'impression. */}
+                  <section className="flex flex-wrap items-start justify-between gap-4 rounded-lg border border-slate-200 bg-slate-50 px-4 py-3">
+                    <div className="min-w-0">
+                      <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">
+                        Facturé à
+                      </p>
+                      <p className="mt-0.5 text-sm font-semibold text-slate-900">
+                        {selectedReceiptSale.clientCredit || "Client comptoir"}
+                      </p>
+                    </div>
+                    <div className="min-w-0 sm:text-right">
+                      <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">
+                        Statut
+                      </p>
+                      <span className={`app-badge mt-1 ${badgeStatut}`}>
                         {selectedReceiptSale.statutCredit}
                       </span>
                     </div>
-                  </div>
+                  </section>
 
-                  {/* Detailed Table */}
-                  <table className="w-full text-left text-xs border-collapse">
+                  {/* Articles */}
+                  <table className="mt-6 w-full border-collapse text-left text-[11px]">
                     <thead>
-                      <tr className="bg-slate-100 text-slate-700 font-bold uppercase tracking-wider text-[10px] border-y border-slate-300">
-                        <th className="p-2.5">Code</th>
-                        <th className="p-2.5">Désignation de l'Article</th>
-                        <th className="p-2.5 text-center">Quantité</th>
-                        <th className="p-2.5 text-right">Prix Unitaire</th>
-                        <th className="p-2.5 text-right">Total HT</th>
+                      <tr className="border-b border-slate-300 text-[10px] font-semibold uppercase tracking-wider text-slate-500">
+                        <th className="py-2 pr-3 font-semibold">Désignation</th>
+                        <th className="py-2 px-2 text-center font-semibold">Qté</th>
+                        <th className="py-2 px-2 text-right font-semibold">Prix unitaire</th>
+                        <th className="py-2 pl-2 text-right font-semibold">Total</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-slate-200">
-                      <tr>
-                        <td className="p-2.5 font-mono text-muted-foreground font-semibold">
-                          {products.find((p) => p.id === selectedReceiptSale.productId)?.numero ||
-                            selectedReceiptSale.productId}
-                        </td>
-                        <td className="p-2.5 font-bold text-slate-900">
-                          {getSaleLabel(selectedReceiptSale, products)}
-                        </td>
-                        <td className="p-2.5 text-center font-bold">
-                          {selectedReceiptSale.quantite}
-                        </td>
-                        <td className="p-2.5 text-right font-semibold">
-                          {formatCurrency(selectedReceiptSale.prixVenteUnit)}
-                        </td>
-                        <td className="p-2.5 text-right font-bold text-slate-900">
-                          {formatCurrency(selectedReceiptSale.totalVente)}
-                        </td>
-                      </tr>
+                    <tbody>
+                      {lignesDocument.map((l, i) => (
+                        <tr
+                          key={l.id}
+                          className={`border-b border-slate-100 ${i % 2 === 1 ? "bg-slate-50/70" : ""}`}
+                        >
+                          <td className="py-2.5 pr-3">
+                            <span className="font-medium text-slate-900">{l.designation}</span>
+                            {l.reference && (
+                              <span className="mt-0.5 block font-mono text-[10px] text-slate-400">
+                                {l.reference}
+                              </span>
+                            )}
+                          </td>
+                          <td className="px-2 py-2.5 text-center tabular-nums text-slate-700">
+                            {l.quantite}
+                          </td>
+                          <td className="px-2 py-2.5 text-right font-mono tabular-nums text-slate-700">
+                            {formatCurrency(l.prixUnitaire)}
+                          </td>
+                          <td className="py-2.5 pl-2 text-right font-mono font-medium tabular-nums text-slate-900">
+                            {formatCurrency(l.total)}
+                          </td>
+                        </tr>
+                      ))}
                     </tbody>
                   </table>
 
-                  {/* Totals Summary */}
-                  <div className="flex justify-end pt-2">
-                    <div className="w-64 space-y-2 text-xs border-t border-slate-300 pt-3">
-                      <div className="flex justify-between text-slate-600">
-                        <span>Total Global :</span>
-                        <span className="font-semibold">
+                  {/* Totaux, alignés à droite sous le tableau. */}
+                  <div className="mt-5 flex justify-end">
+                    <dl className="w-full max-w-[16rem] space-y-1.5 text-[11px]">
+                      <div className="flex justify-between gap-4 text-slate-500">
+                        <dt>Total</dt>
+                        <dd className="font-mono tabular-nums text-slate-700">
                           {formatCurrency(selectedReceiptSale.totalVente)}
-                        </span>
+                        </dd>
                       </div>
-                      <div className="flex justify-between text-emerald-700 font-medium">
-                        <span>Montant Encaissé :</span>
-                        <span>{formatCurrency(selectedReceiptSale.montantPaye)}</span>
+                      <div className="flex justify-between gap-4 text-slate-500">
+                        <dt>Montant encaissé</dt>
+                        <dd className="font-mono tabular-nums text-slate-700">
+                          {formatCurrency(selectedReceiptSale.montantPaye)}
+                        </dd>
                       </div>
                       {selectedReceiptSale.soldeDu > 0 && (
-                        <div className="flex justify-between text-rose-700 font-bold bg-rose-50 p-1.5 rounded border border-rose-200">
-                          <span>Solde Restant Dû :</span>
-                          <span>{formatCurrency(selectedReceiptSale.soldeDu)}</span>
+                        <div className="flex justify-between gap-4 text-slate-500">
+                          <dt>Reste dû</dt>
+                          <dd className="font-mono tabular-nums text-slate-700">
+                            {formatCurrency(selectedReceiptSale.soldeDu)}
+                          </dd>
                         </div>
                       )}
-                      <div className="flex justify-between text-sm font-black text-slate-900 pt-2 border-t border-slate-900">
-                        <span>NET À PAYER :</span>
-                        <span>{formatCurrency(selectedReceiptSale.totalVente)}</span>
+                      <div className="flex justify-between gap-4 border-t-2 border-slate-900 pt-2">
+                        <dt className="text-[11px] font-bold uppercase tracking-wider text-slate-900">
+                          Net à payer
+                        </dt>
+                        <dd className="font-mono text-base font-bold tabular-nums text-slate-900">
+                          {formatCurrency(selectedReceiptSale.totalVente)}
+                        </dd>
                       </div>
-                    </div>
+                    </dl>
                   </div>
 
-                  {/* Terms & Footer */}
-                  <div className="border-t border-slate-200 pt-4 text-[10px] text-muted-foreground space-y-1">
-                    <p className="font-semibold text-slate-700">Conditions de vente :</p>
-                    <p className="italic">
-                      {settings?.receiptFooter ||
-                        "Merci pour votre confiance ! Ni repris, ni échangé après 48h."}
-                    </p>
-                  </div>
+                  {invoicePrefs.showFooter && (
+                    <footer className="mt-8 border-t border-slate-200 pt-3 text-[10px] leading-relaxed text-slate-500">
+                      <p className="font-semibold text-slate-600">Conditions de vente</p>
+                      <p>
+                        {settings?.receiptFooter ||
+                          "Merci pour votre confiance ! Ni repris, ni échangé après 48h."}
+                      </p>
+                    </footer>
+                  )}
                 </div>
               )}
             </div>
