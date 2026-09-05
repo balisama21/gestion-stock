@@ -46,8 +46,6 @@ export function downloadExcelWorkbook(
   ];
   const produitsRows = products.map((p) => [
     p.id,
-    p.designation,
-    p.variantSuffix,
     getProductLabel(p, products),
     p.prixAchat,
     p.prixVenteDefaut,

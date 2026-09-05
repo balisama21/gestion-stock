@@ -102,70 +102,100 @@ export function convertFormulaLocale(formula: string, locale: LocaleSetting): st
 }
 
 /**
- * Retire un éventuel indice en chiffres subscript déjà présent en fin de
- * chaîne (ex: "Kapa₂₀₀₀" -> "Kapa"). Utile pour les anciens enregistrements
- * (ventes/achats) dont le nom a été figé avec un indice avant cette correction.
+ * Retire un éventuel indice en chiffres subscript présent en fin de chaîne
+ * (« Kapa₂₀₀₀ » → « Kapa »).
+ *
+ * Ce n'est pas une précaution théorique : en base, `sales.designation` vaut
+ * littéralement « kiraro₅₀₀₀ » ou « VERA₁₀₀₀ ». L'indice a été gravé dans le
+ * texte au moment de l'écriture, et il y reste. Toute lecture d'une
+ * désignation doit donc passer par ici.
  */
 function stripSubscript(str: string): string {
   return str.replace(/[₀₁₂₃₄₅₆₇₈₉]+$/, "").trim();
 }
 
 /**
- * Calcule le nom d'affichage "intelligent" pour une désignation + un prix
- * donnés, en se basant sur le catalogue de produits actuel :
- * - Un seul prix connu pour cette désignation → nom simple, sans indice.
- * - Plusieurs prix différents connus pour cette désignation → nom + indice
- *   (ex: "Kapa₂₀₀₀") pour les différencier.
- * Fonctionne même si l'enregistrement (vente/achat) n'est plus lié à un
- * produit existant en base (achat "orphelin").
+ * Prix d'achat qui distingue cette entrée des autres portant le même nom,
+ * ou `null` s'il n'y a rien à distinguer.
+ *
+ * La question posée est « ce nom de produit existe-t-il en plusieurs
+ * versions au catalogue ? ». Elle se tranche donc sur le catalogue seul.
+ *
+ * L'ancienne version ajoutait à l'ensemble le prix de l'enregistrement
+ * lui-même. Conséquence : une vente dont le prix d'achat figé différait du
+ * prix actuel du produit — un simple changement de tarif entre-temps —
+ * faisait croire à une variante, et l'indice apparaissait sur un produit
+ * qui n'en avait aucune.
  */
-function getVariantLabel(
+function getVariantPrice(
   designation: string,
   price: number,
   products: { designation: string; prixAchat: number }[],
-): string {
-  const baseName = stripSubscript(designation);
-  const key = baseName.toLowerCase();
-  const uniquePrices = new Set(
+): number | null {
+  const key = stripSubscript(designation).toLowerCase();
+  const prixCatalogue = new Set(
     products
-      .filter((p) => p.designation.trim().toLowerCase() === key)
+      .filter((p) => stripSubscript(p.designation).toLowerCase() === key)
       .map((p) => p.prixAchat),
   );
-  uniquePrices.add(price);
-  if (uniquePrices.size <= 1) {
-    return baseName;
-  }
-  return `${baseName}${toSubscript(price)}`;
+  return prixCatalogue.size > 1 ? price : null;
 }
 
 /**
- * Nom d'affichage intelligent pour un produit du catalogue.
+ * Nom propre d'un produit du catalogue, sans indice, en toutes
+ * circonstances. C'est ce qui s'affiche partout : listes, titres,
+ * recherche, documents imprimés.
  */
 export function getProductLabel(
   product: { designation: string; prixAchat: number },
   allProducts: { designation: string; prixAchat: number }[],
 ): string {
-  return getVariantLabel(product.designation, product.prixAchat, allProducts);
+  return stripSubscript(product.designation);
 }
 
-/**
- * Nom d'affichage intelligent pour un enregistrement de vente (utilise le
- * prix d'achat de référence figé sur la vente, qui est ce qui différencie
- * les variantes).
- */
+/** Nom propre figé sur une vente. */
 export function getSaleLabel(
   sale: { designation: string; prixAchatUnitRef: number },
   products: { designation: string; prixAchat: number }[],
 ): string {
-  return getVariantLabel(sale.designation, sale.prixAchatUnitRef, products);
+  return stripSubscript(sale.designation);
 }
 
-/**
- * Nom d'affichage intelligent pour un enregistrement d'achat.
- */
+/** Nom propre figé sur un achat. */
 export function getPurchaseLabel(
   purchase: { designation: string; prixAchatUnit: number },
   products: { designation: string; prixAchat: number }[],
 ): string {
-  return getVariantLabel(purchase.designation, purchase.prixAchatUnit, products);
+  return stripSubscript(purchase.designation);
+}
+
+/**
+ * Variante d'un produit du catalogue : le prix d'achat qui le distingue de
+ * ses homonymes, ou `null` s'il est seul de son nom.
+ *
+ * Ce prix est un secret commercial. Les appelants ne doivent le passer au
+ * badge que là où l'utilisateur a déjà le droit de voir les prix d'achat,
+ * et jamais sur un document remis à un client.
+ */
+export function getProductVariant(
+  product: { designation: string; prixAchat: number },
+  allProducts: { designation: string; prixAchat: number }[],
+): number | null {
+  return getVariantPrice(product.designation, product.prixAchat, allProducts);
+}
+
+/** Variante d'une vente — voir `getProductVariant` pour les précautions. */
+export function getSaleVariant(
+  sale: { designation: string; prixAchatUnitRef: number },
+  products: { designation: string; prixAchat: number }[],
+): number | null {
+  return getVariantPrice(sale.designation, sale.prixAchatUnitRef, products);
+}
+
+/** Variante d'un achat — voir `getProductVariant` pour les précautions. */
+export function getPurchaseVariant(
+  purchase: { designation: string; prixAchatUnit: number },
+  products: { designation: string; prixAchat: number }[],
+): number | null {
+  return getVariantPrice(purchase.designation, purchase.prixAchatUnit, products);
 }

@@ -15,7 +15,15 @@ import {
   CreditCard,
   Truck,
 } from "lucide-react";
-import { formatCurrency, formatDateLocale, getProductLabel } from "../utils/formulas";
+import {
+  formatCurrency,
+  formatDateLocale,
+  getProductLabel,
+  getProductVariant,
+  getSaleLabel,
+  getSaleVariant,
+} from "../utils/formulas";
+import { VariantBadge } from "./shared/VariantBadge";
 import { StatBar } from "./shared/StatBar";
 import { DataList } from "./shared/DataList";
 import { useNotificationPrefs } from "../lib/notificationPrefs";
@@ -37,6 +45,12 @@ interface DashboardViewProps {
   orders: Order[];
   clients: Client[];
   locale: LocaleSetting;
+  /**
+   * Faux quand l'utilisateur n'a pas le droit de voir les prix d'achat :
+   * le badge de variante disparaît alors, plutôt que de révéler un prix
+   * négocié dans un simple aperçu de tableau de bord.
+   */
+  showPrixAchat?: boolean;
   onNavigateTab: (tab: any) => void;
 }
 
@@ -50,6 +64,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   orders = [],
   clients = [],
   locale,
+  showPrixAchat = true,
   onNavigateTab,
 }) => {
   // Réglage « Alertes de trésorerie » (Paramètres → Notifications).
@@ -282,7 +297,13 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                   return (
                     <div key={p.id} className="app-list-row justify-between">
                       <div className="min-w-0 flex-1">
-                        <div className="app-list-primary">{getProductLabel(p, products)}</div>
+                        <div className="app-list-primary flex min-w-0 items-center gap-2">
+                          <span className="truncate">{getProductLabel(p, products)}</span>
+                          <VariantBadge
+                            prix={getProductVariant(p, products)}
+                            autorise={showPrixAchat}
+                          />
+                        </div>
                         <div className="app-list-secondary">seuil {p.seuilAlerte}</div>
                       </div>
                       <span
@@ -377,7 +398,15 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                 const prod = products.find((p) => p.id === s.productId);
                 return {
                   id: s.id,
-                  primary: `${prod ? getProductLabel(prod, products) : s.designation} ×${s.quantite}`,
+                  primary: (
+                    <span className="flex min-w-0 items-center gap-2">
+                      <span className="truncate">
+                        {prod ? getProductLabel(prod, products) : getSaleLabel(s, products)} ×
+                        {s.quantite}
+                      </span>
+                      <VariantBadge prix={getSaleVariant(s, products)} autorise={showPrixAchat} />
+                    </span>
+                  ),
                   meta: [formatDateLocale(s.date, locale), s.vendeur],
                   amount: formatCurrency(s.totalVente),
                   badge: (

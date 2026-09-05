@@ -14,7 +14,8 @@ import {
   Trash2,
   Ban,
 } from "lucide-react";
-import { formatCurrency, toSubscript, getProductLabel } from "../utils/formulas";
+import { formatCurrency, getProductLabel, getProductVariant } from "../utils/formulas";
+import { VariantBadge } from "./shared/VariantBadge";
 import { PageHeader } from "./shared/PageHeader";
 import { FilterBar, FilterField } from "./shared/FilterBar";
 import { DataList } from "./shared/DataList";
@@ -404,7 +405,12 @@ export const ProduitsView: React.FC<ProduitsViewProps> = ({
                     aria-label={`Sélectionner ${getProductLabel(p, products)}`}
                   />
                 ) : undefined,
-              primary: getProductLabel(p, products),
+              primary: (
+                <span className="flex min-w-0 items-center gap-2">
+                  <span className="truncate">{getProductLabel(p, products)}</span>
+                  <VariantBadge prix={getProductVariant(p, products)} autorise={showPrixAchat} />
+                </span>
+              ),
               meta: [
                 p.numero,
                 showFournisseur ? p.fournisseur || null : null,

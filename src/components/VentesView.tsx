@@ -25,7 +25,14 @@ import {
   Mail,
   Check,
 } from "lucide-react";
-import { formatCurrency, formatDateLocale, getProductLabel, getSaleLabel } from "../utils/formulas";
+import {
+  formatCurrency,
+  formatDateLocale,
+  getProductLabel,
+  getSaleLabel,
+  getSaleVariant,
+} from "../utils/formulas";
+import { VariantBadge } from "./shared/VariantBadge";
 import { PageHeader, HeaderMetric } from "./shared/PageHeader";
 import { FilterBar, FilterField } from "./shared/FilterBar";
 import { DataList } from "./shared/DataList";
@@ -512,10 +519,19 @@ export const VentesView: React.FC<VentesViewProps> = ({
           emptyLabel="Aucune vente ne correspond à ces filtres."
           items={filteredSales.map((s) => {
             const prod = products.find((p) => p.id === s.productId);
-            const nom = prod ? getProductLabel(prod, products) : s.designation;
+            const nom = prod ? getProductLabel(prod, products) : getSaleLabel(s, products);
             return {
               id: s.id,
-              primary: `${nom} ×${s.quantite}`,
+              primary: (
+                <span className="flex min-w-0 items-center gap-2">
+                  <span className="truncate">
+                    {nom} ×{s.quantite}
+                  </span>
+                  {/* Le prix d'achat révèle la marge dès lors que le prix
+                      de vente est visible : même permission. */}
+                  <VariantBadge prix={getSaleVariant(s, products)} autorise={showMargeLigne} />
+                </span>
+              ),
               meta: [
                 formatDateLocale(s.date, locale),
                 s.vendeur,
@@ -996,7 +1012,7 @@ Date: ${selectedReceiptSale.date}
 Vendeur: ${selectedReceiptSale.vendeur}
 Client: ${selectedReceiptSale.clientCredit || "Comptoir"}
 ------------------------------------------------
-ARTICLE: ${selectedReceiptSale.designation}
+ARTICLE: ${getSaleLabel(selectedReceiptSale, products)}
 QTÉ: ${selectedReceiptSale.quantite}
 P.U: ${formatCurrency(selectedReceiptSale.prixVenteUnit)}
 TOTAL: ${formatCurrency(selectedReceiptSale.totalVente)}

@@ -924,7 +924,7 @@ SOLDE NET EN CAISSE VENDEUR: ${formatCurrency(reportStats.soldeNetCaisse)}
                           {reportSales.map((s) => (
                             <tr key={s.id}>
                               <td className="py-1 font-medium pr-1">
-                                {s.designation}
+                                {getSaleLabel(s, products)}
                                 {selectedReportSeller === "all" && (
                                   <span className="block text-[8px] text-slate-500">
                                     By: {s.vendeur}
@@ -1076,7 +1076,7 @@ SOLDE NET EN CAISSE VENDEUR: ${formatCurrency(reportStats.soldeNetCaisse)}
                             >
                               <td className="p-2 font-mono text-slate-500">{s.date}</td>
                               <td className="p-2 font-bold text-slate-900">
-                                {s.designation}
+                                {getSaleLabel(s, products)}
                                 {selectedReportSeller === "all" && (
                                   <span className="block text-[10px] text-slate-500 font-normal">
                                     Vendeur: {s.vendeur}

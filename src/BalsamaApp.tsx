@@ -14,7 +14,7 @@ import {
   Payment,
 } from "./types";
 import type { OrderStatus } from "./lib/database.types";
-import { toSubscript } from "./utils/formulas";
+import { getProductLabel } from "./utils/formulas";
 import { getModuleScope, isFieldVisible, hasModuleAction } from "./lib/permissions";
 import { downloadExcelWorkbook } from "./utils/exportExcel";
 import { Header } from "./components/Header";
@@ -529,11 +529,10 @@ function AppInner() {
 
   // ─── CRUD handlers ───
   const handleAddProduct = async (newP: any) => {
-    const suffix = toSubscript(newP.prixAchat);
     const res = await storeData.addProduct({
       designation: newP.designation,
-      variant_suffix: suffix,
-      display_name: `${newP.designation}${suffix}`,
+      variant_suffix: "",
+      display_name: newP.designation,
       prix_achat: newP.prixAchat,
       prix_vente_defaut: newP.prixVenteDefaut,
       fournisseur: newP.fournisseur,
@@ -548,7 +547,7 @@ function AppInner() {
     triggerActivityAlert(
       "Magasinier",
       "produit",
-      `Nouveau produit créé: ${newP.designation}${suffix}`,
+      `Nouveau produit créé : ${newP.designation}`,
     );
     return res;
   };
@@ -567,9 +566,8 @@ function AppInner() {
         p.fournisseur.toLowerCase() === newPurchase.fournisseur.toLowerCase(),
     );
 
-    const suffix = toSubscript(newPurchase.prixAchatUnit);
-    const newDisplayName = `${newPurchase.designation}${suffix}`;
-    const prodDisplayName = matchingProd?.displayName ?? newDisplayName;
+    const newDisplayName = newPurchase.designation;
+    const prodDisplayName = matchingProd ? matchingProd.designation : newDisplayName;
     const totalAchat = newPurchase.quantite * newPurchase.prixAchatUnit;
 
     const res = await storeData.addPurchase({
@@ -579,7 +577,7 @@ function AppInner() {
         ? null
         : {
             designation: newPurchase.designation,
-            variant_suffix: suffix,
+            variant_suffix: "",
             display_name: newDisplayName,
             prix_vente_defaut: Math.round(newPurchase.prixAchatUnit * 1.3),
             seuil_alerte: 5,
@@ -650,7 +648,7 @@ function AppInner() {
     triggerActivityAlert(
       newSale.vendeur,
       "vente",
-      `Vente : ${prod.displayName} x${newSale.quantite}`,
+      `Vente : ${getProductLabel(prod, products)} x${newSale.quantite}`,
     );
     return res;
   };
@@ -872,6 +870,9 @@ function AppInner() {
               clients={storeData.clients}
               locale={locale}
               onNavigateTab={setActiveTab}
+              showPrixAchat={
+                produitsVisibleFields === null || produitsVisibleFields.includes("prix_achat")
+              }
             />
           ) : (
             <MyActivityView

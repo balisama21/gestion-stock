@@ -17,7 +17,14 @@ import {
   Tag,
   Download,
 } from "lucide-react";
-import { formatCurrency, formatDateLocale, getProductLabel, getPurchaseLabel } from "../utils/formulas";
+import {
+  formatCurrency,
+  formatDateLocale,
+  getProductLabel,
+  getPurchaseLabel,
+  getPurchaseVariant,
+} from "../utils/formulas";
+import { VariantBadge } from "./shared/VariantBadge";
 import { PageHeader } from "./shared/PageHeader";
 import { FilterBar, FilterField } from "./shared/FilterBar";
 import { DataList } from "./shared/DataList";
@@ -297,7 +304,14 @@ export const AchatsView: React.FC<AchatsViewProps> = ({
           emptyLabel="Aucun achat ne correspond à ces filtres."
           items={filteredPurchases.map((p) => ({
             id: p.id,
-            primary: `${getPurchaseLabel(p, products)} ×${p.quantite}`,
+            primary: (
+              <span className="flex min-w-0 items-center gap-2">
+                <span className="truncate">
+                  {getPurchaseLabel(p, products)} ×{p.quantite}
+                </span>
+                <VariantBadge prix={getPurchaseVariant(p, products)} autorise={showPrix} />
+              </span>
+            ),
             meta: [
               formatDateLocale(p.date, locale),
               showFournisseur ? p.fournisseur || null : null,
