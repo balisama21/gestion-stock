@@ -159,15 +159,32 @@ export async function exporterPdf(
     orientation: "portrait",
   });
 
-  // Le document tient sur une page : cas de loin le plus courant.
-  if (hauteurImageMm <= hauteurUtileMm + 0.5) {
+  /*
+   * Une facture doit tenir sur une page. Si elle dépasse de peu — une
+   * ligne d'articles de trop, un pied un peu long —, la découper produit
+   * une seconde page portant deux centimètres de contenu, ce que
+   * personne ne veut imprimer. On réduit alors légèrement le document
+   * pour qu'il entre, exactement comme on le ferait à la main dans une
+   * boîte d'impression.
+   *
+   * Au-delà de 25 % de dépassement, la réduction rendrait le texte trop
+   * petit : la découpe reprend ses droits.
+   */
+  const TOLERANCE_REDUCTION = 1.25;
+
+  if (hauteurImageMm <= hauteurUtileMm * TOLERANCE_REDUCTION) {
+    const facteur = Math.min(1, hauteurUtileMm / hauteurImageMm);
+    const largeur = largeurUtileMm * facteur;
+    const hauteur = hauteurImageMm * facteur;
+    // Recentré horizontalement quand il a été réduit.
+    const x = paper.marginMm + (largeurUtileMm - largeur) / 2;
     doc.addImage(
       canvas.toDataURL("image/jpeg", 0.95),
       "JPEG",
+      x,
       paper.marginMm,
-      paper.marginMm,
-      largeurUtileMm,
-      hauteurImageMm,
+      largeur,
+      hauteur,
     );
     doc.save(`${fileName}.pdf`);
     return;

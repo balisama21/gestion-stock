@@ -27,6 +27,7 @@ import {
   imprimerDocument,
   nomDeFichier,
 } from "../lib/documentExport";
+import { reprendreApresDeploiement, messageDErreurExport } from "../lib/chunkRecovery";
 import {
   PAPER_FORMATS,
   getPaperFormat,
@@ -182,9 +183,11 @@ export const DepensesView: React.FC<DepensesViewProps> = ({
       if (type === "pdf") await exporterPdf(noeud, paper, nom);
       else await exporterImage(noeud, nom, "png");
     } catch (err) {
-      setExportErreur(
-        err instanceof Error ? err.message : "Le document n'a pas pu être exporté.",
-      );
+      // Un morceau manquant signifie que l'onglet exécute une version
+      // périmée : la page se recharge d'elle-même, inutile d'afficher
+      // une erreur technique que personne ne peut interpréter.
+      if (reprendreApresDeploiement(err)) return;
+      setExportErreur(messageDErreurExport(err));
     } finally {
       setExportEnCours(null);
     }
@@ -413,42 +416,6 @@ export const DepensesView: React.FC<DepensesViewProps> = ({
               >
                 <Download className="h-4 w-4" />
                 {exportEnCours === "pdf" ? "Création..." : "PDF"}
-              </button>
-              <button
-                onClick={() => {
-                  const textContent = `
-=== ${settings?.storeName || "BALSAMA AUTO GESTION"} ===
-JOURNAL DES DÉPENSES & RETRAITS VENDEURS
-VENDEUR: ${selectedReportSeller === "all" ? "TOUS LES VENDEURS" : selectedReportSeller.toUpperCase()}
-PÉRIODE: ${reportPeriod === "today" ? "Aujourd'hui" : reportPeriod === "month" ? "Ce Mois-ci" : "Tout l'historique"}
-Date de génération: ${new Date().toLocaleString()}
-------------------------------------------------
-TOTAL DÉPENSES PÉRIODE: ${formatCurrency(reportTotalAmount)} (${reportExpenses.length} lignes)
-------------------------------------------------
-${reportExpenses
-  .map(
-    (e) =>
-      `[${e.date}] ${e.numero} | ${e.vendeur} | ${e.type} | Montant: ${formatCurrency(e.montant)} | Note: ${
-        e.note || "-"
-      }`,
-  )
-  .join("\n")}
-================================================
-                  `.trim();
-
-                  const element = document.createElement("a");
-                  const file = new Blob([textContent], { type: "text/plain" });
-                  element.href = URL.createObjectURL(file);
-                  element.download = `Journal_Depenses_${selectedReportSeller}_${reportPeriod}.txt`;
-                  document.body.appendChild(element);
-                  element.click();
-                  document.body.removeChild(element);
-                }}
-                className="app-btn-secondary"
-                title="Télécharger un résumé au format texte"
-              >
-                <Download className="h-4 w-4" />
-                Exporter (.txt)
               </button>
             </>
           }

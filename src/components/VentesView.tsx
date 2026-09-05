@@ -46,6 +46,7 @@ import {
   imprimerDocument,
   nomDeFichier,
 } from "../lib/documentExport";
+import { reprendreApresDeploiement, messageDErreurExport } from "../lib/chunkRecovery";
 import {
   PAPER_FORMATS,
   getPaperFormat,
@@ -189,9 +190,11 @@ export const VentesView: React.FC<VentesViewProps> = ({
       if (type === "pdf") await exporterPdf(noeud, paper, nom);
       else await exporterImage(noeud, nom, "png");
     } catch (err) {
-      setExportErreur(
-        err instanceof Error ? err.message : "Le document n'a pas pu être exporté.",
-      );
+      // Un morceau manquant signifie que l'onglet exécute une version
+      // périmée : la page se recharge d'elle-même, inutile d'afficher
+      // une erreur technique que personne ne peut interpréter.
+      if (reprendreApresDeploiement(err)) return;
+      setExportErreur(messageDErreurExport(err));
     } finally {
       setExportEnCours(null);
     }
@@ -961,49 +964,7 @@ export const VentesView: React.FC<VentesViewProps> = ({
                 <Download className="h-4 w-4" />
                 {exportEnCours === "pdf" ? "Création..." : "PDF"}
               </button>
-                <button
-                  onClick={() => {
-                    const textContent = `
-=== ${settings?.storeName || "BALSAMA AUTO GESTION"} ===
-${settings?.subtitle || "Système unifié Stock, Trésorerie, Vendeurs & Dépenses"}
-Adresse: ${settings?.address || "Lot IVG 124, Antananarivo 101"}
-Tél: ${settings?.phone || "+261 34 12 345 67"}
-${settings?.nifStat || "NIF: 4001234567 | STAT: 50111112023"}
-------------------------------------------------
-DOCUMENT: ${receiptMode === "facture" ? "FACTURE OFFICIELLE" : "REÇU DE CAISSE"}
-N°: #${selectedReceiptSale.numero}
-Date: ${selectedReceiptSale.date}
-Vendeur: ${selectedReceiptSale.vendeur}
-Client: ${selectedReceiptSale.clientCredit || "Comptoir"}
-------------------------------------------------
-ARTICLE: ${getSaleLabel(selectedReceiptSale, products)}
-QTÉ: ${selectedReceiptSale.quantite}
-P.U: ${formatCurrency(selectedReceiptSale.prixVenteUnit)}
-TOTAL: ${formatCurrency(selectedReceiptSale.totalVente)}
-------------------------------------------------
-TOTAL NET: ${formatCurrency(selectedReceiptSale.totalVente)}
-MONTANT PAYÉ: ${formatCurrency(selectedReceiptSale.montantPaye)}
-SOLDE DÛ: ${formatCurrency(selectedReceiptSale.soldeDu)}
-STATUT: ${selectedReceiptSale.statutCredit}
-------------------------------------------------
-${settings?.receiptFooter || "Merci pour votre confiance ! Ni repris, ni échangé après 48h."}
-                    `.trim();
-
-                    const element = document.createElement("a");
-                    const file = new Blob([textContent], { type: "text/plain" });
-                    element.href = URL.createObjectURL(file);
-                    element.download = `${receiptMode === "facture" ? "Facture" : "Recu"}_${selectedReceiptSale.numero}.txt`;
-                    document.body.appendChild(element);
-                    element.click();
-                    document.body.removeChild(element);
-                  }}
-                  className="app-btn-secondary"
-                  title="Télécharger un résumé au format texte"
-                >
-                  <Download className="w-4 h-4" />
-                  Résumé (.txt)
-                </button>
-            </>
+              </>
           }
         >
             {/* ── Documents imprimables ──

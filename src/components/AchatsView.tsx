@@ -37,6 +37,7 @@ import {
   imprimerDocument,
   nomDeFichier,
 } from "../lib/documentExport";
+import { reprendreApresDeploiement, messageDErreurExport } from "../lib/chunkRecovery";
 import {
   PAPER_FORMATS,
   getPaperFormat,
@@ -232,9 +233,11 @@ export const AchatsView: React.FC<AchatsViewProps> = ({
       if (type === "pdf") await exporterPdf(noeud, paper, nom);
       else await exporterImage(noeud, nom, "png");
     } catch (err) {
-      setExportErreur(
-        err instanceof Error ? err.message : "Le document n'a pas pu être exporté.",
-      );
+      // Un morceau manquant signifie que l'onglet exécute une version
+      // périmée : la page se recharge d'elle-même, inutile d'afficher
+      // une erreur technique que personne ne peut interpréter.
+      if (reprendreApresDeploiement(err)) return;
+      setExportErreur(messageDErreurExport(err));
     } finally {
       setExportEnCours(null);
     }
@@ -667,43 +670,6 @@ export const AchatsView: React.FC<AchatsViewProps> = ({
               >
                 <Download className="h-4 w-4" />
                 {exportEnCours === "pdf" ? "Création..." : "PDF"}
-              </button>
-              <button
-                onClick={() => {
-                  // Le fichier exporté doit respecter exactement les
-                  // mêmes masquages que l'écran : sinon un
-                  // collaborateur contournerait la restriction en
-                  // téléchargeant le journal.
-                  const textContent = `
-=== ${settings?.storeName || "BALSAMA AUTO GESTION"} ===
-JOURNAL & BILAN DES ACHATS / APPROVISIONNEMENT STOCK
-${showFournisseur ? `FOURNISSEUR: ${selectedReportSupplier === "all" ? "TOUS LES FOURNISSEURS" : selectedReportSupplier.toUpperCase()}\n` : ""}PÉRIODE: ${reportPeriod === "today" ? "Aujourd'hui" : reportPeriod === "month" ? "Ce Mois-ci" : "Tout l'historique"}
-Date de génération: ${new Date().toLocaleString()}
-------------------------------------------------
-${showPrix ? `TOTAL ACHATS: ${formatCurrency(reportTotalAmount)}\n` : ""}TOTAL ARTICLES RÉAPPROVISIONNÉS: ${reportTotalQty} unités (${reportPurchases.length} achats)
-------------------------------------------------
-${reportPurchases
-  .map(
-    (p) =>
-      `[${p.date}] ${p.numero} | Prod: ${products.find((prod) => prod.id === p.productId)?.numero || p.productId} - ${getPurchaseLabel(p, products)} | Qté: ${p.quantite}${showPrix ? ` | Prix unit: ${formatCurrency(p.prixAchatUnit)} | Total: ${formatCurrency(p.totalAchat)}` : ""}${showFournisseur ? ` | Fournisseur: ${p.fournisseur || "Non spécifié"}` : ""}`,
-  )
-  .join("\n")}
-================================================
-                  `.trim();
-
-                  const element = document.createElement("a");
-                  const file = new Blob([textContent], { type: "text/plain" });
-                  element.href = URL.createObjectURL(file);
-                  element.download = `Journal_Achats_${selectedReportSupplier}_${reportPeriod}.txt`;
-                  document.body.appendChild(element);
-                  element.click();
-                  document.body.removeChild(element);
-                }}
-                className="app-btn-secondary"
-                title="Télécharger un résumé au format texte"
-              >
-                <Download className="h-4 w-4" />
-                Exporter (.txt)
               </button>
             </>
           }

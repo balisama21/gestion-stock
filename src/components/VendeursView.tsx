@@ -27,6 +27,7 @@ import {
   imprimerDocument,
   nomDeFichier,
 } from "../lib/documentExport";
+import { reprendreApresDeploiement, messageDErreurExport } from "../lib/chunkRecovery";
 import {
   PAPER_FORMATS,
   getPaperFormat,
@@ -272,9 +273,11 @@ export const VendeursView: React.FC<VendeursViewProps> = ({
       if (type === "pdf") await exporterPdf(noeud, paper, nom);
       else await exporterImage(noeud, nom, "png");
     } catch (err) {
-      setExportErreur(
-        err instanceof Error ? err.message : "Le document n'a pas pu être exporté.",
-      );
+      // Un morceau manquant signifie que l'onglet exécute une version
+      // périmée : la page se recharge d'elle-même, inutile d'afficher
+      // une erreur technique que personne ne peut interpréter.
+      if (reprendreApresDeploiement(err)) return;
+      setExportErreur(messageDErreurExport(err));
     } finally {
       setExportEnCours(null);
     }
@@ -778,41 +781,6 @@ export const VendeursView: React.FC<VendeursViewProps> = ({
               >
                 <Download className="h-4 w-4" />
                 {exportEnCours === "pdf" ? "Création..." : "PDF"}
-              </button>
-              <button
-                onClick={() => {
-                  const textContent = `
-=== ${settings?.storeName || "BALSAMA AUTO GESTION"} ===
-RELEVÉ D'ACTIVITÉ VENDEUR (${selectedPeriod === "today" ? "Aujourd'hui" : selectedPeriod === "month" ? "Ce Mois-ci" : "Tout l'historique"})
-VENDEUR: ${selectedReportSeller === "all" ? "TOUS LES VENDEURS CUMULÉS" : selectedReportSeller.toUpperCase()}
-Date de génération: ${new Date().toLocaleString()}
-------------------------------------------------
-CA DU JOUR (${todayStr}): ${formatCurrency(reportStats.caJour)}
-CA DU MOIS (${currentMonthStr}): ${formatCurrency(reportStats.caMois)}
-------------------------------------------------
-TOTAL VENTES PÉRIODE: ${formatCurrency(reportStats.totalCA)} (${reportStats.countSales} ventes)
-ENCAISSEMENTS RÉELS (Espèces): ${formatCurrency(reportStats.totalEncaisse)}
-CRÉDITS ACCORDÉS (A payer): ${formatCurrency(reportStats.totalSoldeDu)}
-DÉPENSES / RETRAITS VENDEUR: -${formatCurrency(reportStats.totalDepenses)}
-MARGE BRUTE GÉNÉRÉE: +${formatCurrency(reportStats.totalMarge)}
-------------------------------------------------
-SOLDE NET EN CAISSE VENDEUR: ${formatCurrency(reportStats.soldeNetCaisse)}
-================================================
-                  `.trim();
-
-                  const element = document.createElement("a");
-                  const file = new Blob([textContent], { type: "text/plain" });
-                  element.href = URL.createObjectURL(file);
-                  element.download = `Releve_Activite_${selectedReportSeller}_${selectedPeriod}.txt`;
-                  document.body.appendChild(element);
-                  element.click();
-                  document.body.removeChild(element);
-                }}
-                className="app-btn-secondary"
-                title="Télécharger un résumé au format texte"
-              >
-                <Download className="h-4 w-4" />
-                Télécharger (.txt)
               </button>
             </>
           }

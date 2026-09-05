@@ -11,6 +11,7 @@ import {
 import { useEffect, type ReactNode } from "react";
 
 import appCss from "../styles.css?url";
+import { installerRepriseApresDeploiement } from "../lib/chunkRecovery";
 import { APP_NAME, APP_TAGLINE } from "../lib/appConfig";
 
 function NotFoundComponent() {
@@ -120,6 +121,13 @@ function RootShell({ children }: { children: ReactNode }) {
 
 function RootComponent() {
   const { queryClient } = Route.useRouteContext();
+
+  // Un onglet resté ouvert pendant une mise en ligne réclame des
+  // fichiers qui n’existent plus. On le détecte et on recharge, une
+  // seule fois, plutôt que de laisser une erreur technique à l’écran.
+  useEffect(() => {
+    installerRepriseApresDeploiement();
+  }, []);
 
   return (
     <QueryClientProvider client={queryClient}>
