@@ -404,8 +404,26 @@ td {
    l'interface est masqué autour de lui.
    ═══════════════════════════════════════════════════════════════════ */
 @media print {
+  /* Le format du papier dépend du document : une facture part sur du
+     A4, un ticket de caisse sur ce que la boîte de dialogue propose. Les
+     pages nommées permettent de distinguer les deux, ce qu'une règle
+     `@page` unique ne sait pas faire. */
   @page {
-    margin: 10mm;
+    margin: 12mm;
+  }
+  @page facture {
+    size: A4;
+    margin: 12mm;
+  }
+  @page ticket {
+    size: auto;
+    margin: 6mm;
+  }
+  .printable-invoice {
+    page: facture;
+  }
+  .printable-ticket {
+    page: ticket;
   }
 
   html,
@@ -416,12 +434,26 @@ td {
     color: #000 !important;
   }
 
-  /* On masque tout par `visibility` plutôt que par `display` : le reçu
-     n'est pas forcément un enfant direct de <body> (certaines modales
-     sont encore rendues dans l'arbre de l'application, d'autres dans un
-     portail), et `visibility` se réhérite sélectivement sur la seule
-     branche du document à imprimer. */
-  body * {
+  /* ── LA cause du découpage en deux ou trois pages ──
+     Le masquage se faisait par `visibility: hidden`, qui rend invisible
+     mais ne retire PAS du flux : toute l'application — barre latérale,
+     en-tête, listes de la page en cours — continuait d'occuper sa
+     hauteur réelle sur le papier. Le document, rendu dans un portail en
+     fin de <body>, arrivait donc après une à deux pages parfaitement
+     vides, puis débordait sur la suivante. D'où le « 2/3 » de l'aperçu
+     pour une facture d'un seul article.
+
+     Ce choix se justifiait tant que certaines modales vivaient encore
+     dans l'arbre de l'application. Depuis leur passage à `Modal`, le
+     document à imprimer est toujours dans `.app-modal-overlay`, enfant
+     direct de <body> : le reste peut donc sortir du flux pour de bon. */
+  body > *:not(.app-modal-overlay) {
+    display: none !important;
+  }
+
+  /* Filet de sécurité à l'intérieur de la modale : tout ce qui n'est pas
+     le document lui-même reste masqué (cadre d'aperçu, bascules). */
+  .app-modal-overlay * {
     visibility: hidden !important;
     box-shadow: none !important;
   }
@@ -493,16 +525,42 @@ td {
     border-radius: 0 !important;
   }
 
-  /* Évite qu'une ligne de tableau ou un bloc soit coupé en deux entre
-     deux pages. */
-  .printable-receipt table,
+  /* ── Sauts de page ──
+     Les blocs de premier niveau — en-tête, encart client, totaux, pied
+     de page — ne doivent jamais être coupés en deux. Le tableau des
+     articles, lui, DOIT pouvoir se répartir sur plusieurs pages quand la
+     facture est longue : c'est la seule façon d'imprimer trente lignes.
+     La coupure se fait alors entre deux lignes, jamais au milieu d'une,
+     et l'en-tête du tableau se répète en haut de chaque page. */
+  .printable-receipt > *:not(table),
   .printable-receipt tr,
+  .printable-receipt thead,
+  .printable-receipt tfoot,
   .printable-receipt img {
     page-break-inside: avoid;
     break-inside: avoid;
   }
   .printable-receipt thead {
     display: table-header-group;
+  }
+  .printable-receipt tfoot {
+    display: table-footer-group;
+  }
+
+  /* Une orpheline sous un titre de section, ou une dernière ligne seule
+     en haut d'une page, ne valent pas une page de plus. */
+  .printable-receipt h1,
+  .printable-receipt h2,
+  .printable-receipt h3 {
+    page-break-after: avoid;
+    break-after: avoid;
+  }
+
+  /* Rien ne doit forcer une hauteur : c'est le contenu qui décide du
+     nombre de pages, pas un conteneur resté dimensionné pour l'écran. */
+  .printable-receipt,
+  .printable-receipt * {
+    min-height: 0 !important;
   }
 }
 
