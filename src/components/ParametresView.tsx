@@ -15,6 +15,7 @@ import { StoreSection, type StoreFormValues } from "./settings/StoreSection";
 import { TeamSection, type TeamMember } from "./settings/TeamSection";
 import { BillingSection } from "./settings/BillingSection";
 import { Modal } from "./shared/Modal";
+import { compressLogo, formatPoids } from "../lib/compressLogo";
 import { PreferencesSection } from "./settings/PreferencesSection";
 import { NotificationsSection } from "./settings/NotificationsSection";
 import { InvoiceSection } from "./settings/InvoiceSection";
@@ -90,6 +91,8 @@ export const ParametresView: React.FC<ParametresViewProps> = ({
   );
 
   const [storeForm, setStoreForm] = useState<StoreFormValues>(storeBaseline);
+  const [logoInfo, setLogoInfo] = useState<string | null>(null);
+  const [logoError, setLogoError] = useState<string | null>(null);
   const [savingStore, setSavingStore] = useState(false);
   const [storeSaved, setStoreSaved] = useState(false);
 
@@ -168,12 +171,32 @@ export const ParametresView: React.FC<ParametresViewProps> = ({
     }
   };
 
-  const handleLogoChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  /**
+   * Le logo était enregistré tel quel, en base64 : un cliché de téléphone
+   * de plusieurs mégaoctets partait donc dans la colonne `logo_url`, et
+   * revenait à chaque chargement de l'application. Il est désormais
+   * ramené à 256 pixels de côté avant d'être stocké — largement au-dessus
+   * des 80 pixels auxquels il est affiché au maximum.
+   */
+  const handleLogoChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
-    if (file) {
-      const reader = new FileReader();
-      reader.onloadend = () => patchStore({ logoUrl: reader.result as string });
-      reader.readAsDataURL(file);
+    // Le champ est vidé tout de suite : sans cela, resélectionner le même
+    // fichier après une erreur ne déclencherait aucun événement.
+    e.target.value = "";
+    if (!file) return;
+
+    setLogoInfo(null);
+    setLogoError(null);
+    try {
+      const { dataUrl, tailleOrigine, tailleFinale } = await compressLogo(file);
+      patchStore({ logoUrl: dataUrl });
+      setLogoInfo(
+        tailleFinale < tailleOrigine
+          ? `Logo réduit : ${formatPoids(tailleOrigine)} → ${formatPoids(tailleFinale)}`
+          : `Logo ajouté (${formatPoids(tailleFinale)})`,
+      );
+    } catch (err) {
+      setLogoError(err instanceof Error ? err.message : "Ce fichier n'a pas pu être traité.");
     }
   };
 
@@ -741,6 +764,8 @@ export const ParametresView: React.FC<ParametresViewProps> = ({
           onSave={handleSaveStore}
           onReset={() => setStoreForm(storeBaseline)}
           onLogoChange={handleLogoChange}
+          logoInfo={logoInfo}
+          logoError={logoError}
         />
       )}
 
