@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef } from "react";
 import { Sale, Product, Seller, LocaleSetting, StoreSettings } from "../types";
+import { APP_NAME } from "../lib/appConfig";
 import {
   DollarSign,
   Lock,
@@ -1007,7 +1008,7 @@ export const VentesView: React.FC<VentesViewProps> = ({
                       />
                     )}
                     <h2 className="text-[13px] font-bold uppercase tracking-wide text-slate-900">
-                      {settings?.storeName || "BALSAMA AUTO GESTION"}
+                      {settings?.storeName || APP_NAME}
                     </h2>
                     {invoicePrefs.showAddress && (
                       <p className="text-[10px] text-slate-500">
@@ -1140,7 +1141,7 @@ export const VentesView: React.FC<VentesViewProps> = ({
                       )}
                       <div className="space-y-0.5">
                         <p className="text-base font-bold uppercase tracking-tight text-slate-900">
-                          {settings?.storeName || "BALSAMA AUTO GESTION"}
+                          {settings?.storeName || APP_NAME}
                         </p>
                         {settings?.subtitle && (
                           <p className="text-[11px] text-slate-500">{settings.subtitle}</p>

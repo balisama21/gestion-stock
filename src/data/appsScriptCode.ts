@@ -1,9 +1,9 @@
 export const CODE_APPS_SCRIPT_V3 = `/**
  * ==============================================================================
- * BALSAMA AUTO GESTION - SCRIPT APPS SCRIPT v3 REFACTORISÉ
+ * TANTANA SUITE - SCRIPT APPS SCRIPT v3 REFACTORISÉ
  * Fichier : Code_Apps_Script_v3.gs
  * Compatibilité : France (;) & USA (,), Paramètres Régionaux Universels
- * Auteur : Équipe Balsama Auto Gestion
+ * Auteur : Équipe Tantana Suite
  * ==============================================================================
  */
 

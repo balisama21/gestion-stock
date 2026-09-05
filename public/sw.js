@@ -1,5 +1,5 @@
 /*
- * Service worker de GESTIONS STOCK.
+ * Service worker de Tantana Suite.
  *
  * Écrit à la main plutôt que produit par vite-plugin-pwa : dans la
  * chaîne de compilation de TanStack Start, qui construit séparément un
@@ -22,7 +22,7 @@
  * hors ligne, et c'est un choix.
  */
 
-const VERSION = "gs-v1";
+const VERSION = "tantana-v1";
 const CACHE_STATIQUE = `${VERSION}-statique`;
 const CACHE_POLICES = `${VERSION}-polices`;
 

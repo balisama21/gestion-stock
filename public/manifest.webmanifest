@@ -1,7 +1,7 @@
 {
-  "name": "GESTIONS STOCK",
-  "short_name": "GS",
-  "description": "Système professionnel de gestion de stock & trésorerie",
+  "name": "Tantana Suite",
+  "short_name": "Tantana",
+  "description": "Toute votre entreprise, dans un seul logiciel.",
   "lang": "fr",
   "dir": "ltr",
   "start_url": "/",

@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useRef } from "react";
 import { Expense, Seller, LocaleSetting, StoreSettings } from "../types";
+import { APP_NAME } from "../lib/appConfig";
 import {
   ArrowRightLeft,
   Plus,
@@ -483,7 +484,7 @@ export const DepensesView: React.FC<DepensesViewProps> = ({
                       />
                     )}
                     <h2 className="text-[13px] font-bold uppercase tracking-wide text-slate-900">
-                      {settings?.storeName || "BALSAMA AUTO GESTION"}
+                      {settings?.storeName || APP_NAME}
                     </h2>
                     <p className="text-[10px] text-slate-500">
                       Tél. {settings?.phone || "+261 34 12 345 67"}
@@ -571,7 +572,7 @@ export const DepensesView: React.FC<DepensesViewProps> = ({
                       )}
                       <div className="space-y-0.5">
                         <p className="text-base font-bold uppercase tracking-tight text-slate-900">
-                          {settings?.storeName || "BALSAMA AUTO GESTION"}
+                          {settings?.storeName || APP_NAME}
                         </p>
                         {settings?.address && (
                           <p className="text-[11px] text-slate-500">{settings.address}</p>

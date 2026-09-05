@@ -38,6 +38,7 @@ import { StoreLockedScreen } from "./components/StoreLockedScreen";
 import { MyActivityView } from "./components/MyActivityView";
 import { PinLockScreen } from "./components/PinLockScreen";
 import { AppLoader } from "./components/shared/AppLoader";
+import { APP_NAME, APP_TAGLINE } from "./lib/appConfig";
 import { useAuth } from "./hooks/useAuth";
 import { useSessionTimeout } from "./hooks/useSessionTimeout";
 import { workspaceContext, useWorkspaceState, useWorkspace } from "./hooks/useWorkspace";
@@ -207,9 +208,9 @@ function AppInner() {
 
   const storeSettings: StoreSettings = useMemo(
     () => ({
-      storeName: workspace.activeStore?.name || "GESTIONS STOCK",
+      storeName: workspace.activeStore?.name || APP_NAME,
       subtitle:
-        workspace.activeStore?.subtitle || "Système unifié Stock, Trésorerie, Vendeurs & Dépenses",
+        workspace.activeStore?.subtitle || APP_TAGLINE,
       suppliers: workspace.activeStore?.suppliers || [],
       currencySymbol: workspace.activeStore?.currency_symbol || "Ar",
       enablePinSecurity: workspace.activeStore?.enable_pin_security ?? true,

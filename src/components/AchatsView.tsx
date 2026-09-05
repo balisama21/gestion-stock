@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useRef } from "react";
 import { Purchase, Product, LocaleSetting, StoreSettings } from "../types";
+import { APP_NAME } from "../lib/appConfig";
 import {
   ShoppingCart,
   Plus,
@@ -423,7 +424,7 @@ export const AchatsView: React.FC<AchatsViewProps> = ({
           <div className="printable-receipt printable-invoice rounded-xl border border-slate-200 p-4">
             <div className="mb-3 border-b border-slate-200 pb-3 text-center">
               <p className="text-sm font-semibold uppercase tracking-wide text-slate-900">
-                {settings?.storeName || "BALSAMA AUTO GESTION"}
+                {settings?.storeName || APP_NAME}
               </p>
               <p className="text-xs text-slate-500">
                 Bon d'approvisionnement n° {selectedPurchaseReceipt.numero}
@@ -741,7 +742,7 @@ export const AchatsView: React.FC<AchatsViewProps> = ({
                       />
                     )}
                     <h2 className="text-[13px] font-bold uppercase tracking-wide text-slate-900">
-                      {settings?.storeName || "BALSAMA AUTO GESTION"}
+                      {settings?.storeName || APP_NAME}
                     </h2>
                     <p className="text-[10px] text-slate-500">
                       Tél. {settings?.phone || "+261 34 12 345 67"}
@@ -846,7 +847,7 @@ export const AchatsView: React.FC<AchatsViewProps> = ({
                       )}
                       <div className="space-y-0.5">
                         <p className="text-base font-bold uppercase tracking-tight text-slate-900">
-                          {settings?.storeName || "BALSAMA AUTO GESTION"}
+                          {settings?.storeName || APP_NAME}
                         </p>
                         {settings?.address && (
                           <p className="text-[11px] text-slate-500">{settings.address}</p>

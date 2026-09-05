@@ -14,7 +14,7 @@ import appCss from "../styles.css?url";
 import { installerRepriseApresDeploiement } from "../lib/chunkRecovery";
 import { enregistrerServiceWorker } from "../lib/pwa";
 import { InstallPrompt } from "../components/shared/InstallPrompt";
-import { APP_NAME, APP_TAGLINE } from "../lib/appConfig";
+import { APP_NAME, APP_SHORT_NAME, APP_TAGLINE } from "../lib/appConfig";
 
 function NotFoundComponent() {
   return (
@@ -95,7 +95,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       { name: "mobile-web-app-capable", content: "yes" },
       { name: "apple-mobile-web-app-capable", content: "yes" },
       { name: "apple-mobile-web-app-status-bar-style", content: "default" },
-      { name: "apple-mobile-web-app-title", content: "GESTIONS STOCK" },
+      { name: "apple-mobile-web-app-title", content: APP_SHORT_NAME },
       { name: "twitter:card", content: "summary_large_image" },
     ],
     links: [
@@ -117,7 +117,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
 
 function RootShell({ children }: { children: ReactNode }) {
   return (
-    <html lang="en">
+    <html lang="fr">
       <head>
         <HeadContent />
       </head>

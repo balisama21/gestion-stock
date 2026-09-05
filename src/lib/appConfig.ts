@@ -1,3 +1,5 @@
-export const APP_NAME = "GESTIONS STOCK";
-export const APP_TAGLINE = "Système professionnel de gestion de stock & trésorerie";
-export const APP_SHORT_NAME = "GS";
+export const APP_NAME = "Tantana Suite";
+export const APP_TAGLINE = "Toute votre entreprise, dans un seul logiciel.";
+// Sous l'icône d'une application installée, le système tronque au-delà
+// d'une douzaine de caractères : « Tantana » seul y tient sans coupure.
+export const APP_SHORT_NAME = "Tantana";

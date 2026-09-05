@@ -1,6 +1,10 @@
-# Balsama Auto Gestion
+# Tantana Suite
 
-analyse mon projet, repare ce qui ne sont pas marche encore, rendre mon app tres professionnel car il a encore un souci dans la reponsive mobile qui n est pas bon, les design, le changement de mode sombre ou claire car dans mode claire il n'est pas bon pour le visuel,
+Toute votre entreprise, dans un seul logiciel.
+
+Plateforme de gestion pour les entreprises : stock et produits, ventes,
+achats, clients et commandes, vendeurs, dépenses, trésorerie et capital,
+facturation, et rapports.
 
 ## Development
 

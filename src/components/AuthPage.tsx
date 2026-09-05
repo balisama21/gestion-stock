@@ -148,9 +148,14 @@ export const AuthPage: React.FC = () => {
     }
   };
 
+  // Ne figurent ici que des modules réellement livrés : une promesse
+  // affichée sur l'écran de connexion est vérifiable dès la première
+  // minute d'utilisation.
   const features = [
-    { icon: Package, label: "Stock en temps réel" },
+    { icon: Package, label: "Stock & produits" },
+    { icon: User, label: "Clients & commandes" },
     { icon: Wallet, label: "Trésorerie & capital" },
+    { icon: Sparkles, label: "Factures & tickets" },
     { icon: BarChart3, label: "Rapports & statistiques" },
     { icon: Shield, label: "Sécurité PIN & sessions" },
   ];
@@ -172,18 +177,18 @@ export const AuthPage: React.FC = () => {
               </div>
               <div>
                 <p className="font-bold text-xl tracking-tight">{APP_NAME}</p>
-                <p className="text-emerald-50/90 text-xs font-medium">Gestion professionnelle</p>
+                <p className="text-emerald-50/90 text-xs font-medium">Plateforme de gestion</p>
               </div>
             </div>
 
             <h1 className="text-4xl xl:text-[2.75rem] font-bold leading-[1.15] mb-5">
-              Pilotez votre stock
+              Pilotez toute votre entreprise
               <br />
-              <span className="text-emerald-200">avec précision.</span>
+              <span className="text-emerald-200">depuis un seul endroit.</span>
             </h1>
             <p className="text-emerald-50 text-base leading-relaxed max-w-md mb-10">
-              {APP_TAGLINE}. Ventes, achats, commandes clients et trésorerie — tout en un seul
-              tableau de bord.
+              {APP_TAGLINE} Stock, ventes, achats, clients, commandes, facturation et
+              trésorerie — réunis dans un même tableau de bord.
             </p>
 
             <div className="grid grid-cols-2 gap-3 max-w-sm">
