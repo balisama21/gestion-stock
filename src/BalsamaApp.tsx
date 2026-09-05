@@ -37,6 +37,7 @@ import { CreateStoreOnboarding } from "./components/CreateStoreOnboarding";
 import { StoreLockedScreen } from "./components/StoreLockedScreen";
 import { MyActivityView } from "./components/MyActivityView";
 import { PinLockScreen } from "./components/PinLockScreen";
+import { AppLoader } from "./components/shared/AppLoader";
 import { useAuth } from "./hooks/useAuth";
 import { useSessionTimeout } from "./hooks/useSessionTimeout";
 import { workspaceContext, useWorkspaceState, useWorkspace } from "./hooks/useWorkspace";
@@ -780,11 +781,7 @@ function AppInner() {
   };
 
   if (workspace.loading) {
-    return (
-      <div className="min-h-screen bg-background flex justify-center items-center">
-        <div className="w-8 h-8 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin"></div>
-      </div>
-    );
+    return <AppLoader etape="Ouverture de votre boutique…" />;
   }
 
   // Nouveau compte sans boutique (ancien blocage par paiement supprimé) :
@@ -819,11 +816,7 @@ function AppInner() {
   }
 
   if (storeData.loading) {
-    return (
-      <div className="min-h-screen bg-background flex justify-center items-center">
-        <div className="w-8 h-8 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin"></div>
-      </div>
-    );
+    return <AppLoader etape="Chargement de vos données…" />;
   }
 
   return (
@@ -1120,6 +1113,16 @@ export default function App() {
     pinCheckedOnBootRef.current = true;
   }, [loading, user, profile]);
 
+  // La page ne doit pas défiler derrière la surcouche de verrouillage.
+  useEffect(() => {
+    if (!locked) return;
+    const precedent = document.body.style.overflow;
+    document.body.style.overflow = "hidden";
+    return () => {
+      document.body.style.overflow = precedent;
+    };
+  }, [locked]);
+
   const timeoutMinutes = profile?.session_timeout_minutes ?? 30;
   useSessionTimeout({
     timeoutMinutes,
@@ -1128,11 +1131,7 @@ export default function App() {
   });
 
   if (loading) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="w-8 h-8 border-4 border-emerald-500 border-t-transparent rounded-full animate-spin" />
-      </div>
-    );
+    return <AppLoader etape="Vérification de votre session…" />;
   }
 
   // Session de récupération de mot de passe (ouverte depuis un autre onglet,
@@ -1162,15 +1161,42 @@ export default function App() {
     return <AuthPage />;
   }
 
-  // PIN lock screen
-  if (locked) {
-    return <PinLockScreen onUnlock={() => setLocked(false)} />;
-  }
-
-  // Full app — workspace loader wraps AppInner
+  /*
+   * Le code PIN se pose PAR-DESSUS l'application, il ne la remplace plus.
+   *
+   * Auparavant, `if (locked) return <PinLockScreen />` démontait tout
+   * l'arbre : au déverrouillage, l'espace de travail et l'intégralité
+   * des données — produits, ventes, achats, dépenses, commandes,
+   * clients — étaient rechargés depuis zéro, derrière trois écrans de
+   * chargement successifs. D'où l'attente à chaque saisie du code.
+   *
+   * L'application reste maintenant montée derrière la surcouche. Le
+   * déverrouillage est immédiat, et le chargement initial se fait pendant
+   * que l'utilisateur compose son code plutôt qu'après.
+   *
+   * Ce n'est pas un affaiblissement : le PIN est un verrou de confort
+   * local, pas une barrière d'authentification. La vraie protection est
+   * posée côté Supabase par les RLS, et la session était déjà ouverte.
+   * La surcouche est opaque et couvre tout l'écran : rien du contenu
+   * n'est lisible derrière.
+   */
   return (
-    <WorkspaceLoader>
-      <AppInner />
-    </WorkspaceLoader>
+    <>
+      {/* `inert` neutralise tout ce qui est derrière la surcouche :
+          sans lui, la tabulation continuerait de parcourir les champs de
+          l'application masquée, et un lecteur d'écran les annoncerait.
+          Pris en charge nativement par React 19. */}
+      <div inert={locked ? true : undefined}>
+        <WorkspaceLoader>
+          <AppInner />
+        </WorkspaceLoader>
+      </div>
+
+      {locked && (
+        <div className="fixed inset-0 z-[100] overflow-y-auto bg-background">
+          <PinLockScreen onUnlock={() => setLocked(false)} />
+        </div>
+      )}
+    </>
   );
 }
