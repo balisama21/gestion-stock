@@ -35,7 +35,11 @@ const Preview: React.FC<{ settings: StoreSettings; prefs: InvoicePrefs }> = ({
   const montantTva = prefs.showTva && tva > 0 ? Math.round((sousTotal * tva) / 100) : 0;
 
   return (
-    <div className="mx-auto w-full max-w-[280px] rounded-xl border border-slate-200 bg-white p-4 font-mono text-[10px] leading-relaxed text-slate-900 shadow-sm">
+    // `[overflow-wrap:anywhere]` : cet aperçu n'est pas un
+    // `.printable-receipt` et n'hérite donc pas du filet de sécurité
+    // posé dans styles.css. Sans lui, une adresse e-mail — un mot d'un
+    // seul tenant — débordait de ces 280 px.
+    <div className="mx-auto w-full max-w-[280px] rounded-xl border border-slate-200 bg-white p-4 font-mono text-[10px] leading-relaxed text-slate-900 shadow-sm [overflow-wrap:anywhere]">
       <div className="text-center">
         {prefs.showLogo &&
           (settings.logoUrl ? (

@@ -672,7 +672,7 @@ ${reportPurchases
             {/* Printable Area */}
             <div className="receipt-viewport flex items-start justify-start overflow-x-auto rounded-xl border border-border bg-background p-4">
               {reportFormat === "ticket" ? (
-                <div className="printable-receipt mx-auto shrink-0 bg-emerald-50 text-slate-900 w-full max-w-[360px] p-6 rounded-lg shadow-lg font-mono text-xs leading-relaxed space-y-4 border border-emerald-200">
+                <div className="printable-receipt mx-auto min-w-0 bg-emerald-50 text-slate-900 w-full max-w-[360px] p-6 rounded-lg shadow-lg font-mono text-xs leading-relaxed space-y-4 border border-emerald-200">
                   <div className="text-center space-y-1">
                     {settings?.logoUrl && (
                       <img
@@ -773,8 +773,8 @@ ${reportPurchases
                   </div>
                 </div>
               ) : (
-                <div className="printable-receipt mx-auto shrink-0 bg-white text-slate-900 w-full max-w-2xl p-8 rounded-lg shadow-xl font-sans text-xs space-y-6 border border-slate-200">
-                  <div className="flex justify-between items-start border-b border-slate-200 pb-6">
+                <div className="printable-receipt mx-auto min-w-0 bg-white text-slate-900 w-full max-w-2xl p-8 rounded-lg shadow-xl font-sans text-xs space-y-6 border border-slate-200">
+                  <div className="flex flex-wrap items-start justify-between gap-4 border-b border-slate-200 pb-6">
                     <div>
                       <h1 className="text-lg font-black text-slate-900 uppercase">
                         {settings?.storeName || "BALSAMA AUTO GESTION"}

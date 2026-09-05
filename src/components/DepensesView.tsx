@@ -429,7 +429,7 @@ ${reportExpenses
             {/* Printable Area */}
             <div className="receipt-viewport flex items-start justify-start overflow-x-auto rounded-xl border border-border bg-background p-4">
               {reportFormat === "ticket" ? (
-                <div className="printable-receipt mx-auto shrink-0 bg-amber-50 text-slate-900 w-full max-w-[360px] p-6 rounded-lg shadow-lg font-mono text-xs leading-relaxed space-y-4 border border-amber-200">
+                <div className="printable-receipt mx-auto min-w-0 bg-amber-50 text-slate-900 w-full max-w-[360px] p-6 rounded-lg shadow-lg font-mono text-xs leading-relaxed space-y-4 border border-amber-200">
                   <div className="text-center space-y-1">
                     {settings?.logoUrl && (
                       <img
@@ -517,8 +517,8 @@ ${reportExpenses
                   </div>
                 </div>
               ) : (
-                <div className="printable-receipt mx-auto shrink-0 bg-white text-slate-900 w-full max-w-xl p-8 rounded-lg shadow-xl font-sans text-xs space-y-6 border border-slate-200">
-                  <div className="flex justify-between items-start border-b border-slate-200 pb-6">
+                <div className="printable-receipt mx-auto min-w-0 bg-white text-slate-900 w-full max-w-xl p-8 rounded-lg shadow-xl font-sans text-xs space-y-6 border border-slate-200">
+                  <div className="flex flex-wrap items-start justify-between gap-4 border-b border-slate-200 pb-6">
                     <div>
                       <h1 className="text-lg font-black text-slate-900 uppercase">
                         {settings?.storeName || "BALSAMA AUTO GESTION"}
@@ -537,7 +537,7 @@ ${reportExpenses
                     </div>
                   </div>
 
-                  <div className="bg-slate-50 p-4 rounded-xl border border-slate-200 flex justify-between items-center">
+                  <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-200 bg-slate-50 p-4">
                     <div>
                       <span className="text-[10px] uppercase font-bold text-muted-foreground block">
                         Vendeur :

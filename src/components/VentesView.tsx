@@ -889,7 +889,7 @@ ${settings?.receiptFooter || "Merci pour votre confiance ! Ni repris, ni échang
             <div className="receipt-viewport flex items-start justify-start overflow-x-auto rounded-xl border border-border bg-background p-4">
               {receiptMode === "ticket" ? (
                 /* Ticket Thermal Receipt Format */
-                <div className="printable-receipt mx-auto shrink-0 bg-amber-50 text-slate-900 w-full max-w-[360px] p-6 rounded-lg shadow-lg font-mono text-xs leading-relaxed space-y-4 border border-amber-200">
+                <div className="printable-receipt mx-auto min-w-0 bg-amber-50 text-slate-900 w-full max-w-[360px] p-6 rounded-lg shadow-lg font-mono text-xs leading-relaxed space-y-4 border border-amber-200">
                   {/* Store Header */}
                   <div className="text-center space-y-1">
                     {settings?.logoUrl && (
@@ -1015,9 +1015,9 @@ ${settings?.receiptFooter || "Merci pour votre confiance ! Ni repris, ni échang
                 </div>
               ) : (
                 /* Facture Officielle A4 Format */
-                <div className="printable-receipt mx-auto shrink-0 bg-white text-slate-900 w-full max-w-xl p-8 rounded-lg shadow-xl font-sans text-xs space-y-6 border border-slate-200">
+                <div className="printable-receipt mx-auto min-w-0 bg-white text-slate-900 w-full max-w-xl p-8 rounded-lg shadow-xl font-sans text-xs space-y-6 border border-slate-200">
                   {/* Top Header */}
-                  <div className="flex justify-between items-start border-b border-slate-200 pb-6">
+                  <div className="flex flex-wrap items-start justify-between gap-4 border-b border-slate-200 pb-6">
                     <div className="space-y-1.5">
                       {settings?.logoUrl && (
                         <img
@@ -1047,7 +1047,7 @@ ${settings?.receiptFooter || "Merci pour votre confiance ! Ni repris, ni échang
                     </div>
 
                     <div className="text-right space-y-2">
-                      <div className="inline-block bg-card text-white px-4 py-1.5 rounded-lg font-bold text-sm uppercase tracking-wider">
+                      <div className="inline-block rounded-lg bg-slate-900 px-4 py-1.5 text-sm font-bold uppercase tracking-wider text-white">
                         FACTURE N° #{selectedReceiptSale.numero}
                       </div>
                       <div className="text-[11px] text-slate-600 space-y-0.5">
@@ -1066,7 +1066,7 @@ ${settings?.receiptFooter || "Merci pour votre confiance ! Ni repris, ni échang
                   </div>
 
                   {/* Customer Info Box */}
-                  <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 flex justify-between items-center">
+                  <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-200 bg-slate-50 p-4">
                     <div>
                       <span className="text-[10px] uppercase font-bold text-muted-foreground block tracking-wider">
                         Facturé À (Client) :

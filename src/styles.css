@@ -515,18 +515,23 @@ td {
   .app-table-scroll {
     @apply overflow-x-auto;
   }
+  /* `min-width: 880px` et `whitespace-nowrap` datent des grands tableaux
+     de données, remplacés depuis par des listes. Il ne reste qu'un seul
+     tableau dans l'application — la synthèse comparative du Bilan — et
+     ces deux règles l'obligeaient à faire 880 px de large dans une carte
+     en `overflow-hidden` : les colonnes de droite étaient purement et
+     simplement coupées sur téléphone. */
   .app-table {
     @apply w-full text-left text-sm border-collapse;
-    min-width: 880px;
   }
   .app-table thead tr {
     @apply bg-muted/60 border-b border-border;
   }
   .app-table th {
-    @apply px-4 py-3.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground whitespace-nowrap;
+    @apply px-4 py-3.5 text-[11px] font-semibold uppercase tracking-wider text-muted-foreground;
   }
   .app-table td {
-    @apply px-4 py-3.5 align-middle text-foreground whitespace-nowrap;
+    @apply px-4 py-3.5 align-middle text-foreground;
   }
   .app-table tbody tr {
     @apply border-b border-border/50 last:border-0 hover:bg-muted/30 transition-colors;
@@ -769,6 +774,58 @@ td {
   .t-violet {
     color: var(--violet);
   }
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   DOCUMENTS IMPRIMABLES — robustesse à l'écran
+   Le contenu d'un reçu vient des Paramètres : nom de boutique, adresse,
+   téléphone, e-mail, logo. Ces valeurs sont saisies librement et rien
+   n'en borne la longueur. Une adresse e-mail est de surcroît un mot
+   d'un seul tenant, que `overflow-wrap: break-word` ne coupe pas — il
+   faut `anywhere`. Sans cela, ce mot fixait à lui seul la largeur
+   minimale de la feuille, qui débordait alors de son cadre.
+   ═══════════════════════════════════════════════════════════════════ */
+.printable-receipt {
+  overflow-wrap: anywhere;
+
+  /* Une feuille de reçu est du papier blanc, en mode clair comme en mode
+     sombre. Or le passage aux jetons de thème a remplacé, jusque dans
+     ces documents, des gris fixes par `text-muted-foreground` et
+     consorts — qui suivent le thème. En mode sombre, le texte
+     secondaire devenait un gris clair posé sur du blanc, illisible à
+     l'écran comme à l'impression. Les jetons sont donc redéfinis ici sur
+     des valeurs de papier, et l'héritage fait le reste. */
+  --foreground: oklch(0.129 0.042 264.695);
+  --card-foreground: oklch(0.129 0.042 264.695);
+  --muted-foreground: oklch(0.44 0.04 258);
+  --border: oklch(0.925 0.005 250);
+  --muted: oklch(0.968 0.005 250);
+  --card: oklch(1 0 0);
+}
+
+/* Le logo est fourni par l'utilisateur : ses proportions sont
+   imprévisibles. On le contraint à son emplacement plutôt que de le
+   laisser pousser la mise en page. */
+.printable-receipt img {
+  flex-shrink: 0;
+  max-width: 100%;
+  object-fit: cover;
+}
+
+/* Un tableau de reçu ne doit jamais imposer une largeur minimale
+   supérieure au cadre : les cellules se replient.
+   Volontairement PAS de `table-layout: fixed` — il donnerait quatre
+   colonnes de largeur égale, et la désignation d'un article se
+   retrouverait hachée en fragments d'un ou deux caractères. La
+   répartition automatique donne sa place au libellé ; c'est
+   `overflow-wrap: anywhere` ci-dessus qui garantit déjà qu'aucun mot ne
+   fait déborder le tableau. */
+.printable-receipt table {
+  width: 100%;
+}
+.printable-receipt th,
+.printable-receipt td {
+  white-space: normal;
 }
 
 /* ── Défilement horizontal sans barre visible ── */
