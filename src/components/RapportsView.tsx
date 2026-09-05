@@ -124,11 +124,15 @@ export const RapportsView: React.FC<RapportsViewProps> = ({ sales, purchases, ex
     return { month: mName, index: mIdx, ca, achats, depenses, marge, countSales: mSales.length };
   });
 
-  // Un mois sans la moindre écriture n'apporte rien à la lecture : douze
-  // lignes à zéro noieraient les trois qui comptent.
-  const activeMonths = monthlyStats.filter(
-    (ms) => ms.ca > 0 || ms.achats > 0 || ms.depenses > 0,
-  );
+  /**
+   * Les douze mois sont affichés, y compris ceux sans la moindre
+   * écriture. La règle habituelle — une valeur nulle ne s'affiche pas —
+   * ne vaut pas pour une série calendaire : c'est l'année entière qu'on
+   * vient lire ici, et un mois creux est une information, pas du vide.
+   * Le masquer ferait aussi croire que seuls les mois listés existent.
+   */
+  const isEmptyMonth = (ms: (typeof monthlyStats)[number]) =>
+    ms.ca === 0 && ms.achats === 0 && ms.depenses === 0;
 
   /**
    * Les trois horizons, en colonnes. Le tableau est transposé par rapport
@@ -280,17 +284,24 @@ export const RapportsView: React.FC<RapportsViewProps> = ({ sales, purchases, ex
 
         <DataList
           emptyLabel={`Aucune activité enregistrée en ${filterYear}.`}
-          items={activeMonths.map((ms) => ({
+          items={monthlyStats.map((ms) => ({
             id: ms.month,
             primary: (
               <span className="flex items-center gap-2">
-                <span className="truncate">{ms.month}</span>
+                <span
+                  className={`truncate ${isEmptyMonth(ms) ? "font-normal text-muted-foreground" : ""}`}
+                >
+                  {ms.month}
+                </span>
                 {ms.index === filterMonth && (
                   <span className="app-badge app-badge-neutral shrink-0">Mois en cours</span>
                 )}
               </span>
             ),
             meta: [
+              // Un mois creux le dit franchement, plutôt que de laisser
+              // une ligne nue qu'on prendrait pour un défaut d'affichage.
+              isEmptyMonth(ms) ? "Aucune activité" : null,
               ms.countSales > 0
                 ? `${ms.countSales} vente${ms.countSales > 1 ? "s" : ""}`
                 : null,
@@ -318,7 +329,14 @@ export const RapportsView: React.FC<RapportsViewProps> = ({ sales, purchases, ex
               },
               {
                 label: "Marge nette",
-                value: <span className="t-success">+{formatCurrency(ms.marge)}</span>,
+                // Le « + » et le vert n'ont de sens que sur une marge
+                // réelle : un « +0 Ar » vert se lirait comme un gain.
+                value:
+                  ms.marge !== 0 ? (
+                    <span className="t-success">+{formatCurrency(ms.marge)}</span>
+                  ) : (
+                    formatCurrency(0)
+                  ),
               },
               { label: "Ventes", value: String(ms.countSales) },
             ],
