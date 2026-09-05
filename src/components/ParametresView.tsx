@@ -19,6 +19,7 @@ import { compressLogo, formatPoids } from "../lib/compressLogo";
 import { PreferencesSection } from "./settings/PreferencesSection";
 import { NotificationsSection } from "./settings/NotificationsSection";
 import { InvoiceSection } from "./settings/InvoiceSection";
+import { InstallationSection } from "./settings/InstallationSection";
 import { Trash2 } from "lucide-react";
 
 interface ParametresViewProps {
@@ -740,18 +741,21 @@ export const ParametresView: React.FC<ParametresViewProps> = ({
       {activeTab === "notifications" && <NotificationsSection />}
 
       {activeTab === "preferences" && (
-        <PreferencesSection
-          theme={theme}
-          setTheme={setTheme}
-          locale={locale}
-          setLocale={setLocale}
-          onDownloadExcel={onDownloadExcel}
-          onRequestDeleteAccount={() => {
-            setDeleteAccountError(null);
-            setDeleteAccountPassword("");
-            setShowDeleteAccountModal(true);
-          }}
-        />
+        <>
+          <InstallationSection />
+          <PreferencesSection
+            theme={theme}
+            setTheme={setTheme}
+            locale={locale}
+            setLocale={setLocale}
+            onDownloadExcel={onDownloadExcel}
+            onRequestDeleteAccount={() => {
+              setDeleteAccountError(null);
+              setDeleteAccountPassword("");
+              setShowDeleteAccountModal(true);
+            }}
+          />
+        </>
       )}
 
       {activeTab === "boutique" && (

@@ -116,9 +116,13 @@ export const InstallPrompt: React.FC = () => {
         className="app-card flex items-start gap-3 p-3.5 sm:p-4"
         style={{ boxShadow: "var(--elev-3)" }}
       >
-        <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-xl bg-primary text-sm font-bold text-primary-foreground">
-          GS
-        </span>
+        <img
+          src="/icon-192.png"
+          alt=""
+          width={40}
+          height={40}
+          className="h-10 w-10 shrink-0 rounded-xl"
+        />
 
         <div className="min-w-0 flex-1">
           <p className="text-sm font-semibold text-foreground">
