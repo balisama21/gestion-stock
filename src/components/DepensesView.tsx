@@ -127,6 +127,15 @@ export const DepensesView: React.FC<DepensesViewProps> = ({
     .reduce((acc, e) => acc + e.montant, 0);
 
   // Filtered Data for Report Generator
+  // Libellé de la période couverte, écrit une fois pour les deux
+  // documents plutôt que répété dans chacun.
+  const periodeLabel =
+    reportPeriod === "today"
+      ? `Journée du ${todayStr}`
+      : reportPeriod === "month"
+        ? `Mois de ${currentMonthStr}`
+        : "Historique complet";
+
   const reportExpenses = useMemo(() => {
     return expenses.filter((e) => {
       const matchSeller =
@@ -425,169 +434,204 @@ ${reportExpenses
               </div>
             </div>
 
-            {/* Printable Area */}
+            {/* ── Documents imprimables ──
+                Même grammaire que la facture de vente : identité à
+                gauche, référence du document à droite, encart de portée
+                sur fond très léger, tableau à filets fins. */}
             <div className="receipt-viewport flex items-start justify-start overflow-x-auto rounded-xl border border-border bg-background p-4">
               {isTicket ? (
+                /* ── Ticket ── */
                 <div
-                  className={`printable-receipt ${paper.pageClass} mx-auto min-w-0 w-full rounded-lg border border-slate-200 bg-white p-4 space-y-3 font-mono text-[11px] leading-relaxed text-slate-900 shadow-sm`}
+                  className={`printable-receipt ${paper.pageClass} mx-auto min-w-0 w-full rounded-lg border border-slate-200 bg-white p-4 font-mono leading-relaxed text-slate-900 shadow-sm ${paperId === "t58" ? "text-[10px]" : "text-[11px]"}`}
                   style={{ maxWidth: paper.previewWidth }}
                 >
-                  <div className="text-center space-y-1">
+                  <div className="space-y-0.5 text-center">
                     {settings?.logoUrl && (
                       <img
                         src={settings.logoUrl}
-                        alt="Logo"
-                        className="w-12 h-12 mx-auto mb-1 object-cover rounded-full"
+                        alt=""
+                        className="mx-auto mb-2 h-12 w-12 rounded object-contain"
                       />
                     )}
-                    <h2 className="font-bold text-sm tracking-wide text-slate-950 uppercase">
+                    <h2 className="text-[13px] font-bold uppercase tracking-wide text-slate-900">
                       {settings?.storeName || "BALSAMA AUTO GESTION"}
                     </h2>
-                    <p className="text-[10px] text-slate-600">
-                      Tél: {settings?.phone || "+261 34 12 345 67"}
+                    <p className="text-[10px] text-slate-500">
+                      Tél. {settings?.phone || "+261 34 12 345 67"}
                     </p>
                   </div>
 
-                  <div className="border-b border-dashed border-slate-400 my-2"></div>
+                  <div className="my-3 border-t border-dashed border-slate-300" />
 
-                  <div className="text-center space-y-1">
-                    <h3 className="font-bold text-xs uppercase border-y border-slate-300 py-1 text-slate-900">
-                      JOURNAL DES DÉPENSES
-                    </h3>
-                    <p className="text-[10px] font-semibold text-slate-800">
-                      VENDEUR :{" "}
-                      <span className="font-bold uppercase text-slate-950">
-                        {selectedReportSeller === "all"
-                          ? "TOUS LES VENDEURS"
-                          : selectedReportSeller}
-                      </span>
+                  <p className="text-center text-[11px] font-bold uppercase tracking-wide text-slate-900">
+                    Journal des dépenses
+                  </p>
+
+                  <div className="my-3 border-t border-dashed border-slate-300" />
+
+                  <dl className="space-y-0.5 text-[10px]">
+                    <div className="flex justify-between gap-3">
+                      <dt className="text-slate-500">Période</dt>
+                      <dd className="min-w-0 text-right text-slate-900">{periodeLabel}</dd>
+                    </div>
+                    <div className="flex justify-between gap-3">
+                      <dt className="text-slate-500">Vendeur</dt>
+                      <dd className="min-w-0 text-right text-slate-900">
+                        {selectedReportSeller === "all" ? "Tous" : selectedReportSeller}
+                      </dd>
+                    </div>
+                    <div className="flex justify-between gap-3">
+                      <dt className="text-slate-500">Édité le</dt>
+                      <dd className="text-slate-900">{new Date().toLocaleDateString("fr-FR")}</dd>
+                    </div>
+                  </dl>
+
+                  <div className="my-3 border-t border-dashed border-slate-300" />
+
+                  {reportExpenses.length === 0 ? (
+                    <p className="py-2 text-center text-[10px] italic text-slate-500">
+                      Aucune dépense pour cette sélection.
                     </p>
-                  </div>
+                  ) : (
+                    <div className="space-y-2">
+                      {reportExpenses.map((e) => (
+                        <div key={e.id}>
+                          <p className="font-semibold text-slate-900">{e.type}</p>
+                          <div className="flex justify-between gap-3 text-[10px] text-slate-600">
+                            <span className="min-w-0">{e.vendeur}</span>
+                            <span className="font-semibold text-slate-900">
+                              {formatCurrency(e.montant)}
+                            </span>
+                          </div>
+                          <p className="text-[9px] text-slate-400">
+                            {[formatDateLocale(e.date, locale), e.note].filter(Boolean).join(" · ")}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  )}
 
-                  <div className="border-b border-dashed border-slate-400 my-2"></div>
+                  <div className="my-3 border-t border-dashed border-slate-300" />
 
-                  <div className="space-y-1.5 text-[10px]">
-                    <div className="flex justify-between font-bold border-t border-slate-900 pt-1.5 text-slate-900">
-                      <span>TOTAL DÉPENSES :</span>
+                  <div className="space-y-1 text-[10px]">
+                    <div className="flex justify-between gap-3 border-b border-slate-900 pb-1 text-[13px] font-bold text-slate-900">
+                      <span>TOTAL</span>
                       <span>{formatCurrency(reportTotalAmount)}</span>
                     </div>
-                    <div className="text-right text-[9px] text-slate-600">
-                      {reportExpenses.length} transaction(s)
+                    <div className="flex justify-between gap-3 pt-1 text-slate-600">
+                      <span>Lignes</span>
+                      <span className="text-slate-900">{reportExpenses.length}</span>
                     </div>
-                  </div>
-
-                  <div className="border-b border-dashed border-slate-400 my-2"></div>
-
-                  <div className="space-y-2">
-                    <p className="font-bold text-[10px] uppercase text-slate-700">
-                      Détail des lignes :
-                    </p>
-                    {reportExpenses.length === 0 ? (
-                      <p className="text-[10px] text-muted-foreground italic text-center">
-                        Aucune dépense pour cette sélection.
-                      </p>
-                    ) : (
-                      <table className="w-full text-[9px] text-left">
-                        <thead>
-                          <tr className="border-b border-slate-300 font-bold uppercase">
-                            <th className="py-1">Type / Note</th>
-                            <th className="py-1 text-right">Montant</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-slate-200">
-                          {reportExpenses.map((e) => (
-                            <tr key={e.id}>
-                              <td className="py-1 pr-1">
-                                <span className="font-bold block">{e.vendeur}</span>
-                                <span className="text-[8px] text-slate-600 block">
-                                  {e.type} - {e.note || "Sans note"}
-                                </span>
-                              </td>
-                              <td className="py-1 text-right font-bold text-slate-900">
-                                {formatCurrency(e.montant)}
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    )}
-                  </div>
-
-                  <div className="border-b border-dashed border-slate-400 my-2"></div>
-                  <div className="text-center text-[9px] text-slate-600 italic">
-                    Émis le {new Date().toLocaleString()}
                   </div>
                 </div>
               ) : (
+                /* ── Journal A4 ── */
                 <div
-                  className={`printable-receipt ${paper.pageClass} mx-auto min-w-0 w-full rounded-lg border border-slate-200 bg-white p-8 space-y-6 font-sans text-xs text-slate-900 shadow-sm`}
+                  className={`printable-receipt ${paper.pageClass} mx-auto min-w-0 w-full rounded-lg border border-slate-200 bg-white font-sans text-xs text-slate-900 shadow-sm ${paperId === "a5" ? "p-6" : "p-8"}`}
                   style={{ maxWidth: paper.previewWidth }}
                 >
-                  <div className="flex flex-wrap items-start justify-between gap-4 border-b border-slate-200 pb-6">
-                    <div>
-                      <h1 className="text-lg font-black text-slate-900 uppercase">
-                        {settings?.storeName || "BALSAMA AUTO GESTION"}
-                      </h1>
-                      <p className="text-muted-foreground text-[11px]">
-                        Journal des Dépenses & Retraits
-                      </p>
-                    </div>
-                    <div className="text-right">
-                      <div className="inline-block bg-slate-900 text-white px-3 py-1 rounded font-bold text-xs uppercase">
-                        RELEVÉ DÉPENSES
+                  <header className="flex flex-wrap items-start justify-between gap-6 pb-6">
+                    <div className="min-w-0 space-y-2">
+                      {settings?.logoUrl && (
+                        <img
+                          src={settings.logoUrl}
+                          alt=""
+                          className="h-14 w-14 rounded object-contain"
+                        />
+                      )}
+                      <div className="space-y-0.5">
+                        <p className="text-base font-bold uppercase tracking-tight text-slate-900">
+                          {settings?.storeName || "BALSAMA AUTO GESTION"}
+                        </p>
+                        {settings?.address && (
+                          <p className="text-[11px] text-slate-500">{settings.address}</p>
+                        )}
+                        {settings?.phone && (
+                          <p className="text-[11px] text-slate-500">Tél. {settings.phone}</p>
+                        )}
                       </div>
-                      <p className="text-[10px] text-muted-foreground mt-1">
-                        Édité le {new Date().toLocaleDateString()}
+                    </div>
+
+                    <div className="min-w-0 space-y-1 sm:text-right">
+                      <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-slate-400">
+                        Journal des dépenses
+                      </p>
+                      <p className="text-lg font-bold tracking-tight text-slate-900">
+                        {periodeLabel}
+                      </p>
+                      <dl className="space-y-0.5 pt-1 text-[11px] text-slate-500">
+                        <div className="flex gap-2 sm:justify-end">
+                          <dt>Édité le</dt>
+                          <dd className="font-medium text-slate-700">
+                            {new Date().toLocaleDateString("fr-FR")}
+                          </dd>
+                        </div>
+                        <div className="flex gap-2 sm:justify-end">
+                          <dt>Vendeur</dt>
+                          <dd className="font-medium text-slate-700">
+                            {selectedReportSeller === "all"
+                              ? "Tous les vendeurs"
+                              : selectedReportSeller}
+                          </dd>
+                        </div>
+                      </dl>
+                    </div>
+                  </header>
+
+                  <section className="flex flex-wrap items-start justify-between gap-4 rounded-lg border border-slate-200 bg-slate-50 px-4 py-3">
+                    <div className="min-w-0">
+                      <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">
+                        Lignes
+                      </p>
+                      <p className="mt-0.5 font-mono text-sm font-semibold tabular-nums text-slate-900">
+                        {reportExpenses.length}
                       </p>
                     </div>
-                  </div>
-
-                  <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-200 bg-slate-50 p-4">
-                    <div>
-                      <span className="text-[10px] uppercase font-bold text-muted-foreground block">
-                        Vendeur :
-                      </span>
-                      <span className="font-black text-slate-900 text-sm">
-                        {selectedReportSeller === "all"
-                          ? "TOUS LES VENDEURS"
-                          : selectedReportSeller}
-                      </span>
-                    </div>
-                    <div className="text-right">
-                      <span className="text-[10px] uppercase font-bold text-muted-foreground block">
-                        Total Période :
-                      </span>
-                      <span className="font-bold text-slate-900 text-sm font-mono">
+                    <div className="min-w-0 sm:text-right">
+                      <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">
+                        Total de la période
+                      </p>
+                      <p className="mt-0.5 font-mono text-sm font-semibold tabular-nums text-slate-900">
                         {formatCurrency(reportTotalAmount)}
-                      </span>
+                      </p>
                     </div>
-                  </div>
+                  </section>
 
-                  <table className="w-full text-left border-collapse text-xs">
+                  <table className="w-full border-collapse text-left text-[11px]">
                     <thead>
-                      <tr className="bg-slate-100 text-slate-700 font-bold uppercase text-[10px] border-y border-slate-300">
-                        <th className="p-2">Date</th>
-                        <th className="p-2">Vendeur</th>
-                        <th className="p-2">Type</th>
-                        <th className="p-2">Motif / Note</th>
-                        <th className="p-2 text-right">Montant</th>
+                      <tr className="border-b border-slate-300 text-[10px] font-semibold uppercase tracking-wider text-slate-500">
+                        <th className="py-2 pr-3 font-semibold">Date</th>
+                        <th className="py-2 px-2 font-semibold">Vendeur</th>
+                        <th className="py-2 px-2 font-semibold">Type &amp; motif</th>
+                        <th className="py-2 pl-2 text-right font-semibold">Montant</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-slate-200">
+                    <tbody>
                       {reportExpenses.length === 0 ? (
                         <tr>
-                          <td colSpan={5} className="p-4 text-center text-muted-foreground italic">
-                            Aucune dépense enregistrée.
+                          <td colSpan={4} className="py-6 text-center italic text-slate-500">
+                            Aucune dépense enregistrée sur cette période.
                           </td>
                         </tr>
                       ) : (
-                        reportExpenses.map((e) => (
-                          <tr key={e.id}>
-                            <td className="p-2 font-mono text-muted-foreground">{e.date}</td>
-                            <td className="p-2 font-bold text-slate-900">{e.vendeur}</td>
-                            <td className="p-2">{e.type}</td>
-                            <td className="p-2 text-slate-600">{e.note || "-"}</td>
-                            <td className="p-2 text-right font-medium text-slate-900 font-mono">
+                        reportExpenses.map((e, i) => (
+                          <tr
+                            key={e.id}
+                            className={`border-b border-slate-100 ${i % 2 === 1 ? "bg-slate-50/70" : ""}`}
+                          >
+                            <td className="py-2.5 pr-3 font-mono tabular-nums text-slate-500">
+                              {formatDateLocale(e.date, locale)}
+                            </td>
+                            <td className="px-2 py-2.5 text-slate-700">{e.vendeur}</td>
+                            <td className="px-2 py-2.5">
+                              <span className="font-medium text-slate-900">{e.type}</span>
+                              {e.note && (
+                                <span className="mt-0.5 block text-[10px] text-slate-400">
+                                  {e.note}
+                                </span>
+                              )}
+                            </td>
+                            <td className="py-2.5 pl-2 text-right font-mono font-medium tabular-nums text-slate-900">
                               {formatCurrency(e.montant)}
                             </td>
                           </tr>
@@ -595,6 +639,27 @@ ${reportExpenses
                       )}
                     </tbody>
                   </table>
+
+                  {reportExpenses.length > 0 && (
+                    <div className="flex justify-end">
+                      <dl className="w-full max-w-[16rem] space-y-1.5 text-[11px]">
+                        <div className="flex justify-between gap-4 text-slate-500">
+                          <dt>Lignes</dt>
+                          <dd className="font-mono tabular-nums text-slate-700">
+                            {reportExpenses.length}
+                          </dd>
+                        </div>
+                        <div className="flex justify-between gap-4 border-t-2 border-slate-900 pt-2">
+                          <dt className="text-[11px] font-bold uppercase tracking-wider text-slate-900">
+                            Total des dépenses
+                          </dt>
+                          <dd className="font-mono text-base font-bold tabular-nums text-slate-900">
+                            {formatCurrency(reportTotalAmount)}
+                          </dd>
+                        </div>
+                      </dl>
+                    </div>
+                  )}
                 </div>
               )}
             </div>

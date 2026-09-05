@@ -129,6 +129,15 @@ export const VendeursView: React.FC<VendeursViewProps> = ({
   const currentMonthStr = useMemo(() => todayStr.slice(0, 7), [todayStr]);
 
   // Report filtered data
+  // Libellé de la période couverte, écrit une fois pour les deux
+  // documents plutôt que répété dans chacun.
+  const periodeLabel =
+    selectedPeriod === "today"
+      ? `Journée du ${todayStr}`
+      : selectedPeriod === "month"
+        ? `Mois de ${currentMonthStr}`
+        : "Historique complet";
+
   const reportSales = useMemo(() => {
     return sales.filter((s) => {
       const matchSeller =
@@ -802,7 +811,7 @@ SOLDE NET EN CAISSE VENDEUR: ${formatCurrency(reportStats.soldeNetCaisse)}
                       <img
                         src={settings.logoUrl}
                         alt="Logo"
-                        className="w-12 h-12 mx-auto mb-1 object-cover rounded-full"
+                        className="mx-auto mb-2 h-12 w-12 rounded object-contain"
                       />
                     )}
                     <h2 className="font-bold text-sm tracking-wide text-slate-950 uppercase">
@@ -899,7 +908,7 @@ SOLDE NET EN CAISSE VENDEUR: ${formatCurrency(reportStats.soldeNetCaisse)}
                     </p>
 
                     {reportSales.length === 0 ? (
-                      <p className="text-[10px] text-muted-foreground italic text-center">
+                      <p className="text-[10px] text-slate-500 italic text-center">
                         Aucune vente pour cette période.
                       </p>
                     ) : (
@@ -917,7 +926,7 @@ SOLDE NET EN CAISSE VENDEUR: ${formatCurrency(reportStats.soldeNetCaisse)}
                               <td className="py-1 font-medium pr-1">
                                 {s.designation}
                                 {selectedReportSeller === "all" && (
-                                  <span className="block text-[8px] text-muted-foreground">
+                                  <span className="block text-[8px] text-slate-500">
                                     By: {s.vendeur}
                                   </span>
                                 )}
@@ -946,74 +955,53 @@ SOLDE NET EN CAISSE VENDEUR: ${formatCurrency(reportStats.soldeNetCaisse)}
                   className={`printable-receipt ${paper.pageClass} mx-auto min-w-0 w-full rounded-lg border border-slate-200 bg-white p-8 space-y-6 font-sans text-xs text-slate-900 shadow-sm`}
                   style={{ maxWidth: paper.previewWidth }}
                 >
-                  {/* Top Header */}
-                  <div className="flex flex-wrap items-start justify-between gap-4 border-b border-slate-200 pb-6">
-                    <div className="space-y-1.5">
+                  <header className="flex flex-wrap items-start justify-between gap-6 pb-6">
+                    <div className="min-w-0 space-y-2">
                       {settings?.logoUrl && (
                         <img
                           src={settings.logoUrl}
-                          alt="Logo"
-                          className="w-16 h-16 object-cover rounded-full mb-2"
+                          alt=""
+                          className="h-14 w-14 rounded object-contain"
                         />
                       )}
-                      <h1 className="text-lg font-black text-slate-900 uppercase tracking-tight">
-                        {settings?.storeName || "BALSAMA AUTO GESTION"}
-                      </h1>
-                      <p className="text-muted-foreground text-[11px]">
-                        {settings?.subtitle || "Gestion unifiée Stock & Vendeurs"}
-                      </p>
-                      <p className="text-slate-600 text-[11px]">
-                        {settings?.address || "Lot IVG 124, Antananarivo 101"}
-                      </p>
-                      <p className="text-slate-600 text-[11px]">
-                        Tél: {settings?.phone || "+261 34 12 345 67"} | Email:{" "}
-                        {settings?.email || "contact@balsama-auto.mg"}
-                      </p>
-                    </div>
-
-                    <div className="text-right space-y-2">
-                      <div className="inline-block rounded-lg bg-slate-900 px-4 py-1.5 text-xs font-bold uppercase tracking-wider text-white">
-                        BILAN D'ACTIVITÉ VENDEUR
-                      </div>
-                      <div className="text-[11px] text-slate-600 space-y-0.5">
-                        <p>
-                          <span className="font-semibold text-slate-800">Date d'édition :</span>{" "}
-                          {new Date().toLocaleDateString()}
+                      <div className="space-y-0.5">
+                        <p className="text-base font-bold uppercase tracking-tight text-slate-900">
+                          {settings?.storeName || "BALSAMA AUTO GESTION"}
                         </p>
-                        <p>
-                          <span className="font-semibold text-slate-800">Heure :</span>{" "}
-                          {new Date().toLocaleTimeString()}
+                        {settings?.subtitle && (
+                          <p className="text-[11px] text-slate-500">{settings.subtitle}</p>
+                        )}
+                        <p className="text-[11px] text-slate-500">
+                          {settings?.address || "Lot IVG 124, Antananarivo 101"}
+                        </p>
+                        <p className="text-[11px] text-slate-500">
+                          Tél. {settings?.phone || "+261 34 12 345 67"}
+                          {settings?.email ? ` · ${settings.email}` : ""}
                         </p>
                       </div>
                     </div>
-                  </div>
 
-                  {/* Target Seller & Period Banner */}
-                  <div className="flex flex-wrap items-center justify-between gap-3 rounded-xl border border-slate-200 bg-slate-50 p-4">
-                    <div>
-                      <span className="text-[10px] uppercase font-bold text-muted-foreground block tracking-wider">
-                        Vendeur Concerne :
-                      </span>
-                      <span className="text-base font-black text-slate-900">
-                        {selectedReportSeller === "all"
-                          ? "TOUS LES VENDEURS (CUMULÉ)"
-                          : selectedReportSeller}
-                      </span>
+                    <div className="min-w-0 space-y-1 sm:text-right">
+                      <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-slate-400">
+                        Bilan d'activité
+                      </p>
+                      <p className="text-lg font-bold tracking-tight text-slate-900">
+                        {selectedReportSeller === "all" ? "Tous les vendeurs" : selectedReportSeller}
+                      </p>
+                      <dl className="space-y-0.5 pt-1 text-[11px] text-slate-500">
+                        <div className="flex gap-2 sm:justify-end">
+                          <dt>Période</dt>
+                          <dd className="font-medium text-slate-700">{periodeLabel}</dd>
+                        </div>
+                        <div className="flex gap-2 sm:justify-end">
+                          <dt>Édité le</dt>
+                          <dd className="font-medium text-slate-700">
+                            {new Date().toLocaleDateString("fr-FR")}
+                          </dd>
+                        </div>
+                      </dl>
                     </div>
-
-                    <div className="text-right">
-                      <span className="text-[10px] uppercase font-bold text-muted-foreground block tracking-wider">
-                        Période Observée :
-                      </span>
-                      <span className="inline-block px-3 py-1 bg-slate-100 text-slate-900 font-semibold rounded-lg text-xs">
-                        {selectedPeriod === "today"
-                          ? "Aujourd'hui (" + todayStr + ")"
-                          : selectedPeriod === "month"
-                            ? "Mois de " + currentMonthStr
-                            : "Tout l'historique"}
-                      </span>
-                    </div>
-                  </div>
+                  </header>
 
                   {/* KPI Cards Grid */}
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
@@ -1061,7 +1049,7 @@ SOLDE NET EN CAISSE VENDEUR: ${formatCurrency(reportStats.soldeNetCaisse)}
                     </h4>
                     <table className="w-full text-left text-xs border-collapse">
                       <thead>
-                        <tr className="bg-slate-100 text-slate-700 font-bold uppercase tracking-wider text-[10px] border-y border-slate-300">
+                        <tr className="border-b border-slate-300 text-[10px] font-semibold uppercase tracking-wider text-slate-500">
                           <th className="p-2">Date</th>
                           <th className="p-2">Article</th>
                           <th className="p-2 text-center">Qté</th>
@@ -1075,19 +1063,22 @@ SOLDE NET EN CAISSE VENDEUR: ${formatCurrency(reportStats.soldeNetCaisse)}
                           <tr>
                             <td
                               colSpan={6}
-                              className="p-3 text-center text-muted-foreground italic"
+                              className="p-3 text-center text-slate-500 italic"
                             >
                               Aucune vente trouvée pour cette sélection.
                             </td>
                           </tr>
                         ) : (
-                          reportSales.map((s) => (
-                            <tr key={s.id}>
-                              <td className="p-2 font-mono text-muted-foreground">{s.date}</td>
+                          reportSales.map((s, i) => (
+                            <tr
+                              key={s.id}
+                              className={`border-b border-slate-100 ${i % 2 === 1 ? "bg-slate-50/70" : ""}`}
+                            >
+                              <td className="p-2 font-mono text-slate-500">{s.date}</td>
                               <td className="p-2 font-bold text-slate-900">
                                 {s.designation}
                                 {selectedReportSeller === "all" && (
-                                  <span className="block text-[10px] text-muted-foreground font-normal">
+                                  <span className="block text-[10px] text-slate-500 font-normal">
                                     Vendeur: {s.vendeur}
                                   </span>
                                 )}

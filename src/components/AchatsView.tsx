@@ -166,6 +166,15 @@ export const AchatsView: React.FC<AchatsViewProps> = ({
   const totalArticlesReappro = purchases.reduce((acc, p) => acc + p.quantite, 0);
 
   // Filtered Purchases for Report
+  // Libellé de la période couverte, écrit une fois pour les deux
+  // documents plutôt que répété dans chacun.
+  const periodeLabel =
+    reportPeriod === "today"
+      ? `Journée du ${todayStr}`
+      : reportPeriod === "month"
+        ? `Mois de ${currentMonthStr}`
+        : "Historique complet";
+
   const reportPurchases = useMemo(() => {
     return purchases.filter((p) => {
       const matchSupplier =
@@ -360,51 +369,51 @@ export const AchatsView: React.FC<AchatsViewProps> = ({
             </>
           }
         >
-          <div className="printable-receipt printable-invoice rounded-xl border border-border p-4">
-            <div className="mb-3 border-b border-border pb-3 text-center">
-              <p className="text-sm font-semibold uppercase tracking-wide text-foreground">
+          <div className="printable-receipt printable-invoice rounded-xl border border-slate-200 p-4">
+            <div className="mb-3 border-b border-slate-200 pb-3 text-center">
+              <p className="text-sm font-semibold uppercase tracking-wide text-slate-900">
                 {settings?.storeName || "BALSAMA AUTO GESTION"}
               </p>
-              <p className="text-xs text-muted-foreground">
+              <p className="text-xs text-slate-500">
                 Bon d'approvisionnement n° {selectedPurchaseReceipt.numero}
               </p>
             </div>
 
             <dl className="divide-y divide-border">
               <div className="flex items-baseline justify-between gap-4 py-2.5 text-sm">
-                <dt className="shrink-0 text-muted-foreground">Date</dt>
-                <dd className="text-right font-medium text-foreground">
+                <dt className="shrink-0 text-slate-500">Date</dt>
+                <dd className="text-right font-medium text-slate-900">
                   {formatDateLocale(selectedPurchaseReceipt.date, locale)}
                 </dd>
               </div>
 
               <div className="flex items-baseline justify-between gap-4 py-2.5 text-sm">
-                <dt className="shrink-0 text-muted-foreground">Code produit</dt>
-                <dd className="text-right font-mono font-medium text-foreground">
+                <dt className="shrink-0 text-slate-500">Code produit</dt>
+                <dd className="text-right font-mono font-medium text-slate-900">
                   {products.find((prod) => prod.id === selectedPurchaseReceipt.productId)?.numero ||
                     selectedPurchaseReceipt.productId}
                 </dd>
               </div>
 
               <div className="flex items-baseline justify-between gap-4 py-2.5 text-sm">
-                <dt className="shrink-0 text-muted-foreground">Produit</dt>
-                <dd className="min-w-0 text-right font-medium text-foreground">
+                <dt className="shrink-0 text-slate-500">Produit</dt>
+                <dd className="min-w-0 text-right font-medium text-slate-900">
                   {getPurchaseLabel(selectedPurchaseReceipt, products)}
                 </dd>
               </div>
 
               {showFournisseur && (
                 <div className="flex items-baseline justify-between gap-4 py-2.5 text-sm">
-                  <dt className="shrink-0 text-muted-foreground">Fournisseur</dt>
-                  <dd className="min-w-0 text-right font-medium text-foreground">
+                  <dt className="shrink-0 text-slate-500">Fournisseur</dt>
+                  <dd className="min-w-0 text-right font-medium text-slate-900">
                     {selectedPurchaseReceipt.fournisseur || "Grossiste général"}
                   </dd>
                 </div>
               )}
 
               <div className="flex items-baseline justify-between gap-4 py-2.5 text-sm">
-                <dt className="shrink-0 text-muted-foreground">Quantité</dt>
-                <dd className="text-right font-mono font-medium text-foreground">
+                <dt className="shrink-0 text-slate-500">Quantité</dt>
+                <dd className="text-right font-mono font-medium text-slate-900">
                   {selectedPurchaseReceipt.quantite} unité
                   {selectedPurchaseReceipt.quantite > 1 ? "s" : ""}
                 </dd>
@@ -412,8 +421,8 @@ export const AchatsView: React.FC<AchatsViewProps> = ({
 
               {showPrix && (
                 <div className="flex items-baseline justify-between gap-4 py-2.5 text-sm">
-                  <dt className="shrink-0 text-muted-foreground">Prix unitaire</dt>
-                  <dd className="text-right font-mono font-medium text-foreground">
+                  <dt className="shrink-0 text-slate-500">Prix unitaire</dt>
+                  <dd className="text-right font-mono font-medium text-slate-900">
                     {formatCurrency(selectedPurchaseReceipt.prixAchatUnit)}
                   </dd>
                 </div>
@@ -421,7 +430,7 @@ export const AchatsView: React.FC<AchatsViewProps> = ({
 
               {showPrix && (
                 <div className="flex items-baseline justify-between gap-4 py-2.5">
-                  <dt className="shrink-0 text-sm font-medium text-foreground">
+                  <dt className="shrink-0 text-sm font-medium text-slate-900">
                     Total décaissement
                   </dt>
                   <dd className="text-right font-mono text-base font-semibold text-foreground">
@@ -670,219 +679,281 @@ ${reportPurchases
               </div>
             </div>
 
-            {/* Printable Area */}
+            {/* ── Documents imprimables ──
+                Même grammaire que la facture de vente : identité à
+                gauche, référence du document à droite, encart de portée
+                sur fond très léger, tableau à filets fins. */}
             <div className="receipt-viewport flex items-start justify-start overflow-x-auto rounded-xl border border-border bg-background p-4">
               {isTicket ? (
+                /* ── Ticket ── */
                 <div
-                  className={`printable-receipt ${paper.pageClass} mx-auto min-w-0 w-full rounded-lg border border-slate-200 bg-white p-4 space-y-3 font-mono text-[11px] leading-relaxed text-slate-900 shadow-sm`}
+                  className={`printable-receipt ${paper.pageClass} mx-auto min-w-0 w-full rounded-lg border border-slate-200 bg-white p-4 font-mono leading-relaxed text-slate-900 shadow-sm ${paperId === "t58" ? "text-[10px]" : "text-[11px]"}`}
                   style={{ maxWidth: paper.previewWidth }}
                 >
-                  <div className="text-center space-y-1">
+                  <div className="space-y-0.5 text-center">
                     {settings?.logoUrl && (
                       <img
                         src={settings.logoUrl}
-                        alt="Logo"
-                        className="w-12 h-12 mx-auto mb-1 object-cover rounded-full"
+                        alt=""
+                        className="mx-auto mb-2 h-12 w-12 rounded object-contain"
                       />
                     )}
-                    <h2 className="font-bold text-sm tracking-wide text-slate-950 uppercase">
+                    <h2 className="text-[13px] font-bold uppercase tracking-wide text-slate-900">
                       {settings?.storeName || "BALSAMA AUTO GESTION"}
                     </h2>
-                    <p className="text-[10px] text-slate-600">
-                      Tél: {settings?.phone || "+261 34 12 345 67"}
+                    <p className="text-[10px] text-slate-500">
+                      Tél. {settings?.phone || "+261 34 12 345 67"}
                     </p>
                   </div>
 
-                  <div className="border-b border-dashed border-slate-400 my-2"></div>
+                  <div className="my-3 border-t border-dashed border-slate-300" />
 
-                  <div className="text-center space-y-1">
-                    <h3 className="font-bold text-xs uppercase border-y border-slate-300 py-1 text-slate-900">
-                      BILAN D'APPROVISIONNEMENT
-                    </h3>
+                  <p className="text-center text-[11px] font-bold uppercase tracking-wide text-slate-900">
+                    Journal des achats
+                  </p>
+
+                  <div className="my-3 border-t border-dashed border-slate-300" />
+
+                  <dl className="space-y-0.5 text-[10px]">
+                    <div className="flex justify-between gap-3">
+                      <dt className="text-slate-500">Période</dt>
+                      <dd className="min-w-0 text-right text-slate-900">{periodeLabel}</dd>
+                    </div>
                     {showFournisseur && (
-                      <p className="text-[10px] font-semibold text-slate-800">
-                        FOURNISSEUR :{" "}
-                        <span className="font-bold uppercase text-slate-950">
-                          {selectedReportSupplier === "all"
-                            ? "TOUS LES FOURNISSEURS"
-                            : selectedReportSupplier}
-                        </span>
-                      </p>
+                      <div className="flex justify-between gap-3">
+                        <dt className="text-slate-500">Fournisseur</dt>
+                        <dd className="min-w-0 text-right text-slate-900">
+                          {selectedReportSupplier === "all" ? "Tous" : selectedReportSupplier}
+                        </dd>
+                      </div>
                     )}
-                  </div>
+                    <div className="flex justify-between gap-3">
+                      <dt className="text-slate-500">Édité le</dt>
+                      <dd className="text-slate-900">{new Date().toLocaleDateString("fr-FR")}</dd>
+                    </div>
+                  </dl>
 
-                  <div className="border-b border-dashed border-slate-400 my-2"></div>
+                  <div className="my-3 border-t border-dashed border-slate-300" />
 
-                  <div className="space-y-1.5 text-[10px]">
+                  {reportPurchases.length === 0 ? (
+                    <p className="py-2 text-center text-[10px] italic text-slate-500">
+                      Aucun achat pour cette sélection.
+                    </p>
+                  ) : (
+                    <div className="space-y-2">
+                      {reportPurchases.map((p) => (
+                        <div key={p.id}>
+                          <p className="font-semibold text-slate-900">
+                            {getPurchaseLabel(p, products)}
+                          </p>
+                          <div className="flex justify-between gap-3 text-[10px] text-slate-600">
+                            <span>
+                              {p.quantite} unité{p.quantite > 1 ? "s" : ""}
+                              {showPrix ? ` × ${formatCurrency(p.prixAchatUnit)}` : ""}
+                            </span>
+                            {showPrix && (
+                              <span className="font-semibold text-slate-900">
+                                {formatCurrency(p.totalAchat)}
+                              </span>
+                            )}
+                          </div>
+                          <p className="text-[9px] text-slate-400">
+                            {[
+                              formatDateLocale(p.date, locale),
+                              products.find((prod) => prod.id === p.productId)?.numero,
+                              showFournisseur ? p.fournisseur || "Grossiste" : null,
+                            ]
+                              .filter(Boolean)
+                              .join(" · ")}
+                          </p>
+                        </div>
+                      ))}
+                    </div>
+                  )}
+
+                  <div className="my-3 border-t border-dashed border-slate-300" />
+
+                  <div className="space-y-1 text-[10px]">
                     {showPrix && (
-                      <div className="flex justify-between font-bold border-t border-slate-900 pt-1.5 text-slate-900">
-                        <span>TOTAL ACHATS :</span>
+                      <div className="flex justify-between gap-3 border-b border-slate-900 pb-1 text-[13px] font-bold text-slate-900">
+                        <span>TOTAL</span>
                         <span>{formatCurrency(reportTotalAmount)}</span>
                       </div>
                     )}
-                    <div className="flex justify-between text-slate-700 px-1">
-                      <span>RÉAPPROVISIONNEMENT :</span>
-                      <span className="font-bold">{reportTotalQty} unités</span>
+                    <div className="flex justify-between gap-3 pt-1 text-slate-600">
+                      <span>Réapprovisionnement</span>
+                      <span className="text-slate-900">{reportTotalQty} unités</span>
                     </div>
-                  </div>
-
-                  <div className="border-b border-dashed border-slate-400 my-2"></div>
-
-                  <div className="space-y-2">
-                    <p className="font-bold text-[10px] uppercase text-slate-700">
-                      Détail des achats :
-                    </p>
-                    {reportPurchases.length === 0 ? (
-                      <p className="text-[10px] text-muted-foreground italic text-center">
-                        Aucun achat pour cette sélection.
-                      </p>
-                    ) : (
-                      <table className="w-full text-[9px] text-left">
-                        <thead>
-                          <tr className="border-b border-slate-300 font-bold uppercase">
-                            <th className="py-1">Produit</th>
-                            <th className="py-1 text-center">Qté</th>
-                            {showPrix && <th className="py-1 text-right">Total</th>}
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-slate-200">
-                          {reportPurchases.map((p) => (
-                            <tr key={p.id}>
-                              <td className="py-1 pr-1">
-                               <span className="font-bold block text-slate-900">
-                                  {getPurchaseLabel(p, products)}
-                                </span>
-                                <span className="text-[8px] text-slate-600 block">
-                                  ID: {products.find((prod) => prod.id === p.productId)?.numero ||
-                                    p.productId}
-                                  {showFournisseur ? ` | ${p.fournisseur || "Grossiste"}` : ""}
-                                </span>
-                              </td>
-                              <td className="py-1 text-center font-semibold">{p.quantite}</td>
-                              {showPrix && (
-                                <td className="py-1 text-right font-bold text-slate-900">
-                                  {formatCurrency(p.totalAchat)}
-                                </td>
-                              )}
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    )}
-                  </div>
-
-                  <div className="border-b border-dashed border-slate-400 my-2"></div>
-                  <div className="text-center text-[9px] text-slate-600 italic">
-                    Émis le {new Date().toLocaleString()}
                   </div>
                 </div>
               ) : (
+                /* ── Journal A4 ── */
                 <div
-                  className={`printable-receipt ${paper.pageClass} mx-auto min-w-0 w-full rounded-lg border border-slate-200 bg-white p-8 space-y-6 font-sans text-xs text-slate-900 shadow-sm`}
+                  className={`printable-receipt ${paper.pageClass} mx-auto min-w-0 w-full rounded-lg border border-slate-200 bg-white font-sans text-xs text-slate-900 shadow-sm ${paperId === "a5" ? "p-6" : "p-8"}`}
                   style={{ maxWidth: paper.previewWidth }}
                 >
-                  <div className="flex flex-wrap items-start justify-between gap-4 border-b border-slate-200 pb-6">
-                    <div>
-                      <h1 className="text-lg font-black text-slate-900 uppercase">
-                        {settings?.storeName || "BALSAMA AUTO GESTION"}
-                      </h1>
-                      <p className="text-muted-foreground text-[11px]">
-                        Journal des Achats & Approvisionnements Stock
-                      </p>
-                    </div>
-                    <div className="text-right">
-                      <div className="inline-block bg-slate-900 text-white px-3 py-1 rounded font-bold text-xs uppercase">
-                        RELEVÉ D'ACHATS
+                  <header className="flex flex-wrap items-start justify-between gap-6 pb-6">
+                    <div className="min-w-0 space-y-2">
+                      {settings?.logoUrl && (
+                        <img
+                          src={settings.logoUrl}
+                          alt=""
+                          className="h-14 w-14 rounded object-contain"
+                        />
+                      )}
+                      <div className="space-y-0.5">
+                        <p className="text-base font-bold uppercase tracking-tight text-slate-900">
+                          {settings?.storeName || "BALSAMA AUTO GESTION"}
+                        </p>
+                        {settings?.address && (
+                          <p className="text-[11px] text-slate-500">{settings.address}</p>
+                        )}
+                        {settings?.phone && (
+                          <p className="text-[11px] text-slate-500">Tél. {settings.phone}</p>
+                        )}
                       </div>
-                      <p className="text-[10px] text-muted-foreground mt-1">
-                        Édité le {new Date().toLocaleDateString()}
-                      </p>
                     </div>
-                  </div>
 
-                  <div className="grid grid-cols-3 gap-4 bg-slate-50 p-4 rounded-xl border border-slate-200">
-                    {showFournisseur && (
-                      <div>
-                        <span className="text-[10px] uppercase font-bold text-muted-foreground block">
-                          Fournisseur :
-                        </span>
-                        <span className="font-black text-slate-900 text-sm">
-                          {selectedReportSupplier === "all"
-                            ? "TOUS LES FOURNISSEURS"
-                            : selectedReportSupplier}
-                        </span>
-                      </div>
-                    )}
-                    <div>
-                      <span className="text-[10px] uppercase font-bold text-muted-foreground block">
-                        Qté Réapprovisionnée :
-                      </span>
-                      <span className="font-bold text-slate-900 text-sm font-mono">
+                    <div className="min-w-0 space-y-1 sm:text-right">
+                      <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-slate-400">
+                        Journal des achats
+                      </p>
+                      <p className="text-lg font-bold tracking-tight text-slate-900">
+                        {periodeLabel}
+                      </p>
+                      <dl className="space-y-0.5 pt-1 text-[11px] text-slate-500">
+                        <div className="flex gap-2 sm:justify-end">
+                          <dt>Édité le</dt>
+                          <dd className="font-medium text-slate-700">
+                            {new Date().toLocaleDateString("fr-FR")}
+                          </dd>
+                        </div>
+                        {showFournisseur && (
+                          <div className="flex gap-2 sm:justify-end">
+                            <dt>Fournisseur</dt>
+                            <dd className="font-medium text-slate-700">
+                              {selectedReportSupplier === "all"
+                                ? "Tous les fournisseurs"
+                                : selectedReportSupplier}
+                            </dd>
+                          </div>
+                        )}
+                      </dl>
+                    </div>
+                  </header>
+
+                  <section className="flex flex-wrap items-start justify-between gap-4 rounded-lg border border-slate-200 bg-slate-50 px-4 py-3">
+                    <div className="min-w-0">
+                      <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">
+                        Réapprovisionnement
+                      </p>
+                      <p className="mt-0.5 font-mono text-sm font-semibold tabular-nums text-slate-900">
                         {reportTotalQty} unités
-                      </span>
+                      </p>
+                    </div>
+                    <div className="min-w-0">
+                      <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">
+                        Mouvements
+                      </p>
+                      <p className="mt-0.5 font-mono text-sm font-semibold tabular-nums text-slate-900">
+                        {reportPurchases.length}
+                      </p>
                     </div>
                     {showPrix && (
-                      <div className="text-right">
-                        <span className="text-[10px] uppercase font-bold text-muted-foreground block">
-                          Total Décaissements :
-                        </span>
-                        <span className="font-bold text-slate-900 text-sm font-mono">
+                      <div className="min-w-0 sm:text-right">
+                        <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">
+                          Total décaissé
+                        </p>
+                        <p className="mt-0.5 font-mono text-sm font-semibold tabular-nums text-slate-900">
                           {formatCurrency(reportTotalAmount)}
-                        </span>
+                        </p>
                       </div>
                     )}
-                  </div>
+                  </section>
 
-                  <table className="w-full text-left border-collapse text-xs">
+                  <table className="w-full border-collapse text-left text-[11px]">
                     <thead>
-                      <tr className="bg-slate-100 text-slate-700 font-bold uppercase text-[10px] border-y border-slate-300">
-                        <th className="p-2">Date</th>
-                        <th className="p-2">Code</th>
-                        <th className="p-2">Désignation</th>
-                        <th className="p-2 text-center">Qté</th>
-                        {showPrix && <th className="p-2 text-right">Prix Unit.</th>}
-                        {showPrix && <th className="p-2 text-right">Total</th>}
-                        {showFournisseur && <th className="p-2">Fournisseur</th>}
+                      <tr className="border-b border-slate-300 text-[10px] font-semibold uppercase tracking-wider text-slate-500">
+                        <th className="py-2 pr-3 font-semibold">Date</th>
+                        <th className="py-2 px-2 font-semibold">Désignation</th>
+                        <th className="py-2 px-2 text-center font-semibold">Qté</th>
+                        {showPrix && (
+                          <th className="py-2 px-2 text-right font-semibold">Prix unit.</th>
+                        )}
+                        {showPrix && <th className="py-2 pl-2 text-right font-semibold">Total</th>}
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-slate-200">
+                    <tbody>
                       {reportPurchases.length === 0 ? (
                         <tr>
                           <td
-                            colSpan={4 + (showPrix ? 2 : 0) + (showFournisseur ? 1 : 0)}
-                            className="p-4 text-center text-muted-foreground italic"
+                            colSpan={3 + (showPrix ? 2 : 0)}
+                            className="py-6 text-center italic text-slate-500"
                           >
-                            Aucun achat enregistré.
+                            Aucun achat enregistré sur cette période.
                           </td>
                         </tr>
                       ) : (
-                        reportPurchases.map((p) => (
-                          <tr key={p.id}>
-                            <td className="p-2 font-mono text-muted-foreground">{p.date}</td>
-                            <td className="p-2 font-mono font-medium text-slate-700">
-                              {products.find((prod) => prod.id === p.productId)?.numero ||
-                                p.productId}
+                        reportPurchases.map((p, i) => (
+                          <tr
+                            key={p.id}
+                            className={`border-b border-slate-100 ${i % 2 === 1 ? "bg-slate-50/70" : ""}`}
+                          >
+                            <td className="py-2.5 pr-3 font-mono tabular-nums text-slate-500">
+                              {formatDateLocale(p.date, locale)}
                             </td>
-                            <td className="p-2 font-bold text-slate-900">{getPurchaseLabel(p, products)}</td>
-                            <td className="p-2 text-center font-bold">{p.quantite}</td>
+                            <td className="px-2 py-2.5">
+                              <span className="font-medium text-slate-900">
+                                {getPurchaseLabel(p, products)}
+                              </span>
+                              <span className="mt-0.5 block font-mono text-[10px] text-slate-400">
+                                {[
+                                  products.find((prod) => prod.id === p.productId)?.numero,
+                                  showFournisseur ? p.fournisseur || "Grossiste" : null,
+                                ]
+                                  .filter(Boolean)
+                                  .join(" · ")}
+                              </span>
+                            </td>
+                            <td className="px-2 py-2.5 text-center tabular-nums text-slate-700">
+                              {p.quantite}
+                            </td>
                             {showPrix && (
-                              <td className="p-2 text-right font-mono text-slate-600">
+                              <td className="px-2 py-2.5 text-right font-mono tabular-nums text-slate-700">
                                 {formatCurrency(p.prixAchatUnit)}
                               </td>
                             )}
                             {showPrix && (
-                              <td className="p-2 text-right font-bold text-slate-900 font-mono">
+                              <td className="py-2.5 pl-2 text-right font-mono font-medium tabular-nums text-slate-900">
                                 {formatCurrency(p.totalAchat)}
                               </td>
-                            )}
-                            {showFournisseur && (
-                              <td className="p-2 text-slate-600">{p.fournisseur || "-"}</td>
                             )}
                           </tr>
                         ))
                       )}
                     </tbody>
                   </table>
+
+                  {showPrix && reportPurchases.length > 0 && (
+                    <div className="flex justify-end">
+                      <dl className="w-full max-w-[16rem] space-y-1.5 text-[11px]">
+                        <div className="flex justify-between gap-4 text-slate-500">
+                          <dt>Mouvements</dt>
+                          <dd className="font-mono tabular-nums text-slate-700">
+                            {reportPurchases.length}
+                          </dd>
+                        </div>
+                        <div className="flex justify-between gap-4 border-t-2 border-slate-900 pt-2">
+                          <dt className="text-[11px] font-bold uppercase tracking-wider text-slate-900">
+                            Total décaissé
+                          </dt>
+                          <dd className="font-mono text-base font-bold tabular-nums text-slate-900">
+                            {formatCurrency(reportTotalAmount)}
+                          </dd>
+                        </div>
+                      </dl>
+                    </div>
+                  )}
                 </div>
               )}
             </div>
