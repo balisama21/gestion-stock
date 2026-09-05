@@ -411,19 +411,56 @@ td {
   @page {
     margin: 12mm;
   }
-  @page facture {
+
+  /* Un format de papier par famille d'imprimante. La hauteur des
+     rouleaux thermiques est laissée à `auto` : le pilote coupe au bout
+     du contenu, ce qu'aucune hauteur fixe ne saurait faire sans
+     gaspiller du papier ni tronquer le ticket. Les marges d'un rouleau
+     sont réduites au minimum — sur 58 mm de large, 12 mm de marge
+     mangeraient plus de 40 % de la surface utile. */
+  @page a4 {
     size: A4;
     margin: 12mm;
   }
-  @page ticket {
-    size: auto;
-    margin: 6mm;
+  @page a5 {
+    size: A5;
+    margin: 10mm;
   }
+  @page letter {
+    size: Letter;
+    margin: 12mm;
+  }
+  @page t80 {
+    size: 80mm auto;
+    margin: 3mm;
+  }
+  @page t58 {
+    size: 58mm auto;
+    margin: 2mm;
+  }
+
+  .paper-a4 {
+    page: a4;
+  }
+  .paper-a5 {
+    page: a5;
+  }
+  .paper-letter {
+    page: letter;
+  }
+  .paper-t80 {
+    page: t80;
+  }
+  .paper-t58 {
+    page: t58;
+  }
+
+  /* Les journaux d'Achats, de Dépenses et de Vendeurs n'ont pas encore de
+     sélecteur de format : leurs bilans sont des documents A4, et leurs
+     tickets restent sur le papier choisi dans la boîte de dialogue.
+     `.printable-ticket` ne porte donc volontairement aucune page nommée. */
   .printable-invoice {
-    page: facture;
-  }
-  .printable-ticket {
-    page: ticket;
+    page: a4;
   }
 
   html,

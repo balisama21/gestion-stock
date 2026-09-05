@@ -32,6 +32,12 @@ import { DataList } from "./shared/DataList";
 import { StatBar, StatCol } from "./shared/StatBar";
 import { Modal } from "./shared/Modal";
 import { useInvoicePrefs } from "../lib/invoicePrefs";
+import {
+  PAPER_FORMATS,
+  getPaperFormat,
+  paperFromLegacyFormat,
+  type PaperFormatId,
+} from "../lib/paperFormats";
 
 interface VentesViewProps {
   sales: Sale[];
@@ -109,16 +115,25 @@ export const VentesView: React.FC<VentesViewProps> = ({
    * facture, `defaultFormat` compris.
    */
   const [invoicePrefs] = useInvoicePrefs();
-  const [receiptMode, setReceiptMode] = useState<"ticket" | "facture">(
-    invoicePrefs.defaultFormat,
+
+  /**
+   * Format de papier du document. Il détermine trois choses d'un coup :
+   * la disposition (facture tabulaire ou ticket en pleine largeur), la
+   * largeur exacte de l'aperçu, et le format que la boîte d'impression
+   * proposera — donc aussi celui du PDF si l'utilisateur enregistre.
+   */
+  const [paperId, setPaperId] = useState<PaperFormatId>(
+    paperFromLegacyFormat(invoicePrefs.defaultFormat),
   );
+  const paper = getPaperFormat(paperId);
+  const receiptMode = paper.layout === "invoice" ? "facture" : "ticket";
 
   // Le format par défaut est lu depuis le stockage local après le premier
   // rendu : on aligne l'état une fois qu'il est connu, tant qu'aucun reçu
   // n'est ouvert pour ne pas changer le format sous les yeux de
   // l'utilisateur.
   useEffect(() => {
-    if (!selectedReceiptSale) setReceiptMode(invoicePrefs.defaultFormat);
+    if (!selectedReceiptSale) setPaperId(paperFromLegacyFormat(invoicePrefs.defaultFormat));
   }, [invoicePrefs.defaultFormat, selectedReceiptSale]);
 
   /**
@@ -850,35 +865,24 @@ export const VentesView: React.FC<VentesViewProps> = ({
           size="2xl"
           icon={<Receipt className="w-4 h-4" />}
           title={receiptMode === "facture" ? "Facture" : "Reçu de caisse"}
-          description={`N° ${selectedReceiptSale.numero}`}
+          description={`N° ${selectedReceiptSale.numero} · ${paper.label}`}
           bodyClassName="space-y-4"
           headerAside={
-            <div className="flex items-center gap-1 rounded-xl border border-border bg-muted p-1">
-              <button
-                onClick={() => setReceiptMode("ticket")}
-                aria-pressed={receiptMode === "ticket"}
-                className={`flex items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-semibold transition-colors ${
-                  receiptMode === "ticket"
-                    ? "bg-card text-foreground shadow-sm"
-                    : "text-muted-foreground hover:text-foreground"
-                }`}
+            <label className="flex items-center gap-2">
+              <span className="sr-only">Format du papier</span>
+              <select
+                value={paperId}
+                onChange={(e) => setPaperId(e.target.value as PaperFormatId)}
+                className="app-field-sm w-auto min-w-[9.5rem]"
+                title="Format de papier — détermine aussi le format du PDF enregistré"
               >
-                <Receipt className="w-3.5 h-3.5" />
-                Ticket
-              </button>
-              <button
-                onClick={() => setReceiptMode("facture")}
-                aria-pressed={receiptMode === "facture"}
-                className={`flex items-center gap-1.5 rounded-lg px-3 py-2 text-xs font-semibold transition-colors ${
-                  receiptMode === "facture"
-                    ? "bg-card text-foreground shadow-sm"
-                    : "text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                <FileText className="w-3.5 h-3.5" />
-                Facture A4
-              </button>
-            </div>
+                {PAPER_FORMATS.map((f) => (
+                  <option key={f.id} value={f.id}>
+                    {f.label}
+                  </option>
+                ))}
+              </select>
+            </label>
           }
           footer={
             <>
@@ -887,7 +891,7 @@ export const VentesView: React.FC<VentesViewProps> = ({
                   className="app-btn-primary"
                 >
                   <Printer className="w-4 h-4" />
-                  Imprimer
+                  Imprimer / PDF
                 </button>
                 <button
                   onClick={() => {
@@ -929,7 +933,7 @@ ${settings?.receiptFooter || "Merci pour votre confiance ! Ni repris, ni échang
                   title="Télécharger un résumé au format texte"
                 >
                   <Download className="w-4 h-4" />
-                  Télécharger (.txt)
+                  Résumé (.txt)
                 </button>
             </>
           }
@@ -942,10 +946,21 @@ ${settings?.receiptFooter || "Merci pour votre confiance ! Ni repris, ni échang
 
                 Le fond de l'aperçu est blanc, comme le papier : ce qui
                 s'affiche est exactement ce qui s'imprime. */}
+            {/* Le format choisi pilote la page nommée : la boîte
+                d'impression s'ouvre déjà calée dessus, et « Enregistrer au
+                format PDF » produit donc un PDF exactement à ce format. */}
+            <p className="no-print text-xs text-muted-foreground">
+              {paper.hint} · Pour un PDF, choisissez « Enregistrer au format PDF » dans la boîte
+              d'impression : le fichier sortira exactement à ce format.
+            </p>
+
             <div className="receipt-viewport flex items-start justify-start overflow-x-auto rounded-xl border border-border bg-background p-4">
               {receiptMode === "ticket" ? (
                 /* ── Reçu de caisse ── */
-                <div className="printable-receipt printable-ticket mx-auto min-w-0 w-full max-w-[340px] rounded-lg border border-slate-200 bg-white p-5 font-mono text-[11px] leading-relaxed text-slate-900 shadow-sm">
+                <div
+                  className={`printable-receipt ${paper.pageClass} mx-auto min-w-0 w-full rounded-lg border border-slate-200 bg-white p-4 font-mono leading-relaxed text-slate-900 shadow-sm ${paperId === "t58" ? "text-[10px]" : "text-[11px]"}`}
+                  style={{ maxWidth: paper.previewWidth }}
+                >
                   {/* En-tête boutique */}
                   <div className="space-y-0.5 text-center">
                     {invoicePrefs.showLogo && settings?.logoUrl && (
@@ -1070,7 +1085,10 @@ ${settings?.receiptFooter || "Merci pour votre confiance ! Ni repris, ni échang
                 </div>
               ) : (
                 /* ── Facture A4 ── */
-                <div className="printable-receipt printable-invoice mx-auto min-w-0 w-full max-w-xl rounded-lg border border-slate-200 bg-white p-8 font-sans text-xs text-slate-900 shadow-sm">
+                <div
+                  className={`printable-receipt ${paper.pageClass} mx-auto min-w-0 w-full rounded-lg border border-slate-200 bg-white font-sans text-xs text-slate-900 shadow-sm ${paperId === "a5" ? "p-6" : "p-8"}`}
+                  style={{ maxWidth: paper.previewWidth }}
+                >
                   {/* En-tête : identité à gauche, référence du document à
                       droite. `flex-wrap` pour que le second bloc passe
                       dessous plutôt que de se serrer sur écran étroit. */}
