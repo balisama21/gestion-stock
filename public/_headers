@@ -1,0 +1,25 @@
+# En-têtes appliqués par Netlify aux fichiers publiés.
+#
+# Fichier de configuration à part entière côté hébergeur, mais posé ici
+# plutôt que dans un netlify.toml : il est simplement copié dans le
+# dossier publié et n'a donc aucune influence sur la compilation ni sur
+# le serveur de développement.
+
+# Netlify ne connaît pas l'extension .webmanifest et sert le fichier en
+# application/octet-stream. Les navigateurs l'acceptent en pratique, mais
+# ce n'est pas le type que la spécification prévoit, et les outils
+# d'audit le signalent.
+/manifest.webmanifest
+  Content-Type: application/manifest+json; charset=utf-8
+
+# Le service worker ne doit jamais être servi depuis un cache : c'est lui
+# qui porte la logique de mise à jour. Figé, il empêcherait toute version
+# ultérieure de prendre la main — le navigateur continuerait indéfiniment
+# d'exécuter l'ancien.
+/sw.js
+  Cache-Control: no-cache, no-store, must-revalidate
+
+# Les fichiers d'assets portent une empreinte dans leur nom : un contenu
+# modifié change de nom. Ils peuvent donc être gardés indéfiniment.
+/assets/*
+  Cache-Control: public, max-age=31536000, immutable
