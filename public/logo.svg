@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Tantana Suite">
+  <rect width="512" height="512" rx="112.64" fill="#008647"/>
+  <g fill="#ffffff">
+    <rect x="112.64" y="112.64" width="286.72" height="63.08" rx="15.77"/>
+    <rect x="224.46" y="112.64" width="63.08" height="286.72" rx="15.77"/>
+  </g>
+</svg>
