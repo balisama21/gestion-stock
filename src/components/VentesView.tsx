@@ -32,6 +32,7 @@ import { DataList } from "./shared/DataList";
 import { StatBar, StatCol } from "./shared/StatBar";
 import { Modal } from "./shared/Modal";
 import { useInvoicePrefs } from "../lib/invoicePrefs";
+import { telechargerPdf } from "../lib/documentPdf";
 import {
   PAPER_FORMATS,
   getPaperFormat,
@@ -155,6 +156,87 @@ export const VentesView: React.FC<VentesViewProps> = ({
       },
     ];
   }, [selectedReceiptSale, products]);
+
+  const [pdfEnCours, setPdfEnCours] = useState(false);
+  const [pdfErreur, setPdfErreur] = useState<string | null>(null);
+
+  /**
+   * Le PDF est composé à partir des mêmes valeurs que le document à
+   * l'écran — mêmes lignes, mêmes préférences d'impression. Seule la
+   * mise en page diffère, jsPDF ne sachant pas rendre du HTML.
+   */
+  const telecharger = async () => {
+    if (!selectedReceiptSale || pdfEnCours) return;
+    setPdfEnCours(true);
+    setPdfErreur(null);
+    try {
+      await telechargerPdf(
+        {
+          fileName: `${receiptMode === "facture" ? "Facture" : "Recu"}_${selectedReceiptSale.numero}`,
+          boutique: {
+            nom: settings?.storeName || "BALSAMA AUTO GESTION",
+            sousTitre: settings?.subtitle,
+            adresse: invoicePrefs.showAddress ? settings?.address : undefined,
+            telephone: invoicePrefs.showPhone ? settings?.phone : undefined,
+            email: invoicePrefs.showEmail ? settings?.email : undefined,
+            nifStat: invoicePrefs.showNif ? settings?.nifStat : undefined,
+          },
+          intitule: receiptMode === "facture" ? "Facture" : "Reçu de caisse",
+          reference: selectedReceiptSale.numero,
+          meta: [
+            { label: "Émise le", value: formatDateLocale(selectedReceiptSale.date, locale) },
+            ...(invoicePrefs.showSeller
+              ? [{ label: "Vendeur", value: selectedReceiptSale.vendeur }]
+              : []),
+          ],
+          portee: [
+            {
+              label: "Facturé à",
+              value: selectedReceiptSale.clientCredit || "Client comptoir",
+            },
+            { label: "Statut", value: selectedReceiptSale.statutCredit },
+          ],
+          colonnes: [
+            { key: "designation", label: "Désignation", part: 46 },
+            { key: "quantite", label: "Qté", align: "center", part: 12 },
+            { key: "prix", label: "Prix unitaire", align: "right", part: 21 },
+            { key: "total", label: "Total", align: "right", part: 21 },
+          ],
+          lignes: lignesDocument.map((l) => ({
+            cells: {
+              designation: l.designation,
+              quantite: String(l.quantite),
+              prix: formatCurrency(l.prixUnitaire),
+              total: formatCurrency(l.total),
+            },
+            hint: l.reference ?? undefined,
+          })),
+          totaux: [
+            { label: "Total", value: formatCurrency(selectedReceiptSale.totalVente) },
+            { label: "Montant encaissé", value: formatCurrency(selectedReceiptSale.montantPaye) },
+            {
+              label: "Net à payer",
+              value: formatCurrency(selectedReceiptSale.soldeDu),
+              fort: true,
+            },
+          ],
+          pied: invoicePrefs.showFooter
+            ? {
+                titre: "Conditions de vente",
+                texte:
+                  settings?.receiptFooter ||
+                  "Merci pour votre confiance ! Ni repris, ni échangé après 48h.",
+              }
+            : undefined,
+        },
+        paper,
+      );
+    } catch (err) {
+      setPdfErreur(err instanceof Error ? err.message : "Le PDF n'a pas pu être créé.");
+    } finally {
+      setPdfEnCours(false);
+    }
+  };
 
   // Seule couleur du document : le statut de règlement, où elle informe.
   const badgeStatut =
@@ -886,12 +968,18 @@ export const VentesView: React.FC<VentesViewProps> = ({
           }
           footer={
             <>
-              <button
-                  onClick={() => window.print()}
-                  className="app-btn-primary"
-                >
+              <button onClick={() => window.print()} className="app-btn-secondary">
                   <Printer className="w-4 h-4" />
-                  Imprimer / PDF
+                  Imprimer
+                </button>
+                <button
+                  onClick={telecharger}
+                  disabled={pdfEnCours}
+                  className="app-btn-primary"
+                  title={`Télécharger le PDF au format ${paper.label}`}
+                >
+                  <Download className="w-4 h-4" />
+                  {pdfEnCours ? "Création..." : "Télécharger le PDF"}
                 </button>
                 <button
                   onClick={() => {
@@ -953,6 +1041,12 @@ ${settings?.receiptFooter || "Merci pour votre confiance ! Ni repris, ni échang
               {paper.hint} · Pour un PDF, choisissez « Enregistrer au format PDF » dans la boîte
               d'impression : le fichier sortira exactement à ce format.
             </p>
+
+            {pdfErreur && (
+              <p className="no-print rounded-xl border border-danger-border bg-danger-soft px-3 py-2.5 text-sm t-danger">
+                {pdfErreur}
+              </p>
+            )}
 
             <div className="receipt-viewport flex items-start justify-start overflow-x-auto rounded-xl border border-border bg-background p-4">
               {receiptMode === "ticket" ? (
