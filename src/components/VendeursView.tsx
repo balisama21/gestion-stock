@@ -823,7 +823,7 @@ SOLDE NET EN CAISSE VENDEUR: ${formatCurrency(reportStats.soldeNetCaisse)}
 
                   {/* Header Title & Metadata */}
                   <div className="text-center space-y-1">
-                    <h3 className="font-bold text-xs uppercase bg-amber-200 py-0.5 rounded text-amber-950">
+                    <h3 className="font-bold text-xs uppercase border-y border-slate-300 py-1 text-slate-900">
                       RELEVÉ D'ACTIVITÉ VENDEUR
                     </h3>
                     <p className="text-[10px] font-semibold text-slate-800">
@@ -848,12 +848,12 @@ SOLDE NET EN CAISSE VENDEUR: ${formatCurrency(reportStats.soldeNetCaisse)}
 
                   {/* KPI Highlights for Seller */}
                   <div className="space-y-1.5 text-[10px]">
-                    <div className="flex justify-between bg-amber-100 p-1 rounded font-bold text-slate-900">
+                    <div className="flex justify-between border-t border-slate-900 pt-1 font-bold text-slate-900">
                       <span>CA DU JOUR ({todayStr}) :</span>
                       <span>{formatCurrency(reportStats.caJour)}</span>
                     </div>
 
-                    <div className="flex justify-between bg-amber-100 p-1 rounded font-bold text-slate-900">
+                    <div className="flex justify-between border-t border-slate-900 pt-1 font-bold text-slate-900">
                       <span>CA DU MOIS ({currentMonthStr}) :</span>
                       <span>{formatCurrency(reportStats.caMois)}</span>
                     </div>
@@ -867,24 +867,24 @@ SOLDE NET EN CAISSE VENDEUR: ${formatCurrency(reportStats.soldeNetCaisse)}
                       </span>
                     </div>
 
-                    <div className="flex justify-between text-emerald-800">
+                    <div className="flex justify-between text-slate-600">
                       <span>Total Encaissé (Espèces) :</span>
                       <span className="font-bold">{formatCurrency(reportStats.totalEncaisse)}</span>
                     </div>
 
                     {reportStats.totalSoldeDu > 0 && (
-                      <div className="flex justify-between text-amber-900 font-semibold">
+                      <div className="flex justify-between text-slate-700 font-semibold">
                         <span>Crédits / Solde Dû :</span>
                         <span>{formatCurrency(reportStats.totalSoldeDu)}</span>
                       </div>
                     )}
 
-                    <div className="flex justify-between text-rose-800 font-semibold">
+                    <div className="flex justify-between text-slate-700 font-semibold">
                       <span>Dépenses / Retraits :</span>
                       <span>- {formatCurrency(reportStats.totalDepenses)}</span>
                     </div>
 
-                    <div className="flex justify-between text-emerald-900 font-bold border-t border-slate-400 pt-1 text-xs">
+                    <div className="flex justify-between text-slate-900 font-bold border-t border-slate-400 pt-1 text-xs">
                       <span>SOLDE NET EN POCHE :</span>
                       <span>{formatCurrency(reportStats.soldeNetCaisse)}</span>
                     </div>
@@ -1005,7 +1005,7 @@ SOLDE NET EN CAISSE VENDEUR: ${formatCurrency(reportStats.soldeNetCaisse)}
                       <span className="text-[10px] uppercase font-bold text-muted-foreground block tracking-wider">
                         Période Observée :
                       </span>
-                      <span className="inline-block px-3 py-1 bg-emerald-100 text-emerald-900 font-bold rounded-lg text-xs">
+                      <span className="inline-block px-3 py-1 bg-slate-100 text-slate-900 font-semibold rounded-lg text-xs">
                         {selectedPeriod === "today"
                           ? "Aujourd'hui (" + todayStr + ")"
                           : selectedPeriod === "month"
@@ -1017,38 +1017,38 @@ SOLDE NET EN CAISSE VENDEUR: ${formatCurrency(reportStats.soldeNetCaisse)}
 
                   {/* KPI Cards Grid */}
                   <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
-                    <div className="bg-blue-50 border border-blue-200 p-3 rounded-xl">
-                      <span className="text-[9px] uppercase font-bold text-blue-600 block">
+                    <div className="bg-slate-50 border border-slate-200 p-3 rounded-xl">
+                      <span className="text-[9px] uppercase font-semibold text-slate-500 block">
                         CA du Jour ({todayStr})
                       </span>
-                      <span className="text-sm font-black text-blue-900 font-mono">
+                      <span className="text-sm font-bold text-slate-900 font-mono">
                         {formatCurrency(reportStats.caJour)}
                       </span>
                     </div>
 
-                    <div className="bg-blue-50 border border-blue-200 p-3 rounded-xl">
-                      <span className="text-[9px] uppercase font-bold text-blue-600 block">
+                    <div className="bg-slate-50 border border-slate-200 p-3 rounded-xl">
+                      <span className="text-[9px] uppercase font-semibold text-slate-500 block">
                         CA du Mois ({currentMonthStr})
                       </span>
-                      <span className="text-sm font-black text-blue-900 font-mono">
+                      <span className="text-sm font-bold text-slate-900 font-mono">
                         {formatCurrency(reportStats.caMois)}
                       </span>
                     </div>
 
-                    <div className="bg-rose-50 border border-rose-200 p-3 rounded-xl">
-                      <span className="text-[9px] uppercase font-bold text-rose-600 block">
+                    <div className="bg-slate-50 border border-slate-200 p-3 rounded-xl">
+                      <span className="text-[9px] uppercase font-semibold text-slate-500 block">
                         Dépenses / Retraits
                       </span>
-                      <span className="text-sm font-black text-rose-900 font-mono">
+                      <span className="text-sm font-bold text-slate-900 font-mono">
                         - {formatCurrency(reportStats.totalDepenses)}
                       </span>
                     </div>
 
-                    <div className="bg-emerald-100 border border-emerald-300 p-3 rounded-xl">
-                      <span className="text-[9px] uppercase font-bold text-emerald-800 block">
+                    <div className="bg-slate-50 border border-slate-300 p-3 rounded-xl">
+                      <span className="text-[9px] uppercase font-semibold text-slate-500 block">
                         Solde Net en Poche
                       </span>
-                      <span className="text-sm font-black text-emerald-950 font-mono">
+                      <span className="text-sm font-bold text-slate-900 font-mono">
                         {formatCurrency(reportStats.soldeNetCaisse)}
                       </span>
                     </div>
@@ -1097,7 +1097,7 @@ SOLDE NET EN CAISSE VENDEUR: ${formatCurrency(reportStats.soldeNetCaisse)}
                               <td className="p-2 text-right font-bold text-slate-900">
                                 {formatCurrency(s.totalVente)}
                               </td>
-                              <td className="p-2 text-right font-bold text-emerald-700">
+                              <td className="p-2 text-right font-medium text-slate-900">
                                 {formatCurrency(s.montantPaye)}
                               </td>
                             </tr>

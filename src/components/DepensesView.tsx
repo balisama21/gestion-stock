@@ -451,7 +451,7 @@ ${reportExpenses
                   <div className="border-b border-dashed border-slate-400 my-2"></div>
 
                   <div className="text-center space-y-1">
-                    <h3 className="font-bold text-xs uppercase bg-rose-200 py-0.5 rounded text-rose-950">
+                    <h3 className="font-bold text-xs uppercase border-y border-slate-300 py-1 text-slate-900">
                       JOURNAL DES DÉPENSES
                     </h3>
                     <p className="text-[10px] font-semibold text-slate-800">
@@ -467,7 +467,7 @@ ${reportExpenses
                   <div className="border-b border-dashed border-slate-400 my-2"></div>
 
                   <div className="space-y-1.5 text-[10px]">
-                    <div className="flex justify-between font-bold text-rose-900 bg-rose-100 p-1.5 rounded">
+                    <div className="flex justify-between font-bold border-t border-slate-900 pt-1.5 text-slate-900">
                       <span>TOTAL DÉPENSES :</span>
                       <span>{formatCurrency(reportTotalAmount)}</span>
                     </div>
@@ -503,7 +503,7 @@ ${reportExpenses
                                   {e.type} - {e.note || "Sans note"}
                                 </span>
                               </td>
-                              <td className="py-1 text-right font-bold text-rose-900">
+                              <td className="py-1 text-right font-bold text-slate-900">
                                 {formatCurrency(e.montant)}
                               </td>
                             </tr>
@@ -533,7 +533,7 @@ ${reportExpenses
                       </p>
                     </div>
                     <div className="text-right">
-                      <div className="inline-block bg-rose-600 text-white px-3 py-1 rounded font-bold text-xs uppercase">
+                      <div className="inline-block bg-slate-900 text-white px-3 py-1 rounded font-bold text-xs uppercase">
                         RELEVÉ DÉPENSES
                       </div>
                       <p className="text-[10px] text-muted-foreground mt-1">
@@ -557,7 +557,7 @@ ${reportExpenses
                       <span className="text-[10px] uppercase font-bold text-muted-foreground block">
                         Total Période :
                       </span>
-                      <span className="font-black text-rose-600 text-sm font-mono">
+                      <span className="font-bold text-slate-900 text-sm font-mono">
                         {formatCurrency(reportTotalAmount)}
                       </span>
                     </div>
@@ -587,7 +587,7 @@ ${reportExpenses
                             <td className="p-2 font-bold text-slate-900">{e.vendeur}</td>
                             <td className="p-2">{e.type}</td>
                             <td className="p-2 text-slate-600">{e.note || "-"}</td>
-                            <td className="p-2 text-right font-bold text-rose-600 font-mono">
+                            <td className="p-2 text-right font-medium text-slate-900 font-mono">
                               {formatCurrency(e.montant)}
                             </td>
                           </tr>

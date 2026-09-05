@@ -696,7 +696,7 @@ ${reportPurchases
                   <div className="border-b border-dashed border-slate-400 my-2"></div>
 
                   <div className="text-center space-y-1">
-                    <h3 className="font-bold text-xs uppercase bg-emerald-200 py-0.5 rounded text-emerald-950">
+                    <h3 className="font-bold text-xs uppercase border-y border-slate-300 py-1 text-slate-900">
                       BILAN D'APPROVISIONNEMENT
                     </h3>
                     {showFournisseur && (
@@ -715,7 +715,7 @@ ${reportPurchases
 
                   <div className="space-y-1.5 text-[10px]">
                     {showPrix && (
-                      <div className="flex justify-between font-bold text-emerald-900 bg-emerald-100 p-1.5 rounded">
+                      <div className="flex justify-between font-bold border-t border-slate-900 pt-1.5 text-slate-900">
                         <span>TOTAL ACHATS :</span>
                         <span>{formatCurrency(reportTotalAmount)}</span>
                       </div>
@@ -749,7 +749,7 @@ ${reportPurchases
                           {reportPurchases.map((p) => (
                             <tr key={p.id}>
                               <td className="py-1 pr-1">
-                               <span className="font-bold block text-emerald-950">
+                               <span className="font-bold block text-slate-900">
                                   {getPurchaseLabel(p, products)}
                                 </span>
                                 <span className="text-[8px] text-slate-600 block">
@@ -760,7 +760,7 @@ ${reportPurchases
                               </td>
                               <td className="py-1 text-center font-semibold">{p.quantite}</td>
                               {showPrix && (
-                                <td className="py-1 text-right font-bold text-emerald-900">
+                                <td className="py-1 text-right font-bold text-slate-900">
                                   {formatCurrency(p.totalAchat)}
                                 </td>
                               )}
@@ -791,7 +791,7 @@ ${reportPurchases
                       </p>
                     </div>
                     <div className="text-right">
-                      <div className="inline-block bg-emerald-600 text-white px-3 py-1 rounded font-bold text-xs uppercase">
+                      <div className="inline-block bg-slate-900 text-white px-3 py-1 rounded font-bold text-xs uppercase">
                         RELEVÉ D'ACHATS
                       </div>
                       <p className="text-[10px] text-muted-foreground mt-1">
@@ -817,7 +817,7 @@ ${reportPurchases
                       <span className="text-[10px] uppercase font-bold text-muted-foreground block">
                         Qté Réapprovisionnée :
                       </span>
-                      <span className="font-black text-emerald-600 text-sm font-mono">
+                      <span className="font-bold text-slate-900 text-sm font-mono">
                         {reportTotalQty} unités
                       </span>
                     </div>
@@ -826,7 +826,7 @@ ${reportPurchases
                         <span className="text-[10px] uppercase font-bold text-muted-foreground block">
                           Total Décaissements :
                         </span>
-                        <span className="font-black text-rose-600 text-sm font-mono">
+                        <span className="font-bold text-slate-900 text-sm font-mono">
                           {formatCurrency(reportTotalAmount)}
                         </span>
                       </div>
@@ -859,7 +859,7 @@ ${reportPurchases
                         reportPurchases.map((p) => (
                           <tr key={p.id}>
                             <td className="p-2 font-mono text-muted-foreground">{p.date}</td>
-                            <td className="p-2 font-mono font-bold text-emerald-600">
+                            <td className="p-2 font-mono font-medium text-slate-700">
                               {products.find((prod) => prod.id === p.productId)?.numero ||
                                 p.productId}
                             </td>
