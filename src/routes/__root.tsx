@@ -12,6 +12,8 @@ import { useEffect, type ReactNode } from "react";
 
 import appCss from "../styles.css?url";
 import { installerRepriseApresDeploiement } from "../lib/chunkRecovery";
+import { enregistrerServiceWorker } from "../lib/pwa";
+import { InstallPrompt } from "../components/shared/InstallPrompt";
 import { APP_NAME, APP_TAGLINE } from "../lib/appConfig";
 
 function NotFoundComponent() {
@@ -89,6 +91,11 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       },
 
       { property: "og:type", content: "website" },
+      { name: "theme-color", content: "#008647" },
+      { name: "mobile-web-app-capable", content: "yes" },
+      { name: "apple-mobile-web-app-capable", content: "yes" },
+      { name: "apple-mobile-web-app-status-bar-style", content: "default" },
+      { name: "apple-mobile-web-app-title", content: "GESTIONS STOCK" },
       { name: "twitter:card", content: "summary_large_image" },
     ],
     links: [
@@ -97,6 +104,9 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         href: appCss,
       },
       { rel: "icon", href: "/favicon.ico", type: "image/x-icon" },
+      { rel: "manifest", href: "/manifest.webmanifest" },
+      // iOS ignore le manifeste pour l icone de l ecran d accueil.
+      { rel: "apple-touch-icon", href: "/icon-192.png" },
     ],
   }),
   shellComponent: RootShell,
@@ -127,12 +137,14 @@ function RootComponent() {
   // seule fois, plutôt que de laisser une erreur technique à l’écran.
   useEffect(() => {
     installerRepriseApresDeploiement();
+    enregistrerServiceWorker();
   }, []);
 
   return (
     <QueryClientProvider client={queryClient}>
       <AuthProvider>
         <Outlet />
+        <InstallPrompt />
       </AuthProvider>
     </QueryClientProvider>
   );
