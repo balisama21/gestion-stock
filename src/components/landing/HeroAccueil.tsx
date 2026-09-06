@@ -1,29 +1,7 @@
 import React, { useEffect, useRef, useState } from "react";
 import { ArrowRight, ChevronDown } from "lucide-react";
 import { APP_NAME, APP_TAGLINE } from "../../lib/appConfig";
-
-/**
- * Décide s'il faut télécharger la vidéo d'accueil.
- *
- * Elle pèse deux mégaoctets et demi. Sur une connexion mesurée — le cas
- * courant du public visé — c'est un coût réel, imposé avant même que le
- * visiteur ait vu quoi que ce soit. Trois refus, donc : l'économiseur de
- * données activé, un réseau annoncé comme lent, ou les animations
- * désactivées. Dans ces cas le dégradé tient lieu de fond ; il est dessiné
- * de toute façon, et la page n'a pas l'air incomplète pour autant.
- */
-function videoSouhaitable(): boolean {
-  if (typeof window === "undefined") return false;
-  if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return false;
-  const reseau = (
-    navigator as Navigator & {
-      connection?: { saveData?: boolean; effectiveType?: string };
-    }
-  ).connection;
-  if (reseau?.saveData) return false;
-  if (reseau?.effectiveType && !reseau.effectiveType.includes("4g")) return false;
-  return true;
-}
+import { FondAnime } from "./FondAnime";
 
 interface HeroAccueilProps {
   /** Amène au formulaire de connexion, plus bas dans la page. */
@@ -31,14 +9,8 @@ interface HeroAccueilProps {
 }
 
 export const HeroAccueil: React.FC<HeroAccueilProps> = ({ onRejoindreConnexion }) => {
-  const [videoVoulue, setVideoVoulue] = useState(false);
-  const [videoPrete, setVideoPrete] = useState(false);
   const [parallaxe, setParallaxe] = useState({ x: 0, y: 0 });
   const section = useRef<HTMLElement>(null);
-
-  // Le choix se fait après le montage : `navigator.connection` n'existe
-  // pas au rendu serveur, et la première peinture ne doit pas l'attendre.
-  useEffect(() => setVideoVoulue(videoSouhaitable()), []);
 
   useEffect(() => {
     if (!window.matchMedia("(hover: hover) and (pointer: fine)").matches) return;
@@ -77,44 +49,23 @@ export const HeroAccueil: React.FC<HeroAccueilProps> = ({ onRejoindreConnexion }
         .hero-flotte { animation: gs-flotter 6s ease-in-out infinite; }
         .hero-fleche { animation: gs-descendre 2s ease-in-out infinite; }
 
+        .hero-contenu {
+          transform: translateY(calc(var(--defilement, 0) * -0.22px));
+          opacity: calc(1 - var(--defilement, 0) / 620);
+        }
+
         @media (prefers-reduced-motion: reduce) {
           .hero-mot .hero-encre { clip-path: none; animation: none; }
           .hero-mot .hero-contour { visibility: hidden; }
           .hero-monte { opacity: 1; animation: none; }
           .hero-flotte, .hero-fleche { animation: none; }
+          .hero-contenu { transform: none; opacity: 1; }
         }
       `}</style>
 
-      {/* Fond : dégradé toujours dessiné, vidéo posée par-dessus quand
-          elle est souhaitable et effectivement prête. */}
-      <div
-        aria-hidden
-        className="absolute inset-0 -z-20 bg-[radial-gradient(ellipse_at_30%_20%,#0b6b45_0%,#064e34_45%,#04241d_100%)]"
-      />
-      {videoVoulue && (
-        <video
-          aria-hidden
-          src="/accueil.mp4"
-          autoPlay
-          muted
-          loop
-          playsInline
-          preload="auto"
-          onCanPlay={() => setVideoPrete(true)}
-          className={`absolute inset-0 -z-10 h-full w-full object-cover transition-opacity duration-1000 ${
-            videoPrete ? "opacity-100" : "opacity-0"
-          }`}
-          // La séquence d'origine est bleue ; désaturée puis assombrie,
-          // elle laisse le vert de la marque décider de la couleur.
-          style={{ filter: "saturate(.25) brightness(.55) contrast(1.05)" }}
-        />
-      )}
-      <div
-        aria-hidden
-        className="absolute inset-0 -z-10 bg-gradient-to-b from-emerald-950/80 via-emerald-950/70 to-slate-950/90"
-      />
+      <FondAnime />
 
-      <div className="relative mx-auto max-w-3xl">
+      <div className="hero-contenu relative mx-auto max-w-3xl">
         <div
           className="hero-monte hero-flotte mx-auto mb-7 h-16 w-16"
           style={{

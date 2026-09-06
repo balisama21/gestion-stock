@@ -5,6 +5,8 @@ import { APP_NAME, APP_SUPPORT_PHONE, APP_TAGLINE } from "../lib/appConfig";
 import { supabase } from "../lib/supabase";
 import { HeroAccueil } from "./landing/HeroAccueil";
 import { SectionModules } from "./landing/SectionModules";
+import { ArgumentaireConnexion } from "./landing/ArgumentaireConnexion";
+import { useDefilement } from "./landing/useDefilement";
 import { traduireErreurAuth } from "../lib/messagesAuth";
 import {
   AlertCircle,
@@ -49,6 +51,10 @@ export const AuthPage: React.FC = () => {
   const [forgotEmail, setForgotEmail] = useState("");
   const [forgotSent, setForgotSent] = useState(false);
   const ancreConnexion = useRef<HTMLElement>(null);
+
+  // Publie la position de défilement ; tout le mouvement de la page
+  // d'accueil s'y adosse.
+  useDefilement();
 
   const allerAuFormulaire = () => {
     ancreConnexion.current?.scrollIntoView({
@@ -198,10 +204,19 @@ export const AuthPage: React.FC = () => {
       <section
         id="connexion"
         ref={ancreConnexion}
-        className="scroll-mt-4 border-t border-border bg-muted/40 px-4 py-16 sm:px-8 sm:py-20"
+        className="relative scroll-mt-14 overflow-hidden border-t border-border bg-muted/40 px-4 py-16 sm:px-8 sm:py-24"
       >
-        <div className="mx-auto flex w-full max-w-[420px] flex-col">
-          <div className="w-full">
+        {/* Halo discret, décalé au défilement : la section respire au
+            lieu de présenter un aplat. */}
+        <div
+          aria-hidden
+          className="pointer-events-none absolute left-1/2 top-0 -z-0 h-[420px] w-[420px] -translate-x-1/2 rounded-full bg-primary/10 blur-3xl"
+          style={{ transform: "translate(-50%, calc(var(--defilement, 0) * -0.05px))" }}
+        />
+        <div className="relative mx-auto grid w-full max-w-5xl gap-12 lg:grid-cols-2 lg:items-center lg:gap-16">
+          <ArgumentaireConnexion />
+
+          <div className="order-1 mx-auto w-full max-w-[420px] lg:order-2 lg:mx-0">
             {/* Onglets login / register */}
             {mode !== "activate" && mode !== "forgot-password" && (
               <div className="flex p-1 bg-muted/60 rounded-xl mb-6 border border-border/60">
