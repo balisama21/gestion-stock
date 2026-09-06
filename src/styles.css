@@ -890,12 +890,18 @@ td {
    document financier, une somme coupée en deux ne se lit pas de travers,
    elle se lit faux.
 
-   Trois garanties, donc, pour ces lignes :
+   Quatre garanties, donc, pour ces lignes :
 
    - le montant, à droite, ne se coupe jamais ;
-   - aucun mot ne se hache : `break-word` remplace `anywhere`, ce qui
-     rétablit du même coup la largeur minimale de chaque colonne — c'est
-     elle qui empêchait « TOTAL » d'être comprimé jusqu'à se rompre ;
+   - aucun mot ne se hache, dans aucune des deux colonnes. C'est ce qui
+     produisait « TOTA » / « L », « Dat » / « e », « Vendeu » / « r » ;
+   - le libellé, à gauche, occupe toute la place laissée libre. Il ne
+     reste donc jamais ajusté au caractère près à son propre texte, et
+     c'est essentiel à l'export : la rastérisation reporte sur sa copie
+     les largeurs mesurées à l'écran, et un ajustement exact se rompait
+     au moindre écart de rendu — la dernière lettre passait à la ligne,
+     puis recouvrait la ligne suivante, dont la hauteur était figée elle
+     aussi. Du mou dans la colonne, et cette classe de panne disparaît ;
    - si les deux colonnes ne tiennent décidément pas sur une ligne, le
      montant passe dessous, calé à droite, plutôt que de déborder du
      papier. Un ticket étroit reste ainsi lisible sans jamais produire de
@@ -908,7 +914,14 @@ td {
 }
 
 .printable-receipt .justify-between > * {
-  overflow-wrap: break-word;
+  /* Le repli reste possible entre deux mots ; jamais à l'intérieur d'un. */
+  overflow-wrap: normal;
+  word-break: normal;
+}
+
+.printable-receipt .justify-between > *:first-child {
+  flex: 1 1 auto;
+  min-width: 0;
 }
 
 .printable-receipt .justify-between > *:last-child {
