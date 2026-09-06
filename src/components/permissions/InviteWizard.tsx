@@ -232,26 +232,31 @@ export const InviteWizard: React.FC<InviteWizardProps> = ({
             })}
           </div>
 
-          <div className="flex items-center gap-3">
+          {/* Trois libellés longs ne tiennent pas sur une ligne de
+              téléphone : ils s'empilent en dessous de `sm`. En ligne,
+              `min-w-0` autorise enfin les boutons `flex-1` à se
+              réduire — sans lui, un élément flex garde la largeur de
+              son texte et déborde de l'écran. */}
+          <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-3">
             <button
               type="button"
               onClick={() => setStep(1)}
-              className="flex items-center gap-1.5 px-4 py-2.5 bg-muted hover:bg-accent text-muted-foreground rounded-xl font-semibold text-sm"
+              className="flex items-center justify-center gap-1.5 px-4 py-2.5 bg-muted hover:bg-accent text-muted-foreground rounded-xl font-semibold text-sm sm:shrink-0"
             >
               <ChevronLeft className="w-4 h-4" /> Retour
             </button>
             <button
               type="button"
               onClick={() => setStep(3)}
-              className="flex-1 flex items-center justify-center gap-2 px-6 py-2.5 bg-muted hover:bg-accent border border-border text-foreground font-bold rounded-xl text-sm"
+              className="flex min-w-0 flex-1 items-center justify-center gap-2 px-4 py-2.5 bg-muted hover:bg-accent border border-border text-foreground font-bold rounded-xl text-sm"
             >
-              <Layers className="w-4 h-4" /> Personnaliser les accès
+              <Layers className="w-4 h-4 shrink-0" /> Personnaliser les accès
             </button>
             <button
               type="button"
               disabled={submitting}
               onClick={handleFinalSubmit}
-              className="flex-1 px-6 py-2.5 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-60 text-white font-bold rounded-xl text-sm"
+              className="min-w-0 flex-1 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-60 text-white font-bold rounded-xl text-sm"
             >
               {submitting ? "Envoi..." : "Utiliser ce profil"}
             </button>
@@ -285,11 +290,11 @@ export const InviteWizard: React.FC<InviteWizardProps> = ({
             ))}
           </div>
 
-          <div className="flex items-center gap-3 pt-2">
+          <div className="flex flex-col gap-2 pt-2 sm:flex-row sm:items-center sm:gap-3">
             <button
               type="button"
               onClick={() => setStep(2)}
-              className="flex items-center gap-1.5 px-4 py-2.5 bg-muted hover:bg-accent text-muted-foreground rounded-xl font-semibold text-sm"
+              className="flex items-center justify-center gap-1.5 px-4 py-2.5 bg-muted hover:bg-accent text-muted-foreground rounded-xl font-semibold text-sm sm:shrink-0"
             >
               <ChevronLeft className="w-4 h-4" /> Retour
             </button>
@@ -297,7 +302,7 @@ export const InviteWizard: React.FC<InviteWizardProps> = ({
               type="button"
               disabled={submitting}
               onClick={handleFinalSubmit}
-              className="flex-1 px-6 py-2.5 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-60 text-white font-bold rounded-xl"
+              className="min-w-0 flex-1 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-60 text-white font-bold rounded-xl"
             >
               {submitting ? "Envoi..." : "Envoyer l'invitation"}
             </button>
