@@ -291,11 +291,17 @@ export const ScrollMorphHero: React.FC<ScrollMorphHeroProps> = ({
   return (
     <section ref={section} className={`relative h-[190svh] ${className}`}>
       <div ref={scene} className="sticky top-0 h-svh overflow-hidden">
+        {/* Un voile en dégradé sous les textes.
+            Posés à même les cartes, ils devenaient illisibles : deux
+            trames de même clarté se superposaient sans que rien ne les
+            sépare. Le voile reprend la couleur du papier et s'éteint sur
+            les bords, si bien qu'on ne voit pas de cadre — seulement le
+            texte qui se détache. */}
         <motion.div
           style={mouvementReduit ? undefined : { opacity: opaciteIntro }}
           className="pointer-events-none absolute inset-x-0 top-1/2 z-10 -translate-y-1/2 px-5 text-center"
         >
-          {introduction}
+          <div className="voile-texte mx-auto max-w-2xl px-4 py-6">{introduction}</div>
         </motion.div>
 
         <motion.div
@@ -304,7 +310,7 @@ export const ScrollMorphHero: React.FC<ScrollMorphHeroProps> = ({
           // placé en haut, le texte passait derrière le sommet.
           className="pointer-events-auto absolute inset-x-0 top-1/2 z-20 -translate-y-1/2 px-5 text-center"
         >
-          {contenu}
+          <div className="voile-texte mx-auto max-w-xl px-4 py-6">{contenu}</div>
         </motion.div>
 
         {/* La clé force le recalcul des coordonnées quand la scène est

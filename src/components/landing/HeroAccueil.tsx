@@ -48,19 +48,22 @@ export const HeroAccueil: React.FC<HeroAccueilProps> = ({ onRejoindreConnexion }
       etiquettes={ECRANS.map((e) => e.nom)}
       introduction={
         <>
-          <h1 className="titrage text-[clamp(2rem,7vw,3.4rem)]">
+          <h1 className="titrage text-[clamp(1.7rem,6.2vw,3.4rem)]">
             Le cahier de votre boutique,
             <br />
             tenu tout seul.
           </h1>
+          {/* Court volontairement : ce texte se lit à travers un anneau de
+              cartes, et chaque ligne de plus le rend plus difficile à
+              détacher du fond. La phrase entière est reprise plus bas,
+              là où rien ne passe derrière. */}
           <p
-            className="mx-auto mt-5 max-w-[42ch] text-[1rem] leading-relaxed"
+            className="mx-auto mt-4 max-w-[30ch] text-[0.9375rem] leading-relaxed sm:text-base"
             style={{ color: "var(--carbone-doux)" }}
           >
-            Vous enregistrez une vente. Le stock baisse, la caisse monte, le client qui doit encore
-            quelque chose est noté, et le bilan s&apos;écrit tout seul.
+            Vous notez une vente. Le stock, la caisse et le bilan suivent.
           </p>
-          <p className="mt-8 text-[0.8125rem]" style={{ color: "var(--carbone-doux)" }}>
+          <p className="mt-6 text-[0.8125rem]" style={{ color: "var(--carbone-doux)" }}>
             Descendez pour voir les écrans
           </p>
         </>

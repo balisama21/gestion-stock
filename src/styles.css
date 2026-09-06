@@ -1169,3 +1169,18 @@ td {
     background-position-y: 0;
   }
 }
+
+/* Voile de lisibilité sous les textes du héros.
+   Le titre et son paragraphe se superposaient aux cartes : deux trames
+   de même clarté, rien pour les séparer, et le texte devenait pénible à
+   lire. Ce dégradé radial reprend la couleur du papier et s'éteint
+   avant les bords : on ne voit pas de cadre, seulement le texte qui se
+   détache de ce qui passe derrière. */
+.page-accueil .voile-texte {
+  background: radial-gradient(
+    ellipse 78% 62% at 50% 50%,
+    var(--papier-fond) 0%,
+    color-mix(in srgb, var(--papier-fond) 92%, transparent) 52%,
+    transparent 78%
+  );
+}
