@@ -116,10 +116,13 @@ export const InstallPrompt: React.FC = () => {
         className="app-card flex items-start gap-3 p-3.5 sm:p-4"
         style={{ boxShadow: "var(--elev-3)" }}
       >
-        {/* Le SVG plutôt que l'icône carrée : celle-ci est maintenant
-            transparente, son cadre arrondi ne se voyait donc plus, et le
-            vectoriel reste net quel que soit l'écran. */}
-        <img src="/logo.svg" alt="" width={49} height={36} className="h-9 w-auto shrink-0" />
+        <img
+          src="/icon-192.png"
+          alt=""
+          width={40}
+          height={40}
+          className="h-10 w-10 shrink-0 rounded-xl"
+        />
 
         <div className="min-w-0 flex-1">
           <p className="text-sm font-semibold text-foreground">

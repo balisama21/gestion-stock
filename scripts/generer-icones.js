@@ -210,29 +210,47 @@ function remplir(polys, taille, SS) {
   return couverture;
 }
 
+/** Couverture d'un rectangle à coins arrondis, par sur-échantillonnage. */
+function couvertureTuile(taille, rayon, SS) {
+  const c = new Float32Array(taille * taille);
+  const dedans = (x, y) => {
+    const cx = Math.min(Math.max(x, rayon), taille - rayon);
+    const cy = Math.min(Math.max(y, rayon), taille - rayon);
+    if (x >= rayon && x <= taille - rayon) return y >= 0 && y <= taille;
+    if (y >= rayon && y <= taille - rayon) return x >= 0 && x <= taille;
+    return (x - cx) ** 2 + (y - cy) ** 2 <= rayon * rayon;
+  };
+  for (let y = 0; y < taille; y++) {
+    for (let x = 0; x < taille; x++) {
+      let n = 0;
+      for (let sy = 0; sy < SS; sy++) {
+        for (let sx = 0; sx < SS; sx++) {
+          if (dedans(x + (sx + 0.5) / SS, y + (sy + 0.5) / SS)) n++;
+        }
+      }
+      c[y * taille + x] = n / (SS * SS);
+    }
+  }
+  return c;
+}
+
 // --------------------------------------------------------------- Dessin
 
-const BLANC = [255, 255, 255];
+const FOND = [255, 255, 255];
 
 /**
- * Dessine la marque dans un carré.
- *
- * Le fond est transparent par défaut : posée sur une pastille blanche,
- * la marque devenait un rond blanc avec une tache verte dedans, et
- * c'est la pastille qu'on voyait d'abord. Sans fond, le lanceur peut
- * bien découper ce qu'il veut — il n'y a rien à découper autour du
- * dessin.
- *
  * @param taille     côté du carré, en pixels.
- * @param fond       couleur de fond, ou `null` pour un fond transparent.
+ * @param partRayon  rayon des coins, en part du côté (0 = carré plein).
  * @param partMarque largeur de la marque, en part du côté.
  */
-function dessiner(logo, taille, fond, partMarque) {
+function dessiner(logo, taille, partRayon, partMarque) {
   const SS = 8;
   const [bx, by, bw, bh] = logo.boite;
   const echelle = (taille * partMarque) / bw;
   const dx = (taille - bw * echelle) / 2 - bx * echelle;
   const dy = (taille - bh * echelle) / 2 - by * echelle;
+
+  const tuile = partRayon > 0 ? couvertureTuile(taille, taille * partRayon, 4) : null;
 
   const couches = logo.chemins.map((c) => ({
     couleur: c.couleur,
@@ -245,29 +263,16 @@ function dessiner(logo, taille, fond, partMarque) {
 
   const px = Buffer.alloc(taille * taille * 4);
   for (let i = 0; i < taille * taille; i++) {
-    // Composition « source-over » en couleurs prémultipliées : c'est ce
-    // qui donne des bords propres quand le fond est transparent. Une
-    // moyenne classique y ferait apparaître un liseré noir.
-    let r = fond ? fond[0] : 0;
-    let g = fond ? fond[1] : 0;
-    let b = fond ? fond[2] : 0;
-    let alpha = fond ? 1 : 0;
+    const rgb = [FOND[0], FOND[1], FOND[2]];
     for (const couche of couches) {
       const a = couche.couverture[i];
       if (a <= 0) continue;
-      r = couche.couleur[0] * a + r * alpha * (1 - a);
-      g = couche.couleur[1] * a + g * alpha * (1 - a);
-      b = couche.couleur[2] * a + b * alpha * (1 - a);
-      alpha = a + alpha * (1 - a);
-      if (alpha > 0) {
-        r /= alpha;
-        g /= alpha;
-        b /= alpha;
-      }
+      for (let c = 0; c < 3; c++) rgb[c] = rgb[c] * (1 - a) + couche.couleur[c] * a;
     }
-    px[i * 4] = Math.round(r);
-    px[i * 4 + 1] = Math.round(g);
-    px[i * 4 + 2] = Math.round(b);
+    const alpha = tuile ? tuile[i] : 1;
+    px[i * 4] = Math.round(rgb[0]);
+    px[i * 4 + 1] = Math.round(rgb[1]);
+    px[i * 4 + 2] = Math.round(rgb[2]);
     px[i * 4 + 3] = Math.round(alpha * 255);
   }
   return encoderPng(taille, taille, px);
@@ -297,19 +302,16 @@ const logo = lireLogo(path.join(dossier, "logo.svg"));
 console.log(`  source  logo.svg — boîte ${logo.boite.join(" ")}, ${logo.chemins.length} chemins`);
 
 const fichiers = [
-  ["icon-192.png", dessiner(logo, 192, null, 0.84)],
-  ["icon-512.png", dessiner(logo, 512, null, 0.84)],
-  // Maskable : Android découpe l'icône à la forme du lanceur — cercle,
-  // carré arrondi, goutte. Tout doit donc tenir dans le cercle central
-  // de 80 %, sans quoi le découpage entamerait le dessin. La marque
-  // étant plus large que haute, sa diagonale vaut 1,24 fois sa largeur :
-  // 0,60 du côté la laisse rentrer avec de la marge.
-  ["icon-maskable-512.png", dessiner(logo, 512, null, 0.6)],
-  // Seule exception : iOS remplit de NOIR toute transparence d'une
-  // apple-touch-icon. Un fond y est donc imposé, et le blanc du dessin
-  // d'origine vaut mieux que du noir.
-  ["icon-apple-180.png", dessiner(logo, 180, BLANC, 0.74)],
-  ["favicon.ico", encoderIco(dessiner(logo, 48, null, 0.94), 48)],
+  ["icon-192.png", dessiner(logo, 192, 0.22, 0.76)],
+  ["icon-512.png", dessiner(logo, 512, 0.22, 0.76)],
+  // Maskable : le système rogne jusqu'à 20 % de chaque bord, donc pas de
+  // coins arrondis à nous et une marque nettement plus petite.
+  ["icon-maskable-512.png", dessiner(logo, 512, 0, 0.58)],
+  // iOS remplit de NOIR toute transparence d'une apple-touch-icon, et
+  // applique ensuite son propre masque arrondi : il lui faut donc un
+  // carré parfaitement opaque, sans coins arrondis de notre part.
+  ["icon-apple-180.png", dessiner(logo, 180, 0, 0.72)],
+  ["favicon.ico", encoderIco(dessiner(logo, 48, 0.18, 0.88), 48)],
 ];
 for (const [nom, buf] of fichiers) {
   fs.writeFileSync(path.join(dossier, nom), buf);
