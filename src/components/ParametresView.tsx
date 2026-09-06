@@ -456,20 +456,14 @@ export const ParametresView: React.FC<ParametresViewProps> = ({
    */
   const estAdminPlateforme = profile?.is_platform_admin === true;
 
-  const genererLien = async (cibleId: string, userId: string, storeId: string | null) => {
+  const genererLien = async (cibleId: string, userId: string) => {
     setGeneratingRecoveryFor(cibleId);
     setRecoveryTargetId(cibleId);
     setRecoveryLink(null);
     setRecoveryError(null);
     try {
       const { data, error } = await supabase.functions.invoke("generer-lien-recuperation", {
-        body: {
-          user_id: userId,
-          // Facultatif pour l'administrateur de la plateforme, dont le
-          // pouvoir ne dépend d'aucune boutique.
-          store_id: storeId,
-          app_url: window.location.origin,
-        },
+        body: { user_id: userId, app_url: window.location.origin },
       });
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
@@ -482,55 +476,33 @@ export const ParametresView: React.FC<ParametresViewProps> = ({
   };
 
   const handleGenerateRecoveryLink = (member: TeamMember) => {
-    if (!inviteStoreId) return;
-    genererLien(member.id, member.user_id, inviteStoreId);
+    genererLien(member.id, member.user_id);
   };
 
   /**
    * Charge les demandes en attente.
    *
-   * Les RLS ne laissent voir que celles des membres de ses propres
-   * boutiques — et, pour l'administrateur de la plateforme, celles dont
-   * l'adresse ne correspond à aucun compte. Le rattachement à une
-   * boutique est fait ici pour savoir sur laquelle agir : la fonction
-   * edge refuse toute personne étrangère à la boutique indiquée.
+   * Les RLS ne les ouvrent qu'à l'administrateur de la plateforme : pour
+   * tout autre compte, cette requête renvoie une liste vide. Aucun
+   * rattachement à une boutique n'est nécessaire — l'appartenance du
+   * demandeur n'entre plus en ligne de compte.
    */
   const fetchRecoveryRequests = async () => {
+    if (!estAdminPlateforme) {
+      setRecoveryRequests([]);
+      return;
+    }
     const { data } = await supabase
       .from("password_recovery_requests")
       .select("id, email, user_id, requested_at")
       .eq("status", "pending")
       .order("requested_at", { ascending: false });
-
-    const demandes = data ?? [];
-    const idsBoutiques = ownedStoresForInvite.map((s) => s.id);
-    const idsUtilisateurs = demandes.map((d) => d.user_id).filter(Boolean) as string[];
-
-    let rattachement = new Map<string, string>();
-    if (idsUtilisateurs.length > 0 && idsBoutiques.length > 0) {
-      const { data: membres } = await supabase
-        .from("store_members")
-        .select("user_id, store_id")
-        .in("user_id", idsUtilisateurs)
-        .in("store_id", idsBoutiques);
-      rattachement = new Map((membres ?? []).map((m: any) => [m.user_id, m.store_id]));
-    }
-
-    setRecoveryRequests(
-      demandes.map((d: any) => ({
-        id: d.id,
-        email: d.email,
-        user_id: d.user_id,
-        store_id: d.user_id ? (rattachement.get(d.user_id) ?? null) : null,
-        requested_at: d.requested_at,
-      })),
-    );
+    setRecoveryRequests((data ?? []) as RecoveryRequest[]);
   };
 
   const handleGenerateForRequest = (demande: RecoveryRequest) => {
     if (!demande.user_id) return;
-    if (!demande.store_id && !estAdminPlateforme) return;
-    genererLien(demande.id, demande.user_id, demande.store_id);
+    genererLien(demande.id, demande.user_id);
   };
 
   const handleDismissRequest = async (demande: RecoveryRequest) => {

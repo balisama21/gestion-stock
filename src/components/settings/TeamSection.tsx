@@ -25,8 +25,6 @@ export interface RecoveryRequest {
   email: string;
   /** Nul quand aucune adresse ne correspond : une faute de frappe, le plus souvent. */
   user_id: string | null;
-  /** Boutique du demandeur, parmi celles que possède l'utilisateur courant. */
-  store_id: string | null;
   requested_at: string;
 }
 
@@ -74,7 +72,7 @@ interface TeamSectionProps {
   onCloseRecoveryLink: () => void;
 
   recoveryRequests: RecoveryRequest[];
-  /** L'exploitant de l'application agit sur tout compte, sans condition d'équipe. */
+  /** Seul l'exploitant de l'application délivre des liens de mot de passe. */
   estAdminPlateforme: boolean;
   onGenerateForRequest: (demande: RecoveryRequest) => void;
   onDismissRequest: (demande: RecoveryRequest) => void;
@@ -238,20 +236,9 @@ export const TeamSection: React.FC<TeamSectionProps> = ({
                   })}
                 </p>
                 {demande.user_id ? (
-                  demande.store_id ? (
-                    <p className="mt-1 text-xs t-success">Compte reconnu dans votre équipe.</p>
-                  ) : estAdminPlateforme ? (
-                    <p className="mt-1 text-xs t-success">
-                      Compte reconnu. Cette personne possède sa propre boutique et n'est
-                      membre d'aucune des vôtres — votre rôle d'administrateur vous permet
-                      quand même de lui délivrer un lien.
-                    </p>
-                  ) : (
-                    <p className="mt-1 text-xs text-muted-foreground">
-                      Compte reconnu, mais hors de vos boutiques. Seul l'administrateur de la
-                      plateforme peut lui délivrer un lien.
-                    </p>
-                  )
+                  <p className="mt-1 text-xs t-success">
+                    Compte reconnu. Vous pouvez lui délivrer un lien.
+                  </p>
                 ) : (
                   <p className="mt-1 text-xs t-warning">
                     Aucun compte à cette adresse. La personne s'est probablement trompée en la
@@ -261,7 +248,7 @@ export const TeamSection: React.FC<TeamSectionProps> = ({
               </div>
 
               <div className="flex shrink-0 flex-wrap gap-2">
-                {demande.user_id && (demande.store_id || estAdminPlateforme) && (
+                {demande.user_id && (
                   <button
                     type="button"
                     onClick={() => onGenerateForRequest(demande)}
@@ -410,16 +397,18 @@ export const TeamSection: React.FC<TeamSectionProps> = ({
                     >
                       Modifier les accès
                     </button>
-                    <button
-                      type="button"
-                      onClick={() => onGenerateRecoveryLink(member)}
-                      disabled={generatingRecoveryFor === member.id}
-                      className="app-btn-secondary min-w-0 flex-1 text-xs disabled:opacity-60 sm:flex-none"
-                    >
-                      {generatingRecoveryFor === member.id
-                        ? "Génération…"
-                        : "Lien de mot de passe"}
-                    </button>
+                    {estAdminPlateforme && (
+                      <button
+                        type="button"
+                        onClick={() => onGenerateRecoveryLink(member)}
+                        disabled={generatingRecoveryFor === member.id}
+                        className="app-btn-secondary min-w-0 flex-1 text-xs disabled:opacity-60 sm:flex-none"
+                      >
+                        {generatingRecoveryFor === member.id
+                          ? "Génération…"
+                          : "Lien de mot de passe"}
+                      </button>
+                    )}
                     <button
                       type="button"
                       onClick={() => {

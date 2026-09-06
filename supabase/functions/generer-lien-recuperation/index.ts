@@ -12,21 +12,21 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
  * que l'application fait déjà pour les invitations quand l'e-mail
  * échoue.
  *
- * Ce lien donne le contrôle du compte à qui le détient. Trois garde-fous
- * en découlent, tous vérifiés ici et jamais côté client :
+ * Ce lien donne le contrôle du compte à qui le détient. Une seule
+ * personne peut donc le produire : l'administrateur de la plateforme,
+ * celui qui exploite l'application. Ni les propriétaires de boutique,
+ * ni personne d'autre — c'est le schéma de la clé d'activation, où la
+ * délivrance passe par une main unique.
  *
- *   - l'appelant doit être authentifié ;
- *   - un propriétaire de boutique ne peut agir que sur les membres de
- *     cette boutique, dont il doit être le propriétaire ;
- *   - l'administrateur de la plateforme, lui, peut agir sur n'importe
- *     quel compte, y compris ceux qui possèdent leur propre boutique et
- *     n'appartiennent à aucune équipe. C'est lui l'exploitant de
- *     l'application ; sans cela un client isolé, propriétaire de sa
- *     seule boutique, n'aurait plus aucun recours.
+ * En contrepartie, cette main n'est arrêtée par aucune appartenance : la
+ * personne visée peut n'être membre d'aucune boutique, appartenir à une
+ * boutique tierce ou posséder la sienne. C'est justement l'utilisateur
+ * isolé, sans propriétaire au-dessus de lui, qui n'aurait sinon aucun
+ * recours.
  *
- * L'adresse e-mail n'est jamais reprise du corps de la requête : elle
- * est relue en base à partir de l'identifiant, sans quoi il suffirait
- * d'envoyer l'adresse de quelqu'un d'autre.
+ * Le statut est relu en base à chaque appel, jamais reçu du client, et
+ * l'adresse e-mail l'est aussi : la déduire du corps de la requête
+ * permettrait d'en viser une autre que celle du compte désigné.
  */
 
 const corsHeaders = {
@@ -46,7 +46,7 @@ serve(async (req: Request) => {
   }
 
   try {
-    const { user_id, store_id, app_url } = await req.json();
+    const { user_id, app_url } = await req.json();
 
     if (!user_id || !app_url) {
       return json({ error: "Champs requis : user_id, app_url." }, 400);
@@ -67,51 +67,22 @@ serve(async (req: Request) => {
 
     if (!appelant) return json({ error: "Authentification requise." }, 401);
 
-    // 2. Administrateur de la plateforme : le contrôle s'arrête là.
+    // 2. Est-il l'administrateur de la plateforme ? Rien d'autre n'ouvre
+    //    cette porte.
     const { data: profilAppelant } = await supabase
       .from("profiles")
       .select("is_platform_admin")
       .eq("id", appelant.id)
       .single();
 
-    const estAdminPlateforme = profilAppelant?.is_platform_admin === true;
-
-    if (!estAdminPlateforme) {
-      // 3. Sinon, il faut une boutique, et l'appelant doit la posséder.
-      if (!store_id) {
-        return json({ error: "Champ requis : store_id." }, 400);
-      }
-
-      const { data: boutique, error: erreurBoutique } = await supabase
-        .from("stores")
-        .select("id, owner_id")
-        .eq("id", store_id)
-        .single();
-
-      if (erreurBoutique || !boutique) return json({ error: "Boutique introuvable." }, 404);
-
-      if (boutique.owner_id !== appelant.id) {
-        return json({ error: "Vous n'êtes pas propriétaire de cette boutique." }, 403);
-      }
-
-      // 4. Et la personne visée doit en être membre. Le propriétaire est
-      //    traité à part : il n'apparaît pas nécessairement dans
-      //    store_members alors que le compte est le sien.
-      if (boutique.owner_id !== user_id) {
-        const { data: appartenance } = await supabase
-          .from("store_members")
-          .select("id")
-          .eq("store_id", store_id)
-          .eq("user_id", user_id)
-          .maybeSingle();
-
-        if (!appartenance) {
-          return json({ error: "Cette personne n'est pas membre de cette boutique." }, 403);
-        }
-      }
+    if (profilAppelant?.is_platform_admin !== true) {
+      return json(
+        { error: "Seul l'administrateur de l'application peut délivrer un lien." },
+        403,
+      );
     }
 
-    // 5. L'adresse est relue en base, jamais reçue du client.
+    // 3. L'adresse est relue en base, jamais reçue du client.
     const { data: cible, error: erreurCible } = await supabase.auth.admin.getUserById(user_id);
     const email = cible?.user?.email;
     if (erreurCible || !email) return json({ error: "Compte introuvable." }, 404);
@@ -119,7 +90,7 @@ serve(async (req: Request) => {
     const fournisseurs = (cible.user.app_metadata?.providers as string[] | undefined) ?? [];
     const aDejaUnMotDePasse = fournisseurs.includes("email");
 
-    // 6. Le lien lui-même. `generateLink` le fabrique sans rien envoyer :
+    // 4. Le lien lui-même. `generateLink` le fabrique sans rien envoyer :
     //    c'est précisément ce qu'on cherche ici.
     const { data: lien, error: erreurLien } = await supabase.auth.admin.generateLink({
       type: "recovery",
