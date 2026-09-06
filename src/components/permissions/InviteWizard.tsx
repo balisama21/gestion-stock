@@ -79,16 +79,35 @@ export const InviteWizard: React.FC<InviteWizardProps> = ({
 
   return (
     <div className="space-y-5">
-      {/* Fil d'étapes */}
+      {/* Fil d'étapes, cliquable.
+          Revenir en arrière est toujours permis : rien n'est envoyé
+          avant le bouton final, et les choix déjà faits sont conservés
+          en état. Avancer, en revanche, suppose une adresse valide et
+          une boutique — sans quoi l'étape suivante parlerait d'un
+          invité qui n'existe pas encore. */}
       <div className="flex items-center gap-2">
         {stepLabels.map((label, i) => {
           const n = (i + 1) as 1 | 2 | 3;
           const active = step === n;
           const done = step > n;
+          const accessible = n === 1 || canGoStep2;
           return (
             <React.Fragment key={label}>
-              <div className="flex items-center gap-2">
-                <div
+              <button
+                type="button"
+                onClick={() => setStep(n)}
+                disabled={!accessible}
+                aria-current={active ? "step" : undefined}
+                title={
+                  accessible
+                    ? `Aller à l'étape ${n} — ${label}`
+                    : "Renseignez d'abord l'adresse e-mail de l'invité"
+                }
+                className={`flex items-center gap-2 rounded-lg p-1 transition-colors ${
+                  accessible && !active ? "hover:bg-muted" : ""
+                } ${accessible ? "cursor-pointer" : "cursor-not-allowed opacity-60"}`}
+              >
+                <span
                   className={`w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-bold shrink-0 ${
                     active
                       ? "bg-emerald-600 text-white"
@@ -98,13 +117,13 @@ export const InviteWizard: React.FC<InviteWizardProps> = ({
                   }`}
                 >
                   {n}
-                </div>
+                </span>
                 <span
                   className={`text-xs font-semibold hidden sm:inline ${active ? "text-foreground" : "text-muted-foreground"}`}
                 >
                   {label}
                 </span>
-              </div>
+              </button>
               {i < stepLabels.length - 1 && <div className="h-px flex-1 bg-border" />}
             </React.Fragment>
           );
