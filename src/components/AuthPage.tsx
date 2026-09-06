@@ -4,7 +4,7 @@ import { useAuth } from "../hooks/useAuth";
 import { APP_NAME, APP_SUPPORT_PHONE, APP_TAGLINE } from "../lib/appConfig";
 import { supabase } from "../lib/supabase";
 import { HeroAccueil } from "./landing/HeroAccueil";
-import { SectionModules } from "./landing/SectionModules";
+import { RegistreModules } from "./landing/RegistreModules";
 import { ArgumentaireConnexion } from "./landing/ArgumentaireConnexion";
 import { useDefilement } from "./landing/useDefilement";
 import { traduireErreurAuth } from "../lib/messagesAuth";
@@ -174,22 +174,31 @@ export const AuthPage: React.FC = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="page-accueil min-h-screen">
       {/* Barre d'accès permanente.
           La page d'accueil est faite pour qui découvre le logiciel ; celui
           qui revient chaque matin, lui, veut son formulaire. Sans ce
           raccourci il lui faudrait parcourir toute la présentation à
           chaque connexion. */}
-      <div className="sticky top-0 z-40 border-b border-white/10 bg-emerald-950/70 backdrop-blur-md">
+      <div
+        className="sticky top-0 z-40 border-b backdrop-blur-md"
+        style={{
+          borderColor: "var(--reglure)",
+          background: "color-mix(in srgb, var(--papier) 88%, transparent)",
+        }}
+      >
         <div className="mx-auto flex max-w-5xl items-center justify-between gap-3 px-4 py-2.5">
           <span className="flex items-center gap-2">
             <img src="/logo.svg" alt="" width={24} height={24} className="h-6 w-6 rounded-md" />
-            <span className="text-sm font-semibold text-white">{APP_NAME}</span>
+            <span className="text-sm font-semibold" style={{ color: "var(--carbone)" }}>
+              {APP_NAME}
+            </span>
           </span>
           <button
             type="button"
             onClick={allerAuFormulaire}
-            className="rounded-lg bg-white/10 px-3.5 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-white/20"
+            className="rounded-lg border px-3.5 py-1.5 text-xs font-semibold transition-colors"
+            style={{ borderColor: "var(--reglure)", color: "var(--carbone)" }}
           >
             Se connecter
           </button>
@@ -198,21 +207,14 @@ export const AuthPage: React.FC = () => {
 
       <HeroAccueil onRejoindreConnexion={allerAuFormulaire} />
 
-      <SectionModules />
+      <RegistreModules />
 
       {/* Formulaire — inchangé, seulement replacé dans la page. */}
       <section
         id="connexion"
         ref={ancreConnexion}
-        className="relative scroll-mt-14 overflow-hidden border-t border-border bg-muted/40 px-4 py-16 sm:px-8 sm:py-24"
+        className="reglure relative scroll-mt-14 overflow-hidden px-4 py-16 sm:px-8 sm:py-24"
       >
-        {/* Halo discret, décalé au défilement : la section respire au
-            lieu de présenter un aplat. */}
-        <div
-          aria-hidden
-          className="pointer-events-none absolute left-1/2 top-0 -z-0 h-[420px] w-[420px] -translate-x-1/2 rounded-full bg-primary/10 blur-3xl"
-          style={{ transform: "translate(-50%, calc(var(--defilement, 0) * -0.05px))" }}
-        />
         <div className="relative mx-auto grid w-full max-w-5xl gap-12 lg:grid-cols-2 lg:items-center lg:gap-16">
           <ArgumentaireConnexion />
 
@@ -363,9 +365,7 @@ export const AuthPage: React.FC = () => {
 
                   <div className="flex items-center gap-3 mb-5">
                     <div className="h-px flex-1 bg-border" />
-                    <span className="text-[11px] text-muted-foreground uppercase tracking-wide">
-                      ou
-                    </span>
+                    <span className="text-[11px] text-muted-foreground">ou</span>
                     <div className="h-px flex-1 bg-border" />
                   </div>
                 </>
@@ -624,11 +624,15 @@ export const AuthPage: React.FC = () => {
         </div>
       </section>
 
-      <footer className="border-t border-border bg-background px-5 py-8 text-center">
+      <footer className="reglure px-5 py-10 text-center">
         <div className="mx-auto flex max-w-3xl flex-col items-center gap-2">
           <img src="/logo.svg" alt="" width={28} height={28} className="h-7 w-7 rounded-lg" />
-          <p className="text-sm font-semibold text-foreground">{APP_NAME}</p>
-          <p className="text-xs text-muted-foreground">{APP_TAGLINE}</p>
+          <p className="text-sm font-semibold" style={{ color: "var(--carbone)" }}>
+            {APP_NAME}
+          </p>
+          <p className="text-xs" style={{ color: "var(--carbone-doux)" }}>
+            {APP_TAGLINE}
+          </p>
         </div>
       </footer>
     </div>
@@ -648,7 +652,7 @@ function Field({
 }) {
   return (
     <div>
-      <label className="block text-xs font-semibold text-foreground mb-1.5 uppercase tracking-wide">
+      <label className="mb-1.5 block text-[0.8125rem] font-medium text-muted-foreground">
         {label}
       </label>
       <div className="relative">

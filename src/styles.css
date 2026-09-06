@@ -1093,3 +1093,70 @@ td {
 .app-card {
   box-shadow: none;
 }
+
+/* ═══════════════════════════════════════════════════════════════════
+   PAGE D'ACCUEIL — le papier
+
+   La première version empruntait son vocabulaire ailleurs : dégradé
+   sombre, halos, grille en perspective. C'est le langage d'une jeune
+   pousse technologique, et on pouvait y coller n'importe quel nom sans
+   que rien ne cloche.
+
+   Celle-ci part de la matière du sujet. Le logiciel remplace un cahier
+   et imprime des tickets ; la page est donc du papier, ses séparations
+   sont des réglures de cahier, et sa police de titrage est celle des
+   tickets — la monospace que le produit imprime déjà.
+
+   Le vert reste la seule couleur d'action, comme partout ailleurs. Le
+   bleu du stylo à bille ne sert qu'aux traits et aux annotations, jamais
+   à un bouton.
+   ═══════════════════════════════════════════════════════════════════ */
+.page-accueil {
+  --papier-fond: #ebe7dd;
+  --papier: #fbf9f4;
+  --carbone: #1c1b18;
+  --carbone-doux: #6b675e;
+  --encre: #2b4c7e;
+  --reglure: #cfd8cd;
+
+  background: var(--papier-fond);
+  color: var(--carbone);
+}
+
+/* Titrage : la police des tickets, en grand. L'inverse du réflexe
+   habituel, qui réserve la monospace aux petites étiquettes. */
+.page-accueil .titrage {
+  font-family: var(--font-mono);
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  line-height: 1.08;
+  color: var(--carbone);
+}
+
+/* La réglure du cahier : c'est elle qui sépare, pas un filet neutre. */
+.page-accueil .reglure {
+  border-top: 1px solid var(--reglure);
+}
+
+.page-accueil .feuille {
+  background: var(--papier);
+  border: 1px solid #e2ddd0;
+}
+
+/* Le papier du rouleau défile avec la page : une seule idée de mouvement,
+   tenue d'un bout à l'autre, plutôt que des apparitions dispersées. */
+.page-accueil .trame-papier {
+  background-image: repeating-linear-gradient(
+    to bottom,
+    transparent 0 31px,
+    var(--reglure) 31px 32px
+  );
+  background-position-y: calc(var(--defilement, 0) * 0.35px);
+  opacity: 0.55;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .page-accueil .trame-papier {
+    background-position-y: 0;
+  }
+}

@@ -1,140 +1,66 @@
-import React, { useEffect, useRef, useState } from "react";
-import { ArrowRight, ChevronDown } from "lucide-react";
-import { APP_NAME, APP_TAGLINE } from "../../lib/appConfig";
-import { FondAnime } from "./FondAnime";
+import React from "react";
+import { TicketImprime } from "./TicketImprime";
 
 interface HeroAccueilProps {
   /** Amène au formulaire de connexion, plus bas dans la page. */
   onRejoindreConnexion: () => void;
 }
 
-export const HeroAccueil: React.FC<HeroAccueilProps> = ({ onRejoindreConnexion }) => {
-  const [parallaxe, setParallaxe] = useState({ x: 0, y: 0 });
-  const section = useRef<HTMLElement>(null);
+/**
+ * Ouverture de la page.
+ *
+ * À gauche ce que le logiciel promet, à droite ce qu'il fabrique. Le
+ * ticket qui s'imprime est l'unique effet de la page ; tout le reste est
+ * posé et immobile, pour que ce moment-là porte.
+ *
+ * Le titre est en monospace, la police que le produit imprime sur ses
+ * tickets. Aucune étiquette au-dessus : un titre qui a besoin qu'on
+ * l'annonce est un titre à réécrire.
+ */
+export const HeroAccueil: React.FC<HeroAccueilProps> = ({ onRejoindreConnexion }) => (
+  <section className="relative overflow-hidden px-5 pb-20 pt-14 sm:pt-20">
+    {/* La réglure du cahier, en fond, qui défile avec la page. */}
+    <div aria-hidden className="trame-papier pointer-events-none absolute inset-0 -z-10" />
 
-  useEffect(() => {
-    if (!window.matchMedia("(hover: hover) and (pointer: fine)").matches) return;
-    const suivre = (e: PointerEvent) => {
-      setParallaxe({
-        x: (e.clientX / window.innerWidth - 0.5) * 2,
-        y: (e.clientY / window.innerHeight - 0.5) * 2,
-      });
-    };
-    window.addEventListener("pointermove", suivre);
-    return () => window.removeEventListener("pointermove", suivre);
-  }, []);
-
-  return (
-    <section
-      ref={section}
-      className="relative isolate flex min-h-[calc(100svh-3rem)] flex-col items-center justify-center overflow-hidden px-5 py-16 text-center"
-    >
-      <style>{`
-        /* Le nom s'encre de gauche à droite, comme sur l'écran de
-           chargement : la même signature d'un bout à l'autre du produit. */
-        @keyframes gs-encrer-hero { to { clip-path: inset(0 0 0 0); } }
-        @keyframes gs-monter { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
-        @keyframes gs-flotter { 0%,100% { transform: translateY(0); } 50% { transform: translateY(-10px); } }
-        @keyframes gs-descendre { 0%,100% { transform: translateY(0); opacity: .55 } 50% { transform: translateY(6px); opacity: 1 } }
-
-        .hero-mot { position: relative; display: inline-block; white-space: nowrap; }
-        .hero-mot .hero-encre {
-          position: absolute; inset: 0; color: #fff;
-          clip-path: inset(0 100% 0 0);
-          animation: gs-encrer-hero 1.5s cubic-bezier(.66,0,.34,1) .2s forwards;
-        }
-        .hero-mot .hero-contour { color: transparent; -webkit-text-stroke: .7px rgba(255,255,255,.45); }
-
-        .hero-monte { opacity: 0; animation: gs-monter .8s ease-out forwards; }
-        .hero-flotte { animation: gs-flotter 6s ease-in-out infinite; }
-        .hero-fleche { animation: gs-descendre 2s ease-in-out infinite; }
-
-        .hero-contenu {
-          transform: translateY(calc(var(--defilement, 0) * -0.22px));
-          opacity: calc(1 - var(--defilement, 0) / 620);
-        }
-
-        @media (prefers-reduced-motion: reduce) {
-          .hero-mot .hero-encre { clip-path: none; animation: none; }
-          .hero-mot .hero-contour { visibility: hidden; }
-          .hero-monte { opacity: 1; animation: none; }
-          .hero-flotte, .hero-fleche { animation: none; }
-          .hero-contenu { transform: none; opacity: 1; }
-        }
-      `}</style>
-
-      <FondAnime />
-
-      <div className="hero-contenu relative mx-auto max-w-3xl">
-        <div
-          className="hero-monte hero-flotte mx-auto mb-7 h-16 w-16"
-          style={{
-            animationDelay: "0ms",
-            transform: `translate3d(${parallaxe.x * -8}px, ${parallaxe.y * -8}px, 0)`,
-          }}
-        >
-          {/* Le logo est un carré vert : posé tel quel sur un fond vert
-              sombre, il s'y dissout. Un cartouche clair l'en détache. */}
-          <span className="flex h-16 w-16 items-center justify-center rounded-2xl border border-white/25 bg-white/95 shadow-xl shadow-emerald-950/40">
-            <img src="/logo.svg" alt="" width={44} height={44} className="h-11 w-11 rounded-xl" />
-          </span>
-        </div>
-
-        <h1 className="text-[clamp(2rem,9vw,3.5rem)] font-bold leading-[1.1] tracking-tight text-white">
-          <span className="hero-mot">
-            <span className="hero-contour" aria-hidden>
-              {APP_NAME}
-            </span>
-            <span className="hero-encre" aria-hidden>
-              {APP_NAME}
-            </span>
-            <span className="sr-only">{APP_NAME}</span>
-          </span>
+    <div className="mx-auto grid max-w-5xl items-center gap-14 lg:grid-cols-[1.05fr_1fr] lg:gap-16">
+      <div>
+        <h1 className="titrage text-[clamp(2.1rem,7.2vw,3.4rem)]">
+          Le cahier de votre boutique,
+          <br />
+          tenu tout seul.
         </h1>
 
         <p
-          className="hero-monte mx-auto mt-5 max-w-xl text-balance text-base leading-relaxed text-emerald-50/90 sm:text-lg"
-          style={{ animationDelay: "900ms" }}
+          className="mt-6 max-w-[46ch] text-[1.0625rem] leading-relaxed"
+          style={{ color: "var(--carbone-doux)" }}
         >
-          {APP_TAGLINE}
+          Vous enregistrez une vente. Le stock baisse, la caisse monte, le client qui doit encore
+          quelque chose est noté, et le bilan du mois s&apos;écrit tout seul.
         </p>
 
-        <p
-          className="hero-monte mx-auto mt-3 max-w-lg text-sm leading-relaxed text-emerald-100/70"
-          style={{ animationDelay: "1050ms" }}
-        >
-          Stock, ventes, achats, clients, commandes, facturation et trésorerie — réunis dans un même
-          tableau de bord.
-        </p>
-
-        <div
-          className="hero-monte mt-9 flex flex-col items-center justify-center gap-3 sm:flex-row"
-          style={{ animationDelay: "1200ms" }}
-        >
+        <div className="mt-9 flex flex-col gap-3 sm:flex-row">
           <button
             type="button"
             onClick={onRejoindreConnexion}
-            className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-7 py-3.5 text-sm font-bold text-primary-foreground shadow-lg shadow-emerald-950/40 transition-transform hover:scale-[1.02] active:scale-100 sm:w-auto"
+            className="rounded-lg bg-primary px-7 py-3.5 text-sm font-semibold text-primary-foreground transition-opacity hover:opacity-90"
           >
             Accéder à mon espace
-            <ArrowRight className="h-4 w-4" />
           </button>
           <a
-            href="#modules"
-            className="inline-flex w-full items-center justify-center gap-2 rounded-xl border border-white/25 bg-white/5 px-7 py-3.5 text-sm font-semibold text-white backdrop-blur-sm transition-colors hover:bg-white/10 sm:w-auto"
+            href="#registre"
+            className="rounded-lg border px-7 py-3.5 text-center text-sm font-semibold transition-colors"
+            style={{ borderColor: "var(--reglure)", color: "var(--carbone)" }}
           >
-            Voir ce que fait le logiciel
+            Voir ce que ça remplace
           </a>
         </div>
+
+        <p className="mt-6 text-sm" style={{ color: "var(--carbone-doux)" }}>
+          Ticket 58 ou 80 mm, facture A4, PDF ou image — au format exact du papier.
+        </p>
       </div>
 
-      <a
-        href="#modules"
-        aria-label="Descendre"
-        className="hero-fleche absolute bottom-6 text-white/70 hover:text-white"
-      >
-        <ChevronDown className="h-6 w-6" />
-      </a>
-    </section>
-  );
-};
+      <TicketImprime />
+    </div>
+  </section>
+);
