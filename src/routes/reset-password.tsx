@@ -1,6 +1,7 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useAuth } from "../hooks/useAuth";
+import { traduireErreurAuth } from "../lib/messagesAuth";
 import { APP_NAME } from "../lib/appConfig";
 import { AlertCircle, ArrowLeft, CheckCircle2, Eye, EyeOff, KeyRound, Lock } from "lucide-react";
 
@@ -58,7 +59,7 @@ function ResetPasswordPage() {
     const { error } = await updatePassword(password);
 
     if (error) {
-      setErrorMsg(error);
+      setErrorMsg(traduireErreurAuth(error) ?? error);
       setStatus("ready");
       return;
     }

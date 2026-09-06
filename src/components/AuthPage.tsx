@@ -2,9 +2,11 @@ import React, { useEffect, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { useAuth } from "../hooks/useAuth";
 import { APP_NAME, APP_TAGLINE } from "../lib/appConfig";
+import { traduireErreurAuth } from "../lib/messagesAuth";
 import {
   AlertCircle,
   ArrowLeft,
+  ArrowRight,
   BarChart3,
   CheckCircle2,
   Eye,
@@ -73,7 +75,7 @@ export const AuthPage: React.FC = () => {
     const { error: signInError } = await signIn(email, password);
     setLoading(false);
     if (signInError) {
-      setError(signInError);
+      setError(traduireErreurAuth(signInError));
       return;
     }
     // Rien d'autre à faire : dès que `user` devient non-null, BalsamaApp.tsx
@@ -89,7 +91,7 @@ export const AuthPage: React.FC = () => {
     // a échoué avant même la redirection (ex: provider mal configuré).
     if (googleError) {
       setGoogleLoading(false);
-      setError(googleError);
+      setError(traduireErreurAuth(googleError));
     }
   };
 
@@ -100,7 +102,7 @@ export const AuthPage: React.FC = () => {
     const { error: signUpError } = await signUp(email, password, fullName);
     setLoading(false);
     if (signUpError) {
-      setError(signUpError);
+      setError(traduireErreurAuth(signUpError));
     } else {
       setSuccess(
         "Compte créé ! Vérifiez votre e-mail puis connectez-vous pour créer votre boutique.",
@@ -116,7 +118,7 @@ export const AuthPage: React.FC = () => {
     const { error: activateError } = await activateWithCode(activationCode);
     setLoading(false);
     if (activateError) {
-      setError(activateError);
+      setError(traduireErreurAuth(activateError));
     } else {
       setSuccess(`Compte activé avec succès ! Bienvenue sur ${APP_NAME}.`);
     }
@@ -129,7 +131,7 @@ export const AuthPage: React.FC = () => {
     const { error: resetError } = await resetPasswordForEmail(forgotEmail);
     setLoading(false);
     if (resetError) {
-      setError(resetError);
+      setError(traduireErreurAuth(resetError));
       return;
     }
     // Par sécurité, on affiche toujours ce message de succès, que l'e-mail
@@ -301,6 +303,29 @@ export const AuthPage: React.FC = () => {
                   <p className="text-sm text-muted-foreground mt-1">
                     Entrez votre e-mail, nous vous enverrons un lien de réinitialisation.
                   </p>
+
+                  {/* Un compte créé par Google n'a jamais eu de mot de
+                      passe : il n'y a rien à réinitialiser, et l'écran
+                      ne pouvait que produire une erreur incompréhensible.
+                      Le dire avant la tentative plutôt qu'après l'échec.
+                      Nous ne vérifions pas le compte saisi pour autant :
+                      répondre « ce compte utilise Google » révélerait
+                      quelles adresses sont enregistrées. */}
+                  <div className="mt-4 rounded-xl border border-border bg-muted p-3">
+                    <p className="text-xs leading-relaxed text-muted-foreground">
+                      Vous vous êtes inscrit avec Google ? Ce compte n'a pas de mot de
+                      passe — il n'y a donc rien à réinitialiser.
+                    </p>
+                    <button
+                      type="button"
+                      onClick={handleGoogleSignIn}
+                      disabled={googleLoading}
+                      className="mt-2.5 inline-flex items-center gap-1.5 text-xs font-semibold text-primary hover:underline disabled:opacity-60"
+                    >
+                      Se connecter avec Google
+                      <ArrowRight className="h-3.5 w-3.5" />
+                    </button>
+                  </div>
                 </div>
               )}
 
