@@ -1121,8 +1121,10 @@ td {
    à un bouton.
    ═══════════════════════════════════════════════════════════════════ */
 .page-accueil {
-  --papier-fond: #ebe7dd;
-  --papier: #fbf9f4;
+  /* Fond éclairci : le beige précédent, plus soutenu, assombrissait
+     l'ensemble de la page une fois les sections empilées. */
+  --papier-fond: #f4f1e9;
+  --papier: #fdfcfa;
   --carbone: #1c1b18;
   --carbone-doux: #6b675e;
   --encre: #2b4c7e;
@@ -1187,4 +1189,12 @@ td {
     color-mix(in srgb, var(--papier-fond) 92%, transparent) 52%,
     transparent 78%
   );
+}
+
+/* Titres de section de la page d'accueil.
+   Le bleu d'encre du cahier, déjà employé pour les colonnes manuscrites
+   et l'icône d'image, plutôt qu'une couleur de plus : le noir carbone
+   reste au texte courant, le vert aux actions. */
+.page-accueil .titre-section {
+  color: var(--encre);
 }

@@ -38,7 +38,7 @@ export const InventaireApplication: React.FC = () => (
     `}</style>
 
     <div className="mx-auto max-w-5xl">
-      <h2 className="titrage text-[clamp(1.6rem,4.6vw,2.3rem)]">
+      <h2 className="titrage titre-section text-[clamp(1.6rem,4.6vw,2.3rem)]">
         L&apos;application, écran par écran
       </h2>
       <p

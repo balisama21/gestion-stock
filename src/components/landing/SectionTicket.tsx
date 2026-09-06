@@ -62,10 +62,7 @@ export const SectionTicket: React.FC = () => (
             Vente enregistrée <ArrowRight className="h-3 w-3" /> Ticket généré
           </span>
 
-          <h2
-            className="mt-6 text-[clamp(1.9rem,5.2vw,3.1rem)] font-bold leading-[1.08] tracking-tight"
-            style={{ color: "var(--carbone)" }}
-          >
+          <h2 className="titre-section mt-6 text-[clamp(1.9rem,5.2vw,3.1rem)] font-bold leading-[1.08] tracking-tight">
             Et le ticket sort
             <br />
             dans la foulée

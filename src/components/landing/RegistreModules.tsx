@@ -100,10 +100,7 @@ export const RegistreModules: React.FC = () => (
           Tout est clair et organisé
         </span>
 
-        <h2
-          className="mt-6 max-w-[18ch] text-[clamp(1.8rem,5vw,2.9rem)] font-bold leading-[1.1] tracking-tight"
-          style={{ color: "var(--carbone)" }}
-        >
+        <h2 className="titre-section mt-6 max-w-[18ch] text-[clamp(1.8rem,5vw,2.9rem)] font-bold leading-[1.1] tracking-tight">
           Ce que {APP_NAME} tient à votre place
         </h2>
 
