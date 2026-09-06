@@ -9,19 +9,25 @@ import React from "react";
  * aussi montré des données réelles d'une boutique, ce qu'on ne met pas
  * sur une page publique.
  *
+ * Sur téléphone, chacune s'élargit à près de neuf dixièmes de la
+ * colonne : à la largeur pensée pour deux colonnes, elles y paraissaient
+ * des timbres perdus dans la marge.
+ *
  * Chacune a sa propre forme — étiquette, page de carnet, fiche, ruban,
  * ticket, barres. Six vignettes de même gabarit auraient reconstitué la
  * grille de cartes qu'on vient justement d'abandonner ; c'est la variété
  * des objets qui dit la variété du travail couvert.
  */
 
-const encadre = "relative";
+// L'enveloppe suit la largeur disponible sur téléphone : dimensionnée au
+// contenu, elle laissait l'étiquette de stock plus étroite que ses voisines.
+const encadre = "relative w-full sm:w-auto";
 
 /** 1. Stock : une étiquette de rayon, avec son seuil d'alerte. */
 export const EtiquetteStock: React.FC = () => (
   <div className={encadre}>
     <div
-      className="w-full max-w-[240px] rounded-r-md border-l-4 px-4 py-3 font-mono"
+      className="w-full max-w-[19rem] sm:max-w-[240px] rounded-r-md border-l-4 px-4 py-3 font-mono"
       style={{
         background: "var(--papier)",
         borderColor: "var(--carbone)",
@@ -51,7 +57,7 @@ export const EtiquetteStock: React.FC = () => (
 /** 2. Ventes du jour : une page de carnet, à colonnes. */
 export const PageCarnet: React.FC = () => (
   <div
-    className="w-full max-w-[260px] px-4 py-3 font-mono text-[11px]"
+    className="w-full max-w-[19rem] sm:max-w-[260px] px-4 py-3 font-mono text-[11px]"
     style={{
       background: "var(--papier)",
       backgroundImage:
@@ -90,7 +96,7 @@ export const PageCarnet: React.FC = () => (
 /** 3. Clients : une fiche cartonnée, avec son solde. */
 export const FicheClient: React.FC = () => (
   <div
-    className="w-full max-w-[250px] px-4 py-4"
+    className="w-full max-w-[19rem] sm:max-w-[250px] px-4 py-4"
     style={{
       background: "var(--papier)",
       border: "1px solid var(--reglure)",
@@ -115,7 +121,7 @@ export const RubanCommande: React.FC = () => {
   const etapes = ["Commandée", "Préparée", "Livrée"];
   const faites = 2;
   return (
-    <div className="w-full max-w-[280px]">
+    <div className="w-full max-w-[19rem] sm:max-w-[280px]">
       <div className="flex items-center">
         {etapes.map((e, i) => (
           <React.Fragment key={e}>
@@ -155,7 +161,7 @@ export const RubanCommande: React.FC = () => {
 
 /** 5. Ticket : le même objet que le héros, en petit et de travers. */
 export const PetitTicket: React.FC = () => (
-  <div className="w-full max-w-[190px] -rotate-2">
+  <div className="w-full max-w-[19rem] sm:max-w-[190px] -rotate-2">
     <div
       className="px-3 pb-4 pt-3 font-mono text-[9px] leading-[1.6]"
       style={{ background: "var(--papier)", boxShadow: "0 12px 26px -18px rgba(28,27,24,.55)" }}
@@ -201,26 +207,40 @@ export const BarresBilan: React.FC = () => {
     ["S", 88],
   ] as const;
   return (
-    <div className="w-full max-w-[240px]">
+    <div className="w-full max-w-[19rem] sm:max-w-[240px]">
       <p className="font-mono text-[19px] font-bold leading-none">2 480 000 Ar</p>
       <p className="mt-1 text-[11px]" style={{ color: "var(--carbone-doux)" }}>
         chiffre d&apos;affaires, six derniers mois
       </p>
-      <div className="mt-4 flex h-[74px] items-end gap-2">
-        {mois.map(([m, h], i) => (
-          <div key={i} className="flex flex-1 flex-col items-center gap-1.5">
+      {/* Les barres sont les enfants DIRECTS de la rangée à hauteur
+          fixe : une hauteur en pourcentage ne se résout que contre un
+          parent dont la hauteur est définie. Enfermées dans une colonne
+          intermédiaire à hauteur automatique, elles valaient zéro pixel
+          et le graphique ne se voyait pas. */}
+      <div className="mt-4">
+        <div className="flex h-[64px] items-end gap-2">
+          {mois.map(([, h], i) => (
             <span
-              className="w-full"
+              key={i}
+              className="flex-1 rounded-t-[2px]"
               style={{
                 height: `${h}%`,
                 background: i === mois.length - 1 ? "var(--primary)" : "var(--reglure)",
               }}
             />
-            <span className="text-[9px]" style={{ color: "var(--carbone-doux)" }}>
+          ))}
+        </div>
+        <div className="mt-1.5 flex gap-2">
+          {mois.map(([m], i) => (
+            <span
+              key={i}
+              className="flex-1 text-center text-[9px]"
+              style={{ color: "var(--carbone-doux)" }}
+            >
               {m}
             </span>
-          </div>
-        ))}
+          ))}
+        </div>
       </div>
     </div>
   );
