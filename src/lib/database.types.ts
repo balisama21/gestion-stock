@@ -6,7 +6,9 @@ export type Json =
   | { [key: string]: Json | undefined }
   | Json[]
 
-// Alias de confort réexportés pour compatibilité avec le code existant
+// Alias de confort réexportés pour compatibilité avec le code existant.
+// Écrits à la main : la génération automatique des types ne les produit
+// pas, il faut donc les recopier après chaque régénération.
 export type UserRole = "founder" | "seller" | "collaborator" | "pending";
 export type AccountStatus = "pending" | "activated" | "suspended";
 export type AccessCodeStatus = "pending" | "generated" | "sent" | "used" | "expired" | "disabled";
@@ -17,8 +19,10 @@ export type OrderStatus = "en_attente" | "en_cours" | "livre" | "annule";
 export type PaymentStatus = "impaye" | "partiel" | "paye";
 
 export type Database = {
+  // Allows to automatically instantiate createClient with right options
+  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "14.15"
+    PostgrestVersion: "14.5"
   }
   public: {
     Tables: {
@@ -77,6 +81,13 @@ export type Database = {
             columns: ["generated_by"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "access_codes_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
             referencedColumns: ["id"]
           },
           {
@@ -180,37 +191,58 @@ export type Database = {
       }
       clients: {
         Row: {
+          adresse: string | null
           created_at: string
           created_by: string
           email: string | null
+          entreprise: string | null
           id: string
           nom: string
           note: string | null
+          pays: string | null
+          prenom: string | null
+          statut: string
           store_id: string
           telephone: string | null
+          type_client: string | null
           updated_at: string
+          ville: string | null
         }
         Insert: {
+          adresse?: string | null
           created_at?: string
           created_by: string
           email?: string | null
+          entreprise?: string | null
           id?: string
           nom: string
           note?: string | null
+          pays?: string | null
+          prenom?: string | null
+          statut?: string
           store_id: string
           telephone?: string | null
+          type_client?: string | null
           updated_at?: string
+          ville?: string | null
         }
         Update: {
+          adresse?: string | null
           created_at?: string
           created_by?: string
           email?: string | null
+          entreprise?: string | null
           id?: string
           nom?: string
           note?: string | null
+          pays?: string | null
+          prenom?: string | null
+          statut?: string
           store_id?: string
           telephone?: string | null
+          type_client?: string | null
           updated_at?: string
+          ville?: string | null
         }
         Relationships: [
           {
@@ -238,7 +270,7 @@ export type Database = {
           invite_code: string | null
           invited_by: string
           invited_email: string
-          permissions: string[]
+          permissions: Json
           role: string
           status: Database["public"]["Enums"]["invitation_status"]
           store_id: string
@@ -252,7 +284,7 @@ export type Database = {
           invite_code?: string | null
           invited_by: string
           invited_email: string
-          permissions?: string[]
+          permissions?: Json
           role?: string
           status?: Database["public"]["Enums"]["invitation_status"]
           store_id: string
@@ -266,7 +298,7 @@ export type Database = {
           invite_code?: string | null
           invited_by?: string
           invited_email?: string
-          permissions?: string[]
+          permissions?: Json
           role?: string
           status?: Database["public"]["Enums"]["invitation_status"]
           store_id?: string
@@ -294,10 +326,10 @@ export type Database = {
           created_at: string
           date: string
           id: string
-          numero: string | null
           impact_tresorerie_globale: number
           montant: number
           note: string | null
+          numero: string | null
           owner_id: string
           store_id: string
           type: string
@@ -307,10 +339,10 @@ export type Database = {
           created_at?: string
           date?: string
           id?: string
-          numero?: string | null
           impact_tresorerie_globale?: number
           montant?: number
           note?: string | null
+          numero?: string | null
           owner_id: string
           store_id: string
           type?: string
@@ -320,10 +352,10 @@ export type Database = {
           created_at?: string
           date?: string
           id?: string
-          numero?: string | null
           impact_tresorerie_globale?: number
           montant?: number
           note?: string | null
+          numero?: string | null
           owner_id?: string
           store_id?: string
           type?: string
@@ -482,15 +514,45 @@ export type Database = {
           },
         ]
       }
+      password_recovery_requests: {
+        Row: {
+          email: string
+          handled_at: string | null
+          handled_by: string | null
+          id: string
+          requested_at: string
+          status: string
+          user_id: string | null
+        }
+        Insert: {
+          email: string
+          handled_at?: string | null
+          handled_by?: string | null
+          id?: string
+          requested_at?: string
+          status?: string
+          user_id?: string | null
+        }
+        Update: {
+          email?: string
+          handled_at?: string | null
+          handled_by?: string | null
+          id?: string
+          requested_at?: string
+          status?: string
+          user_id?: string | null
+        }
+        Relationships: []
+      }
       payments: {
         Row: {
           created_at: string
           id: string
-          numero: string | null
           idempotency_key: string | null
           methode: string
           montant: number
           note: string | null
+          numero: string | null
           order_id: string | null
           recorded_by: string
           reference: string | null
@@ -500,11 +562,11 @@ export type Database = {
         Insert: {
           created_at?: string
           id?: string
-          numero?: string | null
           idempotency_key?: string | null
           methode?: string
           montant: number
           note?: string | null
+          numero?: string | null
           order_id?: string | null
           recorded_by: string
           reference?: string | null
@@ -514,11 +576,11 @@ export type Database = {
         Update: {
           created_at?: string
           id?: string
-          numero?: string | null
           idempotency_key?: string | null
           methode?: string
           montant?: number
           note?: string | null
+          numero?: string | null
           order_id?: string | null
           recorded_by?: string
           reference?: string | null
@@ -563,6 +625,7 @@ export type Database = {
           display_name: string
           fournisseur: string
           id: string
+          idempotency_key: string | null
           numero: string | null
           owner_id: string
           prix_achat: number
@@ -582,6 +645,7 @@ export type Database = {
           display_name: string
           fournisseur?: string
           id?: string
+          idempotency_key?: string | null
           numero?: string | null
           owner_id: string
           prix_achat?: number
@@ -601,6 +665,7 @@ export type Database = {
           display_name?: string
           fournisseur?: string
           id?: string
+          idempotency_key?: string | null
           numero?: string | null
           owner_id?: string
           prix_achat?: number
@@ -684,6 +749,134 @@ export type Database = {
           },
         ]
       }
+      provider_services: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          id: string
+          libelle: string
+          note: string | null
+          provider_id: string
+          store_id: string
+          tarif: number | null
+          unite: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          libelle: string
+          note?: string | null
+          provider_id: string
+          store_id: string
+          tarif?: number | null
+          unite?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          libelle?: string
+          note?: string | null
+          provider_id?: string
+          store_id?: string
+          tarif?: number | null
+          unite?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "provider_services_provider_id_store_id_fkey"
+            columns: ["provider_id", "store_id"]
+            isOneToOne: false
+            referencedRelation: "providers"
+            referencedColumns: ["id", "store_id"]
+          },
+          {
+            foreignKeyName: "provider_services_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      providers: {
+        Row: {
+          adresse: string | null
+          conditions: string | null
+          contact: string | null
+          created_at: string
+          created_by: string | null
+          email: string | null
+          entreprise: string | null
+          id: string
+          nom: string
+          note: string | null
+          pays: string | null
+          statut: string
+          store_id: string
+          tarif_base: number | null
+          tarif_unite: string | null
+          telephone: string | null
+          type_service: string | null
+          updated_at: string
+          ville: string | null
+        }
+        Insert: {
+          adresse?: string | null
+          conditions?: string | null
+          contact?: string | null
+          created_at?: string
+          created_by?: string | null
+          email?: string | null
+          entreprise?: string | null
+          id?: string
+          nom: string
+          note?: string | null
+          pays?: string | null
+          statut?: string
+          store_id: string
+          tarif_base?: number | null
+          tarif_unite?: string | null
+          telephone?: string | null
+          type_service?: string | null
+          updated_at?: string
+          ville?: string | null
+        }
+        Update: {
+          adresse?: string | null
+          conditions?: string | null
+          contact?: string | null
+          created_at?: string
+          created_by?: string | null
+          email?: string | null
+          entreprise?: string | null
+          id?: string
+          nom?: string
+          note?: string | null
+          pays?: string | null
+          statut?: string
+          store_id?: string
+          tarif_base?: number | null
+          tarif_unite?: string | null
+          telephone?: string | null
+          type_service?: string | null
+          updated_at?: string
+          ville?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "providers_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       purchases: {
         Row: {
           created_at: string
@@ -691,14 +884,15 @@ export type Database = {
           designation: string
           fournisseur: string
           id: string
-          numero: string | null
           idempotency_key: string | null
           impact_tresorerie: number
+          numero: string | null
           owner_id: string
           prix_achat_unit: number
           product_id: string | null
           quantite: number
           store_id: string
+          supplier_id: string | null
           total_achat: number
           totalachat: number | null
         }
@@ -708,14 +902,15 @@ export type Database = {
           designation: string
           fournisseur?: string
           id?: string
-          numero?: string | null
           idempotency_key?: string | null
           impact_tresorerie?: number
+          numero?: string | null
           owner_id: string
           prix_achat_unit?: number
           product_id?: string | null
           quantite?: number
           store_id: string
+          supplier_id?: string | null
           total_achat?: number
           totalachat?: number | null
         }
@@ -725,14 +920,15 @@ export type Database = {
           designation?: string
           fournisseur?: string
           id?: string
-          numero?: string | null
           idempotency_key?: string | null
           impact_tresorerie?: number
+          numero?: string | null
           owner_id?: string
           prix_achat_unit?: number
           product_id?: string | null
           quantite?: number
           store_id?: string
+          supplier_id?: string | null
           total_achat?: number
           totalachat?: number | null
         }
@@ -756,6 +952,13 @@ export type Database = {
             columns: ["store_id"]
             isOneToOne: false
             referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "purchases_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers"
             referencedColumns: ["id"]
           },
         ]
@@ -833,11 +1036,11 @@ export type Database = {
           date: string
           designation: string
           id: string
-          numero: string | null
           idempotency_key: string | null
           marge_totale: number
           montant_paye: number
           montant_rembourse: number
+          numero: string | null
           owner_id: string
           prix_achat_unit_ref: number
           prix_vente_unit: number
@@ -858,11 +1061,11 @@ export type Database = {
           date?: string
           designation: string
           id?: string
-          numero?: string | null
           idempotency_key?: string | null
           marge_totale?: number
           montant_paye?: number
           montant_rembourse?: number
+          numero?: string | null
           owner_id: string
           prix_achat_unit_ref?: number
           prix_vente_unit?: number
@@ -883,11 +1086,11 @@ export type Database = {
           date?: string
           designation?: string
           id?: string
-          numero?: string | null
           idempotency_key?: string | null
           marge_totale?: number
           montant_paye?: number
           montant_rembourse?: number
+          numero?: string | null
           owner_id?: string
           prix_achat_unit_ref?: number
           prix_vente_unit?: number
@@ -999,12 +1202,38 @@ export type Database = {
           },
         ]
       }
+      store_counters: {
+        Row: {
+          counter_type: string
+          current_value: number
+          store_id: string
+        }
+        Insert: {
+          counter_type: string
+          current_value?: number
+          store_id: string
+        }
+        Update: {
+          counter_type?: string
+          current_value?: number
+          store_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "store_counters_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       store_members: {
         Row: {
           id: string
           invited_by: string | null
           joined_at: string
-          permissions: string[]
+          permissions: Json
           role: string
           store_id: string
           user_id: string
@@ -1013,7 +1242,7 @@ export type Database = {
           id?: string
           invited_by?: string | null
           joined_at?: string
-          permissions?: string[]
+          permissions?: Json
           role?: string
           store_id: string
           user_id: string
@@ -1022,7 +1251,7 @@ export type Database = {
           id?: string
           invited_by?: string | null
           joined_at?: string
-          permissions?: string[]
+          permissions?: Json
           role?: string
           store_id?: string
           user_id?: string
@@ -1131,11 +1360,132 @@ export type Database = {
           },
         ]
       }
+      suppliers: {
+        Row: {
+          adresse: string | null
+          categorie: string | null
+          conditions_paiement: string | null
+          contact_principal: string | null
+          created_at: string
+          created_by: string | null
+          delai_livraison_jours: number | null
+          email: string | null
+          entreprise: string | null
+          id: string
+          nom: string
+          note: string | null
+          numero_fiscal: string | null
+          pays: string | null
+          produits_fournis: string[] | null
+          statut: string
+          store_id: string
+          telephone: string | null
+          updated_at: string
+          ville: string | null
+        }
+        Insert: {
+          adresse?: string | null
+          categorie?: string | null
+          conditions_paiement?: string | null
+          contact_principal?: string | null
+          created_at?: string
+          created_by?: string | null
+          delai_livraison_jours?: number | null
+          email?: string | null
+          entreprise?: string | null
+          id?: string
+          nom: string
+          note?: string | null
+          numero_fiscal?: string | null
+          pays?: string | null
+          produits_fournis?: string[] | null
+          statut?: string
+          store_id: string
+          telephone?: string | null
+          updated_at?: string
+          ville?: string | null
+        }
+        Update: {
+          adresse?: string | null
+          categorie?: string | null
+          conditions_paiement?: string | null
+          contact_principal?: string | null
+          created_at?: string
+          created_by?: string | null
+          delai_livraison_jours?: number | null
+          email?: string | null
+          entreprise?: string | null
+          id?: string
+          nom?: string
+          note?: string | null
+          numero_fiscal?: string | null
+          pays?: string | null
+          produits_fournis?: string[] | null
+          statut?: string
+          store_id?: string
+          telephone?: string | null
+          updated_at?: string
+          ville?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "suppliers_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
+      _legacy_array_to_permissions: { Args: { p_keys: Json }; Returns: Json }
+      _module_metadata: {
+        Args: never
+        Returns: {
+          actions: string[]
+          fields: string[]
+          has_scope: boolean
+          key: string
+        }[]
+      }
+      accept_invitation: { Args: { p_token: string }; Returns: Json }
+      accept_invitation_by_code: { Args: { p_code: string }; Returns: Json }
+      activate_store_with_code: {
+        Args: { p_code: string; p_store_id: string }
+        Returns: {
+          activated_at: string | null
+          activation_status: string
+          address: string | null
+          capital_initial: number
+          created_at: string
+          currency_symbol: string
+          email: string | null
+          enable_pin_security: boolean
+          id: string
+          logo_url: string | null
+          name: string
+          nif_stat: string | null
+          owner_id: string
+          phone: string | null
+          receipt_footer: string | null
+          seuil_alerte_tresorerie: number
+          subtitle: string | null
+          suppliers: string[] | null
+          trial_ends_at: string
+          tva_rate: number
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "stores"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       add_payment: {
         Args: {
           p_idempotency_key: string
@@ -1146,21 +1496,6 @@ export type Database = {
           p_reference: string
           p_sale_id: string
           p_store_id: string
-        }
-        Returns: Json
-      }
-      create_product: {
-        Args: {
-          p_designation: string
-          p_display_name: string
-          p_fournisseur: string
-          p_idempotency_key: string
-          p_prix_achat: number
-          p_prix_vente_defaut: number
-          p_seuil_alerte: number
-          p_stock_initial: number
-          p_store_id: string
-          p_variant_suffix: string
         }
         Returns: Json
       }
@@ -1185,6 +1520,42 @@ export type Database = {
         Args: { p_owner_id: string; p_store_id: string }
         Returns: boolean
       }
+      copy_store: {
+        Args: { p_new_name: string; p_source_store_id: string }
+        Returns: {
+          activated_at: string | null
+          activation_status: string
+          address: string | null
+          capital_initial: number
+          created_at: string
+          currency_symbol: string
+          email: string | null
+          enable_pin_security: boolean
+          id: string
+          logo_url: string | null
+          name: string
+          nif_stat: string | null
+          owner_id: string
+          phone: string | null
+          receipt_footer: string | null
+          seuil_alerte_tresorerie: number
+          subtitle: string | null
+          suppliers: string[] | null
+          trial_ends_at: string
+          tva_rate: number
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "stores"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      create_invitation: {
+        Args: { p_email: string; p_role: string; p_store_id: string }
+        Returns: Json
+      }
       create_order_with_items: {
         Args: {
           p_client_id: string
@@ -1193,6 +1564,21 @@ export type Database = {
           p_items: Json
           p_note: string
           p_store_id: string
+        }
+        Returns: Json
+      }
+      create_product: {
+        Args: {
+          p_designation: string
+          p_display_name: string
+          p_fournisseur: string
+          p_idempotency_key: string
+          p_prix_achat: number
+          p_prix_vente_defaut: number
+          p_seuil_alerte: number
+          p_stock_initial: number
+          p_store_id: string
+          p_variant_suffix: string
         }
         Returns: Json
       }
@@ -1212,18 +1598,35 @@ export type Database = {
         }
         Returns: Json
       }
+      delete_order: { Args: { p_order_id: string }; Returns: undefined }
+      delete_own_account: { Args: never; Returns: undefined }
+      delete_products: { Args: { p_product_ids: string[] }; Returns: number }
       delete_purchase: { Args: { p_purchase_id: string }; Returns: undefined }
       delete_sale: { Args: { p_sale_id: string }; Returns: undefined }
       generate_access_code: { Args: never; Returns: string }
       get_auth_role: { Args: never; Returns: string }
+      is_platform_admin: { Args: never; Returns: boolean }
       is_store_member: { Args: { p_store_id: string }; Returns: boolean }
       is_store_owner: { Args: { p_store_id: string }; Returns: boolean }
+      next_store_counter: {
+        Args: { p_counter_type: string; p_store_id: string }
+        Returns: number
+      }
+      redeem_access_code: {
+        Args: { p_code: string; p_store_name?: string }
+        Returns: Json
+      }
       refund_order: {
-        Args: { p_idempotency_key: string; p_montant: number; p_order_id: string; p_reason: string }
+        Args: { p_montant: number; p_order_id: string; p_reason: string }
         Returns: Json
       }
       refund_sale: {
-        Args: { p_idempotency_key: string; p_montant: number; p_reason: string; p_sale_id: string }
+        Args: {
+          p_idempotency_key?: string
+          p_montant: number
+          p_reason: string
+          p_sale_id: string
+        }
         Returns: Json
       }
       set_order_status: {
@@ -1232,6 +1635,19 @@ export type Database = {
           p_order_id: string
         }
         Returns: Json
+      }
+      store_allows_write: { Args: { p_store_id: string }; Returns: boolean }
+      store_is_locked: { Args: { p_store_id: string }; Returns: boolean }
+      update_product: {
+        Args: {
+          p_designation: string
+          p_fournisseur: string
+          p_prix_achat: number
+          p_prix_vente_defaut: number
+          p_product_id: string
+          p_seuil_alerte: number
+        }
+        Returns: undefined
       }
       update_sale_quantity: {
         Args: {
@@ -1274,12 +1690,12 @@ export type Tables<
   DefaultSchemaTableNameOrOptions extends
     | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
         DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -1303,11 +1719,11 @@ export type TablesInsert<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -1328,11 +1744,11 @@ export type TablesUpdate<
   DefaultSchemaTableNameOrOptions extends
     | keyof DefaultSchema["Tables"]
     | { schema: keyof DatabaseWithoutInternals },
-  TableName extends DefaultSchemaTableNameOrOptions extends {
+  TableName extends (DefaultSchemaTableNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -1353,11 +1769,11 @@ export type Enums<
   DefaultSchemaEnumNameOrOptions extends
     | keyof DefaultSchema["Enums"]
     | { schema: keyof DatabaseWithoutInternals },
-  EnumName extends DefaultSchemaEnumNameOrOptions extends {
+  EnumName extends (DefaultSchemaEnumNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
-    : never = never,
+    : never) = never,
 > = DefaultSchemaEnumNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
@@ -1370,11 +1786,11 @@ export type CompositeTypes<
   PublicCompositeTypeNameOrOptions extends
     | keyof DefaultSchema["CompositeTypes"]
     | { schema: keyof DatabaseWithoutInternals },
-  CompositeTypeName extends PublicCompositeTypeNameOrOptions extends {
+  CompositeTypeName extends (PublicCompositeTypeNameOrOptions extends {
     schema: keyof DatabaseWithoutInternals
   }
     ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
-    : never = never,
+    : never) = never,
 > = PublicCompositeTypeNameOrOptions extends {
   schema: keyof DatabaseWithoutInternals
 }
