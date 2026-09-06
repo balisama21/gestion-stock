@@ -7,6 +7,12 @@ import { APP_NAME } from "../../lib/appConfig";
  * La marque, un filet vert, puis la citation. Centré sur téléphone,
  * aligné à gauche dès qu'il y a deux colonnes — comme les maquettes.
  *
+ * Le guillemet ouvrant est décroché à gauche de la citation, à toutes
+ * les largeurs. Posé sur sa propre ligne centrée, comme il l'était sur
+ * téléphone, il ne ressemblait plus à une ponctuation : juste un signe
+ * vert flottant au-dessus du texte. Décroché, il retrouve son rôle —
+ * il ouvre la phrase, et l'œil sait où commencer à lire.
+ *
  * La citation n'est attribuée à personne. En signer une d'un nom inventé
  * reviendrait à publier un faux témoignage sur une page publique, et un
  * visiteur qui s'en aperçoit n'accorde plus rien au reste. Ce qui est
@@ -23,10 +29,10 @@ export const PanneauMarque: React.FC = () => (
       </p>
     </div>
 
-    <blockquote className="mt-9 lg:relative lg:ps-14">
+    <blockquote className="relative mt-9 pt-8 lg:mt-9 lg:pt-0 lg:ps-14">
       <span
         aria-hidden
-        className="mb-1 block text-[2.6rem] font-bold leading-[0.5] lg:absolute lg:left-0 lg:top-1 lg:mb-0"
+        className="absolute left-0 top-1 text-[2.6rem] font-bold leading-[0.5]"
         style={{ color: "var(--primary)" }}
       >
         &ldquo;
