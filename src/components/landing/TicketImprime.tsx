@@ -41,8 +41,8 @@ const LIGNES: Array<{
  *
  * Sans animation demandée, le ticket est simplement là, entier.
  */
-export const TicketImprime: React.FC = () => (
-  <div className="ticket-impression relative mx-auto w-full max-w-[300px]">
+export const TicketImprime: React.FC<{ largeurMax?: number }> = ({ largeurMax = 300 }) => (
+  <div className="ticket-impression relative mx-auto w-full" style={{ maxWidth: largeurMax }}>
     <style>{`
       @keyframes ti-sortir {
         from { clip-path: inset(0 0 100% 0); opacity: .4; }
@@ -66,7 +66,15 @@ export const TicketImprime: React.FC = () => (
 
     <div
       className="ti-feuille relative px-5 pb-7 pt-6 font-mono text-[11px] leading-[1.55]"
-      style={{ background: "var(--papier)", boxShadow: "0 18px 40px -24px rgba(28,27,24,.45)" }}
+      style={{
+        background: "var(--papier)",
+        // Grain du papier thermique : deux trames croisées à peine
+        // perceptibles, plutôt qu'une image de texture à télécharger.
+        backgroundImage:
+          "repeating-linear-gradient(0deg, rgba(28,27,24,.014) 0 1px, transparent 1px 3px)," +
+          "repeating-linear-gradient(90deg, rgba(28,27,24,.010) 0 1px, transparent 1px 4px)",
+        boxShadow: "0 26px 50px -30px rgba(28,27,24,.42), 0 3px 10px -6px rgba(28,27,24,.14)",
+      }}
     >
       {LIGNES.map((l, i) => (
         <div key={i} className="ti-ligne" style={{ ["--rang" as string]: i }}>
@@ -107,6 +115,7 @@ export const TicketImprime: React.FC = () => (
     <svg
       aria-hidden
       viewBox="0 0 300 10"
+      width="100%"
       preserveAspectRatio="none"
       className="block h-[10px] w-full"
       style={{ filter: "drop-shadow(0 6px 10px rgba(28,27,24,.18))" }}

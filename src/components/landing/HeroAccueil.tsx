@@ -2,7 +2,6 @@ import React from "react";
 import { ScrollMorphHero } from "../ui/scroll-morph-hero";
 import { MiniEcran } from "./MiniEcran";
 import { GROUPES_ECRANS } from "./ecrans";
-import { TicketImprime } from "./TicketImprime";
 
 interface HeroAccueilProps {
   /** Amène au formulaire de connexion, plus bas dans la page. */
@@ -100,30 +99,3 @@ export const HeroAccueil: React.FC<HeroAccueilProps> = ({ onRejoindreConnexion }
     />
   );
 };
-
-/**
- * Le ticket, sous la voûte.
- *
- * Il ouvrait la page avant que le héros ne devienne animé ; il n'a pas
- * disparu pour autant, car c'est l'objet le plus caractéristique du
- * produit — ce qu'il fabrique et ce que le commerçant tend à son client.
- */
-export const BandeauTicket: React.FC = () => (
-  <section className="reglure px-5 py-16 sm:py-20">
-    <div className="mx-auto grid max-w-4xl items-center gap-10 sm:grid-cols-2 sm:gap-14">
-      <div>
-        <h2 className="titrage text-[clamp(1.5rem,4.4vw,2.1rem)]">
-          Et le ticket sort dans la foulée
-        </h2>
-        <p
-          className="mt-4 max-w-[42ch] text-[0.95rem] leading-relaxed"
-          style={{ color: "var(--carbone-doux)" }}
-        >
-          Ticket 58 ou 80 mm pour la thermique du comptoir, facture A4 pour un client qui la
-          demande, PDF ou image pour l&apos;envoyer par message — au format exact du papier.
-        </p>
-      </div>
-      <TicketImprime />
-    </div>
-  </section>
-);
