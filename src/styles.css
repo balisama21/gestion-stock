@@ -879,6 +879,46 @@ td {
   object-fit: cover;
 }
 
+/* ═══════════════════════════════════════════════════════════════════
+   LIGNES À DEUX COLONNES D'UN REÇU — libellé à gauche, montant à droite
+
+   `overflow-wrap: anywhere` ci-dessus est indispensable à l'en-tête, où
+   une adresse e-mail forme un mot d'un seul tenant. Mais il s'appliquait
+   aussi aux lignes de totaux, avec deux conséquences que l'aperçu d'un
+   ticket de 58 mm rendait bien visibles : « 50 000 Ar » se scindait en
+   « 50 » puis « 000 Ar », et « TOTAL » en « TOTA » puis « L ». Sur un
+   document financier, une somme coupée en deux ne se lit pas de travers,
+   elle se lit faux.
+
+   Trois garanties, donc, pour ces lignes :
+
+   - le montant, à droite, ne se coupe jamais ;
+   - aucun mot ne se hache : `break-word` remplace `anywhere`, ce qui
+     rétablit du même coup la largeur minimale de chaque colonne — c'est
+     elle qui empêchait « TOTAL » d'être comprimé jusqu'à se rompre ;
+   - si les deux colonnes ne tiennent décidément pas sur une ligne, le
+     montant passe dessous, calé à droite, plutôt que de déborder du
+     papier. Un ticket étroit reste ainsi lisible sans jamais produire de
+     défilement horizontal.
+   ═══════════════════════════════════════════════════════════════════ */
+.printable-receipt .justify-between {
+  flex-wrap: wrap;
+  align-items: baseline;
+  column-gap: 0.5rem;
+}
+
+.printable-receipt .justify-between > * {
+  overflow-wrap: break-word;
+}
+
+.printable-receipt .justify-between > *:last-child {
+  white-space: nowrap;
+  text-align: right;
+  /* Garde le montant à droite y compris lorsqu'il occupe seul sa ligne :
+     `space-between` le collerait sinon au bord gauche. */
+  margin-left: auto;
+}
+
 /* Un tableau de reçu ne doit jamais imposer une largeur minimale
    supérieure au cadre : les cellules se replient.
    Volontairement PAS de `table-layout: fixed` — il donnerait quatre
