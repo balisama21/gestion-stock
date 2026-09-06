@@ -1,14 +1,20 @@
 /*
- * Génère les icônes de Tantana Suite.
+ * Génère les icônes de Tantana Suite à partir de `public/logo.svg`.
+ *
+ * Le logo est la seule source : le script lit ses chemins, les aplatit en
+ * polygones puis les remplit lui-même par balayage de lignes, avec la
+ * règle « non nulle » pour que les contre-formes des lettres restent
+ * creuses. Le PNG d'origine fourni ne faisait que 250 px de large — le
+ * redimensionner aurait donné une icône 512 floue ; partir du vectoriel
+ * donne un tracé net à toutes les tailles.
  *
  * Aucune dépendance : l'encodeur PNG tient en quelques lignes (en-tête,
- * IHDR, IDAT compressé par zlib, IEND) et le tracé est fait à la main
- * par sur-échantillonnage. Le fichier .ico encapsule simplement un PNG,
- * ce que tous les navigateurs actuels acceptent.
+ * IHDR, IDAT compressé par zlib, IEND) et le fichier .ico encapsule
+ * simplement un PNG, ce que tous les navigateurs actuels acceptent.
  */
-const fs = require("fs");
-const zlib = require("zlib");
-const path = require("path");
+import fs from "node:fs";
+import zlib from "node:zlib";
+import path from "node:path";
 
 // ---------------------------------------------------------------- PNG
 
@@ -40,8 +46,8 @@ function encoderPng(largeur, hauteur, rgba) {
   const ihdr = Buffer.alloc(13);
   ihdr.writeUInt32BE(largeur, 0);
   ihdr.writeUInt32BE(hauteur, 4);
-  ihdr[8] = 8;   // 8 bits par canal
-  ihdr[9] = 6;   // RGBA
+  ihdr[8] = 8; // 8 bits par canal
+  ihdr[9] = 6; // RGBA
   const brut = Buffer.alloc(hauteur * (1 + largeur * 4));
   for (let y = 0; y < hauteur; y++) {
     const dep = y * (1 + largeur * 4);
@@ -56,79 +62,218 @@ function encoderPng(largeur, hauteur, rgba) {
   ]);
 }
 
-// --------------------------------------------------------------- Tracé
+// -------------------------------------------------------- Lecture du SVG
 
-// Rectangle à coins arrondis : distance signée, pour un rendu net.
-function dansRectArrondi(x, y, x0, y0, x1, y1, r) {
-  const cx = Math.max(x0 + r, Math.min(x1 - r, x));
-  const cy = Math.max(y0 + r, Math.min(y1 - r, y));
-  if (x >= x0 + r && x <= x1 - r) return y >= y0 && y <= y1;
-  if (y >= y0 + r && y <= y1 - r) return x >= x0 && x <= x1;
-  return (x - cx) ** 2 + (y - cy) ** 2 <= r * r;
-}
-
-const VERT = [0x00, 0x86, 0x47];
-const BLANC = [0xff, 0xff, 0xff];
-
-/**
- * Le monogramme : un T, barre pleine, angles doucement adoucis.
- *
- * Une première version coupait la barre en trois segments pour évoquer
- * les modules réunis. Rendue, elle ne se lisait plus comme une lettre :
- * les trois pastilles se détachaient et celle du milieu fusionnait avec
- * le fût. Une icône d'application se lit à seize pixels ; l'idée ne
- * survivait pas à cette taille et a été abandonnée.
- *
- * Coordonnées centrées sur l'origine, boîte englobante de 1 x 1.
- */
-const EPAISSEUR = 0.22;
-const RAYON = 0.055;
-
-function dansMonogramme(x, y) {
-  const demi = EPAISSEUR / 2;
-  const haut = -0.5;
-  const bas = -0.5 + EPAISSEUR;
-  return (
-    dansRectArrondi(x, y, -0.5, haut, 0.5, bas, RAYON) ||
-    dansRectArrondi(x, y, -demi, haut, demi, 0.5, RAYON)
-  );
+/** Découpe une chaîne de chemin SVG en commandes et nombres. */
+function jetons(d) {
+  return d.match(/[MLCZmlcz]|-?\d*\.?\d+(?:e-?\d+)?/g) || [];
 }
 
 /**
- * @param taille        côté en pixels
- * @param pleinBord     true pour une icône « maskable » : le vert occupe
- *                      tout le carré, le système applique son propre
- *                      masque et rognerait des coins arrondis.
- * @param partMonogramme part du côté occupée par le T.
+ * Aplatit un chemin en polygones. Seules les commandes que nous
+ * produisons sont gérées : M, L, C, Z, en coordonnées absolues.
  */
-function dessiner(taille, pleinBord, partMonogramme) {
-  const SS = 4; // sur-échantillonnage
-  const px = Buffer.alloc(taille * taille * 4);
-  const rayonTuile = pleinBord ? 0 : taille * 0.22;
-  const echelle = taille * partMonogramme;
-  const centre = taille / 2;
+function aplatir(d, parSegment) {
+  const t = jetons(d);
+  const polys = [];
+  let poly = null;
+  let x = 0,
+    y = 0,
+    i = 0;
+  const nombre = () => parseFloat(t[i++]);
+  while (i < t.length) {
+    const cmd = t[i++];
+    if (cmd === "M") {
+      if (poly && poly.length > 2) polys.push(poly);
+      x = nombre();
+      y = nombre();
+      poly = [[x, y]];
+    } else if (cmd === "L") {
+      x = nombre();
+      y = nombre();
+      poly.push([x, y]);
+    } else if (cmd === "C") {
+      const x1 = nombre(),
+        y1 = nombre(),
+        x2 = nombre(),
+        y2 = nombre();
+      const x3 = nombre(),
+        y3 = nombre();
+      // Le nombre de segments suit la longueur du polygone de contrôle :
+      // une petite courbe n'a pas besoin d'autant de points qu'une grande.
+      const l =
+        Math.hypot(x1 - x, y1 - y) + Math.hypot(x2 - x1, y2 - y1) + Math.hypot(x3 - x2, y3 - y2);
+      const n = Math.max(2, Math.min(24, Math.ceil(l * parSegment)));
+      for (let k = 1; k <= n; k++) {
+        const u = k / n,
+          v = 1 - u;
+        poly.push([
+          v * v * v * x + 3 * v * v * u * x1 + 3 * v * u * u * x2 + u * u * u * x3,
+          v * v * v * y + 3 * v * v * u * y1 + 3 * v * u * u * y2 + u * u * u * y3,
+        ]);
+      }
+      x = x3;
+      y = y3;
+    } else if (cmd === "Z" || cmd === "z") {
+      if (poly && poly.length > 2) polys.push(poly);
+      poly = null;
+    } else {
+      i++; // commande inconnue : on saute
+    }
+  }
+  if (poly && poly.length > 2) polys.push(poly);
+  return polys;
+}
 
+function lireLogo(fichier) {
+  const svg = fs.readFileSync(fichier, "utf8");
+  const vb = svg.match(/viewBox="([-\d.]+) ([-\d.]+) ([-\d.]+) ([-\d.]+)"/);
+  if (!vb) throw new Error("viewBox introuvable dans " + fichier);
+  const chemins = [];
+  const re = /<path\s+fill="(#[0-9a-fA-F]{6})"\s+d="([^"]+)"/g;
+  let m;
+  while ((m = re.exec(svg))) {
+    chemins.push({
+      couleur: [1, 3, 5].map((k) => parseInt(m[1].substr(k, 2), 16)),
+      d: m[2],
+    });
+  }
+  if (!chemins.length) throw new Error("aucun chemin dans " + fichier);
+  return { boite: vb.slice(1, 5).map(Number), chemins };
+}
+
+// ------------------------------------------------------------- Remplissage
+
+/**
+ * Remplit des polygones dans une carte de couverture, règle « non nulle ».
+ *
+ * Le balayage se fait sur `SS` sous-lignes par pixel — la précision
+ * verticale — tandis que la couverture horizontale est calculée
+ * exactement, par recouvrement d'intervalle. Les contre-formes (le creux
+ * du « a », par exemple) sortent du traçage avec le sens inverse : la
+ * règle non nulle les laisse donc vides sans traitement particulier.
+ */
+function remplir(polys, taille, SS) {
+  const couverture = new Float32Array(taille * taille);
+  const aretes = [];
+  for (const poly of polys) {
+    for (let i = 0; i < poly.length; i++) {
+      const a = poly[i],
+        b = poly[(i + 1) % poly.length];
+      if (a[1] === b[1]) continue;
+      aretes.push({ x0: a[0], y0: a[1], x1: b[0], y1: b[1], sens: b[1] > a[1] ? 1 : -1 });
+    }
+  }
+  // Rangement par ligne de pixel, pour ne pas tester toutes les arêtes
+  // à chaque sous-ligne.
+  const seaux = Array.from({ length: taille }, () => []);
+  for (const a of aretes) {
+    const yh = Math.max(0, Math.floor(Math.min(a.y0, a.y1)));
+    const yb = Math.min(taille - 1, Math.ceil(Math.max(a.y0, a.y1)));
+    for (let y = yh; y <= yb; y++) seaux[y].push(a);
+  }
+  const croisements = [];
   for (let y = 0; y < taille; y++) {
-    for (let x = 0; x < taille; x++) {
-      let couvertureTuile = 0;
-      let couvertureT = 0;
-      for (let sy = 0; sy < SS; sy++) {
-        for (let sx = 0; sx < SS; sx++) {
-          const ex = x + (sx + 0.5) / SS;
-          const ey = y + (sy + 0.5) / SS;
-          if (dansRectArrondi(ex, ey, 0, 0, taille, taille, rayonTuile)) couvertureTuile++;
-          if (dansMonogramme((ex - centre) / echelle, (ey - centre) / echelle)) couvertureT++;
+    const seau = seaux[y];
+    if (!seau.length) continue;
+    for (let s = 0; s < SS; s++) {
+      const ys = y + (s + 0.5) / SS;
+      croisements.length = 0;
+      for (const a of seau) {
+        const yh = Math.min(a.y0, a.y1),
+          yb = Math.max(a.y0, a.y1);
+        if (ys < yh || ys >= yb) continue;
+        croisements.push({
+          x: a.x0 + ((ys - a.y0) * (a.x1 - a.x0)) / (a.y1 - a.y0),
+          sens: a.sens,
+        });
+      }
+      if (croisements.length < 2) continue;
+      croisements.sort((p, q) => p.x - q.x);
+      let enroulement = 0;
+      for (let k = 0; k < croisements.length - 1; k++) {
+        enroulement += croisements[k].sens;
+        if (enroulement === 0) continue;
+        const xa = Math.max(0, croisements[k].x);
+        const xb = Math.min(taille, croisements[k + 1].x);
+        if (xb <= xa) continue;
+        const pa = Math.floor(xa),
+          pb = Math.ceil(xb);
+        for (let px = pa; px < pb; px++) {
+          const g = Math.min(xb, px + 1) - Math.max(xa, px);
+          if (g > 0) couverture[y * taille + px] += g / SS;
         }
       }
-      const n = SS * SS;
-      const aTuile = couvertureTuile / n;
-      const aT = Math.min(couvertureT / n, aTuile); // le T ne déborde jamais
-      const d = (y * taille + x) * 4;
-      for (let c = 0; c < 3; c++) {
-        px[d + c] = Math.round(VERT[c] * (1 - aT / (aTuile || 1)) + BLANC[c] * (aT / (aTuile || 1)));
-      }
-      px[d + 3] = Math.round(aTuile * 255);
     }
+  }
+  for (let i = 0; i < couverture.length; i++) couverture[i] = Math.min(1, couverture[i]);
+  return couverture;
+}
+
+/** Couverture d'un rectangle à coins arrondis, par sur-échantillonnage. */
+function couvertureTuile(taille, rayon, SS) {
+  const c = new Float32Array(taille * taille);
+  const dedans = (x, y) => {
+    const cx = Math.min(Math.max(x, rayon), taille - rayon);
+    const cy = Math.min(Math.max(y, rayon), taille - rayon);
+    if (x >= rayon && x <= taille - rayon) return y >= 0 && y <= taille;
+    if (y >= rayon && y <= taille - rayon) return x >= 0 && x <= taille;
+    return (x - cx) ** 2 + (y - cy) ** 2 <= rayon * rayon;
+  };
+  for (let y = 0; y < taille; y++) {
+    for (let x = 0; x < taille; x++) {
+      let n = 0;
+      for (let sy = 0; sy < SS; sy++) {
+        for (let sx = 0; sx < SS; sx++) {
+          if (dedans(x + (sx + 0.5) / SS, y + (sy + 0.5) / SS)) n++;
+        }
+      }
+      c[y * taille + x] = n / (SS * SS);
+    }
+  }
+  return c;
+}
+
+// --------------------------------------------------------------- Dessin
+
+const FOND = [255, 255, 255];
+
+/**
+ * @param taille     côté du carré, en pixels.
+ * @param partRayon  rayon des coins, en part du côté (0 = carré plein).
+ * @param partMarque largeur de la marque, en part du côté.
+ */
+function dessiner(logo, taille, partRayon, partMarque) {
+  const SS = 8;
+  const [bx, by, bw, bh] = logo.boite;
+  const echelle = (taille * partMarque) / bw;
+  const dx = (taille - bw * echelle) / 2 - bx * echelle;
+  const dy = (taille - bh * echelle) / 2 - by * echelle;
+
+  const tuile = partRayon > 0 ? couvertureTuile(taille, taille * partRayon, 4) : null;
+
+  const couches = logo.chemins.map((c) => ({
+    couleur: c.couleur,
+    couverture: remplir(
+      aplatir(c.d, echelle / 3).map((p) => p.map(([x, y]) => [x * echelle + dx, y * echelle + dy])),
+      taille,
+      SS,
+    ),
+  }));
+
+  const px = Buffer.alloc(taille * taille * 4);
+  for (let i = 0; i < taille * taille; i++) {
+    const rgb = [FOND[0], FOND[1], FOND[2]];
+    for (const couche of couches) {
+      const a = couche.couverture[i];
+      if (a <= 0) continue;
+      for (let c = 0; c < 3; c++) rgb[c] = rgb[c] * (1 - a) + couche.couleur[c] * a;
+    }
+    const alpha = tuile ? tuile[i] : 1;
+    px[i * 4] = Math.round(rgb[0]);
+    px[i * 4 + 1] = Math.round(rgb[1]);
+    px[i * 4 + 2] = Math.round(rgb[2]);
+    px[i * 4 + 3] = Math.round(alpha * 255);
   }
   return encoderPng(taille, taille, px);
 }
@@ -152,12 +297,21 @@ function encoderIco(png, taille) {
 
 // -------------------------------------------------------------- Sortie
 
-const dossier = process.argv[2];
+const dossier = process.argv[2] || "public";
+const logo = lireLogo(path.join(dossier, "logo.svg"));
+console.log(`  source  logo.svg — boîte ${logo.boite.join(" ")}, ${logo.chemins.length} chemins`);
+
 const fichiers = [
-  ["icon-192.png", dessiner(192, false, 0.56)],
-  ["icon-512.png", dessiner(512, false, 0.56)],
-  ["icon-maskable-512.png", dessiner(512, true, 0.48)],
-  ["favicon.ico", encoderIco(dessiner(32, false, 0.60), 32)],
+  ["icon-192.png", dessiner(logo, 192, 0.22, 0.76)],
+  ["icon-512.png", dessiner(logo, 512, 0.22, 0.76)],
+  // Maskable : le système rogne jusqu'à 20 % de chaque bord, donc pas de
+  // coins arrondis à nous et une marque nettement plus petite.
+  ["icon-maskable-512.png", dessiner(logo, 512, 0, 0.58)],
+  // iOS remplit de NOIR toute transparence d'une apple-touch-icon, et
+  // applique ensuite son propre masque arrondi : il lui faut donc un
+  // carré parfaitement opaque, sans coins arrondis de notre part.
+  ["icon-apple-180.png", dessiner(logo, 180, 0, 0.72)],
+  ["favicon.ico", encoderIco(dessiner(logo, 48, 0.18, 0.88), 48)],
 ];
 for (const [nom, buf] of fichiers) {
   fs.writeFileSync(path.join(dossier, nom), buf);

@@ -1,4 +1,8 @@
 @import url("https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,300..900;1,14..32,300..900&family=JetBrains+Mono:wght@400;500;600;700&display=swap");
+/* Les deux polices du mot-symbole, réduites aux huit caractères qui le
+   composent (T a n t s u i e) : le fichier tient en quelques centaines
+   d'octets, là où la famille entière en pèse des dizaines de milliers. */
+@import url("https://fonts.googleapis.com/css2?family=Cormorant+Garamond:wght@300&family=Kaushan+Script&text=Tanuiest&display=swap");
 @import "tailwindcss" source(none);
 @import "tw-animate-css";
 @source "../src";
@@ -1197,4 +1201,52 @@ td {
    reste au texte courant, le vert aux actions. */
 .page-accueil .titre-section {
   color: var(--encre);
+}
+
+/* ------------------------------------------------------------------ *
+ * Le mot-symbole
+ *
+ * « Tantana » en serif clair, et « suite » en script gras dans son
+ * cadre, décalé sous la fin du mot. C'est du texte, pas une image : il
+ * reste net à toutes les tailles, prend la couleur de son contexte —
+ * le cadre suit `currentColor` — et se lit par les lecteurs d'écran
+ * grâce au `role="img"` et à son libellé.
+ *
+ * Toutes les mesures découlent de `--ms-h`, la hauteur totale voulue :
+ * on place le bloc comme on placerait une image, en donnant sa hauteur.
+ * Les proportions sont celles du logo d'origine (rapport 1,8 environ).
+ * ------------------------------------------------------------------ */
+.mot-symbole {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-end;
+  line-height: 1;
+}
+
+.mot-symbole .ms-tantana {
+  font-family: "Cormorant Garamond", "Iowan Old Style", "Times New Roman", serif;
+  font-weight: 300;
+  font-size: calc(var(--ms-h) * 0.565);
+  line-height: 0.78;
+  letter-spacing: 0.005em;
+}
+
+.mot-symbole .ms-boite {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  margin-top: calc(var(--ms-h) * 0.109);
+  margin-right: calc(var(--ms-h) * 0.12);
+  /* Sous une vingtaine de pixels de haut, le filet calculé passerait
+     sous le demi-pixel et disparaîtrait sur certains écrans. */
+  border: max(1px, calc(var(--ms-h) * 0.015)) solid currentColor;
+  padding: calc(var(--ms-h) * 0.06) calc(var(--ms-h) * 0.217) calc(var(--ms-h) * 0.092);
+}
+
+.mot-symbole .ms-suite {
+  font-family: "Kaushan Script", "Segoe Script", "Brush Script MT", cursive;
+  font-weight: 400;
+  font-size: calc(var(--ms-h) * 0.266);
+  line-height: 1;
+  letter-spacing: 0.01em;
 }

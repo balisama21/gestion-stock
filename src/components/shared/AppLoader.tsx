@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { APP_NAME, APP_TAGLINE } from "../../lib/appConfig";
+import { MotSymbole } from "./MotSymbole";
 
 interface AppLoaderProps {
   /**
@@ -50,17 +51,15 @@ export const AppLoader: React.FC<AppLoaderProps> = ({ etape }) => {
           position: relative;
           display: inline-block;
           white-space: nowrap;
-          font-size: clamp(1.15rem, 6.5vw, 1.6rem);
-          font-weight: 700;
-          letter-spacing: 0.01em;
-          line-height: 1.25;
         }
-        /* Couche du dessous : le mot en creux, qui réserve la place et
-           laisse deviner ce qui va s'écrire. */
+        /* Couche du dessous : le mot en pâle, qui réserve la place et
+           laisse deviner ce qui va s'écrire. Un contour au trait
+           (-webkit-text-stroke) convenait à un mot en gras ; sur le
+           serif clair du mot-symbole il ne restait qu'un halo sale. */
         .gs-mot .gs-contour {
-          color: transparent;
-          -webkit-text-stroke: 0.6px var(--primary);
-          opacity: 0.35;
+          display: inline-block;
+          color: var(--primary);
+          opacity: 0.22;
         }
         /* Couche du dessus : l'encre, dévoilée de la gauche vers la droite. */
         .gs-mot .gs-encre {
@@ -104,10 +103,10 @@ export const AppLoader: React.FC<AppLoaderProps> = ({ etape }) => {
 
       <div className="gs-mot" role="img" aria-label={APP_NAME}>
         <span className="gs-contour" aria-hidden="true">
-          {APP_NAME}
+          <MotSymbole hauteur="clamp(2.6rem, 15vw, 3.4rem)" />
         </span>
         <span className="gs-encre" aria-hidden="true">
-          {APP_NAME}
+          <MotSymbole hauteur="clamp(2.6rem, 15vw, 3.4rem)" />
         </span>
         <span className="gs-plume" aria-hidden="true" />
       </div>

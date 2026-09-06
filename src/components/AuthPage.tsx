@@ -8,6 +8,7 @@ import { SectionTicket } from "./landing/SectionTicket";
 import { RegistreModules } from "./landing/RegistreModules";
 import { InventaireApplication } from "./landing/InventaireApplication";
 import { PanneauMarque } from "./landing/PanneauMarque";
+import { MotSymbole } from "./shared/MotSymbole";
 import { useDefilement } from "./landing/useDefilement";
 import { CarteConnexion } from "./ui/sign-in-card";
 import { CourbesSiVisible } from "./ui/floating-paths";
@@ -229,11 +230,9 @@ export const AuthPage: React.FC = () => {
         }}
       >
         <div className="mx-auto flex max-w-5xl items-center justify-between gap-3 px-4 py-2.5">
-          <span className="flex items-center gap-2">
-            <img src="/logo.svg" alt="" width={24} height={24} className="h-6 w-6 rounded-md" />
-            <span className="text-sm font-semibold" style={{ color: "var(--carbone)" }}>
-              {APP_NAME}
-            </span>
+          <span className="flex items-center gap-2.5">
+            <img src="/logo.svg" alt="" width={38} height={28} className="h-7 w-auto" />
+            <MotSymbole hauteur={26} couleur="var(--carbone)" />
           </span>
           <button
             type="button"
@@ -693,11 +692,9 @@ export const AuthPage: React.FC = () => {
 
       <footer className="reglure px-5 py-10 text-center">
         <div className="mx-auto flex max-w-3xl flex-col items-center gap-2">
-          <img src="/logo.svg" alt="" width={28} height={28} className="h-7 w-7 rounded-lg" />
-          <p className="text-sm font-semibold" style={{ color: "var(--carbone)" }}>
-            {APP_NAME}
-          </p>
-          <p className="text-xs" style={{ color: "var(--carbone-doux)" }}>
+          <img src="/logo.svg" alt="" width={49} height={36} className="h-9 w-auto" />
+          <MotSymbole hauteur={34} couleur="var(--carbone)" className="mt-1" />
+          <p className="mt-1 text-xs" style={{ color: "var(--carbone-doux)" }}>
             {APP_TAGLINE}
           </p>
         </div>

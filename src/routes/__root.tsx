@@ -105,8 +105,9 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       },
       { rel: "icon", href: "/favicon.ico", type: "image/x-icon" },
       { rel: "manifest", href: "/manifest.webmanifest" },
-      // iOS ignore le manifeste pour l icone de l ecran d accueil.
-      { rel: "apple-touch-icon", href: "/icon-192.png" },
+      // iOS ignore le manifeste pour l icone de l ecran d accueil, et
+      // remplit de noir toute transparence : icone carree et opaque.
+      { rel: "apple-touch-icon", href: "/icon-apple-180.png" },
     ],
   }),
   shellComponent: RootShell,

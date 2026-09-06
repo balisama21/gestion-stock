@@ -1,5 +1,6 @@
 import React from "react";
 import { APP_NAME } from "../../lib/appConfig";
+import { MotSymbole } from "../shared/MotSymbole";
 
 /**
  * Le bloc de marque, à gauche du formulaire.
@@ -22,11 +23,9 @@ import { APP_NAME } from "../../lib/appConfig";
  */
 export const PanneauMarque: React.FC = () => (
   <div className="relative text-center lg:text-left">
-    <div className="flex items-center justify-center gap-3 lg:justify-start">
-      <img src="/logo.svg" alt="" width={52} height={52} className="h-13 w-13 rounded-2xl" />
-      <p className="text-[1.85rem] font-bold tracking-tight" style={{ color: "var(--carbone)" }}>
-        {APP_NAME}
-      </p>
+    <div className="flex items-center justify-center gap-4 lg:justify-start">
+      <img src="/logo.svg" alt="" width={79} height={58} className="h-[3.6rem] w-auto" />
+      <MotSymbole hauteur={54} couleur="var(--carbone)" />
     </div>
 
     <blockquote className="relative mt-9 pt-8 lg:mt-9 lg:pt-0 lg:ps-14">

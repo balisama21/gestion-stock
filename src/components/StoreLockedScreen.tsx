@@ -1,8 +1,8 @@
 import React, { useState } from "react";
-import { Lock, KeyRound, Phone, LogOut, Package } from "lucide-react";
+import { Lock, KeyRound, Phone, LogOut } from "lucide-react";
 import { useAuth } from "../hooks/useAuth";
 import { supabase } from "../lib/supabase";
-import { APP_NAME } from "../lib/appConfig";
+import { MotSymbole } from "./shared/MotSymbole";
 
 interface StoreLockedScreenProps {
   storeName: string;
@@ -68,9 +68,7 @@ export const StoreLockedScreen: React.FC<StoreLockedScreenProps> = ({
             <div className="mb-5 inline-flex h-16 w-16 items-center justify-center rounded-2xl border border-danger-border bg-danger-soft">
               <Lock className="w-8 h-8 t-danger" />
             </div>
-            <p className="mb-2 text-[11px] font-bold uppercase tracking-[0.2em] t-danger">
-              {APP_NAME}
-            </p>
+            <MotSymbole hauteur={30} className="mb-3 text-foreground" />
             <h1 className="text-xl font-bold tracking-tight text-foreground">
               Votre période d'essai est terminée
             </h1>

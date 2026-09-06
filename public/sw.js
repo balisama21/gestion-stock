@@ -22,7 +22,7 @@
  * hors ligne, et c'est un choix.
  */
 
-const VERSION = "tantana-v1";
+const VERSION = "tantana-v2";
 const CACHE_STATIQUE = `${VERSION}-statique`;
 const CACHE_POLICES = `${VERSION}-polices`;
 

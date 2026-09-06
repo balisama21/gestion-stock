@@ -1,8 +1,8 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { Delete, KeyRound, Lock, Package, ShieldCheck, ArrowLeft, Eye, EyeOff } from "lucide-react";
+import { Delete, KeyRound, Lock, ShieldCheck, ArrowLeft, Eye, EyeOff } from "lucide-react";
 import { useAuth } from "../hooks/useAuth";
 import { supabase } from "../lib/supabase";
-import { APP_NAME } from "../lib/appConfig";
+import { MotSymbole } from "./shared/MotSymbole";
 
 interface PinLockScreenProps {
   onUnlock: () => void;
@@ -117,12 +117,17 @@ export const PinLockScreen: React.FC<PinLockScreenProps> = ({ onUnlock }) => {
           {mode === "pin" ? (
             <>
               <div className="text-center mb-8">
-                <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-2xl mb-5 shadow-lg shadow-emerald-500/25 ">
-                  <Package className="w-8 h-8 text-white" />
-                </div>
-                <p className="text-[11px] font-bold t-success uppercase tracking-[0.2em] mb-2">
-                  {APP_NAME}
-                </p>
+                {/* Le logo lui-même : c'est l'écran qui garde la session,
+                    on doit y reconnaître l'application au premier coup
+                    d'oeil, pas une icône générique dans un carré. */}
+                <img
+                  src="/logo.svg"
+                  alt=""
+                  width={71}
+                  height={52}
+                  className="mx-auto mb-4 h-13 w-auto"
+                />
+                <MotSymbole hauteur={34} className="mb-3 text-foreground" />
                 <h1 className="text-2xl font-bold tracking-tight text-foreground">
                   Session verrouillée
                 </h1>

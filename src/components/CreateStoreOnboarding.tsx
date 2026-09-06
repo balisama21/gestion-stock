@@ -1,10 +1,10 @@
 import React, { useState } from "react";
 import { Link } from "@tanstack/react-router";
-import { Package, Store, Sparkles, UserPlus, LogOut, KeyRound } from "lucide-react";
+import { Store, Sparkles, UserPlus, LogOut, KeyRound } from "lucide-react";
 import { useAuth } from "../hooks/useAuth";
 import { useWorkspace } from "../hooks/useWorkspace";
 import { supabase } from "../lib/supabase";
-import { APP_NAME } from "../lib/appConfig";
+import { MotSymbole } from "./shared/MotSymbole";
 
 /**
  * Affiché quand un utilisateur est authentifié mais ne possède/rejoint
@@ -77,14 +77,10 @@ export const CreateStoreOnboarding: React.FC = () => {
 
       <div className="relative z-10 w-full max-w-md">
         <div className="mb-8 text-center">
-          {/* Le carré de marque garde son dégradé et son texte blanc : c'est
-              un aplat coloré, lisible dans les deux thèmes. */}
-          <div className="mb-5 inline-flex h-16 w-16 items-center justify-center rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 shadow-lg shadow-emerald-500/25">
-            <Package className="w-8 h-8 text-white" />
-          </div>
-          <p className="mb-2 text-[11px] font-bold uppercase tracking-[0.2em] t-success">
-            {APP_NAME}
-          </p>
+          {/* Le logo lui-même, plutôt qu'un carré dégradé et une icône
+              générique : c'est la marque que l'on doit reconnaître ici. */}
+          <img src="/logo.svg" alt="" width={71} height={52} className="mx-auto mb-4 h-13 w-auto" />
+          <MotSymbole hauteur={34} className="mb-3 text-foreground" />
           <h1 className="text-2xl font-bold tracking-tight text-foreground">
             Bienvenue{profile?.full_name ? `, ${profile.full_name.split(" ")[0]}` : ""} !
           </h1>
