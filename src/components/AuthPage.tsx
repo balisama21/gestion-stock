@@ -8,6 +8,7 @@ import { RegistreModules } from "./landing/RegistreModules";
 import { InventaireApplication } from "./landing/InventaireApplication";
 import { ArgumentaireConnexion } from "./landing/ArgumentaireConnexion";
 import { useDefilement } from "./landing/useDefilement";
+import { CarteConnexion } from "./ui/sign-in-card";
 import { traduireErreurAuth } from "../lib/messagesAuth";
 import {
   AlertCircle,
@@ -252,7 +253,7 @@ export const AuthPage: React.FC = () => {
               </div>
             )}
 
-            <div className="bg-card border border-border/80 rounded-2xl shadow-2xl shadow-black/5 p-7 sm:p-8">
+            <CarteConnexion>
               {mode === "activate" && (
                 <div className="flex items-center gap-2 mb-6">
                   <div className="w-9 h-9 rounded-lg bg-emerald-500/10 flex items-center justify-center">
@@ -268,9 +269,16 @@ export const AuthPage: React.FC = () => {
               )}
 
               {mode === "login" && (
-                <div className="mb-6">
-                  <h2 className="text-xl font-bold text-foreground">Bon retour</h2>
-                  <p className="text-sm text-muted-foreground mt-1">
+                <div className="mb-6 text-center">
+                  <img
+                    src="/logo.svg"
+                    alt=""
+                    width={40}
+                    height={40}
+                    className="mx-auto mb-3 h-10 w-10 rounded-xl"
+                  />
+                  <h2 className="titrage text-xl">Bon retour</h2>
+                  <p className="mt-1 text-sm" style={{ color: "var(--carbone-doux)" }}>
                     Connectez-vous à votre espace {APP_NAME}
                   </p>
                 </div>
@@ -620,9 +628,9 @@ export const AuthPage: React.FC = () => {
                   </div>
                 </>
               )}
-            </div>
+            </CarteConnexion>
 
-            <p className="text-center text-[11px] text-muted-foreground mt-6">
+            <p className="mt-6 text-center text-[11px]" style={{ color: "var(--carbone-doux)" }}>
               {APP_NAME} — {APP_TAGLINE}
             </p>
           </div>
