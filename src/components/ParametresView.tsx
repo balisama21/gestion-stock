@@ -417,6 +417,10 @@ export const ParametresView: React.FC<ParametresViewProps> = ({
   const [editingMemberId, setEditingMemberId] = useState<string | null>(null);
   const [editingPermissions, setEditingPermissions] = useState<PermissionsMap>({});
   const [savingMemberPermissions, setSavingMemberPermissions] = useState(false);
+  const [recoveryMemberId, setRecoveryMemberId] = useState<string | null>(null);
+  const [recoveryLink, setRecoveryLink] = useState<string | null>(null);
+  const [recoveryError, setRecoveryError] = useState<string | null>(null);
+  const [generatingRecoveryFor, setGeneratingRecoveryFor] = useState<string | null>(null);
 
   const fetchRealMembers = async () => {
     if (!inviteStoreId) return;
@@ -437,6 +441,46 @@ export const ParametresView: React.FC<ParametresViewProps> = ({
         email: m.profile?.email ?? "",
       })),
     );
+  };
+
+  /**
+   * Produit un lien de réinitialisation pour un membre, à transmettre
+   * de la main à la main.
+   *
+   * Le service d'e-mail n'écrit aujourd'hui qu'à une seule adresse tant
+   * qu'aucun domaine n'est vérifié : un collaborateur qui oublie son
+   * mot de passe ne recevrait jamais rien. La fonction edge vérifie
+   * elle-même que l'appelant possède la boutique et que la personne en
+   * est membre ; rien n'est décidé ici.
+   */
+  const handleGenerateRecoveryLink = async (member: TeamMember) => {
+    if (!inviteStoreId) return;
+    setGeneratingRecoveryFor(member.id);
+    setRecoveryMemberId(member.id);
+    setRecoveryLink(null);
+    setRecoveryError(null);
+    try {
+      const { data, error } = await supabase.functions.invoke("generer-lien-recuperation", {
+        body: {
+          user_id: member.user_id,
+          store_id: inviteStoreId,
+          app_url: window.location.origin,
+        },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      setRecoveryLink(data.lien);
+    } catch (e: any) {
+      setRecoveryError(e?.message ?? "Génération du lien impossible.");
+    } finally {
+      setGeneratingRecoveryFor(null);
+    }
+  };
+
+  const closeRecoveryLink = () => {
+    setRecoveryMemberId(null);
+    setRecoveryLink(null);
+    setRecoveryError(null);
   };
 
   const openEditPermissions = (member: TeamMember) => {
@@ -794,6 +838,12 @@ export const ParametresView: React.FC<ParametresViewProps> = ({
           onCancelEdit={() => setEditingMemberId(null)}
           onSaveMemberPermissions={handleSaveMemberPermissions}
           onRemoveMember={handleRemoveMember}
+          recoveryMemberId={recoveryMemberId}
+          recoveryLink={recoveryLink}
+          recoveryError={recoveryError}
+          generatingRecoveryFor={generatingRecoveryFor}
+          onGenerateRecoveryLink={handleGenerateRecoveryLink}
+          onCloseRecoveryLink={closeRecoveryLink}
         />
       )}
 

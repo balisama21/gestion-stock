@@ -53,6 +53,14 @@ interface TeamSectionProps {
   onCancelEdit: () => void;
   onSaveMemberPermissions: () => void;
   onRemoveMember: (id: string) => void;
+
+  /** Membre dont le lien de récupération est affiché, s'il y en a un. */
+  recoveryMemberId: string | null;
+  recoveryLink: string | null;
+  recoveryError: string | null;
+  generatingRecoveryFor: string | null;
+  onGenerateRecoveryLink: (member: TeamMember) => void;
+  onCloseRecoveryLink: () => void;
 }
 
 const CopyField: React.FC<{ label: string; value: string; mono?: boolean }> = ({
@@ -114,6 +122,12 @@ export const TeamSection: React.FC<TeamSectionProps> = ({
   onCancelEdit,
   onSaveMemberPermissions,
   onRemoveMember,
+  recoveryMemberId,
+  recoveryLink,
+  recoveryError,
+  generatingRecoveryFor,
+  onGenerateRecoveryLink,
+  onCloseRecoveryLink,
 }) => (
   <>
     <SettingsSection
@@ -267,13 +281,23 @@ export const TeamSection: React.FC<TeamSectionProps> = ({
                     </div>
                   </div>
 
-                  <div className="flex shrink-0 gap-2">
+                  <div className="flex shrink-0 flex-wrap gap-2">
                     <button
                       type="button"
                       onClick={() => onEditPermissions(member)}
-                      className="app-btn-secondary flex-1 text-xs sm:flex-none"
+                      className="app-btn-secondary min-w-0 flex-1 text-xs sm:flex-none"
                     >
                       Modifier les accès
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => onGenerateRecoveryLink(member)}
+                      disabled={generatingRecoveryFor === member.id}
+                      className="app-btn-secondary min-w-0 flex-1 text-xs disabled:opacity-60 sm:flex-none"
+                    >
+                      {generatingRecoveryFor === member.id
+                        ? "Génération…"
+                        : "Lien de mot de passe"}
                     </button>
                     <button
                       type="button"
@@ -292,6 +316,36 @@ export const TeamSection: React.FC<TeamSectionProps> = ({
                       <Trash2 className="h-4 w-4" />
                     </button>
                   </div>
+                </div>
+              )}
+
+              {/* Le lien de réinitialisation, quand il vient d'être
+                  produit pour ce membre. Il donne le contrôle du compte
+                  à qui le détient : on le dit, et il n'est affiché
+                  qu'une fois — le régénérer est immédiat, le laisser
+                  traîner à l'écran ne l'est pas. */}
+              {recoveryMemberId === member.id && (recoveryLink || recoveryError) && (
+                <div className="mt-3 rounded-xl border border-border bg-muted p-3">
+                  {recoveryError ? (
+                    <p className="text-xs t-danger">{recoveryError}</p>
+                  ) : (
+                    <>
+                      <CopyField label="Lien de réinitialisation" value={recoveryLink!} />
+                      <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
+                        Transmettez ce lien à {member.full_name || member.email} par un canal
+                        sûr. Il permet de choisir un nouveau mot de passe, ne sert qu'une
+                        fois et expire rapidement — quiconque l'ouvre avant lui prend la main
+                        sur son compte.
+                      </p>
+                    </>
+                  )}
+                  <button
+                    type="button"
+                    onClick={onCloseRecoveryLink}
+                    className="mt-2 text-xs font-semibold text-muted-foreground hover:text-foreground"
+                  >
+                    Masquer
+                  </button>
                 </div>
               )}
             </SettingsBlock>
