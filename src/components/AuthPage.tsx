@@ -6,7 +6,7 @@ import { supabase } from "../lib/supabase";
 import { BandeauTicket, HeroAccueil } from "./landing/HeroAccueil";
 import { RegistreModules } from "./landing/RegistreModules";
 import { InventaireApplication } from "./landing/InventaireApplication";
-import { ArgumentaireConnexion } from "./landing/ArgumentaireConnexion";
+import { PanneauMarque } from "./landing/PanneauMarque";
 import { useDefilement } from "./landing/useDefilement";
 import { CarteConnexion } from "./ui/sign-in-card";
 import { traduireErreurAuth } from "../lib/messagesAuth";
@@ -222,7 +222,7 @@ export const AuthPage: React.FC = () => {
         className="reglure relative scroll-mt-14 overflow-hidden px-4 py-16 sm:px-8 sm:py-24"
       >
         <div className="relative mx-auto grid w-full max-w-5xl gap-12 lg:grid-cols-2 lg:items-center lg:gap-16">
-          <ArgumentaireConnexion />
+          <PanneauMarque />
 
           <div className="order-1 mx-auto w-full max-w-[420px] lg:order-2 lg:mx-0">
             {/* Onglets login / register */}
