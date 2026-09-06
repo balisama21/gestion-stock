@@ -17,34 +17,27 @@ import { APP_NAME } from "../../lib/appConfig";
 export const PanneauMarque: React.FC = () => (
   <div className="relative text-center lg:text-left">
     <div className="flex items-center justify-center gap-3 lg:justify-start">
-      <img src="/logo.svg" alt="" width={44} height={44} className="h-11 w-11 rounded-xl" />
-      <p className="text-[1.65rem] font-bold tracking-tight" style={{ color: "var(--carbone)" }}>
+      <img src="/logo.svg" alt="" width={52} height={52} className="h-13 w-13 rounded-2xl" />
+      <p className="text-[1.85rem] font-bold tracking-tight" style={{ color: "var(--carbone)" }}>
         {APP_NAME}
       </p>
     </div>
 
-    {/* Le filet, qui tient lieu de signature graphique. */}
-    <span
-      aria-hidden
-      className="mx-auto mt-4 block h-[3px] w-14 rounded-full lg:mx-0"
-      style={{ background: "var(--primary)" }}
-    />
-
-    <blockquote className="mt-8">
+    <blockquote className="mt-9 lg:relative lg:ps-14">
+      <span
+        aria-hidden
+        className="mb-1 block text-[2.6rem] font-bold leading-[0.5] lg:absolute lg:left-0 lg:top-1 lg:mb-0"
+        style={{ color: "var(--primary)" }}
+      >
+        &ldquo;
+      </span>
       <p
-        className="text-[clamp(1.35rem,3.4vw,1.9rem)] font-medium leading-[1.35]"
+        className="text-[clamp(1.35rem,3.2vw,2rem)] leading-[1.32]"
         style={{ color: "var(--carbone)" }}
       >
-        <span
-          aria-hidden
-          className="mr-1 align-top text-[2.4em] leading-[0.62] font-serif"
-          style={{ color: "var(--primary)" }}
-        >
-          &ldquo;
-        </span>
         Le cahier ne se perd plus, ne se mouille plus, et fait les comptes tout seul.
       </p>
-      <footer className="mt-4 text-[0.95rem]" style={{ color: "var(--carbone-doux)" }}>
+      <footer className="mt-5 text-[1rem]" style={{ color: "var(--carbone-doux)" }}>
         Ce que {APP_NAME} remplace
       </footer>
     </blockquote>
