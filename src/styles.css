@@ -1126,6 +1126,10 @@ td {
   --carbone: #1c1b18;
   --carbone-doux: #6b675e;
   --encre: #2b4c7e;
+  /* Brun de terre : sert aux étiquettes qui annoncent une section. Elles
+     ne commandent rien, et n'ont donc pas à porter le vert, réservé aux
+     actions. */
+  --terre: #6f4a2c;
   --reglure: #cfd8cd;
 
   background: var(--papier-fond);

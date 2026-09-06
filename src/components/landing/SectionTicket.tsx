@@ -1,5 +1,5 @@
 import React from "react";
-import { ArrowRight, FileText, ImageIcon, Printer, Zap } from "lucide-react";
+import { ArrowRight, FileText, ImageIcon, Printer } from "lucide-react";
 import { TicketImprime } from "./TicketImprime";
 import { CourbesSiVisible } from "../ui/floating-paths";
 
@@ -43,11 +43,10 @@ export const SectionTicket: React.FC = () => (
           <span
             className="inline-flex items-center gap-2 rounded-full px-3.5 py-1.5 text-[0.8125rem] font-semibold"
             style={{
-              background: "color-mix(in srgb, var(--primary) 10%, transparent)",
-              color: "var(--primary)",
+              background: "color-mix(in srgb, var(--terre) 12%, transparent)",
+              color: "var(--terre)",
             }}
           >
-            <Zap className="h-3.5 w-3.5" />
             Vente enregistrée <ArrowRight className="h-3 w-3" /> Ticket généré
           </span>
 

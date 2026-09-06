@@ -1,5 +1,5 @@
 import React from "react";
-import { BarChart3, Boxes, FileText, ShoppingCart, Users, Wallet, Zap } from "lucide-react";
+import { BarChart3, Boxes, FileText, ShoppingCart, Users, Wallet } from "lucide-react";
 import { APP_NAME } from "../../lib/appConfig";
 import { Revele } from "./Revele";
 import {
@@ -93,11 +93,10 @@ export const RegistreModules: React.FC = () => (
         <span
           className="inline-flex items-center gap-2 rounded-full px-3.5 py-1.5 text-[0.8125rem] font-semibold"
           style={{
-            background: "color-mix(in srgb, var(--primary) 10%, transparent)",
-            color: "var(--primary)",
+            background: "color-mix(in srgb, var(--terre) 12%, transparent)",
+            color: "var(--terre)",
           }}
         >
-          <Zap className="h-3.5 w-3.5" />
           Tout est clair et organisé
         </span>
 
@@ -145,8 +144,10 @@ export const RegistreModules: React.FC = () => (
                   <span
                     className="flex h-11 w-11 items-center justify-center rounded-full"
                     style={{
-                      background: "color-mix(in srgb, var(--primary) 10%, transparent)",
-                      color: "var(--primary)",
+                      // Un fond teinté de noir plutôt que de vert : le vert
+                      // reste à ce qui se clique, pas à ce qui illustre.
+                      background: "color-mix(in srgb, var(--carbone) 8%, transparent)",
+                      color: "var(--carbone)",
                     }}
                   >
                     <Icone className="h-5 w-5" />
