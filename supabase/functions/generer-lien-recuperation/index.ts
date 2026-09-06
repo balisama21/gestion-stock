@@ -16,14 +16,17 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
  * en découlent, tous vérifiés ici et jamais côté client :
  *
  *   - l'appelant doit être authentifié ;
- *   - il doit être propriétaire de la boutique visée, ou administrateur
- *     de la plateforme ;
- *   - la personne visée doit être membre de cette boutique.
+ *   - un propriétaire de boutique ne peut agir que sur les membres de
+ *     cette boutique, dont il doit être le propriétaire ;
+ *   - l'administrateur de la plateforme, lui, peut agir sur n'importe
+ *     quel compte, y compris ceux qui possèdent leur propre boutique et
+ *     n'appartiennent à aucune équipe. C'est lui l'exploitant de
+ *     l'application ; sans cela un client isolé, propriétaire de sa
+ *     seule boutique, n'aurait plus aucun recours.
  *
- * Autrement dit, un propriétaire ne peut agir que sur les comptes de sa
- * propre équipe. L'adresse e-mail n'est jamais reprise du corps de la
- * requête : elle est relue en base à partir de l'identifiant, sans quoi
- * il suffirait d'envoyer l'adresse de quelqu'un d'autre.
+ * L'adresse e-mail n'est jamais reprise du corps de la requête : elle
+ * est relue en base à partir de l'identifiant, sans quoi il suffirait
+ * d'envoyer l'adresse de quelqu'un d'autre.
  */
 
 const corsHeaders = {
@@ -45,8 +48,8 @@ serve(async (req: Request) => {
   try {
     const { user_id, store_id, app_url } = await req.json();
 
-    if (!user_id || !store_id || !app_url) {
-      return json({ error: "Champs requis : user_id, store_id, app_url." }, 400);
+    if (!user_id || !app_url) {
+      return json({ error: "Champs requis : user_id, app_url." }, 400);
     }
 
     const supabase = createClient(
@@ -64,46 +67,51 @@ serve(async (req: Request) => {
 
     if (!appelant) return json({ error: "Authentification requise." }, 401);
 
-    // 2. Est-il propriétaire de cette boutique ?
-    const { data: boutique, error: erreurBoutique } = await supabase
-      .from("stores")
-      .select("id, owner_id, name")
-      .eq("id", store_id)
-      .single();
-
-    if (erreurBoutique || !boutique) return json({ error: "Boutique introuvable." }, 404);
-
+    // 2. Administrateur de la plateforme : le contrôle s'arrête là.
     const { data: profilAppelant } = await supabase
       .from("profiles")
       .select("is_platform_admin")
       .eq("id", appelant.id)
       .single();
 
-    const estProprietaire = boutique.owner_id === appelant.id;
     const estAdminPlateforme = profilAppelant?.is_platform_admin === true;
 
-    if (!estProprietaire && !estAdminPlateforme) {
-      return json({ error: "Vous n'êtes pas propriétaire de cette boutique." }, 403);
-    }
+    if (!estAdminPlateforme) {
+      // 3. Sinon, il faut une boutique, et l'appelant doit la posséder.
+      if (!store_id) {
+        return json({ error: "Champ requis : store_id." }, 400);
+      }
 
-    // 3. La personne visée appartient-elle bien à cette boutique ?
-    //    Le propriétaire est traité à part : il n'apparaît pas
-    //    nécessairement dans store_members alors que le compte est le sien.
-    const viseEstProprietaire = boutique.owner_id === user_id;
-    if (!viseEstProprietaire) {
-      const { data: appartenance } = await supabase
-        .from("store_members")
-        .select("id")
-        .eq("store_id", store_id)
-        .eq("user_id", user_id)
-        .maybeSingle();
+      const { data: boutique, error: erreurBoutique } = await supabase
+        .from("stores")
+        .select("id, owner_id")
+        .eq("id", store_id)
+        .single();
 
-      if (!appartenance) {
-        return json({ error: "Cette personne n'est pas membre de cette boutique." }, 403);
+      if (erreurBoutique || !boutique) return json({ error: "Boutique introuvable." }, 404);
+
+      if (boutique.owner_id !== appelant.id) {
+        return json({ error: "Vous n'êtes pas propriétaire de cette boutique." }, 403);
+      }
+
+      // 4. Et la personne visée doit en être membre. Le propriétaire est
+      //    traité à part : il n'apparaît pas nécessairement dans
+      //    store_members alors que le compte est le sien.
+      if (boutique.owner_id !== user_id) {
+        const { data: appartenance } = await supabase
+          .from("store_members")
+          .select("id")
+          .eq("store_id", store_id)
+          .eq("user_id", user_id)
+          .maybeSingle();
+
+        if (!appartenance) {
+          return json({ error: "Cette personne n'est pas membre de cette boutique." }, 403);
+        }
       }
     }
 
-    // 4. L'adresse est relue en base, jamais reçue du client.
+    // 5. L'adresse est relue en base, jamais reçue du client.
     const { data: cible, error: erreurCible } = await supabase.auth.admin.getUserById(user_id);
     const email = cible?.user?.email;
     if (erreurCible || !email) return json({ error: "Compte introuvable." }, 404);
@@ -111,7 +119,7 @@ serve(async (req: Request) => {
     const fournisseurs = (cible.user.app_metadata?.providers as string[] | undefined) ?? [];
     const aDejaUnMotDePasse = fournisseurs.includes("email");
 
-    // 5. Le lien lui-même. `generateLink` le fabrique sans rien envoyer :
+    // 6. Le lien lui-même. `generateLink` le fabrique sans rien envoyer :
     //    c'est précisément ce qu'on cherche ici.
     const { data: lien, error: erreurLien } = await supabase.auth.admin.generateLink({
       type: "recovery",

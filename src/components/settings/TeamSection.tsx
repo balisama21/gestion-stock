@@ -74,6 +74,8 @@ interface TeamSectionProps {
   onCloseRecoveryLink: () => void;
 
   recoveryRequests: RecoveryRequest[];
+  /** L'exploitant de l'application agit sur tout compte, sans condition d'équipe. */
+  estAdminPlateforme: boolean;
   onGenerateForRequest: (demande: RecoveryRequest) => void;
   onDismissRequest: (demande: RecoveryRequest) => void;
 }
@@ -144,6 +146,7 @@ export const TeamSection: React.FC<TeamSectionProps> = ({
   onGenerateRecoveryLink,
   onCloseRecoveryLink,
   recoveryRequests,
+  estAdminPlateforme,
   onGenerateForRequest,
   onDismissRequest,
 }) => (
@@ -237,10 +240,16 @@ export const TeamSection: React.FC<TeamSectionProps> = ({
                 {demande.user_id ? (
                   demande.store_id ? (
                     <p className="mt-1 text-xs t-success">Compte reconnu dans votre équipe.</p>
+                  ) : estAdminPlateforme ? (
+                    <p className="mt-1 text-xs t-success">
+                      Compte reconnu. Cette personne possède sa propre boutique et n'est
+                      membre d'aucune des vôtres — votre rôle d'administrateur vous permet
+                      quand même de lui délivrer un lien.
+                    </p>
                   ) : (
                     <p className="mt-1 text-xs text-muted-foreground">
-                      Compte reconnu, mais hors de vos boutiques — vous ne pouvez pas agir
-                      dessus.
+                      Compte reconnu, mais hors de vos boutiques. Seul l'administrateur de la
+                      plateforme peut lui délivrer un lien.
                     </p>
                   )
                 ) : (
@@ -252,7 +261,7 @@ export const TeamSection: React.FC<TeamSectionProps> = ({
               </div>
 
               <div className="flex shrink-0 flex-wrap gap-2">
-                {demande.user_id && demande.store_id && (
+                {demande.user_id && (demande.store_id || estAdminPlateforme) && (
                   <button
                     type="button"
                     onClick={() => onGenerateForRequest(demande)}

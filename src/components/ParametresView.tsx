@@ -454,14 +454,22 @@ export const ParametresView: React.FC<ParametresViewProps> = ({
    * elle-même que l'appelant possède la boutique et que la personne en
    * est membre ; rien n'est décidé ici.
    */
-  const genererLien = async (cibleId: string, userId: string, storeId: string) => {
+  const estAdminPlateforme = profile?.is_platform_admin === true;
+
+  const genererLien = async (cibleId: string, userId: string, storeId: string | null) => {
     setGeneratingRecoveryFor(cibleId);
     setRecoveryTargetId(cibleId);
     setRecoveryLink(null);
     setRecoveryError(null);
     try {
       const { data, error } = await supabase.functions.invoke("generer-lien-recuperation", {
-        body: { user_id: userId, store_id: storeId, app_url: window.location.origin },
+        body: {
+          user_id: userId,
+          // Facultatif pour l'administrateur de la plateforme, dont le
+          // pouvoir ne dépend d'aucune boutique.
+          store_id: storeId,
+          app_url: window.location.origin,
+        },
       });
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
@@ -520,7 +528,8 @@ export const ParametresView: React.FC<ParametresViewProps> = ({
   };
 
   const handleGenerateForRequest = (demande: RecoveryRequest) => {
-    if (!demande.user_id || !demande.store_id) return;
+    if (!demande.user_id) return;
+    if (!demande.store_id && !estAdminPlateforme) return;
     genererLien(demande.id, demande.user_id, demande.store_id);
   };
 
@@ -906,6 +915,7 @@ export const ParametresView: React.FC<ParametresViewProps> = ({
           onGenerateRecoveryLink={handleGenerateRecoveryLink}
           onCloseRecoveryLink={closeRecoveryLink}
           recoveryRequests={recoveryRequests}
+          estAdminPlateforme={estAdminPlateforme}
           onGenerateForRequest={handleGenerateForRequest}
           onDismissRequest={handleDismissRequest}
         />
