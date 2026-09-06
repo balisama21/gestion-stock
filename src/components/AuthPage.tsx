@@ -1,25 +1,22 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { useAuth } from "../hooks/useAuth";
 import { APP_NAME, APP_SUPPORT_PHONE, APP_TAGLINE } from "../lib/appConfig";
 import { supabase } from "../lib/supabase";
+import { HeroAccueil } from "./landing/HeroAccueil";
+import { SectionModules } from "./landing/SectionModules";
 import { traduireErreurAuth } from "../lib/messagesAuth";
 import {
   AlertCircle,
   ArrowLeft,
   ArrowRight,
-  BarChart3,
   CheckCircle2,
   Eye,
   EyeOff,
   KeyRound,
   Lock,
   Mail,
-  Package,
-  Shield,
-  Sparkles,
   User,
-  Wallet,
 } from "lucide-react";
 
 type AuthMode = "login" | "register" | "activate" | "forgot-password";
@@ -51,6 +48,14 @@ export const AuthPage: React.FC = () => {
   const [googleLoading, setGoogleLoading] = useState(false);
   const [forgotEmail, setForgotEmail] = useState("");
   const [forgotSent, setForgotSent] = useState(false);
+  const ancreConnexion = useRef<HTMLElement>(null);
+
+  const allerAuFormulaire = () => {
+    ancreConnexion.current?.scrollIntoView({
+      behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth",
+      block: "start",
+    });
+  };
 
   // NOTE (18/08/2026) : l'ancien blocage "paiement obligatoire avant accès"
   // est supprimé. Dès que `user` existe, App() (BalsamaApp.tsx) bascule
@@ -162,84 +167,41 @@ export const AuthPage: React.FC = () => {
     }
   };
 
-  // Ne figurent ici que des modules réellement livrés : une promesse
-  // affichée sur l'écran de connexion est vérifiable dès la première
-  // minute d'utilisation.
-  const features = [
-    { icon: Package, label: "Stock & produits" },
-    { icon: User, label: "Clients & commandes" },
-    { icon: Wallet, label: "Trésorerie & capital" },
-    { icon: Sparkles, label: "Factures & tickets" },
-    { icon: BarChart3, label: "Rapports & statistiques" },
-    { icon: Shield, label: "Sécurité PIN & sessions" },
-  ];
-
   return (
-    <div className="flex min-h-screen bg-background">
-      {/* Panneau branding — desktop */}
-      <div className="hidden lg:flex lg:w-[44%] xl:w-[42%] relative overflow-hidden">
-        <div className="absolute inset-0 bg-gradient-to-br from-emerald-700 via-teal-800 to-slate-900" />
-        <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_left,rgba(255,255,255,0.14),transparent_55%)]" />
-        <div className="absolute -bottom-24 -right-24 w-96 h-96 rounded-full bg-emerald-400/10 blur-3xl" />
-        <div className="absolute top-1/3 -left-16 w-64 h-64 rounded-full bg-teal-300/10 blur-2xl" />
-
-        <div className="relative z-10 flex flex-col justify-between p-12 xl:p-16 text-white w-full">
-          <div>
-            <div className="inline-flex items-center gap-3 mb-12">
-              <div className="w-12 h-12 rounded-2xl bg-white/15 backdrop-blur-md border border-white/20 flex items-center justify-center shadow-xl">
-                <Package className="w-6 h-6" />
-              </div>
-              <div>
-                <p className="font-bold text-xl tracking-tight">{APP_NAME}</p>
-                <p className="text-emerald-50/90 text-xs font-medium">Plateforme de gestion</p>
-              </div>
-            </div>
-
-            <h1 className="text-4xl xl:text-[2.75rem] font-bold leading-[1.15] mb-5">
-              Pilotez toute votre entreprise
-              <br />
-              <span className="text-emerald-200">depuis un seul endroit.</span>
-            </h1>
-            <p className="text-emerald-50 text-base leading-relaxed max-w-md mb-10">
-              {APP_TAGLINE} Stock, ventes, achats, clients, commandes, facturation et
-              trésorerie — réunis dans un même tableau de bord.
-            </p>
-
-            <div className="grid grid-cols-2 gap-3 max-w-sm">
-              {features.map(({ icon: Icon, label }) => (
-                <div
-                  key={label}
-                  className="flex items-center gap-2.5 px-3.5 py-3 rounded-xl bg-white/5 backdrop-blur-sm border border-white/15"
-                >
-                  <Icon className="w-4 h-4 text-emerald-50 shrink-0" />
-                  <span className="text-sm font-medium text-white">{label}</span>
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <div className="flex items-center gap-2 text-emerald-50 text-xs">
-            <Sparkles className="w-3.5 h-3.5" />
-            <span>Plateforme sécurisée · Données chiffrées · Multi-boutiques</span>
-          </div>
+    <div className="min-h-screen bg-background">
+      {/* Barre d'accès permanente.
+          La page d'accueil est faite pour qui découvre le logiciel ; celui
+          qui revient chaque matin, lui, veut son formulaire. Sans ce
+          raccourci il lui faudrait parcourir toute la présentation à
+          chaque connexion. */}
+      <div className="sticky top-0 z-40 border-b border-white/10 bg-emerald-950/70 backdrop-blur-md">
+        <div className="mx-auto flex max-w-5xl items-center justify-between gap-3 px-4 py-2.5">
+          <span className="flex items-center gap-2">
+            <img src="/logo.svg" alt="" width={24} height={24} className="h-6 w-6 rounded-md" />
+            <span className="text-sm font-semibold text-white">{APP_NAME}</span>
+          </span>
+          <button
+            type="button"
+            onClick={allerAuFormulaire}
+            className="rounded-lg bg-white/10 px-3.5 py-1.5 text-xs font-semibold text-white transition-colors hover:bg-white/20"
+          >
+            Se connecter
+          </button>
         </div>
       </div>
 
-      {/* Panneau formulaire */}
-      <div className="flex-1 flex flex-col min-h-screen bg-background">
-        {/* Header mobile */}
-        <div className="lg:hidden px-6 pt-8 pb-4 text-center">
-          <div className="inline-flex items-center gap-2.5 mb-2">
-            <div className="w-10 h-10 rounded-xl bg-emerald-600 flex items-center justify-center shadow-lg">
-              <Package className="w-5 h-5 text-white" />
-            </div>
-            <span className="font-bold text-lg text-foreground">{APP_NAME}</span>
-          </div>
-          <p className="text-xs text-muted-foreground">{APP_TAGLINE}</p>
-        </div>
+      <HeroAccueil onRejoindreConnexion={allerAuFormulaire} />
 
-        <div className="flex-1 flex items-center justify-center px-4 sm:px-8 py-8">
-          <div className="w-full max-w-[420px]">
+      <SectionModules />
+
+      {/* Formulaire — inchangé, seulement replacé dans la page. */}
+      <section
+        id="connexion"
+        ref={ancreConnexion}
+        className="scroll-mt-4 border-t border-border bg-muted/40 px-4 py-16 sm:px-8 sm:py-20"
+      >
+        <div className="mx-auto flex w-full max-w-[420px] flex-col">
+          <div className="w-full">
             {/* Onglets login / register */}
             {mode !== "activate" && mode !== "forgot-password" && (
               <div className="flex p-1 bg-muted/60 rounded-xl mb-6 border border-border/60">
@@ -313,8 +275,8 @@ export const AuthPage: React.FC = () => {
                   </button>
                   <h2 className="text-xl font-bold text-foreground">Mot de passe oublié</h2>
                   <p className="text-sm text-muted-foreground mt-1">
-                    Entrez votre e-mail : votre demande sera transmise à l&apos;administrateur,
-                    qui vous remettra un lien de réinitialisation.
+                    Entrez votre e-mail : votre demande sera transmise à l&apos;administrateur, qui
+                    vous remettra un lien de réinitialisation.
                   </p>
 
                   {/* Un compte créé par Google n'a jamais eu de mot de
@@ -326,8 +288,8 @@ export const AuthPage: React.FC = () => {
                       quelles adresses sont enregistrées. */}
                   <div className="mt-4 rounded-xl border border-border bg-muted p-3">
                     <p className="text-xs leading-relaxed text-muted-foreground">
-                      Vous vous êtes inscrit avec Google ? Ce compte n'a pas de mot de
-                      passe — il n'y a donc rien à réinitialiser.
+                      Vous vous êtes inscrit avec Google ? Ce compte n'a pas de mot de passe — il
+                      n'y a donc rien à réinitialiser.
                     </p>
                     <button
                       type="button"
@@ -485,12 +447,10 @@ export const AuthPage: React.FC = () => {
                   </Field>
 
                   <div className="rounded-xl border border-success-border bg-success-soft p-4 text-sm">
-                    <p className="font-semibold t-success mb-1">
-                      7 jours d'essai gratuit
-                    </p>
+                    <p className="font-semibold t-success mb-1">7 jours d'essai gratuit</p>
                     <p className="t-success text-xs leading-relaxed">
-                      Créez votre boutique et utilisez-la immédiatement. Aucun paiement requis
-                      pour commencer.
+                      Créez votre boutique et utilisez-la immédiatement. Aucun paiement requis pour
+                      commencer.
                     </p>
                   </div>
 
@@ -511,9 +471,9 @@ export const AuthPage: React.FC = () => {
                         répondre « ce compte n'existe pas » livrerait la
                         liste des utilisateurs, une adresse à la fois. */}
                     <p className="text-sm leading-relaxed text-muted-foreground">
-                      L&apos;envoi par e-mail n&apos;est pas encore disponible. Votre demande
-                      pour <strong className="text-foreground">{forgotEmail}</strong> a été
-                      transmise à l&apos;administrateur.
+                      L&apos;envoi par e-mail n&apos;est pas encore disponible. Votre demande pour{" "}
+                      <strong className="text-foreground">{forgotEmail}</strong> a été transmise à
+                      l&apos;administrateur.
                     </p>
                     <div className="mt-4 rounded-xl border border-border bg-muted p-3.5 text-left">
                       <p className="text-xs font-semibold text-foreground">
@@ -526,8 +486,7 @@ export const AuthPage: React.FC = () => {
                         {APP_SUPPORT_PHONE}
                       </a>
                       <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">
-                        Il vous transmettra un lien personnel pour choisir un nouveau mot de
-                        passe.
+                        Il vous transmettra un lien personnel pour choisir un nouveau mot de passe.
                       </p>
                     </div>
                     <button
@@ -570,16 +529,12 @@ export const AuthPage: React.FC = () => {
                       Statut : {profile?.status ?? "—"} · Rôle : {profile?.role ?? "—"}
                     </p>
                     {profileError && (
-                      <p className="t-danger mt-2 font-mono text-xs">
-                        Erreur DB : {profileError}
-                      </p>
+                      <p className="t-danger mt-2 font-mono text-xs">Erreur DB : {profileError}</p>
                     )}
                   </div>
 
                   <div className="rounded-xl border border-blue-500/25 bg-blue-500/8 p-4 text-sm mb-5">
-                    <p className="font-semibold t-info mb-2">
-                      Comment obtenir votre code ?
-                    </p>
+                    <p className="font-semibold t-info mb-2">Comment obtenir votre code ?</p>
                     <p className="text-muted-foreground text-xs mb-2">
                       Virement de <strong className="text-foreground">100 000 Ar</strong> par Orange
                       Money au :
@@ -652,13 +607,20 @@ export const AuthPage: React.FC = () => {
             </p>
           </div>
         </div>
-      </div>
+      </section>
+
+      <footer className="border-t border-border bg-background px-5 py-8 text-center">
+        <div className="mx-auto flex max-w-3xl flex-col items-center gap-2">
+          <img src="/logo.svg" alt="" width={28} height={28} className="h-7 w-7 rounded-lg" />
+          <p className="text-sm font-semibold text-foreground">{APP_NAME}</p>
+          <p className="text-xs text-muted-foreground">{APP_TAGLINE}</p>
+        </div>
+      </footer>
     </div>
   );
 };
 
-const inputClass =
-  "app-field pl-10";
+const inputClass = "app-field pl-10";
 
 function Field({
   label,
