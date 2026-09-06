@@ -9,6 +9,7 @@ import {
   Bell,
   Receipt,
   Settings as SettingsIcon,
+  ListPlus,
   LogOut,
 } from "lucide-react";
 
@@ -20,7 +21,8 @@ export type SettingsTab =
   | "equipe"
   | "paiement"
   | "notifications"
-  | "preferences";
+  | "preferences"
+  | "champs";
 
 interface TabDef {
   id: SettingsTab;
@@ -95,6 +97,13 @@ const GROUPS: GroupDef[] = [
         label: "Reçus et factures",
         hint: "Contenu des documents",
         icon: <Receipt className="w-4 h-4" />,
+        ownerOnly: true,
+      },
+      {
+        id: "champs",
+        label: "Champs personnalisés",
+        hint: "Vos propres informations",
+        icon: <ListPlus className="w-4 h-4" />,
         ownerOnly: true,
       },
       {
@@ -191,9 +200,7 @@ export const SettingsLayout: React.FC<SettingsLayoutProps> = ({
                         onClick={() => onTabChange(tab.id)}
                         aria-current={isActive ? "page" : undefined}
                         className={`relative flex w-full items-start gap-3 rounded-xl px-3 py-2.5 text-left transition-colors ${
-                          isActive
-                            ? "bg-success-soft"
-                            : "hover:bg-muted"
+                          isActive ? "bg-success-soft" : "hover:bg-muted"
                         }`}
                       >
                         {isActive && (

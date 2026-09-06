@@ -18,6 +18,7 @@ type Payment = Database["public"]["Tables"]["payments"]["Row"];
 type Supplier = Database["public"]["Tables"]["suppliers"]["Row"];
 type Provider = Database["public"]["Tables"]["providers"]["Row"];
 type ProviderService = Database["public"]["Tables"]["provider_services"]["Row"];
+type CustomField = Database["public"]["Tables"]["custom_field_definitions"]["Row"];
 
 /**
  * Un message lisible plutôt que le jargon de Postgres.
@@ -39,6 +40,33 @@ const traduireErreurTiers = (
   return error.message;
 };
 
+/**
+ * Les refus de la base sur un champ personnalisé, dits en français.
+ *
+ * Trois garde-fous peuvent se déclencher : la clé déjà prise sur la même
+ * entité, la forme de la clé, et une liste de choix vide. Le message brut
+ * de Postgres nomme la contrainte, ce qui ne sert qu'à celui qui l'a
+ * écrite.
+ */
+const traduireErreurChampPerso = (
+  error: { code?: string; message: string } | null,
+): string | null => {
+  if (!error) return null;
+  if (error.code === "23505") {
+    return "Un champ porte déjà ce nom pour cette fiche.";
+  }
+  if (error.message?.includes("custom_field_liste_a_des_options")) {
+    return "Un champ de type liste doit proposer au moins un choix.";
+  }
+  if (error.message?.includes("cle_check") || error.message?.includes("_cle_")) {
+    return "Le nom technique du champ est invalide.";
+  }
+  if (error.code === "42501") {
+    return "Seul le propriétaire de la boutique peut définir des champs.";
+  }
+  return error.message;
+};
+
 export interface StoreData {
   products: Product[];
   sales: Sale[];
@@ -51,6 +79,7 @@ export interface StoreData {
   suppliers: Supplier[];
   providers: Provider[];
   providerServices: ProviderService[];
+  customFields: CustomField[];
   loading: boolean;
   error: string | null;
 
@@ -241,6 +270,22 @@ export interface StoreData {
 
   deleteProviderService: (id: string) => Promise<{ error: string | null }>;
 
+  // Champs personnalisés — définir la structure est réservé au
+  // propriétaire, la RLS le vérifie aussi côté base.
+  addCustomField: (
+    data: Omit<
+      Database["public"]["Tables"]["custom_field_definitions"]["Insert"],
+      "store_id" | "created_by"
+    >,
+  ) => Promise<{ error: string | null }>;
+
+  updateCustomField: (
+    id: string,
+    data: Database["public"]["Tables"]["custom_field_definitions"]["Update"],
+  ) => Promise<{ error: string | null }>;
+
+  deleteCustomField: (id: string) => Promise<{ error: string | null }>;
+
   // Apports
   addApport: (
     data: Omit<Database["public"]["Tables"]["capital_apports"]["Insert"], "store_id" | "owner_id">,
@@ -264,6 +309,7 @@ export function useStoreData(storeId: string | null, userId: string | null): Sto
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [providers, setProviders] = useState<Provider[]>([]);
   const [providerServices, setProviderServices] = useState<ProviderService[]>([]);
+  const [customFields, setCustomFields] = useState<CustomField[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -280,6 +326,7 @@ export function useStoreData(storeId: string | null, userId: string | null): Sto
       setSuppliers([]);
       setProviders([]);
       setProviderServices([]);
+      setCustomFields([]);
       return;
     }
 
@@ -299,6 +346,7 @@ export function useStoreData(storeId: string | null, userId: string | null): Sto
         suppliersRes,
         providersRes,
         providerServicesRes,
+        customFieldsRes,
       ] = await Promise.all([
         supabase
           .from("products")
@@ -349,6 +397,12 @@ export function useStoreData(storeId: string | null, userId: string | null): Sto
         supabase.from("providers").select("*").eq("store_id", storeId).order("nom"),
 
         supabase.from("provider_services").select("*").eq("store_id", storeId).order("libelle"),
+
+        supabase
+          .from("custom_field_definitions")
+          .select("*")
+          .eq("store_id", storeId)
+          .order("ordre"),
       ]);
 
       if (productsRes.data) setProducts(productsRes.data);
@@ -362,6 +416,7 @@ export function useStoreData(storeId: string | null, userId: string | null): Sto
       if (suppliersRes.data) setSuppliers(suppliersRes.data);
       if (providersRes.data) setProviders(providersRes.data);
       if (providerServicesRes.data) setProviderServices(providerServicesRes.data);
+      if (customFieldsRes.data) setCustomFields(customFieldsRes.data);
     } catch (e: any) {
       setError(e.message);
     } finally {
@@ -945,6 +1000,39 @@ export function useStoreData(storeId: string | null, userId: string | null): Sto
     [fetchAll],
   );
 
+  // CHAMPS PERSONNALISÉS
+  const addCustomField = useCallback(
+    async (data: any) => {
+      if (!storeId || !userId) return { error: "Non autorisé" };
+      const { error } = await supabase.from("custom_field_definitions").insert({
+        ...data,
+        store_id: storeId,
+        created_by: userId,
+      });
+      if (!error) fetchAll();
+      return { error: traduireErreurChampPerso(error) };
+    },
+    [storeId, userId, fetchAll],
+  );
+
+  const updateCustomField = useCallback(
+    async (id: string, data: any) => {
+      const { error } = await supabase.from("custom_field_definitions").update(data).eq("id", id);
+      if (!error) fetchAll();
+      return { error: traduireErreurChampPerso(error) };
+    },
+    [fetchAll],
+  );
+
+  const deleteCustomField = useCallback(
+    async (id: string) => {
+      const { error } = await supabase.from("custom_field_definitions").delete().eq("id", id);
+      if (!error) fetchAll();
+      return { error: traduireErreurChampPerso(error) };
+    },
+    [fetchAll],
+  );
+
   // APPORTS
   const addApport = useCallback(
     async (data: any) => {
@@ -986,6 +1074,7 @@ export function useStoreData(storeId: string | null, userId: string | null): Sto
     suppliers,
     providers,
     providerServices,
+    customFields,
     loading,
     error,
     addProduct,
@@ -1017,6 +1106,9 @@ export function useStoreData(storeId: string | null, userId: string | null): Sto
     deleteProvider,
     addProviderService,
     deleteProviderService,
+    addCustomField,
+    updateCustomField,
+    deleteCustomField,
     addApport,
     deleteApport,
     refresh: fetchAll,

@@ -20,6 +20,13 @@ import {
 } from "lucide-react";
 import { formatCurrency } from "../utils/formulas";
 import { PageHeader } from "./shared/PageHeader";
+import { ChampsPersoLecture, ChampsPersoSaisie } from "./shared/ChampsPersonnalises";
+import {
+  champObligatoireManquant,
+  lireValeurs,
+  type ChampPerso,
+  type ValeursPerso,
+} from "../lib/champsPersonnalises";
 import type { Sale, Payment } from "../types";
 import type { Database } from "../lib/database.types";
 
@@ -45,6 +52,8 @@ interface ClientsViewProps {
   ) => Promise<{ error: string | null }>;
   onDeleteClient: (id: string) => Promise<{ error: string | null }>;
   onNavigateToOrders?: (clientId: string) => void;
+  /** Les champs que la boutique a ajoutés elle-même à cette fiche. */
+  champsPersonnalises: ChampPerso[];
 }
 
 /* ─────────────────────────────────────────────────────────────
@@ -177,6 +186,7 @@ export const ClientsView: React.FC<ClientsViewProps> = ({
   onAddClient,
   onUpdateClient,
   onDeleteClient,
+  champsPersonnalises,
   onNavigateToOrders,
 }) => {
   const [search, setSearch] = useState("");
@@ -189,6 +199,7 @@ export const ClientsView: React.FC<ClientsViewProps> = ({
   const [erreur, setErreur] = useState<string | null>(null);
   const [succes, setSucces] = useState<string | null>(null);
   const [suppressionDemandee, setSuppressionDemandee] = useState(false);
+  const [valeursPerso, setValeursPerso] = useState<ValeursPerso>({});
 
   /**
    * Les ventes à crédit ne portent pas encore de clé vers le client :
@@ -298,6 +309,7 @@ export const ClientsView: React.FC<ClientsViewProps> = ({
   const ouvrirCreation = () => {
     setEnEdition(null);
     setFormulaire(FORMULAIRE_VIDE);
+    setValeursPerso({});
     setErreur(null);
     setFormulaireOuvert(true);
   };
@@ -305,6 +317,7 @@ export const ClientsView: React.FC<ClientsViewProps> = ({
   const ouvrirEdition = (c: Client) => {
     setEnEdition(c);
     setFormulaire(depuisClient(c));
+    setValeursPerso(lireValeurs(c.champs_perso));
     setErreur(null);
     setFormulaireOuvert(true);
   };
@@ -326,9 +339,17 @@ export const ClientsView: React.FC<ClientsViewProps> = ({
       setErreur("Le nom est obligatoire.");
       return;
     }
+    // La base ne valide pas le contenu du JSON — c'est le prix du
+    // stockage en colonne libre, assumé dans la migration. Un champ
+    // obligatoire se vérifie donc ici, à la saisie.
+    const manquant = champObligatoireManquant(champsPersonnalises, "client", valeursPerso);
+    if (manquant) {
+      setErreur(`« ${manquant.libelle} » est obligatoire.`);
+      return;
+    }
     setEnregistrement(true);
     setErreur(null);
-    const donnees = versBase(formulaire);
+    const donnees = { ...versBase(formulaire), champs_perso: valeursPerso };
 
     if (enEdition) {
       const { error } = await onUpdateClient(enEdition.id, donnees);
@@ -593,6 +614,14 @@ export const ClientsView: React.FC<ClientsViewProps> = ({
                 />
               </div>
             </fieldset>
+
+            <ChampsPersoSaisie
+              definitions={champsPersonnalises}
+              entite="client"
+              valeurs={valeursPerso}
+              onChange={setValeursPerso}
+              prefixe="cl"
+            />
 
             <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
               <button type="button" onClick={fermerFormulaire} className="app-btn-secondary">
@@ -1039,6 +1068,12 @@ export const ClientsView: React.FC<ClientsViewProps> = ({
                 </div>
               )}
             </div>
+
+            <ChampsPersoLecture
+              definitions={champsPersonnalises}
+              entite="client"
+              valeurs={lireValeurs(selection.champs_perso)}
+            />
 
             {selection.note && (
               <div className="app-card p-4">

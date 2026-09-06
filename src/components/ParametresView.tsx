@@ -4,15 +4,13 @@ import { SettingsLayout, SettingsTab } from "./settings/SettingsLayout";
 import { supabase } from "../lib/supabase";
 import { useWorkspace } from "../hooks/useWorkspace";
 import { useAuth } from "../hooks/useAuth";
-import {
-  normalizePermissions,
-  type PermissionsMap,
-  type RoleKey,
-} from "../lib/permissions";
+import { normalizePermissions, type PermissionsMap, type RoleKey } from "../lib/permissions";
 import { AccountSection } from "./settings/AccountSection";
 import { SecuritySection } from "./settings/SecuritySection";
 import { StoreSection, type StoreFormValues } from "./settings/StoreSection";
 import { TeamSection, type TeamMember, type RecoveryRequest } from "./settings/TeamSection";
+import { ChampsPersonnalisesSection } from "./settings/ChampsPersonnalisesSection";
+import type { ChampPerso } from "../lib/champsPersonnalises";
 import { BillingSection } from "./settings/BillingSection";
 import { Modal } from "./shared/Modal";
 import { compressLogo, formatPoids } from "../lib/compressLogo";
@@ -24,6 +22,11 @@ import { Trash2 } from "lucide-react";
 
 interface ParametresViewProps {
   settings: StoreSettings;
+  /** Les champs que la boutique a ajoutés elle-même à ses fiches. */
+  champsPersonnalises: ChampPerso[];
+  onAddChampPersonnalise: (data: any) => Promise<{ error: string | null }>;
+  onUpdateChampPersonnalise: (id: string, data: any) => Promise<{ error: string | null }>;
+  onDeleteChampPersonnalise: (id: string) => Promise<{ error: string | null }>;
   /**
    * Le type déclarait `void` alors que l'implémentation est asynchrone.
    * Rien n'empêchait donc d'oublier le `await` — c'est exactement ce qui
@@ -56,6 +59,10 @@ const MVOLA_NUMBER = "0389723412";
 
 export const ParametresView: React.FC<ParametresViewProps> = ({
   settings,
+  champsPersonnalises,
+  onAddChampPersonnalise,
+  onUpdateChampPersonnalise,
+  onDeleteChampPersonnalise,
   onUpdateSettings,
   onDeleteSeller,
   locale,
@@ -860,6 +867,15 @@ export const ParametresView: React.FC<ParametresViewProps> = ({
       )}
 
       {activeTab === "facture" && <InvoiceSection settings={settings} />}
+
+      {activeTab === "champs" && (
+        <ChampsPersonnalisesSection
+          champs={champsPersonnalises}
+          onAdd={onAddChampPersonnalise}
+          onUpdate={onUpdateChampPersonnalise}
+          onDelete={onDeleteChampPersonnalise}
+        />
+      )}
 
       {activeTab === "equipe" && (
         <TeamSection

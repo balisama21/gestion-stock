@@ -1045,6 +1045,7 @@ function AppInner() {
             onUpdateClient={storeData.updateClient}
             onDeleteClient={storeData.deleteClient}
             onNavigateToOrders={() => setActiveTab("commandes")}
+            champsPersonnalises={storeData.customFields}
           />
         )}
         {activeTab === "fournisseurs" && (
@@ -1055,6 +1056,7 @@ function AppInner() {
             onAddSupplier={storeData.addSupplier}
             onUpdateSupplier={storeData.updateSupplier}
             onDeleteSupplier={storeData.deleteSupplier}
+            champsPersonnalises={storeData.customFields}
             peutCreer={!fournisseursActions || fournisseursActions.includes("create")}
             peutModifier={!fournisseursActions || fournisseursActions.includes("edit")}
             peutSupprimer={!fournisseursActions || fournisseursActions.includes("delete")}
@@ -1069,6 +1071,7 @@ function AppInner() {
             onDeleteProvider={storeData.deleteProvider}
             onAddService={storeData.addProviderService}
             onDeleteService={storeData.deleteProviderService}
+            champsPersonnalises={storeData.customFields}
             peutCreer={!prestatairesActions || prestatairesActions.includes("create")}
             peutModifier={!prestatairesActions || prestatairesActions.includes("edit")}
             peutSupprimer={!prestatairesActions || prestatairesActions.includes("delete")}
@@ -1077,6 +1080,10 @@ function AppInner() {
         {activeTab === "settings" && (
           <ParametresView
             settings={storeSettings}
+            champsPersonnalises={storeData.customFields}
+            onAddChampPersonnalise={storeData.addCustomField}
+            onUpdateChampPersonnalise={storeData.updateCustomField}
+            onDeleteChampPersonnalise={storeData.deleteCustomField}
             onUpdateSettings={handleUpdateSettings}
             sellers={computedSellers}
             onDeleteSeller={handleDeleteSeller}

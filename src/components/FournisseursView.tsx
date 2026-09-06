@@ -16,6 +16,13 @@ import {
 } from "lucide-react";
 import { formatCurrency } from "../utils/formulas";
 import { PageHeader } from "./shared/PageHeader";
+import { ChampsPersoLecture, ChampsPersoSaisie } from "./shared/ChampsPersonnalises";
+import {
+  champObligatoireManquant,
+  lireValeurs,
+  type ChampPerso,
+  type ValeursPerso,
+} from "../lib/champsPersonnalises";
 import type { Purchase, Product } from "../types";
 import type { Database } from "../lib/database.types";
 
@@ -34,6 +41,8 @@ interface FournisseursViewProps {
     data: Database["public"]["Tables"]["suppliers"]["Update"],
   ) => Promise<{ error: string | null }>;
   onDeleteSupplier: (id: string) => Promise<{ error: string | null }>;
+  /** Les champs que la boutique a ajoutés elle-même à cette fiche. */
+  champsPersonnalises: ChampPerso[];
   /** Autorisations de l'utilisateur sur ce module. */
   peutCreer?: boolean;
   peutModifier?: boolean;
@@ -131,6 +140,7 @@ export const FournisseursView: React.FC<FournisseursViewProps> = ({
   onAddSupplier,
   onUpdateSupplier,
   onDeleteSupplier,
+  champsPersonnalises,
   peutCreer = true,
   peutModifier = true,
   peutSupprimer = true,
@@ -145,6 +155,7 @@ export const FournisseursView: React.FC<FournisseursViewProps> = ({
   const [erreur, setErreur] = useState<string | null>(null);
   const [succes, setSucces] = useState<string | null>(null);
   const [suppressionDemandee, setSuppressionDemandee] = useState(false);
+  const [valeursPerso, setValeursPerso] = useState<ValeursPerso>({});
 
   const achatsParFournisseur = useMemo(() => {
     const table: Record<string, Purchase[]> = {};
@@ -208,6 +219,7 @@ export const FournisseursView: React.FC<FournisseursViewProps> = ({
   const ouvrirCreation = () => {
     setEnEdition(null);
     setFormulaire(FORMULAIRE_VIDE);
+    setValeursPerso({});
     setErreur(null);
     setFormulaireOuvert(true);
   };
@@ -215,6 +227,7 @@ export const FournisseursView: React.FC<FournisseursViewProps> = ({
   const ouvrirEdition = (f: Supplier) => {
     setEnEdition(f);
     setFormulaire(depuisFournisseur(f));
+    setValeursPerso(lireValeurs(f.champs_perso));
     setErreur(null);
     setFormulaireOuvert(true);
   };
@@ -236,9 +249,17 @@ export const FournisseursView: React.FC<FournisseursViewProps> = ({
       setErreur("Le nom est obligatoire.");
       return;
     }
+    // La base ne valide pas le contenu du JSON — c'est le prix du
+    // stockage en colonne libre, assumé dans la migration. Un champ
+    // obligatoire se vérifie donc ici, à la saisie.
+    const manquant = champObligatoireManquant(champsPersonnalises, "fournisseur", valeursPerso);
+    if (manquant) {
+      setErreur(`« ${manquant.libelle} » est obligatoire.`);
+      return;
+    }
     setEnregistrement(true);
     setErreur(null);
-    const donnees = versBase(formulaire);
+    const donnees = { ...versBase(formulaire), champs_perso: valeursPerso };
 
     if (enEdition) {
       const { error } = await onUpdateSupplier(enEdition.id, donnees);
@@ -471,6 +492,14 @@ export const FournisseursView: React.FC<FournisseursViewProps> = ({
                 />
               </div>
             </fieldset>
+
+            <ChampsPersoSaisie
+              definitions={champsPersonnalises}
+              entite="fournisseur"
+              valeurs={valeursPerso}
+              onChange={setValeursPerso}
+              prefixe="fo"
+            />
 
             <div className="flex flex-col-reverse gap-3 sm:flex-row sm:justify-end">
               <button type="button" onClick={fermerFormulaire} className="app-btn-secondary">
@@ -827,6 +856,12 @@ export const FournisseursView: React.FC<FournisseursViewProps> = ({
                 </div>
               )}
             </div>
+
+            <ChampsPersoLecture
+              definitions={champsPersonnalises}
+              entite="fournisseur"
+              valeurs={lireValeurs(selection.champs_perso)}
+            />
 
             {selection.note && (
               <div className="app-card p-4">
