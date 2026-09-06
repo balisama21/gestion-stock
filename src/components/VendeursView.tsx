@@ -880,7 +880,13 @@ export const VendeursView: React.FC<VendeursViewProps> = ({
                         ? "Aujourd'hui (" + todayStr + ")"
                         : selectedPeriod === "month"
                           ? "Mois de " + currentMonthStr
-                          : "Historique Complet"}
+                          : "Historique complet"}
+                    </p>
+                    {/* Le jour et le mois ont quitté les libellés des
+                        totaux, trop longs pour 58 mm ; ils sont rappelés
+                        ici, où la place ne manque pas. */}
+                    <p className="text-[9px] text-slate-600">
+                      Jour : {todayStr} — Mois : {currentMonthStr}
                     </p>
                   </div>
 
@@ -889,43 +895,43 @@ export const VendeursView: React.FC<VendeursViewProps> = ({
                   {/* KPI Highlights for Seller */}
                   <div className="space-y-1.5 text-[10px]">
                     <div className="flex justify-between border-t border-slate-900 pt-1 font-bold text-slate-900">
-                      <span>CA DU JOUR ({todayStr}) :</span>
+                      <span>CA DU JOUR</span>
                       <span>{formatCurrency(reportStats.caJour)}</span>
                     </div>
 
                     <div className="flex justify-between border-t border-slate-900 pt-1 font-bold text-slate-900">
-                      <span>CA DU MOIS ({currentMonthStr}) :</span>
+                      <span>CA DU MOIS</span>
                       <span>{formatCurrency(reportStats.caMois)}</span>
                     </div>
 
                     <div className="border-b border-slate-300 my-1"></div>
 
                     <div className="flex justify-between">
-                      <span className="text-slate-600">Total Ventes sélectionnées :</span>
+                      <span className="text-slate-600">Ventes</span>
                       <span className="font-bold">
                         {formatCurrency(reportStats.totalCA)} ({reportStats.countSales} vtes)
                       </span>
                     </div>
 
                     <div className="flex justify-between text-slate-600">
-                      <span>Total Encaissé (Espèces) :</span>
+                      <span>Encaissé</span>
                       <span className="font-bold">{formatCurrency(reportStats.totalEncaisse)}</span>
                     </div>
 
                     {reportStats.totalSoldeDu > 0 && (
                       <div className="flex justify-between text-slate-700 font-semibold">
-                        <span>Crédits / Solde Dû :</span>
+                        <span>Crédits</span>
                         <span>{formatCurrency(reportStats.totalSoldeDu)}</span>
                       </div>
                     )}
 
                     <div className="flex justify-between text-slate-700 font-semibold">
-                      <span>Dépenses / Retraits :</span>
+                      <span>Dépenses</span>
                       <span>- {formatCurrency(reportStats.totalDepenses)}</span>
                     </div>
 
                     <div className="flex justify-between text-slate-900 font-bold border-t border-slate-400 pt-1 text-xs">
-                      <span>SOLDE NET EN POCHE :</span>
+                      <span>NET EN POCHE</span>
                       <span>{formatCurrency(reportStats.soldeNetCaisse)}</span>
                     </div>
                   </div>
