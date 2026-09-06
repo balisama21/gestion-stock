@@ -7,16 +7,16 @@ const LIGNES: Array<{
   droite?: string;
   genre?: "titre" | "total" | "filet" | "pied";
 }> = [
-  { gauche: "BOUTIQUE DE KANTO", genre: "titre" },
+  { gauche: "ÉPICERIE DU CENTRE", genre: "titre" },
   { gauche: "Lot IVG 124, Antananarivo" },
   { gauche: "", genre: "filet" },
   { gauche: "Reçu", droite: "V001" },
   { gauche: "Date", droite: "06/09/2026" },
   { gauche: "Vendeur", droite: "Kanto" },
   { gauche: "", genre: "filet" },
-  { gauche: "Menaka", droite: "50 000 Ar" },
+  { gauche: "Huile 5 L", droite: "50 000 Ar" },
   { gauche: "2 × 25 000 Ar" },
-  { gauche: "Savon Kely", droite: "12 000 Ar" },
+  { gauche: "Savon 200 g", droite: "12 000 Ar" },
   { gauche: "3 × 4 000 Ar" },
   { gauche: "", genre: "filet" },
   { gauche: "TOTAL", droite: "62 000 Ar", genre: "total" },

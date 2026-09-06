@@ -31,7 +31,7 @@ export const EtiquetteStock: React.FC = () => (
       <p className="text-[10px]" style={{ color: "var(--carbone-doux)" }}>
         RAYON 3 · P001
       </p>
-      <p className="mt-1 text-[15px] font-bold">Menaka 25 kg</p>
+      <p className="mt-1 text-[15px] font-bold">Riz 25 kg</p>
       <div
         className="mt-3 flex items-baseline justify-between border-t border-dashed pt-2"
         style={{ borderColor: "var(--reglure)" }}
@@ -63,10 +63,10 @@ export const PageCarnet: React.FC = () => (
       Samedi 6
     </p>
     {[
-      ["Menaka", "50 000"],
-      ["Savon Kely", "12 000"],
-      ["Rano 1,5 L", "6 000"],
-      ["Menaka", "25 000"],
+      ["Huile 5 L", "50 000"],
+      ["Savon 200 g", "12 000"],
+      ["Eau 1,5 L", "6 000"],
+      ["Huile 5 L", "25 000"],
     ].map(([a, b], i) => (
       <div
         key={i}
@@ -160,14 +160,14 @@ export const PetitTicket: React.FC = () => (
       className="px-3 pb-4 pt-3 font-mono text-[9px] leading-[1.6]"
       style={{ background: "var(--papier)", boxShadow: "0 12px 26px -18px rgba(28,27,24,.55)" }}
     >
-      <p className="text-center text-[10px] font-bold">BOUTIQUE DE KANTO</p>
+      <p className="text-center text-[10px] font-bold">ÉPICERIE DU CENTRE</p>
       <div className="my-1.5 border-t border-dashed" style={{ borderColor: "var(--reglure)" }} />
       <div className="flex justify-between">
-        <span>Menaka</span>
+        <span>Huile 5 L</span>
         <span>50 000</span>
       </div>
       <div className="flex justify-between">
-        <span>Savon Kely</span>
+        <span>Savon 200 g</span>
         <span>12 000</span>
       </div>
       <div className="my-1.5 border-t border-dashed" style={{ borderColor: "var(--reglure)" }} />

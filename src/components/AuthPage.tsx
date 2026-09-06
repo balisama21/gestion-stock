@@ -5,6 +5,7 @@ import { APP_NAME, APP_SUPPORT_PHONE, APP_TAGLINE } from "../lib/appConfig";
 import { supabase } from "../lib/supabase";
 import { HeroAccueil } from "./landing/HeroAccueil";
 import { RegistreModules } from "./landing/RegistreModules";
+import { InventaireApplication } from "./landing/InventaireApplication";
 import { ArgumentaireConnexion } from "./landing/ArgumentaireConnexion";
 import { useDefilement } from "./landing/useDefilement";
 import { traduireErreurAuth } from "../lib/messagesAuth";
@@ -208,6 +209,8 @@ export const AuthPage: React.FC = () => {
       <HeroAccueil onRejoindreConnexion={allerAuFormulaire} />
 
       <RegistreModules />
+
+      <InventaireApplication />
 
       {/* Formulaire — inchangé, seulement replacé dans la page. */}
       <section
