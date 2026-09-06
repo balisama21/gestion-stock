@@ -15,6 +15,26 @@ type OrderItem = Database["public"]["Tables"]["order_items"]["Row"];
 type Client = Database["public"]["Tables"]["clients"]["Row"];
 type CapitalApport = Database["public"]["Tables"]["capital_apports"]["Row"];
 type Payment = Database["public"]["Tables"]["payments"]["Row"];
+type Supplier = Database["public"]["Tables"]["suppliers"]["Row"];
+
+/**
+ * Un message lisible plutôt que le jargon de Postgres.
+ *
+ * La base refuse deux fournisseurs de même nom dans une boutique — un
+ * index unique posé sur (store_id, lower(nom)). Sans cette traduction,
+ * l'utilisateur lirait « duplicate key value violates unique constraint
+ * idx_suppliers_store_nom », ce qui ne lui dit ni ce qui s'est passé ni
+ * quoi faire.
+ */
+const traduireErreurFournisseur = (
+  error: { code?: string; message: string } | null,
+): string | null => {
+  if (!error) return null;
+  if (error.code === "23505") {
+    return "Un fournisseur porte déjà ce nom dans cette boutique.";
+  }
+  return error.message;
+};
 
 export interface StoreData {
   products: Product[];
@@ -25,15 +45,13 @@ export interface StoreData {
   clients: Client[];
   apports: CapitalApport[];
   payments: Payment[];
+  suppliers: Supplier[];
   loading: boolean;
   error: string | null;
 
- // CRUD Products
+  // CRUD Products
   addProduct: (
-    data: Omit<
-      Database["public"]["Tables"]["products"]["Insert"],
-      "store_id" | "owner_id"
-    >,
+    data: Omit<Database["public"]["Tables"]["products"]["Insert"], "store_id" | "owner_id">,
   ) => Promise<{ error: string | null }>;
 
   updateProduct: (
@@ -117,10 +135,7 @@ export interface StoreData {
 
   // CRUD Expenses
   addExpense: (
-    data: Omit<
-      Database["public"]["Tables"]["expenses"]["Insert"],
-      "store_id" | "owner_id"
-    >,
+    data: Omit<Database["public"]["Tables"]["expenses"]["Insert"], "store_id" | "owner_id">,
   ) => Promise<{ error: string | null }>;
 
   updateExpense: (
@@ -177,10 +192,7 @@ export interface StoreData {
 
   // CRUD Clients
   addClient: (
-    data: Omit<
-      Database["public"]["Tables"]["clients"]["Insert"],
-      "store_id" | "created_by"
-    >,
+    data: Omit<Database["public"]["Tables"]["clients"]["Insert"], "store_id" | "created_by">,
   ) => Promise<{ client: Client | null; error: string | null }>;
 
   updateClient: (
@@ -190,12 +202,21 @@ export interface StoreData {
 
   deleteClient: (id: string) => Promise<{ error: string | null }>;
 
+  // CRUD Fournisseurs
+  addSupplier: (
+    data: Omit<Database["public"]["Tables"]["suppliers"]["Insert"], "store_id" | "created_by">,
+  ) => Promise<{ supplier: Supplier | null; error: string | null }>;
+
+  updateSupplier: (
+    id: string,
+    data: Database["public"]["Tables"]["suppliers"]["Update"],
+  ) => Promise<{ error: string | null }>;
+
+  deleteSupplier: (id: string) => Promise<{ error: string | null }>;
+
   // Apports
   addApport: (
-    data: Omit<
-      Database["public"]["Tables"]["capital_apports"]["Insert"],
-      "store_id" | "owner_id"
-    >,
+    data: Omit<Database["public"]["Tables"]["capital_apports"]["Insert"], "store_id" | "owner_id">,
   ) => Promise<{ error: string | null }>;
 
   deleteApport: (id: string) => Promise<{ error: string | null }>;
@@ -204,10 +225,7 @@ export interface StoreData {
   refresh: () => Promise<void>;
 }
 
-export function useStoreData(
-  storeId: string | null,
-  userId: string | null,
-): StoreData {
+export function useStoreData(storeId: string | null, userId: string | null): StoreData {
   const [products, setProducts] = useState<Product[]>([]);
   const [sales, setSales] = useState<Sale[]>([]);
   const [purchases, setPurchases] = useState<Purchase[]>([]);
@@ -216,6 +234,7 @@ export function useStoreData(
   const [clients, setClients] = useState<Client[]>([]);
   const [apports, setApports] = useState<CapitalApport[]>([]);
   const [payments, setPayments] = useState<Payment[]>([]);
+  const [suppliers, setSuppliers] = useState<Supplier[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -229,6 +248,7 @@ export function useStoreData(
       setClients([]);
       setApports([]);
       setPayments([]);
+      setSuppliers([]);
       return;
     }
 
@@ -245,6 +265,7 @@ export function useStoreData(
         clientsRes,
         apportsRes,
         paymentsRes,
+        suppliersRes,
       ] = await Promise.all([
         supabase
           .from("products")
@@ -276,11 +297,7 @@ export function useStoreData(
           .eq("store_id", storeId)
           .order("created_at", { ascending: false }),
 
-        supabase
-          .from("clients")
-          .select("*")
-          .eq("store_id", storeId)
-          .order("nom"),
+        supabase.from("clients").select("*").eq("store_id", storeId).order("nom"),
 
         supabase
           .from("capital_apports")
@@ -293,6 +310,8 @@ export function useStoreData(
           .select("*")
           .eq("store_id", storeId)
           .order("created_at", { ascending: false }),
+
+        supabase.from("suppliers").select("*").eq("store_id", storeId).order("nom"),
       ]);
 
       if (productsRes.data) setProducts(productsRes.data);
@@ -303,6 +322,7 @@ export function useStoreData(
       if (clientsRes.data) setClients(clientsRes.data);
       if (apportsRes.data) setApports(apportsRes.data);
       if (paymentsRes.data) setPayments(paymentsRes.data);
+      if (suppliersRes.data) setSuppliers(suppliersRes.data);
     } catch (e: any) {
       setError(e.message);
     } finally {
@@ -337,7 +357,7 @@ export function useStoreData(
         p_idempotency_key: idempotencyKey,
       });
 
-     if (!error) fetchAll();
+      if (!error) fetchAll();
 
       return { error: error?.message ?? null };
     },
@@ -430,7 +450,7 @@ export function useStoreData(
         id: row.id,
         numero: row.numero ?? "",
         date: row.date,
-        productId: row.product_id ?? data.product_id, 
+        productId: row.product_id ?? data.product_id,
         designation: row.designation,
         quantite: row.quantite,
         prixVenteUnit: row.prix_vente_unit,
@@ -504,8 +524,7 @@ export function useStoreData(
         p_new_designation: data.new_product?.designation ?? null,
         p_new_variant_suffix: data.new_product?.variant_suffix ?? null,
         p_new_display_name: data.new_product?.display_name ?? null,
-        p_new_prix_vente_defaut:
-          data.new_product?.prix_vente_defaut ?? null,
+        p_new_prix_vente_defaut: data.new_product?.prix_vente_defaut ?? null,
         p_new_seuil_alerte: data.new_product?.seuil_alerte ?? null,
         p_quantite: data.quantite,
         p_prix_achat_unit: data.prix_achat_unit,
@@ -551,10 +570,7 @@ export function useStoreData(
 
   const updateExpense = useCallback(
     async (id: string, data: any) => {
-      const { error } = await supabase
-        .from("expenses")
-        .update(data)
-        .eq("id", id);
+      const { error } = await supabase.from("expenses").update(data).eq("id", id);
 
       if (!error) fetchAll();
 
@@ -565,10 +581,7 @@ export function useStoreData(
 
   const deleteExpense = useCallback(
     async (id: string) => {
-      const { error } = await supabase
-        .from("expenses")
-        .delete()
-        .eq("id", id);
+      const { error } = await supabase.from("expenses").delete().eq("id", id);
 
       if (!error) fetchAll();
 
@@ -591,17 +604,14 @@ export function useStoreData(
           ? crypto.randomUUID()
           : `order-${Date.now()}-${Math.random()}`;
 
-      const { data: result, error } = await supabase.rpc(
-        "create_order_with_items",
-        {
-          p_store_id: storeId,
-          p_client_id: orderData.client_id ?? null,
-          p_note: orderData.note ?? null,
-          p_date_livraison: orderData.date_livraison ?? null,
-          p_items: items,
-          p_idempotency_key: idempotencyKey,
-        },
-      );
+      const { data: result, error } = await supabase.rpc("create_order_with_items", {
+        p_store_id: storeId,
+        p_client_id: orderData.client_id ?? null,
+        p_note: orderData.note ?? null,
+        p_date_livraison: orderData.date_livraison ?? null,
+        p_items: items,
+        p_idempotency_key: idempotencyKey,
+      });
 
       if (error) return { order: null, error: error.message };
 
@@ -728,30 +738,30 @@ export function useStoreData(
   );
 
   const refundSale = useCallback(
-  async (saleId: string, montant: number, reason?: string) => {
-    const idempotencyKey =
-      typeof crypto !== "undefined" && crypto.randomUUID
-        ? crypto.randomUUID()
-        : `refund-sale-${Date.now()}-${Math.random()}`;
+    async (saleId: string, montant: number, reason?: string) => {
+      const idempotencyKey =
+        typeof crypto !== "undefined" && crypto.randomUUID
+          ? crypto.randomUUID()
+          : `refund-sale-${Date.now()}-${Math.random()}`;
 
-    const { error } = await supabase.rpc("refund_sale", {
-      p_sale_id: saleId,
-      p_montant: montant,
-      p_reason: reason ?? null,
-      p_idempotency_key: idempotencyKey,
-    });
+      const { error } = await supabase.rpc("refund_sale", {
+        p_sale_id: saleId,
+        p_montant: montant,
+        p_reason: reason ?? null,
+        p_idempotency_key: idempotencyKey,
+      });
 
-    if (error) {
-      return { error: error.message };
-    }
+      if (error) {
+        return { error: error.message };
+      }
 
-    // Recharger toutes les données après le remboursement
-    await fetchAll();
+      // Recharger toutes les données après le remboursement
+      await fetchAll();
 
-    return { error: null };
-  },
-  [fetchAll],
-);
+      return { error: null };
+    },
+    [fetchAll],
+  );
   // CLIENTS
   const addClient = useCallback(
     async (data: any) => {
@@ -781,10 +791,7 @@ export function useStoreData(
 
   const updateClient = useCallback(
     async (id: string, data: any) => {
-      const { error } = await supabase
-        .from("clients")
-        .update(data)
-        .eq("id", id);
+      const { error } = await supabase.from("clients").update(data).eq("id", id);
 
       if (!error) fetchAll();
 
@@ -795,14 +802,49 @@ export function useStoreData(
 
   const deleteClient = useCallback(
     async (id: string) => {
-      const { error } = await supabase
-        .from("clients")
-        .delete()
-        .eq("id", id);
+      const { error } = await supabase.from("clients").delete().eq("id", id);
 
       if (!error) fetchAll();
 
       return { error: error?.message ?? null };
+    },
+    [fetchAll],
+  );
+
+  // FOURNISSEURS
+  const addSupplier = useCallback(
+    async (data: any) => {
+      if (!storeId || !userId) {
+        return { supplier: null, error: "Non autorisé" };
+      }
+
+      const { data: supplier, error } = await supabase
+        .from("suppliers")
+        .insert({ ...data, store_id: storeId, created_by: userId })
+        .select("*")
+        .single();
+
+      if (!error) fetchAll();
+
+      return { supplier: supplier ?? null, error: traduireErreurFournisseur(error) };
+    },
+    [storeId, userId, fetchAll],
+  );
+
+  const updateSupplier = useCallback(
+    async (id: string, data: any) => {
+      const { error } = await supabase.from("suppliers").update(data).eq("id", id);
+      if (!error) fetchAll();
+      return { error: traduireErreurFournisseur(error) };
+    },
+    [fetchAll],
+  );
+
+  const deleteSupplier = useCallback(
+    async (id: string) => {
+      const { error } = await supabase.from("suppliers").delete().eq("id", id);
+      if (!error) fetchAll();
+      return { error: traduireErreurFournisseur(error) };
     },
     [fetchAll],
   );
@@ -812,13 +854,11 @@ export function useStoreData(
     async (data: any) => {
       if (!storeId || !userId) return { error: "Non autorisé" };
 
-      const { error } = await supabase
-        .from("capital_apports")
-        .insert({
-          ...data,
-          store_id: storeId,
-          owner_id: userId,
-        });
+      const { error } = await supabase.from("capital_apports").insert({
+        ...data,
+        store_id: storeId,
+        owner_id: userId,
+      });
 
       if (!error) fetchAll();
 
@@ -829,10 +869,7 @@ export function useStoreData(
 
   const deleteApport = useCallback(
     async (id: string) => {
-      const { error } = await supabase
-        .from("capital_apports")
-        .delete()
-        .eq("id", id);
+      const { error } = await supabase.from("capital_apports").delete().eq("id", id);
 
       if (!error) fetchAll();
 
@@ -850,6 +887,7 @@ export function useStoreData(
     clients,
     apports,
     payments,
+    suppliers,
     loading,
     error,
     addProduct,
@@ -873,6 +911,9 @@ export function useStoreData(
     addClient,
     updateClient,
     deleteClient,
+    addSupplier,
+    updateSupplier,
+    deleteSupplier,
     addApport,
     deleteApport,
     refresh: fetchAll,

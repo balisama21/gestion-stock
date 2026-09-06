@@ -169,6 +169,24 @@ export const MODULE_DEFINITIONS: ModuleDef[] = [
     ],
   },
   {
+    key: "fournisseurs",
+    label: "Fournisseurs",
+    hasScope: false,
+    actions: [
+      { key: "view", label: "Voir la liste" },
+      { key: "create", label: "Ajouter un fournisseur" },
+      { key: "edit", label: "Modifier un fournisseur" },
+      { key: "delete", label: "Supprimer un fournisseur" },
+    ],
+    fields: [
+      { key: "coordonnees", label: "Coordonnées" },
+      { key: "conditions", label: "Conditions de paiement et délais" },
+      { key: "historique_achats", label: "Historique des achats" },
+      { key: "montants", label: "Montants achetés" },
+      { key: "notes", label: "Notes" },
+    ],
+  },
+  {
     key: "produits",
     label: "Produits",
     hasScope: false,
@@ -444,14 +462,45 @@ const ADMIN_TEMPLATE: PermissionsMap = FULL_PERMISSIONS;
 
 /** MANAGER : voit tout sauf la gestion des permissions/paramètres financiers avancés. */
 const MANAGER_TEMPLATE: PermissionsMap = Object.fromEntries([
-  module("dashboard", true, { widgets: ALL_DASHBOARD_WIDGET_KEYS.filter((w) => w !== "benefices") }),
-  module("capital", true, { actions: ["view", "view_history"], fields: ["tresorerie", "revenus", "depenses"] }),
-  module("clients", true, { scope: "all", actions: ["view", "create", "edit"], fields: getModuleDef("clients")!.fields.map((f) => f.key) }),
-  module("produits", true, { actions: ["view", "create", "edit", "adjust_stock"], fields: getModuleDef("produits")!.fields.map((f) => f.key) }),
-  module("commandes", true, { scope: "all", actions: ["create", "edit", "cancel"], fields: getModuleDef("commandes")!.fields.map((f) => f.key) }),
-  module("ventes", true, { scope: "all", actions: ["create", "edit", "cancel"], fields: getModuleDef("ventes")!.fields.map((f) => f.key) }),
-  module("paiements", true, { scope: "all", actions: ["add", "edit"], fields: getModuleDef("paiements")!.fields.map((f) => f.key) }),
-  module("achats", true, { actions: ["view", "create", "edit"], fields: getModuleDef("achats")!.fields.map((f) => f.key) }),
+  module("dashboard", true, {
+    widgets: ALL_DASHBOARD_WIDGET_KEYS.filter((w) => w !== "benefices"),
+  }),
+  module("capital", true, {
+    actions: ["view", "view_history"],
+    fields: ["tresorerie", "revenus", "depenses"],
+  }),
+  module("clients", true, {
+    scope: "all",
+    actions: ["view", "create", "edit"],
+    fields: getModuleDef("clients")!.fields.map((f) => f.key),
+  }),
+  module("produits", true, {
+    actions: ["view", "create", "edit", "adjust_stock"],
+    fields: getModuleDef("produits")!.fields.map((f) => f.key),
+  }),
+  module("commandes", true, {
+    scope: "all",
+    actions: ["create", "edit", "cancel"],
+    fields: getModuleDef("commandes")!.fields.map((f) => f.key),
+  }),
+  module("ventes", true, {
+    scope: "all",
+    actions: ["create", "edit", "cancel"],
+    fields: getModuleDef("ventes")!.fields.map((f) => f.key),
+  }),
+  module("paiements", true, {
+    scope: "all",
+    actions: ["add", "edit"],
+    fields: getModuleDef("paiements")!.fields.map((f) => f.key),
+  }),
+  module("achats", true, {
+    actions: ["view", "create", "edit"],
+    fields: getModuleDef("achats")!.fields.map((f) => f.key),
+  }),
+  module("fournisseurs", true, {
+    actions: ["view", "create", "edit"],
+    fields: getModuleDef("fournisseurs")!.fields.map((f) => f.key),
+  }),
   module("vendeurs", true, { actions: ["view"] }),
   module("depenses", true, { scope: "all", actions: ["view", "create", "edit"] }),
   module("statistiques", true, { fields: getModuleDef("statistiques")!.fields.map((f) => f.key) }),
@@ -463,15 +512,44 @@ const MANAGER_TEMPLATE: PermissionsMap = Object.fromEntries([
 /** COMPTABLE : focalisé finance, pas de gestion produits/stock. */
 const COMPTABLE_TEMPLATE: PermissionsMap = Object.fromEntries([
   module("dashboard", true, {
-    widgets: [...DASHBOARD_WIDGETS.finance.items.map((i) => i.key), ...DASHBOARD_WIDGETS.activite_commerciale.items.map((i) => i.key)],
+    widgets: [
+      ...DASHBOARD_WIDGETS.finance.items.map((i) => i.key),
+      ...DASHBOARD_WIDGETS.activite_commerciale.items.map((i) => i.key),
+    ],
   }),
-  module("capital", true, { actions: ["view", "add_operation", "edit_operation", "view_history"], fields: getModuleDef("capital")!.fields.map((f) => f.key) }),
-  module("clients", true, { scope: "all", actions: ["view"], fields: ["coordonnees", "paiements", "solde"] }),
+  module("capital", true, {
+    actions: ["view", "add_operation", "edit_operation", "view_history"],
+    fields: getModuleDef("capital")!.fields.map((f) => f.key),
+  }),
+  module("clients", true, {
+    scope: "all",
+    actions: ["view"],
+    fields: ["coordonnees", "paiements", "solde"],
+  }),
   module("produits", false),
-  module("commandes", true, { scope: "all", actions: [], fields: ["client", "montant", "statut", "paiement"] }),
-  module("ventes", true, { scope: "all", actions: [], fields: getModuleDef("ventes")!.fields.map((f) => f.key) }),
-  module("paiements", true, { scope: "all", actions: ["add", "edit", "cancel"], fields: getModuleDef("paiements")!.fields.map((f) => f.key) }),
-  module("achats", true, { actions: ["view"], fields: getModuleDef("achats")!.fields.map((f) => f.key) }),
+  module("commandes", true, {
+    scope: "all",
+    actions: [],
+    fields: ["client", "montant", "statut", "paiement"],
+  }),
+  module("ventes", true, {
+    scope: "all",
+    actions: [],
+    fields: getModuleDef("ventes")!.fields.map((f) => f.key),
+  }),
+  module("paiements", true, {
+    scope: "all",
+    actions: ["add", "edit", "cancel"],
+    fields: getModuleDef("paiements")!.fields.map((f) => f.key),
+  }),
+  module("achats", true, {
+    actions: ["view"],
+    fields: getModuleDef("achats")!.fields.map((f) => f.key),
+  }),
+  module("fournisseurs", true, {
+    actions: ["view"],
+    fields: ["coordonnees", "historique_achats", "montants"],
+  }),
   module("vendeurs", false),
   module("depenses", true, { scope: "all", actions: ["view", "create", "edit"] }),
   module("statistiques", true, { fields: getModuleDef("statistiques")!.fields.map((f) => f.key) }),
@@ -493,12 +571,24 @@ const VENDEUR_TEMPLATE: PermissionsMap = Object.fromEntries([
     ],
   }),
   module("capital", false),
-  module("clients", true, { scope: "own", actions: ["view", "create", "edit"], fields: ["coordonnees", "historique_commandes"] }),
-  module("produits", true, { actions: ["view"], fields: ["nom", "prix_vente", "stock_disponible"] }),
-  module("commandes", true, { scope: "own", actions: ["create", "edit"], fields: ["client", "produits", "montant", "statut"] }),
+  module("clients", true, {
+    scope: "own",
+    actions: ["view", "create", "edit"],
+    fields: ["coordonnees", "historique_commandes"],
+  }),
+  module("produits", true, {
+    actions: ["view"],
+    fields: ["nom", "prix_vente", "stock_disponible"],
+  }),
+  module("commandes", true, {
+    scope: "own",
+    actions: ["create", "edit"],
+    fields: ["client", "produits", "montant", "statut"],
+  }),
   module("ventes", true, { scope: "own", actions: ["create"], fields: ["montant", "paiement"] }),
   module("paiements", true, { scope: "own", actions: ["add"], fields: ["soldes"] }),
   module("achats", false),
+  module("fournisseurs", false),
   module("vendeurs", false),
   module("depenses", false),
   module("statistiques", true, { fields: ["perf_personnelles"] }),
@@ -514,11 +604,27 @@ const GESTIONNAIRE_STOCK_TEMPLATE: PermissionsMap = Object.fromEntries([
   }),
   module("capital", false),
   module("clients", false),
-  module("produits", true, { actions: ["view", "create", "edit", "adjust_stock", "inventory"], fields: getModuleDef("produits")!.fields.filter((f) => f.key !== "valeur_stock").map((f) => f.key) }),
-  module("commandes", true, { scope: "all", actions: ["edit"], fields: ["produits", "statut", "livraison"] }),
+  module("produits", true, {
+    actions: ["view", "create", "edit", "adjust_stock", "inventory"],
+    fields: getModuleDef("produits")!
+      .fields.filter((f) => f.key !== "valeur_stock")
+      .map((f) => f.key),
+  }),
+  module("commandes", true, {
+    scope: "all",
+    actions: ["edit"],
+    fields: ["produits", "statut", "livraison"],
+  }),
   module("ventes", false),
   module("paiements", false),
-  module("achats", true, { actions: ["view", "create", "edit"], fields: getModuleDef("achats")!.fields.map((f) => f.key) }),
+  module("achats", true, {
+    actions: ["view", "create", "edit"],
+    fields: getModuleDef("achats")!.fields.map((f) => f.key),
+  }),
+  module("fournisseurs", true, {
+    actions: ["view", "create", "edit"],
+    fields: getModuleDef("fournisseurs")!.fields.map((f) => f.key),
+  }),
   module("vendeurs", false),
   module("depenses", false),
   module("statistiques", false),

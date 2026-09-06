@@ -25,7 +25,8 @@ export interface Purchase {
   quantite: number;
   prixAchatUnit: number;
   totalAchat: number;
-  fournisseur: string;
+  fournisseur: string; // Nom saisi a la main, conserve
+  supplierId: string | null; // Fiche fournisseur, quand l achat y est rattache
   impactTresorerie: number;
 }
 
@@ -135,4 +136,5 @@ export type ActiveTab =
   | "ventes_mois"
   | "commandes"
   | "clients"
+  | "fournisseurs"
   | "paiements";

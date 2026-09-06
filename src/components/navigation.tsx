@@ -10,6 +10,7 @@ import {
   DollarSign,
   Users,
   ArrowRightLeft,
+  Truck,
   CalendarRange,
   History,
 } from "lucide-react";
@@ -63,6 +64,7 @@ export const NAV_GROUPS: NavGroup[] = [
     items: [
       { id: "produits", label: "Produits", icon: <Package className="w-4 h-4" /> },
       { id: "achats", label: "Achats", icon: <ShoppingCart className="w-4 h-4" /> },
+      { id: "fournisseurs", label: "Fournisseurs", icon: <Truck className="w-4 h-4" /> },
     ],
   },
   {

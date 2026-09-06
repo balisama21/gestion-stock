@@ -31,6 +31,7 @@ import { RapportsView } from "./components/RapportsView";
 import { ParametresView } from "./components/ParametresView";
 import { CommandesView } from "./components/CommandesView";
 import { ClientsView } from "./components/ClientsView";
+import { FournisseursView } from "./components/FournisseursView";
 import { PaiementsARecevoirView } from "./components/PaiementsARecevoirView";
 import { AuthPage } from "./components/AuthPage";
 import { CreateStoreOnboarding } from "./components/CreateStoreOnboarding";
@@ -174,6 +175,7 @@ function AppInner() {
         prixAchatUnit: p.prix_achat_unit,
         totalAchat: p.total_achat,
         fournisseur: p.fournisseur,
+        supplierId: p.supplier_id,
         impactTresorerie: p.impact_tresorerie,
       })),
     [storeData.purchases],
@@ -381,6 +383,15 @@ function AppInner() {
     ? null
     : ["view", "create", "edit", "delete", "adjust_stock", "inventory"].filter((a) =>
         hasModuleAction(workspace.memberPermissionsDetailed ?? {}, "produits", a),
+      );
+
+  // ── Fournisseurs : le module est neuf, seules les actions
+  // comptent — il n a pas de portée par utilisateur, un fournisseur
+  // appartient à la boutique entière. ──
+  const fournisseursActions = workspace.isOwner
+    ? null
+    : ["view", "create", "edit", "delete"].filter((a) =>
+        hasModuleAction(workspace.memberPermissionsDetailed ?? {}, "fournisseurs", a),
       );
 
   // ── Ventes : champs sensibles (la portée own/all est déjà gérée plus
@@ -1030,6 +1041,19 @@ function AppInner() {
             onUpdateClient={storeData.updateClient}
             onDeleteClient={storeData.deleteClient}
             onNavigateToOrders={() => setActiveTab("commandes")}
+          />
+        )}
+        {activeTab === "fournisseurs" && (
+          <FournisseursView
+            suppliers={storeData.suppliers}
+            purchases={purchases}
+            products={products}
+            onAddSupplier={storeData.addSupplier}
+            onUpdateSupplier={storeData.updateSupplier}
+            onDeleteSupplier={storeData.deleteSupplier}
+            peutCreer={!fournisseursActions || fournisseursActions.includes("create")}
+            peutModifier={!fournisseursActions || fournisseursActions.includes("edit")}
+            peutSupprimer={!fournisseursActions || fournisseursActions.includes("delete")}
           />
         )}
         {activeTab === "settings" && (
