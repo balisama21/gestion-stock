@@ -1,4 +1,7 @@
 import React from "react";
+import { ScrollMorphHero } from "../ui/scroll-morph-hero";
+import { MiniEcran } from "./MiniEcran";
+import { GROUPES_ECRANS } from "./ecrans";
 import { TicketImprime } from "./TicketImprime";
 
 interface HeroAccueilProps {
@@ -7,59 +10,116 @@ interface HeroAccueilProps {
 }
 
 /**
- * Ouverture de la page.
+ * Ouverture de la page : les écrans de l'application se rassemblent, puis
+ * se déploient en voûte à mesure qu'on descend.
  *
- * À gauche ce que le logiciel promet, à droite ce qu'il fabrique. Le
- * ticket qui s'imprime est l'unique effet de la page ; tout le reste est
- * posé et immobile, pour que ce moment-là porte.
+ * Les cartes portent les écrans réels du produit, pas des photographies
+ * de banque d'images. Le composant d'origine en chargeait vingt depuis un
+ * hébergeur tiers ; elles ne montraient rien du logiciel et pesaient
+ * plusieurs mégaoctets sur une connexion mobile. Ici, chaque carte est du
+ * texte et des traits, sans un octet à télécharger — et l'on y reconnaît
+ * son tableau de bord, son bilan, sa fiche client.
  *
  * Le titre est en monospace, la police que le produit imprime sur ses
- * tickets. Aucune étiquette au-dessus : un titre qui a besoin qu'on
- * l'annonce est un titre à réécrire.
+ * tickets, et le ticket lui-même reste présent une fois la voûte formée :
+ * c'est l'objet que le commerçant tend à son client.
  */
-export const HeroAccueil: React.FC<HeroAccueilProps> = ({ onRejoindreConnexion }) => (
-  <section className="relative overflow-hidden px-5 pb-20 pt-14 sm:pt-20">
-    {/* La réglure du cahier, en fond, qui défile avec la page. */}
-    <div aria-hidden className="trame-papier pointer-events-none absolute inset-0 -z-10" />
+const ECRANS = GROUPES_ECRANS.flatMap((g) => g.ecrans);
 
-    <div className="mx-auto grid max-w-5xl items-center gap-14 lg:grid-cols-[1.05fr_1fr] lg:gap-16">
+export const HeroAccueil: React.FC<HeroAccueilProps> = ({ onRejoindreConnexion }) => {
+  const cartes = ECRANS.map((e) => (
+    <div
+      key={e.nom}
+      className="flex h-full w-full items-center justify-center overflow-hidden"
+      style={{ background: "var(--papier)" }}
+    >
+      {/* La miniature est dessinée à sa taille naturelle puis réduite :
+          mise à l'échelle par transformation, le texte reste net au lieu
+          d'être recalculé à une taille où il deviendrait illisible. */}
+      <div style={{ transform: "scale(.63)", transformOrigin: "center" }}>
+        <MiniEcran titre={e.nom} rangees={e.apercu} />
+      </div>
+    </div>
+  ));
+
+  return (
+    <ScrollMorphHero
+      cartes={cartes}
+      etiquettes={ECRANS.map((e) => e.nom)}
+      introduction={
+        <>
+          <h1 className="titrage text-[clamp(2rem,7vw,3.4rem)]">
+            Le cahier de votre boutique,
+            <br />
+            tenu tout seul.
+          </h1>
+          <p
+            className="mx-auto mt-5 max-w-[42ch] text-[1rem] leading-relaxed"
+            style={{ color: "var(--carbone-doux)" }}
+          >
+            Vous enregistrez une vente. Le stock baisse, la caisse monte, le client qui doit encore
+            quelque chose est noté, et le bilan s&apos;écrit tout seul.
+          </p>
+          <p className="mt-8 text-[0.8125rem]" style={{ color: "var(--carbone-doux)" }}>
+            Descendez pour voir les écrans
+          </p>
+        </>
+      }
+      contenu={
+        <div className="mx-auto max-w-md">
+          <h2 className="titrage text-[clamp(1.4rem,5vw,2rem)]">
+            Vingt et un écrans, une seule saisie
+          </h2>
+          <p
+            className="mx-auto mt-3 max-w-[38ch] text-[0.9375rem] leading-relaxed"
+            style={{ color: "var(--carbone-doux)" }}
+          >
+            Une vente notée une fois se retrouve dans le stock, dans la caisse et dans le bilan.
+          </p>
+          <div className="mt-6 flex flex-col items-center gap-3 sm:flex-row sm:justify-center">
+            <button
+              type="button"
+              onClick={onRejoindreConnexion}
+              className="rounded-lg bg-primary px-7 py-3.5 text-sm font-semibold text-primary-foreground transition-opacity hover:opacity-90"
+            >
+              Accéder à mon espace
+            </button>
+            <a
+              href="#registre"
+              className="rounded-lg border px-7 py-3.5 text-center text-sm font-semibold transition-colors"
+              style={{ borderColor: "var(--reglure)", color: "var(--carbone)" }}
+            >
+              Voir ce que ça remplace
+            </a>
+          </div>
+        </div>
+      }
+    />
+  );
+};
+
+/**
+ * Le ticket, sous la voûte.
+ *
+ * Il ouvrait la page avant que le héros ne devienne animé ; il n'a pas
+ * disparu pour autant, car c'est l'objet le plus caractéristique du
+ * produit — ce qu'il fabrique et ce que le commerçant tend à son client.
+ */
+export const BandeauTicket: React.FC = () => (
+  <section className="reglure px-5 py-16 sm:py-20">
+    <div className="mx-auto grid max-w-4xl items-center gap-10 sm:grid-cols-2 sm:gap-14">
       <div>
-        <h1 className="titrage text-[clamp(2.1rem,7.2vw,3.4rem)]">
-          Le cahier de votre boutique,
-          <br />
-          tenu tout seul.
-        </h1>
-
+        <h2 className="titrage text-[clamp(1.5rem,4.4vw,2.1rem)]">
+          Et le ticket sort dans la foulée
+        </h2>
         <p
-          className="mt-6 max-w-[46ch] text-[1.0625rem] leading-relaxed"
+          className="mt-4 max-w-[42ch] text-[0.95rem] leading-relaxed"
           style={{ color: "var(--carbone-doux)" }}
         >
-          Vous enregistrez une vente. Le stock baisse, la caisse monte, le client qui doit encore
-          quelque chose est noté, et le bilan du mois s&apos;écrit tout seul.
-        </p>
-
-        <div className="mt-9 flex flex-col gap-3 sm:flex-row">
-          <button
-            type="button"
-            onClick={onRejoindreConnexion}
-            className="rounded-lg bg-primary px-7 py-3.5 text-sm font-semibold text-primary-foreground transition-opacity hover:opacity-90"
-          >
-            Accéder à mon espace
-          </button>
-          <a
-            href="#registre"
-            className="rounded-lg border px-7 py-3.5 text-center text-sm font-semibold transition-colors"
-            style={{ borderColor: "var(--reglure)", color: "var(--carbone)" }}
-          >
-            Voir ce que ça remplace
-          </a>
-        </div>
-
-        <p className="mt-6 text-sm" style={{ color: "var(--carbone-doux)" }}>
-          Ticket 58 ou 80 mm, facture A4, PDF ou image — au format exact du papier.
+          Ticket 58 ou 80 mm pour la thermique du comptoir, facture A4 pour un client qui la
+          demande, PDF ou image pour l&apos;envoyer par message — au format exact du papier.
         </p>
       </div>
-
       <TicketImprime />
     </div>
   </section>

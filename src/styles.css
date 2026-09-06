@@ -274,19 +274,28 @@
 }
 
 /* ── No horizontal scroll ── */
-html,
-body {
-  /* Garde-fou du défilement horizontal, exigence absolue du projet.
-     Mais `overflow-x: hidden` fait du corps un conteneur de défilement,
-     et `position: sticky` cesse alors de fonctionner pour tous ses
-     descendants — l'en-tête de l'application, la barre d'enregistrement
-     des réglages et le sommaire latéral restaient en réalité collés à la
-     page, pas à l'écran. `clip` coupe le débordement sans créer ce
-     conteneur : le garde-fou demeure, et le collage revient.
-     La ligne `hidden` reste en repli pour les navigateurs qui ignorent
-     `clip` ; ils retrouvent simplement l'ancien comportement. */
+/* Garde-fou du défilement horizontal, exigence absolue du projet.
+
+   Trois combinaisons ont été essayées, et l'histoire vaut d'être notée.
+
+   `overflow-x: hidden` sur le corps fait de celui-ci un conteneur de
+   défilement, et `position: sticky` cesse alors d'opérer pour tous ses
+   descendants — l'en-tête de l'application, la barre d'enregistrement des
+   réglages, le sommaire latéral restaient collés à la page au lieu de
+   l'écran.
+
+   `overflow-x: clip` corrige ce point mais ne doit surtout pas toucher
+   l'élément racine : sur lui, un axe en `clip` force l'autre à `clip`
+   également, et le document tout entier devient non défilable. Posé un
+   temps sur `html, body`, ce réglage a rendu la page impossible à
+   parcourir.
+
+   Reste la bonne combinaison : la contrainte horizontale sur `html`
+   seul, en `hidden`. Le viewport refuse le défilement horizontal, garde
+   le vertical, et le corps n'étant pas un conteneur de défilement, le
+   collage fonctionne. */
+html {
   overflow-x: hidden;
-  overflow-x: clip;
 }
 
 /* ── Mobile ergonomics ── */

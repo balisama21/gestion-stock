@@ -3,7 +3,7 @@ import { Link } from "@tanstack/react-router";
 import { useAuth } from "../hooks/useAuth";
 import { APP_NAME, APP_SUPPORT_PHONE, APP_TAGLINE } from "../lib/appConfig";
 import { supabase } from "../lib/supabase";
-import { HeroAccueil } from "./landing/HeroAccueil";
+import { BandeauTicket, HeroAccueil } from "./landing/HeroAccueil";
 import { RegistreModules } from "./landing/RegistreModules";
 import { InventaireApplication } from "./landing/InventaireApplication";
 import { ArgumentaireConnexion } from "./landing/ArgumentaireConnexion";
@@ -207,6 +207,8 @@ export const AuthPage: React.FC = () => {
       </div>
 
       <HeroAccueil onRejoindreConnexion={allerAuFormulaire} />
+
+      <BandeauTicket />
 
       <RegistreModules />
 
