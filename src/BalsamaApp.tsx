@@ -1024,6 +1024,8 @@ function AppInner() {
           <ClientsView
             clients={visibleClients}
             orders={storeData.orders}
+            sales={visibleSales}
+            payments={visiblePayments}
             onAddClient={storeData.addClient}
             onUpdateClient={storeData.updateClient}
             onDeleteClient={storeData.deleteClient}
