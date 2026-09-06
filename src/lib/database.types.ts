@@ -192,6 +192,7 @@ export type Database = {
       clients: {
         Row: {
           adresse: string | null
+          champs_perso: Json
           created_at: string
           created_by: string
           email: string | null
@@ -210,6 +211,7 @@ export type Database = {
         }
         Insert: {
           adresse?: string | null
+          champs_perso?: Json
           created_at?: string
           created_by: string
           email?: string | null
@@ -228,6 +230,7 @@ export type Database = {
         }
         Update: {
           adresse?: string | null
+          champs_perso?: Json
           created_at?: string
           created_by?: string
           email?: string | null
@@ -314,6 +317,65 @@ export type Database = {
           },
           {
             foreignKeyName: "collaborator_invitations_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      custom_field_definitions: {
+        Row: {
+          actif: boolean
+          aide: string | null
+          cle: string
+          created_at: string
+          created_by: string | null
+          entite: string
+          id: string
+          libelle: string
+          obligatoire: boolean
+          options: string[] | null
+          ordre: number
+          store_id: string
+          type: string
+          updated_at: string
+        }
+        Insert: {
+          actif?: boolean
+          aide?: string | null
+          cle: string
+          created_at?: string
+          created_by?: string | null
+          entite: string
+          id?: string
+          libelle: string
+          obligatoire?: boolean
+          options?: string[] | null
+          ordre?: number
+          store_id: string
+          type?: string
+          updated_at?: string
+        }
+        Update: {
+          actif?: boolean
+          aide?: string | null
+          cle?: string
+          created_at?: string
+          created_by?: string | null
+          entite?: string
+          id?: string
+          libelle?: string
+          obligatoire?: boolean
+          options?: string[] | null
+          ordre?: number
+          store_id?: string
+          type?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "custom_field_definitions_store_id_fkey"
             columns: ["store_id"]
             isOneToOne: false
             referencedRelation: "stores"
@@ -620,6 +682,7 @@ export type Database = {
       }
       products: {
         Row: {
+          champs_perso: Json
           created_at: string
           designation: string
           display_name: string
@@ -640,6 +703,7 @@ export type Database = {
           variant_suffix: string
         }
         Insert: {
+          champs_perso?: Json
           created_at?: string
           designation: string
           display_name: string
@@ -660,6 +724,7 @@ export type Database = {
           variant_suffix?: string
         }
         Update: {
+          champs_perso?: Json
           created_at?: string
           designation?: string
           display_name?: string
@@ -806,6 +871,7 @@ export type Database = {
       providers: {
         Row: {
           adresse: string | null
+          champs_perso: Json
           conditions: string | null
           contact: string | null
           created_at: string
@@ -827,6 +893,7 @@ export type Database = {
         }
         Insert: {
           adresse?: string | null
+          champs_perso?: Json
           conditions?: string | null
           contact?: string | null
           created_at?: string
@@ -848,6 +915,7 @@ export type Database = {
         }
         Update: {
           adresse?: string | null
+          champs_perso?: Json
           conditions?: string | null
           contact?: string | null
           created_at?: string
@@ -1364,6 +1432,7 @@ export type Database = {
         Row: {
           adresse: string | null
           categorie: string | null
+          champs_perso: Json
           conditions_paiement: string | null
           contact_principal: string | null
           created_at: string
@@ -1386,6 +1455,7 @@ export type Database = {
         Insert: {
           adresse?: string | null
           categorie?: string | null
+          champs_perso?: Json
           conditions_paiement?: string | null
           contact_principal?: string | null
           created_at?: string
@@ -1408,6 +1478,7 @@ export type Database = {
         Update: {
           adresse?: string | null
           categorie?: string | null
+          champs_perso?: Json
           conditions_paiement?: string | null
           contact_principal?: string | null
           created_at?: string
