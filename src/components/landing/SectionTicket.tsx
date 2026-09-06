@@ -21,10 +21,22 @@ import { CourbesSiVisible } from "../ui/floating-paths";
  * de l'agrandir et de mieux l'asseoir.
  */
 
+/**
+ * Les trois formats de sortie.
+ *
+ * Chaque icône porte la couleur que le format a d'ordinaire : le rouge du
+ * PDF, le bleu d'un fichier image, le noir d'une impression thermique. On
+ * les reconnaît alors sans lire le libellé, ce qu'un jeu d'icônes toutes
+ * vertes ne permettait pas.
+ *
+ * Ce sont les seules couleurs de la page en dehors de la palette : elles
+ * ne désignent pas des actions mais des types de fichiers, dont la
+ * convention est plus forte que notre charte.
+ */
 const FORMATS = [
-  { icone: Printer, titre: "58 / 80 mm", detail: "Ticket thermique" },
-  { icone: FileText, titre: "PDF", detail: "Facture A4" },
-  { icone: ImageIcon, titre: "Image", detail: "Par message" },
+  { icone: Printer, titre: "58 / 80 mm", detail: "Ticket thermique", teinte: "var(--carbone)" },
+  { icone: FileText, titre: "PDF", detail: "Facture A4", teinte: "#d6382b" },
+  { icone: ImageIcon, titre: "Image", detail: "Par message", teinte: "var(--encre)" },
 ] as const;
 
 export const SectionTicket: React.FC = () => (
@@ -69,34 +81,31 @@ export const SectionTicket: React.FC = () => (
             papier.
           </p>
 
-          <ul className="mt-9 flex flex-wrap gap-3">
-            {FORMATS.map(({ icone: Icone, titre, detail }) => (
+          {/* Trois colonnes dès le téléphone : empilées, ces trois
+              mentions occupaient un écran entier pour dire trois mots.
+              Ni cadre ni fond — l'icône colorée suffit à les séparer. */}
+          <ul className="mt-9 grid grid-cols-3 gap-4 sm:flex sm:gap-9">
+            {FORMATS.map(({ icone: Icone, titre, detail, teinte }) => (
               <li
                 key={titre}
-                className="flex items-center gap-3 rounded-xl px-4 py-3 transition-transform duration-300 hover:-translate-y-0.5"
-                style={{
-                  background: "var(--papier)",
-                  border: "1px solid var(--reglure)",
-                  boxShadow: "0 10px 22px -18px rgba(28,27,24,.35)",
-                }}
+                className="flex flex-col items-center gap-2 text-center sm:flex-row sm:items-center sm:gap-3 sm:text-left"
               >
-                <span
-                  className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg"
-                  style={{
-                    background: "color-mix(in srgb, var(--primary) 12%, transparent)",
-                    color: "var(--primary)",
-                  }}
-                >
-                  <Icone className="h-4 w-4" />
-                </span>
+                <Icone
+                  className="h-7 w-7 shrink-0 transition-transform duration-300 sm:h-6 sm:w-6"
+                  style={{ color: teinte }}
+                  strokeWidth={1.6}
+                />
                 <span className="leading-tight">
                   <span
-                    className="block text-[0.9375rem] font-semibold"
+                    className="block text-[0.875rem] font-semibold sm:text-[0.9375rem]"
                     style={{ color: "var(--carbone)" }}
                   >
                     {titre}
                   </span>
-                  <span className="block text-[0.8125rem]" style={{ color: "var(--carbone-doux)" }}>
+                  <span
+                    className="block text-[0.75rem] sm:text-[0.8125rem]"
+                    style={{ color: "var(--carbone-doux)" }}
+                  >
                     {detail}
                   </span>
                 </span>
