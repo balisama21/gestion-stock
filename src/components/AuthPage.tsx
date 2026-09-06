@@ -1,7 +1,8 @@
 import React, { useEffect, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { useAuth } from "../hooks/useAuth";
-import { APP_NAME, APP_TAGLINE } from "../lib/appConfig";
+import { APP_NAME, APP_SUPPORT_PHONE, APP_TAGLINE } from "../lib/appConfig";
+import { supabase } from "../lib/supabase";
 import { traduireErreurAuth } from "../lib/messagesAuth";
 import {
   AlertCircle,
@@ -124,19 +125,30 @@ export const AuthPage: React.FC = () => {
     }
   };
 
+  /**
+   * Dépose une demande de réinitialisation auprès de l'administrateur.
+   *
+   * L'envoi d'e-mails n'atteint aujourd'hui qu'une seule adresse, faute
+   * de domaine vérifié : passer par `resetPasswordForEmail` ne produisait
+   * qu'une erreur. La demande est donc enregistrée, l'administrateur la
+   * voit dans son espace et délivre le lien lui-même.
+   *
+   * La réponse est la même que l'adresse existe ou non. Dire « cette
+   * adresse n'est pas connue » livrerait à n'importe qui la liste des
+   * comptes de l'application, une adresse à la fois.
+   */
   const handleForgotPassword = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
     setLoading(true);
-    const { error: resetError } = await resetPasswordForEmail(forgotEmail);
+    const { error: fnError } = await supabase.functions.invoke("demander-recuperation", {
+      body: { email: forgotEmail.trim() },
+    });
     setLoading(false);
-    if (resetError) {
-      setError(traduireErreurAuth(resetError));
+    if (fnError) {
+      setError("Demande impossible pour l'instant. Réessayez dans un moment.");
       return;
     }
-    // Par sécurité, on affiche toujours ce message de succès, que l'e-mail
-    // existe ou non dans la base — cela évite de révéler quels e-mails
-    // sont enregistrés dans l'application.
     setForgotSent(true);
   };
 
@@ -301,7 +313,8 @@ export const AuthPage: React.FC = () => {
                   </button>
                   <h2 className="text-xl font-bold text-foreground">Mot de passe oublié</h2>
                   <p className="text-sm text-muted-foreground mt-1">
-                    Entrez votre e-mail, nous vous enverrons un lien de réinitialisation.
+                    Entrez votre e-mail : votre demande sera transmise à l&apos;administrateur,
+                    qui vous remettra un lien de réinitialisation.
                   </p>
 
                   {/* Un compte créé par Google n'a jamais eu de mot de
@@ -491,15 +504,32 @@ export const AuthPage: React.FC = () => {
 
               {mode === "forgot-password" &&
                 (forgotSent ? (
-                  <div className="text-center py-2">
+                  <div className="py-2 text-center">
                     <CheckCircle2 className="w-12 h-12 t-success mx-auto mb-4" />
-                    <p className="text-foreground font-semibold mb-2">E-mail envoyé</p>
-                    <p className="text-sm text-muted-foreground leading-relaxed">
-                      Si un compte existe pour{" "}
-                      <strong className="text-foreground">{forgotEmail}</strong>, un lien de
-                      réinitialisation vient d&apos;être envoyé. Vérifiez aussi vos spams. Le lien
-                      expire après un court délai.
+                    <p className="text-foreground font-semibold mb-2">Demande enregistrée</p>
+                    {/* Le message est le même que l'adresse existe ou non :
+                        répondre « ce compte n'existe pas » livrerait la
+                        liste des utilisateurs, une adresse à la fois. */}
+                    <p className="text-sm leading-relaxed text-muted-foreground">
+                      L&apos;envoi par e-mail n&apos;est pas encore disponible. Votre demande
+                      pour <strong className="text-foreground">{forgotEmail}</strong> a été
+                      transmise à l&apos;administrateur.
                     </p>
+                    <div className="mt-4 rounded-xl border border-border bg-muted p-3.5 text-left">
+                      <p className="text-xs font-semibold text-foreground">
+                        Contactez l&apos;administrateur pour recevoir votre lien
+                      </p>
+                      <a
+                        href={`tel:${APP_SUPPORT_PHONE.replace(/s/g, "")}`}
+                        className="mt-1.5 inline-block text-base font-bold text-primary hover:underline"
+                      >
+                        {APP_SUPPORT_PHONE}
+                      </a>
+                      <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">
+                        Il vous transmettra un lien personnel pour choisir un nouveau mot de
+                        passe.
+                      </p>
+                    </div>
                     <button
                       type="button"
                       onClick={() => switchMode("login")}
@@ -524,8 +554,8 @@ export const AuthPage: React.FC = () => {
 
                     <SubmitButton
                       loading={loading}
-                      label="Envoyer le lien de réinitialisation"
-                      loadingLabel="Envoi…"
+                      label="Demander la réinitialisation"
+                      loadingLabel="Envoi de la demande…"
                     />
                   </form>
                 ))}

@@ -1,5 +1,5 @@
 import React from "react";
-import { UserPlus, Users, Copy, Check, Trash2, Mail, ShieldCheck } from "lucide-react";
+import { UserPlus, Users, Copy, Check, Trash2, Mail, ShieldCheck, KeyRound } from "lucide-react";
 import { SettingsSection, SettingsBlock, SettingsFeedback } from "./primitives";
 import { InviteWizard } from "../permissions/InviteWizard";
 import { ModulePermissionCard } from "../permissions/ModulePermissionCard";
@@ -17,6 +17,17 @@ export interface TeamMember {
   permissions: PermissionsMap;
   full_name: string | null;
   email: string;
+}
+
+/** Demande déposée depuis l'écran « mot de passe oublié ». */
+export interface RecoveryRequest {
+  id: string;
+  email: string;
+  /** Nul quand aucune adresse ne correspond : une faute de frappe, le plus souvent. */
+  user_id: string | null;
+  /** Boutique du demandeur, parmi celles que possède l'utilisateur courant. */
+  store_id: string | null;
+  requested_at: string;
 }
 
 interface PendingInvitation {
@@ -55,12 +66,16 @@ interface TeamSectionProps {
   onRemoveMember: (id: string) => void;
 
   /** Membre dont le lien de récupération est affiché, s'il y en a un. */
-  recoveryMemberId: string | null;
+  recoveryTargetId: string | null;
   recoveryLink: string | null;
   recoveryError: string | null;
   generatingRecoveryFor: string | null;
   onGenerateRecoveryLink: (member: TeamMember) => void;
   onCloseRecoveryLink: () => void;
+
+  recoveryRequests: RecoveryRequest[];
+  onGenerateForRequest: (demande: RecoveryRequest) => void;
+  onDismissRequest: (demande: RecoveryRequest) => void;
 }
 
 const CopyField: React.FC<{ label: string; value: string; mono?: boolean }> = ({
@@ -122,12 +137,15 @@ export const TeamSection: React.FC<TeamSectionProps> = ({
   onCancelEdit,
   onSaveMemberPermissions,
   onRemoveMember,
-  recoveryMemberId,
+  recoveryTargetId,
   recoveryLink,
   recoveryError,
   generatingRecoveryFor,
   onGenerateRecoveryLink,
   onCloseRecoveryLink,
+  recoveryRequests,
+  onGenerateForRequest,
+  onDismissRequest,
 }) => (
   <>
     <SettingsSection
@@ -187,6 +205,100 @@ export const TeamSection: React.FC<TeamSectionProps> = ({
         </SettingsBlock>
       )}
     </SettingsSection>
+
+    {/* Les demandes déposées depuis « mot de passe oublié ».
+        Le demandeur n'apprend jamais si son adresse est connue ; ici,
+        au contraire, la distinction est dite, parce qu'elle décide de
+        ce qu'il y a à faire : délivrer un lien, ou rappeler à la
+        personne qu'elle s'est trompée d'adresse. */}
+    {recoveryRequests.length > 0 && (
+      <SettingsSection
+        title="Demandes de mot de passe"
+        description="Ces personnes ont demandé à réinitialiser leur mot de passe. Délivrez-leur un lien et transmettez-le par un canal sûr."
+        icon={<KeyRound className="w-4 h-4" />}
+        aside={
+          <span className="app-badge app-badge-warning">
+            {recoveryRequests.length} en attente
+          </span>
+        }
+      >
+        {recoveryRequests.map((demande) => (
+          <SettingsBlock key={demande.id}>
+            <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+              <div className="min-w-0">
+                <p className="truncate text-sm font-semibold text-foreground">{demande.email}</p>
+                <p className="mt-0.5 text-xs text-muted-foreground">
+                  Demandé le{" "}
+                  {new Date(demande.requested_at).toLocaleString("fr-FR", {
+                    dateStyle: "short",
+                    timeStyle: "short",
+                  })}
+                </p>
+                {demande.user_id ? (
+                  demande.store_id ? (
+                    <p className="mt-1 text-xs t-success">Compte reconnu dans votre équipe.</p>
+                  ) : (
+                    <p className="mt-1 text-xs text-muted-foreground">
+                      Compte reconnu, mais hors de vos boutiques — vous ne pouvez pas agir
+                      dessus.
+                    </p>
+                  )
+                ) : (
+                  <p className="mt-1 text-xs t-warning">
+                    Aucun compte à cette adresse. La personne s'est probablement trompée en la
+                    saisissant.
+                  </p>
+                )}
+              </div>
+
+              <div className="flex shrink-0 flex-wrap gap-2">
+                {demande.user_id && demande.store_id && (
+                  <button
+                    type="button"
+                    onClick={() => onGenerateForRequest(demande)}
+                    disabled={generatingRecoveryFor === demande.id}
+                    className="app-btn-secondary min-w-0 flex-1 text-xs disabled:opacity-60 sm:flex-none"
+                  >
+                    {generatingRecoveryFor === demande.id ? "Génération…" : "Générer le lien"}
+                  </button>
+                )}
+                <button
+                  type="button"
+                  onClick={() => onDismissRequest(demande)}
+                  className="app-btn-secondary min-w-0 flex-1 text-xs sm:flex-none"
+                >
+                  Marquer traitée
+                </button>
+              </div>
+            </div>
+
+            {recoveryTargetId === demande.id && (recoveryLink || recoveryError) && (
+              <div className="mt-3 rounded-xl border border-border bg-muted p-3">
+                {recoveryError ? (
+                  <p className="text-xs t-danger">{recoveryError}</p>
+                ) : (
+                  <>
+                    <CopyField label="Lien de réinitialisation" value={recoveryLink!} />
+                    <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
+                      Transmettez ce lien à {demande.email} par un canal sûr. Il ne sert
+                      qu'une fois, expire rapidement, et quiconque l'ouvre avant elle prend
+                      la main sur son compte.
+                    </p>
+                  </>
+                )}
+                <button
+                  type="button"
+                  onClick={onCloseRecoveryLink}
+                  className="mt-2 text-xs font-semibold text-muted-foreground hover:text-foreground"
+                >
+                  Masquer
+                </button>
+              </div>
+            )}
+          </SettingsBlock>
+        ))}
+      </SettingsSection>
+    )}
 
     <SettingsSection
       title="Collaborateurs"
@@ -324,7 +436,7 @@ export const TeamSection: React.FC<TeamSectionProps> = ({
                   à qui le détient : on le dit, et il n'est affiché
                   qu'une fois — le régénérer est immédiat, le laisser
                   traîner à l'écran ne l'est pas. */}
-              {recoveryMemberId === member.id && (recoveryLink || recoveryError) && (
+              {recoveryTargetId === member.id && (recoveryLink || recoveryError) && (
                 <div className="mt-3 rounded-xl border border-border bg-muted p-3">
                   {recoveryError ? (
                     <p className="text-xs t-danger">{recoveryError}</p>

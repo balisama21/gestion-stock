@@ -12,7 +12,7 @@ import {
 import { AccountSection } from "./settings/AccountSection";
 import { SecuritySection } from "./settings/SecuritySection";
 import { StoreSection, type StoreFormValues } from "./settings/StoreSection";
-import { TeamSection, type TeamMember } from "./settings/TeamSection";
+import { TeamSection, type TeamMember, type RecoveryRequest } from "./settings/TeamSection";
 import { BillingSection } from "./settings/BillingSection";
 import { Modal } from "./shared/Modal";
 import { compressLogo, formatPoids } from "../lib/compressLogo";
@@ -417,10 +417,11 @@ export const ParametresView: React.FC<ParametresViewProps> = ({
   const [editingMemberId, setEditingMemberId] = useState<string | null>(null);
   const [editingPermissions, setEditingPermissions] = useState<PermissionsMap>({});
   const [savingMemberPermissions, setSavingMemberPermissions] = useState(false);
-  const [recoveryMemberId, setRecoveryMemberId] = useState<string | null>(null);
+  const [recoveryTargetId, setRecoveryTargetId] = useState<string | null>(null);
   const [recoveryLink, setRecoveryLink] = useState<string | null>(null);
   const [recoveryError, setRecoveryError] = useState<string | null>(null);
   const [generatingRecoveryFor, setGeneratingRecoveryFor] = useState<string | null>(null);
+  const [recoveryRequests, setRecoveryRequests] = useState<RecoveryRequest[]>([]);
 
   const fetchRealMembers = async () => {
     if (!inviteStoreId) return;
@@ -453,19 +454,14 @@ export const ParametresView: React.FC<ParametresViewProps> = ({
    * elle-même que l'appelant possède la boutique et que la personne en
    * est membre ; rien n'est décidé ici.
    */
-  const handleGenerateRecoveryLink = async (member: TeamMember) => {
-    if (!inviteStoreId) return;
-    setGeneratingRecoveryFor(member.id);
-    setRecoveryMemberId(member.id);
+  const genererLien = async (cibleId: string, userId: string, storeId: string) => {
+    setGeneratingRecoveryFor(cibleId);
+    setRecoveryTargetId(cibleId);
     setRecoveryLink(null);
     setRecoveryError(null);
     try {
       const { data, error } = await supabase.functions.invoke("generer-lien-recuperation", {
-        body: {
-          user_id: member.user_id,
-          store_id: inviteStoreId,
-          app_url: window.location.origin,
-        },
+        body: { user_id: userId, store_id: storeId, app_url: window.location.origin },
       });
       if (error) throw error;
       if (data?.error) throw new Error(data.error);
@@ -477,8 +473,72 @@ export const ParametresView: React.FC<ParametresViewProps> = ({
     }
   };
 
+  const handleGenerateRecoveryLink = (member: TeamMember) => {
+    if (!inviteStoreId) return;
+    genererLien(member.id, member.user_id, inviteStoreId);
+  };
+
+  /**
+   * Charge les demandes en attente.
+   *
+   * Les RLS ne laissent voir que celles des membres de ses propres
+   * boutiques — et, pour l'administrateur de la plateforme, celles dont
+   * l'adresse ne correspond à aucun compte. Le rattachement à une
+   * boutique est fait ici pour savoir sur laquelle agir : la fonction
+   * edge refuse toute personne étrangère à la boutique indiquée.
+   */
+  const fetchRecoveryRequests = async () => {
+    const { data } = await supabase
+      .from("password_recovery_requests")
+      .select("id, email, user_id, requested_at")
+      .eq("status", "pending")
+      .order("requested_at", { ascending: false });
+
+    const demandes = data ?? [];
+    const idsBoutiques = ownedStoresForInvite.map((s) => s.id);
+    const idsUtilisateurs = demandes.map((d) => d.user_id).filter(Boolean) as string[];
+
+    let rattachement = new Map<string, string>();
+    if (idsUtilisateurs.length > 0 && idsBoutiques.length > 0) {
+      const { data: membres } = await supabase
+        .from("store_members")
+        .select("user_id, store_id")
+        .in("user_id", idsUtilisateurs)
+        .in("store_id", idsBoutiques);
+      rattachement = new Map((membres ?? []).map((m: any) => [m.user_id, m.store_id]));
+    }
+
+    setRecoveryRequests(
+      demandes.map((d: any) => ({
+        id: d.id,
+        email: d.email,
+        user_id: d.user_id,
+        store_id: d.user_id ? (rattachement.get(d.user_id) ?? null) : null,
+        requested_at: d.requested_at,
+      })),
+    );
+  };
+
+  const handleGenerateForRequest = (demande: RecoveryRequest) => {
+    if (!demande.user_id || !demande.store_id) return;
+    genererLien(demande.id, demande.user_id, demande.store_id);
+  };
+
+  const handleDismissRequest = async (demande: RecoveryRequest) => {
+    await supabase
+      .from("password_recovery_requests")
+      .update({
+        status: "handled",
+        handled_at: new Date().toISOString(),
+        handled_by: user?.id ?? null,
+      })
+      .eq("id", demande.id);
+    if (recoveryTargetId === demande.id) closeRecoveryLink();
+    fetchRecoveryRequests();
+  };
+
   const closeRecoveryLink = () => {
-    setRecoveryMemberId(null);
+    setRecoveryTargetId(null);
     setRecoveryLink(null);
     setRecoveryError(null);
   };
@@ -524,6 +584,7 @@ export const ParametresView: React.FC<ParametresViewProps> = ({
   useEffect(() => {
     fetchPendingInvitations();
     fetchRealMembers();
+    fetchRecoveryRequests();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [inviteStoreId]);
 
@@ -838,12 +899,15 @@ export const ParametresView: React.FC<ParametresViewProps> = ({
           onCancelEdit={() => setEditingMemberId(null)}
           onSaveMemberPermissions={handleSaveMemberPermissions}
           onRemoveMember={handleRemoveMember}
-          recoveryMemberId={recoveryMemberId}
+          recoveryTargetId={recoveryTargetId}
           recoveryLink={recoveryLink}
           recoveryError={recoveryError}
           generatingRecoveryFor={generatingRecoveryFor}
           onGenerateRecoveryLink={handleGenerateRecoveryLink}
           onCloseRecoveryLink={closeRecoveryLink}
+          recoveryRequests={recoveryRequests}
+          onGenerateForRequest={handleGenerateForRequest}
+          onDismissRequest={handleDismissRequest}
         />
       )}
 
