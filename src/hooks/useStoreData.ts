@@ -16,22 +16,25 @@ type Client = Database["public"]["Tables"]["clients"]["Row"];
 type CapitalApport = Database["public"]["Tables"]["capital_apports"]["Row"];
 type Payment = Database["public"]["Tables"]["payments"]["Row"];
 type Supplier = Database["public"]["Tables"]["suppliers"]["Row"];
+type Provider = Database["public"]["Tables"]["providers"]["Row"];
+type ProviderService = Database["public"]["Tables"]["provider_services"]["Row"];
 
 /**
  * Un message lisible plutôt que le jargon de Postgres.
  *
- * La base refuse deux fournisseurs de même nom dans une boutique — un
- * index unique posé sur (store_id, lower(nom)). Sans cette traduction,
- * l'utilisateur lirait « duplicate key value violates unique constraint
- * idx_suppliers_store_nom », ce qui ne lui dit ni ce qui s'est passé ni
- * quoi faire.
+ * La base refuse deux fournisseurs — ou deux prestataires — de même nom
+ * dans une boutique, par un index unique posé sur (store_id, lower(nom)).
+ * Sans cette traduction, l'utilisateur lirait « duplicate key value
+ * violates unique constraint idx_suppliers_store_nom », ce qui ne lui dit
+ * ni ce qui s'est passé ni quoi faire.
  */
-const traduireErreurFournisseur = (
+const traduireErreurTiers = (
   error: { code?: string; message: string } | null,
+  tiers: "fournisseur" | "prestataire",
 ): string | null => {
   if (!error) return null;
   if (error.code === "23505") {
-    return "Un fournisseur porte déjà ce nom dans cette boutique.";
+    return `Un ${tiers} porte déjà ce nom dans cette boutique.`;
   }
   return error.message;
 };
@@ -46,6 +49,8 @@ export interface StoreData {
   apports: CapitalApport[];
   payments: Payment[];
   suppliers: Supplier[];
+  providers: Provider[];
+  providerServices: ProviderService[];
   loading: boolean;
   error: string | null;
 
@@ -214,6 +219,28 @@ export interface StoreData {
 
   deleteSupplier: (id: string) => Promise<{ error: string | null }>;
 
+  // CRUD Prestataires
+  addProvider: (
+    data: Omit<Database["public"]["Tables"]["providers"]["Insert"], "store_id" | "created_by">,
+  ) => Promise<{ provider: Provider | null; error: string | null }>;
+
+  updateProvider: (
+    id: string,
+    data: Database["public"]["Tables"]["providers"]["Update"],
+  ) => Promise<{ error: string | null }>;
+
+  deleteProvider: (id: string) => Promise<{ error: string | null }>;
+
+  addProviderService: (
+    providerId: string,
+    data: Omit<
+      Database["public"]["Tables"]["provider_services"]["Insert"],
+      "store_id" | "created_by" | "provider_id"
+    >,
+  ) => Promise<{ error: string | null }>;
+
+  deleteProviderService: (id: string) => Promise<{ error: string | null }>;
+
   // Apports
   addApport: (
     data: Omit<Database["public"]["Tables"]["capital_apports"]["Insert"], "store_id" | "owner_id">,
@@ -235,6 +262,8 @@ export function useStoreData(storeId: string | null, userId: string | null): Sto
   const [apports, setApports] = useState<CapitalApport[]>([]);
   const [payments, setPayments] = useState<Payment[]>([]);
   const [suppliers, setSuppliers] = useState<Supplier[]>([]);
+  const [providers, setProviders] = useState<Provider[]>([]);
+  const [providerServices, setProviderServices] = useState<ProviderService[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -249,6 +278,8 @@ export function useStoreData(storeId: string | null, userId: string | null): Sto
       setApports([]);
       setPayments([]);
       setSuppliers([]);
+      setProviders([]);
+      setProviderServices([]);
       return;
     }
 
@@ -266,6 +297,8 @@ export function useStoreData(storeId: string | null, userId: string | null): Sto
         apportsRes,
         paymentsRes,
         suppliersRes,
+        providersRes,
+        providerServicesRes,
       ] = await Promise.all([
         supabase
           .from("products")
@@ -312,6 +345,10 @@ export function useStoreData(storeId: string | null, userId: string | null): Sto
           .order("created_at", { ascending: false }),
 
         supabase.from("suppliers").select("*").eq("store_id", storeId).order("nom"),
+
+        supabase.from("providers").select("*").eq("store_id", storeId).order("nom"),
+
+        supabase.from("provider_services").select("*").eq("store_id", storeId).order("libelle"),
       ]);
 
       if (productsRes.data) setProducts(productsRes.data);
@@ -323,6 +360,8 @@ export function useStoreData(storeId: string | null, userId: string | null): Sto
       if (apportsRes.data) setApports(apportsRes.data);
       if (paymentsRes.data) setPayments(paymentsRes.data);
       if (suppliersRes.data) setSuppliers(suppliersRes.data);
+      if (providersRes.data) setProviders(providersRes.data);
+      if (providerServicesRes.data) setProviderServices(providerServicesRes.data);
     } catch (e: any) {
       setError(e.message);
     } finally {
@@ -826,7 +865,7 @@ export function useStoreData(storeId: string | null, userId: string | null): Sto
 
       if (!error) fetchAll();
 
-      return { supplier: supplier ?? null, error: traduireErreurFournisseur(error) };
+      return { supplier: supplier ?? null, error: traduireErreurTiers(error, "fournisseur") };
     },
     [storeId, userId, fetchAll],
   );
@@ -835,7 +874,7 @@ export function useStoreData(storeId: string | null, userId: string | null): Sto
     async (id: string, data: any) => {
       const { error } = await supabase.from("suppliers").update(data).eq("id", id);
       if (!error) fetchAll();
-      return { error: traduireErreurFournisseur(error) };
+      return { error: traduireErreurTiers(error, "fournisseur") };
     },
     [fetchAll],
   );
@@ -844,7 +883,64 @@ export function useStoreData(storeId: string | null, userId: string | null): Sto
     async (id: string) => {
       const { error } = await supabase.from("suppliers").delete().eq("id", id);
       if (!error) fetchAll();
-      return { error: traduireErreurFournisseur(error) };
+      return { error: traduireErreurTiers(error, "fournisseur") };
+    },
+    [fetchAll],
+  );
+
+  // PRESTATAIRES
+  const addProvider = useCallback(
+    async (data: any) => {
+      if (!storeId || !userId) return { provider: null, error: "Non autorisé" };
+      const { data: provider, error } = await supabase
+        .from("providers")
+        .insert({ ...data, store_id: storeId, created_by: userId })
+        .select("*")
+        .single();
+      if (!error) fetchAll();
+      return { provider: provider ?? null, error: traduireErreurTiers(error, "prestataire") };
+    },
+    [storeId, userId, fetchAll],
+  );
+
+  const updateProvider = useCallback(
+    async (id: string, data: any) => {
+      const { error } = await supabase.from("providers").update(data).eq("id", id);
+      if (!error) fetchAll();
+      return { error: traduireErreurTiers(error, "prestataire") };
+    },
+    [fetchAll],
+  );
+
+  const deleteProvider = useCallback(
+    async (id: string) => {
+      const { error } = await supabase.from("providers").delete().eq("id", id);
+      if (!error) fetchAll();
+      return { error: traduireErreurTiers(error, "prestataire") };
+    },
+    [fetchAll],
+  );
+
+  const addProviderService = useCallback(
+    async (providerId: string, data: any) => {
+      if (!storeId || !userId) return { error: "Non autorisé" };
+      const { error } = await supabase.from("provider_services").insert({
+        ...data,
+        provider_id: providerId,
+        store_id: storeId,
+        created_by: userId,
+      });
+      if (!error) fetchAll();
+      return { error: error?.message ?? null };
+    },
+    [storeId, userId, fetchAll],
+  );
+
+  const deleteProviderService = useCallback(
+    async (id: string) => {
+      const { error } = await supabase.from("provider_services").delete().eq("id", id);
+      if (!error) fetchAll();
+      return { error: error?.message ?? null };
     },
     [fetchAll],
   );
@@ -888,6 +984,8 @@ export function useStoreData(storeId: string | null, userId: string | null): Sto
     apports,
     payments,
     suppliers,
+    providers,
+    providerServices,
     loading,
     error,
     addProduct,
@@ -914,6 +1012,11 @@ export function useStoreData(storeId: string | null, userId: string | null): Sto
     addSupplier,
     updateSupplier,
     deleteSupplier,
+    addProvider,
+    updateProvider,
+    deleteProvider,
+    addProviderService,
+    deleteProviderService,
     addApport,
     deleteApport,
     refresh: fetchAll,

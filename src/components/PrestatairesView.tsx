@@ -1,136 +1,137 @@
 import React, { useMemo, useState } from "react";
 import {
   Building2,
-  CalendarClock,
   Mail,
   MapPin,
-  Package,
   Pencil,
   Phone,
   Plus,
   Search,
-  ShoppingCart,
   Trash2,
-  Truck,
+  Wrench,
   X,
 } from "lucide-react";
 import { formatCurrency } from "../utils/formulas";
 import { PageHeader } from "./shared/PageHeader";
-import type { Purchase, Product } from "../types";
 import type { Database } from "../lib/database.types";
 
-type Supplier = Database["public"]["Tables"]["suppliers"]["Row"];
-type SupplierInsert = Database["public"]["Tables"]["suppliers"]["Insert"];
+type Provider = Database["public"]["Tables"]["providers"]["Row"];
+type ProviderInsert = Database["public"]["Tables"]["providers"]["Insert"];
+type ProviderService = Database["public"]["Tables"]["provider_services"]["Row"];
+type ProviderServiceInsert = Database["public"]["Tables"]["provider_services"]["Insert"];
 
-interface FournisseursViewProps {
-  suppliers: Supplier[];
-  purchases: Purchase[];
-  products: Product[];
-  onAddSupplier: (
-    data: Omit<SupplierInsert, "store_id" | "created_by">,
-  ) => Promise<{ supplier: Supplier | null; error: string | null }>;
-  onUpdateSupplier: (
+interface PrestatairesViewProps {
+  providers: Provider[];
+  providerServices: ProviderService[];
+  onAddProvider: (
+    data: Omit<ProviderInsert, "store_id" | "created_by">,
+  ) => Promise<{ provider: Provider | null; error: string | null }>;
+  onUpdateProvider: (
     id: string,
-    data: Database["public"]["Tables"]["suppliers"]["Update"],
+    data: Database["public"]["Tables"]["providers"]["Update"],
   ) => Promise<{ error: string | null }>;
-  onDeleteSupplier: (id: string) => Promise<{ error: string | null }>;
-  /** Autorisations de l'utilisateur sur ce module. */
+  onDeleteProvider: (id: string) => Promise<{ error: string | null }>;
+  onAddService: (
+    providerId: string,
+    data: Omit<ProviderServiceInsert, "store_id" | "created_by" | "provider_id">,
+  ) => Promise<{ error: string | null }>;
+  onDeleteService: (id: string) => Promise<{ error: string | null }>;
   peutCreer?: boolean;
   peutModifier?: boolean;
   peutSupprimer?: boolean;
 }
 
+/**
+ * Des exemples, pas une liste fermée : le champ reste libre. Un
+ * commerçant fait appel à des métiers qu'aucune liste ne prévoit.
+ */
+const TYPES_SUGGERES = [
+  "Transporteur",
+  "Livreur",
+  "Imprimeur",
+  "Réparateur",
+  "Consultant",
+  "Technicien",
+];
+
 const FORMULAIRE_VIDE = {
   nom: "",
   entreprise: "",
-  contact_principal: "",
+  type_service: "",
+  contact: "",
   telephone: "",
   email: "",
   adresse: "",
   ville: "",
   pays: "",
-  numero_fiscal: "",
-  categorie: "",
-  conditions_paiement: "",
-  delai_livraison_jours: "",
+  tarif_base: "",
+  tarif_unite: "",
+  conditions: "",
   statut: "actif",
   note: "",
 };
 
 const versBase = (f: typeof FORMULAIRE_VIDE) => {
   const vide = (v: string) => (v.trim() === "" ? null : v.trim());
-  const delai = f.delai_livraison_jours.trim();
+  const tarif = f.tarif_base.trim();
   return {
     nom: f.nom.trim(),
     entreprise: vide(f.entreprise),
-    contact_principal: vide(f.contact_principal),
+    type_service: vide(f.type_service),
+    contact: vide(f.contact),
     telephone: vide(f.telephone),
     email: vide(f.email),
     adresse: vide(f.adresse),
     ville: vide(f.ville),
     pays: vide(f.pays),
-    numero_fiscal: vide(f.numero_fiscal),
-    categorie: vide(f.categorie),
-    conditions_paiement: vide(f.conditions_paiement),
-    delai_livraison_jours: delai === "" ? null : Number(delai),
+    tarif_base: tarif === "" ? null : Number(tarif),
+    tarif_unite: vide(f.tarif_unite),
+    conditions: vide(f.conditions),
     statut: f.statut,
     note: vide(f.note),
   };
 };
 
-const depuisFournisseur = (s: Supplier) => ({
-  nom: s.nom ?? "",
-  entreprise: s.entreprise ?? "",
-  contact_principal: s.contact_principal ?? "",
-  telephone: s.telephone ?? "",
-  email: s.email ?? "",
-  adresse: s.adresse ?? "",
-  ville: s.ville ?? "",
-  pays: s.pays ?? "",
-  numero_fiscal: s.numero_fiscal ?? "",
-  categorie: s.categorie ?? "",
-  conditions_paiement: s.conditions_paiement ?? "",
-  delai_livraison_jours:
-    s.delai_livraison_jours === null || s.delai_livraison_jours === undefined
-      ? ""
-      : String(s.delai_livraison_jours),
-  statut: s.statut ?? "actif",
-  note: s.note ?? "",
+const depuisPrestataire = (p: Provider) => ({
+  nom: p.nom ?? "",
+  entreprise: p.entreprise ?? "",
+  type_service: p.type_service ?? "",
+  contact: p.contact ?? "",
+  telephone: p.telephone ?? "",
+  email: p.email ?? "",
+  adresse: p.adresse ?? "",
+  ville: p.ville ?? "",
+  pays: p.pays ?? "",
+  tarif_base: p.tarif_base === null || p.tarif_base === undefined ? "" : String(p.tarif_base),
+  tarif_unite: p.tarif_unite ?? "",
+  conditions: p.conditions ?? "",
+  statut: p.statut ?? "actif",
+  note: p.note ?? "",
 });
 
-/** Un chiffre du bandeau de synthèse. */
-const Chiffre: React.FC<{ libelle: string; valeur: string }> = ({ libelle, valeur }) => (
-  <div className="rounded-xl bg-muted p-3 text-center">
-    <div className="font-mono text-base font-bold tabular-nums text-foreground">{valeur}</div>
-    <div className="mt-0.5 text-[11px] text-muted-foreground">{libelle}</div>
-  </div>
-);
-
 /**
- * Les fournisseurs.
+ * Les prestataires.
  *
- * Le fournisseur n'était jusqu'ici qu'un mot tapé dans la case d'un
- * achat, sans fiche ni mémoire. Il a maintenant sa table, et cet écran
- * rapproche de chaque fiche ce que la boutique lui a acheté.
+ * Un prestataire n'est pas un fournisseur : il ne livre pas de stock, il
+ * rend un service — une tournée, une impression, une réparation. Rien
+ * de ce qu'il facture ne passe donc par les achats, et sa fiche ne
+ * montre ni marchandise ni entrée en stock.
  *
- * Ce que l'écran ne montre PAS, faute de donnée : ce qu'on doit encore
- * au fournisseur. Un achat n'a ni montant payé ni échéance en base — il
- * sort intégralement de la caisse au moment où on l'enregistre. Une
- * dette fournisseur suppose donc d'abord un suivi de paiement sur les
- * achats, qui relève de leur propre étape. Afficher « reste à payer :
- * 0 » serait affirmer quelque chose que la base ne sait pas.
- *
- * Le rattachement des achats se fait par `supplier_id` quand il existe,
- * et à défaut par le nom — les achats saisis avant la création de la
- * table ne portent que du texte.
+ * Ce que l'écran ne montre pas encore : l'argent versé au prestataire.
+ * Une dépense n'a en base aucun lien vers lui — ni colonne, ni nom. Le
+ * rattachement suppose de toucher au formulaire de dépense, c'est-à-dire
+ * au chemin de l'argent, ce qui relève de l'étape des Dépenses. D'ici
+ * là, la fiche dit ce qu'elle sait : qui il est, ce qu'il fait, et à
+ * quel tarif.
  */
-export const FournisseursView: React.FC<FournisseursViewProps> = ({
-  suppliers,
-  purchases,
-  products,
-  onAddSupplier,
-  onUpdateSupplier,
-  onDeleteSupplier,
+export const PrestatairesView: React.FC<PrestatairesViewProps> = ({
+  providers,
+  providerServices,
+  onAddProvider,
+  onUpdateProvider,
+  onDeleteProvider,
+  onAddService,
+  onDeleteService,
   peutCreer = true,
   peutModifier = true,
   peutSupprimer = true,
@@ -138,70 +139,39 @@ export const FournisseursView: React.FC<FournisseursViewProps> = ({
   const [search, setSearch] = useState("");
   const [filtre, setFiltre] = useState<"tous" | "actifs" | "inactifs">("tous");
   const [formulaireOuvert, setFormulaireOuvert] = useState(false);
-  const [enEdition, setEnEdition] = useState<Supplier | null>(null);
-  const [selection, setSelection] = useState<Supplier | null>(null);
+  const [enEdition, setEnEdition] = useState<Provider | null>(null);
+  const [selection, setSelection] = useState<Provider | null>(null);
   const [formulaire, setFormulaire] = useState(FORMULAIRE_VIDE);
   const [enregistrement, setEnregistrement] = useState(false);
   const [erreur, setErreur] = useState<string | null>(null);
   const [succes, setSucces] = useState<string | null>(null);
   const [suppressionDemandee, setSuppressionDemandee] = useState(false);
 
-  const achatsParFournisseur = useMemo(() => {
-    const table: Record<string, Purchase[]> = {};
-    for (const f of suppliers) {
-      const nom = f.nom.trim().toLowerCase();
-      table[f.id] = purchases.filter(
-        (a) =>
-          a.supplierId === f.id ||
-          (!a.supplierId && (a.fournisseur ?? "").trim().toLowerCase() === nom),
-      );
+  // Ajout d'une prestation, directement dans la fiche.
+  const [prestation, setPrestation] = useState({ libelle: "", tarif: "", unite: "" });
+  const [ajoutPrestation, setAjoutPrestation] = useState(false);
+
+  const servicesParPrestataire = useMemo(() => {
+    const table: Record<string, ProviderService[]> = {};
+    for (const s of providerServices) {
+      const liste = table[s.provider_id];
+      if (liste) liste.push(s);
+      else table[s.provider_id] = [s];
     }
     return table;
-  }, [suppliers, purchases]);
-
-  /** Ce que chaque fournisseur livre, d'après les produits enregistrés. */
-  const produitsParFournisseur = useMemo(() => {
-    const table: Record<string, string[]> = {};
-    for (const f of suppliers) {
-      const nom = f.nom.trim().toLowerCase();
-      table[f.id] = products
-        .filter((p) => (p.fournisseur ?? "").trim().toLowerCase() === nom)
-        .map((p) => p.designation);
-    }
-    return table;
-  }, [suppliers, products]);
-
-  const comptes = useMemo(() => {
-    const table: Record<
-      string,
-      { achats: number; total: number; dernier: string | null; produits: number }
-    > = {};
-    for (const f of suppliers) {
-      const sesAchats = achatsParFournisseur[f.id] ?? [];
-      const dates = sesAchats.map((a) => a.date).sort();
-      table[f.id] = {
-        achats: sesAchats.length,
-        total: sesAchats.reduce((s, a) => s + a.totalAchat, 0),
-        dernier: dates.length ? dates[dates.length - 1] : null,
-        produits: (produitsParFournisseur[f.id] ?? []).length,
-      };
-    }
-    return table;
-  }, [suppliers, achatsParFournisseur, produitsParFournisseur]);
-
-  const compteVide = { achats: 0, total: 0, dernier: null as string | null, produits: 0 };
+  }, [providerServices]);
 
   const listeFiltree = useMemo(() => {
     const q = search.trim().toLowerCase();
-    return suppliers.filter((f) => {
-      if (filtre === "actifs" && (f.statut ?? "actif") !== "actif") return false;
-      if (filtre === "inactifs" && (f.statut ?? "actif") !== "inactif") return false;
+    return providers.filter((p) => {
+      if (filtre === "actifs" && (p.statut ?? "actif") !== "actif") return false;
+      if (filtre === "inactifs" && (p.statut ?? "actif") !== "inactif") return false;
       if (!q) return true;
-      return [f.nom, f.entreprise, f.contact_principal, f.telephone, f.email, f.ville, f.categorie]
+      return [p.nom, p.entreprise, p.type_service, p.contact, p.telephone, p.email, p.ville]
         .filter(Boolean)
         .some((v) => (v as string).toLowerCase().includes(q));
     });
-  }, [suppliers, filtre, search]);
+  }, [providers, filtre, search]);
 
   /* ── Actions ─────────────────────────────────────────────── */
 
@@ -212,9 +182,9 @@ export const FournisseursView: React.FC<FournisseursViewProps> = ({
     setFormulaireOuvert(true);
   };
 
-  const ouvrirEdition = (f: Supplier) => {
-    setEnEdition(f);
-    setFormulaire(depuisFournisseur(f));
+  const ouvrirEdition = (p: Provider) => {
+    setEnEdition(p);
+    setFormulaire(depuisPrestataire(p));
     setErreur(null);
     setFormulaireOuvert(true);
   };
@@ -241,7 +211,7 @@ export const FournisseursView: React.FC<FournisseursViewProps> = ({
     const donnees = versBase(formulaire);
 
     if (enEdition) {
-      const { error } = await onUpdateSupplier(enEdition.id, donnees);
+      const { error } = await onUpdateProvider(enEdition.id, donnees);
       setEnregistrement(false);
       if (error) {
         setErreur(error);
@@ -250,7 +220,7 @@ export const FournisseursView: React.FC<FournisseursViewProps> = ({
       if (selection?.id === enEdition.id) setSelection({ ...selection, ...donnees });
       annoncer(`${donnees.nom} a été mis à jour.`);
     } else {
-      const { error } = await onAddSupplier(donnees);
+      const { error } = await onAddProvider(donnees);
       setEnregistrement(false);
       if (error) {
         setErreur(error);
@@ -264,7 +234,7 @@ export const FournisseursView: React.FC<FournisseursViewProps> = ({
   const supprimer = async () => {
     if (!selection) return;
     setEnregistrement(true);
-    const { error } = await onDeleteSupplier(selection.id);
+    const { error } = await onDeleteProvider(selection.id);
     setEnregistrement(false);
     setSuppressionDemandee(false);
     if (error) {
@@ -275,9 +245,24 @@ export const FournisseursView: React.FC<FournisseursViewProps> = ({
     setSelection(null);
   };
 
-  const achatsDuFournisseur = selection ? (achatsParFournisseur[selection.id] ?? []) : [];
-  const produitsDuFournisseur = selection ? (produitsParFournisseur[selection.id] ?? []) : [];
-  const compteSelection = selection ? (comptes[selection.id] ?? compteVide) : compteVide;
+  const ajouterPrestation = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!selection || !prestation.libelle.trim()) return;
+    setAjoutPrestation(true);
+    const { error } = await onAddService(selection.id, {
+      libelle: prestation.libelle.trim(),
+      tarif: prestation.tarif.trim() === "" ? null : Number(prestation.tarif),
+      unite: prestation.unite.trim() === "" ? null : prestation.unite.trim(),
+    });
+    setAjoutPrestation(false);
+    if (error) {
+      setErreur(error);
+      return;
+    }
+    setPrestation({ libelle: "", tarif: "", unite: "" });
+  };
+
+  const servicesDuPrestataire = selection ? (servicesParPrestataire[selection.id] ?? []) : [];
 
   const champ = (cle: keyof typeof FORMULAIRE_VIDE) => ({
     value: formulaire[cle],
@@ -295,14 +280,14 @@ export const FournisseursView: React.FC<FournisseursViewProps> = ({
   return (
     <div className="space-y-6">
       <PageHeader
-        icon={<Truck className="w-5 h-5 t-success" />}
-        title={`Fournisseurs (${suppliers.length})`}
-        subtitle="Qui vous livre, à quelles conditions, et ce que vous leur avez acheté."
+        icon={<Wrench className="w-5 h-5 t-success" />}
+        title={`Prestataires (${providers.length})`}
+        subtitle="Transport, livraison, impression, réparation — ceux qui rendent un service, pas ceux qui livrent du stock."
         actions={
           peutCreer ? (
             <button onClick={ouvrirCreation} className="app-btn-primary w-full sm:w-auto">
               <Plus className="w-4 h-4" />
-              Nouveau fournisseur
+              Nouveau prestataire
             </button>
           ) : undefined
         }
@@ -321,7 +306,7 @@ export const FournisseursView: React.FC<FournisseursViewProps> = ({
         <div className="app-card p-5">
           <div className="mb-4 flex items-center justify-between">
             <h3 className="font-bold text-foreground">
-              {enEdition ? `Modifier ${enEdition.nom}` : "Nouveau fournisseur"}
+              {enEdition ? `Modifier ${enEdition.nom}` : "Nouveau prestataire"}
             </h3>
             <button
               type="button"
@@ -343,36 +328,40 @@ export const FournisseursView: React.FC<FournisseursViewProps> = ({
           )}
 
           <form onSubmit={enregistrer} className="space-y-5">
-            <fieldset className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+            <fieldset className="grid grid-cols-1 gap-4 sm:grid-cols-3">
               <legend className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
                 Identité
               </legend>
               <div>
-                {etiquette("fo-nom", "Nom du fournisseur", true)}
-                <input id="fo-nom" type="text" required className="app-field" {...champ("nom")} />
+                {etiquette("pr-nom", "Nom", true)}
+                <input id="pr-nom" type="text" required className="app-field" {...champ("nom")} />
               </div>
               <div>
-                {etiquette("fo-entreprise", "Entreprise")}
+                {etiquette("pr-entreprise", "Entreprise")}
                 <input
-                  id="fo-entreprise"
+                  id="pr-entreprise"
                   type="text"
                   className="app-field"
                   {...champ("entreprise")}
                 />
               </div>
               <div>
-                {etiquette("fo-categorie", "Catégorie")}
+                {etiquette("pr-type", "Type de service")}
+                {/* Une liste de suggestions, pas un choix imposé : le
+                    champ reste libre pour les métiers qu'on n'a pas prévus. */}
                 <input
-                  id="fo-categorie"
+                  id="pr-type"
                   type="text"
-                  placeholder="Alimentaire, quincaillerie…"
+                  list="pr-types-suggeres"
+                  placeholder="Transporteur, imprimeur…"
                   className="app-field"
-                  {...champ("categorie")}
+                  {...champ("type_service")}
                 />
-              </div>
-              <div>
-                {etiquette("fo-nif", "Numéro fiscal")}
-                <input id="fo-nif" type="text" className="app-field" {...champ("numero_fiscal")} />
+                <datalist id="pr-types-suggeres">
+                  {TYPES_SUGGERES.map((t) => (
+                    <option key={t} value={t} />
+                  ))}
+                </datalist>
               </div>
             </fieldset>
 
@@ -381,18 +370,13 @@ export const FournisseursView: React.FC<FournisseursViewProps> = ({
                 Contact
               </legend>
               <div>
-                {etiquette("fo-contact", "Personne à joindre")}
-                <input
-                  id="fo-contact"
-                  type="text"
-                  className="app-field"
-                  {...champ("contact_principal")}
-                />
+                {etiquette("pr-contact", "Personne à joindre")}
+                <input id="pr-contact" type="text" className="app-field" {...champ("contact")} />
               </div>
               <div>
-                {etiquette("fo-tel", "Téléphone")}
+                {etiquette("pr-tel", "Téléphone")}
                 <input
-                  id="fo-tel"
+                  id="pr-tel"
                   type="tel"
                   autoComplete="tel"
                   className="app-field"
@@ -400,9 +384,9 @@ export const FournisseursView: React.FC<FournisseursViewProps> = ({
                 />
               </div>
               <div>
-                {etiquette("fo-email", "E-mail")}
+                {etiquette("pr-email", "E-mail")}
                 <input
-                  id="fo-email"
+                  id="pr-email"
                   type="email"
                   autoComplete="email"
                   className="app-field"
@@ -416,55 +400,65 @@ export const FournisseursView: React.FC<FournisseursViewProps> = ({
                 Adresse
               </legend>
               <div className="sm:col-span-2">
-                {etiquette("fo-adresse", "Adresse")}
-                <input id="fo-adresse" type="text" className="app-field" {...champ("adresse")} />
+                {etiquette("pr-adresse", "Adresse")}
+                <input id="pr-adresse" type="text" className="app-field" {...champ("adresse")} />
               </div>
               <div>
-                {etiquette("fo-ville", "Ville")}
-                <input id="fo-ville" type="text" className="app-field" {...champ("ville")} />
+                {etiquette("pr-ville", "Ville")}
+                <input id="pr-ville" type="text" className="app-field" {...champ("ville")} />
               </div>
               <div>
-                {etiquette("fo-pays", "Pays")}
-                <input id="fo-pays" type="text" className="app-field" {...champ("pays")} />
+                {etiquette("pr-pays", "Pays")}
+                <input id="pr-pays" type="text" className="app-field" {...champ("pays")} />
               </div>
             </fieldset>
 
-            <fieldset className="grid grid-cols-1 gap-4 sm:grid-cols-3">
+            <fieldset className="grid grid-cols-1 gap-4 sm:grid-cols-4">
               <legend className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                Conditions
+                Tarif de référence
               </legend>
               <div>
-                {etiquette("fo-paiement", "Conditions de paiement")}
+                {etiquette("pr-tarif", "Montant")}
                 <input
-                  id="fo-paiement"
-                  type="text"
-                  placeholder="Comptant, 30 jours…"
-                  className="app-field"
-                  {...champ("conditions_paiement")}
-                />
-              </div>
-              <div>
-                {etiquette("fo-delai", "Délai de livraison (jours)")}
-                <input
-                  id="fo-delai"
+                  id="pr-tarif"
                   type="number"
                   min={0}
-                  inputMode="numeric"
+                  step="any"
+                  inputMode="decimal"
                   className="app-field"
-                  {...champ("delai_livraison_jours")}
+                  {...champ("tarif_base")}
                 />
               </div>
               <div>
-                {etiquette("fo-statut", "Statut")}
-                <select id="fo-statut" className="app-field" {...champ("statut")}>
+                {etiquette("pr-unite", "Par")}
+                <input
+                  id="pr-unite"
+                  type="text"
+                  placeholder="course, jour, page…"
+                  className="app-field"
+                  {...champ("tarif_unite")}
+                />
+              </div>
+              <div>
+                {etiquette("pr-statut", "Statut")}
+                <select id="pr-statut" className="app-field" {...champ("statut")}>
                   <option value="actif">Actif</option>
                   <option value="inactif">Inactif</option>
                 </select>
               </div>
-              <div className="sm:col-span-3">
-                {etiquette("fo-note", "Note")}
+              <div>
+                {etiquette("pr-conditions", "Conditions")}
+                <input
+                  id="pr-conditions"
+                  type="text"
+                  className="app-field"
+                  {...champ("conditions")}
+                />
+              </div>
+              <div className="sm:col-span-4">
+                {etiquette("pr-note", "Note")}
                 <textarea
-                  id="fo-note"
+                  id="pr-note"
                   rows={2}
                   className="app-field resize-none"
                   {...champ("note")}
@@ -481,7 +475,7 @@ export const FournisseursView: React.FC<FournisseursViewProps> = ({
                   ? "Enregistrement…"
                   : enEdition
                     ? "Enregistrer les modifications"
-                    : "Créer le fournisseur"}
+                    : "Créer le prestataire"}
               </button>
             </div>
           </form>
@@ -493,15 +487,15 @@ export const FournisseursView: React.FC<FournisseursViewProps> = ({
         <div className={`space-y-4 ${selection ? "lg:col-span-1" : "lg:col-span-3"}`}>
           <div className="relative">
             <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <label htmlFor="fo-recherche" className="sr-only">
-              Rechercher un fournisseur
+            <label htmlFor="pr-recherche" className="sr-only">
+              Rechercher un prestataire
             </label>
             <input
-              id="fo-recherche"
+              id="pr-recherche"
               type="search"
               value={search}
               onChange={(e) => setSearch(e.target.value)}
-              placeholder="Nom, entreprise, catégorie, ville…"
+              placeholder="Nom, entreprise, type de service, ville…"
               className="app-field pl-10"
             />
           </div>
@@ -509,7 +503,7 @@ export const FournisseursView: React.FC<FournisseursViewProps> = ({
           <div className="flex flex-wrap gap-2">
             {(
               [
-                ["tous", `Tous (${suppliers.length})`],
+                ["tous", `Tous (${providers.length})`],
                 ["actifs", "Actifs"],
                 ["inactifs", "Inactifs"],
               ] as const
@@ -532,45 +526,41 @@ export const FournisseursView: React.FC<FournisseursViewProps> = ({
 
           {listeFiltree.length === 0 ? (
             <div className="app-card p-10 text-center text-muted-foreground">
-              <Truck className="mx-auto mb-3 h-10 w-10 opacity-30" />
+              <Wrench className="mx-auto mb-3 h-10 w-10 opacity-30" />
               <p className="text-sm">
-                {suppliers.length === 0
-                  ? "Aucun fournisseur enregistré pour l'instant."
-                  : "Aucun fournisseur ne correspond à cette recherche."}
+                {providers.length === 0
+                  ? "Aucun prestataire enregistré pour l'instant."
+                  : "Aucun prestataire ne correspond à cette recherche."}
               </p>
-              {suppliers.length === 0 && peutCreer && (
+              {providers.length === 0 && peutCreer && (
                 <button onClick={ouvrirCreation} className="app-btn-secondary mt-4">
                   <Plus className="h-4 w-4" />
-                  Ajouter le premier fournisseur
+                  Ajouter le premier prestataire
                 </button>
               )}
             </div>
           ) : (
             <div className="app-card overflow-hidden">
               <div className="app-list">
-                {listeFiltree.map((fournisseur) => {
-                  const compte = comptes[fournisseur.id] ?? compteVide;
-                  const choisi = selection?.id === fournisseur.id;
+                {listeFiltree.map((p) => {
+                  const choisi = selection?.id === p.id;
+                  const nbServices = (servicesParPrestataire[p.id] ?? []).length;
                   const secondaire = [
-                    fournisseur.categorie,
-                    fournisseur.telephone,
-                    fournisseur.ville,
-                    compte.achats > 0
-                      ? `${compte.achats} achat${compte.achats > 1 ? "s" : ""}`
-                      : null,
-                    compte.produits > 0
-                      ? `${compte.produits} produit${compte.produits > 1 ? "s" : ""}`
-                      : null,
+                    p.type_service,
+                    p.telephone,
+                    p.ville,
+                    nbServices > 0 ? `${nbServices} prestation${nbServices > 1 ? "s" : ""}` : null,
                   ]
                     .filter(Boolean)
                     .join(" · ");
                   return (
                     <button
-                      key={fournisseur.id}
+                      key={p.id}
                       type="button"
                       onClick={() => {
-                        setSelection(choisi ? null : fournisseur);
+                        setSelection(choisi ? null : p);
                         setSuppressionDemandee(false);
+                        setPrestation({ libelle: "", tarif: "", unite: "" });
                       }}
                       aria-pressed={choisi}
                       className={`app-list-row w-full justify-between gap-3 text-left ${
@@ -579,11 +569,11 @@ export const FournisseursView: React.FC<FournisseursViewProps> = ({
                     >
                       <span className="min-w-0 flex-1">
                         <span className="app-list-primary block">
-                          {fournisseur.nom}
+                          {p.nom}
                           {/* L'espace est explicite : sans lui, un lecteur
-                              d'écran annonce « VillaDInactif ». */}
-                          {(fournisseur.statut ?? "actif") === "inactif" && " "}
-                          {(fournisseur.statut ?? "actif") === "inactif" && (
+                              d'écran annonce « Rado RéparationInactif ». */}
+                          {(p.statut ?? "actif") === "inactif" && " "}
+                          {(p.statut ?? "actif") === "inactif" && (
                             <span className="app-badge app-badge-neutral ml-2">Inactif</span>
                           )}
                         </span>
@@ -591,9 +581,16 @@ export const FournisseursView: React.FC<FournisseursViewProps> = ({
                           <span className="app-list-secondary block">{secondaire}</span>
                         )}
                       </span>
-                      <span className="app-list-amount shrink-0 tabular-nums">
-                        {formatCurrency(compte.total)}
-                      </span>
+                      {p.tarif_base !== null && (
+                        <span className="shrink-0 text-right">
+                          <span className="app-list-amount block tabular-nums">
+                            {formatCurrency(p.tarif_base)}
+                          </span>
+                          {p.tarif_unite && (
+                            <span className="app-list-secondary block">par {p.tarif_unite}</span>
+                          )}
+                        </span>
+                      )}
                     </button>
                   );
                 })}
@@ -610,8 +607,8 @@ export const FournisseursView: React.FC<FournisseursViewProps> = ({
                 <div className="min-w-0">
                   <h3 className="truncate text-lg font-bold text-foreground">{selection.nom}</h3>
                   <div className="mt-1.5 flex flex-wrap items-center gap-2">
-                    {selection.categorie && (
-                      <span className="app-badge app-badge-info">{selection.categorie}</span>
+                    {selection.type_service && (
+                      <span className="app-badge app-badge-info">{selection.type_service}</span>
                     )}
                     <span
                       className={`app-badge ${
@@ -622,9 +619,10 @@ export const FournisseursView: React.FC<FournisseursViewProps> = ({
                     >
                       {(selection.statut ?? "actif") === "actif" ? "Actif" : "Inactif"}
                     </span>
-                    {selection.numero_fiscal && (
+                    {selection.tarif_base !== null && (
                       <span className="text-[11px] text-muted-foreground">
-                        NIF/STAT {selection.numero_fiscal}
+                        {formatCurrency(selection.tarif_base)}
+                        {selection.tarif_unite ? ` par ${selection.tarif_unite}` : ""}
                       </span>
                     )}
                   </div>
@@ -667,10 +665,9 @@ export const FournisseursView: React.FC<FournisseursViewProps> = ({
                     Supprimer {selection.nom} définitivement ?
                   </p>
                   <p className="mt-1 text-xs text-muted-foreground">
-                    Les {compteSelection.achats} achat
-                    {compteSelection.achats > 1 ? "s" : ""} déjà enregistré
-                    {compteSelection.achats > 1 ? "s" : ""} restent intacts, mais ne seront plus
-                    rattachés à cette fiche.
+                    Ses {servicesDuPrestataire.length} prestation
+                    {servicesDuPrestataire.length > 1 ? "s" : ""} seront supprimée
+                    {servicesDuPrestataire.length > 1 ? "s" : ""} avec lui.
                   </p>
                   <div className="mt-3 flex flex-col-reverse gap-2 sm:flex-row">
                     <button
@@ -693,21 +690,21 @@ export const FournisseursView: React.FC<FournisseursViewProps> = ({
               )}
 
               {(selection.entreprise ||
-                selection.contact_principal ||
+                selection.contact ||
                 selection.telephone ||
                 selection.email ||
                 selection.ville) && (
-                <div className="mb-4 flex flex-wrap gap-x-5 gap-y-2 text-sm text-muted-foreground">
+                <div className="flex flex-wrap gap-x-5 gap-y-2 text-sm text-muted-foreground">
                   {selection.entreprise && (
                     <span className="flex items-center gap-1.5">
                       <Building2 className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
                       {selection.entreprise}
                     </span>
                   )}
-                  {selection.contact_principal && (
+                  {selection.contact && (
                     <span className="flex items-center gap-1.5">
-                      <Truck className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
-                      {selection.contact_principal}
+                      <Wrench className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+                      {selection.contact}
                     </span>
                   )}
                   {selection.telephone && (
@@ -739,92 +736,114 @@ export const FournisseursView: React.FC<FournisseursViewProps> = ({
                 </div>
               )}
 
-              <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-                <Chiffre libelle="Achats" valeur={String(compteSelection.achats)} />
-                <Chiffre libelle="Total acheté" valeur={formatCurrency(compteSelection.total)} />
-                <Chiffre libelle="Produits fournis" valeur={String(compteSelection.produits)} />
-                <Chiffre
-                  libelle="Dernier achat"
-                  valeur={
-                    compteSelection.dernier
-                      ? new Date(compteSelection.dernier).toLocaleDateString("fr-FR")
-                      : "—"
-                  }
-                />
-              </div>
-
-              {(selection.conditions_paiement || selection.delai_livraison_jours !== null) && (
-                <div className="mt-4 flex flex-wrap gap-x-5 gap-y-2 text-sm text-muted-foreground">
-                  {selection.conditions_paiement && (
-                    <span className="flex items-center gap-1.5">
-                      <ShoppingCart className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
-                      Paiement : {selection.conditions_paiement}
-                    </span>
-                  )}
-                  {selection.delai_livraison_jours !== null && (
-                    <span className="flex items-center gap-1.5">
-                      <CalendarClock className="h-3.5 w-3.5 shrink-0" aria-hidden="true" />
-                      Livraison sous {selection.delai_livraison_jours} jour
-                      {selection.delai_livraison_jours > 1 ? "s" : ""}
-                    </span>
-                  )}
-                </div>
+              {selection.conditions && (
+                <p className="mt-3 text-sm text-muted-foreground">
+                  Conditions : {selection.conditions}
+                </p>
               )}
             </div>
 
-            {/* ── Produits fournis ── */}
-            {produitsDuFournisseur.length > 0 && (
-              <div className="app-card p-5">
-                <h4 className="mb-3 flex items-center gap-2 text-sm font-bold text-foreground">
-                  <Package className="h-4 w-4 t-info" aria-hidden="true" />
-                  Produits fournis ({produitsDuFournisseur.length})
-                </h4>
-                {/* Les étiquettes passent à la ligne plutôt que de
-                    déborder : rien ne doit sortir de l'écran. */}
-                <div className="flex flex-wrap gap-2">
-                  {produitsDuFournisseur.map((nom) => (
-                    <span
-                      key={nom}
-                      className="rounded-lg border border-border bg-muted px-2.5 py-1 text-xs text-foreground"
-                    >
-                      {nom}
-                    </span>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {/* ── Achats ── */}
+            {/* ── Prestations ── */}
             <div className="app-card p-5">
               <h4 className="mb-1 flex items-center gap-2 text-sm font-bold text-foreground">
-                <ShoppingCart className="h-4 w-4 t-success" aria-hidden="true" />
-                Achats ({achatsDuFournisseur.length})
+                <Wrench className="h-4 w-4 t-info" aria-hidden="true" />
+                Prestations ({servicesDuPrestataire.length})
               </h4>
               <p className="mb-4 text-xs text-muted-foreground">
-                Un achat sort intégralement de la caisse à son enregistrement : la base ne suit pas
-                encore de paiement fournisseur, il n&apos;y a donc pas de dette à afficher.
+                Ce que ce prestataire sait faire, et à quel prix. L&apos;argent qui lui est versé
+                passe par les dépenses ; le lien entre les deux viendra avec cet écran-là.
               </p>
-              {achatsDuFournisseur.length === 0 ? (
-                <p className="py-6 text-center text-sm text-muted-foreground">
-                  Aucun achat enregistré auprès de ce fournisseur.
-                </p>
-              ) : (
-                <div className="app-list">
-                  {achatsDuFournisseur.map((achat) => (
-                    <div key={achat.id} className="app-list-row justify-between gap-3">
+
+              {servicesDuPrestataire.length > 0 && (
+                <div className="app-list mb-4">
+                  {servicesDuPrestataire.map((service) => (
+                    <div key={service.id} className="app-list-row justify-between gap-3">
                       <span className="min-w-0 flex-1">
-                        <span className="app-list-primary block font-mono">{achat.numero}</span>
-                        <span className="app-list-secondary block">
-                          {new Date(achat.date).toLocaleDateString("fr-FR")} · {achat.designation} ·{" "}
-                          {achat.quantite} × {formatCurrency(achat.prixAchatUnit)}
-                        </span>
+                        <span className="app-list-primary block">{service.libelle}</span>
+                        {service.note && (
+                          <span className="app-list-secondary block">{service.note}</span>
+                        )}
                       </span>
-                      <span className="app-list-amount shrink-0 tabular-nums">
-                        {formatCurrency(achat.totalAchat)}
+                      <span className="flex shrink-0 items-center gap-2">
+                        {service.tarif !== null && (
+                          <span className="app-list-amount tabular-nums">
+                            {formatCurrency(service.tarif)}
+                            {service.unite ? ` / ${service.unite}` : ""}
+                          </span>
+                        )}
+                        {peutModifier && (
+                          <button
+                            type="button"
+                            onClick={() => onDeleteService(service.id)}
+                            className="app-btn-icon h-8 w-8"
+                            aria-label={`Retirer la prestation ${service.libelle}`}
+                          >
+                            <Trash2 className="h-3.5 w-3.5" />
+                          </button>
+                        )}
                       </span>
                     </div>
                   ))}
                 </div>
+              )}
+
+              {peutModifier && (
+                <form
+                  onSubmit={ajouterPrestation}
+                  className="grid grid-cols-1 gap-3 sm:grid-cols-[1fr_8rem_8rem_auto]"
+                >
+                  <div>
+                    <label htmlFor="pr-s-libelle" className="sr-only">
+                      Intitulé de la prestation
+                    </label>
+                    <input
+                      id="pr-s-libelle"
+                      type="text"
+                      required
+                      placeholder="Intitulé de la prestation"
+                      className="app-field"
+                      value={prestation.libelle}
+                      onChange={(e) => setPrestation((p) => ({ ...p, libelle: e.target.value }))}
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="pr-s-tarif" className="sr-only">
+                      Tarif
+                    </label>
+                    <input
+                      id="pr-s-tarif"
+                      type="number"
+                      min={0}
+                      step="any"
+                      inputMode="decimal"
+                      placeholder="Tarif"
+                      className="app-field"
+                      value={prestation.tarif}
+                      onChange={(e) => setPrestation((p) => ({ ...p, tarif: e.target.value }))}
+                    />
+                  </div>
+                  <div>
+                    <label htmlFor="pr-s-unite" className="sr-only">
+                      Unité
+                    </label>
+                    <input
+                      id="pr-s-unite"
+                      type="text"
+                      placeholder="Par…"
+                      className="app-field"
+                      value={prestation.unite}
+                      onChange={(e) => setPrestation((p) => ({ ...p, unite: e.target.value }))}
+                    />
+                  </div>
+                  <button
+                    type="submit"
+                    disabled={ajoutPrestation || !prestation.libelle.trim()}
+                    className="app-btn-secondary"
+                  >
+                    <Plus className="h-4 w-4" />
+                    Ajouter
+                  </button>
+                </form>
               )}
             </div>
 

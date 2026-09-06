@@ -137,4 +137,5 @@ export type ActiveTab =
   | "commandes"
   | "clients"
   | "fournisseurs"
+  | "prestataires"
   | "paiements";

@@ -32,6 +32,7 @@ import { ParametresView } from "./components/ParametresView";
 import { CommandesView } from "./components/CommandesView";
 import { ClientsView } from "./components/ClientsView";
 import { FournisseursView } from "./components/FournisseursView";
+import { PrestatairesView } from "./components/PrestatairesView";
 import { PaiementsARecevoirView } from "./components/PaiementsARecevoirView";
 import { AuthPage } from "./components/AuthPage";
 import { CreateStoreOnboarding } from "./components/CreateStoreOnboarding";
@@ -211,8 +212,7 @@ function AppInner() {
   const storeSettings: StoreSettings = useMemo(
     () => ({
       storeName: workspace.activeStore?.name || APP_NAME,
-      subtitle:
-        workspace.activeStore?.subtitle || APP_TAGLINE,
+      subtitle: workspace.activeStore?.subtitle || APP_TAGLINE,
       suppliers: workspace.activeStore?.suppliers || [],
       currencySymbol: workspace.activeStore?.currency_symbol || "Ar",
       enablePinSecurity: workspace.activeStore?.enable_pin_security ?? true,
@@ -249,7 +249,8 @@ function AppInner() {
     if (newSettings.nifStat !== undefined) updates.nif_stat = newSettings.nifStat;
     if (newSettings.logoUrl !== undefined) updates.logo_url = newSettings.logoUrl;
     if (newSettings.receiptFooter !== undefined) updates.receipt_footer = newSettings.receiptFooter;
-    if (newSettings.currencySymbol !== undefined) updates.currency_symbol = newSettings.currencySymbol;
+    if (newSettings.currencySymbol !== undefined)
+      updates.currency_symbol = newSettings.currencySymbol;
     if (newSettings.tvaRate !== undefined) updates.tva_rate = newSettings.tvaRate;
     // La colonne `suppliers` existait déjà et était lue (voir storeSettings
     // plus haut, et AchatsView) mais n'était jamais réécrite : la liste des
@@ -291,7 +292,8 @@ function AppInner() {
       const totalDepenses = sellerExpenses.reduce((acc, e) => acc + e.montant, 0);
       const totalEncaisse = sellerSales.reduce((acc, v) => acc + v.montantPaye, 0);
       const member = storeMembers.find((m) => (m.full_name || m.email) === nom);
-      const id = member?.id ?? (nom === ownerName && workspace.isOwner ? user?.id : undefined) ?? `V${i}`;
+      const id =
+        member?.id ?? (nom === ownerName && workspace.isOwner ? user?.id : undefined) ?? `V${i}`;
       return {
         id,
         nom,
@@ -392,6 +394,14 @@ function AppInner() {
     ? null
     : ["view", "create", "edit", "delete"].filter((a) =>
         hasModuleAction(workspace.memberPermissionsDetailed ?? {}, "fournisseurs", a),
+      );
+
+  // ── Prestataires : même logique que les fournisseurs, un
+  // prestataire appartient à la boutique entière. ──
+  const prestatairesActions = workspace.isOwner
+    ? null
+    : ["view", "create", "edit", "delete"].filter((a) =>
+        hasModuleAction(workspace.memberPermissionsDetailed ?? {}, "prestataires", a),
       );
 
   // ── Ventes : champs sensibles (la portée own/all est déjà gérée plus
@@ -557,11 +567,7 @@ function AppInner() {
       alert("Erreur lors de l'ajout du produit : " + res.error);
       return res;
     }
-    triggerActivityAlert(
-      "Magasinier",
-      "produit",
-      `Nouveau produit créé : ${newP.designation}`,
-    );
+    triggerActivityAlert("Magasinier", "produit", `Nouveau produit créé : ${newP.designation}`);
     return res;
   };
 
@@ -862,8 +868,8 @@ function AppInner() {
       />
 
       <main className="app-container flex-1 py-4 md:py-6 pb-24 lg:pb-6">
-        {activeTab === "dashboard" && (
-          hasDashboardAccess ? (
+        {activeTab === "dashboard" &&
+          (hasDashboardAccess ? (
             <DashboardView
               capital={computedCapital}
               products={products}
@@ -885,10 +891,9 @@ function AppInner() {
               storeName={workspace.activeStore?.name || "cette boutique"}
               mySellerData={mySellerData}
             />
-          )
-        )}
-        {activeTab === "capital" && (
-          hasCapitalAccess ? (
+          ))}
+        {activeTab === "capital" &&
+          (hasCapitalAccess ? (
             <CapitalView
               capital={computedCapital}
               apports={apports}
@@ -905,8 +910,7 @@ function AppInner() {
               storeName={workspace.activeStore?.name || "cette boutique"}
               mySellerData={mySellerData}
             />
-          )
-        )}
+          ))}
         {activeTab === "produits" && (
           <ProduitsView
             products={products}
@@ -943,7 +947,7 @@ function AppInner() {
           />
         )}
         {activeTab === "vendeurs" && (
-         <VendeursView
+          <VendeursView
             sellers={computedSellers}
             sales={sales}
             expenses={expenses}
@@ -1016,7 +1020,7 @@ function AppInner() {
             isOwner={workspace.isOwner}
             onAddOrder={storeData.addOrder}
             onUpdateOrder={handleUpdateOrder}
-           onAddPayment={storeData.addPaymentToOrder}
+            onAddPayment={storeData.addPaymentToOrder}
             onRefundOrder={storeData.refundOrder}
             onDeleteOrder={storeData.deleteOrder}
           />
@@ -1054,6 +1058,20 @@ function AppInner() {
             peutCreer={!fournisseursActions || fournisseursActions.includes("create")}
             peutModifier={!fournisseursActions || fournisseursActions.includes("edit")}
             peutSupprimer={!fournisseursActions || fournisseursActions.includes("delete")}
+          />
+        )}
+        {activeTab === "prestataires" && (
+          <PrestatairesView
+            providers={storeData.providers}
+            providerServices={storeData.providerServices}
+            onAddProvider={storeData.addProvider}
+            onUpdateProvider={storeData.updateProvider}
+            onDeleteProvider={storeData.deleteProvider}
+            onAddService={storeData.addProviderService}
+            onDeleteService={storeData.deleteProviderService}
+            peutCreer={!prestatairesActions || prestatairesActions.includes("create")}
+            peutModifier={!prestatairesActions || prestatairesActions.includes("edit")}
+            peutSupprimer={!prestatairesActions || prestatairesActions.includes("delete")}
           />
         )}
         {activeTab === "settings" && (
@@ -1170,8 +1188,8 @@ export default function App() {
         <div className="max-w-sm text-center space-y-3">
           <p className="text-foreground font-semibold">Réinitialisation de mot de passe en cours</p>
           <p className="text-sm text-muted-foreground">
-            Ouvrez le lien reçu par e-mail dans un seul onglet pour terminer la définition de
-            votre nouveau mot de passe.
+            Ouvrez le lien reçu par e-mail dans un seul onglet pour terminer la définition de votre
+            nouveau mot de passe.
           </p>
         </div>
       </div>

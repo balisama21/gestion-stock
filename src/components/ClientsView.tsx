@@ -708,6 +708,9 @@ export const ClientsView: React.FC<ClientsViewProps> = ({
                         <span className="app-list-primary block">
                           {client.nom}
                           {client.prenom ? ` ${client.prenom}` : ""}
+                          {/* L'espace est explicite : sans lui, un lecteur
+                              d'écran annonce « AndrianinaInactif ». */}
+                          {(client.statut ?? "actif") === "inactif" && " "}
                           {(client.statut ?? "actif") === "inactif" && (
                             <span className="app-badge app-badge-neutral ml-2">Inactif</span>
                           )}

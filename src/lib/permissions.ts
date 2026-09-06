@@ -187,6 +187,22 @@ export const MODULE_DEFINITIONS: ModuleDef[] = [
     ],
   },
   {
+    key: "prestataires",
+    label: "Prestataires",
+    hasScope: false,
+    actions: [
+      { key: "view", label: "Voir la liste" },
+      { key: "create", label: "Ajouter un prestataire" },
+      { key: "edit", label: "Modifier un prestataire" },
+      { key: "delete", label: "Supprimer un prestataire" },
+    ],
+    fields: [
+      { key: "coordonnees", label: "Coordonnées" },
+      { key: "prestations", label: "Prestations et tarifs" },
+      { key: "notes", label: "Notes" },
+    ],
+  },
+  {
     key: "produits",
     label: "Produits",
     hasScope: false,
@@ -501,6 +517,10 @@ const MANAGER_TEMPLATE: PermissionsMap = Object.fromEntries([
     actions: ["view", "create", "edit"],
     fields: getModuleDef("fournisseurs")!.fields.map((f) => f.key),
   }),
+  module("prestataires", true, {
+    actions: ["view", "create", "edit"],
+    fields: getModuleDef("prestataires")!.fields.map((f) => f.key),
+  }),
   module("vendeurs", true, { actions: ["view"] }),
   module("depenses", true, { scope: "all", actions: ["view", "create", "edit"] }),
   module("statistiques", true, { fields: getModuleDef("statistiques")!.fields.map((f) => f.key) }),
@@ -550,6 +570,10 @@ const COMPTABLE_TEMPLATE: PermissionsMap = Object.fromEntries([
     actions: ["view"],
     fields: ["coordonnees", "historique_achats", "montants"],
   }),
+  module("prestataires", true, {
+    actions: ["view"],
+    fields: ["coordonnees", "prestations"],
+  }),
   module("vendeurs", false),
   module("depenses", true, { scope: "all", actions: ["view", "create", "edit"] }),
   module("statistiques", true, { fields: getModuleDef("statistiques")!.fields.map((f) => f.key) }),
@@ -589,6 +613,7 @@ const VENDEUR_TEMPLATE: PermissionsMap = Object.fromEntries([
   module("paiements", true, { scope: "own", actions: ["add"], fields: ["soldes"] }),
   module("achats", false),
   module("fournisseurs", false),
+  module("prestataires", false),
   module("vendeurs", false),
   module("depenses", false),
   module("statistiques", true, { fields: ["perf_personnelles"] }),
@@ -624,6 +649,10 @@ const GESTIONNAIRE_STOCK_TEMPLATE: PermissionsMap = Object.fromEntries([
   module("fournisseurs", true, {
     actions: ["view", "create", "edit"],
     fields: getModuleDef("fournisseurs")!.fields.map((f) => f.key),
+  }),
+  module("prestataires", true, {
+    actions: ["view", "create", "edit"],
+    fields: getModuleDef("prestataires")!.fields.map((f) => f.key),
   }),
   module("vendeurs", false),
   module("depenses", false),
