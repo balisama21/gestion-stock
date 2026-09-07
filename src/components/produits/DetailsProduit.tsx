@@ -1,6 +1,7 @@
 import React, { useRef, useState } from "react";
 import { ImagePlus, Loader2, Star, Trash2 } from "lucide-react";
 import { adresseImageProduit, envoyerFichier, supprimerFichier } from "../../lib/stockageFichiers";
+import { BoutonScan } from "../shared/BoutonScan";
 import type { Database } from "../../lib/database.types";
 import {
   TYPES_PRODUIT,
@@ -125,17 +126,25 @@ export const DetailsProduit: React.FC<DetailsProduitProps> = ({
           <label htmlFor="pd-code" className="mb-1 block text-xs font-medium text-muted-foreground">
             Code-barres
           </label>
-          <input
-            id="pd-code"
-            type="text"
-            inputMode="numeric"
-            placeholder="3760123456789"
-            className="app-field font-mono"
-            value={valeurs.code_barres}
-            onChange={(e) => modifier({ code_barres: e.target.value })}
-          />
+          <div className="flex gap-2">
+            <input
+              id="pd-code"
+              type="text"
+              inputMode="numeric"
+              placeholder="3760123456789"
+              className="app-field font-mono"
+              value={valeurs.code_barres}
+              onChange={(e) => modifier({ code_barres: e.target.value })}
+            />
+            <BoutonScan
+              onCode={(code) => modifier({ code_barres: code })}
+              libelle="Scanner le code-barres du produit"
+              titre="Code-barres du produit"
+            />
+          </div>
           <p className="mt-1 text-[11px] text-muted-foreground">
-            La lecture au scanner arrivera avec le mode de vente rapide.
+            Scannez l&apos;étiquette une fois ici, et le produit se retrouvera au
+            code à la caisse.
           </p>
         </div>
 

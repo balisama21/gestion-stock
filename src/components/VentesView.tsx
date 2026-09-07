@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useMemo, useRef } from "react";
 import { Sale, Product, Seller, LocaleSetting, StoreSettings } from "../types";
 import type { Database } from "../lib/database.types";
+import { BoutonScan } from "./shared/BoutonScan";
 import { APP_NAME } from "../lib/appConfig";
 import {
   DollarSign,
@@ -229,7 +230,32 @@ export const VentesView: React.FC<VentesViewProps> = ({
   // la main comme avant : on ne force personne à créer une fiche pour
   // encaisser au comptoir.
   const [clientChoisi, setClientChoisi] = useState("");
+  const [codeSaisi, setCodeSaisi] = useState("");
+  const [messageCode, setMessageCode] = useState<string | null>(null);
   const [montantPaye, setMontantPaye] = useState<number>(0);
+
+  /**
+   * Retrouver un produit par son code-barres.
+   *
+   * Une douchette USB ou Bluetooth se comporte comme un clavier : elle
+   * tape le code puis Entrée. Le champ marche donc sans caméra, et sans
+   * douchette non plus — on peut taper le code à la main.
+   */
+  const chercherParCode = (code: string) => {
+    const propre = code.trim();
+    if (!propre) return;
+    const trouve = products.find(
+      (p) => (p.codeBarres ?? "").trim() === propre || (p.sku ?? "").trim() === propre,
+    );
+    if (!trouve) {
+      setMessageCode(`Aucun produit ne porte le code « ${propre} ».`);
+      return;
+    }
+    setSelectedProductId(trouve.id);
+    setIsCustomPrice(false);
+    setCodeSaisi("");
+    setMessageCode(`${getProductLabel(trouve, products)} sélectionné.`);
+  };
 
   const clientsTries = useMemo(
     () => [...clients].sort((a, b) => a.nom.localeCompare(b.nom, "fr")),
@@ -345,6 +371,8 @@ export const VentesView: React.FC<VentesViewProps> = ({
     setIsCustomPrice(false);
     setClientCredit("");
     setClientChoisi("");
+    setCodeSaisi("");
+    setMessageCode(null);
     setFormError(null);
     setSelectedReceiptSale(createdSale);
   };
@@ -674,6 +702,54 @@ export const VentesView: React.FC<VentesViewProps> = ({
                 ))}
               </select>
             </div>
+          </div>
+
+          <div>
+            <label
+              htmlFor="vente-code"
+              className="mb-1.5 block text-sm font-medium text-foreground"
+            >
+              Code-barres
+            </label>
+            <div className="flex gap-2">
+              <input
+                id="vente-code"
+                type="text"
+                inputMode="numeric"
+                autoComplete="off"
+                placeholder="Scannez ou tapez le code, puis Entrée"
+                className="app-field font-mono"
+                value={codeSaisi}
+                onChange={(e) => {
+                  setCodeSaisi(e.target.value);
+                  setMessageCode(null);
+                }}
+                onKeyDown={(e) => {
+                  // Entrée cherche le produit au lieu d'envoyer le
+                  // formulaire : une douchette termine toujours par là,
+                  // et la vente partirait avant d'être remplie.
+                  if (e.key === "Enter") {
+                    e.preventDefault();
+                    chercherParCode(codeSaisi);
+                  }
+                }}
+              />
+              <BoutonScan
+                onCode={chercherParCode}
+                libelle="Scanner le code-barres du produit à vendre"
+                titre="Scanner le produit"
+              />
+            </div>
+            {messageCode && (
+              <p
+                role="status"
+                className={`mt-1 text-xs ${
+                  messageCode.startsWith("Aucun") ? "t-danger" : "t-success"
+                }`}
+              >
+                {messageCode}
+              </p>
+            )}
           </div>
 
           <div>
