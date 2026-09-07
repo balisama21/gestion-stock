@@ -33,6 +33,7 @@ export interface Personnalisation {
  * arrière si l'on a tout masqué par erreur.
  */
 export const MODULES_PERSONNALISABLES: { cle: string; libelleParDefaut: string }[] = [
+  { cle: "agenda", libelleParDefaut: "Agenda" },
   { cle: "rapports", libelleParDefaut: "Bilan" },
   { cle: "historique", libelleParDefaut: "Historique" },
   { cle: "commandes", libelleParDefaut: "Commandes" },

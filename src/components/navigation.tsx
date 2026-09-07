@@ -13,6 +13,7 @@ import {
   ArrowRightLeft,
   Truck,
   Wrench,
+  CalendarClock,
   CalendarRange,
   History,
 } from "lucide-react";
@@ -49,6 +50,7 @@ export const NAV_GROUPS: NavGroup[] = [
     title: "Pilotage",
     items: [
       { id: "dashboard", label: "Tableau de bord", icon: <TrendingUp className="w-4 h-4" /> },
+      { id: "agenda", label: "Agenda", icon: <CalendarClock className="w-4 h-4" /> },
       { id: "rapports", label: "Bilan", icon: <CalendarRange className="w-4 h-4" /> },
       { id: "historique", label: "Historique", icon: <History className="w-4 h-4" /> },
     ],

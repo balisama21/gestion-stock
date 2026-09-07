@@ -152,6 +152,7 @@ export type ActiveTab =
   | "capital"
   | "produits"
   | "achats"
+  | "agenda"
   | "devis"
   | "livraisons"
   | "ventes"

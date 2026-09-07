@@ -69,6 +69,9 @@ const AchatsView = lazy(() =>
 const EspaceLivreur = lazy(() =>
   import("./components/EspaceLivreur").then((m) => ({ default: m.EspaceLivreur })),
 );
+const AgendaView = lazy(() =>
+  import("./components/AgendaView").then((m) => ({ default: m.AgendaView })),
+);
 const LivraisonsView = lazy(() =>
   import("./components/LivraisonsView").then((m) => ({ default: m.LivraisonsView })),
 );
@@ -1234,6 +1237,14 @@ function AppInner() {
                   settings={storeSettings}
                   onAddPurchase={handleAddPurchase}
                   visibleFields={achatsVisibleFields}
+                />
+              )}
+              {activeTab === "agenda" && (
+                <AgendaView
+                  purchases={purchases}
+                  quotes={storeData.quotes}
+                  deliveries={storeData.deliveries}
+                  onNavigateTab={(t) => setActiveTab(t as ActiveTab)}
                 />
               )}
               {activeTab === "devis" && (
