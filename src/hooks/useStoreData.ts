@@ -19,6 +19,8 @@ type Supplier = Database["public"]["Tables"]["suppliers"]["Row"];
 type Provider = Database["public"]["Tables"]["providers"]["Row"];
 type ProviderService = Database["public"]["Tables"]["provider_services"]["Row"];
 type CustomField = Database["public"]["Tables"]["custom_field_definitions"]["Row"];
+type Categorie = Database["public"]["Tables"]["categories"]["Row"];
+type ImageProduit = Database["public"]["Tables"]["product_images"]["Row"];
 
 /**
  * Un message lisible plutôt que le jargon de Postgres.
@@ -67,6 +69,47 @@ const traduireErreurChampPerso = (
   return error.message;
 };
 
+/**
+ * Les refus de la base sur une catégorie, dits en français.
+ *
+ * Deux garde-fous se déclenchent en pratique : le nom déjà pris au même
+ * niveau, et la profondeur — une sous-catégorie ne peut pas elle-même
+ * être rangée sous une sous-catégorie. Le second remonte d'un
+ * déclencheur, donc sous la forme d'un message et non d'un code.
+ */
+const traduireErreurCategorie = (
+  error: { code?: string; message: string } | null,
+): string | null => {
+  if (!error) return null;
+  if (error.code === "23505") {
+    return "Une catégorie porte déjà ce nom à ce niveau.";
+  }
+  if (error.message?.includes("sous-catégorie")) return error.message;
+  return error.message;
+};
+
+/**
+ * Les refus de la base sur un produit.
+ *
+ * La référence et le code-barres sont uniques par boutique : deux
+ * produits partageant l'un ou l'autre seraient indiscernables au
+ * scanner. Le message brut nomme l'index, ce qui ne dit rien au
+ * commerçant — il faut deviner lequel des deux est en cause.
+ */
+const traduireErreurProduit = (error: { code?: string; message: string } | null): string | null => {
+  if (!error) return null;
+  if (error.code === "23505") {
+    if (error.message?.includes("code_barres")) {
+      return "Un autre produit porte déjà ce code-barres.";
+    }
+    if (error.message?.includes("sku")) {
+      return "Un autre produit porte déjà cette référence.";
+    }
+    return "Cette valeur est déjà utilisée par un autre produit.";
+  }
+  return error.message;
+};
+
 export interface StoreData {
   products: Product[];
   sales: Sale[];
@@ -80,6 +123,8 @@ export interface StoreData {
   providers: Provider[];
   providerServices: ProviderService[];
   customFields: CustomField[];
+  categories: Categorie[];
+  productImages: ImageProduit[];
   loading: boolean;
   error: string | null;
 
@@ -286,6 +331,41 @@ export interface StoreData {
 
   deleteCustomField: (id: string) => Promise<{ error: string | null }>;
 
+  // CRUD Catégories
+  addCategorie: (data: {
+    nom: string;
+    parent_id?: string | null;
+  }) => Promise<{ error: string | null }>;
+
+  updateCategorie: (
+    id: string,
+    data: Database["public"]["Tables"]["categories"]["Update"],
+  ) => Promise<{ error: string | null }>;
+
+  deleteCategorie: (id: string) => Promise<{ error: string | null }>;
+
+  /**
+   * Les colonnes purement DESCRIPTIVES d'un produit.
+   *
+   * La création et la modification passent par des fonctions RPC qui
+   * verrouillent la ligne et appliquent la variation de stock de façon
+   * atomique. Rien de ce qui suit ne touche au stock, au prix ni à la
+   * caisse : une écriture directe suffit, et évite d'aller modifier la
+   * signature d'une fonction qui est sur le chemin de l'argent.
+   */
+  updateProductDetails: (
+    id: string,
+    data: Database["public"]["Tables"]["products"]["Update"],
+  ) => Promise<{ error: string | null }>;
+
+  addProductImage: (
+    productId: string,
+    chemin: string,
+    ordre?: number,
+  ) => Promise<{ error: string | null }>;
+
+  deleteProductImage: (id: string) => Promise<{ error: string | null }>;
+
   // Apports
   addApport: (
     data: Omit<Database["public"]["Tables"]["capital_apports"]["Insert"], "store_id" | "owner_id">,
@@ -310,6 +390,8 @@ export function useStoreData(storeId: string | null, userId: string | null): Sto
   const [providers, setProviders] = useState<Provider[]>([]);
   const [providerServices, setProviderServices] = useState<ProviderService[]>([]);
   const [customFields, setCustomFields] = useState<CustomField[]>([]);
+  const [categories, setCategories] = useState<Categorie[]>([]);
+  const [productImages, setProductImages] = useState<ImageProduit[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -327,6 +409,8 @@ export function useStoreData(storeId: string | null, userId: string | null): Sto
       setProviders([]);
       setProviderServices([]);
       setCustomFields([]);
+      setCategories([]);
+      setProductImages([]);
       return;
     }
 
@@ -347,6 +431,8 @@ export function useStoreData(storeId: string | null, userId: string | null): Sto
         providersRes,
         providerServicesRes,
         customFieldsRes,
+        categoriesRes,
+        productImagesRes,
       ] = await Promise.all([
         supabase
           .from("products")
@@ -403,6 +489,10 @@ export function useStoreData(storeId: string | null, userId: string | null): Sto
           .select("*")
           .eq("store_id", storeId)
           .order("ordre"),
+
+        supabase.from("categories").select("*").eq("store_id", storeId).order("ordre"),
+
+        supabase.from("product_images").select("*").eq("store_id", storeId).order("ordre"),
       ]);
 
       if (productsRes.data) setProducts(productsRes.data);
@@ -417,6 +507,8 @@ export function useStoreData(storeId: string | null, userId: string | null): Sto
       if (providersRes.data) setProviders(providersRes.data);
       if (providerServicesRes.data) setProviderServices(providerServicesRes.data);
       if (customFieldsRes.data) setCustomFields(customFieldsRes.data);
+      if (categoriesRes.data) setCategories(categoriesRes.data);
+      if (productImagesRes.data) setProductImages(productImagesRes.data);
     } catch (e: any) {
       setError(e.message);
     } finally {
@@ -1033,6 +1125,75 @@ export function useStoreData(storeId: string | null, userId: string | null): Sto
     [fetchAll],
   );
 
+  // CATÉGORIES
+  const addCategorie = useCallback(
+    async (data: { nom: string; parent_id?: string | null }) => {
+      if (!storeId || !userId) return { error: "Non autorisé" };
+      const { error } = await supabase.from("categories").insert({
+        nom: data.nom,
+        parent_id: data.parent_id ?? null,
+        store_id: storeId,
+        created_by: userId,
+      });
+      if (!error) fetchAll();
+      return { error: traduireErreurCategorie(error) };
+    },
+    [storeId, userId, fetchAll],
+  );
+
+  const updateCategorie = useCallback(
+    async (id: string, data: any) => {
+      const { error } = await supabase.from("categories").update(data).eq("id", id);
+      if (!error) fetchAll();
+      return { error: traduireErreurCategorie(error) };
+    },
+    [fetchAll],
+  );
+
+  const deleteCategorie = useCallback(
+    async (id: string) => {
+      const { error } = await supabase.from("categories").delete().eq("id", id);
+      if (!error) fetchAll();
+      return { error: traduireErreurCategorie(error) };
+    },
+    [fetchAll],
+  );
+
+  // DÉTAILS ET IMAGES DES PRODUITS
+  const updateProductDetails = useCallback(
+    async (id: string, data: any) => {
+      const { error } = await supabase.from("products").update(data).eq("id", id);
+      if (!error) fetchAll();
+      return { error: traduireErreurProduit(error) };
+    },
+    [fetchAll],
+  );
+
+  const addProductImage = useCallback(
+    async (productId: string, chemin: string, ordre = 0) => {
+      if (!storeId || !userId) return { error: "Non autorisé" };
+      const { error } = await supabase.from("product_images").insert({
+        product_id: productId,
+        chemin,
+        ordre,
+        store_id: storeId,
+        created_by: userId,
+      });
+      if (!error) fetchAll();
+      return { error: error?.message ?? null };
+    },
+    [storeId, userId, fetchAll],
+  );
+
+  const deleteProductImage = useCallback(
+    async (id: string) => {
+      const { error } = await supabase.from("product_images").delete().eq("id", id);
+      if (!error) fetchAll();
+      return { error: error?.message ?? null };
+    },
+    [fetchAll],
+  );
+
   // APPORTS
   const addApport = useCallback(
     async (data: any) => {
@@ -1075,6 +1236,8 @@ export function useStoreData(storeId: string | null, userId: string | null): Sto
     providers,
     providerServices,
     customFields,
+    categories,
+    productImages,
     loading,
     error,
     addProduct,
@@ -1109,6 +1272,12 @@ export function useStoreData(storeId: string | null, userId: string | null): Sto
     addCustomField,
     updateCustomField,
     deleteCustomField,
+    addCategorie,
+    updateCategorie,
+    deleteCategorie,
+    updateProductDetails,
+    addProductImage,
+    deleteProductImage,
     addApport,
     deleteApport,
     refresh: fetchAll,

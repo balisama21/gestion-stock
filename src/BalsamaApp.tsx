@@ -91,6 +91,16 @@ function AppInner() {
     });
   };
 
+  // Combien de produits chaque catégorie range. Calculé ici plutôt que
+  // dans l'écran de réglages : c'est ici que vivent les produits.
+  const compteParCategorie = useMemo(() => {
+    const table: Record<string, number> = {};
+    for (const p of storeData.products) {
+      if (p.category_id) table[p.category_id] = (table[p.category_id] ?? 0) + 1;
+    }
+    return table;
+  }, [storeData.products]);
+
   // Préférences d'affichage des alertes (Paramètres → Notifications).
   const [notificationPrefs] = useNotificationPrefs();
 
@@ -1109,6 +1119,11 @@ function AppInner() {
               settings={storeSettings}
               personnalisation={personnalisation}
               onSavePersonnalisation={handleSavePersonnalisation}
+              categories={storeData.categories}
+              compteParCategorie={compteParCategorie}
+              onAddCategorie={storeData.addCategorie}
+              onUpdateCategorie={storeData.updateCategorie}
+              onDeleteCategorie={storeData.deleteCategorie}
               champsPersonnalises={storeData.customFields}
               onAddChampPersonnalise={storeData.addCustomField}
               onUpdateChampPersonnalise={storeData.updateCustomField}

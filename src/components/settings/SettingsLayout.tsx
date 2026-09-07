@@ -11,6 +11,7 @@ import {
   Settings as SettingsIcon,
   ListPlus,
   Languages,
+  FolderTree,
   LogOut,
 } from "lucide-react";
 
@@ -24,7 +25,8 @@ export type SettingsTab =
   | "notifications"
   | "preferences"
   | "champs"
-  | "vocabulaire";
+  | "vocabulaire"
+  | "categories";
 
 interface TabDef {
   id: SettingsTab;
@@ -106,6 +108,13 @@ const GROUPS: GroupDef[] = [
         label: "Champs personnalisés",
         hint: "Vos propres informations",
         icon: <ListPlus className="w-4 h-4" />,
+        ownerOnly: true,
+      },
+      {
+        id: "categories",
+        label: "Catégories",
+        hint: "Familles de produits",
+        icon: <FolderTree className="w-4 h-4" />,
         ownerOnly: true,
       },
       {

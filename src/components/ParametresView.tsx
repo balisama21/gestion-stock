@@ -11,8 +11,10 @@ import { StoreSection, type StoreFormValues } from "./settings/StoreSection";
 import { TeamSection, type TeamMember, type RecoveryRequest } from "./settings/TeamSection";
 import { ChampsPersonnalisesSection } from "./settings/ChampsPersonnalisesSection";
 import { VocabulaireSection } from "./settings/VocabulaireSection";
+import { CategoriesSection } from "./settings/CategoriesSection";
 import { lirePersonnalisation, type Personnalisation } from "../lib/personnalisation";
 import type { ChampPerso } from "../lib/champsPersonnalises";
+import type { Database } from "../lib/database.types";
 import { BillingSection } from "./settings/BillingSection";
 import { Modal } from "./shared/Modal";
 import { compressLogo, formatPoids } from "../lib/compressLogo";
@@ -32,6 +34,15 @@ interface ParametresViewProps {
   /** Le vocabulaire et les modules retenus par la boutique. */
   personnalisation: Personnalisation;
   onSavePersonnalisation: (p: Personnalisation) => Promise<void> | void;
+  /** Les familles de produits, et combien de produits chacune range. */
+  categories: Database["public"]["Tables"]["categories"]["Row"][];
+  compteParCategorie: Record<string, number>;
+  onAddCategorie: (data: {
+    nom: string;
+    parent_id?: string | null;
+  }) => Promise<{ error: string | null }>;
+  onUpdateCategorie: (id: string, data: any) => Promise<{ error: string | null }>;
+  onDeleteCategorie: (id: string) => Promise<{ error: string | null }>;
   /**
    * Le type déclarait `void` alors que l'implémentation est asynchrone.
    * Rien n'empêchait donc d'oublier le `await` — c'est exactement ce qui
@@ -70,6 +81,11 @@ export const ParametresView: React.FC<ParametresViewProps> = ({
   onDeleteChampPersonnalise,
   personnalisation,
   onSavePersonnalisation,
+  categories,
+  compteParCategorie,
+  onAddCategorie,
+  onUpdateCategorie,
+  onDeleteCategorie,
   onUpdateSettings,
   onDeleteSeller,
   locale,
@@ -874,6 +890,16 @@ export const ParametresView: React.FC<ParametresViewProps> = ({
       )}
 
       {activeTab === "facture" && <InvoiceSection settings={settings} />}
+
+      {activeTab === "categories" && (
+        <CategoriesSection
+          categories={categories}
+          compteParCategorie={compteParCategorie}
+          onAdd={onAddCategorie}
+          onUpdate={onUpdateCategorie}
+          onDelete={onDeleteCategorie}
+        />
+      )}
 
       {activeTab === "vocabulaire" && (
         <VocabulaireSection
