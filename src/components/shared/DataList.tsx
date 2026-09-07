@@ -68,16 +68,29 @@ const isEmpty = (v: React.ReactNode) =>
  * droite — et tout le reste est accessible d'un clic dans un panneau de
  * détails plutôt qu'étalé en colonnes.
  */
+/**
+ * Combien de lignes on peint d un coup.
+ *
+ * Une boutique qui tourne depuis un an a des milliers de ventes. Les
+ * peindre toutes fige le telephone plusieurs secondes, pour un ecran
+ * dont personne ne lit la trois centieme ligne.
+ *
+ * Ce decoupage ne porte QUE sur l affichage : les totaux, les filtres et
+ * les cumuls sont calcules par l ecran appelant, sur la liste entiere.
+ * Un chiffre affiche reste donc celui de toutes les donnees, pas celui
+ * des lignes visibles — c est la seule facon de ne pas mentir.
+ */
+const PAR_PAGE = 50;
+
 export const DataList: React.FC<DataListProps> = ({ items, emptyLabel, className = "" }) => {
   const [openItem, setOpenItem] = useState<DataListItem | null>(null);
+  const [affichees, setAffichees] = useState(PAR_PAGE);
 
   if (items.length === 0) {
     return (
       <div className={`flex flex-col items-center gap-2 px-4 py-10 text-center ${className}`}>
         <Inbox className="h-7 w-7 text-muted-foreground/50" />
-        <p className="text-sm text-muted-foreground">
-          {emptyLabel ?? "Aucun élément à afficher."}
-        </p>
+        <p className="text-sm text-muted-foreground">{emptyLabel ?? "Aucun élément à afficher."}</p>
       </div>
     );
   }
@@ -85,7 +98,7 @@ export const DataList: React.FC<DataListProps> = ({ items, emptyLabel, className
   return (
     <>
       <div className={`app-list ${className}`}>
-        {items.map((item) => {
+        {items.slice(0, affichees).map((item) => {
           const meta = (item.meta ?? []).filter(Boolean) as string[];
           const clickable = Boolean(item.details?.length || item.actions);
 
@@ -161,12 +174,25 @@ export const DataList: React.FC<DataListProps> = ({ items, emptyLabel, className
         })}
       </div>
 
+      {items.length > affichees && (
+        <button
+          type="button"
+          onClick={() => setAffichees((n) => n + PAR_PAGE)}
+          className="w-full border-t border-border px-4 py-3 text-sm font-medium text-primary hover:bg-muted"
+        >
+          Voir la suite — {affichees} sur {items.length}
+        </button>
+      )}
+
       {openItem && (
         <Modal
           open
           onClose={() => setOpenItem(null)}
           size="md"
-          title={openItem.detailTitle ?? (typeof openItem.primary === "string" ? openItem.primary : "Détail")}
+          title={
+            openItem.detailTitle ??
+            (typeof openItem.primary === "string" ? openItem.primary : "Détail")
+          }
           description={openItem.detailSubtitle}
           footer={openItem.actions}
         >
