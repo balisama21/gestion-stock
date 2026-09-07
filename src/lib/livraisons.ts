@@ -33,6 +33,16 @@ export const classeStatutLivraison = (statut: string): string => {
   return "app-badge-warning";
 };
 
+/**
+ * L'argent de cette course est encore chez le livreur.
+ *
+ * Il a livré et encaissé, mais n'est pas encore repassé — ou le
+ * commerçant n'a pas encore coché. Tant que ce n'est pas fait, la
+ * caisse ne compte pas cet argent, et c'est voulu : il n'y est pas.
+ */
+export const argentChezLeLivreur = (l: Livraison): boolean =>
+  l.statut === "livree" && l.montant_encaisse > 0 && l.argent_remis_le === null;
+
 /** Une livraison qu'il reste à faire, par opposition à une close. */
 export const estEnCours = (l: Livraison): boolean =>
   l.statut === "a_faire" || l.statut === "en_cours";

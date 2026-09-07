@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from "react";
-import { Truck, Plus, Trash2, Edit3, MapPin, Phone } from "lucide-react";
+import { Truck, Plus, Trash2, Edit3, MapPin, Phone, Wallet } from "lucide-react";
 import { formatCurrency, formatDateLocale } from "../utils/formulas";
 import { PageHeader, HeaderMetric } from "./shared/PageHeader";
 import { FilterBar, FilterField } from "./shared/FilterBar";
@@ -8,6 +8,7 @@ import { StatCol } from "./shared/StatBar";
 import { Modal } from "./shared/Modal";
 import {
   STATUTS_LIVRAISON,
+  argentChezLeLivreur,
   classeStatutLivraison,
   estEnCours,
   libelleStatutLivraison,
@@ -47,6 +48,10 @@ interface LivraisonsViewProps {
     data: Partial<ChargeLivraison> & { statut?: string },
   ) => Promise<{ error: string | null }>;
   onDeleteDelivery: (id: string) => Promise<{ error: string | null }>;
+  /** Le livreur a rendu l'argent de ces courses. */
+  onRemettreArgent: (
+    ids: string[],
+  ) => Promise<{ courses: number; total: number; error: string | null }>;
   peutCreer?: boolean;
   peutModifier?: boolean;
   peutSupprimer?: boolean;
@@ -69,6 +74,7 @@ export const LivraisonsView: React.FC<LivraisonsViewProps> = ({
   onAddDelivery,
   onUpdateDelivery,
   onDeleteDelivery,
+  onRemettreArgent,
   peutCreer = true,
   peutModifier = true,
   peutSupprimer = true,
@@ -116,6 +122,37 @@ export const LivraisonsView: React.FC<LivraisonsViewProps> = ({
 
   const aFaire = deliveries.filter(estEnCours);
   const aEncaisser = aFaire.reduce((n, l) => n + l.montant_a_encaisser, 0);
+
+  /**
+   * Ce que les livreurs ont encaissé et pas encore rendu, par livreur.
+   *
+   * C'est le vrai geste du comptoir : quelqu'un repasse, pose l'argent
+   * de ses trois courses, et on coche une fois. Cocher course par
+   * course marcherait aussi, mais ce n'est pas ainsi que ça se passe.
+   */
+  const aRendre = useMemo(() => {
+    const parLivreur = new Map<string, { montant: number; ids: string[] }>();
+    for (const l of deliveries.filter(argentChezLeLivreur)) {
+      const cle = l.livreur_id ?? "";
+      const entree = parLivreur.get(cle) ?? { montant: 0, ids: [] };
+      entree.montant += l.montant_encaisse;
+      entree.ids.push(l.id);
+      parLivreur.set(cle, entree);
+    }
+    return [...parLivreur.entries()];
+  }, [deliveries]);
+
+  const rendre = async (ids: string[], qui: string) => {
+    setEnregistrement(true);
+    const res = await onRemettreArgent(ids);
+    setEnregistrement(false);
+    if (res.error) setErreur(res.error);
+    else {
+      setSucces(
+        `${formatCurrency(res.total)} rentrés en caisse — ${res.courses} course${res.courses > 1 ? "s" : ""} de ${qui}.`,
+      );
+    }
+  };
 
   const ouvrirCreation = () => {
     setEnEdition(null);
@@ -320,7 +357,17 @@ export const LivraisonsView: React.FC<LivraisonsViewProps> = ({
           value: l.montant_a_encaisser > 0 ? formatCurrency(l.montant_a_encaisser) : "rien",
         },
         ...(l.statut === "livree"
-          ? [{ label: "Encaissé", value: formatCurrency(l.montant_encaisse) }]
+          ? [
+              { label: "Encaissé", value: formatCurrency(l.montant_encaisse) },
+              {
+                label: "Argent rendu",
+                value: l.argent_remis_le
+                  ? new Date(l.argent_remis_le).toLocaleString("fr-FR")
+                  : l.montant_encaisse > 0
+                    ? "pas encore"
+                    : "rien à rendre",
+              },
+            ]
           : []),
         ...(l.prise_en_charge_le
           ? [
@@ -425,6 +472,47 @@ export const LivraisonsView: React.FC<LivraisonsViewProps> = ({
           </select>
         </FilterField>
       </FilterBar>
+
+      {aRendre.length > 0 && (
+        <section className="app-card overflow-hidden">
+          <div className="border-b border-border px-4 py-3">
+            <h2 className="app-section-title">
+              <Wallet className="h-3.5 w-3.5" aria-hidden="true" />
+              Argent chez les livreurs
+            </h2>
+            <p className="mt-1 text-xs text-muted-foreground">
+              Encaissé pendant les courses, pas encore rentré en caisse. Cochez quand le livreur
+              vous l&apos;a remis.
+            </p>
+          </div>
+          <div className="app-list">
+            {aRendre.map(([id, { montant, ids }]) => {
+              const qui = nomDuLivreur(id || null) ?? "Non assignée";
+              return (
+                <div key={id || "sans"} className="app-list-row justify-between gap-3">
+                  <span className="min-w-0 flex-1">
+                    <span className="app-list-primary block">{qui}</span>
+                    <span className="app-list-secondary block">
+                      {ids.length} course{ids.length > 1 ? "s" : ""}
+                    </span>
+                  </span>
+                  <span className="app-list-amount t-warning">{formatCurrency(montant)}</span>
+                  {peutModifier && (
+                    <button
+                      type="button"
+                      onClick={() => rendre(ids, qui)}
+                      disabled={enregistrement}
+                      className="app-btn-primary shrink-0 px-3 py-1.5 text-xs"
+                    >
+                      Argent rendu
+                    </button>
+                  )}
+                </div>
+              );
+            })}
+          </div>
+        </section>
+      )}
 
       <div className="app-card overflow-hidden">
         <DataList

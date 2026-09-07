@@ -184,6 +184,14 @@ export interface StoreData {
   ) => Promise<{ error: string | null }>;
   updateDelivery: (id: string, data: LivraisonUpdate) => Promise<{ error: string | null }>;
   deleteDelivery: (id: string) => Promise<{ error: string | null }>;
+  /**
+   * Le livreur repasse et rend l'argent : c'est CE geste qui écrit les
+   * règlements, pas la remise du colis. Tout ou rien — la caisse ne
+   * doit pas rester à moitié à jour après un seul passage.
+   */
+  remettreArgentLivraisons: (
+    ids: string[],
+  ) => Promise<{ courses: number; total: number; error: string | null }>;
 
   /** Toutes les lignes de tous les devis, à répartir par `quote_id`. */
   quoteItems: LigneDevis[];
@@ -1481,6 +1489,19 @@ export function useStoreData(storeId: string | null, userId: string | null): Sto
     [fetchAll],
   );
 
+  const remettreArgentLivraisons = useCallback(
+    async (ids: string[]) => {
+      const { data, error } = await supabase.rpc("remettre_argent_livraisons", {
+        p_delivery_ids: ids,
+      });
+      if (error) return { courses: 0, total: 0, error: error.message };
+      fetchAll();
+      const bilan = data as unknown as { courses: number; total: number } | null;
+      return { courses: bilan?.courses ?? 0, total: bilan?.total ?? 0, error: null };
+    },
+    [fetchAll],
+  );
+
   // APPORTS
   const addApport = useCallback(
     async (data: any) => {
@@ -1532,6 +1553,7 @@ export function useStoreData(storeId: string | null, userId: string | null): Sto
     addDelivery,
     updateDelivery,
     deleteDelivery,
+    remettreArgentLivraisons,
     addQuote,
     updateQuote,
     setQuoteStatus,

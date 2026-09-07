@@ -437,6 +437,8 @@ export type Database = {
       deliveries: {
         Row: {
           adresse: string
+          argent_remis_a: string | null
+          argent_remis_le: string | null
           client_id: string | null
           contenu: Json
           created_at: string
@@ -462,6 +464,8 @@ export type Database = {
         }
         Insert: {
           adresse?: string
+          argent_remis_a?: string | null
+          argent_remis_le?: string | null
           client_id?: string | null
           contenu?: Json
           created_at?: string
@@ -487,6 +491,8 @@ export type Database = {
         }
         Update: {
           adresse?: string
+          argent_remis_a?: string | null
+          argent_remis_le?: string | null
           client_id?: string | null
           contenu?: Json
           created_at?: string
@@ -2173,6 +2179,10 @@ export type Database = {
           p_reason: string
           p_sale_id: string
         }
+        Returns: Json
+      }
+      remettre_argent_livraisons: {
+        Args: { p_delivery_ids: string[] }
         Returns: Json
       }
       set_order_status: {

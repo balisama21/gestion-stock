@@ -1266,6 +1266,7 @@ function AppInner() {
                     })
                   }
                   onDeleteDelivery={storeData.deleteDelivery}
+                  onRemettreArgent={storeData.remettreArgentLivraisons}
                   peutCreer={!livraisonsActions || livraisonsActions.includes("create")}
                   peutModifier={!livraisonsActions || livraisonsActions.includes("edit")}
                   peutSupprimer={!livraisonsActions || livraisonsActions.includes("delete")}
