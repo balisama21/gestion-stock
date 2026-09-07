@@ -23,6 +23,8 @@ type Categorie = Database["public"]["Tables"]["categories"]["Row"];
 type ImageProduit = Database["public"]["Tables"]["product_images"]["Row"];
 type ReglementFournisseur = Database["public"]["Tables"]["supplier_payments"]["Row"];
 type SaleRow = Database["public"]["Tables"]["sales"]["Row"];
+type Devis = Database["public"]["Tables"]["quotes"]["Row"];
+type LigneDevis = Database["public"]["Tables"]["quote_items"]["Row"];
 
 /** Une ligne de la table `sales` telle que l'application la lit. */
 const versVente = (row: SaleRow): AppSale => ({
@@ -169,6 +171,10 @@ export interface StoreData {
   categories: Categorie[];
   productImages: ImageProduit[];
   supplierPayments: ReglementFournisseur[];
+  /** Les devis de la boutique, du plus récent au plus ancien. */
+  quotes: Devis[];
+  /** Toutes les lignes de tous les devis, à répartir par `quote_id`. */
+  quoteItems: LigneDevis[];
   loading: boolean;
   error: string | null;
 
@@ -429,6 +435,51 @@ export interface StoreData {
     note?: string | null;
   }) => Promise<{ error: string | null }>;
 
+  // Devis
+  /**
+   * Un devis et ses lignes s'écrivent ensemble ou pas du tout : un
+   * document à moitié écrit se relirait comme un devis à moins de
+   * lignes, donc à un total faux, sans que rien ne le signale.
+   */
+  addQuote: (data: {
+    client_id?: string | null;
+    client_nom: string;
+    date: string;
+    valide_jusqu_au?: string | null;
+    note?: string | null;
+    lignes: {
+      product_id?: string | null;
+      designation: string;
+      quantite: number;
+      prix_unitaire: number;
+    }[];
+  }) => Promise<{ quote: Devis | null; error: string | null }>;
+
+  updateQuote: (
+    id: string,
+    data: {
+      client_id?: string | null;
+      client_nom: string;
+      date: string;
+      valide_jusqu_au?: string | null;
+      note?: string | null;
+      lignes: {
+        product_id?: string | null;
+        designation: string;
+        quantite: number;
+        prix_unitaire: number;
+      }[];
+    },
+  ) => Promise<{ quote: Devis | null; error: string | null }>;
+
+  setQuoteStatus: (
+    id: string,
+    statut: string,
+    venteTicketId?: string | null,
+  ) => Promise<{ error: string | null }>;
+
+  deleteQuote: (id: string) => Promise<{ error: string | null }>;
+
   // Apports
   addApport: (
     data: Omit<Database["public"]["Tables"]["capital_apports"]["Insert"], "store_id" | "owner_id">,
@@ -456,6 +507,8 @@ export function useStoreData(storeId: string | null, userId: string | null): Sto
   const [categories, setCategories] = useState<Categorie[]>([]);
   const [productImages, setProductImages] = useState<ImageProduit[]>([]);
   const [supplierPayments, setSupplierPayments] = useState<ReglementFournisseur[]>([]);
+  const [quotes, setQuotes] = useState<Devis[]>([]);
+  const [quoteItems, setQuoteItems] = useState<LigneDevis[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -476,6 +529,8 @@ export function useStoreData(storeId: string | null, userId: string | null): Sto
       setCategories([]);
       setProductImages([]);
       setSupplierPayments([]);
+      setQuotes([]);
+      setQuoteItems([]);
       return;
     }
 
@@ -499,6 +554,8 @@ export function useStoreData(storeId: string | null, userId: string | null): Sto
         categoriesRes,
         productImagesRes,
         supplierPaymentsRes,
+        quotesRes,
+        quoteItemsRes,
       ] = await Promise.all([
         supabase
           .from("products")
@@ -565,6 +622,16 @@ export function useStoreData(storeId: string | null, userId: string | null): Sto
           .select("*")
           .eq("store_id", storeId)
           .order("date", { ascending: false }),
+        supabase
+          .from("quotes")
+          .select("*")
+          .eq("store_id", storeId)
+          .order("date", { ascending: false }),
+        supabase
+          .from("quote_items")
+          .select("*")
+          .eq("store_id", storeId)
+          .order("ordre", { ascending: true }),
       ]);
 
       if (productsRes.data) setProducts(productsRes.data);
@@ -582,6 +649,8 @@ export function useStoreData(storeId: string | null, userId: string | null): Sto
       if (categoriesRes.data) setCategories(categoriesRes.data);
       if (productImagesRes.data) setProductImages(productImagesRes.data);
       if (supplierPaymentsRes.data) setSupplierPayments(supplierPaymentsRes.data);
+      if (quotesRes.data) setQuotes(quotesRes.data);
+      if (quoteItemsRes.data) setQuoteItems(quoteItemsRes.data);
     } catch (e: any) {
       setError(e.message);
     } finally {
@@ -1263,6 +1332,97 @@ export function useStoreData(storeId: string | null, userId: string | null): Sto
     [storeId, userId, fetchAll],
   );
 
+  // DEVIS
+  const addQuote = useCallback(
+    async (data: {
+      client_id?: string | null;
+      client_nom: string;
+      date: string;
+      valide_jusqu_au?: string | null;
+      note?: string | null;
+      lignes: {
+        product_id?: string | null;
+        designation: string;
+        quantite: number;
+        prix_unitaire: number;
+      }[];
+    }) => {
+      if (!storeId) return { quote: null, error: "Non autorisé" };
+      const { data: result, error } = await supabase.rpc("create_quote", {
+        p_store_id: storeId,
+        p_client_id: data.client_id ?? null,
+        p_client_nom: data.client_nom,
+        p_date: data.date,
+        p_valide_jusqu_au: data.valide_jusqu_au ?? null,
+        p_note: data.note ?? null,
+        p_lignes: data.lignes,
+      });
+      if (error) return { quote: null, error: error.message };
+      fetchAll();
+      return { quote: result as unknown as Devis, error: null };
+    },
+    [storeId, fetchAll],
+  );
+
+  const updateQuote = useCallback(
+    async (
+      id: string,
+      data: {
+        client_id?: string | null;
+        client_nom: string;
+        date: string;
+        valide_jusqu_au?: string | null;
+        note?: string | null;
+        lignes: {
+          product_id?: string | null;
+          designation: string;
+          quantite: number;
+          prix_unitaire: number;
+        }[];
+      },
+    ) => {
+      const { data: result, error } = await supabase.rpc("update_quote", {
+        p_quote_id: id,
+        p_client_id: data.client_id ?? null,
+        p_client_nom: data.client_nom,
+        p_date: data.date,
+        p_valide_jusqu_au: data.valide_jusqu_au ?? null,
+        p_note: data.note ?? null,
+        p_lignes: data.lignes,
+      });
+      if (error) return { quote: null, error: error.message };
+      fetchAll();
+      return { quote: result as unknown as Devis, error: null };
+    },
+    [fetchAll],
+  );
+
+  const setQuoteStatus = useCallback(
+    async (id: string, statut: string, venteTicketId?: string | null) => {
+      const { error } = await supabase.rpc("set_quote_status", {
+        p_quote_id: id,
+        p_statut: statut,
+        p_vente_ticket_id: venteTicketId ?? null,
+      });
+      if (!error) fetchAll();
+      return { error: error?.message ?? null };
+    },
+    [fetchAll],
+  );
+
+  const deleteQuote = useCallback(
+    async (id: string) => {
+      const { error } = await supabase.from("quotes").delete().eq("id", id);
+      if (!error) fetchAll();
+      return {
+        error: error
+          ? "Ce devis ne peut pas être supprimé : il a été accepté, ou vous n'en êtes pas l'auteur."
+          : null,
+      };
+    },
+    [fetchAll],
+  );
+
   // APPORTS
   const addApport = useCallback(
     async (data: any) => {
@@ -1308,6 +1468,12 @@ export function useStoreData(storeId: string | null, userId: string | null): Sto
     categories,
     productImages,
     supplierPayments,
+    quotes,
+    quoteItems,
+    addQuote,
+    updateQuote,
+    setQuoteStatus,
+    deleteQuote,
     loading,
     error,
     addProduct,

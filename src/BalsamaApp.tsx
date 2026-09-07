@@ -22,6 +22,7 @@ import { DashboardView } from "./components/DashboardView";
 import { CapitalView } from "./components/CapitalView";
 import { ProduitsView } from "./components/ProduitsView";
 import { AchatsView } from "./components/AchatsView";
+import { DevisView } from "./components/DevisView";
 import { VentesView } from "./components/VentesView";
 import { VendeursView } from "./components/VendeursView";
 import { DepensesView } from "./components/DepensesView";
@@ -450,6 +451,14 @@ function AppInner() {
     ? null
     : ["view", "create", "edit", "delete"].filter((a) =>
         hasModuleAction(workspace.memberPermissionsDetailed ?? {}, "prestataires", a),
+      );
+
+  // ── Devis : un document qui n engage rien, donc pas de champ
+  // sensible à masquer — seulement le droit d en établir. ──
+  const devisActions = workspace.isOwner
+    ? null
+    : ["view", "create", "edit", "delete"].filter((a) =>
+        hasModuleAction(workspace.memberPermissionsDetailed ?? {}, "devis", a),
       );
 
   // ── Ventes : champs sensibles (la portée own/all est déjà gérée plus
@@ -998,6 +1007,21 @@ function AppInner() {
               settings={storeSettings}
               onAddPurchase={handleAddPurchase}
               visibleFields={achatsVisibleFields}
+            />
+          )}
+          {activeTab === "devis" && (
+            <DevisView
+              quotes={storeData.quotes}
+              quoteItems={storeData.quoteItems}
+              clients={storeData.clients}
+              products={products}
+              onAddQuote={storeData.addQuote}
+              onUpdateQuote={storeData.updateQuote}
+              onSetStatus={storeData.setQuoteStatus}
+              onDeleteQuote={storeData.deleteQuote}
+              peutCreer={!devisActions || devisActions.includes("create")}
+              peutModifier={!devisActions || devisActions.includes("edit")}
+              peutSupprimer={!devisActions || devisActions.includes("delete")}
             />
           )}
           {activeTab === "ventes" && (

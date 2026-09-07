@@ -1186,6 +1186,126 @@ export type Database = {
           },
         ]
       }
+      quote_items: {
+        Row: {
+          created_at: string
+          designation: string
+          id: string
+          ordre: number
+          prix_unitaire: number
+          product_id: string | null
+          quantite: number
+          quote_id: string
+          store_id: string
+          total: number | null
+        }
+        Insert: {
+          created_at?: string
+          designation: string
+          id?: string
+          ordre?: number
+          prix_unitaire: number
+          product_id?: string | null
+          quantite: number
+          quote_id: string
+          store_id: string
+          total?: number | null
+        }
+        Update: {
+          created_at?: string
+          designation?: string
+          id?: string
+          ordre?: number
+          prix_unitaire?: number
+          product_id?: string | null
+          quantite?: number
+          quote_id?: string
+          store_id?: string
+          total?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "quote_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "quote_items_quote_id_store_id_fkey"
+            columns: ["quote_id", "store_id"]
+            isOneToOne: false
+            referencedRelation: "quotes"
+            referencedColumns: ["id", "store_id"]
+          },
+        ]
+      }
+      quotes: {
+        Row: {
+          client_id: string | null
+          client_nom: string
+          created_at: string
+          created_by: string | null
+          date: string
+          id: string
+          note: string | null
+          numero: string | null
+          statut: string
+          store_id: string
+          total: number
+          updated_at: string
+          valide_jusqu_au: string | null
+          vente_ticket_id: string | null
+        }
+        Insert: {
+          client_id?: string | null
+          client_nom?: string
+          created_at?: string
+          created_by?: string | null
+          date?: string
+          id?: string
+          note?: string | null
+          numero?: string | null
+          statut?: string
+          store_id: string
+          total?: number
+          updated_at?: string
+          valide_jusqu_au?: string | null
+          vente_ticket_id?: string | null
+        }
+        Update: {
+          client_id?: string | null
+          client_nom?: string
+          created_at?: string
+          created_by?: string | null
+          date?: string
+          id?: string
+          note?: string | null
+          numero?: string | null
+          statut?: string
+          store_id?: string
+          total?: number
+          updated_at?: string
+          valide_jusqu_au?: string | null
+          vente_ticket_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "quotes_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "quotes_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       refunds: {
         Row: {
           created_at: string
@@ -1872,6 +1992,18 @@ export type Database = {
         }
         Returns: Json
       }
+      create_quote: {
+        Args: {
+          p_client_id: string
+          p_client_nom: string
+          p_date: string
+          p_lignes: Json
+          p_note: string
+          p_store_id: string
+          p_valide_jusqu_au: string
+        }
+        Returns: Json
+      }
       create_sale: {
         Args: {
           p_client_credit: string
@@ -1940,6 +2072,14 @@ export type Database = {
         }
         Returns: Json
       }
+      set_quote_status: {
+        Args: {
+          p_quote_id: string
+          p_statut: string
+          p_vente_ticket_id?: string
+        }
+        Returns: Json
+      }
       storage_boutique_du_chemin: { Args: { chemin: string }; Returns: string }
       store_allows_write: { Args: { p_store_id: string }; Returns: boolean }
       store_is_locked: { Args: { p_store_id: string }; Returns: boolean }
@@ -1953,6 +2093,18 @@ export type Database = {
           p_seuil_alerte: number
         }
         Returns: undefined
+      }
+      update_quote: {
+        Args: {
+          p_client_id: string
+          p_client_nom: string
+          p_date: string
+          p_lignes: Json
+          p_note: string
+          p_quote_id: string
+          p_valide_jusqu_au: string
+        }
+        Returns: Json
       }
       update_sale_quantity: {
         Args: {

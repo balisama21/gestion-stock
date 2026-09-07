@@ -243,6 +243,23 @@ export const MODULE_DEFINITIONS: ModuleDef[] = [
     ],
   },
   {
+    key: "devis",
+    label: "Devis",
+    hasScope: false,
+    actions: [
+      { key: "view", label: "Voir les devis" },
+      { key: "create", label: "Établir un devis" },
+      { key: "edit", label: "Modifier un devis" },
+      { key: "delete", label: "Supprimer un devis" },
+    ],
+    fields: [
+      { key: "client", label: "Client" },
+      { key: "lignes", label: "Lignes proposées" },
+      { key: "montant", label: "Montant" },
+      { key: "statut", label: "Statut" },
+    ],
+  },
+  {
     key: "ventes",
     label: "Ventes",
     hasScope: true,
@@ -499,6 +516,10 @@ const MANAGER_TEMPLATE: PermissionsMap = Object.fromEntries([
     actions: ["create", "edit", "cancel"],
     fields: getModuleDef("commandes")!.fields.map((f) => f.key),
   }),
+  module("devis", true, {
+    actions: ["view", "create", "edit", "delete"],
+    fields: getModuleDef("devis")!.fields.map((f) => f.key),
+  }),
   module("ventes", true, {
     scope: "all",
     actions: ["create", "edit", "cancel"],
@@ -551,6 +572,10 @@ const COMPTABLE_TEMPLATE: PermissionsMap = Object.fromEntries([
     scope: "all",
     actions: [],
     fields: ["client", "montant", "statut", "paiement"],
+  }),
+  module("devis", true, {
+    actions: ["view"],
+    fields: getModuleDef("devis")!.fields.map((f) => f.key),
   }),
   module("ventes", true, {
     scope: "all",
