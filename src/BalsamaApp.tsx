@@ -651,6 +651,8 @@ function AppInner() {
       quantite: newPurchase.quantite,
       prix_achat_unit: newPurchase.prixAchatUnit,
       fournisseur: newPurchase.fournisseur,
+      montant_paye: newPurchase.montantPaye ?? null,
+      date_echeance: newPurchase.dateEcheance ?? null,
     });
 
     if (res.error) {

@@ -56,6 +56,9 @@ interface AchatsViewProps {
     quantite: number;
     prixAchatUnit: number;
     fournisseur: string;
+    /** Ce qui sort de la caisse maintenant. Omis = réglé en totalité. */
+    montantPaye?: number | null;
+    dateEcheance?: string | null;
   }) => Promise<{ error: string | null }>;
   /**
    * Champs visibles pour l'utilisateur courant — `null`/`undefined` = tout
@@ -116,6 +119,25 @@ export const AchatsView: React.FC<AchatsViewProps> = ({
   const [quantite, setQuantite] = useState(10);
   const [prixAchatUnit, setPrixAchatUnit] = useState(1000);
   const [fournisseur, setFournisseur] = useState("");
+  // Comptant par défaut : c'est le cas de loin le plus fréquent, et
+  // c'est ce que faisait le logiciel jusqu'ici. Le crédit se choisit.
+  const [reglement, setReglement] = useState<"comptant" | "credit">("comptant");
+  const [montantRegle, setMontantRegle] = useState(0);
+  const [echeance, setEcheance] = useState("");
+  const [erreurAchat, setErreurAchat] = useState<string | null>(null);
+
+  // Ce que la saisie du règlement a d'impossible, dit tout de suite plutôt
+  // qu'au moment d'enregistrer : on ne verse pas une somme négative, et on
+  // ne verse pas plus que ce que l'on doit.
+  const totalSaisi = quantite * prixAchatUnit;
+  let messageRegle: string | null = null;
+  if (reglement === "credit") {
+    if (montantRegle < 0) {
+      messageRegle = "Le montant versé ne peut pas être négatif.";
+    } else if (montantRegle > totalSaisi) {
+      messageRegle = `Ne peut pas dépasser le total de l'achat (${formatCurrency(totalSaisi)}).`;
+    }
+  }
 
   // Auto-fill form when selecting an existing product
   const handleSelectExistingProduct = (prodId: string) => {
@@ -132,19 +154,36 @@ export const AchatsView: React.FC<AchatsViewProps> = ({
     e.preventDefault();
     if (saving || !designation.trim() || quantite <= 0 || prixAchatUnit <= 0) return;
 
+    if (messageRegle) {
+      setErreurAchat(messageRegle);
+      return;
+    }
+    // `null` veut dire « réglé en totalité » : la base s'en charge, et
+    // c'est ce que faisaient tous les achats jusqu'ici.
+    const regle = reglement === "comptant" ? null : Number(montantRegle);
+
     setSaving(true);
+    setErreurAchat(null);
     const result = await onAddPurchase({
       date,
       designation: designation.trim(),
       quantite: Number(quantite),
       prixAchatUnit: Number(prixAchatUnit),
       fournisseur: fournisseur.trim(),
+      montantPaye: regle,
+      dateEcheance: reglement === "credit" && echeance ? echeance : null,
     });
     setSaving(false);
 
-    if (result.error) return;
+    if (result.error) {
+      setErreurAchat(result.error);
+      return;
+    }
 
     setDesignation("");
+    setReglement("comptant");
+    setMontantRegle(0);
+    setEcheance("");
     setIsModalOpen(false);
   };
 
@@ -608,8 +647,106 @@ export const AchatsView: React.FC<AchatsViewProps> = ({
             </div>
           </div>
 
-          <div className="app-statbar grid-cols-1">
+          {/* Le règlement, en bas du formulaire : on choisit d'abord
+              ce qu'on achète, et seulement ensuite comment on le paie. */}
+          <div className="space-y-3 border-t border-border pt-4">
+            <p className="text-sm font-medium text-foreground" id="ach-reglement">
+              Règlement
+            </p>
+            <div className="flex flex-wrap gap-2" role="group" aria-labelledby="ach-reglement">
+              {(
+                [
+                  ["comptant", "Payé comptant"],
+                  ["credit", "À crédit"],
+                ] as const
+              ).map(([valeur, libelle]) => (
+                <button
+                  key={valeur}
+                  type="button"
+                  onClick={() => setReglement(valeur)}
+                  aria-pressed={reglement === valeur}
+                  className={`rounded-full border px-3.5 py-1.5 text-xs font-semibold transition-colors ${
+                    reglement === valeur
+                      ? "border-success-border bg-success-soft t-success"
+                      : "border-border text-muted-foreground hover:text-foreground"
+                  }`}
+                >
+                  {libelle}
+                </button>
+              ))}
+            </div>
+
+            {reglement === "credit" && (
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div>
+                  <label
+                    htmlFor="ach-regle"
+                    className="mb-1.5 block text-sm font-medium text-foreground"
+                  >
+                    Versé maintenant
+                  </label>
+                  {/* Pas d'attributs `min`/`max` : ils feraient parler le
+                      navigateur à notre place, dans sa langue, et dans une
+                      bulle qui empêche le formulaire de partir — donc qui
+                      empêche notre propre message de s'afficher. */}
+                  <input
+                    id="ach-regle"
+                    type="number"
+                    step="any"
+                    inputMode="decimal"
+                    className="app-field font-mono"
+                    value={montantRegle}
+                    onChange={(e) => setMontantRegle(Number(e.target.value))}
+                    aria-invalid={messageRegle !== null}
+                    aria-describedby="ach-regle-aide"
+                  />
+                  <p
+                    id="ach-regle-aide"
+                    className={`mt-1 text-[11px] ${
+                      messageRegle ? "t-danger" : "text-muted-foreground"
+                    }`}
+                  >
+                    {messageRegle ?? "Laissez zéro si rien n'est versé aujourd'hui."}
+                  </p>
+                </div>
+                <div>
+                  <label
+                    htmlFor="ach-echeance"
+                    className="mb-1.5 block text-sm font-medium text-foreground"
+                  >
+                    Échéance
+                  </label>
+                  <input
+                    id="ach-echeance"
+                    type="date"
+                    className="app-field"
+                    value={echeance}
+                    onChange={(e) => setEcheance(e.target.value)}
+                  />
+                </div>
+              </div>
+            )}
+          </div>
+
+          {erreurAchat && (
+            <p
+              role="alert"
+              className="rounded-xl border border-danger-border bg-danger-soft px-3.5 py-3 text-sm t-danger"
+            >
+              {erreurAchat}
+            </p>
+          )}
+
+          <div className="app-statbar grid-cols-2">
             <StatCol label="Total de l'achat" value={formatCurrency(quantite * prixAchatUnit)} />
+            <StatCol
+              label={reglement === "comptant" ? "Sort de la caisse" : "Restera dû"}
+              value={formatCurrency(
+                reglement === "comptant"
+                  ? quantite * prixAchatUnit
+                  : Math.max(0, quantite * prixAchatUnit - montantRegle),
+              )}
+            />
           </div>
         </form>
       </Modal>

@@ -210,6 +210,9 @@ export interface StoreData {
     quantite: number;
     prix_achat_unit: number;
     fournisseur: string;
+    /** Ce qui sort de la caisse maintenant. Omis = réglé en totalité. */
+    montant_paye?: number | null;
+    date_echeance?: string | null;
   }) => Promise<{ error: string | null }>;
 
   deletePurchase: (id: string) => Promise<{ error: string | null }>;
@@ -744,6 +747,10 @@ export function useStoreData(storeId: string | null, userId: string | null): Sto
         p_prix_achat_unit: data.prix_achat_unit,
         p_fournisseur: data.fournisseur,
         p_idempotency_key: idempotencyKey,
+        // Non transmis, la base retient « réglé en totalité » —
+        // exactement ce que faisait la version d'avant.
+        p_montant_paye: data.montant_paye ?? null,
+        p_date_echeance: data.date_echeance ?? null,
       });
 
       if (!error) fetchAll();
