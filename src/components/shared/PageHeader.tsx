@@ -1,9 +1,17 @@
 import React from "react";
+import { titreAvecLibelle, usePersonnalisation } from "../../lib/personnalisation";
 
 interface PageHeaderProps {
   /** Icône affichée à gauche du titre. */
   icon?: React.ReactNode;
   title: string;
+  /**
+   * La clé du module, quand la page en représente un. L'en-tête
+   * remplace alors le nom prévu par celui que l'entreprise a choisi
+   * — « Clients (3) » devient « Patients (3) » sans que l'écran ait
+   * à recomposer son titre.
+   */
+  module?: string;
   /**
    * Une phrase courte, en langage utilisateur, qui dit à quoi sert la
    * page. Optionnelle : mieux vaut pas de sous-titre qu'un sous-titre
@@ -29,27 +37,32 @@ interface PageHeaderProps {
 export const PageHeader: React.FC<PageHeaderProps> = ({
   icon,
   title,
+  module,
   subtitle,
   actions,
   metric,
-}) => (
-  <div className="app-page-head">
-    <div className="app-page-head-text">
-      <h2 className="app-page-title">
-        {icon && <span className="shrink-0">{icon}</span>}
-        <span className="truncate">{title}</span>
-      </h2>
-      {subtitle && <p className="app-page-subtitle">{subtitle}</p>}
-    </div>
-
-    {(metric || actions) && (
-      <div className="app-page-actions">
-        {metric}
-        {actions}
+}) => {
+  const perso = usePersonnalisation();
+  const titre = module ? titreAvecLibelle(perso, module, title) : title;
+  return (
+    <div className="app-page-head">
+      <div className="app-page-head-text">
+        <h2 className="app-page-title">
+          {icon && <span className="shrink-0">{icon}</span>}
+          <span className="truncate">{titre}</span>
+        </h2>
+        {subtitle && <p className="app-page-subtitle">{subtitle}</p>}
       </div>
-    )}
-  </div>
-);
+
+      {(metric || actions) && (
+        <div className="app-page-actions">
+          {metric}
+          {actions}
+        </div>
+      )}
+    </div>
+  );
+};
 
 interface HeaderMetricProps {
   label: string;

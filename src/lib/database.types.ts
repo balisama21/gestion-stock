@@ -1363,6 +1363,7 @@ export type Database = {
           name: string
           nif_stat: string | null
           owner_id: string
+          personnalisation: Json
           phone: string | null
           receipt_footer: string | null
           seuil_alerte_tresorerie: number
@@ -1386,6 +1387,7 @@ export type Database = {
           name: string
           nif_stat?: string | null
           owner_id: string
+          personnalisation?: Json
           phone?: string | null
           receipt_footer?: string | null
           seuil_alerte_tresorerie?: number
@@ -1409,6 +1411,7 @@ export type Database = {
           name?: string
           nif_stat?: string | null
           owner_id?: string
+          personnalisation?: Json
           phone?: string | null
           receipt_footer?: string | null
           seuil_alerte_tresorerie?: number
@@ -1541,6 +1544,7 @@ export type Database = {
           name: string
           nif_stat: string | null
           owner_id: string
+          personnalisation: Json
           phone: string | null
           receipt_footer: string | null
           seuil_alerte_tresorerie: number
@@ -1607,6 +1611,7 @@ export type Database = {
           name: string
           nif_stat: string | null
           owner_id: string
+          personnalisation: Json
           phone: string | null
           receipt_footer: string | null
           seuil_alerte_tresorerie: number

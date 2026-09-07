@@ -159,6 +159,7 @@ export const CapitalView: React.FC<CapitalViewProps> = ({
     <div className="space-y-6 pb-12">
       <PageHeader
         icon={<Wallet className="h-5 w-5 text-muted-foreground" />}
+        module="capital"
         title="Capital & trésorerie"
         subtitle="Ce qu'il vous reste en caisse, et le détail de ce qui l'a fait monter ou descendre."
         actions={

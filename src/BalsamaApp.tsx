@@ -13,7 +13,7 @@ import {
   StoreSettings,
   Payment,
 } from "./types";
-import type { OrderStatus } from "./lib/database.types";
+import type { Json, OrderStatus } from "./lib/database.types";
 import { getProductLabel } from "./utils/formulas";
 import { getModuleScope, isFieldVisible, hasModuleAction } from "./lib/permissions";
 import { downloadExcelWorkbook } from "./utils/exportExcel";
@@ -47,6 +47,11 @@ import { workspaceContext, useWorkspaceState, useWorkspace } from "./hooks/useWo
 import { useStoreData } from "./hooks/useStoreData";
 import { useStoreMembers } from "./hooks/useStoreMembers";
 import { useNotificationPrefs } from "./lib/notificationPrefs";
+import {
+  contextePersonnalisation,
+  lirePersonnalisation,
+  type Personnalisation,
+} from "./lib/personnalisation";
 
 // ─── AppInner : rendered inside both authContext & workspaceContext providers ───
 function AppInner() {
@@ -69,6 +74,22 @@ function AppInner() {
   // parce que la largeur de la sidebar conditionne aussi le décalage du
   // <main> : les deux doivent bouger ensemble.
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+
+  // Le vocabulaire et les modules retenus par la boutique active.
+  const personnalisation = useMemo(
+    () => lirePersonnalisation(workspace.activeStore?.personnalisation),
+    [workspace.activeStore],
+  );
+
+  const handleSavePersonnalisation = async (p: Personnalisation) => {
+    if (!workspace.activeStore) return;
+    // Le type genere attend `Json` ; `Personnalisation` en est un
+    // sous-ensemble, mais TypeScript ne le deduit pas seul faute de
+    // signature d index sur l interface.
+    await workspace.updateStore(workspace.activeStore.id, {
+      personnalisation: p as unknown as Json,
+    });
+  };
 
   // Préférences d'affichage des alertes (Paramètres → Notifications).
   const [notificationPrefs] = useNotificationPrefs();
@@ -838,298 +859,307 @@ function AppInner() {
   }
 
   return (
-    /* Le décalage à gauche libère la place de la sidebar fixe (voir
-       src/components/Sidebar.tsx : 16rem ouverte, 4.5rem repliée). Il est
-       posé ici plutôt que sur .app-container, dont il écraserait la
-       gouttière interne, et il s'applique du coup à la barre du haut
-       comme au contenu. */
-    <div
-      className={`min-h-screen flex flex-col font-sans bg-background text-foreground selection:bg-emerald-500 selection:text-slate-950 transition-[padding] duration-200 ${
-        sidebarCollapsed ? "lg:pl-18" : "lg:pl-64"
-      }`}
-    >
-      <Header
-        activeTab={activeTab}
-        setActiveTab={setActiveTab}
-        tresorerie={computedCapital.tresorerieGlobaleActuelle}
-        seuilAlerte={computedCapital.seuilAlerteTresorerie}
-        lowStockCount={lowStockCount}
-        capital={computedCapital}
-        settings={storeSettings}
-        theme={theme}
-        setTheme={setTheme}
-        sales={sales}
-        purchases={purchases}
-        expenses={expenses}
-        apports={apports}
-        products={products}
-        sidebarCollapsed={sidebarCollapsed}
-        onToggleSidebar={toggleSidebar}
-      />
+    /* Le vocabulaire de la boutique enveloppe toute l'application : la
+       navigation le lit pour nommer ses onglets, et l'en-tête de page —
+       six niveaux plus bas — pour nommer son titre. Le faire descendre
+       en propriétés aurait obligé chaque composant traversé à
+       transporter une donnée qui ne le concerne pas. */
+    <contextePersonnalisation.Provider value={personnalisation}>
+      {/* Le décalage à gauche libère la place de la sidebar fixe (voir
+          src/components/Sidebar.tsx : 16rem ouverte, 4.5rem repliée). Il
+          est posé ici plutôt que sur .app-container, dont il écraserait
+          la gouttière interne, et il s'applique du coup à la barre du
+          haut comme au contenu. */}
+      <div
+        className={`min-h-screen flex flex-col font-sans bg-background text-foreground selection:bg-emerald-500 selection:text-slate-950 transition-[padding] duration-200 ${
+          sidebarCollapsed ? "lg:pl-18" : "lg:pl-64"
+        }`}
+      >
+        <Header
+          activeTab={activeTab}
+          setActiveTab={setActiveTab}
+          tresorerie={computedCapital.tresorerieGlobaleActuelle}
+          seuilAlerte={computedCapital.seuilAlerteTresorerie}
+          lowStockCount={lowStockCount}
+          capital={computedCapital}
+          settings={storeSettings}
+          theme={theme}
+          setTheme={setTheme}
+          sales={sales}
+          purchases={purchases}
+          expenses={expenses}
+          apports={apports}
+          products={products}
+          sidebarCollapsed={sidebarCollapsed}
+          onToggleSidebar={toggleSidebar}
+        />
 
-      <main className="app-container flex-1 py-4 md:py-6 pb-24 lg:pb-6">
-        {activeTab === "dashboard" &&
-          (hasDashboardAccess ? (
-            <DashboardView
-              capital={computedCapital}
+        <main className="app-container flex-1 py-4 md:py-6 pb-24 lg:pb-6">
+          {activeTab === "dashboard" &&
+            (hasDashboardAccess ? (
+              <DashboardView
+                capital={computedCapital}
+                products={products}
+                sales={sales}
+                purchases={purchases}
+                expenses={expenses}
+                sellers={computedSellers}
+                orders={storeData.orders}
+                clients={storeData.clients}
+                locale={locale}
+                onNavigateTab={setActiveTab}
+                showPrixAchat={
+                  produitsVisibleFields === null || produitsVisibleFields.includes("prix_achat")
+                }
+              />
+            ) : (
+              <MyActivityView
+                variant="dashboard"
+                storeName={workspace.activeStore?.name || "cette boutique"}
+                mySellerData={mySellerData}
+              />
+            ))}
+          {activeTab === "capital" &&
+            (hasCapitalAccess ? (
+              <CapitalView
+                capital={computedCapital}
+                apports={apports}
+                locale={locale}
+                onUpdateCapitalInitial={handleUpdateCapitalInitial}
+                onUpdateSeuil={handleUpdateSeuil}
+                onAddApport={handleAddApport}
+                onDeleteApport={handleDeleteApport}
+                onDownloadExcel={handleDownloadExcel}
+              />
+            ) : (
+              <MyActivityView
+                variant="capital"
+                storeName={workspace.activeStore?.name || "cette boutique"}
+                mySellerData={mySellerData}
+              />
+            ))}
+          {activeTab === "produits" && (
+            <ProduitsView
               products={products}
-              sales={sales}
+              locale={locale}
+              onAddProduct={handleAddProduct}
+              onEditProduct={storeData.updateProduct}
+              onDeleteProducts={storeData.deleteProducts}
+              visibleFields={produitsVisibleFields}
+              allowedActions={produitsActions}
+            />
+          )}
+          {activeTab === "achats" && (
+            <AchatsView
               purchases={purchases}
-              expenses={expenses}
+              products={products}
+              locale={locale}
+              settings={storeSettings}
+              onAddPurchase={handleAddPurchase}
+              visibleFields={achatsVisibleFields}
+            />
+          )}
+          {activeTab === "ventes" && (
+            <VentesView
+              sales={visibleSales}
+              products={products}
               sellers={computedSellers}
-              orders={storeData.orders}
-              clients={storeData.clients}
               locale={locale}
-              onNavigateTab={setActiveTab}
-              showPrixAchat={
-                produitsVisibleFields === null || produitsVisibleFields.includes("prix_achat")
+              settings={storeSettings}
+              onAddSale={handleAddSale}
+              onEditSale={hasVentesAccess ? handleEditSale : undefined}
+              onDeleteSale={hasVentesAccess ? handleDeleteSale : undefined}
+              restrictedToOwnSales={!hasVentesAccess}
+              visibleFields={ventesVisibleFields}
+            />
+          )}
+          {activeTab === "vendeurs" && (
+            <VendeursView
+              sellers={computedSellers}
+              sales={sales}
+              expenses={expenses}
+              purchases={purchases}
+              locale={locale}
+              settings={storeSettings}
+              products={products}
+              onAddSeller={(nom) => {
+                // Les vendeurs sont ajoutés via invitations dans Paramètres > Équipe
+                // Rediriger vers paramètres si le nom est vide ou si on veut inviter
+                setActiveTab("settings");
+              }}
+              onDeleteSeller={handleDeleteSeller}
+              onEditSale={handleEditSale}
+              onDeleteSale={handleDeleteSale}
+              onEditExpense={handleEditExpense}
+              onDeleteExpense={handleDeleteExpense}
+            />
+          )}
+          {activeTab === "depenses" && (
+            <DepensesView
+              expenses={visibleExpenses}
+              sellers={computedSellers}
+              locale={locale}
+              settings={storeSettings}
+              onAddExpense={handleAddExpense}
+              onEditExpense={depensesScope === "all" ? handleEditExpense : undefined}
+              onDeleteExpense={depensesScope === "all" ? handleDeleteExpense : undefined}
+            />
+          )}
+          {activeTab === "rapports" && (
+            <RapportsView
+              sales={visibleSales}
+              purchases={purchases}
+              expenses={visibleExpenses}
+              products={products}
+              locale={locale}
+            />
+          )}
+          {activeTab === "statistiques" && (
+            <StatistiquesView
+              sales={visibleSales}
+              products={products}
+              sellers={
+                workspace.isOwner ||
+                getModuleScope(workspace.memberPermissionsDetailed ?? {}, "statistiques") === "all"
+                  ? computedSellers
+                  : computedSellers.filter((s) => s.nom === myName)
               }
-            />
-          ) : (
-            <MyActivityView
-              variant="dashboard"
-              storeName={workspace.activeStore?.name || "cette boutique"}
-              mySellerData={mySellerData}
-            />
-          ))}
-        {activeTab === "capital" &&
-          (hasCapitalAccess ? (
-            <CapitalView
-              capital={computedCapital}
-              apports={apports}
+              expenses={visibleExpenses}
               locale={locale}
-              onUpdateCapitalInitial={handleUpdateCapitalInitial}
-              onUpdateSeuil={handleUpdateSeuil}
-              onAddApport={handleAddApport}
-              onDeleteApport={handleDeleteApport}
+            />
+          )}
+          {activeTab === "historique" && (
+            <HistoriqueView
+              purchases={historiquePurchases}
+              sales={visibleSales}
+              expenses={visibleExpenses}
+              apports={historiqueApports}
+              orders={visibleOrders}
+              locale={locale}
+              products={products}
+            />
+          )}
+          {activeTab === "commandes" && (
+            <CommandesView
+              orders={visibleOrders}
+              clients={storeData.clients}
+              products={storeData.products}
+              isOwner={workspace.isOwner}
+              onAddOrder={storeData.addOrder}
+              onUpdateOrder={handleUpdateOrder}
+              onAddPayment={storeData.addPaymentToOrder}
+              onRefundOrder={storeData.refundOrder}
+              onDeleteOrder={storeData.deleteOrder}
+            />
+          )}
+          {activeTab === "paiements" && (
+            <PaiementsARecevoirView
+              sales={visibleSales}
+              orders={visibleOrders}
+              payments={visiblePayments}
+              products={products}
+              onAddPaymentToSale={storeData.addPaymentToSale}
+              onAddPaymentToOrder={storeData.addPaymentToOrder}
+            />
+          )}
+          {activeTab === "clients" && (
+            <ClientsView
+              clients={visibleClients}
+              orders={storeData.orders}
+              sales={visibleSales}
+              payments={visiblePayments}
+              onAddClient={storeData.addClient}
+              onUpdateClient={storeData.updateClient}
+              onDeleteClient={storeData.deleteClient}
+              onNavigateToOrders={() => setActiveTab("commandes")}
+              champsPersonnalises={storeData.customFields}
+            />
+          )}
+          {activeTab === "fournisseurs" && (
+            <FournisseursView
+              suppliers={storeData.suppliers}
+              purchases={purchases}
+              products={products}
+              onAddSupplier={storeData.addSupplier}
+              onUpdateSupplier={storeData.updateSupplier}
+              onDeleteSupplier={storeData.deleteSupplier}
+              champsPersonnalises={storeData.customFields}
+              peutCreer={!fournisseursActions || fournisseursActions.includes("create")}
+              peutModifier={!fournisseursActions || fournisseursActions.includes("edit")}
+              peutSupprimer={!fournisseursActions || fournisseursActions.includes("delete")}
+            />
+          )}
+          {activeTab === "prestataires" && (
+            <PrestatairesView
+              providers={storeData.providers}
+              providerServices={storeData.providerServices}
+              onAddProvider={storeData.addProvider}
+              onUpdateProvider={storeData.updateProvider}
+              onDeleteProvider={storeData.deleteProvider}
+              onAddService={storeData.addProviderService}
+              onDeleteService={storeData.deleteProviderService}
+              champsPersonnalises={storeData.customFields}
+              peutCreer={!prestatairesActions || prestatairesActions.includes("create")}
+              peutModifier={!prestatairesActions || prestatairesActions.includes("edit")}
+              peutSupprimer={!prestatairesActions || prestatairesActions.includes("delete")}
+            />
+          )}
+          {activeTab === "settings" && (
+            <ParametresView
+              settings={storeSettings}
+              personnalisation={personnalisation}
+              onSavePersonnalisation={handleSavePersonnalisation}
+              champsPersonnalises={storeData.customFields}
+              onAddChampPersonnalise={storeData.addCustomField}
+              onUpdateChampPersonnalise={storeData.updateCustomField}
+              onDeleteChampPersonnalise={storeData.deleteCustomField}
+              onUpdateSettings={handleUpdateSettings}
+              sellers={computedSellers}
+              onDeleteSeller={handleDeleteSeller}
+              locale={locale}
+              setLocale={setLocale}
+              capital={computedCapital}
               onDownloadExcel={handleDownloadExcel}
+              theme={theme}
+              setTheme={setTheme}
+              isPlatformAdmin={profile?.is_platform_admin ?? false}
+              currentUserId={user?.id ?? undefined}
             />
-          ) : (
-            <MyActivityView
-              variant="capital"
-              storeName={workspace.activeStore?.name || "cette boutique"}
-              mySellerData={mySellerData}
-            />
-          ))}
-        {activeTab === "produits" && (
-          <ProduitsView
-            products={products}
-            locale={locale}
-            onAddProduct={handleAddProduct}
-            onEditProduct={storeData.updateProduct}
-            onDeleteProducts={storeData.deleteProducts}
-            visibleFields={produitsVisibleFields}
-            allowedActions={produitsActions}
-          />
-        )}
-        {activeTab === "achats" && (
-          <AchatsView
-            purchases={purchases}
-            products={products}
-            locale={locale}
-            settings={storeSettings}
-            onAddPurchase={handleAddPurchase}
-            visibleFields={achatsVisibleFields}
-          />
-        )}
-        {activeTab === "ventes" && (
-          <VentesView
-            sales={visibleSales}
-            products={products}
-            sellers={computedSellers}
-            locale={locale}
-            settings={storeSettings}
-            onAddSale={handleAddSale}
-            onEditSale={hasVentesAccess ? handleEditSale : undefined}
-            onDeleteSale={hasVentesAccess ? handleDeleteSale : undefined}
-            restrictedToOwnSales={!hasVentesAccess}
-            visibleFields={ventesVisibleFields}
-          />
-        )}
-        {activeTab === "vendeurs" && (
-          <VendeursView
-            sellers={computedSellers}
-            sales={sales}
-            expenses={expenses}
-            purchases={purchases}
-            locale={locale}
-            settings={storeSettings}
-            products={products}
-            onAddSeller={(nom) => {
-              // Les vendeurs sont ajoutés via invitations dans Paramètres > Équipe
-              // Rediriger vers paramètres si le nom est vide ou si on veut inviter
-              setActiveTab("settings");
-            }}
-            onDeleteSeller={handleDeleteSeller}
-            onEditSale={handleEditSale}
-            onDeleteSale={handleDeleteSale}
-            onEditExpense={handleEditExpense}
-            onDeleteExpense={handleDeleteExpense}
-          />
-        )}
-        {activeTab === "depenses" && (
-          <DepensesView
-            expenses={visibleExpenses}
-            sellers={computedSellers}
-            locale={locale}
-            settings={storeSettings}
-            onAddExpense={handleAddExpense}
-            onEditExpense={depensesScope === "all" ? handleEditExpense : undefined}
-            onDeleteExpense={depensesScope === "all" ? handleDeleteExpense : undefined}
-          />
-        )}
-        {activeTab === "rapports" && (
-          <RapportsView
-            sales={visibleSales}
-            purchases={purchases}
-            expenses={visibleExpenses}
-            products={products}
-            locale={locale}
-          />
-        )}
-        {activeTab === "statistiques" && (
-          <StatistiquesView
-            sales={visibleSales}
-            products={products}
-            sellers={
-              workspace.isOwner ||
-              getModuleScope(workspace.memberPermissionsDetailed ?? {}, "statistiques") === "all"
-                ? computedSellers
-                : computedSellers.filter((s) => s.nom === myName)
-            }
-            expenses={visibleExpenses}
-            locale={locale}
-          />
-        )}
-        {activeTab === "historique" && (
-          <HistoriqueView
-            purchases={historiquePurchases}
-            sales={visibleSales}
-            expenses={visibleExpenses}
-            apports={historiqueApports}
-            orders={visibleOrders}
-            locale={locale}
-            products={products}
-          />
-        )}
-        {activeTab === "commandes" && (
-          <CommandesView
-            orders={visibleOrders}
-            clients={storeData.clients}
-            products={storeData.products}
-            isOwner={workspace.isOwner}
-            onAddOrder={storeData.addOrder}
-            onUpdateOrder={handleUpdateOrder}
-            onAddPayment={storeData.addPaymentToOrder}
-            onRefundOrder={storeData.refundOrder}
-            onDeleteOrder={storeData.deleteOrder}
-          />
-        )}
-        {activeTab === "paiements" && (
-          <PaiementsARecevoirView
-            sales={visibleSales}
-            orders={visibleOrders}
-            payments={visiblePayments}
-            products={products}
-            onAddPaymentToSale={storeData.addPaymentToSale}
-            onAddPaymentToOrder={storeData.addPaymentToOrder}
-          />
-        )}
-        {activeTab === "clients" && (
-          <ClientsView
-            clients={visibleClients}
-            orders={storeData.orders}
-            sales={visibleSales}
-            payments={visiblePayments}
-            onAddClient={storeData.addClient}
-            onUpdateClient={storeData.updateClient}
-            onDeleteClient={storeData.deleteClient}
-            onNavigateToOrders={() => setActiveTab("commandes")}
-            champsPersonnalises={storeData.customFields}
-          />
-        )}
-        {activeTab === "fournisseurs" && (
-          <FournisseursView
-            suppliers={storeData.suppliers}
-            purchases={purchases}
-            products={products}
-            onAddSupplier={storeData.addSupplier}
-            onUpdateSupplier={storeData.updateSupplier}
-            onDeleteSupplier={storeData.deleteSupplier}
-            champsPersonnalises={storeData.customFields}
-            peutCreer={!fournisseursActions || fournisseursActions.includes("create")}
-            peutModifier={!fournisseursActions || fournisseursActions.includes("edit")}
-            peutSupprimer={!fournisseursActions || fournisseursActions.includes("delete")}
-          />
-        )}
-        {activeTab === "prestataires" && (
-          <PrestatairesView
-            providers={storeData.providers}
-            providerServices={storeData.providerServices}
-            onAddProvider={storeData.addProvider}
-            onUpdateProvider={storeData.updateProvider}
-            onDeleteProvider={storeData.deleteProvider}
-            onAddService={storeData.addProviderService}
-            onDeleteService={storeData.deleteProviderService}
-            champsPersonnalises={storeData.customFields}
-            peutCreer={!prestatairesActions || prestatairesActions.includes("create")}
-            peutModifier={!prestatairesActions || prestatairesActions.includes("edit")}
-            peutSupprimer={!prestatairesActions || prestatairesActions.includes("delete")}
-          />
-        )}
-        {activeTab === "settings" && (
-          <ParametresView
-            settings={storeSettings}
-            champsPersonnalises={storeData.customFields}
-            onAddChampPersonnalise={storeData.addCustomField}
-            onUpdateChampPersonnalise={storeData.updateCustomField}
-            onDeleteChampPersonnalise={storeData.deleteCustomField}
-            onUpdateSettings={handleUpdateSettings}
-            sellers={computedSellers}
-            onDeleteSeller={handleDeleteSeller}
-            locale={locale}
-            setLocale={setLocale}
-            capital={computedCapital}
-            onDownloadExcel={handleDownloadExcel}
-            theme={theme}
-            setTheme={setTheme}
-            isPlatformAdmin={profile?.is_platform_admin ?? false}
-            currentUserId={user?.id ?? undefined}
-          />
-        )}
-      </main>
+          )}
+        </main>
 
-      {activityToast && (
-        <div className="fixed inset-x-3 bottom-3 sm:inset-x-auto sm:bottom-6 sm:right-6 z-50 sm:max-w-md bg-card/95 border-2 border-success-border rounded-2xl p-4 shadow-2xl flex items-start gap-3 backdrop-blur-md">
-          <div className="p-2.5 rounded-xl bg-success-soft t-success shrink-0 mt-0.5">
-            <Zap className="w-5 h-5 animate-pulse" />
-          </div>
-          <div className="flex-1 text-xs">
-            <div className="flex items-center justify-between mb-1">
-              <span className="font-bold t-success uppercase tracking-wider text-[10px] flex items-center gap-1">
-                <span className="w-2 h-2 rounded-full bg-success animate-ping"></span>
-                Alerte Activité
-              </span>
-              <span className="text-[10px] text-muted-foreground font-mono">
-                {activityToast.timestamp}
-              </span>
+        {activityToast && (
+          <div className="fixed inset-x-3 bottom-3 sm:inset-x-auto sm:bottom-6 sm:right-6 z-50 sm:max-w-md bg-card/95 border-2 border-success-border rounded-2xl p-4 shadow-2xl flex items-start gap-3 backdrop-blur-md">
+            <div className="p-2.5 rounded-xl bg-success-soft t-success shrink-0 mt-0.5">
+              <Zap className="w-5 h-5 animate-pulse" />
             </div>
-            <p className="text-foreground font-medium leading-relaxed">
-              <span className="font-bold t-warning bg-warning-soft px-1.5 py-0.5 rounded mr-1">
-                {activityToast.vendeur}
-              </span>{" "}
-              {activityToast.message}
-            </p>
+            <div className="flex-1 text-xs">
+              <div className="flex items-center justify-between mb-1">
+                <span className="font-bold t-success uppercase tracking-wider text-[10px] flex items-center gap-1">
+                  <span className="w-2 h-2 rounded-full bg-success animate-ping"></span>
+                  Alerte Activité
+                </span>
+                <span className="text-[10px] text-muted-foreground font-mono">
+                  {activityToast.timestamp}
+                </span>
+              </div>
+              <p className="text-foreground font-medium leading-relaxed">
+                <span className="font-bold t-warning bg-warning-soft px-1.5 py-0.5 rounded mr-1">
+                  {activityToast.vendeur}
+                </span>{" "}
+                {activityToast.message}
+              </p>
+            </div>
+            <button
+              onClick={() => setActivityToast(null)}
+              className="p-1 text-muted-foreground hover:text-foreground bg-muted rounded-lg transition-colors"
+            >
+              <X className="w-4 h-4" />
+            </button>
           </div>
-          <button
-            onClick={() => setActivityToast(null)}
-            className="p-1 text-muted-foreground hover:text-foreground bg-muted rounded-lg transition-colors"
-          >
-            <X className="w-4 h-4" />
-          </button>
-        </div>
-      )}
-    </div>
+        )}
+      </div>
+    </contextePersonnalisation.Provider>
   );
 }
 

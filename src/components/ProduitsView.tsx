@@ -268,6 +268,7 @@ export const ProduitsView: React.FC<ProduitsViewProps> = ({
       {/* Page Header */}
       <PageHeader
         icon={<Package className="w-5 h-5 t-success" />}
+        module="produits"
         title="Produits"
         subtitle="Vos produits, leurs prix et leur stock disponible."
         actions={

@@ -413,6 +413,7 @@ export const ClientsView: React.FC<ClientsViewProps> = ({
     <div className="space-y-6">
       <PageHeader
         icon={<User className="w-5 h-5 t-success" />}
+        module="clients"
         title={`Clients (${clients.length})`}
         subtitle="Leur fiche, leurs commandes et ce qu'ils doivent encore."
         actions={

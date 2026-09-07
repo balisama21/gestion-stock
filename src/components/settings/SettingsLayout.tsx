@@ -10,6 +10,7 @@ import {
   Receipt,
   Settings as SettingsIcon,
   ListPlus,
+  Languages,
   LogOut,
 } from "lucide-react";
 
@@ -22,7 +23,8 @@ export type SettingsTab =
   | "paiement"
   | "notifications"
   | "preferences"
-  | "champs";
+  | "champs"
+  | "vocabulaire";
 
 interface TabDef {
   id: SettingsTab;
@@ -104,6 +106,13 @@ const GROUPS: GroupDef[] = [
         label: "Champs personnalisés",
         hint: "Vos propres informations",
         icon: <ListPlus className="w-4 h-4" />,
+        ownerOnly: true,
+      },
+      {
+        id: "vocabulaire",
+        label: "Vocabulaire et modules",
+        hint: "Vos mots, vos écrans",
+        icon: <Languages className="w-4 h-4" />,
         ownerOnly: true,
       },
       {

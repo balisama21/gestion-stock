@@ -358,6 +358,7 @@ export const VentesView: React.FC<VentesViewProps> = ({
       {/* Header */}
       <PageHeader
         icon={<DollarSign className="w-5 h-5 t-info" />}
+        module="ventes"
         title="Ventes"
         subtitle="Enregistrez vos ventes et suivez les paiements de vos clients."
         metric={

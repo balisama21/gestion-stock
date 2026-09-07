@@ -378,6 +378,7 @@ export const CommandesView: React.FC<CommandesViewProps> = ({
     <div className="space-y-6">
       <PageHeader
         icon={<ShoppingBag className="w-5 h-5 t-info" />}
+        module="commandes"
         title={`Commandes (${orders.length})`}
         subtitle="Suivez vos commandes clients et leurs paiements."
         actions={

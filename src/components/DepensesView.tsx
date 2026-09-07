@@ -199,6 +199,7 @@ export const DepensesView: React.FC<DepensesViewProps> = ({
       {/* Header */}
       <PageHeader
         icon={<ArrowRightLeft className="w-5 h-5 t-danger" />}
+        module="depenses"
         title="Dépenses"
         subtitle="Sorties d'argent et retraits de caisse de vos vendeurs."
         actions={

@@ -317,6 +317,7 @@ export const FournisseursView: React.FC<FournisseursViewProps> = ({
     <div className="space-y-6">
       <PageHeader
         icon={<Truck className="w-5 h-5 t-success" />}
+        module="fournisseurs"
         title={`Fournisseurs (${suppliers.length})`}
         subtitle="Qui vous livre, à quelles conditions, et ce que vous leur avez acheté."
         actions={

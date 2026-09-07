@@ -16,6 +16,7 @@ import {
   History,
 } from "lucide-react";
 import type { ActiveTab } from "../types";
+import { libelleModule, moduleMasque, type Personnalisation } from "../lib/personnalisation";
 
 /**
  * Source unique de vérité de la navigation.
@@ -96,19 +97,33 @@ export const ALWAYS_VISIBLE_TABS = ["dashboard", "capital", "ventes"];
  * Les groupes devenus vides sont retirés pour ne pas laisser un titre
  * de section orphelin dans la sidebar.
  */
-export function visibleNavGroups(memberPermissions: string[] | null): NavGroup[] {
-  if (memberPermissions === null) return NAV_GROUPS;
+export function visibleNavGroups(
+  memberPermissions: string[] | null,
+  perso: Personnalisation = {},
+): NavGroup[] {
   return NAV_GROUPS.map((group) => ({
     ...group,
-    items: group.items.filter(
-      (item) => ALWAYS_VISIBLE_TABS.includes(item.id) || memberPermissions.includes(item.id),
-    ),
+    items: group.items
+      .filter(
+        (item) =>
+          memberPermissions === null ||
+          ALWAYS_VISIBLE_TABS.includes(item.id) ||
+          memberPermissions.includes(item.id),
+      )
+      // Un module retiré par l'entreprise disparaît de la
+      // navigation, mais ses données restent : c'est un réglage
+      // d'affichage, pas une suppression.
+      .filter((item) => !moduleMasque(perso, item.id))
+      .map((item) => ({ ...item, label: libelleModule(perso, item.id, item.label) })),
   })).filter((group) => group.items.length > 0);
 }
 
 /** Liste à plat des onglets visibles (menu mobile « Plus »). */
-export function visibleNavItems(memberPermissions: string[] | null): NavItem[] {
-  return visibleNavGroups(memberPermissions).flatMap((g) => g.items);
+export function visibleNavItems(
+  memberPermissions: string[] | null,
+  perso: Personnalisation = {},
+): NavItem[] {
+  return visibleNavGroups(memberPermissions, perso).flatMap((g) => g.items);
 }
 
 /** Raccourcis de la barre de navigation basse sur mobile. */
@@ -119,12 +134,19 @@ export const BOTTOM_TABS: { id: ActiveTab; shortLabel: string; icon: React.React
   { id: "produits", shortLabel: "Stock", icon: <Package className="w-5 h-5" /> },
 ];
 
-export function visibleBottomTabs(memberPermissions: string[] | null) {
+export function visibleBottomTabs(
+  memberPermissions: string[] | null,
+  perso: Personnalisation = {},
+) {
   return BOTTOM_TABS.filter(
     (tab) =>
-      memberPermissions === null ||
-      ALWAYS_VISIBLE_TABS.includes(tab.id) ||
-      memberPermissions.includes(tab.id),
+      (memberPermissions === null ||
+        ALWAYS_VISIBLE_TABS.includes(tab.id) ||
+        memberPermissions.includes(tab.id)) &&
+      // Un module masqué disparaît aussi de la barre du bas, sinon
+      // l'utilisateur y trouverait un raccourci vers un écran qu'il a
+      // lui-même retiré de son menu.
+      !moduleMasque(perso, tab.id),
   );
 }
 

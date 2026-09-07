@@ -123,6 +123,7 @@ export const HistoriqueView: React.FC<HistoriqueViewProps> = ({
     <div className="space-y-6">
       <PageHeader
         icon={<History className="w-5 h-5 t-success" />}
+        module="historique"
         title="Historique"
         subtitle="Tous vos mouvements d'argent et de stock, du plus récent au plus ancien."
       />

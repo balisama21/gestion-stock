@@ -203,6 +203,7 @@ export const RapportsView: React.FC<RapportsViewProps> = ({ sales, purchases, ex
     <div className="space-y-6 pb-12">
       <PageHeader
         icon={<CalendarRange className="h-5 w-5 text-muted-foreground" />}
+        module="rapports"
         title="Bilan"
         subtitle="Vos ventes, achats, dépenses et marges sur la période choisie."
         actions={

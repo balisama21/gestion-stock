@@ -288,6 +288,7 @@ export const VendeursView: React.FC<VendeursViewProps> = ({
     <div className="space-y-6">
       <PageHeader
         icon={<Users className="h-5 w-5 text-muted-foreground" />}
+        module="vendeurs"
         title="Vendeurs"
         subtitle="Ce que chaque vendeur a vendu, ce qu'il a dépensé, et ce qui lui reste en poche."
         actions={

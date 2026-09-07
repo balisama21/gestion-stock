@@ -160,6 +160,7 @@ export const PaiementsARecevoirView: React.FC<PaiementsARecevoirViewProps> = ({
     <div className="space-y-6">
       <PageHeader
         icon={<CreditCard className="w-5 h-5 t-danger" />}
+        module="paiements"
         title="Paiements à recevoir"
         subtitle="Ventes et commandes qu'il vous reste à encaisser."
       />

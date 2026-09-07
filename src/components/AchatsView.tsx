@@ -249,6 +249,7 @@ export const AchatsView: React.FC<AchatsViewProps> = ({
       {/* Header */}
       <PageHeader
         icon={<ShoppingCart className="w-5 h-5 t-danger" />}
+        module="achats"
         title="Achats"
         subtitle="Enregistrez vos entrées en stock et ce qu'elles vous ont coûté."
         actions={

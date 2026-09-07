@@ -10,6 +10,8 @@ import { SecuritySection } from "./settings/SecuritySection";
 import { StoreSection, type StoreFormValues } from "./settings/StoreSection";
 import { TeamSection, type TeamMember, type RecoveryRequest } from "./settings/TeamSection";
 import { ChampsPersonnalisesSection } from "./settings/ChampsPersonnalisesSection";
+import { VocabulaireSection } from "./settings/VocabulaireSection";
+import { lirePersonnalisation, type Personnalisation } from "../lib/personnalisation";
 import type { ChampPerso } from "../lib/champsPersonnalises";
 import { BillingSection } from "./settings/BillingSection";
 import { Modal } from "./shared/Modal";
@@ -27,6 +29,9 @@ interface ParametresViewProps {
   onAddChampPersonnalise: (data: any) => Promise<{ error: string | null }>;
   onUpdateChampPersonnalise: (id: string, data: any) => Promise<{ error: string | null }>;
   onDeleteChampPersonnalise: (id: string) => Promise<{ error: string | null }>;
+  /** Le vocabulaire et les modules retenus par la boutique. */
+  personnalisation: Personnalisation;
+  onSavePersonnalisation: (p: Personnalisation) => Promise<void> | void;
   /**
    * Le type déclarait `void` alors que l'implémentation est asynchrone.
    * Rien n'empêchait donc d'oublier le `await` — c'est exactement ce qui
@@ -63,6 +68,8 @@ export const ParametresView: React.FC<ParametresViewProps> = ({
   onAddChampPersonnalise,
   onUpdateChampPersonnalise,
   onDeleteChampPersonnalise,
+  personnalisation,
+  onSavePersonnalisation,
   onUpdateSettings,
   onDeleteSeller,
   locale,
@@ -867,6 +874,13 @@ export const ParametresView: React.FC<ParametresViewProps> = ({
       )}
 
       {activeTab === "facture" && <InvoiceSection settings={settings} />}
+
+      {activeTab === "vocabulaire" && (
+        <VocabulaireSection
+          personnalisation={lirePersonnalisation(personnalisation)}
+          onSave={onSavePersonnalisation}
+        />
+      )}
 
       {activeTab === "champs" && (
         <ChampsPersonnalisesSection

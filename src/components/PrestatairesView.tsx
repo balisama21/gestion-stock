@@ -302,6 +302,7 @@ export const PrestatairesView: React.FC<PrestatairesViewProps> = ({
     <div className="space-y-6">
       <PageHeader
         icon={<Wrench className="w-5 h-5 t-success" />}
+        module="prestataires"
         title={`Prestataires (${providers.length})`}
         subtitle="Transport, livraison, impression, réparation — ceux qui rendent un service, pas ceux qui livrent du stock."
         actions={
