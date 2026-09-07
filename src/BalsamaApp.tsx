@@ -1118,6 +1118,7 @@ function AppInner() {
               onAddSupplier={storeData.addSupplier}
               onUpdateSupplier={storeData.updateSupplier}
               onDeleteSupplier={storeData.deleteSupplier}
+              onAddSupplierPayment={storeData.addSupplierPayment}
               champsPersonnalises={storeData.customFields}
               peutCreer={!fournisseursActions || fournisseursActions.includes("create")}
               peutModifier={!fournisseursActions || fournisseursActions.includes("edit")}

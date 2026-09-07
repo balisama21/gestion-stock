@@ -111,6 +111,24 @@ const traduireErreurProduit = (error: { code?: string; message: string } | null)
   return error.message;
 };
 
+/**
+ * Le garde-fou posé en base parle déjà français et cite les montants ;
+ * on le laisse passer tel quel. Ne sont traduits que les refus dont le
+ * message d'origine est technique.
+ */
+const traduireErreurReglement = (
+  error: { code?: string; message: string } | null,
+): string | null => {
+  if (!error) return null;
+  if (error.code === "23514" && error.message?.includes("montant")) {
+    return "Le montant du règlement doit être supérieur à zéro.";
+  }
+  if (error.code === "42501" || error.message?.includes("row-level security")) {
+    return "Vous n'avez pas le droit d'enregistrer un règlement dans cette boutique.";
+  }
+  return error.message;
+};
+
 export interface StoreData {
   products: Product[];
   sales: Sale[];
@@ -1246,7 +1264,7 @@ export function useStoreData(storeId: string | null, userId: string | null): Sto
         recorded_by: userId,
       });
       if (!error) fetchAll();
-      return { error: error?.message ?? null };
+      return { error: traduireErreurReglement(error) };
     },
     [storeId, userId, fetchAll],
   );

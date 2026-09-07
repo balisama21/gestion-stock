@@ -15,6 +15,7 @@ import {
   ShoppingCart,
   Trash2,
   Truck,
+  Wallet,
   X,
 } from "lucide-react";
 import { formatCurrency } from "../utils/formulas";
@@ -44,6 +45,15 @@ interface FournisseursViewProps {
     data: Database["public"]["Tables"]["suppliers"]["Update"],
   ) => Promise<{ error: string | null }>;
   onDeleteSupplier: (id: string) => Promise<{ error: string | null }>;
+  /** Enregistre ce qui vient d'être versé au fournisseur pour un achat. */
+  onAddSupplierPayment: (data: {
+    purchase_id: string;
+    montant: number;
+    methode: string;
+    date?: string;
+    reference?: string | null;
+    note?: string | null;
+  }) => Promise<{ error: string | null }>;
   /** Les champs que la boutique a ajoutés elle-même à cette fiche. */
   champsPersonnalises: ChampPerso[];
   /** Autorisations de l'utilisateur sur ce module. */
@@ -177,6 +187,7 @@ export const FournisseursView: React.FC<FournisseursViewProps> = ({
   onAddSupplier,
   onUpdateSupplier,
   onDeleteSupplier,
+  onAddSupplierPayment,
   champsPersonnalises,
   peutCreer = true,
   peutModifier = true,
@@ -193,6 +204,59 @@ export const FournisseursView: React.FC<FournisseursViewProps> = ({
   const [succes, setSucces] = useState<string | null>(null);
   const [suppressionDemandee, setSuppressionDemandee] = useState(false);
   const [valeursPerso, setValeursPerso] = useState<ValeursPerso>({});
+
+  // Le règlement se saisit dans la ligne de l'achat concerné : c'est
+  // l'achat que l'on solde, pas le fournisseur en général.
+  const [reglementPour, setReglementPour] = useState<string | null>(null);
+  const [montantReglement, setMontantReglement] = useState(0);
+  const [dateReglement, setDateReglement] = useState(() => new Date().toISOString().slice(0, 10));
+  const [methodeReglement, setMethodeReglement] = useState("especes");
+  const [referenceReglement, setReferenceReglement] = useState("");
+  const [reglementEnCours, setReglementEnCours] = useState(false);
+  const [erreurReglement, setErreurReglement] = useState<string | null>(null);
+
+  const ouvrirReglement = (achat: Purchase) => {
+    setReglementPour(achat.id);
+    // Pré-rempli avec ce qui reste : solder est le geste le plus courant,
+    // et le montant reste modifiable pour un acompte.
+    setMontantReglement(achat.soldeDu);
+    setDateReglement(new Date().toISOString().slice(0, 10));
+    setMethodeReglement("especes");
+    setReferenceReglement("");
+    setErreurReglement(null);
+  };
+
+  const problemeMontant = (achat: Purchase) => {
+    if (!(montantReglement > 0)) return "Le montant doit être supérieur à zéro.";
+    if (montantReglement > achat.soldeDu) {
+      return `Ne peut pas dépasser ce qui reste dû (${formatCurrency(achat.soldeDu)}).`;
+    }
+    return null;
+  };
+
+  const enregistrerReglement = async (achat: Purchase) => {
+    const probleme = problemeMontant(achat);
+    if (probleme) {
+      setErreurReglement(probleme);
+      return;
+    }
+    setReglementEnCours(true);
+    setErreurReglement(null);
+    const { error } = await onAddSupplierPayment({
+      purchase_id: achat.id,
+      montant: montantReglement,
+      methode: methodeReglement,
+      date: dateReglement,
+      reference: referenceReglement.trim() || null,
+    });
+    setReglementEnCours(false);
+    if (error) {
+      setErreurReglement(error);
+      return;
+    }
+    setSucces(`Règlement de ${formatCurrency(montantReglement)} enregistré.`);
+    setReglementPour(null);
+  };
 
   const achatsParFournisseur = useMemo(() => {
     const table: Record<string, Purchase[]> = {};
@@ -899,22 +963,148 @@ export const FournisseursView: React.FC<FournisseursViewProps> = ({
               ) : (
                 <div className="app-list">
                   {achatsDuFournisseur.map((achat) => (
-                    <div key={achat.id} className="app-list-row justify-between gap-3">
-                      <span className="min-w-0 flex-1">
-                        <span className="app-list-primary block font-mono">{achat.numero}</span>
-                        <span className="app-list-secondary block">
-                          {new Date(achat.date).toLocaleDateString("fr-FR")} · {achat.designation} ·{" "}
-                          {achat.quantite} × {formatCurrency(achat.prixAchatUnit)}
+                    <div key={achat.id} className="app-list-row flex-col items-stretch gap-2">
+                      <div className="flex w-full items-center justify-between gap-3">
+                        <span className="min-w-0 flex-1">
+                          <span className="app-list-primary block font-mono">{achat.numero}</span>
+                          <span className="app-list-secondary block">
+                            {new Date(achat.date).toLocaleDateString("fr-FR")} · {achat.designation}{" "}
+                            · {achat.quantite} × {formatCurrency(achat.prixAchatUnit)}
+                          </span>
                         </span>
-                      </span>
-                      <span className="shrink-0 text-right">
-                        <span className="app-list-amount block tabular-nums">
-                          {formatCurrency(achat.totalAchat)}
+                        <span className="shrink-0 text-right">
+                          <span className="app-list-amount block tabular-nums">
+                            {formatCurrency(achat.totalAchat)}
+                          </span>
+                          <span className="mt-1 block">
+                            <PastilleReglement
+                              statut={achat.statutPaiement}
+                              reste={achat.soldeDu}
+                            />
+                          </span>
                         </span>
-                        <span className="mt-1 block">
-                          <PastilleReglement statut={achat.statutPaiement} reste={achat.soldeDu} />
-                        </span>
-                      </span>
+                      </div>
+
+                      {peutModifier && achat.soldeDu > 0 && reglementPour !== achat.id && (
+                        <button
+                          type="button"
+                          onClick={() => ouvrirReglement(achat)}
+                          className="app-btn-secondary self-start px-3 py-1.5 text-xs"
+                        >
+                          <Wallet className="h-3.5 w-3.5" aria-hidden="true" />
+                          Enregistrer un règlement
+                        </button>
+                      )}
+
+                      {reglementPour === achat.id && (
+                        <div className="w-full rounded-xl border border-border bg-muted p-3">
+                          <p className="mb-3 text-xs text-muted-foreground">
+                            {formatCurrency(achat.montantPaye)} déjà réglés sur{" "}
+                            {formatCurrency(achat.totalAchat)}. Reste{" "}
+                            <span className="font-medium t-danger">
+                              {formatCurrency(achat.soldeDu)}
+                            </span>
+                            .
+                          </p>
+
+                          <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
+                            <div>
+                              <label
+                                htmlFor={`regl-montant-${achat.id}`}
+                                className="mb-1.5 block text-xs font-medium text-foreground"
+                              >
+                                Montant versé
+                              </label>
+                              <input
+                                id={`regl-montant-${achat.id}`}
+                                type="number"
+                                step="any"
+                                inputMode="decimal"
+                                className="app-field font-mono"
+                                value={montantReglement}
+                                onChange={(e) => setMontantReglement(Number(e.target.value))}
+                                aria-invalid={problemeMontant(achat) !== null}
+                              />
+                            </div>
+                            <div>
+                              <label
+                                htmlFor={`regl-date-${achat.id}`}
+                                className="mb-1.5 block text-xs font-medium text-foreground"
+                              >
+                                Date
+                              </label>
+                              <input
+                                id={`regl-date-${achat.id}`}
+                                type="date"
+                                className="app-field"
+                                value={dateReglement}
+                                onChange={(e) => setDateReglement(e.target.value)}
+                              />
+                            </div>
+                            <div>
+                              <label
+                                htmlFor={`regl-methode-${achat.id}`}
+                                className="mb-1.5 block text-xs font-medium text-foreground"
+                              >
+                                Moyen
+                              </label>
+                              <select
+                                id={`regl-methode-${achat.id}`}
+                                className="app-field"
+                                value={methodeReglement}
+                                onChange={(e) => setMethodeReglement(e.target.value)}
+                              >
+                                <option value="especes">Espèces</option>
+                                <option value="mobile_money">Mobile Money</option>
+                                <option value="virement">Virement</option>
+                              </select>
+                            </div>
+                            <div>
+                              <label
+                                htmlFor={`regl-ref-${achat.id}`}
+                                className="mb-1.5 block text-xs font-medium text-foreground"
+                              >
+                                Référence (optionnel)
+                              </label>
+                              <input
+                                id={`regl-ref-${achat.id}`}
+                                type="text"
+                                className="app-field"
+                                placeholder="N° de transfert, reçu…"
+                                value={referenceReglement}
+                                onChange={(e) => setReferenceReglement(e.target.value)}
+                              />
+                            </div>
+                          </div>
+
+                          {erreurReglement && (
+                            <p
+                              role="alert"
+                              className="mt-3 rounded-lg border border-danger-border bg-danger-soft px-3 py-2 text-xs t-danger"
+                            >
+                              {erreurReglement}
+                            </p>
+                          )}
+
+                          <div className="mt-3 flex flex-wrap gap-2">
+                            <button
+                              type="button"
+                              onClick={() => enregistrerReglement(achat)}
+                              disabled={reglementEnCours}
+                              className="app-btn-primary px-3 py-1.5 text-xs"
+                            >
+                              {reglementEnCours ? "Enregistrement…" : "Enregistrer le règlement"}
+                            </button>
+                            <button
+                              type="button"
+                              onClick={() => setReglementPour(null)}
+                              className="app-btn-ghost px-3 py-1.5 text-xs"
+                            >
+                              Annuler
+                            </button>
+                          </div>
+                        </div>
+                      )}
                     </div>
                   ))}
                 </div>
