@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from "react";
-import { FileText, Plus, Send, Check, X, Trash2, Edit3 } from "lucide-react";
-import type { Product } from "../types";
+import { FileText, Plus, Send, Check, X, Trash2, Edit3, Printer, ShoppingCart } from "lucide-react";
+import type { Product, StoreSettings } from "../types";
 import type { Database } from "../lib/database.types";
 import { formatCurrency, formatDateLocale, getProductLabel } from "../utils/formulas";
 import { PageHeader, HeaderMetric } from "./shared/PageHeader";
@@ -8,6 +8,7 @@ import { FilterBar, FilterField } from "./shared/FilterBar";
 import { DataList, type DataListItem } from "./shared/DataList";
 import { StatCol } from "./shared/StatBar";
 import { Modal } from "./shared/Modal";
+import { DocumentDevis } from "./devis/DocumentDevis";
 import {
   STATUTS_DEVIS,
   classeStatut,
@@ -61,6 +62,13 @@ interface DevisViewProps {
     venteTicketId?: string | null,
   ) => Promise<{ error: string | null }>;
   onDeleteQuote: (id: string) => Promise<{ error: string | null }>;
+  /** L'identité de la boutique, pour l'en-tête du document. */
+  settings?: StoreSettings;
+  /**
+   * Reprendre les lignes du devis dans le panier de la caisse.
+   * Absent quand l'utilisateur n'a pas le droit de vendre.
+   */
+  onTransformerEnVente?: (devis: Devis, lignes: LigneDevis[]) => void;
   peutCreer?: boolean;
   peutModifier?: boolean;
   peutSupprimer?: boolean;
@@ -93,6 +101,8 @@ export const DevisView: React.FC<DevisViewProps> = ({
   onUpdateQuote,
   onSetStatus,
   onDeleteQuote,
+  settings,
+  onTransformerEnVente,
   peutCreer = true,
   peutModifier = true,
   peutSupprimer = true,
@@ -105,6 +115,7 @@ export const DevisView: React.FC<DevisViewProps> = ({
   const [enregistrement, setEnregistrement] = useState(false);
   const [erreur, setErreur] = useState<string | null>(null);
   const [succes, setSucces] = useState<string | null>(null);
+  const [devisAImprimer, setDevisAImprimer] = useState<Devis | null>(null);
 
   const [clientId, setClientId] = useState("");
   const [clientNom, setClientNom] = useState("");
@@ -314,6 +325,19 @@ export const DevisView: React.FC<DevisViewProps> = ({
       ],
       actions: (
         <>
+          <button onClick={() => setDevisAImprimer(devis)} className="app-btn-secondary">
+            <Printer className="h-4 w-4" />
+            Imprimer
+          </button>
+          {onTransformerEnVente && !fige && devis.statut !== "refuse" && (
+            <button
+              onClick={() => onTransformerEnVente(devis, sesLignes)}
+              className="app-btn-secondary"
+            >
+              <ShoppingCart className="h-4 w-4" />
+              Transformer en vente
+            </button>
+          )}
           {peutModifier && !fige && (
             <button onClick={() => ouvrirEdition(devis)} className="app-btn-secondary">
               <Edit3 className="h-4 w-4" />
@@ -633,6 +657,13 @@ export const DevisView: React.FC<DevisViewProps> = ({
           </div>
         </div>
       </Modal>
+
+      <DocumentDevis
+        devis={devisAImprimer}
+        lignes={devisAImprimer ? (lignesDe[devisAImprimer.id] ?? []) : []}
+        settings={settings}
+        onClose={() => setDevisAImprimer(null)}
+      />
     </div>
   );
 };

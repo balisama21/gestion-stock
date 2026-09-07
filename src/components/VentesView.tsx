@@ -89,6 +89,19 @@ interface VentesViewProps {
     montantPaye: number;
     lignes: { productId: string; quantite: number; prixVenteUnit: number }[];
   }) => Promise<{ ventes: Sale[]; error: string | null }>;
+  /**
+   * Un panier préparé ailleurs — les lignes d'un devis accepté, par
+   * exemple. Sa seule arrivée ouvre la caisse, déjà remplie.
+   */
+  panierInitial?: {
+    lignes: { productId: string; quantite: number; prixVenteUnit: number }[];
+    clientNom?: string | null;
+    clientId?: string | null;
+  } | null;
+  /** Prévient que le panier préparé a été repris, pour l'oublier. */
+  onPanierRepris?: () => void;
+  /** Le ticket de la vente qui vient d'être enregistrée. */
+  onVenteEnregistree?: (ticketId: string | null) => void;
   onEditSale?: (updatedSale: Sale) => void;
   onDeleteSale?: (saleId: string) => void;
   /**
@@ -116,6 +129,9 @@ export const VentesView: React.FC<VentesViewProps> = ({
   locale,
   settings,
   onAddSaleTicket,
+  panierInitial,
+  onPanierRepris,
+  onVenteEnregistree,
   onEditSale,
   onDeleteSale,
   restrictedToOwnSales,
@@ -272,6 +288,23 @@ export const VentesView: React.FC<VentesViewProps> = ({
   const [codeSaisi, setCodeSaisi] = useState("");
   const [messageCode, setMessageCode] = useState<string | null>(null);
   const [panier, setPanier] = useState<LignePanier[]>([]);
+
+  /**
+   * Un panier préparé ailleurs ouvre la caisse déjà remplie.
+   *
+   * On prévient aussitôt l'appelant qu'il a été repris : sans cela,
+   * refermer la caisse puis revenir sur cet onglet la rouvrirait
+   * indéfiniment sur le même panier.
+   */
+  useEffect(() => {
+    if (!panierInitial || panierInitial.lignes.length === 0) return;
+    setPanier(panierInitial.lignes);
+    setClientCredit(panierInitial.clientNom ?? "");
+    setClientChoisi(panierInitial.clientId ?? "");
+    setFormError(null);
+    setIsModalOpen(true);
+    onPanierRepris?.();
+  }, [panierInitial, onPanierRepris]);
   const [montantPaye, setMontantPaye] = useState<number>(0);
 
   /**
@@ -443,6 +476,7 @@ export const VentesView: React.FC<VentesViewProps> = ({
     // par la base, la liste `sales` n'étant pas encore rechargée.
     setVentesRecu(result.ventes);
     setSelectedReceiptSale(result.ventes[0]);
+    onVenteEnregistree?.(result.ventes[0].ticketId ?? null);
   };
 
   const [searchQuery, setSearchQuery] = useState("");

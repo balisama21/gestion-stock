@@ -76,6 +76,21 @@ function AppInner() {
   // <main> : les deux doivent bouger ensemble.
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
 
+  /**
+   * Le passage d'un devis à la caisse.
+   *
+   * Les deux écrans ne se parlent pas directement : le panier préparé
+   * et le devis dont il vient vivent ici, le temps d'un aller-retour.
+   * La vente enregistrée marque ensuite le devis accepté, avec le
+   * ticket qui en est sorti.
+   */
+  const [panierDepuisDevis, setPanierDepuisDevis] = useState<{
+    lignes: { productId: string; quantite: number; prixVenteUnit: number }[];
+    clientNom?: string | null;
+    clientId?: string | null;
+  } | null>(null);
+  const [devisATransformer, setDevisATransformer] = useState<string | null>(null);
+
   // Le vocabulaire et les modules retenus par la boutique active.
   const personnalisation = useMemo(
     () => lirePersonnalisation(workspace.activeStore?.personnalisation),
@@ -736,6 +751,73 @@ function AppInner() {
     return res;
   };
 
+  /**
+   * Reprendre un devis dans le panier.
+   *
+   * Une ligne libre — une prestation qui n'est pas au catalogue — n'a
+   * pas de produit à décrémenter : elle ne peut pas devenir une ligne
+   * de vente. On reprend donc les lignes du catalogue et on dit
+   * lesquelles restent à saisir, plutôt que de les faire disparaître
+   * en silence.
+   */
+  const handleTransformerEnVente = (
+    devis: { id: string; client_nom: string; client_id: string | null; numero: string | null },
+    lignes: {
+      product_id: string | null;
+      designation: string;
+      quantite: number;
+      prix_unitaire: number;
+    }[],
+  ) => {
+    const reprises = lignes.filter(
+      (l) => l.product_id && products.some((p) => p.id === l.product_id),
+    );
+    const laissees = lignes.filter((l) => !reprises.includes(l));
+
+    if (reprises.length === 0) {
+      alert(
+        `Le devis ${devis.numero ?? ""} ne contient aucun produit du catalogue : ` +
+          `il n'y a rien à décrémenter du stock. Enregistrez la vente à la main.`,
+      );
+      return;
+    }
+
+    if (laissees.length > 0) {
+      alert(
+        `${laissees.length} ligne(s) du devis ne sont pas au catalogue et ne peuvent ` +
+          `pas entrer dans le panier : ${laissees.map((l) => l.designation).join(", ")}.`,
+      );
+    }
+
+    setPanierDepuisDevis({
+      lignes: reprises.map((l) => ({
+        productId: l.product_id as string,
+        quantite: l.quantite,
+        prixVenteUnit: l.prix_unitaire,
+      })),
+      clientNom: devis.client_nom,
+      clientId: devis.client_id,
+    });
+    setDevisATransformer(devis.id);
+    setActiveTab("ventes");
+  };
+
+  /**
+   * La vente est enregistrée : le devis dont elle vient devient
+   * accepté, et garde le ticket qui en est sorti.
+   */
+  const handleVenteEnregistree = async (ticketId: string | null) => {
+    if (!devisATransformer) return;
+    const id = devisATransformer;
+    setDevisATransformer(null);
+    const res = await storeData.setQuoteStatus(id, "accepte", ticketId);
+    if (res.error) {
+      alert(
+        "La vente est enregistrée, mais le devis n'a pas pu être marqué accepté : " + res.error,
+      );
+    }
+  };
+
   const handleEditSale = async (updatedSale: Sale) => {
     // PHASE 1 : le delta de quantité et sa validation (stock suffisant si la
     // quantité augmente) sont désormais appliqués atomiquement côté base par
@@ -1019,6 +1101,8 @@ function AppInner() {
               onUpdateQuote={storeData.updateQuote}
               onSetStatus={storeData.setQuoteStatus}
               onDeleteQuote={storeData.deleteQuote}
+              settings={storeSettings}
+              onTransformerEnVente={handleTransformerEnVente}
               peutCreer={!devisActions || devisActions.includes("create")}
               peutModifier={!devisActions || devisActions.includes("edit")}
               peutSupprimer={!devisActions || devisActions.includes("delete")}
@@ -1033,6 +1117,9 @@ function AppInner() {
               locale={locale}
               settings={storeSettings}
               onAddSaleTicket={handleAddSaleTicket}
+              panierInitial={panierDepuisDevis}
+              onPanierRepris={() => setPanierDepuisDevis(null)}
+              onVenteEnregistree={handleVenteEnregistree}
               onEditSale={hasVentesAccess ? handleEditSale : undefined}
               onDeleteSale={hasVentesAccess ? handleDeleteSale : undefined}
               restrictedToOwnSales={!hasVentesAccess}
