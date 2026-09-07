@@ -27,7 +27,17 @@ interface InviteWizardProps {
   }) => void;
 }
 
-const ROLE_KEYS: RoleKey[] = ["vendeur", "gestionnaire_stock", "comptable", "manager", "admin"];
+// Du plus restreint au plus large. Le livreur ouvre la liste : il n a
+// acces a rien de la boutique, seulement a ses propres courses, et
+// c est la base qui l y tient — pas l ecran.
+const ROLE_KEYS: RoleKey[] = [
+  "livreur",
+  "vendeur",
+  "gestionnaire_stock",
+  "comptable",
+  "manager",
+  "admin",
+];
 
 export const InviteWizard: React.FC<InviteWizardProps> = ({
   stores,

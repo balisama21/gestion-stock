@@ -489,7 +489,8 @@ export function isWidgetVisible(perms: PermissionsMap, widgetKey: string): boole
 // personnalisables librement par le propriétaire (Étape B, UI à venir).
 // ─────────────────────────────────────────────────────────────────────
 
-export type RoleKey = "admin" | "manager" | "comptable" | "vendeur" | "gestionnaire_stock";
+export type RoleKey =
+  "admin" | "manager" | "comptable" | "vendeur" | "gestionnaire_stock" | "livreur";
 
 export const ROLE_LABELS: Record<RoleKey, string> = {
   admin: "Administrateur",
@@ -497,6 +498,7 @@ export const ROLE_LABELS: Record<RoleKey, string> = {
   comptable: "Comptable",
   vendeur: "Vendeur",
   gestionnaire_stock: "Gestionnaire de stock",
+  livreur: "Livreur",
 };
 
 function module(
@@ -708,12 +710,27 @@ const GESTIONNAIRE_STOCK_TEMPLATE: PermissionsMap = Object.fromEntries([
   module("settings", true, { actions: ["edit_own_profile"] }),
 ]);
 
+/**
+ * Le livreur n'a AUCUN module.
+ *
+ * Ce n'est pas un oubli : il ne passe pas par l'application, il a son
+ * propre écran. Ce modèle vide est ce qu'on lui donne à l'invitation,
+ * et c'est aussi une seconde ceinture — si par accident il atteignait
+ * l'application ordinaire, il n'y verrait rien.
+ *
+ * La vraie barrière est ailleurs : en base, `is_store_member` l'exclut,
+ * donc il ne peut lire ni ventes, ni prix d'achat, ni trésorerie, quoi
+ * que fasse l'écran.
+ */
+const LIVREUR_TEMPLATE: PermissionsMap = {};
+
 export const ROLE_TEMPLATES: Record<RoleKey, PermissionsMap> = {
   admin: ADMIN_TEMPLATE,
   manager: MANAGER_TEMPLATE,
   comptable: COMPTABLE_TEMPLATE,
   vendeur: VENDEUR_TEMPLATE,
   gestionnaire_stock: GESTIONNAIRE_STOCK_TEMPLATE,
+  livreur: LIVREUR_TEMPLATE,
 };
 
 /** Résumé chiffré affiché à l'admin ("5 modules, 12 permissions, 4 masqués") — Étape B. */

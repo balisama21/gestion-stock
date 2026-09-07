@@ -66,6 +66,9 @@ const ProduitsView = lazy(() =>
 const AchatsView = lazy(() =>
   import("./components/AchatsView").then((m) => ({ default: m.AchatsView })),
 );
+const EspaceLivreur = lazy(() =>
+  import("./components/EspaceLivreur").then((m) => ({ default: m.EspaceLivreur })),
+);
 const LivraisonsView = lazy(() =>
   import("./components/LivraisonsView").then((m) => ({ default: m.LivraisonsView })),
 );
@@ -130,9 +133,22 @@ const EcranQuiArrive = () => (
 
 // ─── AppInner : rendered inside both authContext & workspaceContext providers ───
 function AppInner() {
-  const { user, isFounder, profile } = useAuth();
+  const { user, isFounder, profile, signOut } = useAuth();
   const workspace = useWorkspace();
-  const storeData = useStoreData(workspace.activeStore?.id ?? null, user?.id ?? null);
+
+  /**
+   * Un livreur ne charge pas les données de la boutique.
+   *
+   * `useStoreData` interroge dix-sept tables ; il n'a le droit d'en lire
+   * aucune. Les demander quand même, ce serait dix-sept requêtes pour
+   * dix-sept réponses vides, à chaque ouverture, sur une connexion
+   * mobile. On passe donc `null` : le hook se met au repos.
+   */
+  const estLivreur = workspace.memberRole === "livreur";
+  const storeData = useStoreData(
+    estLivreur ? null : (workspace.activeStore?.id ?? null),
+    user?.id ?? null,
+  );
   const { members: storeMembers, removeMember: removeStoreMember } = useStoreMembers(
     workspace.activeStore?.id ?? null,
   );
@@ -1050,6 +1066,27 @@ function AppInner() {
   // que d'afficher un tableau de bord vide et confus.
   if (!workspace.activeStore) {
     return <CreateStoreOnboarding />;
+  }
+
+  /*
+   * Le livreur a un autre écran, pas l'application avec des onglets en
+   * moins. Le retour se fait ici, AVANT l'en-tête et la barre latérale :
+   * il n'y a donc rien à masquer, puisque rien n'est monté.
+   */
+  if (estLivreur) {
+    return (
+      <LimiteChargement>
+        <Suspense fallback={<AppLoader etape="Vos courses…" />}>
+          <EspaceLivreur
+            storeId={workspace.activeStore.id}
+            storeName={workspace.activeStore.name}
+            userId={user?.id ?? ""}
+            nom={profile?.full_name || user?.email || "Livreur"}
+            onSignOut={signOut}
+          />
+        </Suspense>
+      </LimiteChargement>
+    );
   }
 
   // Essai gratuit expiré sans activation (ou verrouillage explicite) :
