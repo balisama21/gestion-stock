@@ -25,6 +25,9 @@ type ReglementFournisseur = Database["public"]["Tables"]["supplier_payments"]["R
 type SaleRow = Database["public"]["Tables"]["sales"]["Row"];
 type Devis = Database["public"]["Tables"]["quotes"]["Row"];
 type LigneDevis = Database["public"]["Tables"]["quote_items"]["Row"];
+type LivraisonRow = Database["public"]["Tables"]["deliveries"]["Row"];
+type LivraisonInsert = Database["public"]["Tables"]["deliveries"]["Insert"];
+type LivraisonUpdate = Database["public"]["Tables"]["deliveries"]["Update"];
 
 /** Une ligne de la table `sales` telle que l'application la lit. */
 const versVente = (row: SaleRow): AppSale => ({
@@ -173,6 +176,15 @@ export interface StoreData {
   supplierPayments: ReglementFournisseur[];
   /** Les devis de la boutique, du plus récent au plus ancien. */
   quotes: Devis[];
+  /** Les courses de la boutique, de la plus proche à la plus ancienne. */
+  deliveries: LivraisonRow[];
+
+  addDelivery: (
+    data: Omit<LivraisonInsert, "store_id" | "created_by">,
+  ) => Promise<{ error: string | null }>;
+  updateDelivery: (id: string, data: LivraisonUpdate) => Promise<{ error: string | null }>;
+  deleteDelivery: (id: string) => Promise<{ error: string | null }>;
+
   /** Toutes les lignes de tous les devis, à répartir par `quote_id`. */
   quoteItems: LigneDevis[];
   loading: boolean;
@@ -509,6 +521,7 @@ export function useStoreData(storeId: string | null, userId: string | null): Sto
   const [supplierPayments, setSupplierPayments] = useState<ReglementFournisseur[]>([]);
   const [quotes, setQuotes] = useState<Devis[]>([]);
   const [quoteItems, setQuoteItems] = useState<LigneDevis[]>([]);
+  const [deliveries, setDeliveries] = useState<LivraisonRow[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -531,6 +544,7 @@ export function useStoreData(storeId: string | null, userId: string | null): Sto
       setSupplierPayments([]);
       setQuotes([]);
       setQuoteItems([]);
+      setDeliveries([]);
       return;
     }
 
@@ -556,6 +570,7 @@ export function useStoreData(storeId: string | null, userId: string | null): Sto
         supplierPaymentsRes,
         quotesRes,
         quoteItemsRes,
+        deliveriesRes,
       ] = await Promise.all([
         supabase
           .from("products")
@@ -632,6 +647,11 @@ export function useStoreData(storeId: string | null, userId: string | null): Sto
           .select("*")
           .eq("store_id", storeId)
           .order("ordre", { ascending: true }),
+        supabase
+          .from("deliveries")
+          .select("*")
+          .eq("store_id", storeId)
+          .order("date_prevue", { ascending: false, nullsFirst: false }),
       ]);
 
       if (productsRes.data) setProducts(productsRes.data);
@@ -651,6 +671,7 @@ export function useStoreData(storeId: string | null, userId: string | null): Sto
       if (supplierPaymentsRes.data) setSupplierPayments(supplierPaymentsRes.data);
       if (quotesRes.data) setQuotes(quotesRes.data);
       if (quoteItemsRes.data) setQuoteItems(quoteItemsRes.data);
+      if (deliveriesRes.data) setDeliveries(deliveriesRes.data);
     } catch (e: any) {
       setError(e.message);
     } finally {
@@ -1423,6 +1444,43 @@ export function useStoreData(storeId: string | null, userId: string | null): Sto
     [fetchAll],
   );
 
+  // LIVRAISONS
+  const addDelivery = useCallback(
+    async (data: Omit<LivraisonInsert, "store_id" | "created_by">) => {
+      if (!storeId || !userId) return { error: "Non autorisé" };
+      const { error } = await supabase.from("deliveries").insert({
+        ...data,
+        store_id: storeId,
+        created_by: userId,
+      });
+      if (!error) fetchAll();
+      return { error: error?.message ?? null };
+    },
+    [storeId, userId, fetchAll],
+  );
+
+  const updateDelivery = useCallback(
+    async (id: string, data: LivraisonUpdate) => {
+      const { error } = await supabase.from("deliveries").update(data).eq("id", id);
+      if (!error) fetchAll();
+      return { error: error?.message ?? null };
+    },
+    [fetchAll],
+  );
+
+  const deleteDelivery = useCallback(
+    async (id: string) => {
+      const { error } = await supabase.from("deliveries").delete().eq("id", id);
+      if (!error) fetchAll();
+      return {
+        error: error
+          ? "Cette course ne peut plus être supprimée : elle a déjà été prise en charge."
+          : null,
+      };
+    },
+    [fetchAll],
+  );
+
   // APPORTS
   const addApport = useCallback(
     async (data: any) => {
@@ -1470,6 +1528,10 @@ export function useStoreData(storeId: string | null, userId: string | null): Sto
     supplierPayments,
     quotes,
     quoteItems,
+    deliveries,
+    addDelivery,
+    updateDelivery,
+    deleteDelivery,
     addQuote,
     updateQuote,
     setQuoteStatus,

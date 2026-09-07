@@ -59,6 +59,7 @@ export const NAV_GROUPS: NavGroup[] = [
       { id: "commandes", label: "Commandes", icon: <ShoppingBag className="w-4 h-4" /> },
       { id: "devis", label: "Devis", icon: <FileText className="w-4 h-4" /> },
       { id: "ventes", label: "Ventes", icon: <DollarSign className="w-4 h-4" /> },
+      { id: "livraisons", label: "Livraisons", icon: <Truck className="w-4 h-4" /> },
       { id: "clients", label: "Clients", icon: <UserIcon className="w-4 h-4" /> },
       { id: "paiements", label: "Paiements à recevoir", icon: <CreditCard className="w-4 h-4" /> },
     ],

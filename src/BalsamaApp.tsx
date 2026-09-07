@@ -66,6 +66,9 @@ const ProduitsView = lazy(() =>
 const AchatsView = lazy(() =>
   import("./components/AchatsView").then((m) => ({ default: m.AchatsView })),
 );
+const LivraisonsView = lazy(() =>
+  import("./components/LivraisonsView").then((m) => ({ default: m.LivraisonsView })),
+);
 const DevisView = lazy(() =>
   import("./components/DevisView").then((m) => ({ default: m.DevisView })),
 );
@@ -559,6 +562,15 @@ function AppInner() {
     ? null
     : ["view", "create", "edit", "delete"].filter((a) =>
         hasModuleAction(workspace.memberPermissionsDetailed ?? {}, "devis", a),
+      );
+
+  // ── Livraisons : pas de champ sensible pour le personnel de la
+  // boutique — c est le livreur qui est tenu a l ecart, et c est la
+  // base qui l en tient, pas cet ecran. ──
+  const livraisonsActions = workspace.isOwner
+    ? null
+    : ["view", "create", "edit", "delete"].filter((a) =>
+        hasModuleAction(workspace.memberPermissionsDetailed ?? {}, "livraisons", a),
       );
 
   // ── Ventes : champs sensibles (la portée own/all est déjà gérée plus
@@ -1197,6 +1209,29 @@ function AppInner() {
                   peutCreer={!devisActions || devisActions.includes("create")}
                   peutModifier={!devisActions || devisActions.includes("edit")}
                   peutSupprimer={!devisActions || devisActions.includes("delete")}
+                />
+              )}
+              {activeTab === "livraisons" && (
+                <LivraisonsView
+                  deliveries={storeData.deliveries}
+                  membres={storeMembers}
+                  // Le type genere attend `Json`, qui exige une signature
+                  // d index ; une interface nommee n en a pas, meme quand sa
+                  // forme est un JSON parfaitement valide. La conversion est
+                  // donc explicite ici plutot que subie dans l ecran.
+                  onAddDelivery={(d) =>
+                    storeData.addDelivery({ ...d, contenu: d.contenu as unknown as Json })
+                  }
+                  onUpdateDelivery={(id, d) =>
+                    storeData.updateDelivery(id, {
+                      ...d,
+                      contenu: d.contenu ? (d.contenu as unknown as Json) : undefined,
+                    })
+                  }
+                  onDeleteDelivery={storeData.deleteDelivery}
+                  peutCreer={!livraisonsActions || livraisonsActions.includes("create")}
+                  peutModifier={!livraisonsActions || livraisonsActions.includes("edit")}
+                  peutSupprimer={!livraisonsActions || livraisonsActions.includes("delete")}
                 />
               )}
               {activeTab === "ventes" && (

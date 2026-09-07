@@ -260,6 +260,23 @@ export const MODULE_DEFINITIONS: ModuleDef[] = [
     ],
   },
   {
+    key: "livraisons",
+    label: "Livraisons",
+    hasScope: false,
+    actions: [
+      { key: "view", label: "Voir les courses" },
+      { key: "create", label: "Créer une course" },
+      { key: "edit", label: "Modifier et confier une course" },
+      { key: "delete", label: "Supprimer une course" },
+    ],
+    fields: [
+      { key: "destinataire", label: "Destinataire et adresse" },
+      { key: "contenu", label: "Contenu de la course" },
+      { key: "montant", label: "Montant à encaisser" },
+      { key: "statut", label: "Statut" },
+    ],
+  },
+  {
     key: "ventes",
     label: "Ventes",
     hasScope: true,
@@ -519,6 +536,10 @@ const MANAGER_TEMPLATE: PermissionsMap = Object.fromEntries([
   module("devis", true, {
     actions: ["view", "create", "edit", "delete"],
     fields: getModuleDef("devis")!.fields.map((f) => f.key),
+  }),
+  module("livraisons", true, {
+    actions: ["view", "create", "edit", "delete"],
+    fields: getModuleDef("livraisons")!.fields.map((f) => f.key),
   }),
   module("ventes", true, {
     scope: "all",
