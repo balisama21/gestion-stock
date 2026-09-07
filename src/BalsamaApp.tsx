@@ -219,6 +219,12 @@ function AppInner() {
         fournisseur: p.fournisseur,
         supplierId: p.supplier_id,
         impactTresorerie: p.impact_tresorerie,
+        montantPaye: p.montant_paye,
+        // Colonnes calculees par la base : le generateur de types les
+        // declare nullables, elles ne le sont jamais en pratique.
+        soldeDu: p.solde_du ?? p.total_achat - p.montant_paye,
+        statutPaiement: p.statut_paiement ?? "paye",
+        dateEcheance: p.date_echeance,
       })),
     [storeData.purchases],
   );

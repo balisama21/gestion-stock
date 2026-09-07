@@ -40,6 +40,12 @@ export interface Purchase {
   fournisseur: string; // Nom saisi a la main, conserve
   supplierId: string | null; // Fiche fournisseur, quand l achat y est rattache
   impactTresorerie: number;
+  // Ajoutes a l etape 5. Entretenus par la base : montantPaye est la
+  // somme des reglements verses, les deux autres en decoulent.
+  montantPaye: number;
+  soldeDu: number;
+  statutPaiement: string;
+  dateEcheance: string | null;
 }
 
 export interface Sale {

@@ -1,7 +1,10 @@
 import React, { useMemo, useState } from "react";
 import {
   Building2,
+  AlertCircle,
   CalendarClock,
+  Check,
+  Clock,
   Mail,
   MapPin,
   Package,
@@ -107,10 +110,44 @@ const depuisFournisseur = (s: Supplier) => ({
   note: s.note ?? "",
 });
 
+/**
+ * L'état de règlement d'un achat, dit par une icône ET un mot.
+ *
+ * Même règle que côté client : la couleur seule ne suffit pas, et un
+ * émoji dépendrait de la police du système.
+ */
+const PastilleReglement: React.FC<{ statut: string; reste: number }> = ({ statut, reste }) => {
+  if (statut === "paye") {
+    return (
+      <span className="app-badge app-badge-success">
+        <Check className="h-3 w-3" aria-hidden="true" />
+        Réglé
+      </span>
+    );
+  }
+  if (statut === "partiel") {
+    return (
+      <span className="app-badge app-badge-warning">
+        <Clock className="h-3 w-3" aria-hidden="true" />
+        Reste {formatCurrency(reste)}
+      </span>
+    );
+  }
+  return (
+    <span className="app-badge app-badge-danger">
+      <AlertCircle className="h-3 w-3" aria-hidden="true" />À régler
+    </span>
+  );
+};
+
 /** Un chiffre du bandeau de synthèse. */
-const Chiffre: React.FC<{ libelle: string; valeur: string }> = ({ libelle, valeur }) => (
+const Chiffre: React.FC<{ libelle: string; valeur: string; teinte?: string }> = ({
+  libelle,
+  valeur,
+  teinte = "text-foreground",
+}) => (
   <div className="rounded-xl bg-muted p-3 text-center">
-    <div className="font-mono text-base font-bold tabular-nums text-foreground">{valeur}</div>
+    <div className={`font-mono text-base font-bold tabular-nums ${teinte}`}>{valeur}</div>
     <div className="mt-0.5 text-[11px] text-muted-foreground">{libelle}</div>
   </div>
 );
@@ -185,7 +222,14 @@ export const FournisseursView: React.FC<FournisseursViewProps> = ({
   const comptes = useMemo(() => {
     const table: Record<
       string,
-      { achats: number; total: number; dernier: string | null; produits: number }
+      {
+        achats: number;
+        total: number;
+        regle: number;
+        du: number;
+        dernier: string | null;
+        produits: number;
+      }
     > = {};
     for (const f of suppliers) {
       const sesAchats = achatsParFournisseur[f.id] ?? [];
@@ -193,6 +237,8 @@ export const FournisseursView: React.FC<FournisseursViewProps> = ({
       table[f.id] = {
         achats: sesAchats.length,
         total: sesAchats.reduce((s, a) => s + a.totalAchat, 0),
+        regle: sesAchats.reduce((s, a) => s + a.montantPaye, 0),
+        du: sesAchats.reduce((s, a) => s + a.soldeDu, 0),
         dernier: dates.length ? dates[dates.length - 1] : null,
         produits: (produitsParFournisseur[f.id] ?? []).length,
       };
@@ -200,7 +246,14 @@ export const FournisseursView: React.FC<FournisseursViewProps> = ({
     return table;
   }, [suppliers, achatsParFournisseur, produitsParFournisseur]);
 
-  const compteVide = { achats: 0, total: 0, dernier: null as string | null, produits: 0 };
+  const compteVide = {
+    achats: 0,
+    total: 0,
+    regle: 0,
+    du: 0,
+    dernier: null as string | null,
+    produits: 0,
+  };
 
   const listeFiltree = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -621,8 +674,15 @@ export const FournisseursView: React.FC<FournisseursViewProps> = ({
                           <span className="app-list-secondary block">{secondaire}</span>
                         )}
                       </span>
-                      <span className="app-list-amount shrink-0 tabular-nums">
-                        {formatCurrency(compte.total)}
+                      <span className="shrink-0 text-right">
+                        <span className="app-list-amount block tabular-nums">
+                          {formatCurrency(compte.total)}
+                        </span>
+                        {compte.du > 0 && (
+                          <span className="app-list-secondary block tabular-nums t-danger">
+                            {formatCurrency(compte.du)} dû
+                          </span>
+                        )}
                       </span>
                     </button>
                   );
@@ -774,12 +834,9 @@ export const FournisseursView: React.FC<FournisseursViewProps> = ({
                 <Chiffre libelle="Total acheté" valeur={formatCurrency(compteSelection.total)} />
                 <Chiffre libelle="Produits fournis" valeur={String(compteSelection.produits)} />
                 <Chiffre
-                  libelle="Dernier achat"
-                  valeur={
-                    compteSelection.dernier
-                      ? new Date(compteSelection.dernier).toLocaleDateString("fr-FR")
-                      : "—"
-                  }
+                  libelle="Reste dû"
+                  valeur={formatCurrency(compteSelection.du)}
+                  teinte={compteSelection.du > 0 ? "t-danger" : "text-muted-foreground"}
                 />
               </div>
 
@@ -831,8 +888,9 @@ export const FournisseursView: React.FC<FournisseursViewProps> = ({
                 Achats ({achatsDuFournisseur.length})
               </h4>
               <p className="mb-4 text-xs text-muted-foreground">
-                Un achat sort intégralement de la caisse à son enregistrement : la base ne suit pas
-                encore de paiement fournisseur, il n&apos;y a donc pas de dette à afficher.
+                {compteSelection.dernier
+                  ? `Dernier achat le ${new Date(compteSelection.dernier).toLocaleDateString("fr-FR")}. ${formatCurrency(compteSelection.regle)} déjà réglés.`
+                  : "Aucun achat enregistré auprès de ce fournisseur."}
               </p>
               {achatsDuFournisseur.length === 0 ? (
                 <p className="py-6 text-center text-sm text-muted-foreground">
@@ -849,8 +907,13 @@ export const FournisseursView: React.FC<FournisseursViewProps> = ({
                           {achat.quantite} × {formatCurrency(achat.prixAchatUnit)}
                         </span>
                       </span>
-                      <span className="app-list-amount shrink-0 tabular-nums">
-                        {formatCurrency(achat.totalAchat)}
+                      <span className="shrink-0 text-right">
+                        <span className="app-list-amount block tabular-nums">
+                          {formatCurrency(achat.totalAchat)}
+                        </span>
+                        <span className="mt-1 block">
+                          <PastilleReglement statut={achat.statutPaiement} reste={achat.soldeDu} />
+                        </span>
                       </span>
                     </div>
                   ))}

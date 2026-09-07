@@ -1092,16 +1092,20 @@ export type Database = {
         Row: {
           created_at: string
           date: string
+          date_echeance: string | null
           designation: string
           fournisseur: string
           id: string
           idempotency_key: string | null
           impact_tresorerie: number
+          montant_paye: number
           numero: string | null
           owner_id: string
           prix_achat_unit: number
           product_id: string | null
           quantite: number
+          solde_du: number | null
+          statut_paiement: string | null
           store_id: string
           supplier_id: string | null
           total_achat: number
@@ -1110,16 +1114,20 @@ export type Database = {
         Insert: {
           created_at?: string
           date?: string
+          date_echeance?: string | null
           designation: string
           fournisseur?: string
           id?: string
           idempotency_key?: string | null
           impact_tresorerie?: number
+          montant_paye?: number
           numero?: string | null
           owner_id: string
           prix_achat_unit?: number
           product_id?: string | null
           quantite?: number
+          solde_du?: number | null
+          statut_paiement?: string | null
           store_id: string
           supplier_id?: string | null
           total_achat?: number
@@ -1128,16 +1136,20 @@ export type Database = {
         Update: {
           created_at?: string
           date?: string
+          date_echeance?: string | null
           designation?: string
           fournisseur?: string
           id?: string
           idempotency_key?: string | null
           impact_tresorerie?: number
+          montant_paye?: number
           numero?: string | null
           owner_id?: string
           prix_achat_unit?: number
           product_id?: string | null
           quantite?: number
+          solde_du?: number | null
+          statut_paiement?: string | null
           store_id?: string
           supplier_id?: string | null
           total_achat?: number
@@ -1574,6 +1586,60 @@ export type Database = {
           },
         ]
       }
+      supplier_payments: {
+        Row: {
+          created_at: string
+          date: string
+          id: string
+          methode: string
+          montant: number
+          note: string | null
+          purchase_id: string
+          recorded_by: string | null
+          reference: string | null
+          store_id: string
+        }
+        Insert: {
+          created_at?: string
+          date?: string
+          id?: string
+          methode?: string
+          montant: number
+          note?: string | null
+          purchase_id: string
+          recorded_by?: string | null
+          reference?: string | null
+          store_id: string
+        }
+        Update: {
+          created_at?: string
+          date?: string
+          id?: string
+          methode?: string
+          montant?: number
+          note?: string | null
+          purchase_id?: string
+          recorded_by?: string | null
+          reference?: string | null
+          store_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "supplier_payments_purchase_id_store_id_fkey"
+            columns: ["purchase_id", "store_id"]
+            isOneToOne: false
+            referencedRelation: "purchases"
+            referencedColumns: ["id", "store_id"]
+          },
+          {
+            foreignKeyName: "supplier_payments_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       suppliers: {
         Row: {
           adresse: string | null
@@ -1855,6 +1921,7 @@ export type Database = {
         }
         Returns: Json
       }
+      storage_boutique_du_chemin: { Args: { chemin: string }; Returns: string }
       store_allows_write: { Args: { p_store_id: string }; Returns: boolean }
       store_is_locked: { Args: { p_store_id: string }; Returns: boolean }
       update_product: {

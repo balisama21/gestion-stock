@@ -21,6 +21,7 @@ type ProviderService = Database["public"]["Tables"]["provider_services"]["Row"];
 type CustomField = Database["public"]["Tables"]["custom_field_definitions"]["Row"];
 type Categorie = Database["public"]["Tables"]["categories"]["Row"];
 type ImageProduit = Database["public"]["Tables"]["product_images"]["Row"];
+type ReglementFournisseur = Database["public"]["Tables"]["supplier_payments"]["Row"];
 
 /**
  * Un message lisible plutôt que le jargon de Postgres.
@@ -125,6 +126,7 @@ export interface StoreData {
   customFields: CustomField[];
   categories: Categorie[];
   productImages: ImageProduit[];
+  supplierPayments: ReglementFournisseur[];
   loading: boolean;
   error: string | null;
 
@@ -366,6 +368,22 @@ export interface StoreData {
 
   deleteProductImage: (id: string) => Promise<{ error: string | null }>;
 
+  /**
+   * Enregistre un règlement versé à un fournisseur.
+   *
+   * Pas de modification ni de suppression : la base ne les accorde
+   * pas non plus. Un règlement versé ne se rature pas — le corriger
+   * passera par une écriture inverse, traçable.
+   */
+  addSupplierPayment: (data: {
+    purchase_id: string;
+    montant: number;
+    methode: string;
+    date?: string;
+    reference?: string | null;
+    note?: string | null;
+  }) => Promise<{ error: string | null }>;
+
   // Apports
   addApport: (
     data: Omit<Database["public"]["Tables"]["capital_apports"]["Insert"], "store_id" | "owner_id">,
@@ -392,6 +410,7 @@ export function useStoreData(storeId: string | null, userId: string | null): Sto
   const [customFields, setCustomFields] = useState<CustomField[]>([]);
   const [categories, setCategories] = useState<Categorie[]>([]);
   const [productImages, setProductImages] = useState<ImageProduit[]>([]);
+  const [supplierPayments, setSupplierPayments] = useState<ReglementFournisseur[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -411,6 +430,7 @@ export function useStoreData(storeId: string | null, userId: string | null): Sto
       setCustomFields([]);
       setCategories([]);
       setProductImages([]);
+      setSupplierPayments([]);
       return;
     }
 
@@ -433,6 +453,7 @@ export function useStoreData(storeId: string | null, userId: string | null): Sto
         customFieldsRes,
         categoriesRes,
         productImagesRes,
+        supplierPaymentsRes,
       ] = await Promise.all([
         supabase
           .from("products")
@@ -493,6 +514,12 @@ export function useStoreData(storeId: string | null, userId: string | null): Sto
         supabase.from("categories").select("*").eq("store_id", storeId).order("ordre"),
 
         supabase.from("product_images").select("*").eq("store_id", storeId).order("ordre"),
+
+        supabase
+          .from("supplier_payments")
+          .select("*")
+          .eq("store_id", storeId)
+          .order("date", { ascending: false }),
       ]);
 
       if (productsRes.data) setProducts(productsRes.data);
@@ -509,6 +536,7 @@ export function useStoreData(storeId: string | null, userId: string | null): Sto
       if (customFieldsRes.data) setCustomFields(customFieldsRes.data);
       if (categoriesRes.data) setCategories(categoriesRes.data);
       if (productImagesRes.data) setProductImages(productImagesRes.data);
+      if (supplierPaymentsRes.data) setSupplierPayments(supplierPaymentsRes.data);
     } catch (e: any) {
       setError(e.message);
     } finally {
@@ -1194,6 +1222,28 @@ export function useStoreData(storeId: string | null, userId: string | null): Sto
     [fetchAll],
   );
 
+  // RÈGLEMENTS FOURNISSEURS
+  const addSupplierPayment = useCallback(
+    async (data: {
+      purchase_id: string;
+      montant: number;
+      methode: string;
+      date?: string;
+      reference?: string | null;
+      note?: string | null;
+    }) => {
+      if (!storeId || !userId) return { error: "Non autorisé" };
+      const { error } = await supabase.from("supplier_payments").insert({
+        ...data,
+        store_id: storeId,
+        recorded_by: userId,
+      });
+      if (!error) fetchAll();
+      return { error: error?.message ?? null };
+    },
+    [storeId, userId, fetchAll],
+  );
+
   // APPORTS
   const addApport = useCallback(
     async (data: any) => {
@@ -1238,6 +1288,7 @@ export function useStoreData(storeId: string | null, userId: string | null): Sto
     customFields,
     categories,
     productImages,
+    supplierPayments,
     loading,
     error,
     addProduct,
@@ -1278,6 +1329,7 @@ export function useStoreData(storeId: string | null, userId: string | null): Sto
     updateProductDetails,
     addProductImage,
     deleteProductImage,
+    addSupplierPayment,
     addApport,
     deleteApport,
     refresh: fetchAll,
