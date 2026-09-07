@@ -189,6 +189,57 @@ export type Database = {
           },
         ]
       }
+      categories: {
+        Row: {
+          actif: boolean
+          created_at: string
+          created_by: string | null
+          id: string
+          nom: string
+          ordre: number
+          parent_id: string | null
+          store_id: string
+          updated_at: string
+        }
+        Insert: {
+          actif?: boolean
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          nom: string
+          ordre?: number
+          parent_id?: string | null
+          store_id: string
+          updated_at?: string
+        }
+        Update: {
+          actif?: boolean
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          nom?: string
+          ordre?: number
+          parent_id?: string | null
+          store_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "categories_parent_id_fkey"
+            columns: ["parent_id"]
+            isOneToOne: false
+            referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "categories_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       clients: {
         Row: {
           adresse: string | null
@@ -680,10 +731,61 @@ export type Database = {
           },
         ]
       }
+      product_images: {
+        Row: {
+          chemin: string
+          created_at: string
+          created_by: string | null
+          id: string
+          legende: string | null
+          ordre: number
+          product_id: string
+          store_id: string
+        }
+        Insert: {
+          chemin: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          legende?: string | null
+          ordre?: number
+          product_id: string
+          store_id: string
+        }
+        Update: {
+          chemin?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          legende?: string | null
+          ordre?: number
+          product_id?: string
+          store_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "product_images_product_id_store_id_fkey"
+            columns: ["product_id", "store_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id", "store_id"]
+          },
+          {
+            foreignKeyName: "product_images_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       products: {
         Row: {
+          category_id: string | null
           champs_perso: Json
+          code_barres: string | null
           created_at: string
+          description: string | null
           designation: string
           display_name: string
           fournisseur: string
@@ -694,17 +796,27 @@ export type Database = {
           prix_achat: number
           prix_vente_defaut: number
           seuil_alerte: number
+          sku: string | null
+          statut: string
           stock_actuel: number
           stock_disponible: number | null
           stock_initial: number
+          stock_max: number | null
           stock_reserve: number
           store_id: string
+          supplier_id: string | null
+          tva_rate: number | null
+          type_produit: string
+          unite: string | null
           updated_at: string
           variant_suffix: string
         }
         Insert: {
+          category_id?: string | null
           champs_perso?: Json
+          code_barres?: string | null
           created_at?: string
+          description?: string | null
           designation: string
           display_name: string
           fournisseur?: string
@@ -715,17 +827,27 @@ export type Database = {
           prix_achat?: number
           prix_vente_defaut?: number
           seuil_alerte?: number
+          sku?: string | null
+          statut?: string
           stock_actuel?: number
           stock_disponible?: number | null
           stock_initial?: number
+          stock_max?: number | null
           stock_reserve?: number
           store_id: string
+          supplier_id?: string | null
+          tva_rate?: number | null
+          type_produit?: string
+          unite?: string | null
           updated_at?: string
           variant_suffix?: string
         }
         Update: {
+          category_id?: string | null
           champs_perso?: Json
+          code_barres?: string | null
           created_at?: string
+          description?: string | null
           designation?: string
           display_name?: string
           fournisseur?: string
@@ -736,15 +858,29 @@ export type Database = {
           prix_achat?: number
           prix_vente_defaut?: number
           seuil_alerte?: number
+          sku?: string | null
+          statut?: string
           stock_actuel?: number
           stock_disponible?: number | null
           stock_initial?: number
+          stock_max?: number | null
           stock_reserve?: number
           store_id?: string
+          supplier_id?: string | null
+          tva_rate?: number | null
+          type_produit?: string
+          unite?: string | null
           updated_at?: string
           variant_suffix?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "products_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "products_owner_id_fkey"
             columns: ["owner_id"]
@@ -757,6 +893,13 @@ export type Database = {
             columns: ["store_id"]
             isOneToOne: false
             referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "products_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers"
             referencedColumns: ["id"]
           },
         ]
