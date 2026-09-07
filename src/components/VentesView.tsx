@@ -57,6 +57,7 @@ import {
   paperFromLegacyFormat,
   type PaperFormatId,
 } from "../lib/paperFormats";
+import { dateDuJour } from "../lib/dates";
 
 type Client = Database["public"]["Tables"]["clients"]["Row"];
 
@@ -274,7 +275,7 @@ export const VentesView: React.FC<VentesViewProps> = ({
         : "app-badge-danger";
 
   // Form State for New Sale
-  const [date, setDate] = useState(new Date().toISOString().split("T")[0]);
+  const [date, setDate] = useState(dateDuJour());
   const [selectedProductId, setSelectedProductId] = useState(products[0]?.id || "");
   const [quantite, setQuantite] = useState(1);
   const [prixVenteUnit, setPrixVenteUnit] = useState<number>(products[0]?.prixVenteDefaut || 0);

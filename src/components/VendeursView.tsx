@@ -34,6 +34,7 @@ import {
   getPaperFormat,
   type PaperFormatId,
 } from "../lib/paperFormats";
+import { dateDuJour } from "../lib/dates";
 
 interface VendeursViewProps {
   sellers: Seller[];
@@ -134,7 +135,7 @@ export const VendeursView: React.FC<VendeursViewProps> = ({
   const grandTotalPocket = sellers.reduce((acc, v) => acc + v.soldeNetEnPoche, 0);
 
   // Today & Month strings
-  const todayStr = useMemo(() => new Date().toISOString().split("T")[0], []);
+  const todayStr = useMemo(() => dateDuJour(), []);
   const currentMonthStr = useMemo(() => todayStr.slice(0, 7), [todayStr]);
 
   // Report filtered data

@@ -29,6 +29,7 @@ import {
 } from "../lib/champsPersonnalises";
 import type { Purchase, Product } from "../types";
 import type { Database } from "../lib/database.types";
+import { dateDuJour } from "../lib/dates";
 
 type Supplier = Database["public"]["Tables"]["suppliers"]["Row"];
 type SupplierInsert = Database["public"]["Tables"]["suppliers"]["Insert"];
@@ -209,7 +210,7 @@ export const FournisseursView: React.FC<FournisseursViewProps> = ({
   // l'achat que l'on solde, pas le fournisseur en général.
   const [reglementPour, setReglementPour] = useState<string | null>(null);
   const [montantReglement, setMontantReglement] = useState(0);
-  const [dateReglement, setDateReglement] = useState(() => new Date().toISOString().slice(0, 10));
+  const [dateReglement, setDateReglement] = useState(() => dateDuJour());
   const [methodeReglement, setMethodeReglement] = useState("especes");
   const [referenceReglement, setReferenceReglement] = useState("");
   const [reglementEnCours, setReglementEnCours] = useState(false);
@@ -220,7 +221,7 @@ export const FournisseursView: React.FC<FournisseursViewProps> = ({
     // Pré-rempli avec ce qui reste : solder est le geste le plus courant,
     // et le montant reste modifiable pour un acompte.
     setMontantReglement(achat.soldeDu);
-    setDateReglement(new Date().toISOString().slice(0, 10));
+    setDateReglement(dateDuJour());
     setMethodeReglement("especes");
     setReferenceReglement("");
     setErreurReglement(null);

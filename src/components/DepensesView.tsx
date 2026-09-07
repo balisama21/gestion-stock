@@ -35,6 +35,7 @@ import {
   getPaperFormat,
   type PaperFormatId,
 } from "../lib/paperFormats";
+import { dateDuJour } from "../lib/dates";
 
 interface DepensesViewProps {
   expenses: Expense[];
@@ -103,7 +104,7 @@ export const DepensesView: React.FC<DepensesViewProps> = ({
   const isTicket = paper.layout === "ticket";
 
   // Form State
-  const [date, setDate] = useState(new Date().toISOString().split("T")[0]);
+  const [date, setDate] = useState(dateDuJour());
   const [vendeur, setVendeur] = useState(sellers[0]?.nom || "");
   const [type, setType] = useState<"Achat de stock" | "Retrait d'argent" | "Autre dépense">(
     "Retrait d'argent",
@@ -142,7 +143,7 @@ export const DepensesView: React.FC<DepensesViewProps> = ({
     if (url) window.open(url, "_blank", "noopener");
   };
 
-  const todayStr = useMemo(() => new Date().toISOString().split("T")[0], []);
+  const todayStr = useMemo(() => dateDuJour(), []);
   const currentMonthStr = useMemo(() => todayStr.slice(0, 7), [todayStr]);
 
   const handleSubmit = (e: React.FormEvent) => {

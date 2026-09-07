@@ -44,6 +44,7 @@ import {
   getPaperFormat,
   type PaperFormatId,
 } from "../lib/paperFormats";
+import { dateDuJour } from "../lib/dates";
 
 interface AchatsViewProps {
   purchases: Purchase[];
@@ -110,11 +111,11 @@ export const AchatsView: React.FC<AchatsViewProps> = ({
   const paper = getPaperFormat(paperId);
   const isTicket = paper.layout === "ticket";
 
-  const todayStr = useMemo(() => new Date().toISOString().split("T")[0], []);
+  const todayStr = useMemo(() => dateDuJour(), []);
   const currentMonthStr = useMemo(() => todayStr.slice(0, 7), [todayStr]);
 
   // Form State
-  const [date, setDate] = useState(new Date().toISOString().split("T")[0]);
+  const [date, setDate] = useState(dateDuJour());
   const [designation, setDesignation] = useState("");
   const [quantite, setQuantite] = useState(10);
   const [prixAchatUnit, setPrixAchatUnit] = useState(1000);

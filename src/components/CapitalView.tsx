@@ -14,6 +14,7 @@ import { PageHeader } from "./shared/PageHeader";
 import { StatCol } from "./shared/StatBar";
 import { DataList } from "./shared/DataList";
 import { Modal } from "./shared/Modal";
+import { dateDuJour } from "../lib/dates";
 
 interface CapitalViewProps {
   capital: CapitalSummary;
@@ -43,7 +44,7 @@ export const CapitalView: React.FC<CapitalViewProps> = ({
   const [montant, setMontant] = useState<string>("");
   const [source, setSource] = useState<string>("Injection Associé");
   const [note, setNote] = useState<string>("");
-  const [date, setDate] = useState<string>(new Date().toISOString().split("T")[0]);
+  const [date, setDate] = useState<string>(dateDuJour());
 
   // Champs éditables localement, synchronisés avec la valeur serveur,
   // et validés uniquement à la sortie du champ (onBlur) pour éviter

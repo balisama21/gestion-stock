@@ -17,6 +17,7 @@ import {
   type ArticleLivre,
   type Livraison,
 } from "../lib/livraisons";
+import { dateDuJour } from "../lib/dates";
 
 /** Un membre de l'équipe, tel que l'écran a besoin de le connaître. */
 interface Membre {
@@ -57,7 +58,7 @@ interface LivraisonsViewProps {
   peutSupprimer?: boolean;
 }
 
-const AUJOURDHUI = () => new Date().toISOString().slice(0, 10);
+const AUJOURDHUI = () => dateDuJour();
 const ARTICLE_VIDE: ArticleLivre = { designation: "", quantite: 1 };
 
 /**

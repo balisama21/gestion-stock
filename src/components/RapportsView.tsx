@@ -4,6 +4,7 @@ import { CalendarRange, PieChart, BarChart3 } from "lucide-react";
 import { formatCurrency } from "../utils/formulas";
 import { DataList } from "./shared/DataList";
 import { PageHeader } from "./shared/PageHeader";
+import { dateDuJour } from "../lib/dates";
 
 interface RapportsViewProps {
   sales: Sale[];
@@ -38,7 +39,7 @@ export const RapportsView: React.FC<RapportsViewProps> = ({
 
   // Selected date for custom filter
   const [selectedDateInput, setSelectedDateInput] = useState<string>(
-    today.toISOString().split("T")[0], // YYYY-MM-DD
+    dateDuJour(today), // YYYY-MM-DD
   );
 
   const customFilterDate = selectedDateInput ? new Date(selectedDateInput) : today;

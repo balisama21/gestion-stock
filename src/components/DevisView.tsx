@@ -19,6 +19,7 @@ import {
   type LigneDevis,
   type LigneSaisie,
 } from "../lib/devis";
+import { dateDuJour, dateDansNJours } from "../lib/dates";
 
 type Client = Database["public"]["Tables"]["clients"]["Row"];
 
@@ -74,8 +75,8 @@ interface DevisViewProps {
   peutSupprimer?: boolean;
 }
 
-const AUJOURDHUI = () => new Date().toISOString().slice(0, 10);
-const DANS_UN_MOIS = () => new Date(Date.now() + 30 * 24 * 3600 * 1000).toISOString().slice(0, 10);
+const AUJOURDHUI = () => dateDuJour();
+const DANS_UN_MOIS = () => dateDansNJours(30);
 
 const LIGNE_VIDE: LigneSaisie = {
   productId: "",
