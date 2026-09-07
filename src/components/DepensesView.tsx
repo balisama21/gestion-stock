@@ -40,12 +40,26 @@ interface DepensesViewProps {
   sellers: Seller[];
   locale: LocaleSetting;
   settings?: StoreSettings;
+  /**
+   * Les postes de dépenses de la boutique.
+   *
+   * Les trois types écrits en dur restent — ils disent la NATURE de la
+   * sortie, et le bilan s'appuie dessus. Le poste, lui, dit à quoi
+   * l'argent a servi : loyer, électricité, carburant. Les deux ne
+   * répondent pas à la même question, et le second est nommé par la
+   * boutique.
+   */
+  postes: { id: string; nom: string; parent_id: string | null }[];
+  /** Les prestataires, pour dire à qui la dépense a été payée. */
+  prestataires: { id: string; nom: string }[];
   onAddExpense: (expense: {
     date: string;
     vendeur: string;
     type: "Achat de stock" | "Retrait d'argent" | "Autre dépense";
     montant: number;
     note: string;
+    category_id?: string | null;
+    provider_id?: string | null;
   }) => void;
   onEditExpense?: (updatedExpense: Expense) => void;
   onDeleteExpense?: (expenseId: string) => void;
@@ -56,6 +70,8 @@ export const DepensesView: React.FC<DepensesViewProps> = ({
   sellers,
   locale,
   settings,
+  postes,
+  prestataires,
   onAddExpense,
   onEditExpense,
   onDeleteExpense,
@@ -89,6 +105,8 @@ export const DepensesView: React.FC<DepensesViewProps> = ({
   );
   const [montant, setMontant] = useState(5000);
   const [note, setNote] = useState("");
+  const [poste, setPoste] = useState("");
+  const [prestataire, setPrestataire] = useState("");
 
   const todayStr = useMemo(() => new Date().toISOString().split("T")[0], []);
   const currentMonthStr = useMemo(() => todayStr.slice(0, 7), [todayStr]);
@@ -103,9 +121,13 @@ export const DepensesView: React.FC<DepensesViewProps> = ({
       type,
       montant: Number(montant),
       note: note.trim(),
+      category_id: poste || null,
+      provider_id: prestataire || null,
     });
 
     setNote("");
+    setPoste("");
+    setPrestataire("");
     setIsModalOpen(false);
   };
 
@@ -760,6 +782,57 @@ export const DepensesView: React.FC<DepensesViewProps> = ({
               <option value="Autre dépense">Autre dépense (transport, repas...)</option>
             </select>
           </div>
+
+          {/* Le poste dit à quoi l'argent a servi, le type dit la nature
+              de la sortie. Le premier appartient à la boutique, le
+              second au bilan. */}
+          <div>
+            <label htmlFor="dep-poste" className="mb-1.5 block text-sm font-medium text-foreground">
+              Poste de dépense
+            </label>
+            <select
+              id="dep-poste"
+              value={poste}
+              onChange={(e) => setPoste(e.target.value)}
+              className="app-field"
+            >
+              <option value="">Non classée</option>
+              {postes.map((p) => (
+                <option key={p.id} value={p.id}>
+                  {p.nom}
+                </option>
+              ))}
+            </select>
+            {postes.length === 0 && (
+              <p className="mt-1 text-xs text-muted-foreground">
+                Aucun poste pour l&apos;instant. Créez les vôtres dans Paramètres → Catégories.
+              </p>
+            )}
+          </div>
+
+          {prestataires.length > 0 && (
+            <div>
+              <label
+                htmlFor="dep-presta"
+                className="mb-1.5 block text-sm font-medium text-foreground"
+              >
+                Payée à (optionnel)
+              </label>
+              <select
+                id="dep-presta"
+                value={prestataire}
+                onChange={(e) => setPrestataire(e.target.value)}
+                className="app-field"
+              >
+                <option value="">Personne en particulier</option>
+                {prestataires.map((p) => (
+                  <option key={p.id} value={p.id}>
+                    {p.nom}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
 
           <div>
             <label className="mb-1.5 block text-sm font-medium text-foreground">

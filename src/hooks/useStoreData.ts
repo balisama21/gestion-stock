@@ -408,6 +408,8 @@ export interface StoreData {
   addCategorie: (data: {
     nom: string;
     parent_id?: string | null;
+    /** « produit » pour un rayon, « depense » pour un poste. */
+    usage?: string;
   }) => Promise<{ error: string | null }>;
 
   updateCategorie: (
@@ -1272,11 +1274,12 @@ export function useStoreData(storeId: string | null, userId: string | null): Sto
 
   // CATÉGORIES
   const addCategorie = useCallback(
-    async (data: { nom: string; parent_id?: string | null }) => {
+    async (data: { nom: string; parent_id?: string | null; usage?: string }) => {
       if (!storeId || !userId) return { error: "Non autorisé" };
       const { error } = await supabase.from("categories").insert({
         nom: data.nom,
         parent_id: data.parent_id ?? null,
+        usage: data.usage ?? "produit",
         store_id: storeId,
         created_by: userId,
       });

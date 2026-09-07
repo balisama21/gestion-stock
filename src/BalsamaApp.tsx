@@ -1317,6 +1317,10 @@ function AppInner() {
                   sellers={computedSellers}
                   locale={locale}
                   settings={storeSettings}
+                  postes={storeData.categories
+                    .filter((c) => (c.usage ?? "produit") === "depense")
+                    .map((c) => ({ id: c.id, nom: c.nom, parent_id: c.parent_id }))}
+                  prestataires={storeData.providers.map((p) => ({ id: p.id, nom: p.nom }))}
                   onAddExpense={handleAddExpense}
                   onEditExpense={depensesScope === "all" ? handleEditExpense : undefined}
                   onDeleteExpense={depensesScope === "all" ? handleDeleteExpense : undefined}

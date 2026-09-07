@@ -113,7 +113,7 @@ const GROUPS: GroupDef[] = [
       {
         id: "categories",
         label: "Catégories",
-        hint: "Familles de produits",
+        hint: "Produits et dépenses",
         icon: <FolderTree className="w-4 h-4" />,
         ownerOnly: true,
       },

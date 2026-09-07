@@ -9,7 +9,19 @@ interface CategoriesSectionProps {
   categories: Categorie[];
   /** Combien de produits sont rangés dans chaque catégorie. */
   compteParCategorie: Record<string, number>;
-  onAdd: (data: { nom: string; parent_id?: string | null }) => Promise<{ error: string | null }>;
+  onAdd: (data: {
+    nom: string;
+    parent_id?: string | null;
+    usage?: string;
+  }) => Promise<{ error: string | null }>;
+  /**
+   * Ce que ces catégories rangent : des produits, ou des dépenses.
+   *
+   * La même section sert aux deux — mêmes deux niveaux, mêmes règles,
+   * même écran. Seuls le vocabulaire et la liste changent, parce que
+   * ranger un rayon et ranger un poste de dépense, c'est le même geste.
+   */
+  usage?: "produit" | "depense";
   onUpdate: (
     id: string,
     data: Database["public"]["Tables"]["categories"]["Update"],
@@ -32,7 +44,9 @@ export const CategoriesSection: React.FC<CategoriesSectionProps> = ({
   onAdd,
   onUpdate,
   onDelete,
+  usage = "produit",
 }) => {
+  const pourDepense = usage === "depense";
   const [nom, setNom] = useState("");
   const [parent, setParent] = useState<string>("");
   const [enEdition, setEnEdition] = useState<Categorie | null>(null);
@@ -41,16 +55,24 @@ export const CategoriesSection: React.FC<CategoriesSectionProps> = ({
   const [enCours, setEnCours] = useState(false);
   const [erreur, setErreur] = useState<string | null>(null);
 
+  // Les deux usages partagent la table : chaque section ne montre que
+  // les siennes. Les lignes ecrites avant l ajout de la colonne n ont
+  // pas d usage explicite — elles rangent des produits, comme avant.
+  const siennes = useMemo(
+    () => categories.filter((c) => (c.usage ?? "produit") === usage),
+    [categories, usage],
+  );
+
   const racines = useMemo(
     () =>
-      categories
+      siennes
         .filter((c) => !c.parent_id)
         .sort((a, b) => a.ordre - b.ordre || a.nom.localeCompare(b.nom, "fr")),
-    [categories],
+    [siennes],
   );
 
   const enfantsDe = (id: string) =>
-    categories
+    siennes
       .filter((c) => c.parent_id === id)
       .sort((a, b) => a.ordre - b.ordre || a.nom.localeCompare(b.nom, "fr"));
 
@@ -59,7 +81,7 @@ export const CategoriesSection: React.FC<CategoriesSectionProps> = ({
     if (!nom.trim()) return;
     setEnCours(true);
     setErreur(null);
-    const { error } = await onAdd({ nom: nom.trim(), parent_id: parent || null });
+    const { error } = await onAdd({ nom: nom.trim(), parent_id: parent || null, usage });
     setEnCours(false);
     if (error) {
       setErreur(error);
@@ -107,9 +129,13 @@ export const CategoriesSection: React.FC<CategoriesSectionProps> = ({
             <span className="app-list-primary block">{c.nom}</span>
             <span className="app-list-secondary block">
               {[
-                nbProduits > 0
-                  ? `${nbProduits} produit${nbProduits > 1 ? "s" : ""}`
-                  : "Aucun produit",
+                // Un poste de dépense ne range pas de produits : compter
+                // ceux qu'il n'aura jamais n'apprendrait rien à personne.
+                pourDepense
+                  ? null
+                  : nbProduits > 0
+                    ? `${nbProduits} produit${nbProduits > 1 ? "s" : ""}`
+                    : "Aucun produit",
                 nbEnfants > 0 ? `${nbEnfants} sous-catégorie${nbEnfants > 1 ? "s" : ""}` : null,
               ]
                 .filter(Boolean)
@@ -145,8 +171,12 @@ export const CategoriesSection: React.FC<CategoriesSectionProps> = ({
 
   return (
     <SettingsSection
-      title="Catégories de produits"
-      description="Rangez vos produits par famille, et par sous-famille si besoin."
+      title={pourDepense ? "Postes de dépenses" : "Catégories de produits"}
+      description={
+        pourDepense
+          ? "Loyer, électricité, carburant, patente… nommez vos postes comme vous les dites."
+          : "Rangez vos produits par famille, et par sous-famille si besoin."
+      }
       icon={<FolderTree className="w-4 h-4" />}
     >
       {erreur && (

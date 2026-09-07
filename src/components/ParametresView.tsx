@@ -892,13 +892,25 @@ export const ParametresView: React.FC<ParametresViewProps> = ({
       {activeTab === "facture" && <InvoiceSection settings={settings} />}
 
       {activeTab === "categories" && (
-        <CategoriesSection
-          categories={categories}
-          compteParCategorie={compteParCategorie}
-          onAdd={onAddCategorie}
-          onUpdate={onUpdateCategorie}
-          onDelete={onDeleteCategorie}
-        />
+        <div className="space-y-4">
+          <CategoriesSection
+            categories={categories}
+            compteParCategorie={compteParCategorie}
+            onAdd={onAddCategorie}
+            onUpdate={onUpdateCategorie}
+            onDelete={onDeleteCategorie}
+          />
+          {/* Meme section, meme mecanique : ranger un rayon et ranger
+              un poste de depense, c est le meme geste. */}
+          <CategoriesSection
+            categories={categories}
+            compteParCategorie={compteParCategorie}
+            onAdd={onAddCategorie}
+            onUpdate={onUpdateCategorie}
+            onDelete={onDeleteCategorie}
+            usage="depense"
+          />
+        </div>
       )}
 
       {activeTab === "vocabulaire" && (
