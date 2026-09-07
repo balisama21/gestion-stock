@@ -1338,6 +1338,9 @@ function AppInner() {
                   purchases={purchases}
                   expenses={visibleExpenses}
                   products={products}
+                  postes={storeData.categories
+                    .filter((c) => (c.usage ?? "produit") === "depense")
+                    .map((c) => ({ id: c.id, nom: c.nom }))}
                   locale={locale}
                 />
               )}

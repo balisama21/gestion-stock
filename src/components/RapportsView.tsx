@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import { Sale, Purchase, Expense, Product, LocaleSetting } from "../types";
 import { CalendarRange, PieChart, BarChart3 } from "lucide-react";
 import { formatCurrency } from "../utils/formulas";
@@ -7,13 +7,20 @@ import { PageHeader } from "./shared/PageHeader";
 
 interface RapportsViewProps {
   sales: Sale[];
+  /** Les postes de dépenses de la boutique, pour les nommer. */
+  postes: { id: string; nom: string }[];
   purchases: Purchase[];
   expenses: Expense[];
   products: Product[];
   locale: LocaleSetting;
 }
 
-export const RapportsView: React.FC<RapportsViewProps> = ({ sales, purchases, expenses }) => {
+export const RapportsView: React.FC<RapportsViewProps> = ({
+  sales,
+  purchases,
+  expenses,
+  postes = [],
+}) => {
   // Helper to parse DD/MM/YYYY into JS Date object
   const parseDate = (dateStr: string): Date | null => {
     if (!dateStr) return null;
@@ -85,6 +92,33 @@ export const RapportsView: React.FC<RapportsViewProps> = ({ sales, purchases, ex
   const margeMonth = salesMonth.reduce((acc, s) => acc + s.margeTotale, 0);
 
   // 3. CALCULATIONS FOR THIS YEAR
+  /**
+   * Où est parti l'argent, sur l'année affichée.
+   *
+   * Le bilan dit COMBIEN sort ; il ne disait pas à quoi. Maintenant que
+   * la boutique nomme ses propres postes, la question a une réponse —
+   * et c'est souvent celle qu'on cherche quand on trouve les dépenses
+   * élevées.
+   *
+   * Les dépenses sans poste sont regroupées sous « Non classées »
+   * plutôt que passées sous silence : la somme des lignes doit faire le
+   * total, sinon le lecteur refait l'addition et ne tombe pas juste.
+   */
+  const parPoste = useMemo(() => {
+    const nomDe = new Map(postes.map((p) => [p.id, p.nom]));
+    const totaux = new Map<string, number>();
+    for (const d of expenses.filter((e) => isSameYear(e.date, filterYear))) {
+      const cle = d.categoryId ? (nomDe.get(d.categoryId) ?? "Poste supprimé") : "Non classées";
+      totaux.set(cle, (totaux.get(cle) ?? 0) + d.montant);
+    }
+    return [...totaux.entries()]
+      .map(([nom, montant]) => ({ nom, montant }) as { nom: string; montant: number })
+      .sort((a, b) => b.montant - a.montant);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [expenses, postes, filterYear]);
+
+  const totalParPoste = parPoste.reduce((n: number, p: { montant: number }) => n + p.montant, 0);
+
   const salesYear = sales.filter((s) => isSameYear(s.date, filterYear));
   const purchasesYear = purchases.filter((p) => isSameYear(p.date, filterYear));
   const expensesYear = expenses.filter((e) => isSameYear(e.date, filterYear));
@@ -269,6 +303,41 @@ export const RapportsView: React.FC<RapportsViewProps> = ({ sales, purchases, ex
           </tbody>
         </table>
       </div>
+
+      {/* Où part l'argent.
+          Une liste plutôt qu'un camembert : on lit un montant, on le
+          compare au précédent, et la part se déduit du total affiché en
+          bas. Un camembert demande de comparer des angles. */}
+      {parPoste.length > 0 && (
+        <div className="app-card overflow-hidden">
+          <div className="flex items-center justify-between gap-3 border-b border-border px-4 py-3">
+            <h3 className="app-section-title">
+              <BarChart3 className="h-4 w-4" />
+              Où part l&apos;argent
+            </h3>
+            <span className="text-xs text-muted-foreground">{filterYear}</span>
+          </div>
+          <div className="app-list">
+            {parPoste.map((p: { nom: string; montant: number }) => (
+              <div key={p.nom} className="app-list-row justify-between gap-3">
+                <span className="min-w-0 flex-1">
+                  <span className="app-list-primary block">{p.nom}</span>
+                  <span className="app-list-secondary block">
+                    {totalParPoste > 0
+                      ? `${Math.round((p.montant / totalParPoste) * 100)} % des dépenses`
+                      : ""}
+                  </span>
+                </span>
+                <span className="app-list-amount">{formatCurrency(p.montant)}</span>
+              </div>
+            ))}
+            <div className="app-list-row justify-between gap-3 bg-muted">
+              <span className="app-list-primary font-semibold">Total</span>
+              <span className="app-list-amount font-semibold">{formatCurrency(totalParPoste)}</span>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Mois par mois.
           Douze cartes de quatre lignes colorées deviennent douze lignes de
