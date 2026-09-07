@@ -434,6 +434,103 @@ export type Database = {
           },
         ]
       }
+      deliveries: {
+        Row: {
+          adresse: string
+          client_id: string | null
+          created_at: string
+          created_by: string | null
+          date_prevue: string | null
+          destinataire: string
+          id: string
+          livreur_id: string | null
+          montant_a_encaisser: number
+          montant_encaisse: number
+          motif_echec: string | null
+          note: string | null
+          numero: string | null
+          order_id: string | null
+          precisions: string | null
+          prise_en_charge_le: string | null
+          remise_le: string | null
+          sale_ticket_id: string | null
+          statut: string
+          store_id: string
+          telephone: string | null
+          updated_at: string
+        }
+        Insert: {
+          adresse?: string
+          client_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          date_prevue?: string | null
+          destinataire?: string
+          id?: string
+          livreur_id?: string | null
+          montant_a_encaisser?: number
+          montant_encaisse?: number
+          motif_echec?: string | null
+          note?: string | null
+          numero?: string | null
+          order_id?: string | null
+          precisions?: string | null
+          prise_en_charge_le?: string | null
+          remise_le?: string | null
+          sale_ticket_id?: string | null
+          statut?: string
+          store_id: string
+          telephone?: string | null
+          updated_at?: string
+        }
+        Update: {
+          adresse?: string
+          client_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          date_prevue?: string | null
+          destinataire?: string
+          id?: string
+          livreur_id?: string | null
+          montant_a_encaisser?: number
+          montant_encaisse?: number
+          motif_echec?: string | null
+          note?: string | null
+          numero?: string | null
+          order_id?: string | null
+          precisions?: string | null
+          prise_en_charge_le?: string | null
+          remise_le?: string | null
+          sale_ticket_id?: string | null
+          statut?: string
+          store_id?: string
+          telephone?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "deliveries_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "deliveries_order_id_store_id_fkey"
+            columns: ["order_id", "store_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id", "store_id"]
+          },
+          {
+            foreignKeyName: "deliveries_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       expenses: {
         Row: {
           created_at: string
