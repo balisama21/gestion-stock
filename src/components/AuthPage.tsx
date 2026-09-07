@@ -8,6 +8,8 @@ import { SectionTicket } from "./landing/SectionTicket";
 import { RegistreModules } from "./landing/RegistreModules";
 import { InventaireApplication } from "./landing/InventaireApplication";
 import { PanneauMarque } from "./landing/PanneauMarque";
+import { SectionTarif } from "./landing/SectionTarif";
+import { SectionQuestions } from "./landing/SectionQuestions";
 import { MotSymbole } from "./shared/MotSymbole";
 import { useDefilement } from "./landing/useDefilement";
 import { CarteConnexion } from "./ui/sign-in-card";
@@ -252,6 +254,13 @@ export const AuthPage: React.FC = () => {
       <RegistreModules />
 
       <InventaireApplication />
+
+      {/* Le prix, puis les questions : on annonce ce que ca coute avant
+          de repondre aux objections, et les deux avant le formulaire —
+          personne ne remplit un champ sans savoir ou il met les pieds. */}
+      <SectionTarif onCommencer={allerAuFormulaire} />
+
+      <SectionQuestions />
 
       {/* Formulaire — inchangé, seulement replacé dans la page. */}
       <section
