@@ -998,6 +998,7 @@ function AppInner() {
             <VentesView
               sales={visibleSales}
               products={products}
+              clients={storeData.clients}
               sellers={computedSellers}
               locale={locale}
               settings={storeSettings}

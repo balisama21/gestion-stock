@@ -202,12 +202,12 @@ export const ClientsView: React.FC<ClientsViewProps> = ({
   const [valeursPerso, setValeursPerso] = useState<ValeursPerso>({});
 
   /**
-   * Les ventes à crédit ne portent pas encore de clé vers le client :
-   * `sales.client_id` existe en base mais n'est jamais renseigné, le nom
-   * est saisi à la main dans `client_credit`. On rapproche donc par le
-   * nom, à la casse près — comme la reprise des fournisseurs. Le jour où
-   * la vente enregistrera la clé, `clientId` prendra le dessus sans que
-   * cet écran change.
+   * Une vente enregistrée depuis l'étape 6 porte la clé du client
+   * (`sales.client_id`) dès qu'une fiche a été choisie à la caisse.
+   * Les ventes plus anciennes, elles, n'ont que le nom saisi à la main
+   * dans `client_credit` : on les rapproche par ce nom, à la casse
+   * près. Les deux sources sont fusionnées, sans doublon — une vente
+   * qui porte la clé ET le nom n'est comptée qu'une fois.
    */
   const ventesParClient = useMemo(() => {
     const parNom = new Map<string, Sale[]>();

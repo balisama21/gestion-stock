@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef } from "react";
 import { Sale, Product, Seller, LocaleSetting, StoreSettings } from "../types";
+import type { Database } from "../lib/database.types";
 import { APP_NAME } from "../lib/appConfig";
 import {
   DollarSign,
@@ -55,9 +56,13 @@ import {
   type PaperFormatId,
 } from "../lib/paperFormats";
 
+type Client = Database["public"]["Tables"]["clients"]["Row"];
+
 interface VentesViewProps {
   sales: Sale[];
   products: Product[];
+  /** Les fiches clients de la boutique, pour rattacher la vente à l'une d'elles. */
+  clients: Client[];
   sellers: Seller[];
   locale: LocaleSetting;
   settings?: StoreSettings;
@@ -68,6 +73,8 @@ interface VentesViewProps {
     prixVenteUnit: number;
     vendeur: string;
     clientCredit?: string;
+    /** La fiche client, quand la vente est rattachée à l'une d'elles. */
+    clientId?: string | null;
     montantPaye: number;
   }) => Promise<{ sale: Sale | null; error: string | null }>;
   onEditSale?: (updatedSale: Sale) => void;
@@ -92,6 +99,7 @@ interface VentesViewProps {
 export const VentesView: React.FC<VentesViewProps> = ({
   sales,
   products,
+  clients,
   sellers,
   locale,
   settings,
@@ -217,7 +225,29 @@ export const VentesView: React.FC<VentesViewProps> = ({
   const [isCustomPrice, setIsCustomPrice] = useState(false);
   const [vendeur, setVendeur] = useState(sellers[0]?.nom || "");
   const [clientCredit, setClientCredit] = useState("");
+  // La fiche choisie. Vide = client de passage, et le nom se saisit à
+  // la main comme avant : on ne force personne à créer une fiche pour
+  // encaisser au comptoir.
+  const [clientChoisi, setClientChoisi] = useState("");
   const [montantPaye, setMontantPaye] = useState<number>(0);
+
+  const clientsTries = useMemo(
+    () => [...clients].sort((a, b) => a.nom.localeCompare(b.nom, "fr")),
+    [clients],
+  );
+
+  const nomDeLaFiche = (c: Client) => [c.nom, c.prenom].filter(Boolean).join(" ");
+
+  /**
+   * Le nom reste écrit sur la vente même quand une fiche est choisie :
+   * c'est lui qui part sur le reçu, et il garde son sens si la fiche
+   * est renommée ou supprimée plus tard.
+   */
+  const choisirClient = (id: string) => {
+    setClientChoisi(id);
+    const fiche = clients.find((c) => c.id === id);
+    setClientCredit(fiche ? nomDeLaFiche(fiche) : "");
+  };
 
   // Auto pre-fill default price when product changes (Demand 2)
   useEffect(() => {
@@ -280,6 +310,7 @@ export const VentesView: React.FC<VentesViewProps> = ({
       prixVenteUnit: Number(prixVenteUnit),
       vendeur,
       clientCredit: clientCredit.trim() || undefined,
+      clientId: clientChoisi || null,
       montantPaye: paye,
     });
     setSaving(false);
@@ -303,6 +334,7 @@ export const VentesView: React.FC<VentesViewProps> = ({
 
       vendeur,
       clientCredit: clientCredit.trim() || undefined,
+      clientId: clientChoisi || null,
       montantPaye: paye,
       montantRembourse: 0,
       soldeDu: solde > 0 ? solde : 0,
@@ -312,6 +344,7 @@ export const VentesView: React.FC<VentesViewProps> = ({
     setIsModalOpen(false);
     setIsCustomPrice(false);
     setClientCredit("");
+    setClientChoisi("");
     setFormError(null);
     setSelectedReceiptSale(createdSale);
   };
@@ -707,18 +740,44 @@ export const VentesView: React.FC<VentesViewProps> = ({
           </div>
 
           <div className="space-y-4 border-t border-border pt-4">
-            <h4 className="app-section-title">Crédit ou paiement partiel</h4>
+            <h4 className="app-section-title">Client et règlement</h4>
 
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div>
-                <label className="mb-1.5 block text-sm font-medium text-foreground">Client</label>
-                <input
-                  type="text"
-                  value={clientCredit}
-                  onChange={(e) => setClientCredit(e.target.value)}
-                  placeholder="Laisser vide si comptant"
+                <label
+                  htmlFor="vente-client"
+                  className="mb-1.5 block text-sm font-medium text-foreground"
+                >
+                  Client
+                </label>
+                <select
+                  id="vente-client"
+                  value={clientChoisi}
+                  onChange={(e) => choisirClient(e.target.value)}
                   className="app-field"
-                />
+                >
+                  <option value="">Client de passage</option>
+                  {clientsTries.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {nomDeLaFiche(c)}
+                      {c.entreprise ? ` — ${c.entreprise}` : ""}
+                    </option>
+                  ))}
+                </select>
+                {clientChoisi === "" ? (
+                  <input
+                    type="text"
+                    value={clientCredit}
+                    onChange={(e) => setClientCredit(e.target.value)}
+                    placeholder="Nom du client, si vous voulez le noter"
+                    className="app-field mt-2"
+                    aria-label="Nom du client de passage"
+                  />
+                ) : (
+                  <p className="mt-1 text-xs text-muted-foreground">
+                    La vente apparaîtra dans la fiche de ce client.
+                  </p>
+                )}
               </div>
 
               <div>
