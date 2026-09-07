@@ -25,6 +25,7 @@ import {
 } from "../utils/formulas";
 import { VariantBadge } from "./shared/VariantBadge";
 import { StatBar } from "./shared/StatBar";
+import { moduleMasque, usePersonnalisation } from "../lib/personnalisation";
 import { DataList } from "./shared/DataList";
 import { useNotificationPrefs } from "../lib/notificationPrefs";
 import type { Database } from "../lib/database.types";
@@ -69,6 +70,18 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
 }) => {
   // Réglage « Alertes de trésorerie » (Paramètres → Notifications).
   const [notificationPrefs] = useNotificationPrefs();
+
+  /**
+   * Les modules que cette boutique a retirés.
+   *
+   * Masquer l'onglet ne suffisait pas : une boutique qui vend
+   * uniquement au comptoir voyait toujours une tuile « Commandes » à
+   * zéro sur son tableau de bord, et un raccourci vers un écran
+   * devenu inaccessible. Un module retiré doit disparaître partout,
+   * sinon il n'est pas retiré — il est seulement caché du menu.
+   */
+  const perso = usePersonnalisation();
+  const montre = (cle: string) => !moduleMasque(perso, cle);
 
   const lowStockProducts = products
     .filter((p) => p.stockActuel <= p.seuilAlerte)
@@ -205,16 +218,22 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             icon: <ArrowDownRight className="h-3.5 w-3.5" />,
             onClick: () => onNavigateTab("depenses"),
           },
-          {
-            key: "commandes",
-            label: "Commandes",
-            value: `${orders.length}`,
-            hint:
-              pendingOrders.length > 0 ? `${pendingOrders.length} en cours` : "aucune en cours",
-            alert: pendingOrders.length > 0,
-            icon: <ShoppingBag className="h-3.5 w-3.5" />,
-            onClick: () => onNavigateTab("commandes"),
-          },
+          ...(montre("commandes")
+            ? [
+                {
+                  key: "commandes",
+                  label: "Commandes",
+                  value: `${orders.length}`,
+                  hint:
+                    pendingOrders.length > 0
+                      ? `${pendingOrders.length} en cours`
+                      : "aucune en cours",
+                  alert: pendingOrders.length > 0,
+                  icon: <ShoppingBag className="h-3.5 w-3.5" />,
+                  onClick: () => onNavigateTab("commandes"),
+                },
+              ]
+            : []),
           {
             key: "stock",
             label: "Stock",
@@ -319,7 +338,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           </div>
 
           {/* Pending Orders */}
-          {pendingOrders.length > 0 && (
+          {montre("commandes") && pendingOrders.length > 0 && (
             <div className="app-card overflow-hidden">
               <div className="flex items-center justify-between border-b border-border px-4 py-3">
                 <h3 className="app-section-title">
@@ -348,7 +367,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           )}
 
           {/* Unpaid Orders */}
-          {unpaidOrders.length > 0 && (
+          {montre("commandes") && unpaidOrders.length > 0 && (
             <div className="app-card overflow-hidden">
               <div className="flex items-center justify-between border-b border-border px-4 py-3">
                 <h3 className="app-section-title">

@@ -33,6 +33,7 @@ import { useNotificationPrefs } from "./lib/notificationPrefs";
 import {
   contextePersonnalisation,
   lirePersonnalisation,
+  moduleMasque,
   type Personnalisation,
 } from "./lib/personnalisation";
 
@@ -186,6 +187,20 @@ function AppInner() {
     }
     return table;
   }, [storeData.products]);
+
+  /**
+   * Un onglet retiré ne doit pas rester ouvert.
+   *
+   * Le propriétaire peut retirer un module alors qu'il en regarde
+   * l'écran, ou arriver dessus par un raccourci posé avant le
+   * retrait. Sans ce retour au tableau de bord, il resterait devant
+   * un écran que son menu ne sait plus rouvrir.
+   */
+  useEffect(() => {
+    if (moduleMasque(personnalisation, activeTab)) {
+      setActiveTab("dashboard");
+    }
+  }, [personnalisation, activeTab]);
 
   // Préférences d'affichage des alertes (Paramètres → Notifications).
   const [notificationPrefs] = useNotificationPrefs();
@@ -1301,7 +1316,13 @@ function AppInner() {
                   onAddClient={storeData.addClient}
                   onUpdateClient={storeData.updateClient}
                   onDeleteClient={storeData.deleteClient}
-                  onNavigateToOrders={() => setActiveTab("commandes")}
+                  onNavigateToOrders={
+                    // Le raccourci disparaît avec le module : mieux vaut
+                    // pas de bouton qu'un bouton qui ne mène nulle part.
+                    moduleMasque(personnalisation, "commandes")
+                      ? undefined
+                      : () => setActiveTab("commandes")
+                  }
                   champsPersonnalises={storeData.customFields}
                 />
               )}
