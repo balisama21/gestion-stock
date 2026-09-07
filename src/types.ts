@@ -94,6 +94,13 @@ export interface Expense {
   montant: number;
   note: string;
   impactTresorerieGlobale: number;
+  // Ajoutes a l etape 9. Le poste dit a quoi l argent a servi, le
+  // prestataire a qui il a ete verse. Nuls = depense non rangee, ce
+  // qui est le cas de toutes celles enregistrees avant.
+  categoryId?: string | null;
+  providerId?: string | null;
+  /** Le chemin de la photo du recu dans le seau documents. */
+  justificatif?: string | null;
 }
 
 export interface CapitalApport {

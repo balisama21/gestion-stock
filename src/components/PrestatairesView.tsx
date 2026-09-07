@@ -8,6 +8,7 @@ import {
   Plus,
   Search,
   Trash2,
+  Wallet,
   Wrench,
   X,
 } from "lucide-react";
@@ -30,6 +31,18 @@ type ProviderServiceInsert = Database["public"]["Tables"]["provider_services"]["
 interface PrestatairesViewProps {
   providers: Provider[];
   providerServices: ProviderService[];
+  /**
+   * Les dépenses de la boutique. Celles qui le désignent disent enfin
+   * ce que ce prestataire a coûté.
+   */
+  depenses: {
+    id: string;
+    numero: string;
+    date: string;
+    montant: number;
+    note: string;
+    providerId?: string | null;
+  }[];
   onAddProvider: (
     data: Omit<ProviderInsert, "store_id" | "created_by">,
   ) => Promise<{ provider: Provider | null; error: string | null }>;
@@ -126,16 +139,16 @@ const depuisPrestataire = (p: Provider) => ({
  * de ce qu'il facture ne passe donc par les achats, et sa fiche ne
  * montre ni marchandise ni entrée en stock.
  *
- * Ce que l'écran ne montre pas encore : l'argent versé au prestataire.
- * Une dépense n'a en base aucun lien vers lui — ni colonne, ni nom. Le
- * rattachement suppose de toucher au formulaire de dépense, c'est-à-dire
- * au chemin de l'argent, ce qui relève de l'étape des Dépenses. D'ici
- * là, la fiche dit ce qu'elle sait : qui il est, ce qu'il fait, et à
- * quel tarif.
+ * Sa fiche dit maintenant ce qu'il a coûté. Le lien manquait : une
+ * dépense n'avait aucune colonne vers lui, et le rattachement demandait
+ * de toucher au formulaire de dépense. C'est fait, et les dépenses qui
+ * le désignent remontent ici — les autres, non : une dépense sans
+ * prestataire n'est pas la sienne, même si le nom apparaît dans la note.
  */
 export const PrestatairesView: React.FC<PrestatairesViewProps> = ({
   providers,
   providerServices,
+  depenses,
   onAddProvider,
   onUpdateProvider,
   onDeleteProvider,
@@ -284,6 +297,26 @@ export const PrestatairesView: React.FC<PrestatairesViewProps> = ({
   };
 
   const servicesDuPrestataire = selection ? (servicesParPrestataire[selection.id] ?? []) : [];
+
+  /**
+   * Ce qui a été payé à chaque prestataire.
+   *
+   * Seules les dépenses qui le DÉSIGNENT comptent. Rapprocher par le
+   * nom écrit dans la note donnerait des totaux qui bougent au gré des
+   * fautes de frappe — mieux vaut un chiffre qui manque qu'un chiffre
+   * qui invente.
+   */
+  const depensesParPrestataire = useMemo(() => {
+    const table: Record<string, typeof depenses> = {};
+    for (const d of depenses) {
+      if (!d.providerId) continue;
+      (table[d.providerId] ??= []).push(d);
+    }
+    return table;
+  }, [depenses]);
+
+  const sesDepenses = selection ? (depensesParPrestataire[selection.id] ?? []) : [];
+  const totalVerse = sesDepenses.reduce((n, d) => n + d.montant, 0);
 
   const champ = (cle: keyof typeof FORMULAIRE_VIDE) => ({
     value: formulaire[cle],
@@ -773,6 +806,38 @@ export const PrestatairesView: React.FC<PrestatairesViewProps> = ({
               )}
             </div>
 
+            {/* ── Ce qu'il a coûté ── */}
+            <div className="app-card p-5">
+              <h4 className="mb-1 flex items-center gap-2 text-sm font-bold text-foreground">
+                <Wallet className="h-4 w-4 t-success" aria-hidden="true" />
+                Dépenses ({sesDepenses.length})
+              </h4>
+              <p className="mb-4 text-xs text-muted-foreground">
+                {sesDepenses.length > 0
+                  ? `${formatCurrency(totalVerse)} versés au total.`
+                  : "Aucune dépense ne lui est rattachée. Choisissez-le dans le formulaire de dépense pour que ses montants remontent ici."}
+              </p>
+
+              {sesDepenses.length > 0 && (
+                <div className="app-list">
+                  {sesDepenses.map((d) => (
+                    <div key={d.id} className="app-list-row justify-between gap-3">
+                      <span className="min-w-0 flex-1">
+                        <span className="app-list-primary block font-mono">{d.numero}</span>
+                        <span className="app-list-secondary block">
+                          {new Date(d.date).toLocaleDateString("fr-FR")}
+                          {d.note ? ` · ${d.note}` : ""}
+                        </span>
+                      </span>
+                      <span className="app-list-amount tabular-nums">
+                        {formatCurrency(d.montant)}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
             {/* ── Prestations ── */}
             <div className="app-card p-5">
               <h4 className="mb-1 flex items-center gap-2 text-sm font-bold text-foreground">
@@ -780,8 +845,7 @@ export const PrestatairesView: React.FC<PrestatairesViewProps> = ({
                 Prestations ({servicesDuPrestataire.length})
               </h4>
               <p className="mb-4 text-xs text-muted-foreground">
-                Ce que ce prestataire sait faire, et à quel prix. L&apos;argent qui lui est versé
-                passe par les dépenses ; le lien entre les deux viendra avec cet écran-là.
+                Ce que ce prestataire sait faire, et à quel prix.
               </p>
 
               {servicesDuPrestataire.length > 0 && (

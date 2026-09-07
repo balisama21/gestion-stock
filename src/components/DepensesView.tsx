@@ -20,6 +20,7 @@ import { formatCurrency, formatDateLocale } from "../utils/formulas";
 import { PageHeader } from "./shared/PageHeader";
 import { FilterBar, FilterField } from "./shared/FilterBar";
 import { DataList } from "./shared/DataList";
+import { adresseDocument, envoyerFichier, reduireImage } from "../lib/stockageFichiers";
 import { StatCol } from "./shared/StatBar";
 import { Modal } from "./shared/Modal";
 import {
@@ -52,6 +53,8 @@ interface DepensesViewProps {
   postes: { id: string; nom: string; parent_id: string | null }[];
   /** Les prestataires, pour dire à qui la dépense a été payée. */
   prestataires: { id: string; nom: string }[];
+  /** La boutique active : les justificatifs sont rangés sous elle. */
+  storeId: string | null;
   onAddExpense: (expense: {
     date: string;
     vendeur: string;
@@ -60,6 +63,7 @@ interface DepensesViewProps {
     note: string;
     category_id?: string | null;
     provider_id?: string | null;
+    justificatif?: string | null;
   }) => void;
   onEditExpense?: (updatedExpense: Expense) => void;
   onDeleteExpense?: (expenseId: string) => void;
@@ -72,6 +76,7 @@ export const DepensesView: React.FC<DepensesViewProps> = ({
   settings,
   postes,
   prestataires,
+  storeId,
   onAddExpense,
   onEditExpense,
   onDeleteExpense,
@@ -107,6 +112,35 @@ export const DepensesView: React.FC<DepensesViewProps> = ({
   const [note, setNote] = useState("");
   const [poste, setPoste] = useState("");
   const [prestataire, setPrestataire] = useState("");
+  const [justificatif, setJustificatif] = useState("");
+  const [envoiEnCours, setEnvoiEnCours] = useState(false);
+  const [erreurEnvoi, setErreurEnvoi] = useState<string | null>(null);
+
+  /**
+   * La photo du reçu.
+   *
+   * Elle est réduite avant d'être envoyée : un commerçant photographie
+   * sa facture d'électricité avec son téléphone, et cinq mégaoctets par
+   * dépense rempliraient son forfait pour rien. Le seau « documents »
+   * est privé — l'image ne s'ouvre que par une adresse signée, valable
+   * une heure.
+   */
+  const envoyerJustificatif = async (fichier: File | undefined) => {
+    if (!fichier || !storeId) return;
+    setEnvoiEnCours(true);
+    setErreurEnvoi(null);
+    const reduit = await reduireImage(fichier);
+    const { chemin, error } = await envoyerFichier("documents", storeId, "justificatifs", reduit);
+    setEnvoiEnCours(false);
+    if (error) setErreurEnvoi(error);
+    else setJustificatif(chemin ?? "");
+  };
+
+  /** Le justificatif s'ouvre dans un onglet, le temps de le lire. */
+  const ouvrirJustificatif = async (chemin: string) => {
+    const { url } = await adresseDocument(chemin);
+    if (url) window.open(url, "_blank", "noopener");
+  };
 
   const todayStr = useMemo(() => new Date().toISOString().split("T")[0], []);
   const currentMonthStr = useMemo(() => todayStr.slice(0, 7), [todayStr]);
@@ -123,11 +157,13 @@ export const DepensesView: React.FC<DepensesViewProps> = ({
       note: note.trim(),
       category_id: poste || null,
       provider_id: prestataire || null,
+      justificatif: justificatif || null,
     });
 
     setNote("");
     setPoste("");
     setPrestataire("");
+    setJustificatif("");
     setIsModalOpen(false);
   };
 
@@ -347,6 +383,22 @@ export const DepensesView: React.FC<DepensesViewProps> = ({
               { label: "Vendeur", value: e.vendeur },
               { label: "Type", value: e.type },
               { label: "Note", value: e.note || "-", hideIfEmpty: true },
+              ...(e.justificatif
+                ? [
+                    {
+                      label: "Reçu",
+                      value: (
+                        <button
+                          type="button"
+                          onClick={() => ouvrirJustificatif(e.justificatif as string)}
+                          className="font-medium t-success hover:underline"
+                        >
+                          Ouvrir la photo
+                        </button>
+                      ),
+                    },
+                  ]
+                : []),
               { label: "Montant", value: formatCurrency(e.montant) },
               {
                 label: "Effet sur la trésorerie",
@@ -809,6 +861,36 @@ export const DepensesView: React.FC<DepensesViewProps> = ({
               </p>
             )}
           </div>
+
+          {storeId && (
+            <div>
+              <label
+                htmlFor="dep-recu"
+                className="mb-1.5 block text-sm font-medium text-foreground"
+              >
+                Photo du reçu (optionnel)
+              </label>
+              <input
+                id="dep-recu"
+                type="file"
+                accept="image/*"
+                capture="environment"
+                className="app-field"
+                onChange={(e) => envoyerJustificatif(e.target.files?.[0])}
+              />
+              {envoiEnCours && (
+                <p className="mt-1 text-xs text-muted-foreground">Envoi en cours…</p>
+              )}
+              {justificatif && !envoiEnCours && (
+                <p className="mt-1 text-xs t-success">Reçu joint.</p>
+              )}
+              {erreurEnvoi && (
+                <p role="alert" className="mt-1 text-xs t-danger">
+                  {erreurEnvoi}
+                </p>
+              )}
+            </div>
+          )}
 
           {prestataires.length > 0 && (
             <div>

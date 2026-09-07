@@ -361,6 +361,9 @@ function AppInner() {
         montant: e.montant,
         note: e.note || "",
         impactTresorerieGlobale: e.impact_tresorerie_globale,
+        categoryId: e.category_id,
+        providerId: e.provider_id,
+        justificatif: e.justificatif,
       })),
     [storeData.expenses],
   );
@@ -1321,6 +1324,7 @@ function AppInner() {
                     .filter((c) => (c.usage ?? "produit") === "depense")
                     .map((c) => ({ id: c.id, nom: c.nom, parent_id: c.parent_id }))}
                   prestataires={storeData.providers.map((p) => ({ id: p.id, nom: p.nom }))}
+                  storeId={workspace.activeStore?.id ?? null}
                   onAddExpense={handleAddExpense}
                   onEditExpense={depensesScope === "all" ? handleEditExpense : undefined}
                   onDeleteExpense={depensesScope === "all" ? handleDeleteExpense : undefined}
@@ -1422,6 +1426,7 @@ function AppInner() {
                 <PrestatairesView
                   providers={storeData.providers}
                   providerServices={storeData.providerServices}
+                  depenses={expenses}
                   onAddProvider={storeData.addProvider}
                   onUpdateProvider={storeData.updateProvider}
                   onDeleteProvider={storeData.deleteProvider}
