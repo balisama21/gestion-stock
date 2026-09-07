@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from "react";
+import React, { useState, useEffect, useMemo, lazy, Suspense } from "react";
 import { Zap, X } from "lucide-react";
 import {
   LocaleSetting,
@@ -18,29 +18,11 @@ import { getProductLabel } from "./utils/formulas";
 import { getModuleScope, isFieldVisible, hasModuleAction } from "./lib/permissions";
 import { downloadExcelWorkbook } from "./utils/exportExcel";
 import { Header } from "./components/Header";
-import { DashboardView } from "./components/DashboardView";
-import { CapitalView } from "./components/CapitalView";
-import { ProduitsView } from "./components/ProduitsView";
-import { AchatsView } from "./components/AchatsView";
-import { DevisView } from "./components/DevisView";
-import { VentesView } from "./components/VentesView";
-import { VendeursView } from "./components/VendeursView";
-import { DepensesView } from "./components/DepensesView";
-import { StatistiquesView } from "./components/StatistiquesView";
-import { HistoriqueView } from "./components/HistoriqueView";
-import { RapportsView } from "./components/RapportsView";
-import { ParametresView } from "./components/ParametresView";
-import { CommandesView } from "./components/CommandesView";
-import { ClientsView } from "./components/ClientsView";
-import { FournisseursView } from "./components/FournisseursView";
-import { PrestatairesView } from "./components/PrestatairesView";
-import { PaiementsARecevoirView } from "./components/PaiementsARecevoirView";
-import { AuthPage } from "./components/AuthPage";
 import { CreateStoreOnboarding } from "./components/CreateStoreOnboarding";
 import { StoreLockedScreen } from "./components/StoreLockedScreen";
-import { MyActivityView } from "./components/MyActivityView";
 import { PinLockScreen } from "./components/PinLockScreen";
 import { AppLoader } from "./components/shared/AppLoader";
+import { LimiteChargement } from "./components/shared/LimiteChargement";
 import { APP_NAME, APP_TAGLINE } from "./lib/appConfig";
 import { useAuth } from "./hooks/useAuth";
 import { useSessionTimeout } from "./hooks/useSessionTimeout";
@@ -53,6 +35,94 @@ import {
   lirePersonnalisation,
   type Personnalisation,
 } from "./lib/personnalisation";
+
+/**
+ * Les écrans internes arrivent à la demande.
+ *
+ * Ils étaient tous rassemblés dans un seul fichier de près d'un
+ * mégaoctet : un visiteur qui lisait la page d'accueil téléchargeait
+ * l'écran des paramètres, celui des rapports et celui des commandes,
+ * et un commerçant qui ouvrait l'application pour enregistrer une vente
+ * téléchargeait les vingt autres écrans avec elle. Sur une connexion
+ * mobile, cela se paie en secondes à chaque première visite.
+ *
+ * Ne restent chargés d'emblée que la coquille, l'en-tête et la page
+ * d'accueil — ce qu'on voit avant même de savoir qui regarde.
+ */
+// La page d accueil et le formulaire de connexion ne servent qu une
+// fois : un commercant deja connecte n a aucune raison de les porter
+// dans chaque chargement.
+const AuthPage = lazy(() => import("./components/AuthPage").then((m) => ({ default: m.AuthPage })));
+const DashboardView = lazy(() =>
+  import("./components/DashboardView").then((m) => ({ default: m.DashboardView })),
+);
+const CapitalView = lazy(() =>
+  import("./components/CapitalView").then((m) => ({ default: m.CapitalView })),
+);
+const ProduitsView = lazy(() =>
+  import("./components/ProduitsView").then((m) => ({ default: m.ProduitsView })),
+);
+const AchatsView = lazy(() =>
+  import("./components/AchatsView").then((m) => ({ default: m.AchatsView })),
+);
+const DevisView = lazy(() =>
+  import("./components/DevisView").then((m) => ({ default: m.DevisView })),
+);
+const VentesView = lazy(() =>
+  import("./components/VentesView").then((m) => ({ default: m.VentesView })),
+);
+const VendeursView = lazy(() =>
+  import("./components/VendeursView").then((m) => ({ default: m.VendeursView })),
+);
+const DepensesView = lazy(() =>
+  import("./components/DepensesView").then((m) => ({ default: m.DepensesView })),
+);
+const StatistiquesView = lazy(() =>
+  import("./components/StatistiquesView").then((m) => ({ default: m.StatistiquesView })),
+);
+const HistoriqueView = lazy(() =>
+  import("./components/HistoriqueView").then((m) => ({ default: m.HistoriqueView })),
+);
+const RapportsView = lazy(() =>
+  import("./components/RapportsView").then((m) => ({ default: m.RapportsView })),
+);
+const ParametresView = lazy(() =>
+  import("./components/ParametresView").then((m) => ({ default: m.ParametresView })),
+);
+const CommandesView = lazy(() =>
+  import("./components/CommandesView").then((m) => ({ default: m.CommandesView })),
+);
+const ClientsView = lazy(() =>
+  import("./components/ClientsView").then((m) => ({ default: m.ClientsView })),
+);
+const FournisseursView = lazy(() =>
+  import("./components/FournisseursView").then((m) => ({ default: m.FournisseursView })),
+);
+const PrestatairesView = lazy(() =>
+  import("./components/PrestatairesView").then((m) => ({ default: m.PrestatairesView })),
+);
+const PaiementsARecevoirView = lazy(() =>
+  import("./components/PaiementsARecevoirView").then((m) => ({
+    default: m.PaiementsARecevoirView,
+  })),
+);
+const MyActivityView = lazy(() =>
+  import("./components/MyActivityView").then((m) => ({ default: m.MyActivityView })),
+);
+
+/**
+ * Le temps qu'un écran arrive.
+ *
+ * Volontairement discret : le morceau pèse quelques dizaines de
+ * kilo-octets et arrive le plus souvent en un clin d'œil. Un grand
+ * écran de chargement à chaque changement d'onglet ferait paraître
+ * l'application plus lente qu'elle ne l'est.
+ */
+const EcranQuiArrive = () => (
+  <div className="flex items-center justify-center px-4 py-16">
+    <span className="text-sm text-muted-foreground">Chargement…</span>
+  </div>
+);
 
 // ─── AppInner : rendered inside both authContext & workspaceContext providers ───
 function AppInner() {
@@ -1020,271 +1090,280 @@ function AppInner() {
         />
 
         <main className="app-container flex-1 py-4 md:py-6 pb-24 lg:pb-6">
-          {activeTab === "dashboard" &&
-            (hasDashboardAccess ? (
-              <DashboardView
-                capital={computedCapital}
-                products={products}
-                sales={sales}
-                purchases={purchases}
-                expenses={expenses}
-                sellers={computedSellers}
-                orders={storeData.orders}
-                clients={storeData.clients}
-                locale={locale}
-                onNavigateTab={setActiveTab}
-                showPrixAchat={
-                  produitsVisibleFields === null || produitsVisibleFields.includes("prix_achat")
-                }
-              />
-            ) : (
-              <MyActivityView
-                variant="dashboard"
-                storeName={workspace.activeStore?.name || "cette boutique"}
-                mySellerData={mySellerData}
-              />
-            ))}
-          {activeTab === "capital" &&
-            (hasCapitalAccess ? (
-              <CapitalView
-                capital={computedCapital}
-                apports={apports}
-                locale={locale}
-                onUpdateCapitalInitial={handleUpdateCapitalInitial}
-                onUpdateSeuil={handleUpdateSeuil}
-                onAddApport={handleAddApport}
-                onDeleteApport={handleDeleteApport}
-                onDownloadExcel={handleDownloadExcel}
-              />
-            ) : (
-              <MyActivityView
-                variant="capital"
-                storeName={workspace.activeStore?.name || "cette boutique"}
-                mySellerData={mySellerData}
-              />
-            ))}
-          {activeTab === "produits" && (
-            <ProduitsView
-              products={products}
-              locale={locale}
-              onAddProduct={handleAddProduct}
-              onEditProduct={storeData.updateProduct}
-              onDeleteProducts={storeData.deleteProducts}
-              categories={storeData.categories}
-              fournisseurs={storeData.suppliers}
-              productImages={storeData.productImages}
-              storeId={workspace.activeStore?.id ?? null}
-              onEditProductDetails={storeData.updateProductDetails}
-              onAddProductImage={storeData.addProductImage}
-              onDeleteProductImage={storeData.deleteProductImage}
-              visibleFields={produitsVisibleFields}
-              allowedActions={produitsActions}
-            />
-          )}
-          {activeTab === "achats" && (
-            <AchatsView
-              purchases={purchases}
-              products={products}
-              locale={locale}
-              settings={storeSettings}
-              onAddPurchase={handleAddPurchase}
-              visibleFields={achatsVisibleFields}
-            />
-          )}
-          {activeTab === "devis" && (
-            <DevisView
-              quotes={storeData.quotes}
-              quoteItems={storeData.quoteItems}
-              clients={storeData.clients}
-              products={products}
-              onAddQuote={storeData.addQuote}
-              onUpdateQuote={storeData.updateQuote}
-              onSetStatus={storeData.setQuoteStatus}
-              onDeleteQuote={storeData.deleteQuote}
-              settings={storeSettings}
-              onTransformerEnVente={handleTransformerEnVente}
-              peutCreer={!devisActions || devisActions.includes("create")}
-              peutModifier={!devisActions || devisActions.includes("edit")}
-              peutSupprimer={!devisActions || devisActions.includes("delete")}
-            />
-          )}
-          {activeTab === "ventes" && (
-            <VentesView
-              sales={visibleSales}
-              products={products}
-              clients={storeData.clients}
-              sellers={computedSellers}
-              locale={locale}
-              settings={storeSettings}
-              onAddSaleTicket={handleAddSaleTicket}
-              panierInitial={panierDepuisDevis}
-              onPanierRepris={() => setPanierDepuisDevis(null)}
-              onVenteEnregistree={handleVenteEnregistree}
-              onEditSale={hasVentesAccess ? handleEditSale : undefined}
-              onDeleteSale={hasVentesAccess ? handleDeleteSale : undefined}
-              restrictedToOwnSales={!hasVentesAccess}
-              visibleFields={ventesVisibleFields}
-            />
-          )}
-          {activeTab === "vendeurs" && (
-            <VendeursView
-              sellers={computedSellers}
-              sales={sales}
-              expenses={expenses}
-              purchases={purchases}
-              locale={locale}
-              settings={storeSettings}
-              products={products}
-              onAddSeller={(nom) => {
-                // Les vendeurs sont ajoutés via invitations dans Paramètres > Équipe
-                // Rediriger vers paramètres si le nom est vide ou si on veut inviter
-                setActiveTab("settings");
-              }}
-              onDeleteSeller={handleDeleteSeller}
-              onEditSale={handleEditSale}
-              onDeleteSale={handleDeleteSale}
-              onEditExpense={handleEditExpense}
-              onDeleteExpense={handleDeleteExpense}
-            />
-          )}
-          {activeTab === "depenses" && (
-            <DepensesView
-              expenses={visibleExpenses}
-              sellers={computedSellers}
-              locale={locale}
-              settings={storeSettings}
-              onAddExpense={handleAddExpense}
-              onEditExpense={depensesScope === "all" ? handleEditExpense : undefined}
-              onDeleteExpense={depensesScope === "all" ? handleDeleteExpense : undefined}
-            />
-          )}
-          {activeTab === "rapports" && (
-            <RapportsView
-              sales={visibleSales}
-              purchases={purchases}
-              expenses={visibleExpenses}
-              products={products}
-              locale={locale}
-            />
-          )}
-          {activeTab === "statistiques" && (
-            <StatistiquesView
-              sales={visibleSales}
-              products={products}
-              sellers={
-                workspace.isOwner ||
-                getModuleScope(workspace.memberPermissionsDetailed ?? {}, "statistiques") === "all"
-                  ? computedSellers
-                  : computedSellers.filter((s) => s.nom === myName)
-              }
-              expenses={visibleExpenses}
-              locale={locale}
-            />
-          )}
-          {activeTab === "historique" && (
-            <HistoriqueView
-              purchases={historiquePurchases}
-              sales={visibleSales}
-              expenses={visibleExpenses}
-              apports={historiqueApports}
-              orders={visibleOrders}
-              locale={locale}
-              products={products}
-            />
-          )}
-          {activeTab === "commandes" && (
-            <CommandesView
-              orders={visibleOrders}
-              clients={storeData.clients}
-              products={storeData.products}
-              isOwner={workspace.isOwner}
-              onAddOrder={storeData.addOrder}
-              onUpdateOrder={handleUpdateOrder}
-              onAddPayment={storeData.addPaymentToOrder}
-              onRefundOrder={storeData.refundOrder}
-              onDeleteOrder={storeData.deleteOrder}
-            />
-          )}
-          {activeTab === "paiements" && (
-            <PaiementsARecevoirView
-              sales={visibleSales}
-              orders={visibleOrders}
-              payments={visiblePayments}
-              products={products}
-              onAddPaymentToSale={storeData.addPaymentToSale}
-              onAddPaymentToOrder={storeData.addPaymentToOrder}
-            />
-          )}
-          {activeTab === "clients" && (
-            <ClientsView
-              clients={visibleClients}
-              orders={storeData.orders}
-              sales={visibleSales}
-              payments={visiblePayments}
-              onAddClient={storeData.addClient}
-              onUpdateClient={storeData.updateClient}
-              onDeleteClient={storeData.deleteClient}
-              onNavigateToOrders={() => setActiveTab("commandes")}
-              champsPersonnalises={storeData.customFields}
-            />
-          )}
-          {activeTab === "fournisseurs" && (
-            <FournisseursView
-              suppliers={storeData.suppliers}
-              purchases={purchases}
-              products={products}
-              onAddSupplier={storeData.addSupplier}
-              onUpdateSupplier={storeData.updateSupplier}
-              onDeleteSupplier={storeData.deleteSupplier}
-              onAddSupplierPayment={storeData.addSupplierPayment}
-              champsPersonnalises={storeData.customFields}
-              peutCreer={!fournisseursActions || fournisseursActions.includes("create")}
-              peutModifier={!fournisseursActions || fournisseursActions.includes("edit")}
-              peutSupprimer={!fournisseursActions || fournisseursActions.includes("delete")}
-            />
-          )}
-          {activeTab === "prestataires" && (
-            <PrestatairesView
-              providers={storeData.providers}
-              providerServices={storeData.providerServices}
-              onAddProvider={storeData.addProvider}
-              onUpdateProvider={storeData.updateProvider}
-              onDeleteProvider={storeData.deleteProvider}
-              onAddService={storeData.addProviderService}
-              onDeleteService={storeData.deleteProviderService}
-              champsPersonnalises={storeData.customFields}
-              peutCreer={!prestatairesActions || prestatairesActions.includes("create")}
-              peutModifier={!prestatairesActions || prestatairesActions.includes("edit")}
-              peutSupprimer={!prestatairesActions || prestatairesActions.includes("delete")}
-            />
-          )}
-          {activeTab === "settings" && (
-            <ParametresView
-              settings={storeSettings}
-              personnalisation={personnalisation}
-              onSavePersonnalisation={handleSavePersonnalisation}
-              categories={storeData.categories}
-              compteParCategorie={compteParCategorie}
-              onAddCategorie={storeData.addCategorie}
-              onUpdateCategorie={storeData.updateCategorie}
-              onDeleteCategorie={storeData.deleteCategorie}
-              champsPersonnalises={storeData.customFields}
-              onAddChampPersonnalise={storeData.addCustomField}
-              onUpdateChampPersonnalise={storeData.updateCustomField}
-              onDeleteChampPersonnalise={storeData.deleteCustomField}
-              onUpdateSettings={handleUpdateSettings}
-              sellers={computedSellers}
-              onDeleteSeller={handleDeleteSeller}
-              locale={locale}
-              setLocale={setLocale}
-              capital={computedCapital}
-              onDownloadExcel={handleDownloadExcel}
-              theme={theme}
-              setTheme={setTheme}
-              isPlatformAdmin={profile?.is_platform_admin ?? false}
-              currentUserId={user?.id ?? undefined}
-            />
-          )}
+          {/* La cle remet la limite a neuf a chaque changement d onglet.
+              Sans elle, un ecran qui a echoue laisse son message en place
+              meme apres avoir choisi un autre onglet, et l utilisateur
+              croit toute l application en panne. */}
+          <LimiteChargement key={activeTab}>
+            <Suspense fallback={<EcranQuiArrive />}>
+              {activeTab === "dashboard" &&
+                (hasDashboardAccess ? (
+                  <DashboardView
+                    capital={computedCapital}
+                    products={products}
+                    sales={sales}
+                    purchases={purchases}
+                    expenses={expenses}
+                    sellers={computedSellers}
+                    orders={storeData.orders}
+                    clients={storeData.clients}
+                    locale={locale}
+                    onNavigateTab={setActiveTab}
+                    showPrixAchat={
+                      produitsVisibleFields === null || produitsVisibleFields.includes("prix_achat")
+                    }
+                  />
+                ) : (
+                  <MyActivityView
+                    variant="dashboard"
+                    storeName={workspace.activeStore?.name || "cette boutique"}
+                    mySellerData={mySellerData}
+                  />
+                ))}
+              {activeTab === "capital" &&
+                (hasCapitalAccess ? (
+                  <CapitalView
+                    capital={computedCapital}
+                    apports={apports}
+                    locale={locale}
+                    onUpdateCapitalInitial={handleUpdateCapitalInitial}
+                    onUpdateSeuil={handleUpdateSeuil}
+                    onAddApport={handleAddApport}
+                    onDeleteApport={handleDeleteApport}
+                    onDownloadExcel={handleDownloadExcel}
+                  />
+                ) : (
+                  <MyActivityView
+                    variant="capital"
+                    storeName={workspace.activeStore?.name || "cette boutique"}
+                    mySellerData={mySellerData}
+                  />
+                ))}
+              {activeTab === "produits" && (
+                <ProduitsView
+                  products={products}
+                  locale={locale}
+                  onAddProduct={handleAddProduct}
+                  onEditProduct={storeData.updateProduct}
+                  onDeleteProducts={storeData.deleteProducts}
+                  categories={storeData.categories}
+                  fournisseurs={storeData.suppliers}
+                  productImages={storeData.productImages}
+                  storeId={workspace.activeStore?.id ?? null}
+                  onEditProductDetails={storeData.updateProductDetails}
+                  onAddProductImage={storeData.addProductImage}
+                  onDeleteProductImage={storeData.deleteProductImage}
+                  visibleFields={produitsVisibleFields}
+                  allowedActions={produitsActions}
+                />
+              )}
+              {activeTab === "achats" && (
+                <AchatsView
+                  purchases={purchases}
+                  products={products}
+                  locale={locale}
+                  settings={storeSettings}
+                  onAddPurchase={handleAddPurchase}
+                  visibleFields={achatsVisibleFields}
+                />
+              )}
+              {activeTab === "devis" && (
+                <DevisView
+                  quotes={storeData.quotes}
+                  quoteItems={storeData.quoteItems}
+                  clients={storeData.clients}
+                  products={products}
+                  onAddQuote={storeData.addQuote}
+                  onUpdateQuote={storeData.updateQuote}
+                  onSetStatus={storeData.setQuoteStatus}
+                  onDeleteQuote={storeData.deleteQuote}
+                  settings={storeSettings}
+                  onTransformerEnVente={handleTransformerEnVente}
+                  peutCreer={!devisActions || devisActions.includes("create")}
+                  peutModifier={!devisActions || devisActions.includes("edit")}
+                  peutSupprimer={!devisActions || devisActions.includes("delete")}
+                />
+              )}
+              {activeTab === "ventes" && (
+                <VentesView
+                  sales={visibleSales}
+                  products={products}
+                  clients={storeData.clients}
+                  sellers={computedSellers}
+                  locale={locale}
+                  settings={storeSettings}
+                  onAddSaleTicket={handleAddSaleTicket}
+                  panierInitial={panierDepuisDevis}
+                  onPanierRepris={() => setPanierDepuisDevis(null)}
+                  onVenteEnregistree={handleVenteEnregistree}
+                  onEditSale={hasVentesAccess ? handleEditSale : undefined}
+                  onDeleteSale={hasVentesAccess ? handleDeleteSale : undefined}
+                  restrictedToOwnSales={!hasVentesAccess}
+                  visibleFields={ventesVisibleFields}
+                />
+              )}
+              {activeTab === "vendeurs" && (
+                <VendeursView
+                  sellers={computedSellers}
+                  sales={sales}
+                  expenses={expenses}
+                  purchases={purchases}
+                  locale={locale}
+                  settings={storeSettings}
+                  products={products}
+                  onAddSeller={(nom) => {
+                    // Les vendeurs sont ajoutés via invitations dans Paramètres > Équipe
+                    // Rediriger vers paramètres si le nom est vide ou si on veut inviter
+                    setActiveTab("settings");
+                  }}
+                  onDeleteSeller={handleDeleteSeller}
+                  onEditSale={handleEditSale}
+                  onDeleteSale={handleDeleteSale}
+                  onEditExpense={handleEditExpense}
+                  onDeleteExpense={handleDeleteExpense}
+                />
+              )}
+              {activeTab === "depenses" && (
+                <DepensesView
+                  expenses={visibleExpenses}
+                  sellers={computedSellers}
+                  locale={locale}
+                  settings={storeSettings}
+                  onAddExpense={handleAddExpense}
+                  onEditExpense={depensesScope === "all" ? handleEditExpense : undefined}
+                  onDeleteExpense={depensesScope === "all" ? handleDeleteExpense : undefined}
+                />
+              )}
+              {activeTab === "rapports" && (
+                <RapportsView
+                  sales={visibleSales}
+                  purchases={purchases}
+                  expenses={visibleExpenses}
+                  products={products}
+                  locale={locale}
+                />
+              )}
+              {activeTab === "statistiques" && (
+                <StatistiquesView
+                  sales={visibleSales}
+                  products={products}
+                  sellers={
+                    workspace.isOwner ||
+                    getModuleScope(workspace.memberPermissionsDetailed ?? {}, "statistiques") ===
+                      "all"
+                      ? computedSellers
+                      : computedSellers.filter((s) => s.nom === myName)
+                  }
+                  expenses={visibleExpenses}
+                  locale={locale}
+                />
+              )}
+              {activeTab === "historique" && (
+                <HistoriqueView
+                  purchases={historiquePurchases}
+                  sales={visibleSales}
+                  expenses={visibleExpenses}
+                  apports={historiqueApports}
+                  orders={visibleOrders}
+                  locale={locale}
+                  products={products}
+                />
+              )}
+              {activeTab === "commandes" && (
+                <CommandesView
+                  orders={visibleOrders}
+                  clients={storeData.clients}
+                  products={storeData.products}
+                  isOwner={workspace.isOwner}
+                  onAddOrder={storeData.addOrder}
+                  onUpdateOrder={handleUpdateOrder}
+                  onAddPayment={storeData.addPaymentToOrder}
+                  onRefundOrder={storeData.refundOrder}
+                  onDeleteOrder={storeData.deleteOrder}
+                />
+              )}
+              {activeTab === "paiements" && (
+                <PaiementsARecevoirView
+                  sales={visibleSales}
+                  orders={visibleOrders}
+                  payments={visiblePayments}
+                  products={products}
+                  onAddPaymentToSale={storeData.addPaymentToSale}
+                  onAddPaymentToOrder={storeData.addPaymentToOrder}
+                />
+              )}
+              {activeTab === "clients" && (
+                <ClientsView
+                  clients={visibleClients}
+                  orders={storeData.orders}
+                  sales={visibleSales}
+                  payments={visiblePayments}
+                  onAddClient={storeData.addClient}
+                  onUpdateClient={storeData.updateClient}
+                  onDeleteClient={storeData.deleteClient}
+                  onNavigateToOrders={() => setActiveTab("commandes")}
+                  champsPersonnalises={storeData.customFields}
+                />
+              )}
+              {activeTab === "fournisseurs" && (
+                <FournisseursView
+                  suppliers={storeData.suppliers}
+                  purchases={purchases}
+                  products={products}
+                  onAddSupplier={storeData.addSupplier}
+                  onUpdateSupplier={storeData.updateSupplier}
+                  onDeleteSupplier={storeData.deleteSupplier}
+                  onAddSupplierPayment={storeData.addSupplierPayment}
+                  champsPersonnalises={storeData.customFields}
+                  peutCreer={!fournisseursActions || fournisseursActions.includes("create")}
+                  peutModifier={!fournisseursActions || fournisseursActions.includes("edit")}
+                  peutSupprimer={!fournisseursActions || fournisseursActions.includes("delete")}
+                />
+              )}
+              {activeTab === "prestataires" && (
+                <PrestatairesView
+                  providers={storeData.providers}
+                  providerServices={storeData.providerServices}
+                  onAddProvider={storeData.addProvider}
+                  onUpdateProvider={storeData.updateProvider}
+                  onDeleteProvider={storeData.deleteProvider}
+                  onAddService={storeData.addProviderService}
+                  onDeleteService={storeData.deleteProviderService}
+                  champsPersonnalises={storeData.customFields}
+                  peutCreer={!prestatairesActions || prestatairesActions.includes("create")}
+                  peutModifier={!prestatairesActions || prestatairesActions.includes("edit")}
+                  peutSupprimer={!prestatairesActions || prestatairesActions.includes("delete")}
+                />
+              )}
+              {activeTab === "settings" && (
+                <ParametresView
+                  settings={storeSettings}
+                  personnalisation={personnalisation}
+                  onSavePersonnalisation={handleSavePersonnalisation}
+                  categories={storeData.categories}
+                  compteParCategorie={compteParCategorie}
+                  onAddCategorie={storeData.addCategorie}
+                  onUpdateCategorie={storeData.updateCategorie}
+                  onDeleteCategorie={storeData.deleteCategorie}
+                  champsPersonnalises={storeData.customFields}
+                  onAddChampPersonnalise={storeData.addCustomField}
+                  onUpdateChampPersonnalise={storeData.updateCustomField}
+                  onDeleteChampPersonnalise={storeData.deleteCustomField}
+                  onUpdateSettings={handleUpdateSettings}
+                  sellers={computedSellers}
+                  onDeleteSeller={handleDeleteSeller}
+                  locale={locale}
+                  setLocale={setLocale}
+                  capital={computedCapital}
+                  onDownloadExcel={handleDownloadExcel}
+                  theme={theme}
+                  setTheme={setTheme}
+                  isPlatformAdmin={profile?.is_platform_admin ?? false}
+                  currentUserId={user?.id ?? undefined}
+                />
+              )}
+            </Suspense>
+          </LimiteChargement>
         </main>
 
         {activityToast && (
@@ -1399,7 +1478,13 @@ export default function App() {
   // voir stores.activation_status/trial_ends_at) ou rejoindre une boutique
   // existante via une invitation.
   if (!user) {
-    return <AuthPage />;
+    return (
+      <LimiteChargement>
+        <Suspense fallback={<AppLoader etape="Ouverture" />}>
+          <AuthPage />
+        </Suspense>
+      </LimiteChargement>
+    );
   }
 
   /*
