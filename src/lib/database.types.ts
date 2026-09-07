@@ -438,6 +438,7 @@ export type Database = {
         Row: {
           adresse: string
           client_id: string | null
+          contenu: Json
           created_at: string
           created_by: string | null
           date_prevue: string | null
@@ -462,6 +463,7 @@ export type Database = {
         Insert: {
           adresse?: string
           client_id?: string | null
+          contenu?: Json
           created_at?: string
           created_by?: string | null
           date_prevue?: string | null
@@ -486,6 +488,7 @@ export type Database = {
         Update: {
           adresse?: string
           client_id?: string | null
+          contenu?: Json
           created_at?: string
           created_by?: string | null
           date_prevue?: string | null
@@ -2022,6 +2025,15 @@ export type Database = {
         }
         Returns: Json
       }
+      avancer_livraison: {
+        Args: {
+          p_delivery_id: string
+          p_montant_encaisse?: number
+          p_motif_echec?: string
+          p_statut: string
+        }
+        Returns: Json
+      }
       can_modify_in_store: {
         Args: { p_owner_id: string; p_store_id: string }
         Returns: boolean
@@ -2136,6 +2148,7 @@ export type Database = {
       delete_products: { Args: { p_product_ids: string[] }; Returns: number }
       delete_purchase: { Args: { p_purchase_id: string }; Returns: undefined }
       delete_sale: { Args: { p_sale_id: string }; Returns: undefined }
+      est_dans_la_boutique: { Args: { p_store_id: string }; Returns: boolean }
       generate_access_code: { Args: never; Returns: string }
       get_auth_role: { Args: never; Returns: string }
       is_platform_admin: { Args: never; Returns: boolean }
