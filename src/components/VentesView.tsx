@@ -6,6 +6,7 @@ import { APP_NAME } from "../lib/appConfig";
 import {
   DollarSign,
   Lock,
+  Minus,
   Plus,
   UserCheck,
   AlertCircle,
@@ -59,6 +60,13 @@ import {
 
 type Client = Database["public"]["Tables"]["clients"]["Row"];
 
+/** Un produit posé dans le panier, avec son prix tel qu'il sera vendu. */
+interface LignePanier {
+  productId: string;
+  quantite: number;
+  prixVenteUnit: number;
+}
+
 interface VentesViewProps {
   sales: Sale[];
   products: Product[];
@@ -67,17 +75,20 @@ interface VentesViewProps {
   sellers: Seller[];
   locale: LocaleSetting;
   settings?: StoreSettings;
-  onAddSale: (sale: {
+  /**
+   * Enregistre un panier : une ligne par produit, reliées par un ticket.
+   * Un seul produit reste un panier d'une ligne — un seul chemin, donc
+   * un seul endroit où le stock et le paiement sont vérifiés.
+   */
+  onAddSaleTicket: (panier: {
     date: string;
-    productId: string;
-    quantite: number;
-    prixVenteUnit: number;
     vendeur: string;
-    clientCredit?: string;
+    clientCredit?: string | null;
     /** La fiche client, quand la vente est rattachée à l'une d'elles. */
     clientId?: string | null;
     montantPaye: number;
-  }) => Promise<{ sale: Sale | null; error: string | null }>;
+    lignes: { productId: string; quantite: number; prixVenteUnit: number }[];
+  }) => Promise<{ ventes: Sale[]; error: string | null }>;
   onEditSale?: (updatedSale: Sale) => void;
   onDeleteSale?: (saleId: string) => void;
   /**
@@ -104,7 +115,7 @@ export const VentesView: React.FC<VentesViewProps> = ({
   sellers,
   locale,
   settings,
-  onAddSale,
+  onAddSaleTicket,
   onEditSale,
   onDeleteSale,
   restrictedToOwnSales,
@@ -130,6 +141,36 @@ export const VentesView: React.FC<VentesViewProps> = ({
 
   // Receipt / Facture Modal state
   const [selectedReceiptSale, setSelectedReceiptSale] = useState<Sale | null>(null);
+  /**
+   * Les lignes du ticket qu'on vient d'encaisser.
+   *
+   * Elles arrivent en retour de l'enregistrement, avant que la liste
+   * `sales` n'ait été rechargée : sans elles, le reçu d'un panier de
+   * trois produits n'en montrerait qu'un pendant une seconde.
+   */
+  const [ventesRecu, setVentesRecu] = useState<Sale[] | null>(null);
+
+  /** Toutes les lignes que le document doit montrer. */
+  const ventesDuTicket = useMemo(() => {
+    if (!selectedReceiptSale) return [];
+    if (ventesRecu && ventesRecu.length > 0) return ventesRecu;
+    const ticket = selectedReceiptSale.ticketId;
+    if (!ticket) return [selectedReceiptSale];
+    const lignes = sales.filter((v) => v.ticketId === ticket);
+    return lignes.length > 0 ? lignes : [selectedReceiptSale];
+  }, [selectedReceiptSale, ventesRecu, sales]);
+
+  /**
+   * Les totaux du document, additionnés sur tout le ticket. Une seule
+   * ligne d'un panier de trois donnerait un total faux sur le reçu.
+   */
+  const totauxRecu = useMemo(() => {
+    const total = ventesDuTicket.reduce((n, v) => n + v.totalVente, 0);
+    const paye = ventesDuTicket.reduce((n, v) => n + v.montantPaye, 0);
+    const du = ventesDuTicket.reduce((n, v) => n + v.soldeDu, 0);
+    const statut = du <= 0 ? "Payé" : paye > 0 ? "Partiel" : "Impayé";
+    return { total, paye, du, statut };
+  }, [ventesDuTicket]);
 
   /**
    * Les préférences d'impression étaient réglables dans Paramètres →
@@ -166,20 +207,18 @@ export const VentesView: React.FC<VentesViewProps> = ({
    * produit, mais le document est écrit pour une liste : le jour où une
    * commande sera facturable, seule cette valeur changera.
    */
-  const lignesDocument = useMemo(() => {
-    if (!selectedReceiptSale) return [];
-    return [
-      {
-        id: selectedReceiptSale.id,
-        designation: getSaleLabel(selectedReceiptSale, products),
-        reference:
-          products.find((p) => p.id === selectedReceiptSale.productId)?.numero ?? null,
-        quantite: selectedReceiptSale.quantite,
-        prixUnitaire: selectedReceiptSale.prixVenteUnit,
-        total: selectedReceiptSale.totalVente,
-      },
-    ];
-  }, [selectedReceiptSale, products]);
+  const lignesDocument = useMemo(
+    () =>
+      ventesDuTicket.map((v) => ({
+        id: v.id,
+        designation: getSaleLabel(v, products),
+        reference: products.find((p) => p.id === v.productId)?.numero ?? null,
+        quantite: v.quantite,
+        prixUnitaire: v.prixVenteUnit,
+        total: v.totalVente,
+      })),
+    [ventesDuTicket, products],
+  );
 
   /**
    * Le document exporté est une capture de l'élément ci-dessous, pas une
@@ -212,9 +251,9 @@ export const VentesView: React.FC<VentesViewProps> = ({
 
   // Seule couleur du document : le statut de règlement, où elle informe.
   const badgeStatut =
-    selectedReceiptSale?.statutCredit === "Payé"
+    totauxRecu.statut === "Payé"
       ? "app-badge-success"
-      : selectedReceiptSale?.statutCredit === "Partiel"
+      : totauxRecu.statut === "Partiel"
         ? "app-badge-warning"
         : "app-badge-danger";
 
@@ -232,6 +271,7 @@ export const VentesView: React.FC<VentesViewProps> = ({
   const [clientChoisi, setClientChoisi] = useState("");
   const [codeSaisi, setCodeSaisi] = useState("");
   const [messageCode, setMessageCode] = useState<string | null>(null);
+  const [panier, setPanier] = useState<LignePanier[]>([]);
   const [montantPaye, setMontantPaye] = useState<number>(0);
 
   /**
@@ -254,7 +294,13 @@ export const VentesView: React.FC<VentesViewProps> = ({
     setSelectedProductId(trouve.id);
     setIsCustomPrice(false);
     setCodeSaisi("");
-    setMessageCode(`${getProductLabel(trouve, products)} sélectionné.`);
+    // Scanner, c'est vouloir vendre : l'article part directement dans le
+    // panier, et un second passage sur le même code l'y compte deux fois.
+    if (ajouterAuPanier(trouve.id, 1, trouve.prixVenteDefaut)) {
+      setMessageCode(`${getProductLabel(trouve, products)} ajouté au panier.`);
+    } else {
+      setMessageCode(null);
+    }
   };
 
   const clientsTries = useMemo(
@@ -285,96 +331,118 @@ export const VentesView: React.FC<VentesViewProps> = ({
 
   // Keep montantPaye updated to Total Vente by default unless partial credit
   const currentProduct = products.find((p) => p.id === selectedProductId);
-  const calculatedTotalVente = quantite * prixVenteUnit;
+  const produitDe = (id: string) => products.find((p) => p.id === id);
+  const totalPanier = panier.reduce((n, l) => n + l.quantite * l.prixVenteUnit, 0);
 
   useEffect(() => {
     if (!clientCredit) {
-      setMontantPaye(calculatedTotalVente);
+      setMontantPaye(totalPanier);
     }
-  }, [calculatedTotalVente, clientCredit]);
+  }, [totalPanier, clientCredit]);
+
+  /**
+   * Poser un produit dans le panier.
+   *
+   * Un produit déjà présent voit sa quantité augmenter au lieu d'ouvrir
+   * une seconde ligne : deux lignes du même produit passeraient chacune
+   * le contrôle de stock alors qu'ensemble elles le dépassent. C'est
+   * aussi le geste attendu quand on scanne deux fois le même article.
+   */
+  const ajouterAuPanier = (productId: string, ajout: number, prix: number) => {
+    const prod = produitDe(productId);
+    if (!prod || ajout <= 0) return false;
+    const existante = panier.find((l) => l.productId === productId);
+    const voulu = (existante?.quantite ?? 0) + ajout;
+    if (voulu > prod.stockDisponible) {
+      setFormError(
+        prod.stockReserve > 0
+          ? `Il ne reste que ${prod.stockDisponible} unité(s) disponible(s) de « ${getProductLabel(prod, products)} » (${prod.stockReserve} réservée(s) par des commandes).`
+          : `Il ne reste que ${prod.stockDisponible} unité(s) de « ${getProductLabel(prod, products)} ».`,
+      );
+      return false;
+    }
+    setFormError(null);
+    setPanier((lignes) =>
+      existante
+        ? lignes.map((l) => (l.productId === productId ? { ...l, quantite: voulu } : l))
+        : [...lignes, { productId, quantite: ajout, prixVenteUnit: prix }],
+    );
+    return true;
+  };
+
+  const changerQuantite = (productId: string, quantite: number) => {
+    const prod = produitDe(productId);
+    if (quantite <= 0) {
+      setPanier((lignes) => lignes.filter((l) => l.productId !== productId));
+      return;
+    }
+    if (prod && quantite > prod.stockDisponible) return;
+    setFormError(null);
+    setPanier((lignes) =>
+      lignes.map((l) => (l.productId === productId ? { ...l, quantite } : l)),
+    );
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (saving) return;
     setFormError(null);
-    if (!selectedProductId || quantite <= 0 || prixVenteUnit < 0 || !vendeur) return;
 
-    const prod = products.find((p) => p.id === selectedProductId);
-
-    // RÈGLE 1 : impossible de vendre plus que le stock disponible
-    // (stock actuel moins ce qui est déjà réservé par des commandes).
-    if (prod) {
-      if (prod.stockDisponible <= 0) {
-        setFormError(
-          prod.stockReserve > 0
-            ? `"${getProductLabel(prod, products)}" n'a plus de stock disponible à la vente directe (${prod.stockReserve} unité(s) réservée(s) par des commandes).`
-            : `"${getProductLabel(prod, products)}" est en rupture de stock.`,
-        );
-        return;
-      }
-      if (Number(quantite) > prod.stockDisponible) {
-        setFormError(
-          `Stock disponible insuffisant. Il reste ${prod.stockDisponible} unité(s) disponible(s)` +
-            (prod.stockReserve > 0
-              ? ` (${prod.stockReserve} unité(s) réservée(s) par des commandes).`
-              : `.`),
-        );
-        return;
-      }
+    if (panier.length === 0) {
+      setFormError("Ajoutez au moins un produit au panier.");
+      return;
     }
-
-    const total = Number(quantite) * Number(prixVenteUnit);
-    const paye = Number(montantPaye);
-    const solde = total - paye;
-    const statut = paye >= total ? "Payé" : paye > 0 ? "Partiel" : "Impayé";
-
-    setSaving(true);
-    const result = await onAddSale({
-      date,
-      productId: selectedProductId,
-      quantite: Number(quantite),
-      prixVenteUnit: Number(prixVenteUnit),
-      vendeur,
-      clientCredit: clientCredit.trim() || undefined,
-      clientId: clientChoisi || null,
-      montantPaye: paye,
-    });
-    setSaving(false);
-    if (result.error || !result.sale) {
-      setFormError(result.error ?? "La vente n'a pas pu être créée.");
+    if (!vendeur) {
+      setFormError("Choisissez le vendeur.");
       return;
     }
 
-    const createdSale: Sale = {
-      id: result.sale.id,
-      numero: result.sale.numero || `V-${result.sale.id.slice(0, 6)}`,
-      date,
-      productId: selectedProductId,
-      designation: prod ? prod.designation : selectedProductId,
-      quantite: Number(quantite),
-      prixVenteUnit: Number(prixVenteUnit),
-      totalVente: total,
-      prixAchatUnitRef: prod ? prod.prixAchat : 0,
-      totalAchatRef: (prod ? prod.prixAchat : 0) * Number(quantite),
-      margeTotale: (Number(prixVenteUnit) - (prod ? prod.prixAchat : 0)) * Number(quantite),
+    // Le stock est revérifié en base, produit par produit et sous verrou.
+    // Ce contrôle-ci sert à répondre tout de suite, pas à faire autorité.
+    for (const ligne of panier) {
+      const prod = produitDe(ligne.productId);
+      if (prod && ligne.quantite > prod.stockDisponible) {
+        setFormError(
+          `Il ne reste que ${prod.stockDisponible} unité(s) de « ${getProductLabel(prod, products)} », et le panier en demande ${ligne.quantite}.`,
+        );
+        return;
+      }
+    }
 
+    const paye = Number(montantPaye);
+    if (paye < 0 || paye > totalPanier) {
+      setFormError("Le montant payé doit être compris entre zéro et le total du panier.");
+      return;
+    }
+
+    setSaving(true);
+    const result = await onAddSaleTicket({
+      date,
       vendeur,
-      clientCredit: clientCredit.trim() || undefined,
+      clientCredit: clientCredit.trim() || null,
       clientId: clientChoisi || null,
       montantPaye: paye,
-      montantRembourse: 0,
-      soldeDu: solde > 0 ? solde : 0,
-      statutCredit: statut,
-    };
+      lignes: panier,
+    });
+    setSaving(false);
+
+    if (result.error || result.ventes.length === 0) {
+      setFormError(result.error ?? "La vente n'a pas pu être enregistrée.");
+      return;
+    }
 
     setIsModalOpen(false);
     setIsCustomPrice(false);
+    setPanier([]);
     setClientCredit("");
     setClientChoisi("");
     setCodeSaisi("");
     setMessageCode(null);
     setFormError(null);
-    setSelectedReceiptSale(createdSale);
+    // Le reçu porte sur tout le ticket : on garde les lignes renvoyées
+    // par la base, la liste `sales` n'étant pas encore rechargée.
+    setVentesRecu(result.ventes);
+    setSelectedReceiptSale(result.ventes[0]);
   };
 
   const [searchQuery, setSearchQuery] = useState("");
@@ -614,7 +682,10 @@ export const VentesView: React.FC<VentesViewProps> = ({
               actions: (
                 <>
                   <button
-                    onClick={() => setSelectedReceiptSale(s)}
+                    onClick={() => {
+                      setVentesRecu(null);
+                      setSelectedReceiptSale(s);
+                    }}
                     className="app-btn-secondary"
                   >
                     <Receipt className="w-4 h-4" />
@@ -815,6 +886,88 @@ export const VentesView: React.FC<VentesViewProps> = ({
             </div>
           </div>
 
+          <button
+            type="button"
+            onClick={() => {
+              if (ajouterAuPanier(selectedProductId, Number(quantite), Number(prixVenteUnit))) {
+                setIsCustomPrice(false);
+                setQuantite(1);
+              }
+            }}
+            disabled={!selectedProductId}
+            className="app-btn-secondary w-full"
+          >
+            <Plus className="h-4 w-4" aria-hidden="true" />
+            Ajouter au panier
+          </button>
+
+          {/* ── Le panier ── */}
+          <div className="border-t border-border pt-4">
+            <h4 className="app-section-title mb-2">
+              Panier {panier.length > 0 ? `(${panier.length})` : ""}
+            </h4>
+            {panier.length === 0 ? (
+              <p className="rounded-xl border border-dashed border-border px-3 py-6 text-center text-sm text-muted-foreground">
+                Scannez un code-barres, ou choisissez un produit ci-dessus et
+                ajoutez-le.
+              </p>
+            ) : (
+              <div className="app-list rounded-xl border border-border">
+                {panier.map((ligne) => {
+                  const prod = produitDe(ligne.productId);
+                  const nom = prod ? getProductLabel(prod, products) : ligne.productId;
+                  return (
+                    <div
+                      key={ligne.productId}
+                      className="app-list-row flex-col items-stretch gap-2"
+                    >
+                      <div className="flex w-full items-center justify-between gap-3">
+                        <span className="app-list-primary min-w-0 flex-1">{nom}</span>
+                        <span className="app-list-amount">
+                          {formatCurrency(ligne.quantite * ligne.prixVenteUnit)}
+                        </span>
+                      </div>
+                      <div className="flex w-full items-center justify-between gap-2">
+                        <span className="flex items-center gap-1">
+                          <button
+                            type="button"
+                            onClick={() => changerQuantite(ligne.productId, ligne.quantite - 1)}
+                            className="app-btn-icon h-7 w-7"
+                            aria-label={`Une unité de moins de ${nom}`}
+                          >
+                            <Minus className="h-3.5 w-3.5" />
+                          </button>
+                          <span className="w-8 text-center font-mono text-sm tabular-nums">
+                            {ligne.quantite}
+                          </span>
+                          <button
+                            type="button"
+                            onClick={() => ajouterAuPanier(ligne.productId, 1, ligne.prixVenteUnit)}
+                            className="app-btn-icon h-7 w-7"
+                            aria-label={`Une unité de plus de ${nom}`}
+                          >
+                            <Plus className="h-3.5 w-3.5" />
+                          </button>
+                        </span>
+                        <span className="app-list-secondary truncate">
+                          {formatCurrency(ligne.prixVenteUnit)} / u
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => changerQuantite(ligne.productId, 0)}
+                          className="app-btn-icon h-7 w-7"
+                          aria-label={`Retirer ${nom} du panier`}
+                        >
+                          <Trash2 className="h-3.5 w-3.5" />
+                        </button>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+
           <div className="space-y-4 border-t border-border pt-4">
             <h4 className="app-section-title">Client et règlement</h4>
 
@@ -872,12 +1025,12 @@ export const VentesView: React.FC<VentesViewProps> = ({
 
           {/* Récapitulatif */}
           <div className="app-statbar grid-cols-2">
-            <StatCol label="Total de la vente" value={formatCurrency(calculatedTotalVente)} />
+            <StatCol label="Total du panier" value={formatCurrency(totalPanier)} />
             <StatCol
               label="Reste à payer"
-              value={formatCurrency(calculatedTotalVente - montantPaye)}
-              alert={calculatedTotalVente - montantPaye > 0}
-              hint={calculatedTotalVente - montantPaye > 0 ? "Vente à crédit" : undefined}
+              value={formatCurrency(totalPanier - montantPaye)}
+              alert={totalPanier - montantPaye > 0}
+              hint={totalPanier - montantPaye > 0 ? "Vente à crédit" : undefined}
             />
           </div>
 
@@ -1051,7 +1204,10 @@ export const VentesView: React.FC<VentesViewProps> = ({
       {selectedReceiptSale && (
         <Modal
           open
-          onClose={() => setSelectedReceiptSale(null)}
+          onClose={() => {
+            setSelectedReceiptSale(null);
+            setVentesRecu(null);
+          }}
           size="2xl"
           icon={<Receipt className="w-4 h-4" />}
           title={receiptMode === "facture" ? "Facture" : "Reçu de caisse"}
@@ -1224,25 +1380,25 @@ export const VentesView: React.FC<VentesViewProps> = ({
                   <div className="space-y-1 text-[10px]">
                     <div className="flex justify-between gap-3 border-b border-slate-900 pb-1 text-[13px] font-bold text-slate-900">
                       <span>TOTAL</span>
-                      <span>{formatCurrency(selectedReceiptSale.totalVente)}</span>
+                      <span>{formatCurrency(totauxRecu.total)}</span>
                     </div>
                     <div className="flex justify-between gap-3 pt-1 text-slate-600">
                       <span>Payé</span>
                       <span className="text-slate-900">
-                        {formatCurrency(selectedReceiptSale.montantPaye)}
+                        {formatCurrency(totauxRecu.paye)}
                       </span>
                     </div>
-                    {selectedReceiptSale.soldeDu > 0 && (
+                    {totauxRecu.du > 0 && (
                       <div className="flex justify-between gap-3 font-semibold text-slate-900">
                         <span>Reste à payer</span>
-                        <span>{formatCurrency(selectedReceiptSale.soldeDu)}</span>
+                        <span>{formatCurrency(totauxRecu.du)}</span>
                       </div>
                     )}
                   </div>
 
                   <div className="mt-3 text-center">
                     <span className={`app-badge ${badgeStatut} text-[9px]`}>
-                      {selectedReceiptSale.statutCredit}
+                      {totauxRecu.statut}
                     </span>
                   </div>
 
@@ -1347,7 +1503,7 @@ export const VentesView: React.FC<VentesViewProps> = ({
                         Statut
                       </p>
                       <span className={`app-badge mt-1 ${badgeStatut}`}>
-                        {selectedReceiptSale.statutCredit}
+                        {totauxRecu.statut}
                       </span>
                     </div>
                   </section>
@@ -1396,13 +1552,13 @@ export const VentesView: React.FC<VentesViewProps> = ({
                       <div className="flex justify-between gap-4 text-slate-500">
                         <dt>Total</dt>
                         <dd className="font-mono tabular-nums text-slate-700">
-                          {formatCurrency(selectedReceiptSale.totalVente)}
+                          {formatCurrency(totauxRecu.total)}
                         </dd>
                       </div>
                       <div className="flex justify-between gap-4 text-slate-500">
                         <dt>Montant encaissé</dt>
                         <dd className="font-mono tabular-nums text-slate-700">
-                          {formatCurrency(selectedReceiptSale.montantPaye)}
+                          {formatCurrency(totauxRecu.paye)}
                         </dd>
                       </div>
                       {/* « Net à payer » porte le solde restant dû, et non
@@ -1419,7 +1575,7 @@ export const VentesView: React.FC<VentesViewProps> = ({
                           Net à payer
                         </dt>
                         <dd className="font-mono text-base font-bold tabular-nums text-slate-900">
-                          {formatCurrency(selectedReceiptSale.soldeDu)}
+                          {formatCurrency(totauxRecu.du)}
                         </dd>
                       </div>
                     </dl>

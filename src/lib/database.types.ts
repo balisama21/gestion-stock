@@ -1272,6 +1272,7 @@ export type Database = {
           solde_du: number
           statut_credit: string
           store_id: string
+          ticket_id: string | null
           total_achat_ref: number
           total_vente: number
           updated_at: string
@@ -1297,6 +1298,7 @@ export type Database = {
           solde_du?: number
           statut_credit?: string
           store_id: string
+          ticket_id?: string | null
           total_achat_ref?: number
           total_vente?: number
           updated_at?: string
@@ -1322,6 +1324,7 @@ export type Database = {
           solde_du?: number
           statut_credit?: string
           store_id?: string
+          ticket_id?: string | null
           total_achat_ref?: number
           total_vente?: number
           updated_at?: string
@@ -1786,8 +1789,10 @@ export type Database = {
       add_purchase: {
         Args: {
           p_date: string
+          p_date_echeance?: string
           p_fournisseur: string
           p_idempotency_key: string
+          p_montant_paye?: number
           p_new_designation: string
           p_new_display_name: string
           p_new_prix_vente_defaut: number
@@ -1878,6 +1883,20 @@ export type Database = {
           p_prix_vente_unit: number
           p_product_id: string
           p_quantite: number
+          p_store_id: string
+          p_vendeur: string
+        }
+        Returns: Json
+      }
+      create_sale_ticket: {
+        Args: {
+          p_client_credit: string
+          p_client_id: string
+          p_date: string
+          p_idempotency_key: string
+          p_lignes: Json
+          p_methode: string
+          p_montant_paye_total: number
           p_store_id: string
           p_vendeur: string
         }

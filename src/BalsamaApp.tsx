@@ -181,6 +181,7 @@ function AppInner() {
         vendeur: s.vendeur,
         clientCredit: s.client_credit || undefined,
         clientId: s.client_id,
+        ticketId: s.ticket_id,
         montantPaye: s.montant_paye,
         montantRembourse: s.montant_rembourse,
         soldeDu: s.solde_du,
@@ -685,38 +686,43 @@ function AppInner() {
     return res;
   };
 
-  const handleAddSale = async (newSale: any) => {
-    const prod = products.find((p) => p.id === newSale.productId);
-    if (!prod) return { sale: null, error: "Produit introuvable" };
-
-    // PHASE 1 : la vérification du stock, la décrémentation, la création de
-    // la vente et l'enregistrement du paiement initial sont désormais une
-    // seule opération atomique côté base (RPC create_sale, avec verrouillage
-    // FOR UPDATE sur le produit). Impossible de vendre plus que le stock
-    // réellement disponible au moment exact de l'écriture, même en cas
-    // d'actions concurrentes.
-    const res = await storeData.addSale({
-      date: newSale.date,
-      product_id: prod.id,
-      quantite: newSale.quantite,
-      prix_vente_unit: newSale.prixVenteUnit,
-      vendeur: newSale.vendeur,
-      client_credit: newSale.clientCredit || null,
-      client_id: newSale.clientId || null,
-      montant_paye_initial: newSale.montantPaye > 0 ? newSale.montantPaye : 0,
+  /**
+   * Un panier : plusieurs produits vendus d'un coup. La base écrit une
+   * ligne par produit, reliées par un ticket, dans une seule
+   * transaction — si une ligne échoue, aucune n'est écrite.
+   */
+  const handleAddSaleTicket = async (panier: {
+    date: string;
+    vendeur: string;
+    clientCredit?: string | null;
+    clientId?: string | null;
+    montantPaye: number;
+    lignes: { productId: string; quantite: number; prixVenteUnit: number }[];
+  }) => {
+    const res = await storeData.addSaleTicket({
+      date: panier.date,
+      vendeur: panier.vendeur,
+      client_credit: panier.clientCredit || null,
+      client_id: panier.clientId || null,
+      montant_paye_total: panier.montantPaye,
       methode: "especes",
+      lignes: panier.lignes.map((l) => ({
+        product_id: l.productId,
+        quantite: l.quantite,
+        prix_vente_unit: l.prixVenteUnit,
+      })),
     });
 
-    if (res.error || !res.sale) {
-      alert("Erreur lors de l'ajout de la vente : " + res.error);
+    if (res.error || res.ventes.length === 0) {
       storeData.refresh();
       return res;
     }
 
+    const articles = res.ventes.reduce((n, v) => n + v.quantite, 0);
     triggerActivityAlert(
-      newSale.vendeur,
+      panier.vendeur,
       "vente",
-      `Vente : ${getProductLabel(prod, products)} x${newSale.quantite}`,
+      `Vente de ${res.ventes.length} produit(s), ${articles} article(s)`,
     );
     return res;
   };
@@ -1002,7 +1008,7 @@ function AppInner() {
               sellers={computedSellers}
               locale={locale}
               settings={storeSettings}
-              onAddSale={handleAddSale}
+              onAddSaleTicket={handleAddSaleTicket}
               onEditSale={hasVentesAccess ? handleEditSale : undefined}
               onDeleteSale={hasVentesAccess ? handleDeleteSale : undefined}
               restrictedToOwnSales={!hasVentesAccess}

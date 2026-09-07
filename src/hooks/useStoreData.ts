@@ -22,6 +22,30 @@ type CustomField = Database["public"]["Tables"]["custom_field_definitions"]["Row
 type Categorie = Database["public"]["Tables"]["categories"]["Row"];
 type ImageProduit = Database["public"]["Tables"]["product_images"]["Row"];
 type ReglementFournisseur = Database["public"]["Tables"]["supplier_payments"]["Row"];
+type SaleRow = Database["public"]["Tables"]["sales"]["Row"];
+
+/** Une ligne de la table `sales` telle que l'application la lit. */
+const versVente = (row: SaleRow): AppSale => ({
+  id: row.id,
+  numero: row.numero ?? "",
+  date: row.date,
+  productId: row.product_id ?? "",
+  designation: row.designation,
+  quantite: row.quantite,
+  prixVenteUnit: row.prix_vente_unit,
+  totalVente: row.total_vente,
+  prixAchatUnitRef: row.prix_achat_unit_ref,
+  totalAchatRef: row.total_achat_ref,
+  margeTotale: row.marge_totale,
+  vendeur: row.vendeur,
+  clientCredit: row.client_credit ?? undefined,
+  clientId: row.client_id,
+  ticketId: row.ticket_id,
+  montantPaye: row.montant_paye,
+  montantRembourse: row.montant_rembourse,
+  soldeDu: row.solde_du,
+  statutCredit: row.statut_credit as AppSale["statutCredit"],
+});
 
 /**
  * Un message lisible plutôt que le jargon de Postgres.
@@ -170,21 +194,21 @@ export interface StoreData {
   deleteProducts: (ids: string[]) => Promise<{ error: string | null }>;
 
   // CRUD Sales
-  // PHASE 1 : addSale/updateSale/deleteSale passent désormais par des fonctions
-  // RPC PostgreSQL (create_sale / update_sale_quantity / delete_sale) qui
-  // verrouillent la ligne produit (FOR UPDATE) et appliquent la variation de
-  // stock de façon atomique. Le stock n'est plus jamais calculé côté React.
-  addSale: (data: {
+  /**
+   * Un panier : plusieurs produits vendus en une fois. Chaque ligne
+   * reste une vente à part entière — c'est `ticket_id` qui les relie —
+   * et tout se joue dans une seule transaction : si une ligne échoue,
+   * aucune n'est écrite.
+   */
+  addSaleTicket: (data: {
     date: string;
-    product_id: string;
-    quantite: number;
-    prix_vente_unit: number;
     vendeur: string;
     client_credit?: string | null;
     client_id?: string | null;
-    montant_paye_initial?: number;
+    montant_paye_total: number;
     methode?: string | null;
-  }) => Promise<{ sale: AppSale | null; error: string | null }>;
+    lignes: { product_id: string; quantite: number; prix_vente_unit: number }[];
+  }) => Promise<{ ventes: AppSale[]; error: string | null }>;
 
   updateSale: (
     id: string,
@@ -640,74 +664,44 @@ export function useStoreData(storeId: string | null, userId: string | null): Sto
   );
 
   // SALES — RPC atomiques (stock verrouillé côté base, jamais calculé en React)
-  const addSale = useCallback(
-    async (data: any) => {
-      if (!storeId || !userId) {
-        return { sale: null, error: "Non autorisé" };
-      }
+  const addSaleTicket = useCallback(
+    async (data: {
+      date: string;
+      vendeur: string;
+      client_credit?: string | null;
+      client_id?: string | null;
+      montant_paye_total: number;
+      methode?: string | null;
+      lignes: { product_id: string; quantite: number; prix_vente_unit: number }[];
+    }) => {
+      if (!storeId || !userId) return { ventes: [], error: "Non autorisé" };
 
       const idempotencyKey =
         typeof crypto !== "undefined" && crypto.randomUUID
           ? crypto.randomUUID()
-          : `sale-${Date.now()}-${Math.random()}`;
+          : `ticket-${Date.now()}-${Math.random()}`;
 
-      const { data: result, error } = await supabase.rpc("create_sale", {
+      const { data: result, error } = await supabase.rpc("create_sale_ticket", {
         p_store_id: storeId,
         p_date: data.date,
-        p_product_id: data.product_id,
-        p_quantite: data.quantite,
-        p_prix_vente_unit: data.prix_vente_unit,
         p_vendeur: data.vendeur,
         p_client_credit: data.client_credit ?? null,
         p_client_id: data.client_id ?? null,
-        p_montant_paye_initial: data.montant_paye_initial ?? 0,
+        p_montant_paye_total: data.montant_paye_total,
         p_methode: data.methode ?? null,
+        p_lignes: data.lignes,
         p_idempotency_key: idempotencyKey,
       });
 
-      if (error) {
-        return {
-          sale: null,
-          error: error.message,
-        };
+      if (error) return { ventes: [], error: error.message };
+
+      const retour = result as { ticket_id: string; ventes: SaleRow[] | null } | null;
+      if (!retour?.ventes) {
+        return { ventes: [], error: "Le panier a été enregistré mais rien n'a été retourné." };
       }
-
-      if (!result) {
-        return {
-          sale: null,
-          error: "La vente a été créée mais aucune donnée n'a été retournée.",
-        };
-      }
-
-      const row = result as Database["public"]["Tables"]["sales"]["Row"];
-
-      const sale: AppSale = {
-        id: row.id,
-        numero: row.numero ?? "",
-        date: row.date,
-        productId: row.product_id ?? data.product_id,
-        designation: row.designation,
-        quantite: row.quantite,
-        prixVenteUnit: row.prix_vente_unit,
-        totalVente: row.total_vente,
-        prixAchatUnitRef: row.prix_achat_unit_ref,
-        totalAchatRef: row.total_achat_ref,
-        margeTotale: row.marge_totale,
-        vendeur: row.vendeur,
-        clientCredit: row.client_credit ?? undefined,
-        clientId: row.client_id,
-        montantPaye: row.montant_paye,
-        montantRembourse: row.montant_rembourse,
-        soldeDu: row.solde_du,
-        statutCredit: row.statut_credit as AppSale["statutCredit"],
-      };
 
       fetchAll();
-
-      return {
-        sale,
-        error: null,
-      };
+      return { ventes: retour.ventes.map(versVente), error: null };
     },
     [storeId, userId, fetchAll],
   );
@@ -1319,7 +1313,7 @@ export function useStoreData(storeId: string | null, userId: string | null): Sto
     addProduct,
     updateProduct,
     deleteProducts,
-    addSale,
+    addSaleTicket,
     updateSale,
     deleteSale,
     addPaymentToSale,

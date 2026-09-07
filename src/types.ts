@@ -63,6 +63,10 @@ export interface Sale {
   vendeur: string; // Selected seller
   clientCredit?: string; // Optional credit client (nom libre)
   clientId?: string | null; // Optional link to a Client record
+  // Ajoute a l etape 6. Les lignes passees ensemble au comptoir partagent
+  // ce lien. Nul = vendue seule, ce qui est le cas de toutes les ventes
+  // enregistrees avant cette etape.
+  ticketId?: string | null;
   montantPaye: number;
   montantRembourse: number;
   soldeDu: number;
