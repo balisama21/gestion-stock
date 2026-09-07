@@ -34,6 +34,13 @@ export interface DataListItem {
   badge?: React.ReactNode;
   /** Contenu du panneau de détails, ouvert au clic sur la ligne. */
   details?: DetailField[];
+  /**
+   * Bloc libre placé en haut du panneau de détails, avant les couples
+   * libellé / valeur. Pour ce qui ne se dit pas en une valeur alignée à
+   * droite : les lignes d'un ticket, chacune avec son montant et ses
+   * propres actions.
+   */
+  detailBody?: React.ReactNode;
   /** Boutons affichés en pied du panneau de détails. */
   actions?: React.ReactNode;
   /** Titre du panneau de détails (par défaut : la valeur principale). */
@@ -163,6 +170,10 @@ export const DataList: React.FC<DataListProps> = ({ items, emptyLabel, className
           description={openItem.detailSubtitle}
           footer={openItem.actions}
         >
+          {/* Ce qui ne tient pas dans un couple libellé / valeur : les
+              lignes d'un ticket, par exemple, qui ont chacune leur
+              montant et leurs propres actions. */}
+          {openItem.detailBody}
           <dl className="divide-y divide-border">
             {(openItem.details ?? [])
               .filter((f) => !(f.hideIfEmpty && isEmpty(f.value)))

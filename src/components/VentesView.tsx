@@ -40,7 +40,7 @@ import {
 import { VariantBadge } from "./shared/VariantBadge";
 import { PageHeader, HeaderMetric } from "./shared/PageHeader";
 import { FilterBar, FilterField } from "./shared/FilterBar";
-import { DataList } from "./shared/DataList";
+import { DataList, type DataListItem } from "./shared/DataList";
 import { StatBar, StatCol } from "./shared/StatBar";
 import { Modal } from "./shared/Modal";
 import { useInvoicePrefs } from "../lib/invoicePrefs";
@@ -468,6 +468,292 @@ export const VentesView: React.FC<VentesViewProps> = ({
     });
   }, [sales, searchQuery, selectedSellerFilter, selectedStatusFilter]);
 
+  /**
+   * Les lignes passées ensemble ne font qu'une entrée.
+   *
+   * Le regroupement se fait APRÈS le filtre, sur les seules lignes
+   * retenues : une recherche qui ne touche qu'un article d'un ticket
+   * montre cet article seul, et le total affiché reste celui de ce
+   * qu'on voit. Chaque groupe garde la place de sa première ligne,
+   * donc l'ordre de la liste ne bouge pas.
+   */
+  const ventesGroupees = useMemo(() => {
+    const groupes: Sale[][] = [];
+    const parTicket = new Map<string, Sale[]>();
+    for (const v of filteredSales) {
+      if (!v.ticketId) {
+        groupes.push([v]);
+        continue;
+      }
+      const deja = parTicket.get(v.ticketId);
+      if (deja) {
+        deja.push(v);
+        continue;
+      }
+      const nouveau = [v];
+      parTicket.set(v.ticketId, nouveau);
+      groupes.push(nouveau);
+    }
+    return groupes;
+  }, [filteredSales]);
+
+  /** Une vente seule, telle qu'elle s'est toujours affichée. */
+  const itemVente = (s: Sale): DataListItem => {
+    const prod = products.find((p) => p.id === s.productId);
+    const nom = prod ? getProductLabel(prod, products) : getSaleLabel(s, products);
+    return {
+      id: s.id,
+      primary: (
+        <span className="flex min-w-0 items-center gap-2">
+          <span className="truncate">
+            {nom} ×{s.quantite}
+          </span>
+          {/* Le prix d'achat révèle la marge dès lors que le prix
+              de vente est visible : même permission. */}
+          <VariantBadge prix={getSaleVariant(s, products)} autorise={showMargeLigne} />
+        </span>
+      ),
+      meta: [
+        formatDateLocale(s.date, locale),
+        s.vendeur,
+        showMontant ? `${formatCurrency(s.prixVenteUnit)} / u` : null,
+        showMargeLigne ? `marge +${formatCurrency(s.margeTotale)}` : null,
+        s.clientCredit || null,
+      ],
+      amount: showMontant ? formatCurrency(s.totalVente) : undefined,
+      amountHint:
+        showSolde && s.soldeDu > 0 ? (
+          <span className="t-warning">reste {formatCurrency(s.soldeDu)}</span>
+        ) : undefined,
+      badge: (
+        <span
+          className={`app-badge ${
+            s.statutCredit === "Payé"
+              ? "app-badge-success"
+              : s.statutCredit === "Partiel"
+                ? "app-badge-warning"
+                : "app-badge-danger"
+          }`}
+        >
+          {s.statutCredit}
+        </span>
+      ),
+      detailTitle: nom,
+      detailSubtitle: `Vente ${s.numero}`,
+      details: [
+        { label: "Date", value: formatDateLocale(s.date, locale) },
+        { label: "Référence", value: s.numero },
+        { label: "Code produit", value: prod?.numero ?? "—" },
+        { label: "Quantité", value: `${s.quantite}` },
+        ...(showMontant
+          ? [
+              { label: "Prix unitaire", value: formatCurrency(s.prixVenteUnit) },
+              { label: "Total", value: formatCurrency(s.totalVente) },
+            ]
+          : []),
+        ...(showMargeLigne
+          ? [
+              {
+                label: "Marge",
+                value: <span className="t-success">+{formatCurrency(s.margeTotale)}</span>,
+              },
+            ]
+          : []),
+        { label: "Vendeur", value: s.vendeur },
+        { label: "Client", value: s.clientCredit || "-", hideIfEmpty: true },
+        ...(showPaiement
+          ? [{ label: "Payé", value: formatCurrency(s.montantPaye) }]
+          : []),
+        ...(showSolde && s.soldeDu > 0
+          ? [
+              {
+                label: "Reste à payer",
+                value: <span className="t-warning">{formatCurrency(s.soldeDu)}</span>,
+              },
+            ]
+          : []),
+        { label: "Statut", value: s.statutCredit },
+      ],
+      actions: (
+        <>
+          <button
+            onClick={() => {
+              setVentesRecu(null);
+              setSelectedReceiptSale(s);
+            }}
+            className="app-btn-secondary"
+          >
+            <Receipt className="w-4 h-4" />
+            Reçu
+          </button>
+          {onEditSale && (
+            <button onClick={() => setEditingSale(s)} className="app-btn-secondary">
+              <Edit3 className="w-4 h-4" />
+              Modifier
+            </button>
+          )}
+          {onDeleteSale && (
+            <button
+              onClick={() => {
+                if (window.confirm(`Supprimer la vente ${s.numero} (${nom}) ?`)) {
+                  onDeleteSale(s.id);
+                }
+              }}
+              className="app-btn-danger"
+            >
+              <Trash2 className="w-4 h-4" />
+              Supprimer
+            </button>
+          )}
+        </>
+      ),
+    };
+  };
+
+  /**
+   * Un ticket : les lignes passées ensemble, sur une seule entrée.
+   *
+   * Ce qu'on cherche dans un historique, c'est un passage en caisse,
+   * pas chacun de ses articles. Le détail des produits reste à un
+   * clic, avec les actions de chaque ligne — sans quoi regrouper
+   * retirerait la possibilité d'en corriger une.
+   */
+  const itemTicket = (lignes: Sale[]): DataListItem => {
+    const premiere = lignes[0];
+    const noms = lignes
+      .map((v) => {
+        const prod = products.find((p) => p.id === v.productId);
+        return prod ? getProductLabel(prod, products) : getSaleLabel(v, products);
+      })
+      .join(", ");
+    const articles = lignes.reduce((n, v) => n + v.quantite, 0);
+    const total = lignes.reduce((n, v) => n + v.totalVente, 0);
+    const paye = lignes.reduce((n, v) => n + v.montantPaye, 0);
+    const du = lignes.reduce((n, v) => n + v.soldeDu, 0);
+    const marge = lignes.reduce((n, v) => n + v.margeTotale, 0);
+    const statut = du <= 0 ? "Payé" : paye > 0 ? "Partiel" : "Impayé";
+
+    return {
+      id: premiere.ticketId ?? premiere.id,
+      primary: <span className="block truncate">{noms}</span>,
+      meta: [
+        formatDateLocale(premiere.date, locale),
+        premiere.vendeur,
+        `${lignes.length} produits · ${articles} articles`,
+        showMargeLigne ? `marge +${formatCurrency(marge)}` : null,
+        premiere.clientCredit || null,
+      ],
+      amount: showMontant ? formatCurrency(total) : undefined,
+      amountHint:
+        showSolde && du > 0 ? (
+          <span className="t-warning">reste {formatCurrency(du)}</span>
+        ) : undefined,
+      badge: (
+        <span
+          className={`app-badge ${
+            statut === "Payé"
+              ? "app-badge-success"
+              : statut === "Partiel"
+                ? "app-badge-warning"
+                : "app-badge-danger"
+          }`}
+        >
+          {statut}
+        </span>
+      ),
+      detailTitle: `${lignes.length} produits`,
+      detailSubtitle: `Vente du ${formatDateLocale(premiere.date, locale)}`,
+      detailBody: (
+        <div className="app-list mb-2 rounded-xl border border-border">
+          {lignes.map((v) => {
+            const prod = products.find((p) => p.id === v.productId);
+            const nom = prod ? getProductLabel(prod, products) : getSaleLabel(v, products);
+            return (
+              <div key={v.id} className="app-list-row flex-col items-stretch gap-1.5">
+                <div className="flex w-full items-center justify-between gap-3">
+                  <span className="app-list-primary min-w-0 flex-1">
+                    {nom} ×{v.quantite}
+                  </span>
+                  {showMontant && (
+                    <span className="app-list-amount">{formatCurrency(v.totalVente)}</span>
+                  )}
+                </div>
+                <div className="flex w-full items-center justify-between gap-2">
+                  <span className="app-list-secondary truncate">
+                    {v.numero}
+                    {showMontant ? ` · ${formatCurrency(v.prixVenteUnit)} / u` : ""}
+                  </span>
+                  <span className="flex shrink-0 items-center gap-1">
+                    {onEditSale && (
+                      <button
+                        type="button"
+                        onClick={() => setEditingSale(v)}
+                        className="app-btn-icon h-7 w-7"
+                        aria-label={`Modifier la vente ${v.numero}`}
+                      >
+                        <Edit3 className="h-3.5 w-3.5" />
+                      </button>
+                    )}
+                    {onDeleteSale && (
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (window.confirm(`Supprimer la vente ${v.numero} (${nom}) ?`)) {
+                            onDeleteSale(v.id);
+                          }
+                        }}
+                        className="app-btn-icon h-7 w-7"
+                        aria-label={`Supprimer la vente ${v.numero}`}
+                      >
+                        <Trash2 className="h-3.5 w-3.5" />
+                      </button>
+                    )}
+                  </span>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      ),
+      details: [
+        { label: "Date", value: formatDateLocale(premiere.date, locale) },
+        { label: "Vendeur", value: premiere.vendeur },
+        { label: "Client", value: premiere.clientCredit || "-", hideIfEmpty: true },
+        ...(showMontant ? [{ label: "Total", value: formatCurrency(total) }] : []),
+        ...(showMargeLigne
+          ? [
+              {
+                label: "Marge",
+                value: <span className="t-success">+{formatCurrency(marge)}</span>,
+              },
+            ]
+          : []),
+        ...(showPaiement ? [{ label: "Payé", value: formatCurrency(paye) }] : []),
+        ...(showSolde && du > 0
+          ? [
+              {
+                label: "Reste à payer",
+                value: <span className="t-warning">{formatCurrency(du)}</span>,
+              },
+            ]
+          : []),
+        { label: "Statut", value: statut },
+      ],
+      actions: (
+        <button
+          onClick={() => {
+            setVentesRecu(null);
+            setSelectedReceiptSale(premiere);
+          }}
+          className="app-btn-secondary"
+        >
+          <Receipt className="w-4 h-4" />
+          Reçu du ticket
+        </button>
+      ),
+    };
+  };
+
   const totalVentesCA = sales.reduce((acc, s) => acc + s.totalVente, 0);
   const totalMarges = sales.reduce((acc, s) => acc + s.margeTotale, 0);
   const totalPayeEncaisse = sales.reduce((acc, s) => acc + s.montantPaye, 0);
@@ -603,117 +889,9 @@ export const VentesView: React.FC<VentesViewProps> = ({
       <div className="app-card overflow-hidden">
         <DataList
           emptyLabel="Aucune vente ne correspond à ces filtres."
-          items={filteredSales.map((s) => {
-            const prod = products.find((p) => p.id === s.productId);
-            const nom = prod ? getProductLabel(prod, products) : getSaleLabel(s, products);
-            return {
-              id: s.id,
-              primary: (
-                <span className="flex min-w-0 items-center gap-2">
-                  <span className="truncate">
-                    {nom} ×{s.quantite}
-                  </span>
-                  {/* Le prix d'achat révèle la marge dès lors que le prix
-                      de vente est visible : même permission. */}
-                  <VariantBadge prix={getSaleVariant(s, products)} autorise={showMargeLigne} />
-                </span>
-              ),
-              meta: [
-                formatDateLocale(s.date, locale),
-                s.vendeur,
-                showMontant ? `${formatCurrency(s.prixVenteUnit)} / u` : null,
-                showMargeLigne ? `marge +${formatCurrency(s.margeTotale)}` : null,
-                s.clientCredit || null,
-              ],
-              amount: showMontant ? formatCurrency(s.totalVente) : undefined,
-              amountHint:
-                showSolde && s.soldeDu > 0 ? (
-                  <span className="t-warning">reste {formatCurrency(s.soldeDu)}</span>
-                ) : undefined,
-              badge: (
-                <span
-                  className={`app-badge ${
-                    s.statutCredit === "Payé"
-                      ? "app-badge-success"
-                      : s.statutCredit === "Partiel"
-                        ? "app-badge-warning"
-                        : "app-badge-danger"
-                  }`}
-                >
-                  {s.statutCredit}
-                </span>
-              ),
-              detailTitle: nom,
-              detailSubtitle: `Vente ${s.numero}`,
-              details: [
-                { label: "Date", value: formatDateLocale(s.date, locale) },
-                { label: "Référence", value: s.numero },
-                { label: "Code produit", value: prod?.numero ?? "—" },
-                { label: "Quantité", value: `${s.quantite}` },
-                ...(showMontant
-                  ? [
-                      { label: "Prix unitaire", value: formatCurrency(s.prixVenteUnit) },
-                      { label: "Total", value: formatCurrency(s.totalVente) },
-                    ]
-                  : []),
-                ...(showMargeLigne
-                  ? [
-                      {
-                        label: "Marge",
-                        value: <span className="t-success">+{formatCurrency(s.margeTotale)}</span>,
-                      },
-                    ]
-                  : []),
-                { label: "Vendeur", value: s.vendeur },
-                { label: "Client", value: s.clientCredit || "-", hideIfEmpty: true },
-                ...(showPaiement
-                  ? [{ label: "Payé", value: formatCurrency(s.montantPaye) }]
-                  : []),
-                ...(showSolde && s.soldeDu > 0
-                  ? [
-                      {
-                        label: "Reste à payer",
-                        value: <span className="t-warning">{formatCurrency(s.soldeDu)}</span>,
-                      },
-                    ]
-                  : []),
-                { label: "Statut", value: s.statutCredit },
-              ],
-              actions: (
-                <>
-                  <button
-                    onClick={() => {
-                      setVentesRecu(null);
-                      setSelectedReceiptSale(s);
-                    }}
-                    className="app-btn-secondary"
-                  >
-                    <Receipt className="w-4 h-4" />
-                    Reçu
-                  </button>
-                  {onEditSale && (
-                    <button onClick={() => setEditingSale(s)} className="app-btn-secondary">
-                      <Edit3 className="w-4 h-4" />
-                      Modifier
-                    </button>
-                  )}
-                  {onDeleteSale && (
-                    <button
-                      onClick={() => {
-                        if (window.confirm(`Supprimer la vente ${s.numero} (${nom}) ?`)) {
-                          onDeleteSale(s.id);
-                        }
-                      }}
-                      className="app-btn-danger"
-                    >
-                      <Trash2 className="w-4 h-4" />
-                      Supprimer
-                    </button>
-                  )}
-                </>
-              ),
-            };
-          })}
+          items={ventesGroupees.map((groupe) =>
+            groupe.length === 1 ? itemVente(groupe[0]) : itemTicket(groupe),
+          )}
         />
       </div>
 
