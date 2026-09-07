@@ -200,6 +200,7 @@ export type Database = {
           parent_id: string | null
           store_id: string
           updated_at: string
+          usage: string
         }
         Insert: {
           actif?: boolean
@@ -211,6 +212,7 @@ export type Database = {
           parent_id?: string | null
           store_id: string
           updated_at?: string
+          usage?: string
         }
         Update: {
           actif?: boolean
@@ -222,6 +224,7 @@ export type Database = {
           parent_id?: string | null
           store_id?: string
           updated_at?: string
+          usage?: string
         }
         Relationships: [
           {
@@ -542,50 +545,73 @@ export type Database = {
       }
       expenses: {
         Row: {
+          category_id: string | null
           created_at: string
           date: string
           id: string
           impact_tresorerie_globale: number
+          justificatif: string | null
           montant: number
           note: string | null
           numero: string | null
           owner_id: string
+          provider_id: string | null
           store_id: string
           type: string
           vendeur: string
         }
         Insert: {
+          category_id?: string | null
           created_at?: string
           date?: string
           id?: string
           impact_tresorerie_globale?: number
+          justificatif?: string | null
           montant?: number
           note?: string | null
           numero?: string | null
           owner_id: string
+          provider_id?: string | null
           store_id: string
           type?: string
           vendeur?: string
         }
         Update: {
+          category_id?: string | null
           created_at?: string
           date?: string
           id?: string
           impact_tresorerie_globale?: number
+          justificatif?: string | null
           montant?: number
           note?: string | null
           numero?: string | null
           owner_id?: string
+          provider_id?: string | null
           store_id?: string
           type?: string
           vendeur?: string
         }
         Relationships: [
           {
+            foreignKeyName: "expenses_category_id_fkey"
+            columns: ["category_id"]
+            isOneToOne: false
+            referencedRelation: "categories"
+            referencedColumns: ["id"]
+          },
+          {
             foreignKeyName: "expenses_owner_id_fkey"
             columns: ["owner_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "expenses_provider_id_fkey"
+            columns: ["provider_id"]
+            isOneToOne: false
+            referencedRelation: "providers"
             referencedColumns: ["id"]
           },
           {
