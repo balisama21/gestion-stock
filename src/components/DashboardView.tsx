@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useMemo } from "react";
 import { Product, Sale, Expense, Seller, Purchase, CapitalSummary, LocaleSetting } from "../types";
 import {
   Wallet,
@@ -12,6 +12,7 @@ import {
   CheckCircle2,
   ArrowRightLeft,
   ShoppingBag,
+  Clock,
   CreditCard,
   Truck,
 } from "lucide-react";
@@ -45,6 +46,10 @@ interface DashboardViewProps {
   sellers: Seller[];
   orders: Order[];
   clients: Client[];
+  /** Les devis, pour dire combien attendent encore une réponse. */
+  quotes: { statut: string; total: number; valide_jusqu_au: string | null }[];
+  /** Les courses, pour dire ce que les livreurs n'ont pas encore rendu. */
+  deliveries: { statut: string; montant_encaisse: number; argent_remis_le: string | null }[];
   locale: LocaleSetting;
   /**
    * Faux quand l'utilisateur n'a pas le droit de voir les prix d'achat :
@@ -63,6 +68,8 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   expenses,
   sellers,
   orders = [],
+  quotes = [],
+  deliveries = [],
   clients = [],
   locale,
   showPrixAchat = true,
@@ -82,6 +89,78 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
    */
   const perso = usePersonnalisation();
   const montre = (cle: string) => !moduleMasque(perso, cle);
+
+  /**
+   * Ce qui n'est pas encore rentré, et ce qui n'est pas encore sorti.
+   *
+   * Un commerçant ouvre son logiciel le soir pour deux questions : ce
+   * que la journée a donné, et ce qui reste en suspens. La première a
+   * ses indicateurs depuis longtemps ; la seconde était éparpillée dans
+   * cinq écrans qu'il fallait ouvrir un par un.
+   *
+   * Une ligne à zéro ne s'affiche pas : un tableau de bord qui annonce
+   * « 0 Ar à recevoir » occupe la place sans rien apprendre. Et si tout
+   * est à zéro, le bloc entier disparaît — c'est la bonne nouvelle.
+   */
+  const enSuspens = useMemo(() => {
+    const lignes: {
+      cle: string;
+      libelle: string;
+      detail: string;
+      montant: number;
+      onglet: string;
+    }[] = [];
+
+    const duParLesClients = sales.reduce((n, v) => n + v.soldeDu, 0);
+    if (duParLesClients > 0) {
+      const combien = sales.filter((v) => v.soldeDu > 0).length;
+      lignes.push({
+        cle: "clients",
+        libelle: "Ce qu'on vous doit",
+        detail: `${combien} vente${combien > 1 ? "s" : ""} à encaisser`,
+        montant: duParLesClients,
+        onglet: "paiements",
+      });
+    }
+
+    const duAuxFournisseurs = purchases.reduce((n, a) => n + a.soldeDu, 0);
+    if (duAuxFournisseurs > 0) {
+      const combien = purchases.filter((a) => a.soldeDu > 0).length;
+      lignes.push({
+        cle: "fournisseurs",
+        libelle: "Ce que vous devez",
+        detail: `${combien} achat${combien > 1 ? "s" : ""} à régler`,
+        montant: duAuxFournisseurs,
+        onglet: "fournisseurs",
+      });
+    }
+
+    const chezLesLivreurs = deliveries
+      .filter((l) => l.statut === "livree" && l.montant_encaisse > 0 && !l.argent_remis_le)
+      .reduce((n, l) => n + l.montant_encaisse, 0);
+    if (chezLesLivreurs > 0 && !moduleMasque(perso, "livraisons")) {
+      lignes.push({
+        cle: "livreurs",
+        libelle: "Chez les livreurs",
+        detail: "encaissé, pas encore rendu",
+        montant: chezLesLivreurs,
+        onglet: "livraisons",
+      });
+    }
+
+    const devisEnAttente = quotes.filter((d) => d.statut === "brouillon" || d.statut === "envoye");
+    if (devisEnAttente.length > 0 && !moduleMasque(perso, "devis")) {
+      lignes.push({
+        cle: "devis",
+        libelle: "Devis sans réponse",
+        detail: `${devisEnAttente.length} en attente`,
+        montant: devisEnAttente.reduce((n, d) => n + d.total, 0),
+        onglet: "devis",
+      });
+    }
+
+    return lignes;
+  }, [sales, purchases, deliveries, quotes, perso]);
 
   const lowStockProducts = products
     .filter((p) => p.stockActuel <= p.seuilAlerte)
@@ -248,6 +327,33 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           },
         ]}
       />
+
+      {enSuspens.length > 0 && (
+        <section className="app-card overflow-hidden">
+          <div className="border-b border-border px-4 py-3">
+            <h2 className="app-section-title">
+              <Clock className="h-3.5 w-3.5" aria-hidden="true" />
+              En suspens
+            </h2>
+          </div>
+          <div className="app-list">
+            {enSuspens.map((l: (typeof enSuspens)[number]) => (
+              <button
+                key={l.cle}
+                type="button"
+                onClick={() => onNavigateTab(l.onglet)}
+                className="app-list-row w-full justify-between gap-3 text-left"
+              >
+                <span className="min-w-0 flex-1">
+                  <span className="app-list-primary block">{l.libelle}</span>
+                  <span className="app-list-secondary block">{l.detail}</span>
+                </span>
+                <span className="app-list-amount">{formatCurrency(l.montant)}</span>
+              </button>
+            ))}
+          </div>
+        </section>
+      )}
 
       {/* ── Main Content Grid ── */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

@@ -1174,6 +1174,8 @@ function AppInner() {
                     sellers={computedSellers}
                     orders={storeData.orders}
                     clients={storeData.clients}
+                    quotes={storeData.quotes}
+                    deliveries={storeData.deliveries}
                     locale={locale}
                     onNavigateTab={setActiveTab}
                     showPrixAchat={
