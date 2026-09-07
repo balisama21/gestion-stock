@@ -150,6 +150,16 @@ function AppInner() {
         stockReserve: p.stock_reserve,
         stockDisponible: p.stock_disponible ?? p.stock_actuel - p.stock_reserve,
         seuilAlerte: p.seuil_alerte,
+        sku: p.sku,
+        codeBarres: p.code_barres,
+        categoryId: p.category_id,
+        supplierId: p.supplier_id,
+        description: p.description,
+        unite: p.unite,
+        tvaRate: p.tva_rate,
+        stockMax: p.stock_max,
+        typeProduit: p.type_produit,
+        statut: p.statut,
       })),
     [storeData.products],
   );
@@ -955,6 +965,13 @@ function AppInner() {
               onAddProduct={handleAddProduct}
               onEditProduct={storeData.updateProduct}
               onDeleteProducts={storeData.deleteProducts}
+              categories={storeData.categories}
+              fournisseurs={storeData.suppliers}
+              productImages={storeData.productImages}
+              storeId={workspace.activeStore?.id ?? null}
+              onEditProductDetails={storeData.updateProductDetails}
+              onAddProductImage={storeData.addProductImage}
+              onDeleteProductImage={storeData.deleteProductImage}
               visibleFields={produitsVisibleFields}
               allowedActions={produitsActions}
             />

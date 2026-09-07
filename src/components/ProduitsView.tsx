@@ -21,16 +21,32 @@ import { FilterBar, FilterField } from "./shared/FilterBar";
 import { DataList } from "./shared/DataList";
 import { StatCol } from "./shared/StatBar";
 import { Modal } from "./shared/Modal";
+import { DetailsProduit } from "./produits/DetailsProduit";
+import { DETAILS_VIDES, detailsVersBase, type ValeursDetails } from "../lib/detailsProduit";
+import type { Database } from "../lib/database.types";
 
 interface ProduitsViewProps {
   products: Product[];
   locale: LocaleSetting;
-  onAddProduct: (
-    newProduct: Omit<
-      Product,
-      "id" | "numero" | "displayName" | "variantSuffix" | "stockReserve" | "stockDisponible"
-    >,
-  ) => Promise<{ error: string | null }>;
+  /**
+   * Ce qu'il faut pour créer un produit.
+   *
+   * Une forme explicite, et non plus un `Omit<Product, …>` : depuis que
+   * la fiche porte dix informations descriptives de plus, dériver la
+   * charge de création du type complet obligerait le formulaire à
+   * fournir une référence, une catégorie et une TVA pour créer une
+   * simple ligne de stock. Ces informations se renseignent après, dans
+   * la fiche.
+   */
+  onAddProduct: (newProduct: {
+    designation: string;
+    prixAchat: number;
+    prixVenteDefaut: number;
+    fournisseur: string;
+    stockInitial: number;
+    stockActuel: number;
+    seuilAlerte: number;
+  }) => Promise<{ error: string | null }>;
   onEditProduct?: (
     id: string,
     data: {
@@ -42,6 +58,24 @@ interface ProduitsViewProps {
     },
   ) => Promise<{ error: string | null }>;
   onDeleteProducts?: (ids: string[]) => Promise<{ error: string | null }>;
+  /**
+   * Les informations descriptives de la fiche produit.
+   *
+   * Séparées de `onEditProduct` à dessein : celui-ci passe par une
+   * fonction verrouillée côté base parce qu'il touche au stock et aux
+   * prix. Rien de ce qui suit n'y touche.
+   */
+  categories?: Database["public"]["Tables"]["categories"]["Row"][];
+  fournisseurs?: Database["public"]["Tables"]["suppliers"]["Row"][];
+  productImages?: Database["public"]["Tables"]["product_images"]["Row"][];
+  storeId?: string | null;
+  onEditProductDetails?: (id: string, data: any) => Promise<{ error: string | null }>;
+  onAddProductImage?: (
+    productId: string,
+    chemin: string,
+    ordre?: number,
+  ) => Promise<{ error: string | null }>;
+  onDeleteProductImage?: (id: string) => Promise<{ error: string | null }>;
   /**
    * Champs visibles pour l'utilisateur courant — `null`/`undefined` = tout
    * visible (propriétaire). Pour un collaborateur restreint, masque
@@ -64,6 +98,13 @@ export const ProduitsView: React.FC<ProduitsViewProps> = ({
   onAddProduct,
   onEditProduct,
   onDeleteProducts,
+  categories = [],
+  fournisseurs = [],
+  productImages = [],
+  storeId = null,
+  onEditProductDetails,
+  onAddProductImage,
+  onDeleteProductImage,
   visibleFields,
   allowedActions,
 }) => {
@@ -104,6 +145,8 @@ export const ProduitsView: React.FC<ProduitsViewProps> = ({
   const [editFournisseur, setEditFournisseur] = useState("");
   const [editSeuilAlerte, setEditSeuilAlerte] = useState(0);
   const [editSaving, setEditSaving] = useState(false);
+  const [editDetails, setEditDetails] = useState<ValeursDetails>(DETAILS_VIDES);
+  const [editErreur, setEditErreur] = useState<string | null>(null);
 
   // Modale Confirmer suppression (unique ou multiple)
   const [confirmDeleteIds, setConfirmDeleteIds] = useState<string[] | null>(null);
@@ -222,6 +265,19 @@ export const ProduitsView: React.FC<ProduitsViewProps> = ({
     setEditPrixVenteDefaut(p.prixVenteDefaut);
     setEditFournisseur(p.fournisseur);
     setEditSeuilAlerte(p.seuilAlerte);
+    setEditErreur(null);
+    setEditDetails({
+      sku: p.sku ?? "",
+      code_barres: p.codeBarres ?? "",
+      category_id: p.categoryId ?? "",
+      supplier_id: p.supplierId ?? "",
+      description: p.description ?? "",
+      unite: p.unite ?? "",
+      tva_rate: p.tvaRate === null ? "" : String(p.tvaRate),
+      stock_max: p.stockMax === null ? "" : String(p.stockMax),
+      type_produit: p.typeProduit ?? "revendu",
+      statut: p.statut ?? "actif",
+    });
   };
 
   const handleEditSubmit = async (e: React.FormEvent) => {
@@ -229,6 +285,13 @@ export const ProduitsView: React.FC<ProduitsViewProps> = ({
     if (!editingProduct || !onEditProduct || editSaving || !editDesignation.trim()) return;
 
     setEditSaving(true);
+    setEditErreur(null);
+
+    // Deux écritures, dans cet ordre, et pour une raison : la première
+    // passe par une fonction verrouillée côté base parce qu'elle touche
+    // au stock et aux prix ; la seconde n'écrit que des informations
+    // descriptives. Si la première échoue, rien n'a bougé et la seconde
+    // n'a pas lieu d'être tentée.
     const result = await onEditProduct(editingProduct.id, {
       designation: editDesignation.trim(),
       prixAchat: Number(editPrixAchat),
@@ -236,9 +299,24 @@ export const ProduitsView: React.FC<ProduitsViewProps> = ({
       fournisseur: editFournisseur.trim(),
       seuilAlerte: Number(editSeuilAlerte),
     });
-    setEditSaving(false);
-    if (result.error) return;
+    if (result.error) {
+      setEditSaving(false);
+      setEditErreur(result.error);
+      return;
+    }
 
+    if (onEditProductDetails) {
+      const details = await onEditProductDetails(editingProduct.id, detailsVersBase(editDetails));
+      if (details.error) {
+        setEditSaving(false);
+        // Le premier enregistrement a bien eu lieu : le dire, sinon
+        // l'utilisateur croirait avoir tout perdu et recommencerait.
+        setEditErreur(`${details.error} Les prix et le seuil, eux, ont bien été enregistrés.`);
+        return;
+      }
+    }
+
+    setEditSaving(false);
     setEditingProduct(null);
   };
 
@@ -273,7 +351,10 @@ export const ProduitsView: React.FC<ProduitsViewProps> = ({
         subtitle="Vos produits, leurs prix et leur stock disponible."
         actions={
           canCreate && (
-            <button onClick={() => setIsAddModalOpen(true)} className="app-btn-primary w-full sm:w-auto">
+            <button
+              onClick={() => setIsAddModalOpen(true)}
+              className="app-btn-primary w-full sm:w-auto"
+            >
               <Plus className="w-4 h-4" />
               Nouveau produit
             </button>
@@ -320,9 +401,7 @@ export const ProduitsView: React.FC<ProduitsViewProps> = ({
         searchValue={searchTerm}
         onSearchChange={setSearchTerm}
         searchPlaceholder="Rechercher un produit, une référence, un fournisseur…"
-        activeFilterCount={
-          (stockFilter !== "Tous" ? 1 : 0) + (supplierFilter !== "Tous" ? 1 : 0)
-        }
+        activeFilterCount={(stockFilter !== "Tous" ? 1 : 0) + (supplierFilter !== "Tous" ? 1 : 0)}
         onReset={() => {
           setStockFilter("Tous");
           setSupplierFilter("Tous");
@@ -453,10 +532,7 @@ export const ProduitsView: React.FC<ProduitsViewProps> = ({
                     </button>
                   )}
                   {onDeleteProducts && canDelete && (
-                    <button
-                      onClick={() => setConfirmDeleteIds([p.id])}
-                      className="app-btn-danger"
-                    >
+                    <button onClick={() => setConfirmDeleteIds([p.id])} className="app-btn-danger">
                       <Trash2 className="w-4 h-4" />
                       Supprimer
                     </button>
@@ -706,6 +782,29 @@ export const ProduitsView: React.FC<ProduitsViewProps> = ({
                 className="app-field font-mono"
               />
             </div>
+
+            <DetailsProduit
+              valeurs={editDetails}
+              onChange={setEditDetails}
+              categories={categories}
+              fournisseurs={fournisseurs}
+              images={productImages.filter((i) => i.product_id === editingProduct.id)}
+              storeId={storeId}
+              productId={editingProduct.id}
+              onAddImage={onAddProductImage ?? (async () => ({ error: "Envoi indisponible." }))}
+              onDeleteImage={
+                onDeleteProductImage ?? (async () => ({ error: "Suppression indisponible." }))
+              }
+            />
+
+            {editErreur && (
+              <p
+                role="alert"
+                className="rounded-xl border border-danger-border bg-danger-soft px-3.5 py-3 text-sm t-danger"
+              >
+                {editErreur}
+              </p>
+            )}
           </form>
         </Modal>
       )}

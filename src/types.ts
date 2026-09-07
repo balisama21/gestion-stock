@@ -14,6 +14,18 @@ export interface Product {
   stockReserve: number;
   stockDisponible: number;
   seuilAlerte: number;
+  // Ajoutes a l etape 4. Purement descriptifs : ils ne touchent ni au
+  // stock ni au prix, et s ecrivent donc hors du chemin RPC.
+  sku: string | null;
+  codeBarres: string | null;
+  categoryId: string | null;
+  supplierId: string | null;
+  description: string | null;
+  unite: string | null;
+  tvaRate: number | null;
+  stockMax: number | null;
+  typeProduit: string;
+  statut: string;
 }
 
 export interface Purchase {
