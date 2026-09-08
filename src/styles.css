@@ -1,4 +1,20 @@
-@import url("https://fonts.googleapis.com/css2?family=Inter:ital,opsz,wght@0,14..32,300..900;1,14..32,300..900&family=JetBrains+Mono:wght@400;500;600;700&display=swap");
+/* ═══════════════════════════════════════════════════════════════════
+   L'APPLICATION N'A PLUS DE POLICE À TÉLÉCHARGER
+
+   Elle chargeait Inter et JetBrains Mono depuis Google Fonts. Deux
+   fichiers à aller chercher avant que le premier texte s'affiche, et
+   deux polices absentes dès que la connexion l'est : l'application
+   changeait alors d'allure. C'est ce qu'on voyait en comparant le mode
+   hors ligne au mode connecté — deux typographies pour un même écran.
+
+   Les polices du système font ce travail sans rien télécharger. Le
+   texte s'affiche à la première image, il ne saute pas quand une police
+   arrive en retard, et l'écran est le même avec ou sans réseau.
+
+   Restent les deux polices du mot-symbole, ci-dessous : elles ne servent
+   qu'au logo, et sont réduites à ses huit lettres.
+   ═══════════════════════════════════════════════════════════════════ */
+
 /* Les deux polices du mot-symbole, réduites aux huit caractères qui le
    composent (T a n t s u i e) : le fichier tient en quelques centaines
    d'octets, là où la famille entière en pèse des dizaines de milliers. */
@@ -73,8 +89,22 @@
   --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
   --color-sidebar-border: var(--sidebar-border);
   --color-sidebar-ring: var(--sidebar-ring);
-  --font-sans: "Inter", "Segoe UI", system-ui, sans-serif;
-  --font-mono: "JetBrains Mono", "Fira Code", "Courier New", monospace;
+  /* Les polices du système, dans l'ordre où chaque plateforme reconnaît
+     la sienne. `system-ui` suffirait presque partout ; les noms qui
+     suivent couvrent les navigateurs qui ne le comprennent pas encore.
+     Aucune n'est téléchargée : elles sont déjà sur l'appareil. */
+  --font-sans:
+    system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  /* Les chiffres d'argent. `ui-monospace` désigne la monospace du
+     système, celle-là même que l'appareil montrait déjà quand les
+     polices téléchargées manquaient.
+
+     Aucune police nommée n'est ajoutée pour Android : en nommer une —
+     « Roboto Mono », par exemple — la ferait gagner sur les appareils
+     qui l'ont et perdre sur les autres, et l'écran changerait d'un
+     téléphone à l'autre. Les noms ci-dessous ne servent qu'aux
+     navigateurs de bureau qui ignorent encore `ui-monospace`. */
+  --font-mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
 }
 
 :root {
@@ -225,17 +255,16 @@
   body {
     background-color: var(--color-background);
     color: var(--color-foreground);
-    font-family:
-      "Inter",
-      "Segoe UI",
-      system-ui,
-      -apple-system,
-      sans-serif;
+    /* La même déclaration qu'au-dessus, et une seule : la police se
+       changeait ici en double, si bien qu'en modifier une laissait
+       l'autre en place. */
+    font-family: var(--font-sans);
     font-size: 1rem;
     line-height: 1.65;
     -webkit-font-smoothing: antialiased;
     -moz-osx-font-smoothing: grayscale;
-    font-feature-settings: "cv01", "cv02", "cv03", "cv04";
+    /* Les jeux stylistiques « cv01 » à « cv04 » n'existaient que dans
+       Inter : sans elle, ils ne désignent plus rien. */
   }
 
   /* ── Typography hierarchy ── */
@@ -372,7 +401,10 @@ html {
 
 /* ── Mono numbers for financial data ── */
 .font-mono {
-  font-family: "JetBrains Mono", "Fira Code", "Courier New", monospace;
+  font-family: var(--font-mono);
+  /* Des chiffres de largeur égale : c'est ce qui aligne les montants les
+     uns sous les autres, et cela ne dépend d'aucune police en
+     particulier. */
   font-variant-numeric: tabular-nums;
 }
 
