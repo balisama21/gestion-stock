@@ -1,45 +1,19 @@
 import React, { useState, useMemo } from "react";
+import { ActiveTab, StoreSettings, Product } from "../types";
 import {
-  ActiveTab,
-  CapitalSummary,
-  StoreSettings,
-  Sale,
-  Purchase,
-  Expense,
-  CapitalApport,
-  Product,
-} from "../types";
-import {
-  AlertTriangle,
-  Wallet,
-  Store,
-  ArrowRightLeft,
-  DollarSign,
-  Package,
-  ShoppingCart,
-  TrendingUp,
-  History,
-  Users,
   Settings,
+  Store,
   Menu,
   X,
-  CalendarRange,
   Bell,
-  Sun,
-  Moon,
   CheckCheck,
-  ChevronRight,
-  Info,
   ChevronDown,
   Building,
-  User as UserIcon,
-  CreditCard,
-  ShoppingBag,
   Plus,
   Copy,
   KeyRound,
 } from "lucide-react";
-import { formatCurrency, getProductLabel } from "../utils/formulas";
+import { getProductLabel } from "../utils/formulas";
 import { Modal } from "./shared/Modal";
 import { Sidebar } from "./Sidebar";
 import { useNotificationPrefs } from "../lib/notificationPrefs";
@@ -50,20 +24,22 @@ import { supabase } from "../lib/supabase";
 import { APP_NAME } from "../lib/appConfig";
 import { usePersonnalisation } from "../lib/personnalisation";
 
+/**
+ * Ce que la barre du haut reçoit — et rien de plus.
+ *
+ * Elle demandait aussi la trésorerie, son seuil d'alerte, le résumé du
+ * capital, le thème, le nombre d'articles en rupture et quatre tableaux
+ * complets (ventes, achats, dépenses, apports). Les quatre tableaux
+ * n'étaient lus nulle part : ils traversaient le composant sans servir,
+ * en le faisant reconstruire à chaque écriture enregistrée. Le reste a
+ * été retiré de l'affichage lors du nettoyage de l'en-tête.
+ *
+ * `products` reste : les alertes de stock bas en dépendent.
+ */
 interface HeaderProps {
   activeTab: ActiveTab;
   setActiveTab: (tab: ActiveTab) => void;
-  tresorerie: number;
-  seuilAlerte: number;
-  lowStockCount: number;
-  capital: CapitalSummary;
   settings: StoreSettings;
-  theme: "dark" | "light";
-  setTheme: (theme: "dark" | "light") => void;
-  sales?: Sale[];
-  purchases?: Purchase[];
-  expenses?: Expense[];
-  apports?: CapitalApport[];
   products?: Product[];
   /**
    * État replié de la sidebar. Il est détenu par BalsamaApp car le
@@ -74,19 +50,30 @@ interface HeaderProps {
   onToggleSidebar: () => void;
 }
 
+/**
+ * La barre du haut.
+ *
+ * Elle ne garde que ce dont on se sert sans y penser : le nom de la
+ * boutique (qui ouvre le choix d'espace de travail), la cloche des
+ * alertes, et l'accès aux réglages. Trois choses en sont sorties, et
+ * aucune n'a été perdue :
+ *
+ * — la mention « Espace Fondateur / Collaborateur », qui répétait à
+ *   longueur de journée une information apprise une fois. Le menu des
+ *   espaces de travail la porte déjà, boutique par boutique ;
+ * — la bascule clair/sombre, qui existe dans Paramètres →
+ *   Préférences. On choisit son thème une fois, pas dix fois par jour ;
+ * — le badge Trésorerie, que le Tableau de bord affiche déjà en
+ *   vignette, avec en plus ses bandeaux d'alerte quand le solde passe
+ *   sous le seuil ou devient négatif. Sur mobile, il occupait à lui
+ *   seul une deuxième ligne d'en-tête sur chacun des quinze écrans.
+ *
+ * Sur mobile, l'en-tête passe ainsi de deux lignes à une seule.
+ */
 export const Header: React.FC<HeaderProps> = ({
   activeTab,
   setActiveTab,
-  tresorerie,
-  seuilAlerte,
-  lowStockCount,
   settings,
-  theme,
-  setTheme,
-  sales = [],
-  purchases = [],
-  expenses = [],
-  apports = [],
   products = [],
   sidebarCollapsed,
   onToggleSidebar,
@@ -179,16 +166,6 @@ export const Header: React.FC<HeaderProps> = ({
   const workspace = useWorkspace();
   const { user } = useAuth();
 
-  const isTresorerieLow = tresorerie < seuilAlerte;
-  const isTresorerieNegative = tresorerie < 0;
-  // Un collaborateur sans la permission "capital" ne doit JAMAIS voir la
-  // trésorerie globale de l'entreprise, même dans ce badge d'en-tête
-  // toujours visible — c'était affiché sans aucune vérification jusqu'ici.
-  const hasCapitalAccess =
-    workspace.isOwner ||
-    workspace.memberPermissions === null ||
-    workspace.memberPermissions.includes("capital");
-
   // Build aggregated notifications list from recent software activities
   const allNotifications = useMemo(() => {
     const list: Array<{
@@ -241,25 +218,6 @@ export const Header: React.FC<HeaderProps> = ({
     setNotifOpen(false);
   };
 
-  // Badge Trésorerie — rendu à deux endroits : en ligne avec les actions
-  // à partir de 640px, et sur une ligne dédiée en dessous. Sur un écran
-  // de 320px il n'y a pas la place pour le nom de la boutique ET le
-  // montant côte à côte : c'est ce qui provoquait la superposition.
-  const tresorerieBadge = hasCapitalAccess ? (
-    <div className="flex items-center justify-between gap-3 rounded-xl border border-border bg-muted/80 px-3 py-2 sm:justify-start">
-      <div className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">
-        Trésorerie
-      </div>
-      <div
-        className={`font-mono text-sm font-bold tabular-nums sm:text-base ${
-          isTresorerieNegative ? "t-danger" : isTresorerieLow ? "t-warning" : "t-success"
-        }`}
-      >
-        {formatCurrency(tresorerie)}
-      </div>
-    </div>
-  ) : null;
-
   // Bloc marque + sélecteur d'espace de travail. Rendu à un seul endroit
   // selon la taille d'écran : en haut de la sidebar sur desktop, dans la
   // barre du haut sur mobile (où il n'y a pas de sidebar).
@@ -287,18 +245,18 @@ export const Header: React.FC<HeaderProps> = ({
           onClick={() => setWorkspaceMenuOpen(!workspaceMenuOpen)}
           className="flex w-full min-w-0 items-center gap-2 hover:bg-muted/50 py-1 pl-1 pr-2 rounded-lg transition-colors group text-left"
         >
+          {/* Une seule ligne : le nom de la boutique. La mention
+              « Espace Fondateur / Collaborateur » qui vivait ici ne se
+              lisait qu'une fois, à la découverte, puis occupait une
+              ligne tous les jours. Le menu qu'ouvre ce bouton dit déjà
+              « Propriétaire » ou « Collaborateur » en face de chaque
+              boutique, là où l'information sert vraiment : au moment de
+              choisir entre plusieurs espaces. */}
           <div className="min-w-0 flex-1">
-            <h1 className="flex min-w-0 items-center gap-1.5 text-base font-bold tracking-tight text-foreground md:text-lg">
+            <h1 className="flex min-w-0 items-center gap-1.5 text-base font-semibold tracking-tight text-foreground md:text-lg">
               <span className="truncate">{settings.storeName || APP_NAME}</span>
               <ChevronDown className="w-4 h-4 shrink-0 text-muted-foreground group-hover:text-foreground transition-colors" />
             </h1>
-            <p className="truncate text-[11px] font-semibold md:text-xs">
-              {workspace.isOwner ? (
-                <span className="t-success">👑 Espace Fondateur</span>
-              ) : (
-                <span className="t-info">🤝 Espace Collaborateur</span>
-              )}
-            </p>
           </div>
         </button>
 
@@ -426,24 +384,11 @@ export const Header: React.FC<HeaderProps> = ({
             {/* Marque : uniquement sur mobile — sur desktop elle vit dans la sidebar */}
             <div className="flex min-w-0 flex-1 lg:hidden">{brandBlock}</div>
 
-            {/* Header Right Actions */}
+            {/* Ce que la barre du haut garde : de quoi être averti, et de
+                quoi aller aux réglages. Le badge Trésorerie et la bascule
+                clair/sombre en sont partis — le raisonnement est en tête
+                de ce fichier. */}
             <div className="flex shrink-0 items-center gap-1 sm:gap-2 lg:ml-auto">
-              {/* À partir de 640px la trésorerie tient sur la même ligne. */}
-              <div className="hidden sm:block">{tresorerieBadge}</div>
-
-              <button
-                onClick={() => setTheme(theme === "dark" ? "light" : "dark")}
-                className="app-btn-icon"
-                title={theme === "dark" ? "Passer en mode clair" : "Passer en mode sombre"}
-                aria-label={theme === "dark" ? "Passer en mode clair" : "Passer en mode sombre"}
-              >
-                {theme === "dark" ? (
-                  <Sun className="w-4 h-4 t-warning" />
-                ) : (
-                  <Moon className="w-4 h-4 t-info" />
-                )}
-              </button>
-
               {/* Notifications */}
               <div className="relative">
                 <button
@@ -536,9 +481,6 @@ export const Header: React.FC<HeaderProps> = ({
               )}
             </div>
           </div>
-
-          {/* Trésorerie sur sa propre ligne en dessous de 640px */}
-          {tresorerieBadge && <div className="mt-2.5 sm:hidden">{tresorerieBadge}</div>}
         </div>
 
         {/* La barre d'onglets horizontale desktop est remplacée par la

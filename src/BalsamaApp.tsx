@@ -1143,17 +1143,7 @@ function AppInner() {
         <Header
           activeTab={activeTab}
           setActiveTab={setActiveTab}
-          tresorerie={computedCapital.tresorerieGlobaleActuelle}
-          seuilAlerte={computedCapital.seuilAlerteTresorerie}
-          lowStockCount={lowStockCount}
-          capital={computedCapital}
           settings={storeSettings}
-          theme={theme}
-          setTheme={setTheme}
-          sales={sales}
-          purchases={purchases}
-          expenses={expenses}
-          apports={apports}
           products={products}
           sidebarCollapsed={sidebarCollapsed}
           onToggleSidebar={toggleSidebar}
