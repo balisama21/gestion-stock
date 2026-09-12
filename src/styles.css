@@ -511,6 +511,7 @@ td {
   aside,
   .no-print,
   .app-modal-header,
+  .app-modal-poignee,
   .app-modal-footer {
     display: none !important;
   }
@@ -525,6 +526,10 @@ td {
     position: static !important;
     display: block !important;
     overflow: visible !important;
+    /* Ni animation ni transformation résiduelle : une feuille figée en
+       cours de glissement décalerait le reçu sur le papier. */
+    animation: none !important;
+    transform: none !important;
     max-height: none !important;
     max-width: none !important;
     width: 100% !important;
@@ -746,6 +751,117 @@ td {
 @media (prefers-reduced-motion: reduce) {
   .app-bar-auto {
     transition: none;
+  }
+}
+
+/* ═══ Les modales : une feuille sur téléphone, une boîte sur écran ═══
+
+   Une modale ne se contente pas d'apparaître : elle doit dire d'où elle
+   vient. Sur téléphone elle monte du bas, comme la main qui la tire ;
+   sur grand écran elle se pose au centre. Fermer est plus rapide
+   qu'ouvrir — le geste est déjà décidé, on ne fait pas attendre.
+
+   L'état vit dans `data-etat`, pose par le composant :
+     entre — au montage, l'animation d'ouverture ;
+     pose  — installée. AUCUNE règle d'animation ici, volontairement :
+             c'est pendant cet état qu'on fait glisser la feuille au
+             doigt, et une animation qui reprendrait la main écraserait
+             la transformation posée en ligne ;
+     sort  — l'animation de fermeture, `forwards` pour que la feuille
+             reste dehors jusqu'au démontage.                          */
+
+@keyframes modale-voile-entre {
+  from {
+    opacity: 0;
+  }
+}
+@keyframes modale-voile-sort {
+  to {
+    opacity: 0;
+  }
+}
+@keyframes modale-feuille-entre {
+  from {
+    transform: translateY(100%);
+  }
+}
+@keyframes modale-feuille-sort {
+  to {
+    transform: translateY(100%);
+  }
+}
+@keyframes modale-boite-entre {
+  from {
+    opacity: 0;
+    transform: translateY(8px) scale(0.97);
+  }
+}
+@keyframes modale-boite-sort {
+  to {
+    opacity: 0;
+    transform: translateY(8px) scale(0.97);
+  }
+}
+
+.app-modal-overlay[data-etat="entre"] {
+  animation: modale-voile-entre 200ms ease-out;
+}
+.app-modal-overlay[data-etat="sort"] {
+  animation: modale-voile-sort 180ms ease-in forwards;
+}
+
+.app-modal-panel {
+  /* `dvh` et non `vh` : sur mobile, `vh` compte la barre d'adresse même
+     quand elle est déployée, et le pied de la modale passait dessous. */
+  max-height: 92dvh;
+}
+.app-modal-panel[data-etat="entre"] {
+  animation: modale-feuille-entre 300ms cubic-bezier(0.32, 0.72, 0, 1);
+}
+.app-modal-panel[data-etat="sort"] {
+  animation: modale-feuille-sort 200ms cubic-bezier(0.4, 0, 1, 1) forwards;
+}
+/* Retour en place après un glissement abandonné. */
+.app-modal-panel[data-retour="true"] {
+  transition: transform 260ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+@media (min-width: 640px) {
+  .app-modal-panel {
+    max-height: calc(100dvh - 2rem);
+  }
+  .app-modal-panel[data-etat="entre"] {
+    animation: modale-boite-entre 200ms cubic-bezier(0.16, 1, 0.3, 1);
+  }
+  .app-modal-panel[data-etat="sort"] {
+    animation: modale-boite-sort 150ms ease-in forwards;
+  }
+}
+
+/* La zone par laquelle on tire la feuille. `touch-action: none` y est
+   indispensable : sans lui, le navigateur interprète le même geste
+   comme un défilement et la feuille tremble au lieu de suivre.
+
+   Uniquement sous 640 pixels : au-delà, la modale est une boîte centrée
+   qu'on ne tire pas, et la même déclaration priverait l'en-tête du
+   pincement pour zoomer sur un écran tactile. */
+@media (max-width: 639px) {
+  .app-modal-poignee {
+    touch-action: none;
+  }
+}
+
+/* Le mouvement disparaît, l'ouverture reste. Les durées ne tombent pas à
+   zéro mais à un millième de seconde : `forwards` doit continuer de
+   retenir l'état final, sans quoi la feuille reparaîtrait le temps du
+   démontage. */
+@media (prefers-reduced-motion: reduce) {
+  .app-modal-overlay[data-etat],
+  .app-modal-panel[data-etat] {
+    animation-duration: 1ms;
+  }
+  .app-modal-panel[data-retour="true"] {
+    transition-duration: 1ms;
   }
 }
 
