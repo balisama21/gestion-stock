@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from "react";
 import {
   Building2,
+  Save,
   AlertCircle,
   CalendarClock,
   Check,
@@ -625,6 +626,7 @@ export const FournisseursView: React.FC<FournisseursViewProps> = ({
                 Annuler
               </button>
               <button type="submit" disabled={enregistrement} className="app-btn-primary">
+                <Save className="h-4 w-4" />
                 {enregistrement
                   ? "Enregistrement…"
                   : enEdition
@@ -1094,6 +1096,7 @@ export const FournisseursView: React.FC<FournisseursViewProps> = ({
                               disabled={reglementEnCours}
                               className="app-btn-primary px-3 py-1.5 text-xs"
                             >
+                              <Save className="h-3.5 w-3.5" />
                               {reglementEnCours ? "Enregistrement…" : "Enregistrer le règlement"}
                             </button>
                             <button

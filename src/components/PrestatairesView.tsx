@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from "react";
 import {
   Building2,
+  Save,
   Mail,
   MapPin,
   Pencil,
@@ -534,6 +535,7 @@ export const PrestatairesView: React.FC<PrestatairesViewProps> = ({
                 Annuler
               </button>
               <button type="submit" disabled={enregistrement} className="app-btn-primary">
+                <Save className="h-4 w-4" />
                 {enregistrement
                   ? "Enregistrement…"
                   : enEdition

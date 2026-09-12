@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from "react";
 import {
   ShoppingBag,
+  Check,
   Plus,
   Search,
   Filter,
@@ -758,7 +759,8 @@ export const CommandesView: React.FC<CommandesViewProps> = ({
                 disabled={saving}
                 className="app-btn-primary"
               >
-                {saving ? "Enregistrement..." : "Confirmer le paiement"}
+                <Check className="h-4 w-4" />
+                {saving ? "Enregistrement…" : "Confirmer le paiement"}
               </button>
             </>
           }
@@ -847,7 +849,8 @@ export const CommandesView: React.FC<CommandesViewProps> = ({
               disabled={saving || stockErrors.length > 0}
               className="app-btn-primary"
             >
-              {saving ? "Création..." : "Créer la commande"}
+              <ShoppingBag className="h-4 w-4" />
+              {saving ? "Création…" : "Créer la commande"}
             </button>
           </>
         }
