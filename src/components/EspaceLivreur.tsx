@@ -13,6 +13,9 @@ import {
 import { formatCurrency, formatDateLocale } from "../utils/formulas";
 import { Modal } from "./shared/Modal";
 import { useLivraisonsDuLivreur } from "../hooks/useLivraisonsDuLivreur";
+import { useTachesDuLivreur } from "../hooks/useTachesDuLivreur";
+import { estEnRetard, libelleEcheance, type Tache } from "../lib/taches";
+import { dateDuJour } from "../lib/dates";
 import {
   classeStatutLivraison,
   estEnCours,
@@ -55,7 +58,16 @@ export const EspaceLivreur: React.FC<EspaceLivreurProps> = ({
   onSignOut,
 }) => {
   const donnees = useLivraisonsDuLivreur(storeId, userId);
-  return <TableauDuLivreur storeName={storeName} nom={nom} onSignOut={onSignOut} {...donnees} />;
+  const travail = useTachesDuLivreur(storeId, userId);
+  return (
+    <TableauDuLivreur
+      storeName={storeName}
+      nom={nom}
+      onSignOut={onSignOut}
+      {...donnees}
+      {...travail}
+    />
+  );
 };
 
 interface TableauDuLivreurProps {
@@ -71,6 +83,13 @@ interface TableauDuLivreurProps {
     statut: "en_cours" | "livree" | "echouee",
     options?: { montantEncaisse?: number | null; motifEchec?: string | null },
   ) => Promise<{ error: string | null }>;
+  /**
+   * Les tâches qu'on lui a confiées. Facultatives : l'écran de
+   * prévisualisation peut s'en passer, et un livreur à qui l'on n'en
+   * assigne jamais ne verra jamais cette partie.
+   */
+  taches?: Tache[];
+  avancerTache?: (id: string, statut: string) => Promise<{ error: string | null }>;
 }
 
 /** Ce que le livreur voit, quelles que soient ses courses. */
@@ -83,6 +102,8 @@ export const TableauDuLivreur: React.FC<TableauDuLivreurProps> = ({
   erreur,
   recharger,
   avancer,
+  taches = [],
+  avancerTache,
 }) => {
   const [remise, setRemise] = useState<Livraison | null>(null);
   const [echec, setEchec] = useState<Livraison | null>(null);
@@ -102,6 +123,16 @@ export const TableauDuLivreur: React.FC<TableauDuLivreurProps> = ({
   }, [livraisons]);
 
   const aRapporter = aFaire.reduce((n, l) => n + l.montant_a_encaisser, 0);
+
+  // Le jour se prend par `dateDuJour` et jamais par `toISOString` : à
+  // Antananarivo, qui est à UTC+3, la seconde méthode renvoie la veille
+  // pendant les trois premières heures — précisément les heures où un
+  // livreur peut être en route.
+  const aujourdhui = dateDuJour();
+  const tachesEnRetard = useMemo(
+    () => taches.filter((t) => estEnRetard(t, aujourdhui)),
+    [taches, aujourdhui],
+  );
 
   const prendre = async (l: Livraison) => {
     setEnCours(true);
@@ -190,6 +221,18 @@ export const TableauDuLivreur: React.FC<TableauDuLivreurProps> = ({
           </div>
         </div>
 
+        {/* La seule chose qui mérite de passer devant le travail du
+            jour : une tâche dont la date est dépassée. Une ligne, pas
+            une carte — elle signale, elle ne raconte pas. Le détail
+            l'attend en bas de l'écran. */}
+        {tachesEnRetard.length > 0 && (
+          <p className="rounded-xl border border-danger-border bg-danger-soft px-4 py-3 text-sm t-danger">
+            {tachesEnRetard.length === 1
+              ? `Une tâche en retard : ${tachesEnRetard[0].titre}.`
+              : `${tachesEnRetard.length} tâches en retard.`}
+          </p>
+        )}
+
         {erreur && (
           <p
             role="alert"
@@ -248,6 +291,57 @@ export const TableauDuLivreur: React.FC<TableauDuLivreurProps> = ({
                   </span>
                 </div>
               ))}
+            </div>
+          </section>
+        )}
+
+        {/* ── Ce qu'on lui a demandé en plus de ses courses ──
+            Tout en bas, et seulement s'il y en a. Un livreur à qui l'on
+            n'assigne jamais de tâche voit exactement l'écran d'avant, au
+            pixel près : cette section n'existe pas pour lui.
+
+            Le même geste que pour une course — un bouton large, un seul
+            — parce qu'il travaille debout, sur un téléphone, entre deux
+            arrêts. Rien à apprendre. */}
+        {taches.length > 0 && (
+          <section className="space-y-2">
+            <h2 className="px-1 text-[13px] font-medium uppercase tracking-wide text-muted-foreground">
+              Aussi à faire
+            </h2>
+            <div className="app-card divide-y divide-border">
+              {taches.map((t) => {
+                const retard = estEnRetard(t, aujourdhui);
+                return (
+                  <div key={t.id} className="space-y-3 p-4">
+                    <div className="flex items-start justify-between gap-3">
+                      <span className="min-w-0 flex-1">
+                        <span className="block text-sm font-medium text-foreground">{t.titre}</span>
+                        <span className="mt-0.5 block text-xs text-muted-foreground">
+                          {libelleEcheance(t.echeance, aujourdhui)}
+                        </span>
+                      </span>
+                      {retard && <span className="app-badge-danger shrink-0">En retard</span>}
+                    </div>
+                    {t.description && (
+                      <p className="text-sm leading-relaxed text-muted-foreground">
+                        {t.description}
+                      </p>
+                    )}
+                    {avancerTache && (
+                      <button
+                        type="button"
+                        onClick={() =>
+                          avancerTache(t.id, t.statut === "a_faire" ? "en_cours" : "termine")
+                        }
+                        className="app-btn-primary w-full"
+                      >
+                        <Check className="h-4 w-4" />
+                        {t.statut === "a_faire" ? "Je m'en occupe" : "C'est fait"}
+                      </button>
+                    )}
+                  </div>
+                );
+              })}
             </div>
           </section>
         )}
