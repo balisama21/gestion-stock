@@ -680,6 +680,53 @@ export type Database = {
           },
         ]
       }
+      journal_activite: {
+        Row: {
+          acteur_id: string | null
+          action: string
+          changements: Json | null
+          cree_le: string
+          entite: string
+          entite_id: string | null
+          etiquette: string | null
+          id: number
+          montant: number | null
+          store_id: string
+        }
+        Insert: {
+          acteur_id?: string | null
+          action: string
+          changements?: Json | null
+          cree_le?: string
+          entite: string
+          entite_id?: string | null
+          etiquette?: string | null
+          id?: never
+          montant?: number | null
+          store_id: string
+        }
+        Update: {
+          acteur_id?: string | null
+          action?: string
+          changements?: Json | null
+          cree_le?: string
+          entite?: string
+          entite_id?: string | null
+          etiquette?: string | null
+          id?: never
+          montant?: number | null
+          store_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "journal_activite_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       orders: {
         Row: {
           client_id: string | null

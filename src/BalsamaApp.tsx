@@ -22,6 +22,7 @@ import { universDe } from "./components/navigation";
 import { SousNavigation } from "./components/shared/SousNavigation";
 import { SquelettePage } from "./components/shared/SquelettePage";
 import { construireNotifications } from "./lib/activite";
+import { useJournalActivite } from "./hooks/useJournalActivite";
 import type { SettingsTab } from "./components/settings/SettingsLayout";
 import { CreateStoreOnboarding } from "./components/CreateStoreOnboarding";
 import { StoreLockedScreen } from "./components/StoreLockedScreen";
@@ -154,6 +155,7 @@ function AppInner() {
     estLivreur ? null : (workspace.activeStore?.id ?? null),
     user?.id ?? null,
   );
+  const { lignes: journalActivite } = useJournalActivite(workspace.activeStore?.id ?? null);
   const { members: storeMembers, removeMember: removeStoreMember } = useStoreMembers(
     workspace.activeStore?.id ?? null,
   );
@@ -749,6 +751,7 @@ function AppInner() {
         permissionsDetaillees: workspace.memberPermissionsDetailed,
         membres: storeMembers,
         moiId: user?.id ?? null,
+        journal: journalActivite,
         alertesStock: notificationPrefs.stockAlerts,
         formatMontant: formatCurrency,
       }),
@@ -769,6 +772,7 @@ function AppInner() {
       workspace.memberPermissionsDetailed,
       storeMembers,
       user?.id,
+      journalActivite,
       notificationPrefs.stockAlerts,
     ],
   );

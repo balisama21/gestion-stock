@@ -8,6 +8,7 @@ type Livraison = Database["public"]["Tables"]["deliveries"]["Row"];
 type Commande = Database["public"]["Tables"]["orders"]["Row"];
 type Client = Database["public"]["Tables"]["clients"]["Row"];
 type Reglement = Database["public"]["Tables"]["payments"]["Row"];
+type LigneJournal = Database["public"]["Tables"]["journal_activite"]["Row"];
 
 export type TonNotif = "success" | "warning" | "danger" | "info" | "neutre";
 
@@ -39,27 +40,25 @@ export interface Notification {
 /**
  * Ce qui s'est passé dans la boutique, et ce qui demande attention.
  *
- * ── Pourquoi aucune table ──
+ * ── Deux sources, et pourquoi deux ──
  *
- * Un journal de notifications se range d'ordinaire dans sa propre table,
- * écrite par des déclencheurs à chaque insertion. Ce n'est pas ce qui est
- * fait ici, et c'est délibéré : l'application charge déjà les ventes, les
- * achats, les dépenses, les apports, les règlements, les devis, les
- * livraisons, les commandes et les clients pour ses écrans. Tout est donc
- * en mémoire, avec sa date. Une table en double dirait la même chose une
- * seconde fois, et pourrait finir par dire autre chose — une ligne
- * corrigée ou supprimée laisserait derrière elle une notification qui ne
- * correspond plus à rien.
+ * Les CRÉATIONS se déduisent des données déjà chargées. L'application
+ * lit de toute façon les ventes, achats, dépenses, apports, règlements,
+ * devis, livraisons, commandes et clients pour ses écrans : tout est en
+ * mémoire, avec sa date et son auteur. Rien à écrire en double, et
+ * l'historique remonte aussi loin que celui des écrans — bien avant que
+ * ce code existe.
  *
- * Le prix de ce choix, et il faut le connaître : ce journal dit QUI A
- * FAIT quoi, mais pas qui a MODIFIÉ ni qui a SUPPRIMÉ. Il ne peut pas :
- * une ligne effacée a disparu des données, et une ligne corrigée n'a
- * gardé que sa valeur d'arrivée. Ces deux-là demandent une écriture au
- * moment même du geste — donc une table tenue par des déclencheurs sur
- * les tables existantes. C'est faisable et additif, mais cela pose du
- * code sur le chemin d'écriture d'une caisse en service : un déclencheur
- * qui échoue empêche d'enregistrer une vente. Cela se décide, cela ne se
- * glisse pas au passage.
+ * Les MODIFICATIONS et les SUPPRESSIONS viennent de la table
+ * `journal_activite`, qu'un déclencheur remplit au moment même du geste.
+ * Elles ne pouvaient pas se déduire : une ligne effacée a disparu des
+ * données, une ligne corrigée n'a gardé que sa valeur d'arrivée.
+ *
+ * Le partage est net et il faut le garder : le journal ne fournit JAMAIS
+ * les créations, sinon chaque vente paraîtrait deux fois — et le doublon
+ * commencerait le jour de la mise en service du journal, ce qui est
+ * exactement le genre de bizarrerie qu'on met des heures à comprendre
+ * six mois plus tard.
  *
  * ── Ce que chacun voit ──
  *
@@ -71,6 +70,11 @@ export interface Notification {
  * strict que la navigation, qui laisse certains onglets visibles en
  * adaptant leur contenu : un résumé ne sait pas s'adapter, il dit ou il
  * ne dit pas.
+ *
+ * Pour les corrections et suppressions, la barrière est posée plus bas
+ * encore, dans la base : la politique de sécurité de `journal_activite`
+ * ne laisse le propriétaire voir que sa boutique, et un collaborateur
+ * que ses propres gestes. Ce qui arrive ici est donc déjà filtré.
  */
 export interface SourcesActivite {
   products: Product[];
@@ -95,6 +99,12 @@ export interface SourcesActivite {
   membres: { user_id: string; full_name: string | null; email: string }[];
   /** L'identifiant de la personne connectée, pour écrire « Vous ». */
   moiId: string | null;
+  /**
+   * Les corrections et les suppressions, telles que la base les a
+   * notées au moment du geste. Les créations n'y figurent pas : elles
+   * se déduisent déjà des données, et remontent bien plus loin.
+   */
+  journal: LigneJournal[];
   /** Réglage « Alertes de stock bas » (Paramètres → Notifications). */
   alertesStock: boolean;
   formatMontant: (montant: number) => string;
@@ -102,6 +112,81 @@ export interface SourcesActivite {
 
 /** Combien d'événements on garde. Au-delà, on consulte l'écran dédié. */
 const MAX_ACTIVITES = 60;
+
+/**
+ * Le nom des tables, traduit à l'affichage.
+ *
+ * La base enregistre `sales`, `purchases`, `products` : elle n'a pas à
+ * parler français, et le jour où l'application sera traduite, tout se
+ * changera ici. `e` porte l'accord — « Vente supprimée », « Achat
+ * supprimé ».
+ */
+const ENTITES: Record<string, { libelle: string; e: "" | "e"; module: string; onglet: ActiveTab }> =
+  {
+    sales: { libelle: "Vente", e: "e", module: "ventes", onglet: "ventes" },
+    purchases: { libelle: "Achat", e: "", module: "achats", onglet: "achats" },
+    expenses: { libelle: "Dépense", e: "e", module: "depenses", onglet: "depenses" },
+    capital_apports: { libelle: "Apport", e: "", module: "capital", onglet: "capital" },
+    quotes: { libelle: "Devis", e: "", module: "devis", onglet: "devis" },
+    deliveries: { libelle: "Livraison", e: "e", module: "livraisons", onglet: "livraisons" },
+    clients: { libelle: "Client", e: "", module: "clients", onglet: "clients" },
+    orders: { libelle: "Commande", e: "e", module: "commandes", onglet: "commandes" },
+    payments: { libelle: "Règlement", e: "", module: "ventes", onglet: "paiements" },
+    products: { libelle: "Produit", e: "", module: "produits", onglet: "produits" },
+  };
+
+/**
+ * Le nom d'une colonne, dit comme on le dirait à voix haute.
+ *
+ * La table en contient une centaine ; seules les plus souvent corrigées
+ * méritent leur traduction. Les autres retombent sur leur propre nom,
+ * tirets remplacés par des espaces — « date_echeance » devient « date
+ * echeance », ce qui reste lisible et n'invente rien.
+ */
+const CHAMPS: Record<string, string> = {
+  designation: "désignation",
+  display_name: "nom affiché",
+  prix_achat: "prix d'achat",
+  prix_vente_defaut: "prix de vente",
+  prix_vente_unit: "prix de vente",
+  prix_achat_unit: "prix d'achat",
+  quantite: "quantité",
+  montant: "montant",
+  total: "total",
+  total_vente: "total",
+  total_achat: "total",
+  montant_total: "total",
+  seuil_alerte: "seuil d'alerte",
+  stock_initial: "stock initial",
+  stock_max: "stock maximum",
+  date: "date",
+  date_echeance: "échéance",
+  valide_jusqu_au: "validité",
+  date_prevue: "date prévue",
+  note: "note",
+  statut: "statut",
+  statut_commande: "statut",
+  fournisseur: "fournisseur",
+  vendeur: "vendeur",
+  nom: "nom",
+  prenom: "prénom",
+  telephone: "téléphone",
+  adresse: "adresse",
+  email: "e-mail",
+  client_nom: "client",
+  destinataire: "destinataire",
+  categorie: "catégorie",
+  category_id: "catégorie",
+  supplier_id: "fournisseur",
+  client_id: "client",
+  livreur_id: "livreur",
+  motif_echec: "motif d'échec",
+  unite: "unité",
+  tva_rate: "TVA",
+  code_barres: "code-barres",
+};
+
+const nomDuChamp = (cle: string) => CHAMPS[cle] ?? cle.replace(/_/g, " ");
 
 const pluriel = (n: number, mot: string, pluriel = `${mot}s`) => (n > 1 ? pluriel : mot);
 
@@ -464,6 +549,39 @@ export function construireNotifications(s: SourcesActivite): Notification[] {
         onglet: "clients",
       });
     }
+  }
+
+  // ─────────────── Ce qui a été corrigé ou effacé ───────────────
+  //
+  // Seule la base peut le dire : une ligne effacée a disparu des
+  // données, une ligne corrigée n'a gardé que sa valeur d'arrivée. Ces
+  // lignes-là viennent de `journal_activite`, écrit par un déclencheur
+  // au moment même du geste.
+  for (const j of s.journal) {
+    const ent = ENTITES[j.entite];
+    if (!ent || !peutVoir(ent.module)) continue;
+
+    const supprime = j.action === "suppression";
+    const champs = j.changements ? Object.keys(j.changements as Record<string, unknown>) : [];
+    const details = [
+      j.etiquette,
+      !supprime && champs.length > 0 ? champs.map(nomDuChamp).join(", ") : null,
+    ]
+      .filter(Boolean)
+      .join(" · ");
+
+    activites.push({
+      id: `journal-${j.id}`,
+      genre: "activite",
+      titre: `${ent.libelle} ${supprime ? "supprimé" + ent.e : "modifié" + ent.e}${
+        j.montant != null ? ` ${fmt(j.montant)}` : ""
+      }`,
+      detail: details || "Sans précision",
+      quand: j.cree_le,
+      acteur: nomDe(j.acteur_id),
+      ton: supprime ? "danger" : "warning",
+      onglet: ent.onglet,
+    });
   }
 
   // Les ventes, achats, dépenses et apports ne portent qu'un jour, sans
