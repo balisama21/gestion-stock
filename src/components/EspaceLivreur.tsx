@@ -1,5 +1,15 @@
 import React, { useMemo, useState } from "react";
-import { LogOut, MapPin, Package, Phone, RefreshCw, Truck } from "lucide-react";
+import {
+  Check,
+  LogOut,
+  MapPin,
+  Package,
+  PackageCheck,
+  Phone,
+  RefreshCw,
+  Save,
+  Truck,
+} from "lucide-react";
 import { formatCurrency, formatDateLocale } from "../utils/formulas";
 import { Modal } from "./shared/Modal";
 import { useLivraisonsDuLivreur } from "../hooks/useLivraisonsDuLivreur";
@@ -261,6 +271,7 @@ export const TableauDuLivreur: React.FC<TableauDuLivreurProps> = ({
               disabled={enCours}
               className="app-btn-primary"
             >
+              <Check className="h-4 w-4" />
               {enCours ? "…" : "Confirmer"}
             </button>
           </>
@@ -313,6 +324,7 @@ export const TableauDuLivreur: React.FC<TableauDuLivreurProps> = ({
               disabled={enCours}
               className="app-btn-primary"
             >
+              <Save className="h-4 w-4" />
               {enCours ? "…" : "Enregistrer"}
             </button>
           </>
@@ -418,6 +430,7 @@ const CarteCourse: React.FC<{
           disabled={enCours}
           className="app-btn-primary w-full py-3 text-base"
         >
+          <Truck className="h-4 w-4" />
           Je pars avec
         </button>
       ) : (
@@ -428,6 +441,7 @@ const CarteCourse: React.FC<{
             disabled={enCours}
             className="app-btn-primary w-full py-3 text-base"
           >
+            <PackageCheck className="h-4 w-4" />
             Colis remis
           </button>
           <button

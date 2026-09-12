@@ -18,7 +18,6 @@ import { traduireErreurAuth } from "../lib/messagesAuth";
 import {
   AlertCircle,
   ArrowLeft,
-  ArrowRight,
   CheckCircle2,
   Eye,
   EyeOff,
@@ -352,7 +351,6 @@ export const AuthPage: React.FC = () => {
                         className="mt-2.5 inline-flex items-center gap-1.5 text-xs font-semibold text-primary hover:underline disabled:opacity-60"
                       >
                         Se connecter avec Google
-                        <ArrowRight className="h-3.5 w-3.5" />
                       </button>
                     </div>
                   </div>
