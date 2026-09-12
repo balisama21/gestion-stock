@@ -3,6 +3,7 @@ import { Purchase, Product, LocaleSetting, StoreSettings } from "../types";
 import { APP_NAME } from "../lib/appConfig";
 import {
   ShoppingCart,
+  Save,
   Plus,
   Search,
   Filter,
@@ -449,15 +450,15 @@ export const AchatsView: React.FC<AchatsViewProps> = ({
           description={`N° ${selectedPurchaseReceipt.numero}`}
           footer={
             <>
-              <button onClick={() => window.print()} className="app-btn-secondary">
-                <Printer className="h-4 w-4" />
-                Imprimer
-              </button>
               <button
                 onClick={() => setSelectedPurchaseReceipt(null)}
-                className="app-btn-primary"
+                className="app-btn-secondary"
               >
                 Fermer
+              </button>
+              <button onClick={() => window.print()} className="app-btn-primary">
+                <Printer className="h-4 w-4" />
+                Imprimer
               </button>
             </>
           }
@@ -554,6 +555,7 @@ export const AchatsView: React.FC<AchatsViewProps> = ({
               Annuler
             </button>
             <button type="submit" form="purchase-add-form" className="app-btn-primary">
+              <Save className="h-4 w-4" />
               Enregistrer l'achat
             </button>
           </>

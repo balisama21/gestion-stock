@@ -13,6 +13,7 @@ import {
   Search,
   Filter,
   CheckCircle2,
+  Save,
   Clock,
   XCircle,
   TrendingUp,
@@ -954,6 +955,7 @@ export const VentesView: React.FC<VentesViewProps> = ({
               Annuler
             </button>
             <button type="submit" form="sale-add-form" className="app-btn-primary">
+              <Check className="h-4 w-4" />
               Valider la vente
             </button>
           </>
@@ -1275,6 +1277,7 @@ export const VentesView: React.FC<VentesViewProps> = ({
                 Annuler
               </button>
               <button type="submit" form="sale-edit-form" className="app-btn-primary">
+                <Save className="h-4 w-4" />
                 Enregistrer
               </button>
             </>

@@ -8,6 +8,7 @@ import {
   Layers,
   Filter,
   CheckCircle2,
+  Save,
   DollarSign,
   RefreshCw,
   Pencil,
@@ -589,6 +590,7 @@ export const ProduitsView: React.FC<ProduitsViewProps> = ({
               Annuler
             </button>
             <button type="submit" form="product-add-form" className="app-btn-primary">
+              <Save className="h-4 w-4" />
               Enregistrer
             </button>
           </>
@@ -700,7 +702,8 @@ export const ProduitsView: React.FC<ProduitsViewProps> = ({
                 disabled={editSaving}
                 className="app-btn-primary"
               >
-                {editSaving ? "Enregistrement..." : "Enregistrer"}
+                <Save className="h-4 w-4" />
+                {editSaving ? "Enregistrement…" : "Enregistrer"}
               </button>
             </>
           }

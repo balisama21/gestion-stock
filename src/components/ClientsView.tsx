@@ -2,6 +2,7 @@ import React, { useMemo, useState } from "react";
 import {
   AlertCircle,
   ArrowUpRight,
+  Save,
   Building2,
   Check,
   Clock,
@@ -629,6 +630,7 @@ export const ClientsView: React.FC<ClientsViewProps> = ({
                 Annuler
               </button>
               <button type="submit" disabled={enregistrement} className="app-btn-primary">
+                <Save className="h-4 w-4" />
                 {enregistrement
                   ? "Enregistrement…"
                   : enEdition
