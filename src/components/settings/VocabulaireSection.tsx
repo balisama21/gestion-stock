@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Eye, EyeOff, Languages, RotateCcw } from "lucide-react";
+import { Eye, EyeOff, Languages, RotateCcw, Save } from "lucide-react";
 import { SettingsSection } from "./primitives";
 import { MODULES_PERSONNALISABLES, type Personnalisation } from "../../lib/personnalisation";
 
@@ -141,6 +141,7 @@ export const VocabulaireSection: React.FC<VocabulaireSectionProps> = ({
           disabled={enregistrement || !modifie}
           className="app-btn-primary"
         >
+          <Save className="h-4 w-4" />
           {enregistrement ? "Enregistrement…" : "Enregistrer"}
         </button>
       </div>

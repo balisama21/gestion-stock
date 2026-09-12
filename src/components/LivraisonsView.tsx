@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from "react";
-import { Truck, Plus, Trash2, Edit3, MapPin, Phone, Wallet } from "lucide-react";
+import { Banknote, Edit3, MapPin, Phone, Plus, Save, Trash2, Truck, Wallet } from "lucide-react";
 import { formatCurrency, formatDateLocale } from "../utils/formulas";
 import { PageHeader, HeaderMetric } from "./shared/PageHeader";
 import { FilterBar, FilterField } from "./shared/FilterBar";
@@ -505,6 +505,7 @@ export const LivraisonsView: React.FC<LivraisonsViewProps> = ({
                       disabled={enregistrement}
                       className="app-btn-primary shrink-0 px-3 py-1.5 text-xs"
                     >
+                      <Banknote className="h-3.5 w-3.5" />
                       Argent rendu
                     </button>
                   )}
@@ -544,6 +545,7 @@ export const LivraisonsView: React.FC<LivraisonsViewProps> = ({
               disabled={enregistrement}
               className="app-btn-primary"
             >
+              <Save className="h-4 w-4" />
               {enregistrement ? "Enregistrement…" : "Enregistrer la course"}
             </button>
           </>

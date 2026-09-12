@@ -487,7 +487,7 @@ export const VendeursView: React.FC<VendeursViewProps> = ({
             >
               {inviting ? (
                 <>
-                  <span className="h-4 w-4 animate-spin rounded-full border-2 border-white/30 border-t-white" />
+                  <span className="h-4 w-4 animate-spin rounded-full border-2 border-current/30 border-t-current" />
                   Envoi...
                 </>
               ) : (
@@ -783,7 +783,7 @@ export const VendeursView: React.FC<VendeursViewProps> = ({
                 title={`Télécharger le PDF au format ${paper.label}`}
               >
                 <Download className="h-4 w-4" />
-                {exportEnCours === "pdf" ? "Création..." : "PDF"}
+                {exportEnCours === "pdf" ? "Création…" : "PDF"}
               </button>
             </>
           }

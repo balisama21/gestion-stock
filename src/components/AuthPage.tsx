@@ -766,14 +766,11 @@ function SubmitButton({
     >
       {loading ? (
         <span className="inline-flex items-center gap-2">
-          <span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+          <span className="w-4 h-4 border-2 border-current/30 border-t-current rounded-full animate-spin" />
           {loadingLabel}
         </span>
       ) : (
-        <span className="inline-flex items-center gap-2">
-          {label}
-          <ArrowRight className="h-4 w-4" />
-        </span>
+        <span className="inline-flex items-center gap-2">{label}</span>
       )}
     </button>
   );

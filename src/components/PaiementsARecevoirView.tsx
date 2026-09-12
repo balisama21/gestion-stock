@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from "react";
-import { CreditCard, History, Search } from "lucide-react";
+import { Banknote, Check, CreditCard, History, Search } from "lucide-react";
 import { formatCurrency, getSaleLabel } from "../utils/formulas";
 import { PageHeader } from "./shared/PageHeader";
 import { Modal } from "./shared/Modal";
@@ -238,6 +238,7 @@ export const PaiementsARecevoirView: React.FC<PaiementsARecevoirViewProps> = ({
                     onClick={() => openPaymentModal(r)}
                     className="app-btn-primary shrink-0 text-xs"
                   >
+                    <Banknote className="h-3.5 w-3.5" />
                     Recevoir
                   </button>
                 </span>
@@ -277,7 +278,8 @@ export const PaiementsARecevoirView: React.FC<PaiementsARecevoirViewProps> = ({
                 disabled={saving}
                 className="app-btn-primary"
               >
-                {saving ? "Enregistrement..." : "Confirmer le paiement"}
+                <Check className="h-4 w-4" />
+                {saving ? "Enregistrement…" : "Confirmer le paiement"}
               </button>
             </>
           }

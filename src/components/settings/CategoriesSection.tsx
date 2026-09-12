@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from "react";
-import { ChevronRight, FolderTree, Pencil, Plus, Trash2, X } from "lucide-react";
+import { ChevronRight, FolderTree, Pencil, Plus, Save, Trash2, X } from "lucide-react";
 import { SettingsSection } from "./primitives";
 import type { Database } from "../../lib/database.types";
 
@@ -221,6 +221,7 @@ export const CategoriesSection: React.FC<CategoriesSectionProps> = ({
               onChange={(e) => setNomEdite(e.target.value)}
             />
             <button type="submit" disabled={enCours} className="app-btn-primary shrink-0">
+              <Save className="h-4 w-4" />
               Enregistrer
             </button>
           </div>

@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from "react";
-import { ListPlus, Pencil, Plus, Trash2, X } from "lucide-react";
+import { ListPlus, Pencil, Plus, Save, Trash2, X } from "lucide-react";
 import { SettingsSection } from "./primitives";
 import {
   ENTITES_CHAMPS,
@@ -394,6 +394,7 @@ export const ChampsPersonnalisesSection: React.FC<ChampsPersonnalisesSectionProp
               Annuler
             </button>
             <button type="submit" disabled={enregistrement} className="app-btn-primary">
+              <Save className="h-4 w-4" />
               {enregistrement ? "Enregistrement…" : enEdition ? "Enregistrer" : "Ajouter le champ"}
             </button>
           </div>

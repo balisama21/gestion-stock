@@ -1,5 +1,15 @@
 import React from "react";
-import { UserPlus, Users, Copy, Check, Trash2, Mail, ShieldCheck, KeyRound } from "lucide-react";
+import {
+  Check,
+  Copy,
+  KeyRound,
+  Mail,
+  Save,
+  ShieldCheck,
+  Trash2,
+  UserPlus,
+  Users,
+} from "lucide-react";
 import { SettingsSection, SettingsBlock, SettingsFeedback } from "./primitives";
 import { InviteWizard } from "../permissions/InviteWizard";
 import { ModulePermissionCard } from "../permissions/ModulePermissionCard";
@@ -355,6 +365,7 @@ export const TeamSection: React.FC<TeamSectionProps> = ({
                       disabled={savingMemberPermissions}
                       className="app-btn-primary"
                     >
+                      <Save className="h-4 w-4" />
                       {savingMemberPermissions ? "Enregistrement…" : "Enregistrer les permissions"}
                     </button>
                   </div>

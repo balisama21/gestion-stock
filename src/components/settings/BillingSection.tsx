@@ -240,6 +240,7 @@ export const BillingSection: React.FC<BillingSectionProps> = ({
                   disabled={activating || !activationCodeInput.trim()}
                   className="app-btn-primary w-full sm:w-auto"
                 >
+                  <Check className="h-4 w-4" />
                   {activating ? "Vérification…" : "Activer ma boutique"}
                 </button>
               </SettingsBlock>
@@ -317,6 +318,7 @@ export const BillingSection: React.FC<BillingSectionProps> = ({
               disabled={generatingCode || !selectedStoreToActivateId}
               className="app-btn-primary w-full sm:w-auto"
             >
+              <KeyRound className="h-4 w-4" />
               {generatingCode ? "Génération…" : "Générer un code"}
             </button>
           </SettingsBlock>
