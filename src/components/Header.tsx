@@ -16,8 +16,9 @@ import {
 import { getProductLabel } from "../utils/formulas";
 import { Modal } from "./shared/Modal";
 import { Sidebar } from "./Sidebar";
+import { MenuPlus } from "./MenuPlus";
 import { useNotificationPrefs } from "../lib/notificationPrefs";
-import { visibleNavGroups, visibleNavItems, visibleBottomTabs, canSeeSettings } from "./navigation";
+import { visibleNavGroups, visibleBottomTabs, canSeeSettings } from "./navigation";
 import { useWorkspace } from "../hooks/useWorkspace";
 import { useAuth } from "../hooks/useAuth";
 import { useBarresAuDefilement } from "../hooks/useBarresAuDefilement";
@@ -209,7 +210,6 @@ export const Header: React.FC<HeaderProps> = ({
   // Le vocabulaire et les modules retenus par la boutique.
   const perso = usePersonnalisation();
   const navGroups = visibleNavGroups(workspace.memberPermissions, perso);
-  const visibleTabs = visibleNavItems(workspace.memberPermissions, perso);
   const showSettings = canSeeSettings(workspace.memberPermissions);
   const bottomTabs = visibleBottomTabs(workspace.memberPermissions, perso);
 
@@ -506,44 +506,27 @@ export const Header: React.FC<HeaderProps> = ({
           aucun indicateur de défilement. */}
       </header>
 
-      {/* Mobile Menus */}
       {mobileMenuOpen && (
-        <>
-          <div
-            className="lg:hidden fixed inset-0 bg-background/70 backdrop-blur-sm z-40"
-            onClick={() => setMobileMenuOpen(false)}
-          />
-          <div className="lg:hidden fixed bottom-[68px] left-0 right-0 z-50 bg-card border-t border-border rounded-t-2xl px-4 pt-3 pb-4 shadow-2xl animate-in slide-in-from-bottom duration-200">
-            <div className="w-10 h-1 rounded-full bg-accent mx-auto mb-3" />
-            <div className="grid grid-cols-2 gap-2 max-h-[50vh] overflow-y-auto">
-              {visibleTabs.map((tab) => {
-                const isActive = activeTab === tab.id;
-                return (
-                  <button
-                    key={tab.id}
-                    onClick={() => handleTabClick(tab.id)}
-                    className={`flex items-center gap-2 px-3 py-2.5 rounded-xl text-xs font-semibold w-full text-left transition-all ${
-                      isActive
-                        ? "bg-emerald-600 text-white shadow-md"
-                        : "bg-background text-muted-foreground border border-border hover:bg-muted"
-                    }`}
-                  >
-                    {tab.icon}
-                    <span className="truncate">{tab.label}</span>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        </>
+        <MenuPlus
+          groups={navGroups}
+          activeTab={activeTab}
+          onTabClick={handleTabClick}
+          onFermer={() => setMobileMenuOpen(false)}
+        />
       )}
-
       {/* Mobile Bottom Navigation */}
       <nav
         data-masquee={barresMasquees}
         className="app-bar-auto app-bar-bas lg:hidden fixed bottom-0 left-0 right-0 z-50 bg-card/95 backdrop-blur border-t border-border shadow-[0_-4px_20px_rgba(0,0,0,0.25)]"
       >
-        <div className="grid grid-cols-5 px-1 pb-[env(safe-area-inset-bottom)]">
+        {/* Le nombre de colonnes suit le nombre de raccourcis. Il était
+            figé à cinq : une boutique qui masquait un module laissait
+            une colonne vide et voyait « Plus » se décaler vers la
+            gauche au lieu de rester au bord. */}
+        <div
+          className="grid px-1 pb-[env(safe-area-inset-bottom)]"
+          style={{ gridTemplateColumns: `repeat(${bottomTabs.length + 1}, minmax(0, 1fr))` }}
+        >
           {bottomTabs.map((tab) => (
             <button
               key={tab.id}

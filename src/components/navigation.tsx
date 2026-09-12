@@ -56,18 +56,21 @@ export const NAV_GROUPS: NavGroup[] = [
     ],
   },
   {
-    title: "Ventes",
+    // Dans chaque groupe, l'ordre suit l'usage réel plutôt que l'ordre
+    // dans lequel les écrans ont été écrits : la caisse d'abord, les
+    // modules que toutes les boutiques n'activent pas à la fin.
+    title: "Ventes & clients",
     items: [
-      { id: "commandes", label: "Commandes", icon: <ShoppingBag className="w-4 h-4" /> },
-      { id: "devis", label: "Devis", icon: <FileText className="w-4 h-4" /> },
       { id: "ventes", label: "Ventes", icon: <DollarSign className="w-4 h-4" /> },
-      { id: "livraisons", label: "Livraisons", icon: <Truck className="w-4 h-4" /> },
       { id: "clients", label: "Clients", icon: <UserIcon className="w-4 h-4" /> },
       { id: "paiements", label: "Paiements à recevoir", icon: <CreditCard className="w-4 h-4" /> },
+      { id: "devis", label: "Devis", icon: <FileText className="w-4 h-4" /> },
+      { id: "commandes", label: "Commandes", icon: <ShoppingBag className="w-4 h-4" /> },
+      { id: "livraisons", label: "Livraisons", icon: <Truck className="w-4 h-4" /> },
     ],
   },
   {
-    title: "Stock",
+    title: "Stock & achats",
     items: [
       { id: "produits", label: "Produits", icon: <Package className="w-4 h-4" /> },
       { id: "achats", label: "Achats", icon: <ShoppingCart className="w-4 h-4" /> },
@@ -76,7 +79,7 @@ export const NAV_GROUPS: NavGroup[] = [
     ],
   },
   {
-    title: "Finance",
+    title: "Argent",
     items: [
       { id: "capital", label: "Capital", icon: <Wallet className="w-4 h-4" /> },
       { id: "depenses", label: "Dépenses", icon: <ArrowRightLeft className="w-4 h-4" /> },
@@ -86,6 +89,24 @@ export const NAV_GROUPS: NavGroup[] = [
     title: "Équipe",
     items: [{ id: "vendeurs", label: "Vendeurs", icon: <Users className="w-4 h-4" /> }],
   },
+];
+
+/**
+ * Les univers : les écrans qui se répondent.
+ *
+ * C'est ce qui remplace « tout au même niveau ». Depuis la caisse, on
+ * atteint un devis sans repasser par le menu ; depuis le catalogue, on
+ * atteint les achats et les fournisseurs. Un écran peut appartenir à un
+ * univers sans être dans le même groupe du menu : le Bilan se range sous
+ * Pilotage, mais c'est en regardant son capital qu'on veut l'ouvrir.
+ *
+ * Le premier de chaque liste est la tête de l'univers.
+ */
+const UNIVERS: ActiveTab[][] = [
+  ["ventes", "devis", "commandes", "livraisons"],
+  ["produits", "achats", "fournisseurs", "prestataires"],
+  ["clients", "paiements"],
+  ["capital", "depenses", "rapports"],
 ];
 
 /**
@@ -131,12 +152,43 @@ export function visibleNavItems(
   return visibleNavGroups(memberPermissions, perso).flatMap((g) => g.items);
 }
 
-/** Raccourcis de la barre de navigation basse sur mobile. */
+/**
+ * Les écrans de l'univers de `tab`, prêts à être affichés en rangée
+ * sous le titre de la page.
+ *
+ * Construit à partir de `visibleNavItems` et non de `NAV_GROUPS` :
+ * permissions du membre, modules retirés par l'entreprise et vocabulaire
+ * choisi s'appliquent donc exactement comme dans le menu. Une rangée
+ * réduite à un seul écran ne dit rien — on ne la montre pas.
+ */
+export function universDe(
+  tab: ActiveTab,
+  memberPermissions: string[] | null,
+  perso: Personnalisation = {},
+): NavItem[] {
+  const univers = UNIVERS.find((u) => u.includes(tab));
+  if (!univers) return [];
+  const disponibles = visibleNavItems(memberPermissions, perso);
+  const items = univers
+    .map((id) => disponibles.find((item) => item.id === id))
+    .filter((item): item is NavItem => Boolean(item));
+  return items.length > 1 ? items : [];
+}
+
+/**
+ * Raccourcis de la barre de navigation basse sur mobile.
+ *
+ * Les trois noms d'un commerce — l'argent qui rentre, la marchandise,
+ * les gens — plus l'accueil. « Commandes » occupait l'un de ces quatre
+ * emplacements : c'est un module que toutes les boutiques n'activent
+ * pas, et il est désormais dans le menu ainsi que dans la rangée de
+ * l'univers Ventes, à un geste de la caisse.
+ */
 export const BOTTOM_TABS: { id: ActiveTab; shortLabel: string; icon: React.ReactNode }[] = [
   { id: "dashboard", shortLabel: "Accueil", icon: <TrendingUp className="w-5 h-5" /> },
-  { id: "commandes", shortLabel: "Cmds", icon: <ShoppingBag className="w-5 h-5" /> },
   { id: "ventes", shortLabel: "Ventes", icon: <DollarSign className="w-5 h-5" /> },
   { id: "produits", shortLabel: "Stock", icon: <Package className="w-5 h-5" /> },
+  { id: "clients", shortLabel: "Clients", icon: <UserIcon className="w-5 h-5" /> },
 ];
 
 export function visibleBottomTabs(

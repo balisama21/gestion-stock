@@ -18,6 +18,8 @@ import { getProductLabel } from "./utils/formulas";
 import { getModuleScope, isFieldVisible, hasModuleAction } from "./lib/permissions";
 import { downloadExcelWorkbook } from "./utils/exportExcel";
 import { Header } from "./components/Header";
+import { universDe } from "./components/navigation";
+import { SousNavigation } from "./components/shared/SousNavigation";
 import { CreateStoreOnboarding } from "./components/CreateStoreOnboarding";
 import { StoreLockedScreen } from "./components/StoreLockedScreen";
 import { PinLockScreen } from "./components/PinLockScreen";
@@ -1150,6 +1152,17 @@ function AppInner() {
         />
 
         <main className="app-container flex-1 py-4 md:py-6 pb-24 lg:pb-6">
+          {/* La rangee des ecrans du meme univers. Rendue ici, en un
+              seul endroit, plutot que dans chacune des quinze vues :
+              elle s applique du meme coup aux ecrans de repli affiches
+              quand une permission manque. Elle ne parait que la ou elle
+              a quelque chose a relier. */}
+          <SousNavigation
+            actif={activeTab}
+            items={universDe(activeTab, workspace.memberPermissions, personnalisation)}
+            onChoisir={setActiveTab}
+          />
+
           {/* La cle remet la limite a neuf a chaque changement d onglet.
               Sans elle, un ecran qui a echoue laisse son message en place
               meme apres avoir choisi un autre onglet, et l utilisateur
