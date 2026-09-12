@@ -93,8 +93,7 @@
      la sienne. `system-ui` suffirait presque partout ; les noms qui
      suivent couvrent les navigateurs qui ne le comprennent pas encore.
      Aucune n'est téléchargée : elles sont déjà sur l'appareil. */
-  --font-sans:
-    system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+  --font-sans: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
   /* Les chiffres d'argent. `ui-monospace` désigne la monospace du
      système, celle-là même que l'appareil montrait déjà quand les
      polices téléchargées manquaient.
@@ -449,7 +448,6 @@ td {
   -webkit-overflow-scrolling: touch;
 }
 
-
 /* ═══════════════════════════════════════════════════════════════════
    IMPRESSION
    Le reçu était en `position: fixed`, ce qui explique qu'il ressortait
@@ -685,7 +683,6 @@ td {
   }
 }
 
-
 @keyframes fadeInUp {
   from {
     opacity: 0;
@@ -720,6 +717,36 @@ td {
   background-size: 200% 100%;
   animation: shimmer 1.5s infinite;
   border-radius: 0.5rem;
+}
+
+/* ═══ Barres de navigation qui s'effacent au défilement ═══
+   La logique est dans src/hooks/useBarresAuDefilement.ts ; ici, le seul
+   mouvement. Deux durées : partir demande une intention et peut prendre
+   son temps, revenir doit se sentir instantané — d'où le retour plus
+   court, et une décélération marquée pour qu'il se pose au lieu de
+   claquer. */
+.app-bar-auto {
+  transition: transform 180ms cubic-bezier(0.16, 1, 0.3, 1);
+  will-change: transform;
+}
+.app-bar-auto[data-masquee="true"] {
+  transition-duration: 260ms;
+  transition-timing-function: cubic-bezier(0.4, 0, 1, 1);
+}
+.app-bar-haut[data-masquee="true"] {
+  transform: translateY(-100%);
+}
+.app-bar-bas[data-masquee="true"] {
+  transform: translateY(100%);
+}
+
+/* Les barres continuent de libérer la place — c'est de l'espace de
+   lecture gagné, pas un ornement — mais elles changent d'état sans
+   glisser. */
+@media (prefers-reduced-motion: reduce) {
+  .app-bar-auto {
+    transition: none;
+  }
 }
 
 /* ═══════════════════════════════════════════════════════════════════

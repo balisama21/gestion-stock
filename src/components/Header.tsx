@@ -20,6 +20,7 @@ import { useNotificationPrefs } from "../lib/notificationPrefs";
 import { visibleNavGroups, visibleNavItems, visibleBottomTabs, canSeeSettings } from "./navigation";
 import { useWorkspace } from "../hooks/useWorkspace";
 import { useAuth } from "../hooks/useAuth";
+import { useBarresAuDefilement } from "../hooks/useBarresAuDefilement";
 import { supabase } from "../lib/supabase";
 import { APP_NAME } from "../lib/appConfig";
 import { usePersonnalisation } from "../lib/personnalisation";
@@ -218,6 +219,13 @@ export const Header: React.FC<HeaderProps> = ({
     setNotifOpen(false);
   };
 
+  // Les deux barres s'effacent ensemble quand on descend. Tant qu'un
+  // panneau est ouvert, elles restent en place : la barre du bas porte
+  // le bouton qui referme le menu « Plus », et les deux menus déroulants
+  // sont ancrés dans la barre du haut — ils la suivraient hors de
+  // l'écran, ouverts, au premier mouvement du doigt.
+  const barresMasquees = useBarresAuDefilement(!mobileMenuOpen && !notifOpen && !workspaceMenuOpen);
+
   // Bloc marque + sélecteur d'espace de travail. Rendu à un seul endroit
   // selon la taille d'écran : en haut de la sidebar sur desktop, dans la
   // barre du haut sur mobile (où il n'y a pas de sidebar).
@@ -376,8 +384,18 @@ export const Header: React.FC<HeaderProps> = ({
       />
 
       {/* Le décalage horizontal est appliqué par le conteneur racine dans
-          BalsamaApp.tsx, qui englobe cette barre et le contenu. */}
-      <header className="bg-card border-b border-border sticky top-0 z-40 shadow-sm">
+          BalsamaApp.tsx, qui englobe cette barre et le contenu.
+
+          Cet élément ne contient plus que la barre elle-même. Le menu du
+          bas, le panneau « Plus » et les modales en ont été sortis, et
+          ce n'est pas un rangement : un ancêtre porteur d'un `transform`
+          devient le référentiel de ses descendants en `position: fixed`.
+          Laissés dedans, ils auraient suivi la barre hors de l'écran au
+          premier défilement. */}
+      <header
+        data-masquee={barresMasquees}
+        className="app-bar-auto app-bar-haut bg-card border-b border-border sticky top-0 z-40 shadow-sm"
+      >
         {/* Top Banner */}
         <div className="app-container py-2.5 sm:py-3">
           <div className="flex items-center gap-2 sm:gap-3">
@@ -486,150 +504,86 @@ export const Header: React.FC<HeaderProps> = ({
         {/* La barre d'onglets horizontale desktop est remplacée par la
           sidebar : à douze onglets elle débordait de son conteneur sans
           aucun indicateur de défilement. */}
+      </header>
 
-        {/* Mobile Menus */}
-        {mobileMenuOpen && (
-          <>
-            <div
-              className="lg:hidden fixed inset-0 bg-background/70 backdrop-blur-sm z-40"
-              onClick={() => setMobileMenuOpen(false)}
-            />
-            <div className="lg:hidden fixed bottom-[68px] left-0 right-0 z-50 bg-card border-t border-border rounded-t-2xl px-4 pt-3 pb-4 shadow-2xl animate-in slide-in-from-bottom duration-200">
-              <div className="w-10 h-1 rounded-full bg-accent mx-auto mb-3" />
-              <div className="grid grid-cols-2 gap-2 max-h-[50vh] overflow-y-auto">
-                {visibleTabs.map((tab) => {
-                  const isActive = activeTab === tab.id;
-                  return (
-                    <button
-                      key={tab.id}
-                      onClick={() => handleTabClick(tab.id)}
-                      className={`flex items-center gap-2 px-3 py-2.5 rounded-xl text-xs font-semibold w-full text-left transition-all ${
-                        isActive
-                          ? "bg-emerald-600 text-white shadow-md"
-                          : "bg-background text-muted-foreground border border-border hover:bg-muted"
-                      }`}
-                    >
-                      {tab.icon}
-                      <span className="truncate">{tab.label}</span>
-                    </button>
-                  );
-                })}
-              </div>
+      {/* Mobile Menus */}
+      {mobileMenuOpen && (
+        <>
+          <div
+            className="lg:hidden fixed inset-0 bg-background/70 backdrop-blur-sm z-40"
+            onClick={() => setMobileMenuOpen(false)}
+          />
+          <div className="lg:hidden fixed bottom-[68px] left-0 right-0 z-50 bg-card border-t border-border rounded-t-2xl px-4 pt-3 pb-4 shadow-2xl animate-in slide-in-from-bottom duration-200">
+            <div className="w-10 h-1 rounded-full bg-accent mx-auto mb-3" />
+            <div className="grid grid-cols-2 gap-2 max-h-[50vh] overflow-y-auto">
+              {visibleTabs.map((tab) => {
+                const isActive = activeTab === tab.id;
+                return (
+                  <button
+                    key={tab.id}
+                    onClick={() => handleTabClick(tab.id)}
+                    className={`flex items-center gap-2 px-3 py-2.5 rounded-xl text-xs font-semibold w-full text-left transition-all ${
+                      isActive
+                        ? "bg-emerald-600 text-white shadow-md"
+                        : "bg-background text-muted-foreground border border-border hover:bg-muted"
+                    }`}
+                  >
+                    {tab.icon}
+                    <span className="truncate">{tab.label}</span>
+                  </button>
+                );
+              })}
             </div>
-          </>
-        )}
-
-        {/* Mobile Bottom Navigation */}
-        <nav className="lg:hidden fixed bottom-0 left-0 right-0 z-50 bg-card/95 backdrop-blur border-t border-border shadow-[0_-4px_20px_rgba(0,0,0,0.25)]">
-          <div className="grid grid-cols-5 px-1 pb-[env(safe-area-inset-bottom)]">
-            {bottomTabs.map((tab) => (
-              <button
-                key={tab.id}
-                onClick={() => handleTabClick(tab.id)}
-                className={`flex flex-col items-center justify-center gap-1 py-2 rounded-xl transition-colors ${activeTab === tab.id && !mobileMenuOpen ? "t-success scale-110" : "text-muted-foreground hover:text-foreground"}`}
-              >
-                {tab.icon}
-                <span className="text-[9px] font-semibold">{tab.shortLabel}</span>
-              </button>
-            ))}
-            <button
-              onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-              className={`flex flex-col items-center justify-center gap-1 py-2 rounded-xl transition-colors ${mobileMenuOpen ? "t-success" : "text-muted-foreground hover:text-foreground"}`}
-            >
-              {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-              <span className="text-[9px] font-semibold">Plus</span>
-            </button>
           </div>
-        </nav>
+        </>
+      )}
 
-        {/* ── Dupliquer la boutique active (configuration seulement) ── */}
-        {showCopyStoreModal && workspace.activeStore && (
-          <Modal
-            open
-            onClose={() => {
-              setShowCopyStoreModal(false);
-              setCopyStoreError(null);
-            }}
-            size="sm"
-            icon={<Copy className="h-4 w-4" />}
-            title="Dupliquer la boutique"
-            description={workspace.activeStore.name}
-            dismissible={!copyingStore}
-            footer={
-              <>
-                <button
-                  type="button"
-                  onClick={() => {
-                    setShowCopyStoreModal(false);
-                    setCopyStoreError(null);
-                  }}
-                  className="app-btn-secondary"
-                >
-                  Annuler
-                </button>
-                <button
-                  type="submit"
-                  form="copy-store-form"
-                  disabled={copyingStore}
-                  className="app-btn-primary"
-                >
-                  {copyingStore ? "Copie..." : "Dupliquer"}
-                </button>
-              </>
-            }
-          >
-            <p className="text-sm leading-relaxed text-muted-foreground">
-              Reprend la configuration (devise, TVA, fournisseurs, coordonnées...) dans une nouvelle
-              boutique. Les produits, ventes et données ne sont pas copiés : c'est une boutique
-              neuve, indépendante.
-            </p>
-
-            <p
-              className={`mt-3 text-sm font-medium ${
-                workspace.activeStore.activation_status === "active" ? "t-success" : "t-warning"
-              }`}
+      {/* Mobile Bottom Navigation */}
+      <nav
+        data-masquee={barresMasquees}
+        className="app-bar-auto app-bar-bas lg:hidden fixed bottom-0 left-0 right-0 z-50 bg-card/95 backdrop-blur border-t border-border shadow-[0_-4px_20px_rgba(0,0,0,0.25)]"
+      >
+        <div className="grid grid-cols-5 px-1 pb-[env(safe-area-inset-bottom)]">
+          {bottomTabs.map((tab) => (
+            <button
+              key={tab.id}
+              onClick={() => handleTabClick(tab.id)}
+              className={`flex flex-col items-center justify-center gap-1 py-2 rounded-xl transition-colors ${activeTab === tab.id && !mobileMenuOpen ? "t-success scale-110" : "text-muted-foreground hover:text-foreground"}`}
             >
-              {workspace.activeStore.activation_status === "active"
-                ? "Cette boutique est active à vie : la copie le sera aussi, immédiatement."
-                : "Cette boutique est en essai : la copie héritera de la même date de fin d'essai, pas d'un nouvel essai de 7 jours."}
-            </p>
+              {tab.icon}
+              <span className="text-[9px] font-semibold">{tab.shortLabel}</span>
+            </button>
+          ))}
+          <button
+            onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
+            className={`flex flex-col items-center justify-center gap-1 py-2 rounded-xl transition-colors ${mobileMenuOpen ? "t-success" : "text-muted-foreground hover:text-foreground"}`}
+          >
+            {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+            <span className="text-[9px] font-semibold">Plus</span>
+          </button>
+        </div>
+      </nav>
 
-            <form onSubmit={handleCopyStore} id="copy-store-form" className="mt-4 space-y-3">
-              <input
-                type="text"
-                required
-                autoFocus
-                value={copyStoreName}
-                onChange={(e) => setCopyStoreName(e.target.value)}
-                placeholder="Nom de la nouvelle boutique"
-                className="app-field"
-              />
-              {copyStoreError && <p className="text-sm font-medium t-danger">{copyStoreError}</p>}
-            </form>
-          </Modal>
-        )}
-
-        {/* ── Créer une boutique indépendante ──
-          Proposée aux collaborateurs invités : elle ouvre un nouvel essai
-          de 7 jours et n'hérite jamais de la boutique où ils collaborent. */}
+      {/* ── Dupliquer la boutique active (configuration seulement) ── */}
+      {showCopyStoreModal && workspace.activeStore && (
         <Modal
-          open={showCreateStoreModal}
+          open
           onClose={() => {
-            setShowCreateStoreModal(false);
-            setCreateStoreError(null);
+            setShowCopyStoreModal(false);
+            setCopyStoreError(null);
           }}
           size="sm"
-          icon={<Store className="h-4 w-4" />}
-          title="Créer une boutique"
-          description="Vous en devenez propriétaire, avec son propre essai gratuit de 7 jours."
-          dismissible={!creatingStore}
+          icon={<Copy className="h-4 w-4" />}
+          title="Dupliquer la boutique"
+          description={workspace.activeStore.name}
+          dismissible={!copyingStore}
           footer={
             <>
               <button
                 type="button"
                 onClick={() => {
-                  setShowCreateStoreModal(false);
-                  setCreateStoreError(null);
+                  setShowCopyStoreModal(false);
+                  setCopyStoreError(null);
                 }}
                 className="app-btn-secondary"
               >
@@ -637,76 +591,143 @@ export const Header: React.FC<HeaderProps> = ({
               </button>
               <button
                 type="submit"
-                form="create-store-form"
-                disabled={creatingStore}
+                form="copy-store-form"
+                disabled={copyingStore}
                 className="app-btn-primary"
               >
-                {creatingStore ? "Création..." : "Créer la boutique"}
+                {copyingStore ? "Copie..." : "Dupliquer"}
               </button>
             </>
           }
         >
           <p className="text-sm leading-relaxed text-muted-foreground">
-            Elle est totalement indépendante de la boutique où vous collaborez actuellement.
+            Reprend la configuration (devise, TVA, fournisseurs, coordonnées...) dans une nouvelle
+            boutique. Les produits, ventes et données ne sont pas copiés : c'est une boutique neuve,
+            indépendante.
           </p>
 
-          <form onSubmit={handleCreateStore} id="create-store-form" className="mt-4 space-y-3">
+          <p
+            className={`mt-3 text-sm font-medium ${
+              workspace.activeStore.activation_status === "active" ? "t-success" : "t-warning"
+            }`}
+          >
+            {workspace.activeStore.activation_status === "active"
+              ? "Cette boutique est active à vie : la copie le sera aussi, immédiatement."
+              : "Cette boutique est en essai : la copie héritera de la même date de fin d'essai, pas d'un nouvel essai de 7 jours."}
+          </p>
+
+          <form onSubmit={handleCopyStore} id="copy-store-form" className="mt-4 space-y-3">
             <input
               type="text"
               required
               autoFocus
-              value={newStoreName}
-              onChange={(e) => setNewStoreName(e.target.value)}
-              placeholder="Nom de votre boutique"
+              value={copyStoreName}
+              onChange={(e) => setCopyStoreName(e.target.value)}
+              placeholder="Nom de la nouvelle boutique"
               className="app-field"
             />
-            {createStoreError && <p className="text-sm font-medium t-danger">{createStoreError}</p>}
+            {copyStoreError && <p className="text-sm font-medium t-danger">{copyStoreError}</p>}
           </form>
         </Modal>
+      )}
 
-        {/* ── Rejoindre une boutique avec un code d'invitation ── */}
-        <Modal
-          open={showJoinCodeModal}
-          onClose={() => setShowJoinCodeModal(false)}
-          size="sm"
-          icon={<KeyRound className="h-4 w-4" />}
-          title="Rejoindre avec un code"
-          description="Le code ne fonctionne qu'avec l'adresse e-mail à laquelle il a été destiné."
-          dismissible={!joiningWithCode}
-          footer={
-            <>
-              <button
-                type="button"
-                onClick={() => setShowJoinCodeModal(false)}
-                className="app-btn-secondary"
-              >
-                Annuler
-              </button>
-              <button
-                type="submit"
-                form="join-code-form"
-                disabled={joiningWithCode}
-                className="app-btn-primary"
-              >
-                {joiningWithCode ? "Vérification..." : "Rejoindre"}
-              </button>
-            </>
-          }
-        >
-          <form onSubmit={handleJoinWithCode} id="join-code-form" className="space-y-3">
-            <input
-              type="text"
-              required
-              autoFocus
-              value={joinCode}
-              onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
-              placeholder="INV-XXXX-XXXX"
-              className="app-field text-center font-mono tracking-widest"
-            />
-            {joinCodeError && <p className="text-sm font-medium t-danger">{joinCodeError}</p>}
-          </form>
-        </Modal>
-      </header>
+      {/* ── Créer une boutique indépendante ──
+          Proposée aux collaborateurs invités : elle ouvre un nouvel essai
+          de 7 jours et n'hérite jamais de la boutique où ils collaborent. */}
+      <Modal
+        open={showCreateStoreModal}
+        onClose={() => {
+          setShowCreateStoreModal(false);
+          setCreateStoreError(null);
+        }}
+        size="sm"
+        icon={<Store className="h-4 w-4" />}
+        title="Créer une boutique"
+        description="Vous en devenez propriétaire, avec son propre essai gratuit de 7 jours."
+        dismissible={!creatingStore}
+        footer={
+          <>
+            <button
+              type="button"
+              onClick={() => {
+                setShowCreateStoreModal(false);
+                setCreateStoreError(null);
+              }}
+              className="app-btn-secondary"
+            >
+              Annuler
+            </button>
+            <button
+              type="submit"
+              form="create-store-form"
+              disabled={creatingStore}
+              className="app-btn-primary"
+            >
+              {creatingStore ? "Création..." : "Créer la boutique"}
+            </button>
+          </>
+        }
+      >
+        <p className="text-sm leading-relaxed text-muted-foreground">
+          Elle est totalement indépendante de la boutique où vous collaborez actuellement.
+        </p>
+
+        <form onSubmit={handleCreateStore} id="create-store-form" className="mt-4 space-y-3">
+          <input
+            type="text"
+            required
+            autoFocus
+            value={newStoreName}
+            onChange={(e) => setNewStoreName(e.target.value)}
+            placeholder="Nom de votre boutique"
+            className="app-field"
+          />
+          {createStoreError && <p className="text-sm font-medium t-danger">{createStoreError}</p>}
+        </form>
+      </Modal>
+
+      {/* ── Rejoindre une boutique avec un code d'invitation ── */}
+      <Modal
+        open={showJoinCodeModal}
+        onClose={() => setShowJoinCodeModal(false)}
+        size="sm"
+        icon={<KeyRound className="h-4 w-4" />}
+        title="Rejoindre avec un code"
+        description="Le code ne fonctionne qu'avec l'adresse e-mail à laquelle il a été destiné."
+        dismissible={!joiningWithCode}
+        footer={
+          <>
+            <button
+              type="button"
+              onClick={() => setShowJoinCodeModal(false)}
+              className="app-btn-secondary"
+            >
+              Annuler
+            </button>
+            <button
+              type="submit"
+              form="join-code-form"
+              disabled={joiningWithCode}
+              className="app-btn-primary"
+            >
+              {joiningWithCode ? "Vérification..." : "Rejoindre"}
+            </button>
+          </>
+        }
+      >
+        <form onSubmit={handleJoinWithCode} id="join-code-form" className="space-y-3">
+          <input
+            type="text"
+            required
+            autoFocus
+            value={joinCode}
+            onChange={(e) => setJoinCode(e.target.value.toUpperCase())}
+            placeholder="INV-XXXX-XXXX"
+            className="app-field text-center font-mono tracking-widest"
+          />
+          {joinCodeError && <p className="text-sm font-medium t-danger">{joinCodeError}</p>}
+        </form>
+      </Modal>
     </>
   );
 };
