@@ -376,6 +376,27 @@ export const MODULE_DEFINITIONS: ModuleDef[] = [
     actions: [],
     fields: [],
   },
+  /**
+   * L'agenda manquait à cette liste.
+   *
+   * L'onglet existait dans la navigation et dans les modules activables,
+   * mais sa clé n'était déclarée nulle part ici. Or la navigation exige
+   * qu'une clé figure dans les permissions du membre pour afficher son
+   * onglet : sans définition, aucune case à cocher dans l'écran Équipe,
+   * donc aucune permission possible, donc un agenda invisible pour tout
+   * collaborateur quel que soit son rôle. Seul le propriétaire le voyait
+   * — non par choix, mais parce qu'il échappe au filtre.
+   *
+   * La portée a du sens ici : elle dira plus tard qui voit les échéances
+   * de toute l'entreprise et qui ne voit que les siennes.
+   */
+  {
+    key: "agenda",
+    label: "Agenda",
+    hasScope: true,
+    actions: [],
+    fields: [],
+  },
   {
     key: "settings",
     label: "Paramètres",
@@ -570,6 +591,7 @@ const MANAGER_TEMPLATE: PermissionsMap = Object.fromEntries([
   module("statistiques", true, { fields: getModuleDef("statistiques")!.fields.map((f) => f.key) }),
   module("rapports", true, { actions: ["export"] }),
   module("historique", true, { scope: "all" }),
+  module("agenda", true, { scope: "all" }),
   module("settings", true, { actions: ["edit_own_profile"] }),
 ]);
 
@@ -627,6 +649,7 @@ const COMPTABLE_TEMPLATE: PermissionsMap = Object.fromEntries([
   module("statistiques", true, { fields: getModuleDef("statistiques")!.fields.map((f) => f.key) }),
   module("rapports", true, { actions: ["export"] }),
   module("historique", true, { scope: "all" }),
+  module("agenda", true, { scope: "own" }),
   module("settings", true, { actions: ["edit_own_profile"] }),
 ]);
 
@@ -667,6 +690,7 @@ const VENDEUR_TEMPLATE: PermissionsMap = Object.fromEntries([
   module("statistiques", true, { fields: ["perf_personnelles"] }),
   module("rapports", false),
   module("historique", true, { scope: "own" }),
+  module("agenda", true, { scope: "own" }),
   module("settings", true, { actions: ["edit_own_profile"] }),
 ]);
 
