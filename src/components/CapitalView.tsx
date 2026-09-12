@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { CapitalSummary, CapitalApport, LocaleSetting } from "../types";
 import {
   Wallet,
+  Check,
   PlusCircle,
   Trash2,
   Plus,
@@ -402,6 +403,7 @@ export const CapitalView: React.FC<CapitalViewProps> = ({
               Annuler
             </button>
             <button type="submit" form="apport-form" className="app-btn-primary">
+              <Check className="h-4 w-4" />
               Valider l'apport
             </button>
           </>

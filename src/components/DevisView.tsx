@@ -1,5 +1,16 @@
 import React, { useMemo, useState } from "react";
-import { FileText, Plus, Send, Check, X, Trash2, Edit3, Printer, ShoppingCart } from "lucide-react";
+import {
+  Check,
+  Edit3,
+  FileText,
+  Plus,
+  Printer,
+  Save,
+  Send,
+  ShoppingCart,
+  Trash2,
+  X,
+} from "lucide-react";
 import type { Product, StoreSettings } from "../types";
 import type { Database } from "../lib/database.types";
 import { formatCurrency, formatDateLocale, getProductLabel } from "../utils/formulas";
@@ -468,6 +479,7 @@ export const DevisView: React.FC<DevisViewProps> = ({
               disabled={enregistrement}
               className="app-btn-primary"
             >
+              <Save className="h-4 w-4" />
               {enregistrement ? "Enregistrement…" : "Enregistrer le devis"}
             </button>
           </>

@@ -3,6 +3,8 @@ import { Expense, Seller, LocaleSetting, StoreSettings } from "../types";
 import { APP_NAME } from "../lib/appConfig";
 import {
   ArrowRightLeft,
+  Check,
+  Save,
   Plus,
   Wallet,
   Edit3,
@@ -492,7 +494,7 @@ export const DepensesView: React.FC<DepensesViewProps> = ({
                 title={`Télécharger le PDF au format ${paper.label}`}
               >
                 <Download className="h-4 w-4" />
-                {exportEnCours === "pdf" ? "Création..." : "PDF"}
+                {exportEnCours === "pdf" ? "Création…" : "PDF"}
               </button>
             </>
           }
@@ -791,6 +793,7 @@ export const DepensesView: React.FC<DepensesViewProps> = ({
               Annuler
             </button>
             <button type="submit" form="expense-add-form" className="app-btn-primary">
+              <Check className="h-4 w-4" />
               Valider la dépense
             </button>
           </>
@@ -963,6 +966,7 @@ export const DepensesView: React.FC<DepensesViewProps> = ({
                 Annuler
               </button>
               <button type="submit" form="expense-edit-form" className="app-btn-primary">
+                <Save className="h-4 w-4" />
                 Enregistrer
               </button>
             </>
