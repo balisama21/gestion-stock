@@ -408,6 +408,21 @@ export const MODULE_DEFINITIONS: ModuleDef[] = [
    * des tâches interroge le json des permissions. Une seule vérité.
    */
   {
+    /**
+     * Les rappels n ont PAS de portee, et c est le seul module dans ce
+     * cas avec une raison de fond : la politique de securite de la
+     * table ne rend que les rappels qu on recoit et ceux qu on a
+     * poses. Aucun reglage ne peut ouvrir ceux d un collegue, pas meme
+     * pour le proprietaire. Offrir un selecteur de portee ferait
+     * croire le contraire.
+     */
+    key: "rappels",
+    label: "Rappels",
+    hasScope: false,
+    actions: [{ key: "create", label: "Creer un rappel" }],
+    fields: [],
+  },
+  {
     key: "taches",
     label: "Tâches",
     hasScope: true,
@@ -615,6 +630,7 @@ const MANAGER_TEMPLATE: PermissionsMap = Object.fromEntries([
   module("historique", true, { scope: "all" }),
   module("agenda", true, { scope: "all" }),
   module("taches", true, { scope: "all", actions: ["create", "assign", "edit", "delete"] }),
+  module("rappels", true, { actions: ["create"] }),
   module("settings", true, { actions: ["edit_own_profile"] }),
 ]);
 
@@ -674,6 +690,7 @@ const COMPTABLE_TEMPLATE: PermissionsMap = Object.fromEntries([
   module("historique", true, { scope: "all" }),
   module("agenda", true, { scope: "own" }),
   module("taches", true, { scope: "own", actions: ["create", "edit"] }),
+  module("rappels", true, { actions: ["create"] }),
   module("settings", true, { actions: ["edit_own_profile"] }),
 ]);
 
@@ -716,6 +733,7 @@ const VENDEUR_TEMPLATE: PermissionsMap = Object.fromEntries([
   module("historique", true, { scope: "own" }),
   module("agenda", true, { scope: "own" }),
   module("taches", true, { scope: "own", actions: ["create", "edit"] }),
+  module("rappels", true, { actions: ["create"] }),
   module("settings", true, { actions: ["edit_own_profile"] }),
 ]);
 
@@ -758,6 +776,7 @@ const GESTIONNAIRE_STOCK_TEMPLATE: PermissionsMap = Object.fromEntries([
   module("historique", true, { scope: "own" }),
   module("agenda", true, { scope: "own" }),
   module("taches", true, { scope: "own", actions: ["create", "edit"] }),
+  module("rappels", true, { actions: ["create"] }),
   module("settings", true, { actions: ["edit_own_profile"] }),
 ]);
 

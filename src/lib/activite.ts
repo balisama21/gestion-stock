@@ -1,6 +1,9 @@
 import type { ActiveTab, Sale, Purchase, Expense, CapitalApport, Product } from "../types";
 import type { Database } from "./database.types";
 import { getModuleScope, type PermissionsMap } from "./permissions";
+import { estEnRetard, type Tache } from "./taches";
+import { evenementARappeler, estEchu, type Rappel } from "./rappels";
+import { heureDe, jourDe, type Evenement } from "./evenements";
 import { dateDuJour } from "./dates";
 
 type Devis = Database["public"]["Tables"]["quotes"]["Row"];
@@ -105,6 +108,15 @@ export interface SourcesActivite {
    * se déduisent déjà des données, et remontent bien plus loin.
    */
   journal: LigneJournal[];
+  /**
+   * L'organisation du travail. Ces trois-là n'alimentent QUE des
+   * alertes, jamais le journal d'activité : une tâche qui vous attend
+   * n'est pas un événement passé, c'est un état qui dure tant qu'on n'y
+   * a pas touché.
+   */
+  taches: Tache[];
+  evenements: Evenement[];
+  rappels: Rappel[];
   /** Réglage « Alertes de stock bas » (Paramètres → Notifications). */
   alertesStock: boolean;
   formatMontant: (montant: number) => string;
@@ -389,6 +401,99 @@ export function construireNotifications(s: SourcesActivite): Notification[] {
         onglet: "livraisons",
       });
     }
+  }
+
+  // ─────────────── L'organisation du travail ───────────────
+  //
+  // Ces quatre-là sont des ALERTES et non des activités : une tâche qui
+  // vous attend n'est pas un événement passé, c'est un état qui dure
+  // tant qu'on n'y a pas touché. Elles s'effacent d'elles-mêmes quand la
+  // chose est faite — il n'y a rien à marquer comme lu.
+  //
+  // Aucune n'est filtrée par la portée : ce sont VOS tâches et VOS
+  // rappels. La base ne rend de toute façon que ceux-là à un
+  // collaborateur.
+
+  const maintenant = new Date();
+
+  const miennes = s.taches.filter((t) => t.assignee_id === s.moiId && t.statut !== "termine");
+  const retards = miennes.filter((t) => estEnRetard(t, aujourdhui));
+  if (retards.length > 0) {
+    alertes.push({
+      id: `alerte-taches-retard-${retards.length}`,
+      genre: "alerte",
+      titre: `${retards.length} ${pluriel(retards.length, "tâche")} en retard`,
+      detail: retards
+        .slice(0, 3)
+        .map((t) => t.titre)
+        .join(", "),
+      quand: "",
+      ton: "danger",
+      onglet: "taches",
+    });
+  }
+  const duJour = miennes.filter((t) => t.echeance === aujourdhui);
+  if (duJour.length > 0) {
+    alertes.push({
+      id: `alerte-taches-jour-${duJour.length}`,
+      genre: "alerte",
+      titre: `${duJour.length} ${pluriel(duJour.length, "tâche")} pour aujourd'hui`,
+      detail: duJour
+        .slice(0, 3)
+        .map((t) => t.titre)
+        .join(", "),
+      quand: "",
+      ton: "warning",
+      onglet: "taches",
+    });
+  }
+  // Ce qu'on vient de vous confier. Le compte se fait sur ce qui n'a pas
+  // encore été commencé : dès qu'on s'y met, l'annonce n'a plus de
+  // raison d'être.
+  const confiees = miennes.filter(
+    (t) => t.statut === "a_faire" && t.createur_id && t.createur_id !== s.moiId,
+  );
+  if (confiees.length > 0) {
+    alertes.push({
+      id: `alerte-taches-confiees-${confiees.length}`,
+      genre: "alerte",
+      titre: `${confiees.length} ${pluriel(confiees.length, "tâche")} vous ${pluriel(confiees.length, "a", "ont")} été ${pluriel(confiees.length, "confiée")}`,
+      detail: confiees
+        .slice(0, 3)
+        .map((t) => `${t.titre} — ${nomDe(t.createur_id) ?? "quelqu'un"}`)
+        .join(", "),
+      quand: "",
+      ton: "info",
+      onglet: "taches",
+    });
+  }
+
+  // Les rendez-vous qui approchent. Le délai est celui décrit dans
+  // `rappels.ts` : la veille à 18 h, ou l'heure qui précède pour ce qui
+  // tombe aujourd'hui.
+  for (const e of s.evenements.filter((x) => evenementARappeler(x, maintenant))) {
+    alertes.push({
+      id: `alerte-rdv-${e.id}`,
+      genre: "alerte",
+      titre: e.titre,
+      detail: `${jourDe(e.debut) === aujourdhui ? "Aujourd'hui" : "Demain"} à ${heureDe(e.debut)}${e.lieu ? ` · ${e.lieu}` : ""}`,
+      quand: "",
+      ton: "info",
+      onglet: "agenda",
+    });
+  }
+
+  // Les rappels qu'on s'est posés, échus et pas encore passés minuit.
+  for (const r of s.rappels.filter((x) => estEchu(x, maintenant))) {
+    alertes.push({
+      id: `alerte-rappel-${r.id}-${aujourdhui}`,
+      genre: "alerte",
+      titre: r.titre,
+      detail: "Rappel",
+      quand: "",
+      ton: "warning",
+      onglet: "rappels",
+    });
   }
 
   // ─────────────── Ce qui s'est passé ───────────────

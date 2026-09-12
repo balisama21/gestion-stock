@@ -25,6 +25,7 @@ import { construireNotifications } from "./lib/activite";
 import { useJournalActivite } from "./hooks/useJournalActivite";
 import { useTaches } from "./hooks/useTaches";
 import { useEvenements } from "./hooks/useEvenements";
+import { useRappels } from "./hooks/useRappels";
 import type { SettingsTab } from "./components/settings/SettingsLayout";
 import { CreateStoreOnboarding } from "./components/CreateStoreOnboarding";
 import { StoreLockedScreen } from "./components/StoreLockedScreen";
@@ -82,6 +83,9 @@ const AgendaView = lazy(() =>
 );
 const TachesView = lazy(() =>
   import("./components/TachesView").then((m) => ({ default: m.TachesView })),
+);
+const RappelsView = lazy(() =>
+  import("./components/RappelsView").then((m) => ({ default: m.RappelsView })),
 );
 const LivraisonsView = lazy(() =>
   import("./components/LivraisonsView").then((m) => ({ default: m.LivraisonsView })),
@@ -163,6 +167,7 @@ function AppInner() {
   const { lignes: journalActivite } = useJournalActivite(workspace.activeStore?.id ?? null);
   const organisation = useTaches(workspace.activeStore?.id ?? null, user?.id ?? null);
   const calendrier = useEvenements(workspace.activeStore?.id ?? null, user?.id ?? null);
+  const memos = useRappels(workspace.activeStore?.id ?? null, user?.id ?? null);
   const { members: storeMembers, removeMember: removeStoreMember } = useStoreMembers(
     workspace.activeStore?.id ?? null,
   );
@@ -759,6 +764,9 @@ function AppInner() {
         membres: storeMembers,
         moiId: user?.id ?? null,
         journal: journalActivite,
+        taches: organisation.taches,
+        evenements: calendrier.evenements,
+        rappels: memos.rappels,
         alertesStock: notificationPrefs.stockAlerts,
         formatMontant: formatCurrency,
       }),
@@ -780,6 +788,9 @@ function AppInner() {
       storeMembers,
       user?.id,
       journalActivite,
+      organisation.taches,
+      calendrier.evenements,
+      memos.rappels,
       notificationPrefs.stockAlerts,
     ],
   );
@@ -1348,6 +1359,16 @@ function AppInner() {
                     onCreer={organisation.creer}
                     onChangerStatut={organisation.changerStatut}
                     onSupprimer={organisation.supprimer}
+                  />
+                )}
+                {activeTab === "rappels" && (
+                  <RappelsView
+                    rappels={memos.rappels}
+                    membres={storeMembers}
+                    moiId={user?.id ?? null}
+                    onCreer={memos.creer}
+                    onBasculer={memos.basculer}
+                    onSupprimer={memos.supprimer}
                   />
                 )}
                 {activeTab === "agenda" && (
