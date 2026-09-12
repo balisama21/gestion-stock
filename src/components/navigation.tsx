@@ -15,6 +15,7 @@ import {
   Wrench,
   CalendarClock,
   BellRing,
+  LayoutDashboard,
   ListChecks,
   CalendarRange,
   History,
@@ -66,6 +67,7 @@ export const NAV_GROUPS: NavGroup[] = [
     // liste de choses à faire que son calendrier.
     title: "Organisation",
     items: [
+      { id: "vue_equipe", label: "Vue d'ensemble", icon: <LayoutDashboard className="w-4 h-4" /> },
       { id: "taches", label: "Tâches", icon: <ListChecks className="w-4 h-4" /> },
       { id: "agenda", label: "Agenda", icon: <CalendarClock className="w-4 h-4" /> },
       { id: "rappels", label: "Rappels", icon: <BellRing className="w-4 h-4" /> },
@@ -119,7 +121,7 @@ export const NAV_GROUPS: NavGroup[] = [
  * Le premier de chaque liste est la tête de l'univers.
  */
 const UNIVERS: ActiveTab[][] = [
-  ["taches", "agenda", "rappels"],
+  ["vue_equipe", "taches", "agenda", "rappels"],
   ["ventes", "devis", "commandes", "livraisons"],
   ["produits", "achats", "fournisseurs", "prestataires"],
   ["clients", "paiements"],

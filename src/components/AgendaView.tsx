@@ -20,6 +20,7 @@ import {
   libelleSemaine,
   libelleVisibilite,
   lignesDuJour,
+  echeancesMetier,
   ligneDeEvenement,
   memeMois,
   semaineDe,
@@ -136,45 +137,16 @@ export const AgendaView: React.FC<AgendaViewProps> = ({
   const lignes: LigneAgenda[] = useMemo(() => {
     const l: LigneAgenda[] = evenements.map(ligneDeEvenement);
 
-    for (const a of purchases) {
-      if (!a.dateEcheance || a.soldeDu <= 0) continue;
-      l.push({
-        id: `ach-${a.id}`,
-        jour: a.dateEcheance,
-        heure: null,
-        titre: `Régler ${a.fournisseur || a.designation}`,
-        detail: `${a.numero} · ${formatCurrency(a.soldeDu)} dû`,
-        source: "achat",
-        classe: urgenceDe(a.dateEcheance) === "retard" ? "app-badge-danger" : "app-badge-warning",
-        onglet: "achats",
-      });
-    }
-    for (const d of quotes) {
-      if (!d.valide_jusqu_au || d.statut !== "envoye") continue;
-      l.push({
-        id: `dev-${d.id}`,
-        jour: d.valide_jusqu_au,
-        heure: null,
-        titre: `Relancer ${d.client_nom}`,
-        detail: `${d.numero ?? "Devis"} · ${formatCurrency(d.total)}`,
-        source: "devis",
-        classe: urgenceDe(d.valide_jusqu_au) === "retard" ? "app-badge-danger" : "app-badge-info",
-        onglet: "devis",
-      });
-    }
-    for (const c of deliveries) {
-      if (!c.date_prevue || c.statut === "livree" || c.statut === "echouee") continue;
-      l.push({
-        id: `liv-${c.id}`,
-        jour: c.date_prevue,
-        heure: null,
-        titre: `Livrer ${c.destinataire}`,
-        detail: `${c.numero ?? "Course"} · ${formatCurrency(c.montant_a_encaisser)} à encaisser`,
-        source: "livraison",
-        classe: "app-badge-neutral",
-        onglet: "livraisons",
-      });
-    }
+    l.push(
+      ...echeancesMetier(
+        purchases,
+        quotes,
+        deliveries,
+        formatCurrency,
+        (j) => urgenceDe(j) === "retard",
+      ),
+    );
+
     return l;
   }, [evenements, purchases, quotes, deliveries]);
 

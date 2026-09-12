@@ -26,6 +26,8 @@ import { useJournalActivite } from "./hooks/useJournalActivite";
 import { useTaches } from "./hooks/useTaches";
 import { useEvenements } from "./hooks/useEvenements";
 import { useRappels } from "./hooks/useRappels";
+import { echeancesMetier } from "./lib/evenements";
+import { urgenceDe } from "./lib/agenda";
 import type { SettingsTab } from "./components/settings/SettingsLayout";
 import { CreateStoreOnboarding } from "./components/CreateStoreOnboarding";
 import { StoreLockedScreen } from "./components/StoreLockedScreen";
@@ -86,6 +88,9 @@ const TachesView = lazy(() =>
 );
 const RappelsView = lazy(() =>
   import("./components/RappelsView").then((m) => ({ default: m.RappelsView })),
+);
+const VueEquipeView = lazy(() =>
+  import("./components/VueEquipeView").then((m) => ({ default: m.VueEquipeView })),
 );
 const LivraisonsView = lazy(() =>
   import("./components/LivraisonsView").then((m) => ({ default: m.LivraisonsView })),
@@ -1359,6 +1364,22 @@ function AppInner() {
                     onCreer={organisation.creer}
                     onChangerStatut={organisation.changerStatut}
                     onSupprimer={organisation.supprimer}
+                  />
+                )}
+                {activeTab === "vue_equipe" && (
+                  <VueEquipeView
+                    taches={organisation.taches}
+                    evenements={calendrier.evenements}
+                    echeances={echeancesMetier(
+                      purchases,
+                      storeData.quotes,
+                      storeData.deliveries,
+                      formatCurrency,
+                      (j) => urgenceDe(j) === "retard",
+                    )}
+                    membres={storeMembers}
+                    moiId={user?.id ?? null}
+                    onNavigateTab={(t) => setActiveTab(t as ActiveTab)}
                   />
                 )}
                 {activeTab === "rappels" && (

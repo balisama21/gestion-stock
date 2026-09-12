@@ -409,6 +409,28 @@ export const MODULE_DEFINITIONS: ModuleDef[] = [
    */
   {
     /**
+     * La vue d ensemble du responsable.
+     *
+     * Elle ne donne acces a AUCUNE donnee nouvelle : elle range
+     * autrement ce que les permissions des taches et de l agenda ont
+     * deja laisse passer. Un responsable dont la portee sur les taches
+     * vaut « ses propres donnees » n y verrait donc que les siennes,
+     * ce qui n aurait aucun interet — c est pourquoi elle n est
+     * accordee par defaut qu aux roles qui ont cette portee large.
+     *
+     * Elle reste une cle a part plutot qu un effet de bord de la portee
+     * des taches, pour qu on puisse donner l une sans l autre : suivre
+     * le travail de l equipe et pouvoir supprimer ses taches ne sont
+     * pas la meme responsabilite.
+     */
+    key: "vue_equipe",
+    label: "Vue d ensemble de l equipe",
+    hasScope: false,
+    actions: [],
+    fields: [],
+  },
+  {
+    /**
      * Les rappels n ont PAS de portee, et c est le seul module dans ce
      * cas avec une raison de fond : la politique de securite de la
      * table ne rend que les rappels qu on recoit et ceux qu on a
@@ -629,6 +651,7 @@ const MANAGER_TEMPLATE: PermissionsMap = Object.fromEntries([
   module("rapports", true, { actions: ["export"] }),
   module("historique", true, { scope: "all" }),
   module("agenda", true, { scope: "all" }),
+  module("vue_equipe", true),
   module("taches", true, { scope: "all", actions: ["create", "assign", "edit", "delete"] }),
   module("rappels", true, { actions: ["create"] }),
   module("settings", true, { actions: ["edit_own_profile"] }),

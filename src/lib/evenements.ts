@@ -233,3 +233,92 @@ export const prochaine = (lignes: LigneAgenda[], aujourdhui = dateDuJour()): Lig
     );
   return suivantes[0] ?? null;
 };
+
+/**
+ * Les trois échéances que le métier porte déjà.
+ *
+ * Écrit ici et non dans l'écran de l'agenda, parce que la vue d'ensemble
+ * du responsable les montre aussi : deux copies de cette liste finiraient
+ * par diverger, et l'agenda annoncerait une relance que la vue
+ * d'ensemble ignorerait.
+ *
+ * Les règles de sélection valent d'être dites. Un achat n'est à régler
+ * que s'il reste dû — un achat soldé n'a plus d'échéance. Un devis ne se
+ * relance que s'il a été envoyé : un brouillon n'attend personne, un
+ * devis accepté ou refusé a reçu sa réponse. Une course ne se prépare
+ * que si elle n'est ni faite ni échouée.
+ */
+export const echeancesMetier = (
+  purchases: {
+    id: string;
+    numero: string;
+    dateEcheance: string | null;
+    soldeDu: number;
+    fournisseur: string;
+    designation: string;
+  }[],
+  quotes: {
+    id: string;
+    numero: string | null;
+    client_nom: string;
+    statut: string;
+    total: number;
+    valide_jusqu_au: string | null;
+  }[],
+  deliveries: {
+    id: string;
+    numero: string | null;
+    destinataire: string;
+    statut: string;
+    date_prevue: string | null;
+    montant_a_encaisser: number;
+  }[],
+  fmt: (n: number) => string,
+  enRetard: (jour: string) => boolean,
+): LigneAgenda[] => {
+  const l: LigneAgenda[] = [];
+
+  for (const a of purchases) {
+    if (!a.dateEcheance || a.soldeDu <= 0) continue;
+    l.push({
+      id: `ach-${a.id}`,
+      jour: a.dateEcheance,
+      heure: null,
+      titre: `Régler ${a.fournisseur || a.designation}`,
+      detail: `${a.numero} · ${fmt(a.soldeDu)} dû`,
+      source: "achat",
+      classe: enRetard(a.dateEcheance) ? "app-badge-danger" : "app-badge-warning",
+      onglet: "achats",
+    });
+  }
+
+  for (const d of quotes) {
+    if (!d.valide_jusqu_au || d.statut !== "envoye") continue;
+    l.push({
+      id: `dev-${d.id}`,
+      jour: d.valide_jusqu_au,
+      heure: null,
+      titre: `Relancer ${d.client_nom}`,
+      detail: `${d.numero ?? "Devis"} · ${fmt(d.total)}`,
+      source: "devis",
+      classe: enRetard(d.valide_jusqu_au) ? "app-badge-danger" : "app-badge-info",
+      onglet: "devis",
+    });
+  }
+
+  for (const c of deliveries) {
+    if (!c.date_prevue || c.statut === "livree" || c.statut === "echouee") continue;
+    l.push({
+      id: `liv-${c.id}`,
+      jour: c.date_prevue,
+      heure: null,
+      titre: `Livrer ${c.destinataire}`,
+      detail: `${c.numero ?? "Course"} · ${fmt(c.montant_a_encaisser)} à encaisser`,
+      source: "livraison",
+      classe: "app-badge-neutral",
+      onglet: "livraisons",
+    });
+  }
+
+  return l;
+};
