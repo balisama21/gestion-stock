@@ -14,13 +14,14 @@ import {
   Payment,
 } from "./types";
 import type { Json, OrderStatus } from "./lib/database.types";
-import { getProductLabel } from "./utils/formulas";
+import { formatCurrency, getProductLabel } from "./utils/formulas";
 import { getModuleScope, isFieldVisible, hasModuleAction } from "./lib/permissions";
 import { downloadExcelWorkbook } from "./utils/exportExcel";
 import { Header } from "./components/Header";
 import { universDe } from "./components/navigation";
 import { SousNavigation } from "./components/shared/SousNavigation";
 import { SquelettePage } from "./components/shared/SquelettePage";
+import { construireNotifications } from "./lib/activite";
 import type { SettingsTab } from "./components/settings/SettingsLayout";
 import { CreateStoreOnboarding } from "./components/CreateStoreOnboarding";
 import { StoreLockedScreen } from "./components/StoreLockedScreen";
@@ -723,6 +724,49 @@ function AppInner() {
     };
   }, [apports, sales, purchases, expenses, workspace.activeStore, storeData.orders]);
 
+  // Ce que dit la cloche. Construit ici, ou vivent les donnees : la barre
+  // du haut n a plus qu a presenter. Voir src/lib/activite.ts pour le
+  // detail, et notamment pourquoi aucune table de notifications n a ete
+  // creee.
+  const notifications = useMemo(
+    () =>
+      construireNotifications({
+        products,
+        sales,
+        purchases,
+        expenses,
+        apports,
+        reglements: storeData.payments,
+        quotes: storeData.quotes,
+        deliveries: storeData.deliveries,
+        orders: storeData.orders,
+        clients: storeData.clients,
+        tresorerie: computedCapital.tresorerieGlobaleActuelle,
+        seuilAlerteTresorerie: computedCapital.seuilAlerteTresorerie,
+        permissions: workspace.memberPermissions,
+        permissionsDetaillees: workspace.memberPermissionsDetailed,
+        alertesStock: notificationPrefs.stockAlerts,
+        formatMontant: formatCurrency,
+      }),
+    [
+      products,
+      sales,
+      purchases,
+      expenses,
+      apports,
+      storeData.payments,
+      storeData.quotes,
+      storeData.deliveries,
+      storeData.orders,
+      storeData.clients,
+      computedCapital.tresorerieGlobaleActuelle,
+      computedCapital.seuilAlerteTresorerie,
+      workspace.memberPermissions,
+      workspace.memberPermissionsDetailed,
+      notificationPrefs.stockAlerts,
+    ],
+  );
+
   const lowStockCount = useMemo(
     () => products.filter((p) => p.stockActuel <= p.seuilAlerte).length,
     [products],
@@ -1164,7 +1208,7 @@ function AppInner() {
           tresorerie={computedCapital.tresorerieGlobaleActuelle}
           seuilAlerte={computedCapital.seuilAlerteTresorerie}
           onOuvrirIdentiteBoutique={ouvrirIdentiteBoutique}
-          products={products}
+          notifications={notifications}
           sidebarCollapsed={sidebarCollapsed}
           onToggleSidebar={toggleSidebar}
         />

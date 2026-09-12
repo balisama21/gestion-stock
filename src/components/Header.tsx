@@ -1,5 +1,5 @@
-import React, { useState, useMemo } from "react";
-import { ActiveTab, StoreSettings, Product } from "../types";
+import React, { useState } from "react";
+import { ActiveTab, StoreSettings } from "../types";
 import {
   Settings,
   Store,
@@ -13,11 +13,13 @@ import {
   Copy,
   KeyRound,
 } from "lucide-react";
-import { formatCurrency, getProductLabel } from "../utils/formulas";
+import { formatCurrency } from "../utils/formulas";
 import { Modal } from "./shared/Modal";
 import { Sidebar } from "./Sidebar";
 import { MenuPlus } from "./MenuPlus";
-import { useNotificationPrefs } from "../lib/notificationPrefs";
+import { PanneauNotifications } from "./PanneauNotifications";
+import { useNotificationsLues } from "../lib/notificationsLues";
+import type { Notification } from "../lib/activite";
 import { visibleNavGroups, visibleBottomTabs, canSeeSettings } from "./navigation";
 import { useWorkspace } from "../hooks/useWorkspace";
 import { useAuth } from "../hooks/useAuth";
@@ -35,9 +37,11 @@ import { usePersonnalisation } from "../lib/personnalisation";
  * traversaient le composant sans servir, en le faisant reconstruire à
  * chaque écriture enregistrée.
  *
- * `products` reste : les alertes de stock bas en dépendent. La
- * trésorerie et son seuil aussi : ils s'affichent sous le nom de la
- * boutique.
+ * La trésorerie et son seuil restent : ils s'affichent sous le nom de la
+ * boutique. Les notifications arrivent toutes construites — voir
+ * src/lib/activite.ts —, la barre ne fait que les présenter. Le
+ * catalogue produits n'a donc plus à la traverser : les alertes de stock
+ * se calculent là-bas, avec le reste.
  */
 interface HeaderProps {
   activeTab: ActiveTab;
@@ -52,7 +56,8 @@ interface HeaderProps {
    * changent le logo et le nom. Branché sur le logo de l'en-tête.
    */
   onOuvrirIdentiteBoutique: () => void;
-  products?: Product[];
+  /** Ce qui demande attention et ce qui vient de se passer. */
+  notifications: Notification[];
   /**
    * État replié de la sidebar. Il est détenu par BalsamaApp car le
    * décalage du contenu principal doit suivre la largeur de la sidebar :
@@ -90,7 +95,7 @@ export const Header: React.FC<HeaderProps> = ({
   tresorerie,
   seuilAlerte,
   onOuvrirIdentiteBoutique,
-  products = [],
+  notifications,
   sidebarCollapsed,
   onToggleSidebar,
 }) => {
@@ -176,9 +181,6 @@ export const Header: React.FC<HeaderProps> = ({
     }
   };
 
-  const [notificationPrefs] = useNotificationPrefs();
-  const [readNotifIds, setReadNotifIds] = useState<string[]>([]);
-
   const workspace = useWorkspace();
   const { user } = useAuth();
 
@@ -191,40 +193,14 @@ export const Header: React.FC<HeaderProps> = ({
     workspace.memberPermissions === null ||
     workspace.memberPermissions.includes("capital");
 
-  // Build aggregated notifications list from recent software activities
-  const allNotifications = useMemo(() => {
-    const list: Array<{
-      id: string;
-      type: "sale" | "purchase" | "expense" | "apport" | "stock";
-      title: string;
-      desc: string;
-      date: string;
-      amount?: number;
-      badgeColor: string;
-    }> = [];
-
-    // Réglage « Alertes de stock bas » (Paramètres → Notifications).
-    if (!notificationPrefs.stockAlerts) return list;
-
-    // Stock alert notifications
-    products
-      .filter((p) => p.stockActuel <= p.seuilAlerte)
-      .forEach((p) => {
-        list.push({
-          id: `notif-stock-${p.id}`,
-          type: "stock",
-          title: `Alerte Stock Bas: ${getProductLabel(p, products)}`,
-          desc: `Stock restant: ${p.stockActuel} (seuil: ${p.seuilAlerte})`,
-          date: "Aujourd'hui",
-          badgeColor: "app-badge-warning",
-        });
-      });
-
-    return list;
-  }, [products, notificationPrefs.stockAlerts]);
-
-  const unreadCount = allNotifications.filter((n) => !readNotifIds.includes(n.id)).length;
-  const markAllRead = () => setReadNotifIds(allNotifications.map((n) => n.id));
+  // La liste se construit dans BalsamaApp, où vivent les données. Ici on
+  // ne fait que la lire, la séparer en deux et compter ce qui n'a pas
+  // encore été vu.
+  const { lues, marquerLues } = useNotificationsLues(workspace.activeStore?.id ?? null);
+  const alertes = notifications.filter((n) => n.genre === "alerte");
+  const activites = notifications.filter((n) => n.genre === "activite");
+  const nonLues = notifications.filter((n) => !lues.has(n.id)).length;
+  const toutMarquerLu = () => marquerLues(notifications.map((n) => n.id));
 
   // Onglets et filtrage par permissions : voir src/components/navigation.tsx.
   // La sidebar (desktop) et le menu bas (mobile) consomment ces mêmes
@@ -488,74 +464,29 @@ export const Header: React.FC<HeaderProps> = ({
                 <button
                   onClick={() => setNotifOpen(!notifOpen)}
                   className={`app-btn-icon relative ${
-                    notifOpen ? "border-success-border bg-success-soft" : ""
+                    notifOpen ? "border-primary/40 bg-success-soft" : ""
                   }`}
                   title="Notifications"
                   aria-label="Notifications"
                 >
-                  <Bell className="w-4 h-4 t-success" />
-                  {unreadCount > 0 && (
-                    <span className="absolute -top-1 -right-1 w-4.5 h-4.5 min-w-[18px] h-[18px] px-1 bg-red-500 text-white text-[10px] font-bold rounded-full flex items-center justify-center border-2 border-card">
-                      {unreadCount > 9 ? "9+" : unreadCount}
+                  <Bell className="h-4 w-4 text-primary" />
+                  {nonLues > 0 && (
+                    <span className="absolute -top-1 -right-1 flex h-[18px] min-w-[18px] items-center justify-center rounded-full border-2 border-card bg-danger px-1 text-[10px] font-bold text-white">
+                      {nonLues > 9 ? "9+" : nonLues}
                     </span>
                   )}
                 </button>
 
                 {notifOpen && (
-                  <>
-                    <div className="fixed inset-0 z-40" onClick={() => setNotifOpen(false)} />
-                    <div className="absolute right-0 top-full mt-2 w-80 max-w-[90vw] bg-card border border-border rounded-xl shadow-2xl z-50 overflow-hidden animate-in fade-in slide-in-from-top-2">
-                      <div className="px-4 py-3 border-b border-border bg-muted/30 flex items-center justify-between">
-                        <div className="text-sm font-bold text-foreground flex items-center gap-2">
-                          <Bell className="w-4 h-4 t-success" /> Notifications
-                        </div>
-                        {unreadCount > 0 && (
-                          <button
-                            onClick={markAllRead}
-                            className="text-xs font-semibold t-success hover:underline flex items-center gap-1"
-                          >
-                            <CheckCheck className="w-3.5 h-3.5" /> Tout marquer lu
-                          </button>
-                        )}
-                      </div>
-                      <div className="max-h-80 overflow-y-auto">
-                        {allNotifications.length === 0 ? (
-                          <div className="px-4 py-8 text-center text-sm text-muted-foreground">
-                            Aucune notification pour le moment.
-                          </div>
-                        ) : (
-                          <div className="divide-y divide-border/60">
-                            {allNotifications.map((n) => {
-                              const isRead = readNotifIds.includes(n.id);
-                              return (
-                                <div
-                                  key={n.id}
-                                  className={`px-4 py-3 flex items-start gap-3 transition-colors ${isRead ? "opacity-60" : "bg-emerald-500/[0.03]"}`}
-                                >
-                                  <span
-                                    className={`mt-0.5 shrink-0 w-2 h-2 rounded-full ${isRead ? "bg-transparent" : "bg-emerald-400"}`}
-                                  />
-                                  <div className="min-w-0 flex-1">
-                                    <div className="text-xs font-bold text-foreground truncate">
-                                      {n.title}
-                                    </div>
-                                    <div className="text-xs text-muted-foreground mt-0.5">
-                                      {n.desc}
-                                    </div>
-                                    <div
-                                      className={`inline-block mt-1.5 px-2 py-0.5 rounded-md text-[10px] font-semibold border ${n.badgeColor}`}
-                                    >
-                                      {n.date}
-                                    </div>
-                                  </div>
-                                </div>
-                              );
-                            })}
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  </>
+                  <PanneauNotifications
+                    alertes={alertes}
+                    activites={activites}
+                    lues={lues}
+                    nonLues={nonLues}
+                    onToutMarquerLu={toutMarquerLu}
+                    onOuvrirEcran={handleTabClick}
+                    onFermer={() => setNotifOpen(false)}
+                  />
                 )}
               </div>
 

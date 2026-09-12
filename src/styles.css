@@ -121,7 +121,21 @@
   --popover-foreground: oklch(0.129 0.042 264.695);
   /* Assombri (0.55 → 0.52) : à 0.55, le texte blanc des boutons
      principaux tombait à 4,17:1, sous le seuil de 4,5:1. */
-  --primary: oklch(0.52 0.18 162);
+  /* Le vert de la marque, adouci.
+
+     Il valait oklch(0.52 0.18 162), soit exactement #008647 : la couleur
+     du logo, au centieme pres. Un aplat de trois cents pixels de large
+     parait pourtant bien plus sombre que la meme couleur sur une
+     vignette de quarante — c'est un effet de surface, pas une erreur de
+     reglage. Pour que le bouton RESSEMBLE au logo, il faut donc qu'il
+     soit reellement plus clair que lui.
+
+     Chroma abaisse de 0,18 a 0,13 et clarte montee a 0,545 : le vert
+     perd son eclat sans changer de famille. C'est la limite. Une nuance
+     plus claire et le libelle blanc tombe sous le rapport de 4,5 pour 1
+     exige par l'accessibilite — a 0,55 de clarte il n'est deja plus qu'a
+     4,52. Ici : 4,61. */
+  --primary: oklch(0.545 0.13 160);
   --primary-foreground: oklch(1 0 0);
   --secondary: oklch(0.968 0.007 247.896);
   --secondary-foreground: oklch(0.208 0.042 265.755);
@@ -136,7 +150,7 @@
   /* Filets très clairs : la séparation doit se deviner, pas se voir. */
   --border: oklch(0.925 0.005 250);
   --input: oklch(0.9 0.006 250);
-  --ring: oklch(0.55 0.18 162 / 40%);
+  --ring: oklch(0.58 0.13 160 / 40%);
   --chart-1: oklch(0.646 0.222 41.116);
   --chart-2: oklch(0.6 0.118 184.704);
   --chart-3: oklch(0.398 0.07 227.392);
@@ -144,12 +158,12 @@
   --chart-5: oklch(0.769 0.188 70.08);
   --sidebar: oklch(0.984 0.003 247.858);
   --sidebar-foreground: oklch(0.129 0.042 264.695);
-  --sidebar-primary: oklch(0.52 0.18 162);
+  --sidebar-primary: oklch(0.545 0.13 160);
   --sidebar-primary-foreground: oklch(1 0 0);
   --sidebar-accent: oklch(0.96 0.005 250);
   --sidebar-accent-foreground: oklch(0.208 0.042 265.755);
   --sidebar-border: oklch(0.91 0.01 256);
-  --sidebar-ring: oklch(0.55 0.18 162 / 40%);
+  --sidebar-ring: oklch(0.58 0.13 160 / 40%);
 
   /* Palette sémantique — mode clair.
      Les teintes "-soft" servent de fond de badge, les "-border" de
@@ -188,7 +202,7 @@
   --card-foreground: oklch(0.94 0.008 250);
   --popover: oklch(0.175 0.032 265);
   --popover-foreground: oklch(0.94 0.008 250);
-  --primary: oklch(0.62 0.2 162);
+  --primary: oklch(0.68 0.13 160);
   --primary-foreground: oklch(0.1 0.02 265);
   --secondary: oklch(0.22 0.032 263);
   --secondary-foreground: oklch(0.94 0.008 250);
@@ -200,7 +214,7 @@
   --destructive-foreground: oklch(0.94 0.008 250);
   --border: oklch(1 0 0 / 7%);
   --input: oklch(1 0 0 / 10%);
-  --ring: oklch(0.62 0.2 162 / 50%);
+  --ring: oklch(0.68 0.13 160 / 50%);
   --chart-1: oklch(0.62 0.2 162);
   --chart-2: oklch(0.55 0.18 230);
   --chart-3: oklch(0.65 0.18 70);
@@ -208,12 +222,12 @@
   --chart-5: oklch(0.62 0.22 20);
   --sidebar: oklch(0.145 0.03 265);
   --sidebar-foreground: oklch(0.94 0.008 250);
-  --sidebar-primary: oklch(0.62 0.2 162);
+  --sidebar-primary: oklch(0.68 0.13 160);
   --sidebar-primary-foreground: oklch(0.1 0.02 265);
   --sidebar-accent: oklch(0.22 0.032 263);
   --sidebar-accent-foreground: oklch(0.94 0.008 250);
   --sidebar-border: oklch(1 0 0 / 7%);
-  --sidebar-ring: oklch(0.62 0.2 162 / 50%);
+  --sidebar-ring: oklch(0.68 0.13 160 / 50%);
 
   /* Palette sémantique — mode sombre (mêmes rôles, teintes éclaircies) */
   --success: oklch(0.76 0.16 162);
@@ -905,6 +919,25 @@ td {
 .app-modal-footer .app-btn-primary {
   padding-left: 1rem;
   padding-right: 1rem;
+}
+
+/* 4. À partir de cinq actions, elles se partagent les lignes.
+
+      Le détail d'un devis en aligne jusqu'à sept — imprimer, transformer
+      en vente, modifier, marquer envoyé, accepté, refusé, supprimer.
+      Rangées de droite à gauche et repliées au fil de l'eau, elles
+      dessinaient un escalier : deux en haut collées aux bords opposés,
+      deux décalées au milieu, trois en bas. Rien ne s'alignait.
+
+      Le sélecteur compte les frères et sœurs : s'il y en a cinq ou plus,
+      chacune devient extensible et remplit sa part de ligne. Le pied
+      redevient une grille régulière, quel que soit le nombre d'actions
+      que l'écran décide d'afficher. En dessous de cinq, rien ne change :
+      les tailles naturelles et la mise à l'écart du bouton rouge valent
+      mieux dès que la ligne suffit. */
+.app-modal-footer > :first-child:nth-last-child(n + 5),
+.app-modal-footer > :first-child:nth-last-child(n + 5) ~ * {
+  flex: 1 1 7rem;
 }
 
 @media (max-width: 639px) {
