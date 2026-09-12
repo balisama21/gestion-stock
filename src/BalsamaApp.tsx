@@ -24,6 +24,7 @@ import { SquelettePage } from "./components/shared/SquelettePage";
 import { construireNotifications } from "./lib/activite";
 import { useJournalActivite } from "./hooks/useJournalActivite";
 import { useTaches } from "./hooks/useTaches";
+import { useEvenements } from "./hooks/useEvenements";
 import type { SettingsTab } from "./components/settings/SettingsLayout";
 import { CreateStoreOnboarding } from "./components/CreateStoreOnboarding";
 import { StoreLockedScreen } from "./components/StoreLockedScreen";
@@ -161,6 +162,7 @@ function AppInner() {
   );
   const { lignes: journalActivite } = useJournalActivite(workspace.activeStore?.id ?? null);
   const organisation = useTaches(workspace.activeStore?.id ?? null, user?.id ?? null);
+  const calendrier = useEvenements(workspace.activeStore?.id ?? null, user?.id ?? null);
   const { members: storeMembers, removeMember: removeStoreMember } = useStoreMembers(
     workspace.activeStore?.id ?? null,
   );
@@ -1350,6 +1352,11 @@ function AppInner() {
                 )}
                 {activeTab === "agenda" && (
                   <AgendaView
+                    evenements={calendrier.evenements}
+                    membres={storeMembers}
+                    moiId={user?.id ?? null}
+                    onCreer={calendrier.creer}
+                    onSupprimer={calendrier.supprimer}
                     purchases={purchases}
                     quotes={storeData.quotes}
                     deliveries={storeData.deliveries}
