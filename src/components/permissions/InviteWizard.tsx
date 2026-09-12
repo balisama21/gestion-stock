@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from "react";
-import { ChevronLeft, ChevronRight, Sparkles, Layers, ShieldOff } from "lucide-react";
+import { Check, ChevronLeft, Layers, ShieldOff, Sparkles, UserPlus } from "lucide-react";
 import {
   MODULE_DEFINITIONS,
   ROLE_TEMPLATES,
@@ -120,7 +120,7 @@ export const InviteWizard: React.FC<InviteWizardProps> = ({
                 <span
                   className={`w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-bold shrink-0 ${
                     active
-                      ? "bg-emerald-600 text-white"
+                      ? "bg-primary text-primary-foreground"
                       : done
                         ? "bg-success-soft t-success"
                         : "bg-muted text-muted-foreground"
@@ -192,8 +192,8 @@ export const InviteWizard: React.FC<InviteWizardProps> = ({
               ))}
             </select>
             <p className="text-xs text-muted-foreground mt-1">
-              Un profil de permissions recommandé sera appliqué automatiquement — personnalisable
-              à l'étape suivante.
+              Un profil de permissions recommandé sera appliqué automatiquement — personnalisable à
+              l'étape suivante.
             </p>
           </div>
 
@@ -201,9 +201,9 @@ export const InviteWizard: React.FC<InviteWizardProps> = ({
             type="button"
             disabled={!canGoStep2}
             onClick={() => setStep(2)}
-            className="w-full flex items-center justify-center gap-2 px-6 py-2.5 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-50 text-white font-bold rounded-xl"
+            className="app-btn-primary w-full"
           >
-            Continuer <ChevronRight className="w-4 h-4" />
+            Continuer
           </button>
         </div>
       )}
@@ -285,9 +285,10 @@ export const InviteWizard: React.FC<InviteWizardProps> = ({
               type="button"
               disabled={submitting}
               onClick={handleFinalSubmit}
-              className="min-w-0 flex-1 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-60 text-white font-bold rounded-xl text-sm"
+              className="app-btn-primary min-w-0 flex-1"
             >
-              {submitting ? "Envoi..." : "Utiliser ce profil"}
+              <Check className="w-4 h-4" />
+              {submitting ? "Envoi…" : "Utiliser ce profil"}
             </button>
           </div>
         </div>
@@ -331,9 +332,10 @@ export const InviteWizard: React.FC<InviteWizardProps> = ({
               type="button"
               disabled={submitting}
               onClick={handleFinalSubmit}
-              className="min-w-0 flex-1 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-500 disabled:opacity-60 text-white font-bold rounded-xl"
+              className="app-btn-primary min-w-0 flex-1"
             >
-              {submitting ? "Envoi..." : "Envoyer l'invitation"}
+              <UserPlus className="w-4 h-4" />
+              {submitting ? "Envoi…" : "Envoyer l'invitation"}
             </button>
           </div>
         </div>

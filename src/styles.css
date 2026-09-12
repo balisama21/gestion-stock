@@ -137,6 +137,12 @@
      4,52. Ici : 4,61. */
   --primary: oklch(0.545 0.13 160);
   --primary-foreground: oklch(1 0 0);
+  /* Le trait du bouton principal : le meme vert, assez pale pour se lire
+     comme un cadre et non comme un surlignage. Ecrit en oklch avec son
+     alpha plutot qu en color-mix : melanger de l oklch avec du
+     transparent en srgb produit un canal negatif, donc une couleur hors
+     de la gamme que le navigateur doit rattraper a l affichage. */
+  --primary-trait: oklch(0.545 0.13 160 / 55%);
   --secondary: oklch(0.968 0.007 247.896);
   --secondary-foreground: oklch(0.208 0.042 265.755);
   --muted: oklch(0.96 0.005 250);
@@ -204,6 +210,7 @@
   --popover-foreground: oklch(0.94 0.008 250);
   --primary: oklch(0.68 0.13 160);
   --primary-foreground: oklch(0.1 0.02 265);
+  --primary-trait: oklch(0.68 0.13 160 / 55%);
   --secondary: oklch(0.22 0.032 263);
   --secondary-foreground: oklch(0.94 0.008 250);
   --muted: oklch(0.2 0.028 264);
@@ -1137,13 +1144,55 @@ td {
   .app-btn-danger:active:not(:disabled) {
     transform: scale(0.97);
   }
+  /* ── L'action principale ──
+     Un cadre vert fin sur du blanc, et l'icône seule remplie.
+
+     C'était un aplat vert plein. À pleine largeur sur un téléphone, cela
+     fait un pavé qui pèse plus lourd que le titre de la page qu'il
+     surmonte, et deux actions principales sur un même écran se
+     bagarrent. Le cadre dit la même chose sans crier : c'est encore la
+     seule couleur d'action de l'application, et le cercle plein garde un
+     point d'ancrage franc pour l'œil.
+
+     Le blanc vient de `--card` et non de `#fff` : en thème sombre, le
+     bouton se pose sur la carte, pas sur une plaque blanche. */
   .app-btn-primary {
-    @apply bg-primary text-primary-foreground hover:opacity-90;
-    box-shadow: var(--elev-1);
+    background-color: var(--color-card);
+    color: var(--primary);
+    border: 1.5px solid var(--primary-trait);
+    box-shadow: none;
   }
+  @media (hover: hover) {
+    .app-btn-primary:hover:not(:disabled) {
+      background-color: var(--success-soft);
+      border-color: var(--primary);
+    }
+  }
+
+  /* Le cercle de l'icône, posé sans toucher un seul point d'appel.
+
+     Les soixante-cinq boutons principaux écrivent déjà leur icône en
+     première position — `<Plus className="w-4 h-4" /> Nouveau produit`.
+     Cette règle l'habille : `content-box` fait que la garde de cinq
+     pixels s'ajoute aux seize de l'icône au lieu de les rogner, et les
+     icônes Lucide se peignant en `currentColor`, il suffit de changer la
+     couleur du texte pour qu'elles deviennent blanches.
+
+     Un bouton sans icône, ou dont l'icône suit le texte, ne reçoit rien
+     et reste correct. */
+  .app-btn-primary > svg:first-child {
+    box-sizing: content-box;
+    padding: 5px;
+    border-radius: 9999px;
+    background-color: var(--primary);
+    color: var(--primary-foreground);
+  }
+
+  /* L'action secondaire : présente, sans réclamer l'attention. */
   .app-btn-secondary {
     @apply border border-border bg-card text-foreground hover:bg-muted;
   }
+  /* La petite action de contexte : rien, jusqu'à ce qu'on la survole. */
   .app-btn-ghost {
     @apply text-muted-foreground hover:bg-muted hover:text-foreground;
   }
