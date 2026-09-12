@@ -46,7 +46,7 @@ export const SousNavigation: React.FC<SousNavigationProps> = ({ actif, items, on
             type="button"
             onClick={() => onChoisir(item.id)}
             aria-current={estActif ? "page" : undefined}
-            className={`-mb-px border-b-2 px-2.5 py-2 text-[13px] transition-colors ${
+            className={`-mb-px border-b-2 px-2.5 py-2 text-[13px] transition-colors active:bg-muted ${
               estActif
                 ? "border-primary font-medium text-primary"
                 : "border-transparent text-muted-foreground hover:border-border hover:text-foreground"

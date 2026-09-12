@@ -865,6 +865,53 @@ td {
   }
 }
 
+/* ═══ Le passage d'un écran à l'autre ═══
+   Quatre pixels et deux dixièmes de seconde. Assez pour que l'œil voie
+   que le contenu a changé — c'est utile quand deux écrans se
+   ressemblent — et trop peu pour qu'on ait le sentiment d'attendre. Ce
+   n'est pas une apparition décorative : c'est la réponse au doigt qui
+   vient de choisir un onglet. */
+@keyframes vue-parait {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+}
+.app-vue {
+  animation: vue-parait 200ms ease-out;
+}
+
+/* ═══ Squelettes de chargement ═══
+   Une forme grise à la place du contenu vaut mieux qu'un écran vide ou
+   qu'un « Chargement… » : elle dit ce qui arrive et où cela se posera,
+   si bien que rien ne saute quand le contenu prend sa place.
+
+   Le délai de 250 ms est la partie importante. Un morceau d'écran
+   arrive le plus souvent en un clin d'œil ; un squelette montré
+   aussitôt ne ferait que clignoter, et l'application paraîtrait plus
+   lente qu'elle ne l'est. `both` retient l'opacité nulle pendant
+   l'attente : on ne voit rien passer. */
+@keyframes squelette-parait {
+  from {
+    opacity: 0;
+  }
+}
+.app-squelette {
+  animation: squelette-parait 200ms ease-out 250ms both;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .app-vue {
+    animation: none;
+  }
+  .app-squelette {
+    animation-duration: 1ms;
+  }
+  .skeleton {
+    animation: none;
+  }
+}
+
 /* ═══════════════════════════════════════════════════════════════════
    DESIGN SYSTEM — primitives partagées
    Ajouté lors de la refonte design. Ces classes sont la source unique
@@ -898,6 +945,13 @@ td {
       box-shadow: var(--elev-3);
       transform: translateY(-2px);
     }
+  }
+  /* Au doigt, une carte ne se soulève pas : elle s'enfonce. Un fond qui
+     s'assombrit se lit mieux qu'un rétrécissement sur une grande
+     surface, où le même geste paraîtrait faire trembler la page. */
+  .app-card-interactive:active {
+    background-color: var(--color-muted);
+    transition-duration: 60ms;
   }
 
   .app-mcard {
@@ -949,12 +1003,31 @@ td {
   .app-btn-ghost,
   .app-btn-danger {
     @apply inline-flex items-center justify-center gap-2 whitespace-nowrap rounded-xl
-      px-4 text-sm font-semibold transition-colors focus-visible:outline-none
+      px-4 text-sm font-semibold focus-visible:outline-none
       focus-visible:ring-2 focus-visible:ring-ring disabled:cursor-not-allowed disabled:opacity-50;
     /* En pixels, pas en rem : la taille de police racine descend à 15px
        sous 640px, où min-h-11 (2.75rem) ne vaut plus que 41,25px et rate
        la cible tactile minimale de 44px. */
     min-height: 44px;
+    transition:
+      color 150ms ease,
+      background-color 150ms ease,
+      border-color 150ms ease,
+      opacity 150ms ease,
+      transform 90ms ease-out;
+  }
+
+  /* L'enfoncement.
+     Au doigt, il n'y a pas de survol : sans cela, rien ne répond entre
+     le moment où l'on appuie et celui où l'écran change. Le retrait est
+     léger — trois pour cent — et surtout très court : il doit se lire
+     comme une réponse, pas comme une animation. */
+  .app-btn:active:not(:disabled),
+  .app-btn-primary:active:not(:disabled),
+  .app-btn-secondary:active:not(:disabled),
+  .app-btn-ghost:active:not(:disabled),
+  .app-btn-danger:active:not(:disabled) {
+    transform: scale(0.97);
   }
   .app-btn-primary {
     @apply bg-primary text-primary-foreground hover:opacity-90;
@@ -980,6 +1053,12 @@ td {
       focus-visible:ring-2 focus-visible:ring-ring;
     height: 44px;
     width: 44px;
+    transition:
+      background-color 150ms ease,
+      transform 90ms ease-out;
+  }
+  .app-btn-icon:active:not(:disabled) {
+    transform: scale(0.94);
   }
 
   /* ── Cartes de liste mobile (remplacent les tableaux < 768px) ── */
@@ -1268,6 +1347,17 @@ td {
   }
   .app-chip-count {
     @apply text-[11px] opacity-70;
+  }
+
+  /* ── Un onglet de la barre du bas ── */
+  .app-onglet-bas {
+    @apply relative flex flex-col items-center justify-center gap-1 rounded-xl py-2;
+    transition:
+      color 150ms ease,
+      transform 90ms ease-out;
+  }
+  .app-onglet-bas:active {
+    transform: scale(0.92);
   }
 
   /* ── En-tête de section discret ── */

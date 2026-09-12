@@ -46,7 +46,7 @@ export const MenuPlus: React.FC<MenuPlusProps> = ({ groups, activeTab, onTabClic
                   key={tab.id}
                   onClick={() => onTabClick(tab.id)}
                   aria-current={isActive ? "page" : undefined}
-                  className={`relative flex w-full items-center gap-3 rounded-md px-3 py-2.5 text-left text-sm transition-colors ${
+                  className={`relative flex w-full items-center gap-3 rounded-md px-3 py-2.5 text-left text-sm transition-colors active:bg-muted ${
                     isActive ? "font-medium text-foreground" : "text-muted-foreground"
                   }`}
                 >

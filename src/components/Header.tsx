@@ -527,20 +527,37 @@ export const Header: React.FC<HeaderProps> = ({
           className="grid px-1 pb-[env(safe-area-inset-bottom)]"
           style={{ gridTemplateColumns: `repeat(${bottomTabs.length + 1}, minmax(0, 1fr))` }}
         >
-          {bottomTabs.map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => handleTabClick(tab.id)}
-              className={`flex flex-col items-center justify-center gap-1 py-2 rounded-xl transition-colors ${activeTab === tab.id && !mobileMenuOpen ? "t-success scale-110" : "text-muted-foreground hover:text-foreground"}`}
-            >
-              {tab.icon}
-              <span className="text-[9px] font-semibold">{tab.shortLabel}</span>
-            </button>
-          ))}
+          {/* L'onglet actif se marquait par un `scale-110` : l'icône et
+              son libellé grossissaient, poussaient leurs voisins et la
+              barre bougeait à chaque changement d'écran. C'est
+              maintenant un filet vert au-dessus de l'onglet — la même
+              convention que le menu latéral, tournée d'un quart de
+              tour — et rien ne se déplace. */}
+          {bottomTabs.map((tab) => {
+            const estActif = activeTab === tab.id && !mobileMenuOpen;
+            return (
+              <button
+                key={tab.id}
+                onClick={() => handleTabClick(tab.id)}
+                aria-current={estActif ? "page" : undefined}
+                className={`app-onglet-bas ${estActif ? "text-primary" : "text-muted-foreground"}`}
+              >
+                {estActif && (
+                  <span className="absolute inset-x-4 top-0 h-0.5 rounded-full bg-primary" />
+                )}
+                {tab.icon}
+                <span className="text-[9px] font-semibold">{tab.shortLabel}</span>
+              </button>
+            );
+          })}
           <button
             onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-            className={`flex flex-col items-center justify-center gap-1 py-2 rounded-xl transition-colors ${mobileMenuOpen ? "t-success" : "text-muted-foreground hover:text-foreground"}`}
+            aria-expanded={mobileMenuOpen}
+            className={`app-onglet-bas ${mobileMenuOpen ? "text-primary" : "text-muted-foreground"}`}
           >
+            {mobileMenuOpen && (
+              <span className="absolute inset-x-4 top-0 h-0.5 rounded-full bg-primary" />
+            )}
             {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
             <span className="text-[9px] font-semibold">Plus</span>
           </button>
