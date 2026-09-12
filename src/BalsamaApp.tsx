@@ -367,6 +367,7 @@ function AppInner() {
         soldeDu: p.solde_du ?? p.total_achat - p.montant_paye,
         statutPaiement: p.statut_paiement ?? "paye",
         dateEcheance: p.date_echeance,
+        auteurId: p.owner_id,
       })),
     [storeData.purchases],
   );
@@ -397,6 +398,7 @@ function AppInner() {
         montant: a.montant,
         source: a.source,
         note: a.note || undefined,
+        auteurId: a.owner_id,
       })),
     [storeData.apports],
   );
@@ -745,6 +747,8 @@ function AppInner() {
         seuilAlerteTresorerie: computedCapital.seuilAlerteTresorerie,
         permissions: workspace.memberPermissions,
         permissionsDetaillees: workspace.memberPermissionsDetailed,
+        membres: storeMembers,
+        moiId: user?.id ?? null,
         alertesStock: notificationPrefs.stockAlerts,
         formatMontant: formatCurrency,
       }),
@@ -763,6 +767,8 @@ function AppInner() {
       computedCapital.seuilAlerteTresorerie,
       workspace.memberPermissions,
       workspace.memberPermissionsDetailed,
+      storeMembers,
+      user?.id,
       notificationPrefs.stockAlerts,
     ],
   );

@@ -46,6 +46,8 @@ export interface Purchase {
   soldeDu: number;
   statutPaiement: string;
   dateEcheance: string | null;
+  /** Qui a enregistre la ligne. Sert au journal d activite. */
+  auteurId?: string | null;
 }
 
 export interface Sale {
@@ -109,6 +111,8 @@ export interface CapitalApport {
   montant: number;
   source: string; // e.g. "Apport Associé", "Injection Trésorerie"
   note?: string;
+  /** Qui a enregistre la ligne. Sert au journal d activite. */
+  auteurId?: string | null;
 }
 
 export interface Seller {

@@ -79,7 +79,20 @@ export const PanneauNotifications: React.FC<PanneauNotificationsProps> = ({
               </span>
             )}
           </span>
-          <span className="mt-0.5 block truncate text-xs text-muted-foreground">{n.detail}</span>
+          {/* Le quoi à gauche, le qui à droite. C'est la question qu'on
+              se pose en ouvrant ce panneau — qui a enregistré cette
+              vente, qui a passé cette commande — et elle mérite sa
+              colonne plutôt que d'être noyée en fin de phrase. */}
+          <span className="mt-0.5 flex items-baseline justify-between gap-2">
+            <span className="min-w-0 flex-1 truncate text-xs text-muted-foreground">
+              {n.detail}
+            </span>
+            {n.acteur && (
+              <span className="shrink-0 text-[11px] font-medium text-foreground/70">
+                {n.acteur}
+              </span>
+            )}
+          </span>
         </span>
         {n.onglet && (
           <ChevronRight className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground/50 transition-colors group-hover:text-muted-foreground" />

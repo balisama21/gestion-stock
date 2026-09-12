@@ -26,6 +26,12 @@ export interface Notification {
   /** Date ISO ou AAAA-MM-JJ. Vide pour une alerte, qui n'a pas de date. */
   quand: string;
   ton: TonNotif;
+  /**
+   * Qui a fait ça. « Vous » quand c'est la personne connectée, sinon son
+   * nom. Vide quand la donnée ne le dit pas — on préfère ne rien écrire
+   * plutôt qu'un « Inconnu » qui n'apprend rien.
+   */
+  acteur?: string;
   /** Écran ouvert au clic. */
   onglet?: ActiveTab;
 }
@@ -45,8 +51,15 @@ export interface Notification {
  * corrigée ou supprimée laisserait derrière elle une notification qui ne
  * correspond plus à rien.
  *
- * Le prix de ce choix : rien n'est signalé qui ne soit déjà chargé, et
- * l'historique s'arrête où s'arrête celui des écrans.
+ * Le prix de ce choix, et il faut le connaître : ce journal dit QUI A
+ * FAIT quoi, mais pas qui a MODIFIÉ ni qui a SUPPRIMÉ. Il ne peut pas :
+ * une ligne effacée a disparu des données, et une ligne corrigée n'a
+ * gardé que sa valeur d'arrivée. Ces deux-là demandent une écriture au
+ * moment même du geste — donc une table tenue par des déclencheurs sur
+ * les tables existantes. C'est faisable et additif, mais cela pose du
+ * code sur le chemin d'écriture d'une caisse en service : un déclencheur
+ * qui échoue empêche d'enregistrer une vente. Cela se décide, cela ne se
+ * glisse pas au passage.
  *
  * ── Ce que chacun voit ──
  *
@@ -74,6 +87,14 @@ export interface SourcesActivite {
   seuilAlerteTresorerie: number;
   permissions: string[] | null;
   permissionsDetaillees: PermissionsMap | null;
+  /**
+   * L'équipe, pour traduire un identifiant en nom. Les tables portent
+   * l'auteur sous forme d'identifiant ; sans cette liste, le journal
+   * dirait « par 8f3c-… ».
+   */
+  membres: { user_id: string; full_name: string | null; email: string }[];
+  /** L'identifiant de la personne connectée, pour écrire « Vous ». */
+  moiId: string | null;
   /** Réglage « Alertes de stock bas » (Paramètres → Notifications). */
   alertesStock: boolean;
   formatMontant: (montant: number) => string;
@@ -114,6 +135,17 @@ export function construireNotifications(s: SourcesActivite): Notification[] {
     if (s.permissions === null) return true;
     if (!s.permissions.includes(module)) return false;
     return getModuleScope(s.permissionsDetaillees ?? {}, module) === "all";
+  };
+
+  // Un identifiant devient un nom, ou rien. Le propriétaire de la
+  // boutique ne figure pas forcément dans la table des membres : quand
+  // le nom manque, on n'écrit pas d'auteur du tout plutôt qu'un
+  // « Inconnu » qui n'apprend rien.
+  const nomDe = (id: string | null | undefined): string | undefined => {
+    if (!id) return undefined;
+    if (id === s.moiId) return "Vous";
+    const m = s.membres.find((x) => x.user_id === id);
+    return m ? m.full_name?.trim() || m.email : undefined;
   };
 
   const alertes: Notification[] = [];
@@ -289,11 +321,11 @@ export function construireNotifications(s: SourcesActivite): Notification[] {
         id: `act-vente-${cle}`,
         genre: "activite",
         titre: `Vente ${fmt(total)}`,
-        detail:
-          lignes.length > 1
-            ? `${lignes.length} articles · ${premiere.vendeur}`
-            : `${premiere.designation} · ${premiere.vendeur}`,
+        // Le vendeur ne se répète pas ici : il occupe la colonne de
+        // droite, celle du « qui ».
+        detail: lignes.length > 1 ? `${lignes.length} articles` : premiere.designation,
         quand: premiere.date,
+        acteur: premiere.vendeur || undefined,
         ton: "success",
         onglet: "ventes",
       });
@@ -306,6 +338,7 @@ export function construireNotifications(s: SourcesActivite): Notification[] {
         titre: `Règlement reçu ${fmt(r.montant)}`,
         detail: r.methode || "Encaissement",
         quand: r.created_at,
+        acteur: nomDe(r.recorded_by),
         ton: "success",
         onglet: "paiements",
       });
@@ -320,6 +353,7 @@ export function construireNotifications(s: SourcesActivite): Notification[] {
         titre: `Achat ${fmt(a.totalAchat)}`,
         detail: `${a.quantite} × ${a.designation}${a.fournisseur ? ` · ${a.fournisseur}` : ""}`,
         quand: a.date,
+        acteur: nomDe(a.auteurId),
         ton: "info",
         onglet: "achats",
       });
@@ -334,6 +368,7 @@ export function construireNotifications(s: SourcesActivite): Notification[] {
         titre: `Dépense ${fmt(d.montant)}`,
         detail: `${d.type}${d.note ? ` · ${d.note}` : ""}`,
         quand: d.date,
+        acteur: d.vendeur || undefined,
         ton: "warning",
         onglet: "depenses",
       });
@@ -348,6 +383,7 @@ export function construireNotifications(s: SourcesActivite): Notification[] {
         titre: `Apport ${fmt(ap.montant)}`,
         detail: ap.source,
         quand: ap.date,
+        acteur: nomDe(ap.auteurId),
         ton: "success",
         onglet: "capital",
       });
@@ -370,6 +406,7 @@ export function construireNotifications(s: SourcesActivite): Notification[] {
         titre: `${libelle} ${fmt(d.total ?? 0)}`,
         detail: `${d.numero ?? ""} · ${d.client_nom}`.replace(/^ · /, ""),
         quand: d.updated_at || d.created_at,
+        acteur: nomDe(d.created_by),
         ton: d.statut === "accepte" ? "success" : d.statut === "refuse" ? "danger" : "info",
         onglet: "devis",
       });
@@ -392,6 +429,7 @@ export function construireNotifications(s: SourcesActivite): Notification[] {
         titre: libelle,
         detail: `${l.destinataire} · ${l.adresse}`,
         quand: l.updated_at || l.created_at,
+        acteur: nomDe(l.created_by),
         ton: l.statut === "livree" ? "success" : l.statut === "echouee" ? "danger" : "neutre",
         onglet: "livraisons",
       });
@@ -406,6 +444,7 @@ export function construireNotifications(s: SourcesActivite): Notification[] {
         titre: `Commande ${fmt(c.montant_total)}`,
         detail: `${c.numero} · ${c.statut_commande}`,
         quand: c.updated_at || c.created_at,
+        acteur: nomDe(c.owner_id),
         ton: "info",
         onglet: "commandes",
       });
@@ -420,6 +459,7 @@ export function construireNotifications(s: SourcesActivite): Notification[] {
         titre: "Nouveau client",
         detail: [c.prenom, c.nom].filter(Boolean).join(" ") || c.nom,
         quand: c.created_at,
+        acteur: nomDe(c.created_by),
         ton: "neutre",
         onglet: "clients",
       });
