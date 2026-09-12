@@ -13,7 +13,7 @@ import {
   Copy,
   KeyRound,
 } from "lucide-react";
-import { getProductLabel } from "../utils/formulas";
+import { formatCurrency, getProductLabel } from "../utils/formulas";
 import { Modal } from "./shared/Modal";
 import { Sidebar } from "./Sidebar";
 import { MenuPlus } from "./MenuPlus";
@@ -29,19 +29,24 @@ import { usePersonnalisation } from "../lib/personnalisation";
 /**
  * Ce que la barre du haut reçoit — et rien de plus.
  *
- * Elle demandait aussi la trésorerie, son seuil d'alerte, le résumé du
- * capital, le thème, le nombre d'articles en rupture et quatre tableaux
- * complets (ventes, achats, dépenses, apports). Les quatre tableaux
- * n'étaient lus nulle part : ils traversaient le composant sans servir,
- * en le faisant reconstruire à chaque écriture enregistrée. Le reste a
- * été retiré de l'affichage lors du nettoyage de l'en-tête.
+ * Elle demandait aussi le résumé du capital, le thème, le nombre
+ * d'articles en rupture et quatre tableaux complets (ventes, achats,
+ * dépenses, apports). Les quatre tableaux n'étaient lus nulle part : ils
+ * traversaient le composant sans servir, en le faisant reconstruire à
+ * chaque écriture enregistrée.
  *
- * `products` reste : les alertes de stock bas en dépendent.
+ * `products` reste : les alertes de stock bas en dépendent. La
+ * trésorerie et son seuil aussi : ils s'affichent sous le nom de la
+ * boutique.
  */
 interface HeaderProps {
   activeTab: ActiveTab;
   setActiveTab: (tab: ActiveTab) => void;
   settings: StoreSettings;
+  /** Solde de trésorerie, affiché sous le nom de la boutique. */
+  tresorerie: number;
+  /** Seuil sous lequel ce solde passe en orange. */
+  seuilAlerte: number;
   products?: Product[];
   /**
    * État replié de la sidebar. Il est détenu par BalsamaApp car le
@@ -56,26 +61,29 @@ interface HeaderProps {
  * La barre du haut.
  *
  * Elle ne garde que ce dont on se sert sans y penser : le nom de la
- * boutique (qui ouvre le choix d'espace de travail), la cloche des
- * alertes, et l'accès aux réglages. Trois choses en sont sorties, et
- * aucune n'a été perdue :
+ * boutique — qui ouvre le choix d'espace de travail et porte le solde de
+ * trésorerie —, la cloche des alertes, et l'accès aux réglages.
+ *
+ * Deux choses en sont sorties, et aucune n'a été perdue :
  *
  * — la mention « Espace Fondateur / Collaborateur », qui répétait à
  *   longueur de journée une information apprise une fois. Le menu des
- *   espaces de travail la porte déjà, boutique par boutique ;
+ *   espaces de travail la porte déjà, boutique par boutique. La ligne
+ *   qu'elle occupait porte maintenant la trésorerie ;
  * — la bascule clair/sombre, qui existe dans Paramètres →
- *   Préférences. On choisit son thème une fois, pas dix fois par jour ;
- * — le badge Trésorerie, que le Tableau de bord affiche déjà en
- *   vignette, avec en plus ses bandeaux d'alerte quand le solde passe
- *   sous le seuil ou devient négatif. Sur mobile, il occupait à lui
- *   seul une deuxième ligne d'en-tête sur chacun des quinze écrans.
+ *   Préférences. On choisit son thème une fois, pas dix fois par jour.
  *
- * Sur mobile, l'en-tête passe ainsi de deux lignes à une seule.
+ * La trésorerie, elle, avait une ligne d'en-tête à elle seule sur
+ * mobile, sur chacun des quinze écrans, dans un cadre étiqueté en
+ * capitales. Elle est toujours là, et la barre tient désormais sur une
+ * seule rangée.
  */
 export const Header: React.FC<HeaderProps> = ({
   activeTab,
   setActiveTab,
   settings,
+  tresorerie,
+  seuilAlerte,
   products = [],
   sidebarCollapsed,
   onToggleSidebar,
@@ -168,6 +176,15 @@ export const Header: React.FC<HeaderProps> = ({
   const workspace = useWorkspace();
   const { user } = useAuth();
 
+  // Un collaborateur sans la permission « capital » ne doit JAMAIS voir
+  // la trésorerie globale de l'entreprise, pas même dans cette ligne
+  // d'en-tête toujours visible. Contrôle repris tel quel — il ne s'agit
+  // pas d'un droit qu'on ajoute, mais de celui qui existait déjà.
+  const hasCapitalAccess =
+    workspace.isOwner ||
+    workspace.memberPermissions === null ||
+    workspace.memberPermissions.includes("capital");
+
   // Build aggregated notifications list from recent software activities
   const allNotifications = useMemo(() => {
     const list: Array<{
@@ -253,18 +270,42 @@ export const Header: React.FC<HeaderProps> = ({
           onClick={() => setWorkspaceMenuOpen(!workspaceMenuOpen)}
           className="flex w-full min-w-0 items-center gap-2 hover:bg-muted/50 py-1 pl-1 pr-2 rounded-lg transition-colors group text-left"
         >
-          {/* Une seule ligne : le nom de la boutique. La mention
-              « Espace Fondateur / Collaborateur » qui vivait ici ne se
-              lisait qu'une fois, à la découverte, puis occupait une
-              ligne tous les jours. Le menu qu'ouvre ce bouton dit déjà
-              « Propriétaire » ou « Collaborateur » en face de chaque
-              boutique, là où l'information sert vraiment : au moment de
-              choisir entre plusieurs espaces. */}
+          {/* La deuxième ligne portait « Espace Fondateur » : une
+              information qu'on apprend une fois et qu'on relisait toute
+              la journée. Elle porte maintenant la trésorerie — la seule
+              chose qu'un commerçant regarde vraiment plusieurs fois par
+              jour.
+
+              La place ne coûte rien : sous 1024 pixels ce bouton mesure
+              déjà 44 pixels de haut, la taille minimale d'une cible
+              tactile, et les deux lignes y tiennent. L'en-tête reste sur
+              une seule rangée.
+
+              Ni cadre, ni étiquette en capitales, ni vert : le vert est
+              la couleur des actions, et un solde sain n'est pas une
+              action. La couleur ne paraît que lorsqu'elle dit quelque
+              chose — orange sous le seuil d'alerte, rouge à découvert. */}
           <div className="min-w-0 flex-1">
             <h1 className="flex min-w-0 items-center gap-1.5 text-base font-semibold tracking-tight text-foreground md:text-lg">
               <span className="truncate">{settings.storeName || APP_NAME}</span>
               <ChevronDown className="w-4 h-4 shrink-0 text-muted-foreground group-hover:text-foreground transition-colors" />
             </h1>
+            {hasCapitalAccess && (
+              <p className="mt-0.5 flex min-w-0 items-baseline gap-1.5 text-[11px] leading-none">
+                <span className="shrink-0 text-muted-foreground">Trésorerie</span>
+                <span
+                  className={`truncate font-mono font-medium tabular-nums ${
+                    tresorerie < 0
+                      ? "t-danger"
+                      : tresorerie < seuilAlerte
+                        ? "t-warning"
+                        : "text-foreground"
+                  }`}
+                >
+                  {formatCurrency(tresorerie)}
+                </span>
+              </p>
+            )}
           </div>
         </button>
 

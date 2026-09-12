@@ -838,6 +838,49 @@ td {
   }
 }
 
+/* ═══ Les actions, au pied de la modale ═══
+
+   Deux règles suffisent à ranger n'importe quel jeu d'actions, sans que
+   le point d'appel ait à le dire.
+
+   1. Ce qui détruit se tient à l'écart. `order` le fait passer devant
+      quelle que soit sa place dans le code, et la marge automatique
+      repousse tout le reste à droite, sous le pouce. Il n'est plus
+      voisin de « Modifier » : on ne l'y touche plus par mégarde, et
+      surtout il n'occupe plus la place la plus en vue.
+
+      Avec une exception, et elle est essentielle. Dans une demande de
+      confirmation — `tone="danger"`, l'en-tête teinté —, le bouton
+      rouge n'est pas une action parmi d'autres : c'est CELLE qu'on est
+      venu confirmer. L'écarter la rendrait plus difficile à atteindre
+      que « Annuler », ce qui serait exactement l'inverse de ce qu'on
+      veut. Là, il garde la place de droite. Le même raisonnement vaut
+      quand il est seul : rien à mettre à distance.
+   2. L'action principale prend la largeur qui reste sur téléphone. Une
+      modale de formulaire garde ainsi un « Enregistrer » franc et large
+      à droite, tandis qu'« Annuler » reste à sa taille — la hiérarchie
+      se lit sans qu'aucune couleur ne s'en charge. */
+.app-modal-panel:not([data-ton="danger"]) .app-modal-footer .app-btn-danger:not(:only-child) {
+  order: -1;
+  margin-right: auto;
+}
+
+@media (max-width: 639px) {
+  .app-modal-footer .app-btn-primary {
+    flex: 1 1 auto;
+  }
+  /* Trois actions doivent tenir sur une ligne à 360 pixels : on resserre
+     les côtés plutôt que de renvoyer la troisième à la ligne. */
+  .app-modal-footer .app-btn,
+  .app-modal-footer .app-btn-primary,
+  .app-modal-footer .app-btn-secondary,
+  .app-modal-footer .app-btn-ghost,
+  .app-modal-footer .app-btn-danger {
+    padding-left: 0.75rem;
+    padding-right: 0.75rem;
+  }
+}
+
 /* La zone par laquelle on tire la feuille. `touch-action: none` y est
    indispensable : sans lui, le navigateur interprète le même geste
    comme un défilement et la feuille tremble au lieu de suivre.

@@ -1144,6 +1144,8 @@ function AppInner() {
           activeTab={activeTab}
           setActiveTab={setActiveTab}
           settings={storeSettings}
+          tresorerie={computedCapital.tresorerieGlobaleActuelle}
+          seuilAlerte={computedCapital.seuilAlerteTresorerie}
           products={products}
           sidebarCollapsed={sidebarCollapsed}
           onToggleSidebar={toggleSidebar}

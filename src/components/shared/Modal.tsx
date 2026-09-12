@@ -276,6 +276,7 @@ export const Modal: React.FC<ModalProps> = ({
         aria-modal="true"
         aria-label={title}
         data-etat={etat}
+        data-ton={tone}
         data-retour={retour || undefined}
         style={{
           transform: glisse ? `translateY(${glisse}px)` : undefined,
@@ -354,8 +355,15 @@ export const Modal: React.FC<ModalProps> = ({
           // d'enregistrement reste sous le pouce. La marge basse laisse
           // passer la barre gestuelle des téléphones sans encoche
           // logicielle.
+          //
+          // Une rangée, jamais une pile. Empilées sur toute la largeur,
+          // trois actions occupaient cent cinquante pixels et mangeaient
+          // le contenu ; pire, `flex-col-reverse` les retournait, si bien
+          // que « Supprimer » arrivait tout en haut, en rouge, à la
+          // place la plus en vue. Le rangement des actions est décrit
+          // dans styles.css, sous `.app-modal-footer`.
           <footer
-            className="app-modal-footer flex shrink-0 flex-col-reverse gap-2 border-t border-border p-4 pb-[max(1rem,env(safe-area-inset-bottom))] sm:flex-row sm:justify-end sm:p-5 sm:pb-5"
+            className="app-modal-footer flex shrink-0 flex-wrap items-center justify-end gap-2 border-t border-border p-4 pb-[max(1rem,env(safe-area-inset-bottom))] sm:p-5 sm:pb-5"
             style={{ boxShadow: "var(--elev-2)" }}
           >
             {footer}
