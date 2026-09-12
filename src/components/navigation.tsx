@@ -14,6 +14,7 @@ import {
   Truck,
   Wrench,
   CalendarClock,
+  ListChecks,
   CalendarRange,
   History,
 } from "lucide-react";
@@ -50,9 +51,22 @@ export const NAV_GROUPS: NavGroup[] = [
     title: "Pilotage",
     items: [
       { id: "dashboard", label: "Tableau de bord", icon: <TrendingUp className="w-4 h-4" /> },
-      { id: "agenda", label: "Agenda", icon: <CalendarClock className="w-4 h-4" /> },
       { id: "rapports", label: "Bilan", icon: <CalendarRange className="w-4 h-4" /> },
       { id: "historique", label: "Historique", icon: <History className="w-4 h-4" /> },
+    ],
+  },
+  {
+    // L'organisation du travail : ce qu'on doit faire, et quand.
+    //
+    // Le groupe tient lieu de module unique — son titre fait le travail
+    // que ferait un écran à onglets, et les deux écrans se répondent par
+    // leur rangée d'univers, exactement comme Ventes et Devis. Les
+    // tâches passent devant l'agenda : on ouvre bien plus souvent sa
+    // liste de choses à faire que son calendrier.
+    title: "Organisation",
+    items: [
+      { id: "taches", label: "Tâches", icon: <ListChecks className="w-4 h-4" /> },
+      { id: "agenda", label: "Agenda", icon: <CalendarClock className="w-4 h-4" /> },
     ],
   },
   {
@@ -103,6 +117,7 @@ export const NAV_GROUPS: NavGroup[] = [
  * Le premier de chaque liste est la tête de l'univers.
  */
 const UNIVERS: ActiveTab[][] = [
+  ["taches", "agenda"],
   ["ventes", "devis", "commandes", "livraisons"],
   ["produits", "achats", "fournisseurs", "prestataires"],
   ["clients", "paiements"],

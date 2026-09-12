@@ -397,6 +397,28 @@ export const MODULE_DEFINITIONS: ModuleDef[] = [
     actions: [],
     fields: [],
   },
+  /**
+   * Les tâches. La portée est ici la pièce maîtresse : c'est elle, et
+   * rien d'autre, qui distingue un vendeur qui suit son propre travail
+   * d'un responsable qui suit celui de toute l'équipe. La vue
+   * d'ensemble n'est pas une porte à part — c'est ce module réglé sur
+   * « toute l'entreprise ».
+   *
+   * La base lit ce même réglage : la politique de sécurité de la table
+   * des tâches interroge le json des permissions. Une seule vérité.
+   */
+  {
+    key: "taches",
+    label: "Tâches",
+    hasScope: true,
+    actions: [
+      { key: "create", label: "Créer une tâche" },
+      { key: "assign", label: "Attribuer à quelqu'un d'autre" },
+      { key: "edit", label: "Modifier une tâche" },
+      { key: "delete", label: "Supprimer une tâche" },
+    ],
+    fields: [],
+  },
   {
     key: "settings",
     label: "Paramètres",
@@ -592,6 +614,7 @@ const MANAGER_TEMPLATE: PermissionsMap = Object.fromEntries([
   module("rapports", true, { actions: ["export"] }),
   module("historique", true, { scope: "all" }),
   module("agenda", true, { scope: "all" }),
+  module("taches", true, { scope: "all", actions: ["create", "assign", "edit", "delete"] }),
   module("settings", true, { actions: ["edit_own_profile"] }),
 ]);
 
@@ -650,6 +673,7 @@ const COMPTABLE_TEMPLATE: PermissionsMap = Object.fromEntries([
   module("rapports", true, { actions: ["export"] }),
   module("historique", true, { scope: "all" }),
   module("agenda", true, { scope: "own" }),
+  module("taches", true, { scope: "own", actions: ["create", "edit"] }),
   module("settings", true, { actions: ["edit_own_profile"] }),
 ]);
 
@@ -691,6 +715,7 @@ const VENDEUR_TEMPLATE: PermissionsMap = Object.fromEntries([
   module("rapports", false),
   module("historique", true, { scope: "own" }),
   module("agenda", true, { scope: "own" }),
+  module("taches", true, { scope: "own", actions: ["create", "edit"] }),
   module("settings", true, { actions: ["edit_own_profile"] }),
 ]);
 
@@ -731,6 +756,8 @@ const GESTIONNAIRE_STOCK_TEMPLATE: PermissionsMap = Object.fromEntries([
   module("statistiques", false),
   module("rapports", false),
   module("historique", true, { scope: "own" }),
+  module("agenda", true, { scope: "own" }),
+  module("taches", true, { scope: "own", actions: ["create", "edit"] }),
   module("settings", true, { actions: ["edit_own_profile"] }),
 ]);
 

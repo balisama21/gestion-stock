@@ -34,6 +34,7 @@ export interface Personnalisation {
  */
 export const MODULES_PERSONNALISABLES: { cle: string; libelleParDefaut: string }[] = [
   { cle: "agenda", libelleParDefaut: "Agenda" },
+  { cle: "taches", libelleParDefaut: "Tâches" },
   { cle: "rapports", libelleParDefaut: "Bilan" },
   { cle: "historique", libelleParDefaut: "Historique" },
   { cle: "commandes", libelleParDefaut: "Commandes" },

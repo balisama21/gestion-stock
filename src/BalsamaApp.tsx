@@ -23,6 +23,7 @@ import { SousNavigation } from "./components/shared/SousNavigation";
 import { SquelettePage } from "./components/shared/SquelettePage";
 import { construireNotifications } from "./lib/activite";
 import { useJournalActivite } from "./hooks/useJournalActivite";
+import { useTaches } from "./hooks/useTaches";
 import type { SettingsTab } from "./components/settings/SettingsLayout";
 import { CreateStoreOnboarding } from "./components/CreateStoreOnboarding";
 import { StoreLockedScreen } from "./components/StoreLockedScreen";
@@ -77,6 +78,9 @@ const EspaceLivreur = lazy(() =>
 );
 const AgendaView = lazy(() =>
   import("./components/AgendaView").then((m) => ({ default: m.AgendaView })),
+);
+const TachesView = lazy(() =>
+  import("./components/TachesView").then((m) => ({ default: m.TachesView })),
 );
 const LivraisonsView = lazy(() =>
   import("./components/LivraisonsView").then((m) => ({ default: m.LivraisonsView })),
@@ -156,6 +160,7 @@ function AppInner() {
     user?.id ?? null,
   );
   const { lignes: journalActivite } = useJournalActivite(workspace.activeStore?.id ?? null);
+  const organisation = useTaches(workspace.activeStore?.id ?? null, user?.id ?? null);
   const { members: storeMembers, removeMember: removeStoreMember } = useStoreMembers(
     workspace.activeStore?.id ?? null,
   );
@@ -1319,6 +1324,28 @@ function AppInner() {
                     settings={storeSettings}
                     onAddPurchase={handleAddPurchase}
                     visibleFields={achatsVisibleFields}
+                  />
+                )}
+                {activeTab === "taches" && (
+                  <TachesView
+                    taches={organisation.taches}
+                    membres={storeMembers}
+                    moiId={user?.id ?? null}
+                    voitTouteLEquipe={
+                      workspace.memberPermissions === null ||
+                      getModuleScope(workspace.memberPermissionsDetailed ?? {}, "taches") === "all"
+                    }
+                    peutAttribuer={
+                      workspace.memberPermissions === null ||
+                      hasModuleAction(workspace.memberPermissionsDetailed ?? {}, "taches", "assign")
+                    }
+                    peutSupprimer={
+                      workspace.memberPermissions === null ||
+                      hasModuleAction(workspace.memberPermissionsDetailed ?? {}, "taches", "delete")
+                    }
+                    onCreer={organisation.creer}
+                    onChangerStatut={organisation.changerStatut}
+                    onSupprimer={organisation.supprimer}
                   />
                 )}
                 {activeTab === "agenda" && (

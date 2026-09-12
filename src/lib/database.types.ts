@@ -543,6 +543,85 @@ export type Database = {
           },
         ]
       }
+      evenement_participants: {
+        Row: {
+          evenement_id: string
+          membre_id: string
+        }
+        Insert: {
+          evenement_id: string
+          membre_id: string
+        }
+        Update: {
+          evenement_id?: string
+          membre_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "evenement_participants_evenement_id_fkey"
+            columns: ["evenement_id"]
+            isOneToOne: false
+            referencedRelation: "evenements"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      evenements: {
+        Row: {
+          created_at: string
+          createur_id: string | null
+          debut: string
+          description: string | null
+          fin: string | null
+          id: string
+          journee_entiere: boolean
+          lieu: string | null
+          nature: string
+          store_id: string
+          titre: string
+          updated_at: string
+          visibilite: string
+        }
+        Insert: {
+          created_at?: string
+          createur_id?: string | null
+          debut: string
+          description?: string | null
+          fin?: string | null
+          id?: string
+          journee_entiere?: boolean
+          lieu?: string | null
+          nature?: string
+          store_id: string
+          titre: string
+          updated_at?: string
+          visibilite?: string
+        }
+        Update: {
+          created_at?: string
+          createur_id?: string | null
+          debut?: string
+          description?: string | null
+          fin?: string | null
+          id?: string
+          journee_entiere?: boolean
+          lieu?: string | null
+          nature?: string
+          store_id?: string
+          titre?: string
+          updated_at?: string
+          visibilite?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "evenements_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       expenses: {
         Row: {
           category_id: string | null
@@ -1485,6 +1564,82 @@ export type Database = {
           },
         ]
       }
+      rappels: {
+        Row: {
+          actif: boolean
+          created_at: string
+          createur_id: string | null
+          declenche_le: string | null
+          destinataire_id: string
+          evenement_id: string | null
+          heure: string | null
+          id: string
+          jour_mois: number | null
+          jour_semaine: number | null
+          recurrence: string
+          store_id: string
+          tache_id: string | null
+          titre: string
+          updated_at: string
+        }
+        Insert: {
+          actif?: boolean
+          created_at?: string
+          createur_id?: string | null
+          declenche_le?: string | null
+          destinataire_id: string
+          evenement_id?: string | null
+          heure?: string | null
+          id?: string
+          jour_mois?: number | null
+          jour_semaine?: number | null
+          recurrence?: string
+          store_id: string
+          tache_id?: string | null
+          titre: string
+          updated_at?: string
+        }
+        Update: {
+          actif?: boolean
+          created_at?: string
+          createur_id?: string | null
+          declenche_le?: string | null
+          destinataire_id?: string
+          evenement_id?: string | null
+          heure?: string | null
+          id?: string
+          jour_mois?: number | null
+          jour_semaine?: number | null
+          recurrence?: string
+          store_id?: string
+          tache_id?: string | null
+          titre?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "rappels_evenement_id_fkey"
+            columns: ["evenement_id"]
+            isOneToOne: false
+            referencedRelation: "evenements"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rappels_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "rappels_tache_id_fkey"
+            columns: ["tache_id"]
+            isOneToOne: false
+            referencedRelation: "taches"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       refunds: {
         Row: {
           created_at: string
@@ -1935,6 +2090,62 @@ export type Database = {
           },
           {
             foreignKeyName: "supplier_payments_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      taches: {
+        Row: {
+          assignee_id: string | null
+          created_at: string
+          createur_id: string | null
+          description: string | null
+          echeance: string | null
+          id: string
+          numero: string | null
+          priorite: string
+          statut: string
+          store_id: string
+          termine_le: string | null
+          titre: string
+          updated_at: string
+        }
+        Insert: {
+          assignee_id?: string | null
+          created_at?: string
+          createur_id?: string | null
+          description?: string | null
+          echeance?: string | null
+          id?: string
+          numero?: string | null
+          priorite?: string
+          statut?: string
+          store_id: string
+          termine_le?: string | null
+          titre: string
+          updated_at?: string
+        }
+        Update: {
+          assignee_id?: string | null
+          created_at?: string
+          createur_id?: string | null
+          description?: string | null
+          echeance?: string | null
+          id?: string
+          numero?: string | null
+          priorite?: string
+          statut?: string
+          store_id?: string
+          termine_le?: string | null
+          titre?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "taches_store_id_fkey"
             columns: ["store_id"]
             isOneToOne: false
             referencedRelation: "stores"
