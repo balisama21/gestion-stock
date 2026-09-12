@@ -66,6 +66,17 @@ interface ParametresViewProps {
    */
   isPlatformAdmin?: boolean;
   currentUserId?: string | null;
+  /**
+   * Section ouverte à l'arrivée. Sert au raccourci du logo de l'en-tête,
+   * qui doit tomber directement sur l'identité de la boutique plutôt que
+   * de laisser chercher. Sans valeur, on arrive sur « Mon compte »,
+   * comme depuis la roue dentée.
+   *
+   * N'ouvre aucune porte : `SettingsLayout` n'affiche les sections
+   * `ownerOnly` qu'au propriétaire, et le raccourci n'est proposé qu'à
+   * lui.
+   */
+  sectionInitiale?: SettingsTab;
 }
 
 // Contact admin réel de la plateforme (celui affiché dans AuthPage.tsx et
@@ -95,8 +106,12 @@ export const ParametresView: React.FC<ParametresViewProps> = ({
   setTheme,
   isPlatformAdmin = false,
   currentUserId,
+  sectionInitiale,
 }) => {
-  const [activeTab, setActiveTab] = useState<SettingsTab>("compte");
+  // L ecran est demonte des qu on quitte l onglet Parametres : l etat
+  // initial est donc relu a chaque arrivee, et le raccourci du logo tombe
+  // bien sur la bonne section a chaque fois.
+  const [activeTab, setActiveTab] = useState<SettingsTab>(sectionInitiale ?? "compte");
   const workspace = useWorkspace();
   const { user, profile, refreshProfile, reauthenticate, updatePassword, deleteAccount } =
     useAuth();

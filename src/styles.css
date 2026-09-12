@@ -865,19 +865,51 @@ td {
   margin-right: auto;
 }
 
+/* 3. Une seule action porte un cadre : celle qu'on est venu faire.
+
+      Trois boutons cerclés de blanc alignés au pied d'une fiche, cela
+      fait trois cadres pour trois choses qu'on ne fait qu'occasionnellement,
+      et l'œil ne sait plus où aller. Les actions secondaires perdent donc
+      leur contour et leur fond : il reste l'icône et le mot, ce qui suffit
+      largement à les reconnaître, et le survol ou l'appui les rallume.
+
+      Le bouton rouge d'une fiche fait de même. Celui d'une demande de
+      confirmation garde son cadre teinté : là, il est l'action, et il doit
+      peser. Le vert plein, lui, ne bouge jamais. */
+.app-modal-footer .app-btn-secondary {
+  border-color: transparent;
+  background-color: transparent;
+}
+.app-modal-panel:not([data-ton="danger"]) .app-modal-footer .app-btn-danger {
+  border-color: transparent;
+  background-color: transparent;
+}
+.app-modal-panel:not([data-ton="danger"]) .app-modal-footer .app-btn-danger:hover {
+  background-color: var(--danger-soft);
+  filter: none;
+}
+
+/* Sans cadre, les actions peuvent se resserrer : la place qu'occupaient
+   les bordures et leur respiration n'a plus de raison d'être. */
+.app-modal-footer .app-btn,
+.app-modal-footer .app-btn-primary,
+.app-modal-footer .app-btn-secondary,
+.app-modal-footer .app-btn-ghost,
+.app-modal-footer .app-btn-danger {
+  gap: 0.375rem;
+  padding-left: 0.625rem;
+  padding-right: 0.625rem;
+  font-size: 0.8125rem;
+}
+/* Le vert plein garde ses côtés : c'est un bouton, il doit se voir. */
+.app-modal-footer .app-btn-primary {
+  padding-left: 1rem;
+  padding-right: 1rem;
+}
+
 @media (max-width: 639px) {
   .app-modal-footer .app-btn-primary {
     flex: 1 1 auto;
-  }
-  /* Trois actions doivent tenir sur une ligne à 360 pixels : on resserre
-     les côtés plutôt que de renvoyer la troisième à la ligne. */
-  .app-modal-footer .app-btn,
-  .app-modal-footer .app-btn-primary,
-  .app-modal-footer .app-btn-secondary,
-  .app-modal-footer .app-btn-ghost,
-  .app-modal-footer .app-btn-danger {
-    padding-left: 0.75rem;
-    padding-right: 0.75rem;
   }
 }
 

@@ -328,13 +328,23 @@ export const Modal: React.FC<ModalProps> = ({
                   </p>
                 )}
               </div>
+              {/* La croix n'est plus dans un cadre gris. Elle en portait
+                  un — bordure, fond, 36 pixels de côté — qui pesait plus
+                  lourd à l'œil que le titre d'à côté, alors qu'on ne s'en
+                  sert presque jamais : on referme en glissant la feuille,
+                  en touchant à côté, ou avec Échap.
+
+                  Les marges négatives la collent au coin et annulent la
+                  place que prenait son cadre. Le trait reste à 20 pixels
+                  et la zone touchable à 44 : c'est l'apparence qui
+                  s'efface, pas la cible. */}
               <button
                 type="button"
                 onClick={fermer}
-                className="app-btn-icon -mr-1 -mt-1 h-9 w-9 shrink-0"
+                className="-mr-2 -mt-2 flex shrink-0 items-center justify-center rounded-lg p-2 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground active:bg-muted"
                 aria-label="Fermer"
               >
-                <X className="h-4 w-4" />
+                <X className="h-5 w-5" />
               </button>
             </div>
 

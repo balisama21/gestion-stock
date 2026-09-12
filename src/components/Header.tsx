@@ -47,6 +47,11 @@ interface HeaderProps {
   tresorerie: number;
   /** Seuil sous lequel ce solde passe en orange. */
   seuilAlerte: number;
+  /**
+   * Ouvre les réglages sur l'identité de la boutique — c'est là que se
+   * changent le logo et le nom. Branché sur le logo de l'en-tête.
+   */
+  onOuvrirIdentiteBoutique: () => void;
   products?: Product[];
   /**
    * État replié de la sidebar. Il est détenu par BalsamaApp car le
@@ -84,6 +89,7 @@ export const Header: React.FC<HeaderProps> = ({
   settings,
   tresorerie,
   seuilAlerte,
+  onOuvrirIdentiteBoutique,
   products = [],
   sidebarCollapsed,
   onToggleSidebar,
@@ -246,21 +252,50 @@ export const Header: React.FC<HeaderProps> = ({
   // Bloc marque + sélecteur d'espace de travail. Rendu à un seul endroit
   // selon la taille d'écran : en haut de la sidebar sur desktop, dans la
   // barre du haut sur mobile (où il n'y a pas de sidebar).
+  // Le logo lui-même. Il ne portait aucune action : on le regardait, et
+  // pour le changer il fallait passer par la roue dentée, puis « Ma
+  // boutique ». C'est pourtant là qu'on pense d'abord à cliquer.
+  const vignetteLogo = (
+    <span className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-xl border border-emerald-500/40 bg-muted">
+      {settings.logoUrl ? (
+        <img
+          src={settings.logoUrl}
+          alt={settings.storeName || "Logo"}
+          className="h-full w-full object-cover"
+        />
+      ) : (
+        <span className="flex h-full w-full items-center justify-center bg-gradient-to-br from-emerald-500 to-teal-700 text-xs font-bold uppercase tracking-tight text-white">
+          {(settings.storeName || "BA").slice(0, 2)}
+        </span>
+      )}
+    </span>
+  );
+
   const brandBlock = (
     <div className="flex min-w-0 flex-1 items-center gap-2 sm:gap-3">
-      <div className="w-10 h-10 rounded-xl overflow-hidden border border-emerald-500/40 shrink-0 bg-muted flex items-center justify-center">
-        {settings.logoUrl ? (
-          <img
-            src={settings.logoUrl}
-            alt={settings.storeName || "Logo"}
-            className="w-full h-full object-cover"
-          />
-        ) : (
-          <div className="w-full h-full bg-gradient-to-br from-emerald-500 to-teal-700 flex items-center justify-center font-bold text-xs text-white uppercase tracking-tight">
-            {(settings.storeName || "BA").slice(0, 2)}
-          </div>
-        )}
-      </div>
+      {/* Le raccourci n'est offert qu'au propriétaire : la section « Ma
+          boutique » est marquée `ownerOnly` dans SettingsLayout, et un
+          collaborateur y arriverait sur une page qu'il n'a pas le droit
+          de voir. Pour lui, le logo reste ce qu'il était — une image.
+          Rien n'est accordé ici qui ne le soit déjà. */}
+      {workspace.isOwner ? (
+        // Le bouton fait 44 pixels de haut — la cible tactile minimale,
+        // imposée à tous les boutons sous 1024px — mais il est
+        // transparent : la vignette de 40 carrés qu'il contient reste
+        // exactement ce qu'on voyait avant. L'œil ne voit pas de bouton,
+        // le doigt en trouve un.
+        <button
+          type="button"
+          onClick={onOuvrirIdentiteBoutique}
+          title="Logo, nom et coordonnées de la boutique"
+          aria-label="Modifier l'identité de la boutique"
+          className="flex shrink-0 items-center justify-center transition-opacity hover:opacity-80 active:opacity-60"
+        >
+          {vignetteLogo}
+        </button>
+      ) : (
+        <span className="shrink-0">{vignetteLogo}</span>
+      )}
 
       {/* min-w-0 doit être présent sur CHAQUE niveau jusqu'au texte,
               sinon truncate n'a aucun effet et le bloc pousse les

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo, lazy, Suspense } from "react";
+import React, { useState, useEffect, useCallback, useMemo, lazy, Suspense } from "react";
 import { Zap, X } from "lucide-react";
 import {
   LocaleSetting,
@@ -21,6 +21,7 @@ import { Header } from "./components/Header";
 import { universDe } from "./components/navigation";
 import { SousNavigation } from "./components/shared/SousNavigation";
 import { SquelettePage } from "./components/shared/SquelettePage";
+import type { SettingsTab } from "./components/settings/SettingsLayout";
 import { CreateStoreOnboarding } from "./components/CreateStoreOnboarding";
 import { StoreLockedScreen } from "./components/StoreLockedScreen";
 import { PinLockScreen } from "./components/PinLockScreen";
@@ -157,6 +158,22 @@ function AppInner() {
   );
 
   const [activeTab, setActiveTab] = useState<ActiveTab>("dashboard");
+
+  // Sur quelle section ouvrir les Parametres a la prochaine arrivee.
+  // La roue dentee ne dit rien et laisse « Mon compte » ; le logo de
+  // l en-tete demande « Ma boutique », la ou se changent le logo et le
+  // nom. La valeur se vide des qu on quitte l ecran, sinon un retour par
+  // la roue dentee retomberait sur la section demandee la fois d avant.
+  const [sectionParametres, setSectionParametres] = useState<SettingsTab | undefined>(undefined);
+
+  const ouvrirIdentiteBoutique = useCallback(() => {
+    setSectionParametres("boutique");
+    setActiveTab("settings");
+  }, []);
+
+  useEffect(() => {
+    if (activeTab !== "settings" && sectionParametres) setSectionParametres(undefined);
+  }, [activeTab, sectionParametres]);
   const [locale, setLocale] = useState<LocaleSetting>("FR");
   // Mode clair par défaut : c'est ce que voit un nouvel utilisateur au
   // tout premier chargement. Les utilisateurs existants ne sont pas
@@ -1146,6 +1163,7 @@ function AppInner() {
           settings={storeSettings}
           tresorerie={computedCapital.tresorerieGlobaleActuelle}
           seuilAlerte={computedCapital.seuilAlerteTresorerie}
+          onOuvrirIdentiteBoutique={ouvrirIdentiteBoutique}
           products={products}
           sidebarCollapsed={sidebarCollapsed}
           onToggleSidebar={toggleSidebar}
@@ -1466,6 +1484,7 @@ function AppInner() {
                 )}
                 {activeTab === "settings" && (
                   <ParametresView
+                    sectionInitiale={sectionParametres}
                     settings={storeSettings}
                     personnalisation={personnalisation}
                     onSavePersonnalisation={handleSavePersonnalisation}
