@@ -773,6 +773,17 @@ function AppInner() {
         evenements: calendrier.evenements,
         rappels: memos.rappels,
         alertesStock: notificationPrefs.stockAlerts,
+        boutique: workspace.activeStore
+          ? {
+              statut: workspace.activeStore.activation_status,
+              finEssai: workspace.activeStore.trial_ends_at
+                ? new Date(workspace.activeStore.trial_ends_at)
+                : null,
+              finAbonnement: workspace.activeStore.abonnement_jusqu_au
+                ? new Date(workspace.activeStore.abonnement_jusqu_au)
+                : null,
+            }
+          : null,
         formatMontant: formatCurrency,
       }),
     [
@@ -797,6 +808,7 @@ function AppInner() {
       calendrier.evenements,
       memos.rappels,
       notificationPrefs.stockAlerts,
+      workspace.activeStore,
     ],
   );
 

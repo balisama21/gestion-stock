@@ -44,6 +44,17 @@ export const PRIX_MENSUEL = 30000;
 export const ABONNEMENT_MOIS_JOURS = 30;
 
 /**
+ * Combien de jours à l'avance la cloche prévient d'une échéance.
+ *
+ * Sept jours laissent le temps de faire un virement et d'attendre le
+ * code, qui passe par un humain. Prévenir la veille reviendrait à
+ * annoncer la panne plutôt qu'à l'éviter ; prévenir un mois à l'avance,
+ * sur un abonnement qui dure justement un mois, ferait de l'alerte un
+ * décor permanent qu'on finit par ne plus voir.
+ */
+export const ALERTE_AVANT_ECHEANCE_JOURS = 7;
+
+/**
  * Ce qu'un code d'activation accorde.
  *
  * « vie » produit un code sans durée : la boutique reste ouverte

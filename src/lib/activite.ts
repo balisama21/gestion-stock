@@ -5,6 +5,7 @@ import { estEnRetard, type Tache } from "./taches";
 import { evenementARappeler, estEchu, type Rappel } from "./rappels";
 import { heureDe, jourDe, type Evenement } from "./evenements";
 import { dateDuJour } from "./dates";
+import { ALERTE_AVANT_ECHEANCE_JOURS } from "./offres";
 
 type Devis = Database["public"]["Tables"]["quotes"]["Row"];
 type Livraison = Database["public"]["Tables"]["deliveries"]["Row"];
@@ -119,6 +120,21 @@ export interface SourcesActivite {
   rappels: Rappel[];
   /** Réglage « Alertes de stock bas » (Paramètres → Notifications). */
   alertesStock: boolean;
+  /**
+   * L'échéance de la boutique, s'il y en a une.
+   *
+   * `statut` vaut « trial » pendant l'essai et « active » ensuite.
+   * `finEssai` ne compte que dans le premier cas, `finAbonnement` que
+   * dans le second — et cette dernière est nulle pour une activation à
+   * vie, qui n'expire jamais.
+   *
+   * Nul quand aucune boutique n'est chargée.
+   */
+  boutique: {
+    statut: string;
+    finEssai: Date | null;
+    finAbonnement: Date | null;
+  } | null;
   formatMontant: (montant: number) => string;
 }
 
@@ -481,6 +497,47 @@ export function construireNotifications(s: SourcesActivite): Notification[] {
       ton: "info",
       onglet: "agenda",
     });
+  }
+
+  // ─────────── L'échéance de la boutique ───────────
+  //
+  // Elle ne s'affiche que dans les derniers jours, et disparaît d'elle-
+  // même une fois la boutique réactivée. Au-delà de l'échéance il n'y a
+  // plus rien à dire ici : la boutique est verrouillée et c'est l'écran
+  // entier qui l'annonce, pas une ligne dans une cloche.
+  //
+  // Elle n'est filtrée par aucune permission. Un collaborateur ne peut
+  // pas payer, mais une boutique qui se verrouille l'empêche de
+  // travailler comme les autres : le lui cacher ne le protège de rien,
+  // et le prévenir lui laisse la possibilité d'alerter le propriétaire.
+  if (s.boutique) {
+    const echeance =
+      s.boutique.statut === "trial" ? s.boutique.finEssai : s.boutique.finAbonnement;
+    if (echeance) {
+      const jours = Math.ceil((echeance.getTime() - maintenant.getTime()) / 86400000);
+      if (jours >= 0 && jours <= ALERTE_AVANT_ECHEANCE_JOURS) {
+        const essai = s.boutique.statut === "trial";
+        alertes.push({
+          id: `alerte-echeance-${essai ? "essai" : "abonnement"}-${aujourdhui}`,
+          genre: "alerte",
+          titre: essai
+            ? jours === 0
+              ? "Votre essai se termine aujourd'hui"
+              : `Votre essai se termine dans ${jours} ${pluriel(jours, "jour")}`
+            : jours === 0
+              ? "L'abonnement se termine aujourd'hui"
+              : `L'abonnement se termine dans ${jours} ${pluriel(jours, "jour")}`,
+          detail: essai
+            ? "Activez la boutique pour continuer à enregistrer des écritures."
+            : "Renouvelez pour continuer à enregistrer des écritures.",
+          quand: "",
+          // Les deux derniers jours, ce n'est plus un rappel : c'est
+          // l'arrêt de travail qui approche.
+          ton: jours <= 2 ? "danger" : "warning",
+          onglet: "settings",
+        });
+      }
+    }
   }
 
   // Les rappels qu'on s'est posés, échus et pas encore passés minuit.
