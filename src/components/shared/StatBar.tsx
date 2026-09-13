@@ -14,7 +14,16 @@ export interface StatItem {
   trend?: {
     percent: number;
     label: string;
-    goodDirection?: "up" | "down";
+    /**
+     * De quel côté se trouve la bonne nouvelle.
+     *
+     * `neutre` quand il n'y en a pas : les achats, par exemple. Acheter
+     * plus n'est ni bon ni mauvais — réapprovisionner n'est pas une
+     * perte, c'est du stock qui change de forme. Peindre en rouge toute
+     * hausse d'achats crée une fausse alerte à chaque commande
+     * fournisseur, et on finit par ne plus regarder la couleur du tout.
+     */
+    goodDirection?: "up" | "down" | "neutre";
     noBaseline?: boolean;
   };
   /**
@@ -38,13 +47,20 @@ const Trend: React.FC<{ trend: NonNullable<StatItem["trend"]> }> = ({ trend }) =
   const rounded = Math.round(trend.percent);
   const flat = rounded === 0;
   const up = trend.percent > 0;
-  const good = flat ? null : up === ((trend.goodDirection ?? "up") === "up");
+  const sens = trend.goodDirection ?? "up";
+  // `null` = la variation ne se colore pas. Soit elle est nulle, soit
+  // aucune direction n'est meilleure que l'autre pour cette métrique.
+  const good = flat || sens === "neutre" ? null : up === (sens === "up");
   const Icon = up ? ArrowUp : ArrowDown;
 
   return (
     <span className="flex items-center gap-1 text-xs text-muted-foreground">
       {!flat && (
-        <span className={`inline-flex items-center ${good ? "t-success" : "t-danger"}`}>
+        <span
+          className={`inline-flex items-center ${
+            good === null ? "" : good ? "t-success" : "t-danger"
+          }`}
+        >
           <Icon className="h-3 w-3" />
           {Math.abs(rounded)} %
         </span>

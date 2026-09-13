@@ -176,6 +176,9 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   const unpaidOrders = orders.filter((o) => (o.reste_a_payer ?? 0) > 0);
   const isTresorerieNegative = capital.tresorerieGlobaleActuelle < 0;
   const isTresorerieLow = capital.tresorerieGlobaleActuelle < capital.seuilAlerteTresorerie;
+  /** Vrai quand un bandeau d'alerte va déjà annoncer l'état de la caisse. */
+  const bandeauTresorerie =
+    notificationPrefs.treasuryAlerts && (isTresorerieNegative || isTresorerieLow);
 
   // ── Tendances : mois en cours vs mois précédent ──
   // Calcul purement local à partir des données déjà chargées (aucune
@@ -190,7 +193,11 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   const sumInMonth = <T,>(rows: T[], date: (r: T) => string, amount: (r: T) => number, m: string) =>
     rows.filter((r) => (date(r) || "").startsWith(m)).reduce((acc, r) => acc + amount(r), 0);
 
-  const buildTrend = (current: number, previous: number, goodDirection: "up" | "down") => {
+  const buildTrend = (
+    current: number,
+    previous: number,
+    goodDirection: "up" | "down" | "neutre",
+  ) => {
     if (previous === 0) return { percent: 0, label: "ce mois-ci", noBaseline: true, goodDirection };
     return {
       percent: ((current - previous) / Math.abs(previous)) * 100,
@@ -204,10 +211,15 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
     sumInMonth(sales, (s) => s.date, (s) => s.totalVente, previousMonth),
     "up",
   );
+  // Les achats ne se colorent pas : réapprovisionner n'est pas une
+  // perte, c'est du stock qui change de forme. La hausse peut être une
+  // bonne nouvelle (on prépare une saison) comme une mauvaise (on
+  // achète trop cher) — la donnée seule ne permet pas de trancher, et
+  // une couleur qui se trompe une fois sur deux ne s'écoute plus.
   const purchasesTrend = buildTrend(
     sumInMonth(purchases, (p) => p.date, (p) => p.totalAchat, currentMonth),
     sumInMonth(purchases, (p) => p.date, (p) => p.totalAchat, previousMonth),
-    "down",
+    "neutre",
   );
   const expensesTrend = buildTrend(
     sumInMonth(expenses, (e) => e.date, (e) => e.montant, currentMonth),
@@ -258,21 +270,57 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           Une seule bande compacte plutôt que six cartes colorées : à
           cette densité de chiffres, le fond de couleur et la pastille
           d'icône fatiguent plus qu'ils n'orientent. */}
-      <StatBar
-        items={[
-          {
-            key: "tresorerie",
-            label: "Trésorerie",
-            value: formatCurrency(capital.tresorerieGlobaleActuelle),
-            hint: isTresorerieNegative
+      {/* ── La trésorerie, posée seule ──
+          C'est le chiffre qu'un commerçant vient lire en premier : ce
+          qu'il a réellement en caisse aujourd'hui. Noyée parmi cinq
+          autres colonnes de même poids, elle se cherchait.
+
+          Aucun style nouveau : c'est exactement la carte au filet
+          vertical déjà employée pour « Solde net en poche » et « Reste à
+          payer ». Le filet prend la couleur de l'état, comme les
+          bandeaux d'alerte juste au-dessus. */}
+      <button
+        type="button"
+        onClick={() => onNavigateTab("capital")}
+        className={`app-card flex w-full items-center justify-between gap-4 border-l-2 p-4 text-left ${
+          isTresorerieNegative
+            ? "border-l-danger"
+            : isTresorerieLow
+              ? "border-l-warning"
+              : "border-l-primary"
+        }`}
+      >
+        <span className="min-w-0">
+          <span className="mb-0.5 flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+            <Wallet className="h-3.5 w-3.5" aria-hidden="true" />
+            Trésorerie
+          </span>
+          <span className="block font-mono text-xl font-semibold tabular-nums text-foreground">
+            {formatCurrency(capital.tresorerieGlobaleActuelle)}
+          </span>
+        </span>
+        {/* Le bandeau juste au-dessus le dit déjà, en plus long et avec
+            le geste à faire : le répéter à cent pixels d'intervalle
+            n'ajoute rien. Mais si les alertes de trésorerie sont
+            coupées dans les Paramètres, il n'y a pas de bandeau — et
+            c'est alors cette mention qui porte l'information. */}
+        {!bandeauTresorerie && (
+          <span
+            className={`shrink-0 text-right text-xs ${
+              isTresorerieNegative || isTresorerieLow ? "t-warning" : "text-muted-foreground"
+            }`}
+          >
+            {isTresorerieNegative
               ? "solde négatif"
               : isTresorerieLow
                 ? "sous le seuil"
-                : "argent disponible",
-            alert: isTresorerieNegative || isTresorerieLow,
-            icon: <Wallet className="h-3.5 w-3.5" />,
-            onClick: () => onNavigateTab("capital"),
-          },
+                : "argent disponible"}
+          </span>
+        )}
+      </button>
+
+      <StatBar
+        items={[
           {
             key: "ventes",
             label: "Ventes",
