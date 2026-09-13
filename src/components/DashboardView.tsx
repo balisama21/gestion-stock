@@ -1,4 +1,4 @@
-import React, { useMemo } from "react";
+import React, { useMemo, useState } from "react";
 import { Product, Sale, Expense, Seller, Purchase, CapitalSummary, LocaleSetting } from "../types";
 import {
   Wallet,
@@ -29,6 +29,13 @@ import { VariantBadge } from "./shared/VariantBadge";
 import { StatBar } from "./shared/StatBar";
 import { moduleMasque, usePersonnalisation } from "../lib/personnalisation";
 import { construireEnSuspens } from "../lib/enSuspens";
+import {
+  PERIODES,
+  PERIODE_PAR_DEFAUT,
+  calculerPeriode,
+  filtrerParIntervalle,
+  type ClePeriode,
+} from "../lib/periodes";
 import { DataList } from "./shared/DataList";
 import { useNotificationPrefs } from "../lib/notificationPrefs";
 import type { Database } from "../lib/database.types";
@@ -108,6 +115,19 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   const montre = (cle: string) => !moduleMasque(perso, cle);
 
   /**
+   * La période regardée.
+   *
+   * Elle ne porte QUE sur les flux — ventes, achats, dépenses et les
+   * listes récentes. La trésorerie, le stock, les commandes en cours et
+   * « En suspens » sont des soldes : ils décrivent l'instant présent et
+   * n'ont pas de durée. L'écran le montre en les plaçant hors du bloc
+   * que le sélecteur commande, plutôt qu'en l'expliquant dans une note
+   * que personne ne lit.
+   */
+  const [clePeriode, setClePeriode] = useState<ClePeriode>(PERIODE_PAR_DEFAUT);
+  const periode = useMemo(() => calculerPeriode(clePeriode), [clePeriode]);
+
+  /**
    * Ce qui n'est pas encore rentré, ce qui n'est pas encore sorti, et ce
    * qui attend une décision.
    *
@@ -143,10 +163,20 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
     .filter((p) => p.stockActuel <= p.seuilAlerte)
     .sort((a, b) => a.stockActuel - b.stockActuel);
   const totalStockValue = products.reduce((acc, p) => acc + p.stockActuel * p.prixAchat, 0);
-  const totalSalesAmount = sales.reduce((acc, s) => acc + s.totalVente, 0);
-  const totalMarginAmount = sales.reduce((acc, s) => acc + s.margeTotale, 0);
-  const totalExpensesAmount = expenses.reduce((acc, e) => acc + e.montant, 0);
-  const totalPurchasesAmount = purchases.reduce((acc, p) => acc + p.totalAchat, 0);
+  // ── Les flux, ramenés à la période choisie ──
+  //
+  // Avant, ces quatre totaux couvraient TOUT l'historique et portaient
+  // pourtant un pourcentage « vs mois dernier » : le chiffre et son
+  // évolution ne parlaient pas du même intervalle. Ils parlent
+  // maintenant du même, celui que le sélecteur désigne.
+  const ventesPeriode = filtrerParIntervalle(sales, (v) => v.date, periode.intervalle);
+  const achatsPeriode = filtrerParIntervalle(purchases, (a) => a.date, periode.intervalle);
+  const depensesPeriode = filtrerParIntervalle(expenses, (d) => d.date, periode.intervalle);
+
+  const totalSalesAmount = ventesPeriode.reduce((acc, s) => acc + s.totalVente, 0);
+  const totalMarginAmount = ventesPeriode.reduce((acc, s) => acc + s.margeTotale, 0);
+  const totalExpensesAmount = depensesPeriode.reduce((acc, e) => acc + e.montant, 0);
+  const totalPurchasesAmount = achatsPeriode.reduce((acc, p) => acc + p.totalAchat, 0);
   const pendingOrders = orders.filter(
     (o) => o.statut_commande === "en_attente" || o.statut_commande === "en_cours",
   );
@@ -157,35 +187,45 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   const bandeauTresorerie =
     notificationPrefs.treasuryAlerts && (isTresorerieNegative || isTresorerieLow);
 
-  // ── Tendances : mois en cours vs mois précédent ──
-  // Calcul purement local à partir des données déjà chargées (aucune
-  // requête supplémentaire). Les cartes sans période comparable simple
-  // (Trésorerie, Commandes, Stock) n'affichent pas de tendance : mieux
-  // vaut pas d'indicateur qu'un indicateur faux.
-  const now = new Date();
-  const monthKey = (d: Date) => `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}`;
-  const currentMonth = monthKey(now);
-  const previousMonth = monthKey(new Date(now.getFullYear(), now.getMonth() - 1, 1));
-
-  const sumInMonth = <T,>(rows: T[], date: (r: T) => string, amount: (r: T) => number, m: string) =>
-    rows.filter((r) => (date(r) || "").startsWith(m)).reduce((acc, r) => acc + amount(r), 0);
+  // ── Tendances : la période choisie contre la précédente ──
+  //
+  // Calcul purement local à partir des données déjà chargées, aucune
+  // requête supplémentaire. Les colonnes qui portent un SOLDE
+  // (Trésorerie, Commandes, Stock) n'ont pas de tendance : mieux vaut
+  // pas d'indicateur qu'un indicateur faux.
+  const sommeSur = <T,>(
+    lignes: T[],
+    date: (r: T) => string,
+    montant: (r: T) => number,
+    i: { debut: string; fin: string } | null,
+  ) => filtrerParIntervalle(lignes, date, i).reduce((acc, r) => acc + montant(r), 0);
 
   const buildTrend = (
     current: number,
     previous: number,
     goodDirection: "up" | "down" | "neutre",
   ) => {
-    if (previous === 0) return { percent: 0, label: "ce mois-ci", noBaseline: true, goodDirection };
+    // Sans intervalle précédent (« Tout ») ou sans rien à quoi se
+    // comparer, on n'affiche AUCUN pourcentage. Un « -100 % » né d'un
+    // mois précédent vide est une fausse alerte, pas une information.
+    if (!periode.precedent || previous === 0) {
+      return { percent: 0, label: periode.libelleComparaison, noBaseline: true, goodDirection };
+    }
     return {
       percent: ((current - previous) / Math.abs(previous)) * 100,
-      label: "vs mois dernier",
+      label: periode.libelleComparaison,
       goodDirection,
     };
   };
 
   const salesTrend = buildTrend(
-    sumInMonth(sales, (s) => s.date, (s) => s.totalVente, currentMonth),
-    sumInMonth(sales, (s) => s.date, (s) => s.totalVente, previousMonth),
+    totalSalesAmount,
+    sommeSur(
+      sales,
+      (s) => s.date,
+      (s) => s.totalVente,
+      periode.precedent,
+    ),
     "up",
   );
   // Les achats ne se colorent pas : réapprovisionner n'est pas une
@@ -194,13 +234,23 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   // achète trop cher) — la donnée seule ne permet pas de trancher, et
   // une couleur qui se trompe une fois sur deux ne s'écoute plus.
   const purchasesTrend = buildTrend(
-    sumInMonth(purchases, (p) => p.date, (p) => p.totalAchat, currentMonth),
-    sumInMonth(purchases, (p) => p.date, (p) => p.totalAchat, previousMonth),
+    totalPurchasesAmount,
+    sommeSur(
+      purchases,
+      (p) => p.date,
+      (p) => p.totalAchat,
+      periode.precedent,
+    ),
     "neutre",
   );
   const expensesTrend = buildTrend(
-    sumInMonth(expenses, (e) => e.date, (e) => e.montant, currentMonth),
-    sumInMonth(expenses, (e) => e.date, (e) => e.montant, previousMonth),
+    totalExpensesAmount,
+    sommeSur(
+      expenses,
+      (e) => e.date,
+      (e) => e.montant,
+      periode.precedent,
+    ),
     "down",
   );
 
@@ -296,62 +346,109 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         )}
       </button>
 
-      <StatBar
-        items={[
-          {
-            key: "ventes",
-            label: "Ventes",
-            value: formatCurrency(totalSalesAmount),
-            trend: salesTrend,
-            icon: <DollarSign className="h-3.5 w-3.5" />,
-            onClick: () => onNavigateTab("ventes"),
-          },
-          {
-            key: "achats",
-            label: "Achats",
-            value: formatCurrency(totalPurchasesAmount),
-            trend: purchasesTrend,
-            icon: <ShoppingCart className="h-3.5 w-3.5" />,
-            onClick: () => onNavigateTab("achats"),
-          },
-          {
-            key: "depenses",
-            label: "Dépenses",
-            value: formatCurrency(totalExpensesAmount),
-            trend: expensesTrend,
-            icon: <ArrowDownRight className="h-3.5 w-3.5" />,
-            onClick: () => onNavigateTab("depenses"),
-          },
-          ...(montre("commandes")
-            ? [
-                {
-                  key: "commandes",
-                  label: "Commandes",
-                  value: `${orders.length}`,
-                  hint:
-                    pendingOrders.length > 0
-                      ? `${pendingOrders.length} en cours`
-                      : "aucune en cours",
-                  alert: pendingOrders.length > 0,
-                  icon: <ShoppingBag className="h-3.5 w-3.5" />,
-                  onClick: () => onNavigateTab("commandes"),
-                },
-              ]
-            : []),
-          {
-            key: "stock",
-            label: "Stock",
-            value: formatCurrency(totalStockValue),
-            hint:
-              lowStockProducts.length > 0
-                ? `${lowStockProducts.length} à réapprovisionner`
-                : `${products.length} référence${products.length > 1 ? "s" : ""}`,
-            alert: lowStockProducts.length > 0,
-            icon: <Package className="h-3.5 w-3.5" />,
-            onClick: () => onNavigateTab("produits"),
-          },
-        ]}
-      />
+      {/* ── Ce que la période commande, et ce qu'elle ne commande pas ──
+          Les trois colonnes ci-dessous sont des FLUX : elles n'existent
+          que rapportées à une durée. Le sélecteur les gouverne, et il
+          est posé sur leur titre pour qu'on voie d'un coup d'œil
+          jusqu'où va son emprise.
+
+          La trésorerie, juste au-dessus, et le stock, juste en dessous,
+          sont des SOLDES : ils décrivent l'instant présent. Les placer
+          hors de ce bloc dit mieux qu'une note qu'ils ne bougent pas
+          quand on change de période. */}
+      <div>
+        <div className="mb-2 flex flex-wrap items-center justify-between gap-2 px-1">
+          <span className="text-[13px] font-medium uppercase tracking-wide text-muted-foreground">
+            Activité
+          </span>
+          <div className="flex flex-wrap items-center gap-1.5">
+            {PERIODES.map((p) => (
+              <button
+                key={p.cle}
+                type="button"
+                onClick={() => setClePeriode(p.cle)}
+                className={`app-chip ${clePeriode === p.cle ? "app-chip-active" : ""}`}
+                aria-pressed={clePeriode === p.cle}
+              >
+                {p.libelle}
+              </button>
+            ))}
+          </div>
+        </div>
+
+        <StatBar
+          items={[
+            {
+              key: "ventes",
+              label: "Ventes",
+              value: formatCurrency(totalSalesAmount),
+              trend: salesTrend,
+              icon: <DollarSign className="h-3.5 w-3.5" />,
+              onClick: () => onNavigateTab("ventes"),
+            },
+            {
+              key: "achats",
+              label: "Achats",
+              value: formatCurrency(totalPurchasesAmount),
+              trend: purchasesTrend,
+              icon: <ShoppingCart className="h-3.5 w-3.5" />,
+              onClick: () => onNavigateTab("achats"),
+            },
+            {
+              key: "depenses",
+              label: "Dépenses",
+              value: formatCurrency(totalExpensesAmount),
+              trend: expensesTrend,
+              icon: <ArrowDownRight className="h-3.5 w-3.5" />,
+              onClick: () => onNavigateTab("depenses"),
+            },
+          ]}
+        />
+      </div>
+
+      {/* ── Les soldes : ce qui est vrai maintenant ──
+          Hors de l'emprise du sélecteur, et placés après lui pour que
+          cela se voie. « Le stock sur 7 jours » ne voudrait rien dire :
+          c'est ce qu'il y a en rayon aujourd'hui. */}
+      <div>
+        <div className="mb-2 px-1">
+          <span className="text-[13px] font-medium uppercase tracking-wide text-muted-foreground">
+            En ce moment
+          </span>
+        </div>
+        <StatBar
+          items={[
+            ...(montre("commandes")
+              ? [
+                  {
+                    key: "commandes",
+                    label: "Commandes",
+                    value: `${orders.length}`,
+                    hint:
+                      pendingOrders.length > 0
+                        ? `${pendingOrders.length} en cours`
+                        : "aucune en cours",
+                    alert: pendingOrders.length > 0,
+                    icon: <ShoppingBag className="h-3.5 w-3.5" />,
+                    onClick: () => onNavigateTab("commandes"),
+                  },
+                ]
+              : []),
+            {
+              key: "stock",
+              label: "Stock",
+              value: formatCurrency(totalStockValue),
+              hint:
+                lowStockProducts.length > 0
+                  ? `${lowStockProducts.length} à réapprovisionner`
+                  : `${products.length} référence${products.length > 1 ? "s" : ""}`,
+              alert: lowStockProducts.length > 0,
+              icon: <Package className="h-3.5 w-3.5" />,
+              onClick: () => onNavigateTab("produits"),
+            },
+          ]}
+        />
+      </div>
 
       {enSuspens.length > 0 && (
         <section className="app-card overflow-hidden">
@@ -493,7 +590,9 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                           />
                         </span>
                         <span className="app-list-secondary block">
-                          {onReapprovisionner ? "seuil " + p.seuilAlerte + " · réapprovisionner" : "seuil " + p.seuilAlerte}
+                          {onReapprovisionner
+                            ? "seuil " + p.seuilAlerte + " · réapprovisionner"
+                            : "seuil " + p.seuilAlerte}
                         </span>
                       </span>
                       <span
@@ -577,7 +676,9 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                       <div className="app-list-primary font-mono">{o.numero}</div>
                       <div className="app-list-secondary">{o.client?.nom ?? "Sans client"}</div>
                     </div>
-                    <span className="app-list-amount t-danger">{formatCurrency(o.reste_a_payer ?? 0)}</span>
+                    <span className="app-list-amount t-danger">
+                      {formatCurrency(o.reste_a_payer ?? 0)}
+                    </span>
                   </div>
                 ))}
               </div>
@@ -602,7 +703,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             </div>
             <DataList
               emptyLabel="Aucune vente récente."
-              items={sales.slice(0, 6).map((s) => {
+              items={ventesPeriode.slice(0, 6).map((s) => {
                 const prod = products.find((p) => p.id === s.productId);
                 return {
                   id: s.id,
@@ -642,7 +743,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                 <ShoppingCart className="w-4 h-4 t-warning" /> Derniers Achats
               </h3>
               <div className="space-y-3">
-                {purchases.slice(0, 4).map((p) => (
+                {achatsPeriode.slice(0, 4).map((p) => (
                   <div
                     key={p.id}
                     className="flex justify-between items-center gap-3 text-sm border-b border-border/50 pb-3.5 last:border-0 last:pb-0"
@@ -651,7 +752,9 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                       <div className="font-semibold text-foreground truncate">
                         {(() => {
                           const linkedProduct = products.find((prod) => prod.id === p.productId);
-                          return linkedProduct ? getProductLabel(linkedProduct, products) : p.designation;
+                          return linkedProduct
+                            ? getProductLabel(linkedProduct, products)
+                            : p.designation;
                         })()}
                       </div>
                       <div className="text-xs text-muted-foreground">
@@ -676,7 +779,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                 <ArrowRightLeft className="w-4 h-4 t-danger" /> Dernières Dépenses
               </h3>
               <div className="space-y-3">
-                {expenses.slice(0, 4).map((e) => (
+                {depensesPeriode.slice(0, 4).map((e) => (
                   <div
                     key={e.id}
                     className="flex justify-between items-center gap-3 text-sm border-b border-border/50 pb-3.5 last:border-0 last:pb-0"
