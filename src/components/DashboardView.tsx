@@ -27,6 +27,7 @@ import {
 import { VariantBadge } from "./shared/VariantBadge";
 import { StatBar } from "./shared/StatBar";
 import { moduleMasque, usePersonnalisation } from "../lib/personnalisation";
+import { construireEnSuspens } from "../lib/enSuspens";
 import { DataList } from "./shared/DataList";
 import { useNotificationPrefs } from "../lib/notificationPrefs";
 import type { Database } from "../lib/database.types";
@@ -50,6 +51,10 @@ interface DashboardViewProps {
   quotes: { statut: string; total: number; valide_jusqu_au: string | null }[];
   /** Les courses, pour dire ce que les livreurs n'ont pas encore rendu. */
   deliveries: { statut: string; montant_encaisse: number; argent_remis_le: string | null }[];
+  /** Les tâches, pour dire lesquelles ont dépassé leur échéance. */
+  taches?: { statut: string; echeance: string | null }[];
+  /** Les demandes d'avance sur salaire qui attendent une décision. */
+  avancesEnAttente?: { montant: number }[];
   locale: LocaleSetting;
   /**
    * Faux quand l'utilisateur n'a pas le droit de voir les prix d'achat :
@@ -71,6 +76,8 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   quotes = [],
   deliveries = [],
   clients = [],
+  taches = [],
+  avancesEnAttente = [],
   locale,
   showPrixAchat = true,
   onNavigateTab,
@@ -91,76 +98,36 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   const montre = (cle: string) => !moduleMasque(perso, cle);
 
   /**
-   * Ce qui n'est pas encore rentré, et ce qui n'est pas encore sorti.
+   * Ce qui n'est pas encore rentré, ce qui n'est pas encore sorti, et ce
+   * qui attend une décision.
    *
    * Un commerçant ouvre son logiciel le soir pour deux questions : ce
    * que la journée a donné, et ce qui reste en suspens. La première a
    * ses indicateurs depuis longtemps ; la seconde était éparpillée dans
-   * cinq écrans qu'il fallait ouvrir un par un.
+   * sept écrans qu'il fallait ouvrir un par un.
+   *
+   * Le calcul et le classement vivent dans `lib/enSuspens.ts` : à sept
+   * natures et trois rangs d'urgence, cela ne se raisonne plus au milieu
+   * d'un composant.
    *
    * Une ligne à zéro ne s'affiche pas : un tableau de bord qui annonce
    * « 0 Ar à recevoir » occupe la place sans rien apprendre. Et si tout
    * est à zéro, le bloc entier disparaît — c'est la bonne nouvelle.
    */
-  const enSuspens = useMemo(() => {
-    const lignes: {
-      cle: string;
-      libelle: string;
-      detail: string;
-      montant: number;
-      onglet: string;
-    }[] = [];
-
-    const duParLesClients = sales.reduce((n, v) => n + v.soldeDu, 0);
-    if (duParLesClients > 0) {
-      const combien = sales.filter((v) => v.soldeDu > 0).length;
-      lignes.push({
-        cle: "clients",
-        libelle: "Ce qu'on vous doit",
-        detail: `${combien} vente${combien > 1 ? "s" : ""} à encaisser`,
-        montant: duParLesClients,
-        onglet: "paiements",
-      });
-    }
-
-    const duAuxFournisseurs = purchases.reduce((n, a) => n + a.soldeDu, 0);
-    if (duAuxFournisseurs > 0) {
-      const combien = purchases.filter((a) => a.soldeDu > 0).length;
-      lignes.push({
-        cle: "fournisseurs",
-        libelle: "Ce que vous devez",
-        detail: `${combien} achat${combien > 1 ? "s" : ""} à régler`,
-        montant: duAuxFournisseurs,
-        onglet: "fournisseurs",
-      });
-    }
-
-    const chezLesLivreurs = deliveries
-      .filter((l) => l.statut === "livree" && l.montant_encaisse > 0 && !l.argent_remis_le)
-      .reduce((n, l) => n + l.montant_encaisse, 0);
-    if (chezLesLivreurs > 0 && !moduleMasque(perso, "livraisons")) {
-      lignes.push({
-        cle: "livreurs",
-        libelle: "Chez les livreurs",
-        detail: "encaissé, pas encore rendu",
-        montant: chezLesLivreurs,
-        onglet: "livraisons",
-      });
-    }
-
-    const devisEnAttente = quotes.filter((d) => d.statut === "brouillon" || d.statut === "envoye");
-    if (devisEnAttente.length > 0 && !moduleMasque(perso, "devis")) {
-      lignes.push({
-        cle: "devis",
-        libelle: "Devis sans réponse",
-        detail: `${devisEnAttente.length} en attente`,
-        montant: devisEnAttente.reduce((n, d) => n + d.total, 0),
-        onglet: "devis",
-      });
-    }
-
-    return lignes;
-  }, [sales, purchases, deliveries, quotes, perso]);
+  const enSuspens = useMemo(
+    () =>
+      construireEnSuspens({
+        sales,
+        purchases,
+        deliveries,
+        quotes,
+        orders,
+        taches,
+        avancesEnAttente,
+        masque: (cle) => moduleMasque(perso, cle),
+      }),
+    [sales, purchases, deliveries, quotes, orders, taches, avancesEnAttente, perso],
+  );
 
   const lowStockProducts = products
     .filter((p) => p.stockActuel <= p.seuilAlerte)
@@ -385,7 +352,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
             </h2>
           </div>
           <div className="app-list">
-            {enSuspens.map((l: (typeof enSuspens)[number]) => (
+            {enSuspens.map((l) => (
               <button
                 key={l.cle}
                 type="button"
@@ -394,9 +361,24 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               >
                 <span className="min-w-0 flex-1">
                   <span className="app-list-primary block">{l.libelle}</span>
-                  <span className="app-list-secondary block">{l.detail}</span>
+                  {/* La couleur ne porte que sur les mots qui disent le
+                      retard, jamais sur la ligne entière ni sur une
+                      pastille qui les répéterait. */}
+                  <span className="app-list-secondary block">
+                    {l.detail}
+                    {l.alerte && (
+                      <>
+                        {l.detail && ", "}
+                        <span className="t-warning">{l.alerte}</span>
+                      </>
+                    )}
+                  </span>
                 </span>
-                <span className="app-list-amount">{formatCurrency(l.montant)}</span>
+                {/* Une tâche en retard ne se chiffre pas : plutôt que
+                    d'écrire « 0 Ar » à sa droite, on n'écrit rien. */}
+                {l.montant !== null && (
+                  <span className="app-list-amount">{formatCurrency(l.montant)}</span>
+                )}
               </button>
             ))}
           </div>

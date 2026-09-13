@@ -30,7 +30,13 @@ export const libelleStatut = (statut: string) =>
  * date. Un statut qu'il faudrait penser à mettre à jour serait faux dès
  * le lendemain de l'oubli.
  */
-export const estExpire = (devis: Devis, aujourdhui = new Date()): boolean => {
+// Le type est réduit à ce que la fonction lit vraiment : le tableau de
+// bord ne charge des devis que leur statut, leur total et leur validité,
+// et n'a pas à en fabriquer un complet pour poser cette question.
+export const estExpire = (
+  devis: { statut: string; valide_jusqu_au: string | null },
+  aujourdhui = new Date(),
+): boolean => {
   if (!devis.valide_jusqu_au) return false;
   if (devis.statut === "accepte" || devis.statut === "refuse") return false;
   const limite = new Date(devis.valide_jusqu_au + "T23:59:59");

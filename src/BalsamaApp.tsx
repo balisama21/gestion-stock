@@ -556,6 +556,22 @@ function AppInner() {
     : myStoreMember?.full_name || myStoreMember?.email || "";
   const mySellerData = computedSellers.find((s) => s.nom === myName) ?? null;
 
+  /**
+   * Les demandes d'avance qui attendent une décision.
+   *
+   * Calculées une fois pour deux lecteurs : la cloche et le bloc « En
+   * suspens » du tableau de bord posent la même question.
+   */
+  const avancesEnAttente = useMemo(
+    () =>
+      demandesEnAttente(storeData.paiementsSalaire).map((d) => ({
+        id: d.id,
+        employe: d.employe,
+        montant: Number(d.montant),
+      })),
+    [storeData.paiementsSalaire],
+  );
+
   // ── Les salaires : deux écrans derrière un seul onglet ──
   //
   // La PORTÉE décide, et c'est exactement la règle appliquée en base par
@@ -835,11 +851,7 @@ function AppInner() {
         // Les règles de lecture ont déjà fait le tri : un employé ne
         // reçoit que ses propres lignes, et n'aura donc jamais sous les
         // yeux la demande d'un collègue.
-        avancesEnAttente: demandesEnAttente(storeData.paiementsSalaire).map((d) => ({
-          id: d.id,
-          employe: d.employe,
-          montant: Number(d.montant),
-        })),
+        avancesEnAttente,
         formatMontant: formatCurrency,
       }),
     [
@@ -866,7 +878,7 @@ function AppInner() {
       notificationPrefs.stockAlerts,
       workspace.activeStore,
       workspace.isOwner,
-      storeData.paiementsSalaire,
+      avancesEnAttente,
     ],
   );
 
@@ -1362,6 +1374,12 @@ function AppInner() {
                       clients={storeData.clients}
                       quotes={storeData.quotes}
                       deliveries={storeData.deliveries}
+                      taches={organisation.taches}
+                      // Les règles de lecture ont déjà fait le tri : un
+                      // collaborateur ne reçoit que ses propres lignes,
+                      // et ne verra donc jamais la demande d'un collègue
+                      // apparaître dans « En suspens ».
+                      avancesEnAttente={avancesEnAttente}
                       locale={locale}
                       onNavigateTab={setActiveTab}
                       showPrixAchat={
