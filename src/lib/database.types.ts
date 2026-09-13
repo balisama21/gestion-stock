@@ -105,7 +105,7 @@ export type Database = {
           created_at: string
           details: Json
           id: string
-          performed_by: string
+          performed_by: string | null
           target_user_id: string | null
         }
         Insert: {
@@ -113,7 +113,7 @@ export type Database = {
           created_at?: string
           details?: Json
           id?: string
-          performed_by: string
+          performed_by?: string | null
           target_user_id?: string | null
         }
         Update: {
@@ -121,7 +121,7 @@ export type Database = {
           created_at?: string
           details?: Json
           id?: string
-          performed_by?: string
+          performed_by?: string | null
           target_user_id?: string | null
         }
         Relationships: [
@@ -148,7 +148,7 @@ export type Database = {
           id: string
           montant: number
           note: string | null
-          owner_id: string
+          owner_id: string | null
           source: string
           store_id: string
         }
@@ -158,7 +158,7 @@ export type Database = {
           id?: string
           montant?: number
           note?: string | null
-          owner_id: string
+          owner_id?: string | null
           source?: string
           store_id: string
         }
@@ -168,7 +168,7 @@ export type Database = {
           id?: string
           montant?: number
           note?: string | null
-          owner_id?: string
+          owner_id?: string | null
           source?: string
           store_id?: string
         }
@@ -248,7 +248,7 @@ export type Database = {
           adresse: string | null
           champs_perso: Json
           created_at: string
-          created_by: string
+          created_by: string | null
           email: string | null
           entreprise: string | null
           id: string
@@ -267,7 +267,7 @@ export type Database = {
           adresse?: string | null
           champs_perso?: Json
           created_at?: string
-          created_by: string
+          created_by?: string | null
           email?: string | null
           entreprise?: string | null
           id?: string
@@ -286,7 +286,7 @@ export type Database = {
           adresse?: string | null
           champs_perso?: Json
           created_at?: string
-          created_by?: string
+          created_by?: string | null
           email?: string | null
           entreprise?: string | null
           id?: string
@@ -633,7 +633,7 @@ export type Database = {
           montant: number
           note: string | null
           numero: string | null
-          owner_id: string
+          owner_id: string | null
           provider_id: string | null
           store_id: string
           type: string
@@ -649,7 +649,7 @@ export type Database = {
           montant?: number
           note?: string | null
           numero?: string | null
-          owner_id: string
+          owner_id?: string | null
           provider_id?: string | null
           store_id: string
           type?: string
@@ -665,7 +665,7 @@ export type Database = {
           montant?: number
           note?: string | null
           numero?: string | null
-          owner_id?: string
+          owner_id?: string | null
           provider_id?: string | null
           store_id?: string
           type?: string
@@ -695,6 +695,53 @@ export type Database = {
           },
           {
             foreignKeyName: "expenses_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      journal_activite: {
+        Row: {
+          acteur_id: string | null
+          action: string
+          changements: Json | null
+          cree_le: string
+          entite: string
+          entite_id: string | null
+          etiquette: string | null
+          id: number
+          montant: number | null
+          store_id: string
+        }
+        Insert: {
+          acteur_id?: string | null
+          action: string
+          changements?: Json | null
+          cree_le?: string
+          entite: string
+          entite_id?: string | null
+          etiquette?: string | null
+          id?: never
+          montant?: number | null
+          store_id: string
+        }
+        Update: {
+          acteur_id?: string | null
+          action?: string
+          changements?: Json | null
+          cree_le?: string
+          entite?: string
+          entite_id?: string | null
+          etiquette?: string | null
+          id?: never
+          montant?: number | null
+          store_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "journal_activite_store_id_fkey"
             columns: ["store_id"]
             isOneToOne: false
             referencedRelation: "stores"
@@ -759,53 +806,6 @@ export type Database = {
           },
         ]
       }
-      journal_activite: {
-        Row: {
-          acteur_id: string | null
-          action: string
-          changements: Json | null
-          cree_le: string
-          entite: string
-          entite_id: string | null
-          etiquette: string | null
-          id: number
-          montant: number | null
-          store_id: string
-        }
-        Insert: {
-          acteur_id?: string | null
-          action: string
-          changements?: Json | null
-          cree_le?: string
-          entite: string
-          entite_id?: string | null
-          etiquette?: string | null
-          id?: never
-          montant?: number | null
-          store_id: string
-        }
-        Update: {
-          acteur_id?: string | null
-          action?: string
-          changements?: Json | null
-          cree_le?: string
-          entite?: string
-          entite_id?: string | null
-          etiquette?: string | null
-          id?: never
-          montant?: number | null
-          store_id?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "journal_activite_store_id_fkey"
-            columns: ["store_id"]
-            isOneToOne: false
-            referencedRelation: "stores"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       orders: {
         Row: {
           client_id: string | null
@@ -818,7 +818,7 @@ export type Database = {
           montant_total: number
           note: string | null
           numero: string
-          owner_id: string
+          owner_id: string | null
           reste_a_payer: number | null
           statut_commande: Database["public"]["Enums"]["order_status"]
           statut_paiement: Database["public"]["Enums"]["payment_status"]
@@ -836,7 +836,7 @@ export type Database = {
           montant_total?: number
           note?: string | null
           numero: string
-          owner_id: string
+          owner_id?: string | null
           reste_a_payer?: number | null
           statut_commande?: Database["public"]["Enums"]["order_status"]
           statut_paiement?: Database["public"]["Enums"]["payment_status"]
@@ -854,7 +854,7 @@ export type Database = {
           montant_total?: number
           note?: string | null
           numero?: string
-          owner_id?: string
+          owner_id?: string | null
           reste_a_payer?: number | null
           statut_commande?: Database["public"]["Enums"]["order_status"]
           statut_paiement?: Database["public"]["Enums"]["payment_status"]
@@ -925,7 +925,7 @@ export type Database = {
           note: string | null
           numero: string | null
           order_id: string | null
-          recorded_by: string
+          recorded_by: string | null
           reference: string | null
           sale_id: string | null
           store_id: string
@@ -939,7 +939,7 @@ export type Database = {
           note?: string | null
           numero?: string | null
           order_id?: string | null
-          recorded_by: string
+          recorded_by?: string | null
           reference?: string | null
           sale_id?: string | null
           store_id: string
@@ -953,7 +953,7 @@ export type Database = {
           note?: string | null
           numero?: string | null
           order_id?: string | null
-          recorded_by?: string
+          recorded_by?: string | null
           reference?: string | null
           sale_id?: string | null
           store_id?: string
@@ -1050,7 +1050,7 @@ export type Database = {
           id: string
           idempotency_key: string | null
           numero: string | null
-          owner_id: string
+          owner_id: string | null
           prix_achat: number
           prix_vente_defaut: number
           seuil_alerte: number
@@ -1081,7 +1081,7 @@ export type Database = {
           id?: string
           idempotency_key?: string | null
           numero?: string | null
-          owner_id: string
+          owner_id?: string | null
           prix_achat?: number
           prix_vente_defaut?: number
           seuil_alerte?: number
@@ -1112,7 +1112,7 @@ export type Database = {
           id?: string
           idempotency_key?: string | null
           numero?: string | null
-          owner_id?: string
+          owner_id?: string | null
           prix_achat?: number
           prix_vente_defaut?: number
           seuil_alerte?: number
@@ -1358,7 +1358,7 @@ export type Database = {
           impact_tresorerie: number
           montant_paye: number
           numero: string | null
-          owner_id: string
+          owner_id: string | null
           prix_achat_unit: number
           product_id: string | null
           quantite: number
@@ -1380,7 +1380,7 @@ export type Database = {
           impact_tresorerie?: number
           montant_paye?: number
           numero?: string | null
-          owner_id: string
+          owner_id?: string | null
           prix_achat_unit?: number
           product_id?: string | null
           quantite?: number
@@ -1402,7 +1402,7 @@ export type Database = {
           impact_tresorerie?: number
           montant_paye?: number
           numero?: string | null
-          owner_id?: string
+          owner_id?: string | null
           prix_achat_unit?: number
           product_id?: string | null
           quantite?: number
@@ -1648,7 +1648,7 @@ export type Database = {
           montant: number
           order_id: string | null
           reason: string | null
-          recorded_by: string
+          recorded_by: string | null
           sale_id: string | null
           store_id: string
         }
@@ -1659,7 +1659,7 @@ export type Database = {
           montant: number
           order_id?: string | null
           reason?: string | null
-          recorded_by: string
+          recorded_by?: string | null
           sale_id?: string | null
           store_id: string
         }
@@ -1670,7 +1670,7 @@ export type Database = {
           montant?: number
           order_id?: string | null
           reason?: string | null
-          recorded_by?: string
+          recorded_by?: string | null
           sale_id?: string | null
           store_id?: string
         }
@@ -1718,7 +1718,7 @@ export type Database = {
           montant_paye: number
           montant_rembourse: number
           numero: string | null
-          owner_id: string
+          owner_id: string | null
           prix_achat_unit_ref: number
           prix_vente_unit: number
           product_id: string | null
@@ -1744,7 +1744,7 @@ export type Database = {
           montant_paye?: number
           montant_rembourse?: number
           numero?: string | null
-          owner_id: string
+          owner_id?: string | null
           prix_achat_unit_ref?: number
           prix_vente_unit?: number
           product_id?: string | null
@@ -1770,7 +1770,7 @@ export type Database = {
           montant_paye?: number
           montant_rembourse?: number
           numero?: string | null
-          owner_id?: string
+          owner_id?: string | null
           prix_achat_unit_ref?: number
           prix_vente_unit?: number
           product_id?: string | null
@@ -2097,62 +2097,6 @@ export type Database = {
           },
         ]
       }
-      taches: {
-        Row: {
-          assignee_id: string | null
-          created_at: string
-          createur_id: string | null
-          description: string | null
-          echeance: string | null
-          id: string
-          numero: string | null
-          priorite: string
-          statut: string
-          store_id: string
-          termine_le: string | null
-          titre: string
-          updated_at: string
-        }
-        Insert: {
-          assignee_id?: string | null
-          created_at?: string
-          createur_id?: string | null
-          description?: string | null
-          echeance?: string | null
-          id?: string
-          numero?: string | null
-          priorite?: string
-          statut?: string
-          store_id: string
-          termine_le?: string | null
-          titre: string
-          updated_at?: string
-        }
-        Update: {
-          assignee_id?: string | null
-          created_at?: string
-          createur_id?: string | null
-          description?: string | null
-          echeance?: string | null
-          id?: string
-          numero?: string | null
-          priorite?: string
-          statut?: string
-          store_id?: string
-          termine_le?: string | null
-          titre?: string
-          updated_at?: string
-        }
-        Relationships: [
-          {
-            foreignKeyName: "taches_store_id_fkey"
-            columns: ["store_id"]
-            isOneToOne: false
-            referencedRelation: "stores"
-            referencedColumns: ["id"]
-          },
-        ]
-      }
       suppliers: {
         Row: {
           adresse: string | null
@@ -2226,6 +2170,62 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "suppliers_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      taches: {
+        Row: {
+          assignee_id: string | null
+          created_at: string
+          createur_id: string | null
+          description: string | null
+          echeance: string | null
+          id: string
+          numero: string | null
+          priorite: string
+          statut: string
+          store_id: string
+          termine_le: string | null
+          titre: string
+          updated_at: string
+        }
+        Insert: {
+          assignee_id?: string | null
+          created_at?: string
+          createur_id?: string | null
+          description?: string | null
+          echeance?: string | null
+          id?: string
+          numero?: string | null
+          priorite?: string
+          statut?: string
+          store_id: string
+          termine_le?: string | null
+          titre: string
+          updated_at?: string
+        }
+        Update: {
+          assignee_id?: string | null
+          created_at?: string
+          createur_id?: string | null
+          description?: string | null
+          echeance?: string | null
+          id?: string
+          numero?: string | null
+          priorite?: string
+          statut?: string
+          store_id?: string
+          termine_le?: string | null
+          titre?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "taches_store_id_fkey"
             columns: ["store_id"]
             isOneToOne: false
             referencedRelation: "stores"
@@ -2324,6 +2324,7 @@ export type Database = {
         }
         Returns: Json
       }
+      boutique_ouverte_a: { Args: { p_store_id: string }; Returns: boolean }
       can_modify_in_store: {
         Args: { p_owner_id: string; p_store_id: string }
         Returns: boolean
@@ -2439,6 +2440,7 @@ export type Database = {
       delete_purchase: { Args: { p_purchase_id: string }; Returns: undefined }
       delete_sale: { Args: { p_sale_id: string }; Returns: undefined }
       est_dans_la_boutique: { Args: { p_store_id: string }; Returns: boolean }
+      est_invite_a: { Args: { p_evenement_id: string }; Returns: boolean }
       generate_access_code: { Args: never; Returns: string }
       get_auth_role: { Args: never; Returns: string }
       is_platform_admin: { Args: never; Returns: boolean }
@@ -2447,6 +2449,10 @@ export type Database = {
       next_store_counter: {
         Args: { p_counter_type: string; p_store_id: string }
         Returns: number
+      }
+      peut_voir_evenement: {
+        Args: { p_evenement_id: string }
+        Returns: boolean
       }
       redeem_access_code: {
         Args: { p_code: string; p_store_name?: string }
@@ -2519,6 +2525,10 @@ export type Database = {
           p_sale_id: string
         }
         Returns: Json
+      }
+      voit_toute_l_organisation: {
+        Args: { p_module: string; p_store_id: string }
+        Returns: boolean
       }
     }
     Enums: {
