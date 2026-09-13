@@ -1,10 +1,21 @@
 import React from "react";
-import { BarChart3, Boxes, FileText, ShoppingCart, Users, Wallet } from "lucide-react";
+import {
+  BarChart3,
+  Boxes,
+  FileText,
+  ListChecks,
+  ShoppingCart,
+  Truck,
+  Users,
+  Wallet,
+} from "lucide-react";
 import { APP_NAME } from "../../lib/appConfig";
 import { Revele } from "./Revele";
 import {
+  ArdoiseFournisseur,
   BarresBilan,
   EtiquetteStock,
+  FeuilleJournee,
   FicheClient,
   PageCarnet,
   PetitTicket,
@@ -14,9 +25,15 @@ import {
 /**
  * Ce que le logiciel prend en charge, ligne à ligne.
  *
- * Six rangées de hauteur comparable, dont le côté de l'illustration
+ * Huit rangées de hauteur comparable, dont le côté de l'illustration
  * alterne. À gauche ce que le commerçant note aujourd'hui à la main, à
  * droite ce que le logiciel en fait — et, en face, l'objet lui-même.
+ *
+ * Les six premières suivent une vente. Les deux dernières retournent la
+ * page : ce que la boutique DOIT à ses fournisseurs et prestataires, et
+ * le travail de l'équipe — rendez-vous, tâches, rappels. Ni l'un ni
+ * l'autre ne descend le long d'une vente, et c'est pourquoi ils viennent
+ * après plutôt que de s'insérer au milieu du fil.
  *
  * Un fil vertical relie les rangées, avec un point vert qui le descend
  * lentement. C'est l'idée de la section, rendue visible : une vente
@@ -59,10 +76,27 @@ const LIGNES = [
     visuel: <PetitTicket />,
   },
   {
+    // L'argent qui SORT. Les cinq rangées précédentes suivent une vente ;
+    // celle-ci retourne la page, et c'est la moitié du métier qu'on ne
+    // montrait pas.
+    icone: Truck,
+    avant: "L'ardoise chez le grossiste, et les services payés de la main à la main",
+    apres: "Chaque fournisseur et chaque prestataire, avec ce qui lui reste dû",
+    visuel: <ArdoiseFournisseur />,
+  },
+  {
     icone: BarChart3,
     avant: "Les comptes du mois, au crayon",
     apres: "Chiffre d'affaires, marges et bilan, calculés à mesure",
     visuel: <BarresBilan />,
+  },
+  {
+    // Placée en dernier parce qu'elle ne suit pas la vente : c'est le
+    // travail de l'équipe, pas le trajet d'une marchandise.
+    icone: ListChecks,
+    avant: "Ce qu'il faut faire, sur un bout de papier qui se perd",
+    apres: "Qui fait quoi pour quand, les rendez-vous, et le rappel avant l'échéance",
+    visuel: <FeuilleJournee />,
   },
 ] as const;
 
@@ -109,7 +143,8 @@ export const RegistreModules: React.FC = () => (
           style={{ color: "var(--carbone-doux)" }}
         >
           Une vente saisie une fois se retrouve dans le stock, dans la caisse et dans le bilan. Vous
-          ne l&apos;écrivez qu&apos;au premier endroit.
+          ne l&apos;écrivez qu&apos;au premier endroit. Et ce que vous devez, comme ce que
+          l&apos;équipe doit faire, tient au même endroit que le reste.
         </p>
       </Revele>
 

@@ -54,6 +54,48 @@ export const GROUPES_ECRANS: ReadonlyArray<{ titre: string; ecrans: readonly Ecr
     ],
   },
   {
+    // Le seul groupe qui ne parle pas de marchandise ni d’argent. Il est
+    // placé tôt parce que c’est par là qu’on commence sa journée :
+    // savoir ce qui est en retard avant d’ouvrir la caisse.
+    titre: "Organisation",
+    ecrans: [
+      {
+        nom: "Vue d’ensemble",
+        quoi: "Ce que l’équipe doit faire aujourd’hui, et ce qui a dérapé",
+        apercu: [
+          { type: "paire", g: "En retard", d: "2", fort: true },
+          { type: "texte", t: "Commander le riz · Hanta" },
+          { type: "texte", t: "Relancer Tiana · vous", sourdine: true },
+        ],
+      },
+      {
+        nom: "Tâches",
+        quoi: "Qui fait quoi, pour quand, et ce qui a dépassé l’échéance",
+        apercu: [
+          { type: "points", n: 5, remplis: 3, libelle: "3 terminées sur 5" },
+          { type: "texte", t: "Inventaire rayon 3 · jeudi" },
+        ],
+      },
+      {
+        nom: "Agenda",
+        quoi: "Rendez-vous et réunions, avec les échéances que le métier porte déjà",
+        apercu: [
+          { type: "texte", t: "09:00  Livraison Analakely" },
+          { type: "texte", t: "14:30  Rendez-vous fournisseur", sourdine: true },
+          { type: "paire", g: "Cette semaine", d: "6" },
+        ],
+      },
+      {
+        nom: "Rappels",
+        quoi: "Prévenu avant un rendez-vous, alerté quand une échéance passe",
+        apercu: [
+          { type: "texte", t: "Demain 18:00 · avant le rendez-vous" },
+          { type: "bascules", libelles: ["Tous les lundis", "Fin de mois"], actives: 2 },
+        ],
+      },
+    ],
+  },
+  {
     titre: "Ventes",
     ecrans: [
       {
@@ -91,6 +133,22 @@ export const GROUPES_ECRANS: ReadonlyArray<{ titre: string; ecrans: readonly Ecr
           { type: "puces", p: ["À relancer"] },
         ],
       },
+      {
+        nom: "Devis",
+        quoi: "Un devis accepté devient une vente sans être ressaisi",
+        apercu: [
+          { type: "paire", g: "DEV-007 · Rakoto", d: "820 000", fort: true },
+          { type: "texte", t: "accepté · devenu la vente V042", sourdine: true },
+        ],
+      },
+      {
+        nom: "Livraisons",
+        quoi: "Qui livre quoi, où en est chaque course, et l’argent remis",
+        apercu: [
+          { type: "jauge", pct: 75, libelle: "3 courses remises sur 4" },
+          { type: "paire", g: "Reste chez le livreur", d: "124 000" },
+        ],
+      },
     ],
   },
   {
@@ -119,6 +177,23 @@ export const GROUPES_ECRANS: ReadonlyArray<{ titre: string; ecrans: readonly Ecr
         apercu: [
           { type: "puces", p: ["Sous le seuil"] },
           { type: "paire", g: "Riz 25 kg", d: "3 / 5", fort: true },
+        ],
+      },
+      {
+        nom: "Fournisseurs",
+        quoi: "Ce que vous devez à chacun, et depuis quand",
+        apercu: [
+          { type: "paire", g: "Rasoa Grossiste", d: "340 000", fort: true },
+          { type: "texte", t: "reste à payer sur 3 achats", sourdine: true },
+        ],
+      },
+      {
+        nom: "Prestataires",
+        quoi: "Les services que vous achetez : transport, réparation, façon",
+        apercu: [
+          { type: "texte", t: "Transport · Be Taxi" },
+          { type: "texte", t: "Réparation · Atelier Sud", sourdine: true },
+          { type: "paire", g: "Ce mois", d: "95 000" },
         ],
       },
     ],

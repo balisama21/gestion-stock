@@ -23,7 +23,35 @@ interface HeroAccueilProps {
  * tickets, et le ticket lui-même reste présent une fois la voûte formée :
  * c'est l'objet que le commerçant tend à son client.
  */
-const ECRANS = GROUPES_ECRANS.flatMap((g) => g.ecrans);
+/**
+ * Combien de cartes la voûte porte au plus.
+ *
+ * La voûte répartit ses cartes sur une ouverture FIXE : l'écart entre
+ * deux cartes vaut `ouverture / (total - 1)`. Chaque écran ajouté à
+ * l'inventaire resserre donc la composition sans qu'on s'en aperçoive en
+ * écrivant la donnée. Vingt et une cartes correspondent à l'écartement
+ * pour lequel la voûte a été réglée ; au-delà, elles se chevauchent.
+ *
+ * L'inventaire, lui, n'est pas plafonné : c'est un catalogue, il doit
+ * tout dire. Le héros est une image, il n'a jamais eu à être exhaustif.
+ */
+const MAX_CARTES = 21;
+
+const TOUS_LES_ECRANS = GROUPES_ECRANS.flatMap((g) => g.ecrans);
+
+/**
+ * On prélève à intervalle régulier plutôt que de couper après les vingt
+ * et premiers : tronquer laisserait dehors les derniers groupes de la
+ * liste — l'équipe, les réglages — et ferait disparaître de l'ouverture
+ * précisément ce qu'on vient d'ajouter en fin de parcours.
+ */
+const ECRANS =
+  TOUS_LES_ECRANS.length <= MAX_CARTES
+    ? TOUS_LES_ECRANS
+    : Array.from(
+        { length: MAX_CARTES },
+        (_, k) => TOUS_LES_ECRANS[Math.round((k * (TOUS_LES_ECRANS.length - 1)) / (MAX_CARTES - 1))],
+      );
 
 export const HeroAccueil: React.FC<HeroAccueilProps> = ({ onRejoindreConnexion }) => {
   const cartes = ECRANS.map((e) => (

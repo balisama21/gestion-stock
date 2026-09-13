@@ -245,3 +245,124 @@ export const BarresBilan: React.FC = () => {
     </div>
   );
 };
+
+/**
+ * 7. Organisation : la feuille de journée, avec ses cases cochées.
+ *
+ * Une forme de plus, et non un septième exemplaire d'un gabarit
+ * existant : c'est le seul objet de la série qui ne parle ni de
+ * marchandise ni d'argent, et il doit se reconnaître à sa silhouette.
+ * La ligne barrée dit ce qui est fait, la mention en retard dit ce qui
+ * ne l'est pas — c'est exactement ce qu'on vient chercher le matin.
+ */
+export const FeuilleJournee: React.FC = () => (
+  <div className={encadre}>
+    <div
+      className="w-full max-w-[19rem] sm:max-w-[252px] px-4 py-4"
+      style={{
+        background: "var(--papier)",
+        border: "1px solid var(--reglure)",
+        boxShadow: "0 10px 24px -18px rgba(28,27,24,.5)",
+      }}
+    >
+      <p className="font-mono text-[10px]" style={{ color: "var(--carbone-doux)" }}>
+        JEUDI 12 · L’ÉQUIPE
+      </p>
+
+      <ul className="mt-3 space-y-2.5">
+        {[
+          { quoi: "Inventaire rayon 3", qui: "Hanta", etat: "fait" },
+          { quoi: "Commander le riz", qui: "vous", etat: "retard" },
+          { quoi: "Relancer Tiana", qui: "Naina", etat: "a-faire" },
+        ].map(({ quoi, qui, etat }) => (
+          <li key={quoi} className="flex items-start gap-2.5">
+            <span
+              aria-hidden
+              className="mt-0.5 flex h-3.5 w-3.5 shrink-0 items-center justify-center rounded-[3px] border"
+              style={{
+                borderColor: etat === "fait" ? "var(--primary)" : "var(--reglure)",
+                background: etat === "fait" ? "var(--primary)" : "transparent",
+              }}
+            >
+              {etat === "fait" && (
+                <svg viewBox="0 0 10 10" className="h-2 w-2" fill="none" stroke="var(--papier)" strokeWidth="2">
+                  <path d="M1.5 5 L4 7.5 L8.5 2.5" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              )}
+            </span>
+            <span className="min-w-0 flex-1">
+              <span
+                className="block text-[13px] leading-snug"
+                style={{
+                  color: etat === "fait" ? "var(--carbone-doux)" : "var(--carbone)",
+                  textDecoration: etat === "fait" ? "line-through" : undefined,
+                }}
+              >
+                {quoi}
+              </span>
+              <span className="text-[10px]" style={{ color: "var(--carbone-doux)" }}>
+                {qui}
+                {etat === "retard" && " · en retard"}
+              </span>
+            </span>
+          </li>
+        ))}
+      </ul>
+    </div>
+  </div>
+);
+
+/**
+ * 8. Fournisseurs et prestataires : l'ardoise, et son total souligné deux
+ * fois comme dans un cahier de comptes.
+ *
+ * Les six premiers objets disent l'argent qui entre ; celui-ci dit
+ * l'argent qui sort, et c'est la moitié du métier qu'on oubliait de
+ * montrer. Le double filet sous le total est le geste comptable qui
+ * signale « ici on arrête d'additionner ».
+ */
+export const ArdoiseFournisseur: React.FC = () => (
+  <div className={encadre}>
+    <div
+      className="w-full max-w-[19rem] sm:max-w-[256px] px-4 py-4"
+      style={{
+        background: "var(--papier)",
+        border: "1px solid var(--reglure)",
+        boxShadow: "0 10px 24px -18px rgba(28,27,24,.5)",
+      }}
+    >
+      <p className="text-[10px] uppercase tracking-wider" style={{ color: "var(--carbone-doux)" }}>
+        À payer
+      </p>
+
+      <dl className="mt-2.5">
+        {[
+          ["Rasoa Grossiste", "340 000"],
+          ["Be Taxi · transport", "60 000"],
+          ["Atelier Sud · façon", "35 000"],
+        ].map(([nom, montant]) => (
+          <div
+            key={nom}
+            className="flex items-baseline justify-between gap-3 border-t py-1.5"
+            style={{ borderColor: "var(--reglure)" }}
+          >
+            <dt className="min-w-0 truncate text-[12px]">{nom}</dt>
+            <dd className="shrink-0 font-mono text-[12px]" style={{ color: "var(--carbone-doux)" }}>
+              {montant}
+            </dd>
+          </div>
+        ))}
+      </dl>
+
+      {/* Le double filet : deux traits rapprochés, pas une bordure
+          épaisse — c'est le trait du cahier, pas celui d'un cadre. */}
+      <div className="mt-2 border-t pt-1.5" style={{ borderColor: "var(--carbone)" }}>
+        <div className="border-t" style={{ borderColor: "var(--carbone)", marginTop: "-4px" }} />
+        <div className="mt-2 flex items-baseline justify-between gap-3">
+          <span className="text-[12px] font-semibold">Total</span>
+          <span className="font-mono text-[17px] font-bold leading-none">435 000 Ar</span>
+        </div>
+      </div>
+    </div>
+  </div>
+);
