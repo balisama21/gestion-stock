@@ -178,6 +178,21 @@ export interface StoreData {
   quotes: Devis[];
   /** Les courses de la boutique, de la plus proche à la plus ancienne. */
   deliveries: LivraisonRow[];
+  /**
+   * L'argent rendu à la caisse par les vendeurs.
+   *
+   * Ne touche pas la trésorerie — la vente y était déjà comptée. Ces
+   * lignes ne servent qu'à faire baisser le solde en poche de celui qui
+   * a remis.
+   */
+  remises: Database["public"]["Tables"]["remises_vendeur"]["Row"][];
+  addRemise: (data: {
+    vendeur: string;
+    montant: number;
+    date: string;
+    note?: string | null;
+  }) => Promise<{ error: string | null }>;
+  deleteRemise: (id: string) => Promise<{ error: string | null }>;
 
   addDelivery: (
     data: Omit<LivraisonInsert, "store_id" | "created_by">,
@@ -518,6 +533,10 @@ export function useStoreData(storeId: string | null, userId: string | null): Sto
   const [sales, setSales] = useState<Sale[]>([]);
   const [purchases, setPurchases] = useState<Purchase[]>([]);
   const [expenses, setExpenses] = useState<Expense[]>([]);
+  /** Les remises de caisse : l argent qu un vendeur a rendu. */
+  const [remises, setRemises] = useState<Database["public"]["Tables"]["remises_vendeur"]["Row"][]>(
+    [],
+  );
   const [orders, setOrders] = useState<Order[]>([]);
   const [clients, setClients] = useState<Client[]>([]);
   const [apports, setApports] = useState<CapitalApport[]>([]);
@@ -541,6 +560,7 @@ export function useStoreData(storeId: string | null, userId: string | null): Sto
       setSales([]);
       setPurchases([]);
       setExpenses([]);
+      setRemises([]);
       setOrders([]);
       setClients([]);
       setApports([]);
@@ -581,6 +601,7 @@ export function useStoreData(storeId: string | null, userId: string | null): Sto
         quotesRes,
         quoteItemsRes,
         deliveriesRes,
+        remisesRes,
       ] = await Promise.all([
         supabase
           .from("products")
@@ -662,6 +683,12 @@ export function useStoreData(storeId: string | null, userId: string | null): Sto
           .select("*")
           .eq("store_id", storeId)
           .order("date_prevue", { ascending: false, nullsFirst: false }),
+
+        supabase
+          .from("remises_vendeur")
+          .select("*")
+          .eq("store_id", storeId)
+          .order("date", { ascending: false }),
       ]);
 
       if (productsRes.data) setProducts(productsRes.data);
@@ -682,6 +709,7 @@ export function useStoreData(storeId: string | null, userId: string | null): Sto
       if (quotesRes.data) setQuotes(quotesRes.data);
       if (quoteItemsRes.data) setQuoteItems(quoteItemsRes.data);
       if (deliveriesRes.data) setDeliveries(deliveriesRes.data);
+      if (remisesRes.data) setRemises(remisesRes.data);
     } catch (e: any) {
       setError(e.message);
     } finally {
@@ -916,6 +944,42 @@ export function useStoreData(storeId: string | null, userId: string | null): Sto
       return { error: error?.message ?? null };
     },
     [storeId, userId, fetchAll],
+  );
+
+  /**
+   * Un vendeur rend son argent à la caisse.
+   *
+   * Rien de financier ne se crée ici : la vente était déjà comptée en
+   * trésorerie dès son enregistrement. La remise dit seulement que
+   * l'argent est passé de la poche du vendeur au tiroir, et fait donc
+   * baisser son solde en poche — le seul chiffre concerné.
+   *
+   * `recu_par` porte celui qui encaisse, et la politique de la base
+   * exige que ce soit l'appelant : on ne peut pas enregistrer une
+   * remise au nom de quelqu'un d'autre.
+   */
+  const addRemise = useCallback(
+    async (data: { vendeur: string; montant: number; date: string; note?: string | null }) => {
+      if (!storeId || !userId) return { error: "Non autorisé" };
+
+      const { error } = await supabase
+        .from("remises_vendeur")
+        .insert({ ...data, store_id: storeId, recu_par: userId });
+
+      if (!error) fetchAll();
+
+      return { error: error?.message ?? null };
+    },
+    [storeId, userId, fetchAll],
+  );
+
+  const deleteRemise = useCallback(
+    async (id: string) => {
+      const { error } = await supabase.from("remises_vendeur").delete().eq("id", id);
+      if (!error) fetchAll();
+      return { error: error?.message ?? null };
+    },
+    [fetchAll],
   );
 
   const updateExpense = useCallback(
@@ -1556,6 +1620,9 @@ export function useStoreData(storeId: string | null, userId: string | null): Sto
     sales,
     purchases,
     expenses,
+    remises,
+    addRemise,
+    deleteRemise,
     orders,
     clients,
     apports,

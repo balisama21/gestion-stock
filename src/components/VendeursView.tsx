@@ -16,6 +16,8 @@ import {
   Image as ImageIcon,
   Printer,
   Download,
+  Wallet,
+  Save,
 } from "lucide-react";
 import { formatCurrency, formatDateLocale, getSaleLabel } from "../utils/formulas";
 import { PageHeader } from "./shared/PageHeader";
@@ -50,6 +52,20 @@ interface VendeursViewProps {
   onDeleteSale?: (saleId: string) => void;
   onEditExpense?: (updatedExpense: Expense) => void;
   onDeleteExpense?: (expenseId: string) => void;
+  /**
+   * L'argent déjà rendu à la caisse, et de quoi en enregistrer.
+   *
+   * `onAddRemise` n'est fourni qu'à qui peut encaisser — le propriétaire
+   * ou un responsable. Absent, le bouton ne s'affiche pas : inutile de
+   * proposer un geste que la base refusera.
+   */
+  remises?: { id: string; vendeur: string; montant: number; date: string; note: string | null }[];
+  onAddRemise?: (data: {
+    vendeur: string;
+    montant: number;
+    date: string;
+    note?: string | null;
+  }) => Promise<{ error: string | null }>;
 }
 
 export const VendeursView: React.FC<VendeursViewProps> = ({
@@ -62,6 +78,8 @@ export const VendeursView: React.FC<VendeursViewProps> = ({
   products,
   onAddSeller,
   onDeleteSeller,
+  remises = [],
+  onAddRemise,
   onEditSale,
   onDeleteSale,
   onEditExpense,
@@ -70,6 +88,46 @@ export const VendeursView: React.FC<VendeursViewProps> = ({
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [newNom, setNewNom] = useState("");
   const [activeSellerModal, setActiveSellerModal] = useState<Seller | null>(null);
+
+  /** Le vendeur dont on enregistre la remise, et la saisie en cours. */
+  const [remiseVendeur, setRemiseVendeur] = useState<Seller | null>(null);
+  const [remiseMontant, setRemiseMontant] = useState(0);
+  const [remiseDate, setRemiseDate] = useState(dateDuJour());
+  const [remiseNote, setRemiseNote] = useState("");
+  const [remiseEnCours, setRemiseEnCours] = useState(false);
+  const [remiseErreur, setRemiseErreur] = useState<string | null>(null);
+
+  /**
+   * Le montant est pré-rempli avec le solde : le cas courant est « il
+   * remet tout ». Le corriger est une frappe, le saisir de zéro à chaque
+   * fois serait une corvée quotidienne.
+   */
+  const ouvrirRemise = (v: Seller) => {
+    setRemiseVendeur(v);
+    setRemiseMontant(Math.max(0, v.soldeNetEnPoche));
+    setRemiseDate(dateDuJour());
+    setRemiseNote("");
+    setRemiseErreur(null);
+  };
+
+  const enregistrerRemise = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!remiseVendeur || !onAddRemise || remiseEnCours || remiseMontant <= 0) return;
+    setRemiseEnCours(true);
+    setRemiseErreur(null);
+    const res = await onAddRemise({
+      vendeur: remiseVendeur.nom,
+      montant: Number(remiseMontant),
+      date: remiseDate,
+      note: remiseNote.trim() || null,
+    });
+    setRemiseEnCours(false);
+    if (res.error) {
+      setRemiseErreur(res.error);
+      return;
+    }
+    setRemiseVendeur(null);
+  };
   const [activeTab, setActiveTab] = useState<"all" | "ventes" | "depenses">("all");
   const [searchQuery, setSearchQuery] = useState("");
 
@@ -532,22 +590,37 @@ export const VendeursView: React.FC<VendeursViewProps> = ({
           description="Journal des ventes et des dépenses de ce vendeur."
           bodyClassName="space-y-5"
           headerAside={
-            <button
-              onClick={() => {
-                setSelectedReportSeller(activeSellerModal.nom);
-                setIsReportModalOpen(true);
-              }}
-              className="app-btn-secondary h-9 px-3 text-xs"
-              style={{ minHeight: "36px" }}
-              title="Générer le relevé d'activité de ce vendeur"
-            >
-              <Printer className="h-3.5 w-3.5" />
-              Relevé
-            </button>
+            <div className="flex items-center gap-2">
+              {/* Proposé seulement à qui peut encaisser : inutile de
+                  montrer un geste que la base refusera. */}
+              {onAddRemise && (
+                <button
+                  onClick={() => ouvrirRemise(activeSellerModal)}
+                  className="app-btn-secondary h-9 px-3 text-xs"
+                  style={{ minHeight: "36px" }}
+                  title="Enregistrer l'argent que ce vendeur vous a rendu"
+                >
+                  <Wallet className="h-3.5 w-3.5" />
+                  Remise
+                </button>
+              )}
+              <button
+                onClick={() => {
+                  setSelectedReportSeller(activeSellerModal.nom);
+                  setIsReportModalOpen(true);
+                }}
+                className="app-btn-secondary h-9 px-3 text-xs"
+                style={{ minHeight: "36px" }}
+                title="Générer le relevé d'activité de ce vendeur"
+              >
+                <Printer className="h-3.5 w-3.5" />
+                Relevé
+              </button>
+            </div>
           }
         >
           {/* Indicateurs du vendeur, dans le même bandeau que les listes. */}
-          <div className="app-statbar grid-cols-2 sm:grid-cols-4">
+          <div className="app-statbar grid-cols-2 sm:grid-cols-5">
             <StatCol
               label="Ventes"
               value={formatCurrency(activeSellerModal.totalVentesMontant)}
@@ -564,9 +637,16 @@ export const VendeursView: React.FC<VendeursViewProps> = ({
               hint={`${activeSellerExpenses.length} retrait${activeSellerExpenses.length > 1 ? "s" : ""}`}
             />
             <StatCol
+              label="Rendu à la caisse"
+              value={formatCurrency(activeSellerModal.totalRemis)}
+              hint={`${remises.filter((r) => r.vendeur === activeSellerModal.nom).length} remise${
+                remises.filter((r) => r.vendeur === activeSellerModal.nom).length > 1 ? "s" : ""
+              }`}
+            />
+            <StatCol
               label="Solde en poche"
               value={formatCurrency(activeSellerModal.soldeNetEnPoche)}
-              hint="En espèces"
+              hint={activeSellerModal.soldeNetEnPoche < 0 ? "la boutique lui doit" : "reste à rendre"}
             />
           </div>
 
@@ -1169,6 +1249,115 @@ export const VendeursView: React.FC<VendeursViewProps> = ({
                 </div>
               )}
             </div>
+        </Modal>
+      )}
+
+      {/* ── Enregistrer une remise ──
+          L'argent passe de la poche du vendeur au tiroir. Rien n'entre
+          ni ne sort de la boutique : la trésorerie ne bouge pas, seul le
+          solde en poche baisse. C'est dit dans la modale, parce que
+          « enregistrer de l'argent » laisse spontanément croire le
+          contraire. */}
+      {remiseVendeur && (
+        <Modal
+          open
+          onClose={() => setRemiseVendeur(null)}
+          size="sm"
+          icon={<Wallet className="h-4 w-4" />}
+          title={`Remise de ${remiseVendeur.nom}`}
+          description="L'argent qu'il vous a rendu, et que vous avez en main."
+          dismissible={!remiseEnCours}
+          footer={
+            <>
+              <button
+                type="button"
+                onClick={() => setRemiseVendeur(null)}
+                disabled={remiseEnCours}
+                className="app-btn-secondary"
+              >
+                Annuler
+              </button>
+              <button
+                type="submit"
+                form="remise-form"
+                disabled={remiseEnCours || remiseMontant <= 0}
+                className="app-btn-primary"
+              >
+                <Save className="h-4 w-4" />
+                {remiseEnCours ? "Enregistrement…" : "Enregistrer"}
+              </button>
+            </>
+          }
+        >
+          <form id="remise-form" onSubmit={enregistrerRemise} className="space-y-4">
+            <div>
+              <label className="mb-1.5 block text-sm font-medium text-foreground">
+                Montant remis (Ar)
+              </label>
+              <input
+                type="number"
+                required
+                min={1}
+                value={remiseMontant}
+                onChange={(e) => setRemiseMontant(Number(e.target.value))}
+                className="app-field font-mono"
+                autoFocus
+              />
+              <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">
+                Saisissez ce que vous avez réellement compté. S&apos;il en manque, l&apos;écart
+                restera visible dans son solde.
+              </p>
+            </div>
+
+            <div>
+              <label className="mb-1.5 block text-sm font-medium text-foreground">Date</label>
+              <input
+                type="date"
+                required
+                value={remiseDate}
+                onChange={(e) => setRemiseDate(e.target.value)}
+                className="app-field font-mono"
+              />
+            </div>
+
+            <div>
+              <label className="mb-1.5 block text-sm font-medium text-foreground">Note</label>
+              <input
+                type="text"
+                value={remiseNote}
+                onChange={(e) => setRemiseNote(e.target.value)}
+                placeholder="ex : caisse du soir"
+                className="app-field"
+              />
+            </div>
+
+            {/* Le garde-fou contre le zéro de trop : on lit le résultat
+                avant de valider, pas après. */}
+            <div className="app-statbar grid-cols-2">
+              <StatCol label="Solde actuel" value={formatCurrency(remiseVendeur.soldeNetEnPoche)} />
+              <StatCol
+                label="Après cette remise"
+                value={formatCurrency(remiseVendeur.soldeNetEnPoche - Number(remiseMontant || 0))}
+                hint={
+                  remiseVendeur.soldeNetEnPoche - Number(remiseMontant || 0) < 0
+                    ? "la boutique lui devra"
+                    : "restera en poche"
+                }
+              />
+            </div>
+
+            <p className="text-xs leading-relaxed text-muted-foreground">
+              La trésorerie ne change pas : cet argent y était déjà compté depuis
+              l&apos;enregistrement des ventes. La remise dit seulement qu&apos;il est passé de sa
+              poche à votre caisse.
+            </p>
+
+            {remiseErreur && (
+              <p className="rounded-xl border border-danger-border bg-danger-soft px-3.5 py-2.5 text-sm font-medium t-danger">
+                {remiseErreur}
+              </p>
+            )}
+          </form>
         </Modal>
       )}
     </div>

@@ -1708,6 +1708,57 @@ export type Database = {
           },
         ]
       }
+      remises_vendeur: {
+        Row: {
+          created_at: string
+          date: string
+          id: string
+          montant: number
+          note: string | null
+          numero: string | null
+          recu_par: string | null
+          store_id: string
+          vendeur: string
+        }
+        Insert: {
+          created_at?: string
+          date?: string
+          id?: string
+          montant: number
+          note?: string | null
+          numero?: string | null
+          recu_par?: string | null
+          store_id: string
+          vendeur: string
+        }
+        Update: {
+          created_at?: string
+          date?: string
+          id?: string
+          montant?: number
+          note?: string | null
+          numero?: string | null
+          recu_par?: string | null
+          store_id?: string
+          vendeur?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "remises_vendeur_recu_par_fkey"
+            columns: ["recu_par"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "remises_vendeur_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       sales: {
         Row: {
           client_credit: string | null
@@ -2457,6 +2508,10 @@ export type Database = {
       next_store_counter: {
         Args: { p_counter_type: string; p_store_id: string }
         Returns: number
+      }
+      peut_encaisser_une_remise: {
+        Args: { p_store_id: string }
+        Returns: boolean
       }
       peut_voir_evenement: {
         Args: { p_evenement_id: string }

@@ -122,7 +122,16 @@ export interface Seller {
   totalVentesMontant: number;
   totalVentesNombre: number;
   totalDepenses: number;
-  soldeNetEnPoche: number; // Ventes encaissées - Dépenses
+  /** Ce qu'il a déjà rendu à la caisse. */
+  totalRemis: number;
+  /**
+   * Ce qu'il détient encore et n'a pas rendu.
+   *
+   * Ventes encaissées − ses dépenses − ses remises. Un solde négatif est
+   * légitime : il veut dire que la boutique lui doit de l'argent, parce
+   * qu'il a payé une dépense de sa propre poche.
+   */
+  soldeNetEnPoche: number;
 }
 
 export interface CapitalSummary {

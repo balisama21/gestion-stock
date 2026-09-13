@@ -504,6 +504,11 @@ function AppInner() {
       const sellerExpenses = expenses.filter((e) => e.vendeur === nom);
       const totalDepenses = sellerExpenses.reduce((acc, e) => acc + e.montant, 0);
       const totalEncaisse = sellerSales.reduce((acc, v) => acc + v.montantPaye, 0);
+      // Ce qu'il a déjà rendu. Sans ce terme, le solde ne pouvait que
+      // monter : aucune opération ne le faisait redescendre.
+      const totalRemis = storeData.remises
+        .filter((r) => r.vendeur === nom)
+        .reduce((acc, r) => acc + r.montant, 0);
       const member = storeMembers.find((m) => (m.full_name || m.email) === nom);
       const id =
         member?.id ?? (nom === ownerName && workspace.isOwner ? user?.id : undefined) ?? `V${i}`;
@@ -514,10 +519,11 @@ function AppInner() {
         totalVentesMontant: totalSalesMontant,
         totalVentesNombre: sellerSales.length,
         totalDepenses,
-        soldeNetEnPoche: totalEncaisse - totalDepenses,
+        totalRemis,
+        soldeNetEnPoche: totalEncaisse - totalDepenses - totalRemis,
       };
     });
-  }, [sales, expenses, storeMembers, profile, user, workspace.isOwner]);
+  }, [sales, expenses, storeData.remises, storeMembers, profile, user, workspace.isOwner]);
 
   // "Mon activité" — utilisé uniquement pour la vue restreinte d'un
   // collaborateur sans permission dashboard/capital complète (MyActivityView).
@@ -1506,6 +1512,16 @@ function AppInner() {
                       setActiveTab("settings");
                     }}
                     onDeleteSeller={handleDeleteSeller}
+                    remises={storeData.remises}
+                    // Encaisser une remise n'est proposé qu'à qui peut le
+                    // faire. La base refuserait de toute façon, mais un
+                    // bouton qui échoue est pire qu'un bouton absent.
+                    onAddRemise={
+                      workspace.isOwner ||
+                      hasModuleAction(workspace.memberPermissionsDetailed ?? {}, "vendeurs", "view")
+                        ? storeData.addRemise
+                        : undefined
+                    }
                     onEditSale={handleEditSale}
                     onDeleteSale={handleDeleteSale}
                     onEditExpense={handleEditExpense}
