@@ -1488,6 +1488,20 @@ function AppInner() {
                     storeId={workspace.activeStore?.id ?? null}
                     onEditProductDetails={storeData.updateProductDetails}
                     onAddPurchase={handleAddPurchase}
+                    // Supprimer un achat saisi par erreur. La base
+                    // remet le stock comme avant et efface le règlement
+                    // attaché ; la trésorerie remonte d'elle-même,
+                    // puisqu'elle est la somme des achats qui restent.
+                    onDeletePurchase={
+                      workspace.isOwner ||
+                      hasModuleAction(
+                        workspace.memberPermissionsDetailed ?? {},
+                        "achats",
+                        "delete",
+                      )
+                        ? storeData.deletePurchase
+                        : undefined
+                    }
                     reapprovisionner={reapprovisionner}
                     onReapprovisionnementOuvert={() => setReapprovisionner(null)}
                     visibleFields={achatsVisibleFields}

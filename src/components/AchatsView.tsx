@@ -19,6 +19,7 @@ import {
   AlertCircle,
   Tag,
   Download,
+  Trash2,
 } from "lucide-react";
 import {
   formatCurrency,
@@ -88,6 +89,17 @@ interface AchatsViewProps {
    * que la base reconnaît un achat comme un réapprovisionnement plutôt
    * que comme la création d'un nouveau produit.
    */
+  /**
+   * Supprimer un achat enregistré par erreur.
+   *
+   * La base fait le travail : elle remet le stock comme avant, écrit le
+   * mouvement correspondant et efface le règlement attaché. La
+   * trésorerie remonte d'elle-même, puisqu'elle est la somme des achats
+   * qui restent.
+   *
+   * Absent quand l'action « supprimer » n'est pas accordée.
+   */
+  onDeletePurchase?: (id: string) => Promise<{ error: string | null }>;
   reapprovisionner?: { designation: string; prixAchat: number; fournisseur: string } | null;
   /** Appelé une fois le formulaire ouvert, pour ne pas le rouvrir sans fin. */
   onReapprovisionnementOuvert?: () => void;
@@ -112,6 +124,7 @@ export const AchatsView: React.FC<AchatsViewProps> = ({
   categories = [],
   fournisseurs = [],
   storeId = null,
+  onDeletePurchase,
   reapprovisionner = null,
   onReapprovisionnementOuvert,
   onEditProductDetails,
@@ -129,6 +142,10 @@ export const AchatsView: React.FC<AchatsViewProps> = ({
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedPurchaseReceipt, setSelectedPurchaseReceipt] = useState<Purchase | null>(null);
+  /** L'achat qu'on s'apprête à supprimer, et ce que la base en dit. */
+  const [achatASupprimer, setAchatASupprimer] = useState<Purchase | null>(null);
+  const [suppressionEnCours, setSuppressionEnCours] = useState(false);
+  const [erreurSuppression, setErreurSuppression] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   /** La fiche du produit que cet achat s'apprête à créer, le cas échéant. */
   const [detailsProduit, setDetailsProduit] = useState<ValeursDetails>(DETAILS_VIDES);
@@ -523,17 +540,124 @@ export const AchatsView: React.FC<AchatsViewProps> = ({
                 : []),
             ],
             actions: (
-              <button
-                onClick={() => setSelectedPurchaseReceipt(p)}
-                className="app-btn-secondary"
-              >
-                <Eye className="w-4 h-4" />
-                Voir le bon
-              </button>
+              <>
+                <button onClick={() => setSelectedPurchaseReceipt(p)} className="app-btn-secondary">
+                  <Eye className="w-4 h-4" />
+                  Voir le bon
+                </button>
+                {onDeletePurchase && (
+                  <button
+                    onClick={() => {
+                      setErreurSuppression(null);
+                      setAchatASupprimer(p);
+                    }}
+                    className="app-btn-icon h-9 w-9"
+                    title={`Supprimer l'achat ${p.numero}`}
+                    aria-label={`Supprimer l'achat ${p.numero}`}
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                )}
+              </>
             ),
           }))}
         />
       </div>
+
+      {/* ── Supprimer un achat ──
+          Un achat saisi par erreur n'est pas qu'une ligne dans une
+          liste : il a fait monter un stock et descendre une caisse.
+          Supprimer doit donc défaire les deux, et la confirmation le
+          dit AVANT le clic — chiffres à l'appui — plutôt que de laisser
+          découvrir après coup que la trésorerie a bougé.
+
+          La base refuse la suppression si les unités ont déjà été
+          vendues ou sont réservées par une commande. Son message dit
+          lequel des deux, et il s'affiche ici tel quel : personne ne
+          sait mieux qu'elle pourquoi c'est impossible. */}
+      {achatASupprimer && onDeletePurchase && (
+        <Modal
+          open
+          onClose={() => setAchatASupprimer(null)}
+          size="sm"
+          tone="danger"
+          icon={<Trash2 className="h-4 w-4" />}
+          title="Supprimer cet achat ?"
+          description={`N° ${achatASupprimer.numero}`}
+          dismissible={!suppressionEnCours}
+          footer={
+            <>
+              <button
+                onClick={() => setAchatASupprimer(null)}
+                disabled={suppressionEnCours}
+                className="app-btn-secondary"
+              >
+                Annuler
+              </button>
+              <button
+                onClick={async () => {
+                  setSuppressionEnCours(true);
+                  setErreurSuppression(null);
+                  const { error } = await onDeletePurchase(achatASupprimer.id);
+                  setSuppressionEnCours(false);
+                  if (error) setErreurSuppression(error);
+                  else setAchatASupprimer(null);
+                }}
+                disabled={suppressionEnCours}
+                className="app-btn-danger"
+              >
+                {suppressionEnCours ? "Suppression…" : "Supprimer définitivement"}
+              </button>
+            </>
+          }
+        >
+          <div className="space-y-3">
+            <p className="text-sm text-foreground">
+              <strong>{getPurchaseLabel(achatASupprimer, products)}</strong> ×
+              {achatASupprimer.quantite}
+              {showPrix && <> — {formatCurrency(achatASupprimer.totalAchat)}</>}
+            </p>
+
+            <div className="rounded-xl border border-border p-3">
+              <p className="mb-1.5 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                Ce que la suppression annule
+              </p>
+              <ul className="space-y-1 text-sm text-muted-foreground">
+                <li>
+                  Le stock de « {getPurchaseLabel(achatASupprimer, products)} » redescendra de{" "}
+                  <strong>{achatASupprimer.quantite}</strong> unité
+                  {achatASupprimer.quantite > 1 ? "s" : ""}.
+                </li>
+                {showPrix && (
+                  <li>
+                    La trésorerie remontera de{" "}
+                    <strong>{formatCurrency(achatASupprimer.totalAchat)}</strong>.
+                  </li>
+                )}
+                {showPrix && achatASupprimer.montantPaye > 0 && (
+                  <li>
+                    Le règlement de{" "}
+                    <strong>{formatCurrency(achatASupprimer.montantPaye)}</strong> enregistré avec
+                    cet achat sera supprimé lui aussi.
+                  </li>
+                )}
+              </ul>
+            </div>
+
+            {erreurSuppression && (
+              <p className="flex items-start gap-1.5 text-sm t-danger">
+                <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+                <span>{erreurSuppression}</span>
+              </p>
+            )}
+
+            <p className="text-xs text-muted-foreground">
+              Cette suppression est définitive. Si les unités ont déjà été vendues, la base la
+              refusera : le stock ne peut pas descendre en dessous de zéro.
+            </p>
+          </div>
+        </Modal>
+      )}
 
       {/* ── Bon d'approvisionnement ──
           Le bloc porte `printable-receipt` : sans cette accroche, la
