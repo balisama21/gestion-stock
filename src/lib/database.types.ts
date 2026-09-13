@@ -888,6 +888,98 @@ export type Database = {
           },
         ]
       }
+      paiements_salaire: {
+        Row: {
+          created_at: string
+          decide_le: string | null
+          decide_par: string | null
+          demande_le: string
+          demande_par: string | null
+          depuis_la_caisse_du_vendeur: boolean
+          employe: string
+          id: string
+          montant: number
+          motif: string | null
+          motif_refus: string | null
+          numero: string | null
+          periode: string
+          statut: string
+          store_id: string
+          type: string
+          user_id: string | null
+          verse_le: string | null
+        }
+        Insert: {
+          created_at?: string
+          decide_le?: string | null
+          decide_par?: string | null
+          demande_le?: string
+          demande_par?: string | null
+          depuis_la_caisse_du_vendeur?: boolean
+          employe: string
+          id?: string
+          montant: number
+          motif?: string | null
+          motif_refus?: string | null
+          numero?: string | null
+          periode?: string
+          statut?: string
+          store_id: string
+          type?: string
+          user_id?: string | null
+          verse_le?: string | null
+        }
+        Update: {
+          created_at?: string
+          decide_le?: string | null
+          decide_par?: string | null
+          demande_le?: string
+          demande_par?: string | null
+          depuis_la_caisse_du_vendeur?: boolean
+          employe?: string
+          id?: string
+          montant?: number
+          motif?: string | null
+          motif_refus?: string | null
+          numero?: string | null
+          periode?: string
+          statut?: string
+          store_id?: string
+          type?: string
+          user_id?: string | null
+          verse_le?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "paiements_salaire_decide_par_fkey"
+            columns: ["decide_par"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "paiements_salaire_demande_par_fkey"
+            columns: ["demande_par"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "paiements_salaire_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "paiements_salaire_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       password_recovery_requests: {
         Row: {
           email: string
@@ -1759,6 +1851,73 @@ export type Database = {
           },
         ]
       }
+      salaires: {
+        Row: {
+          created_at: string
+          cree_par: string | null
+          debut_le: string
+          employe: string
+          fin_le: string | null
+          id: string
+          montant: number
+          note: string | null
+          periodicite: string
+          poste: string | null
+          store_id: string
+          user_id: string | null
+        }
+        Insert: {
+          created_at?: string
+          cree_par?: string | null
+          debut_le?: string
+          employe: string
+          fin_le?: string | null
+          id?: string
+          montant: number
+          note?: string | null
+          periodicite?: string
+          poste?: string | null
+          store_id: string
+          user_id?: string | null
+        }
+        Update: {
+          created_at?: string
+          cree_par?: string | null
+          debut_le?: string
+          employe?: string
+          fin_le?: string | null
+          id?: string
+          montant?: number
+          note?: string | null
+          periodicite?: string
+          poste?: string | null
+          store_id?: string
+          user_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "salaires_cree_par_fkey"
+            columns: ["cree_par"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "salaires_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "salaires_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       sales: {
         Row: {
           client_credit: string | null
@@ -2513,8 +2672,16 @@ export type Database = {
         Args: { p_store_id: string }
         Returns: boolean
       }
+      peut_gerer_les_salaires: {
+        Args: { p_store_id: string }
+        Returns: boolean
+      }
       peut_voir_evenement: {
         Args: { p_evenement_id: string }
+        Returns: boolean
+      }
+      peut_voir_tous_les_salaires: {
+        Args: { p_store_id: string }
         Returns: boolean
       }
       redeem_access_code: {
