@@ -1753,7 +1753,7 @@ export default function App() {
   // Authentification requise, mais le PAIEMENT n'est plus un prérequis pour
   // entrer dans l'app (ancien système supprimé le 18/08/2026). Un nouveau
   // compte accède directement à l'espace de travail, où il pourra créer sa
-  // boutique (qui démarre automatiquement en essai gratuit de 7 jours —
+  // boutique (qui démarre automatiquement en essai gratuit de 30 jours —
   // voir stores.activation_status/trial_ends_at) ou rejoindre une boutique
   // existante via une invitation.
   if (!user) {

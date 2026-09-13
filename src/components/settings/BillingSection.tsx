@@ -11,6 +11,12 @@ import {
   Users,
 } from "lucide-react";
 import { SettingsSection, SettingsRow, SettingsBlock, SettingsFeedback } from "./primitives";
+import {
+  ABONNEMENT_MOIS_JOURS,
+  prixAVie,
+  prixMensuel,
+  type FormuleCode,
+} from "../../lib/offres";
 
 interface StoreNeedingActivation {
   id: string;
@@ -51,6 +57,9 @@ interface BillingSectionProps {
   setGeneratedCode: (v: string) => void;
   generatingCode: boolean;
   onGenerateCode: () => void;
+  /** Ce que le code générera : un mois, ou une activation à vie. */
+  formuleCode: FormuleCode;
+  setFormuleCode: (formule: FormuleCode) => void;
 }
 
 const StatusCard: React.FC<{
@@ -109,6 +118,8 @@ export const BillingSection: React.FC<BillingSectionProps> = ({
   setGeneratedCode,
   generatingCode,
   onGenerateCode,
+  formuleCode,
+  setFormuleCode,
 }) => {
   const [copied, setCopied] = React.useState(false);
   const telHref = `tel:${adminContact.replace(/\s/g, "")}`;
@@ -194,7 +205,7 @@ export const BillingSection: React.FC<BillingSectionProps> = ({
         <>
           <SettingsSection
             title="Activer par paiement"
-            description={`Payez 100 000 Ar via MVola, puis envoyez la référence de transaction à l'administrateur pour recevoir votre code.`}
+            description={`Deux formules : ${prixMensuel()} pour un mois, à renouveler, ou ${prixAVie()} une seule fois pour une activation à vie. Payez via MVola, puis envoyez la référence de transaction à l'administrateur pour recevoir votre code.`}
             icon={<Phone className="w-4 h-4" />}
           >
             <SettingsRow label="Numéro MVola" hint="Destinataire du paiement.">
@@ -255,7 +266,10 @@ export const BillingSection: React.FC<BillingSectionProps> = ({
           description="Pour gérer une autre boutique, un nouveau code d'activation est nécessaire."
           icon={<KeyRound className="w-4 h-4" />}
         >
-          <SettingsRow label="Acheter un code" hint="100 000 Ar par boutique, activation à vie.">
+          <SettingsRow
+            label="Acheter un code"
+            hint={`Par boutique : ${prixMensuel()} pour un mois, ou ${prixAVie()} à vie.`}
+          >
             <a href={telHref} className="app-btn-secondary w-full">
               <Phone className="h-4 w-4" />
               Contacter l'administrateur
@@ -287,6 +301,30 @@ export const BillingSection: React.FC<BillingSectionProps> = ({
               </select>
             </SettingsRow>
           )}
+
+          {/* La formule décide de ce que vaut le code : un mois à
+              renouveler, ou une activation définitive. C'est le seul
+              endroit où le choix se fait — la boutique n'en sait rien
+              tant que le code n'est pas saisi. */}
+          <SettingsRow
+            label="Formule"
+            htmlFor="admin-formule"
+            hint={
+              formuleCode === "mois"
+                ? `Le code ouvrira la boutique pour ${ABONNEMENT_MOIS_JOURS} jours, à renouveler.`
+                : "Le code activera la boutique définitivement."
+            }
+          >
+            <select
+              id="admin-formule"
+              value={formuleCode}
+              onChange={(e) => setFormuleCode(e.target.value as FormuleCode)}
+              className="app-field"
+            >
+              <option value="mois">Abonnement mensuel — {prixMensuel()}</option>
+              <option value="vie">Activation à vie — {prixAVie()}</option>
+            </select>
+          </SettingsRow>
 
           <SettingsRow label="Code généré" htmlFor="admin-code">
             <div className="flex gap-2">

@@ -240,7 +240,7 @@ export function useWorkspaceState(): WorkspaceContext {
         capital_initial: (data as any).capital_initial ?? 0,
         seuil_alerte_tresorerie: (data as any).seuil_alerte_tresorerie ?? 50000,
         // activation_status / trial_ends_at ne sont volontairement PAS
-        // envoyés ici : la colonne a un DEFAULT ('trial', now()+7 jours)
+        // envoyés ici : la colonne a un DEFAULT ('trial', now()+30 jours)
         // côté base (voir Étape 1), donc chaque nouvelle boutique démarre
         // automatiquement son propre essai gratuit indépendant.
       };

@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { ChevronDown } from "lucide-react";
 import { Revele } from "./Revele";
+import { ESSAI_JOURS, prixAVie, prixMensuel } from "../../lib/offres";
 
 /**
  * Les questions qu'on se pose avant de s'inscrire.
@@ -30,12 +31,16 @@ const QUESTIONS: { q: string; r: string }[] = [
     r: "Oui. Vous invitez vos collaborateurs par courriel et vous choisissez ce que chacun voit : un vendeur peut enregistrer des ventes sans voir vos prix d'achat, un comptable peut lire sans rien modifier, un livreur ne voit que ses propres courses. Ces limites sont posées sur le serveur, pas seulement dans l'écran.",
   },
   {
-    q: "Que se passe-t-il au bout des 7 jours d'essai ?",
+    q: `Que se passe-t-il au bout des ${ESSAI_JOURS} jours d'essai ?`,
     r: "La boutique se verrouille en lecture : rien n'est effacé, rien n'est perdu, vous ne pouvez simplement plus enregistrer de nouvelles écritures tant qu'elle n'est pas activée. Une fois le paiement fait et le code saisi, tout reprend là où vous vous étiez arrêté.",
   },
   {
-    q: "Est-ce un abonnement ?",
-    r: "Non. Vous payez une fois, par boutique, et elle reste active à vie. Si vous ouvrez une seconde boutique, elle demande sa propre activation.",
+    q: "Faut-il s'abonner, ou payer une fois ?",
+    r: `Les deux existent, au choix : ${prixMensuel()} par mois et par boutique, à renouveler quand vous le voulez, ou ${prixAVie()} une seule fois et la boutique reste active à vie. Les deux formules ouvrent exactement le même logiciel. Si vous ouvrez une seconde boutique, elle demande sa propre activation.`,
+  },
+  {
+    q: "Le paiement mensuel est-il prélevé automatiquement ?",
+    r: "Non, et c'est volontaire : rien n'est prélevé sur votre compte. Vous payez le mois suivant quand vous le décidez, par MVola, et vous recevez un code. Si vous arrêtez de payer, la boutique se verrouille en lecture — vos données restent, et repartent dès le paiement suivant.",
   },
   {
     q: "Est-ce que ça marche sans code-barres ?",

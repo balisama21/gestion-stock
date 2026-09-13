@@ -3,6 +3,7 @@ import { Lock, KeyRound, Phone, LogOut } from "lucide-react";
 import { useAuth } from "../hooks/useAuth";
 import { supabase } from "../lib/supabase";
 import { MotSymbole } from "./shared/MotSymbole";
+import { prixAVie, prixMensuel } from "../lib/offres";
 
 interface StoreLockedScreenProps {
   storeName: string;
@@ -15,7 +16,8 @@ const ADMIN_CONTACT = "+261 38 97 234 12";
 
 /**
  * Affiché à la place de TOUTE l'application quand la boutique active est
- * verrouillée (essai de 7 jours expiré sans activation). Le vrai blocage
+ * verrouillée (essai expiré sans activation, ou mois d'abonnement échu).
+ * Le vrai blocage
  * est déjà assuré côté Supabase par les RLS (voir migration
  * enforce_store_lock_in_rls) — cet écran est l'expérience utilisateur,
  * pas la barrière de sécurité elle-même.
@@ -84,8 +86,9 @@ export const StoreLockedScreen: React.FC<StoreLockedScreenProps> = ({
               <span className="text-sm font-semibold text-foreground">Activer par paiement</span>
             </div>
             <p className="mb-3 text-xs leading-relaxed text-muted-foreground">
-              Payez 100 000 Ar via MVola, puis envoyez la référence à l'administrateur pour
-              recevoir votre code.
+              {prixMensuel()} pour un mois, à renouveler, ou {prixAVie()} une seule fois à vie.
+              Payez via MVola, puis envoyez la référence à l&apos;administrateur pour recevoir
+              votre code.
             </p>
             <div className="mb-3 rounded-xl bg-card p-3 text-center">
               <p className="mb-0.5 text-[10px] uppercase tracking-wide text-muted-foreground">

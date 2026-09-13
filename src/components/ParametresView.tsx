@@ -15,6 +15,12 @@ import { SecuritySection } from "./settings/SecuritySection";
 import { StoreSection, type StoreFormValues } from "./settings/StoreSection";
 import { TeamSection, type TeamMember, type RecoveryRequest } from "./settings/TeamSection";
 import { TransfertBoutiqueSection } from "./settings/TransfertBoutiqueSection";
+import {
+  ABONNEMENT_MOIS_JOURS,
+  PRIX_A_VIE,
+  PRIX_MENSUEL,
+  type FormuleCode,
+} from "../lib/offres";
 import { ChampsPersonnalisesSection } from "./settings/ChampsPersonnalisesSection";
 import { VocabulaireSection } from "./settings/VocabulaireSection";
 import { CategoriesSection } from "./settings/CategoriesSection";
@@ -716,6 +722,7 @@ export const ParametresView: React.FC<ParametresViewProps> = ({
   const [selectedStoreToActivateId, setSelectedStoreToActivateId] = useState<string | null>(null);
   const [loadingStoresNeedingActivation, setLoadingStoresNeedingActivation] = useState(false);
   const [generatingCode, setGeneratingCode] = useState(false);
+  const [formuleCode, setFormuleCode] = useState<FormuleCode>("mois");
   const [activationCode, setActivationCode] = useState("");
 
   // Récupère le VRAI code d'activation utilisé par ce compte (au lieu
@@ -796,17 +803,24 @@ export const ParametresView: React.FC<ParametresViewProps> = ({
     // utilisé que pour activer CETTE boutique précise (voir la RPC
     // activate_store_with_code, qui vérifie store_id IS NULL OR = la
     // boutique demandée).
+    // Le montant et la durée dépendent de la formule choisie. Une durée
+    // nulle vaut « à vie » : c'est `activate_store_with_code` qui en
+    // tire les conséquences, pas cet écran.
+    const auMois = formuleCode === "mois";
     const payload: any = {
       code,
       store_id: selectedStoreToActivateId,
       status: "generated",
       activation_type: "paid",
       payment_method: "mobile_money",
-      amount_paid: 100000,
+      amount_paid: auMois ? PRIX_MENSUEL : PRIX_A_VIE,
+      duree_jours: auMois ? ABONNEMENT_MOIS_JOURS : null,
       payment_reference: "Paiement par admin",
       generated_by: currentUserId,
+      // Sept jours pour SAISIR le code — rien à voir avec la durée de
+      // l'abonnement qu'il ouvre.
       expires_at: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString(),
-      reason: "Activation premium",
+      reason: auMois ? "Abonnement mensuel" : "Activation à vie",
     };
 
     const { error } = await supabase.from("access_codes").insert(payload);
@@ -1046,6 +1060,8 @@ export const ParametresView: React.FC<ParametresViewProps> = ({
           setGeneratedCode={setActivationCode}
           generatingCode={generatingCode}
           onGenerateCode={handleGenerateActivationCode}
+          formuleCode={formuleCode}
+          setFormuleCode={setFormuleCode}
         />
       )}
 

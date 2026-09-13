@@ -161,7 +161,7 @@ export const Header: React.FC<HeaderProps> = ({
 
   // Création INDÉPENDANTE (jamais un héritage) — c'est celle proposée aux
   // collaborateurs invités : ils deviennent propriétaires d'une toute
-  // nouvelle boutique avec son propre essai gratuit de 7 jours, sans
+  // nouvelle boutique avec son propre essai gratuit de 30 jours, sans
   // aucun lien avec la boutique où ils collaborent déjà.
   const handleCreateStore = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -620,7 +620,7 @@ export const Header: React.FC<HeaderProps> = ({
           >
             {workspace.activeStore.activation_status === "active"
               ? "Cette boutique est active à vie : la copie le sera aussi, immédiatement."
-              : "Cette boutique est en essai : la copie héritera de la même date de fin d'essai, pas d'un nouvel essai de 7 jours."}
+              : "Cette boutique est en essai : la copie héritera de la même date de fin d'essai, pas d'un nouvel essai de 30 jours."}
           </p>
 
           <form onSubmit={handleCopyStore} id="copy-store-form" className="mt-4 space-y-3">
@@ -640,7 +640,7 @@ export const Header: React.FC<HeaderProps> = ({
 
       {/* ── Créer une boutique indépendante ──
           Proposée aux collaborateurs invités : elle ouvre un nouvel essai
-          de 7 jours et n'hérite jamais de la boutique où ils collaborent. */}
+          de 30 jours et n'hérite jamais de la boutique où ils collaborent. */}
       <Modal
         open={showCreateStoreModal}
         onClose={() => {
@@ -650,7 +650,7 @@ export const Header: React.FC<HeaderProps> = ({
         size="sm"
         icon={<Store className="h-4 w-4" />}
         title="Créer une boutique"
-        description="Vous en devenez propriétaire, avec son propre essai gratuit de 7 jours."
+        description="Vous en devenez propriétaire, avec son propre essai gratuit de 30 jours."
         dismissible={!creatingStore}
         footer={
           <>

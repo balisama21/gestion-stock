@@ -5,12 +5,13 @@ import { useAuth } from "../hooks/useAuth";
 import { useWorkspace } from "../hooks/useWorkspace";
 import { supabase } from "../lib/supabase";
 import { MotSymbole } from "./shared/MotSymbole";
+import { ESSAI_JOURS } from "../lib/offres";
 
 /**
  * Affiché quand un utilisateur est authentifié mais ne possède/rejoint
  * encore AUCUNE boutique (nouveau compte fraîchement créé, avant
  * l'ancien blocage par paiement — supprimé le 18/08/2026). Trois choix :
- *   A. Créer sa propre boutique → devient owner, essai gratuit 7 jours.
+ *   A. Créer sa propre boutique → devient owner, essai gratuit 30 jours.
  *   B. Rejoindre une boutique existante via un lien d'invitation reçu.
  *   C. Rejoindre avec un code d'invitation (alternative au lien, utile
  *      tant que l'envoi automatique par e-mail reste peu fiable sans
@@ -115,7 +116,9 @@ export const CreateStoreOnboarding: React.FC = () => {
 
             <div className="flex items-center gap-2 rounded-xl border border-success-border bg-success-soft px-3.5 py-2.5 text-xs t-success">
               <Sparkles className="w-3.5 h-3.5 shrink-0" />
-              <span>7 jours d'essai gratuit inclus, sans paiement à l'inscription.</span>
+              <span>
+                {ESSAI_JOURS} jours d'essai gratuit inclus, sans paiement à l'inscription.
+              </span>
             </div>
 
             {error && <p className="text-center text-sm font-medium t-danger">{error}</p>}

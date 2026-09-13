@@ -15,6 +15,7 @@ import { useDefilement } from "./landing/useDefilement";
 import { CarteConnexion } from "./ui/sign-in-card";
 import { CourbesSiVisible } from "./ui/floating-paths";
 import { traduireErreurAuth } from "../lib/messagesAuth";
+import { ESSAI_JOURS, prixAVie, prixMensuel } from "../lib/offres";
 import {
   AlertCircle,
   ArrowLeft,
@@ -473,7 +474,9 @@ export const AuthPage: React.FC = () => {
                     </Field>
 
                     <div className="rounded-xl border border-success-border bg-success-soft p-4 text-sm">
-                      <p className="font-semibold t-success mb-1">7 jours d'essai gratuit</p>
+                      <p className="font-semibold t-success mb-1">
+                        {ESSAI_JOURS} jours d'essai gratuit
+                      </p>
                       <p className="t-success text-xs leading-relaxed">
                         Créez votre boutique et utilisez-la immédiatement. Aucun paiement requis
                         pour commencer.
@@ -602,8 +605,10 @@ export const AuthPage: React.FC = () => {
                     <div className="rounded-xl border border-blue-500/25 bg-blue-500/8 p-4 text-sm mb-5">
                       <p className="font-semibold t-info mb-2">Comment obtenir votre code ?</p>
                       <p className="text-muted-foreground text-xs mb-2">
-                        Virement de <strong className="text-foreground">100 000 Ar</strong> par
-                        Orange Money au :
+                        Virement de <strong className="text-foreground">{prixMensuel()}</strong>{" "}
+                        pour un mois, ou{" "}
+                        <strong className="text-foreground">{prixAVie()}</strong> une seule fois
+                        à vie, par Orange Money au :
                       </p>
                       <p className="font-bold text-center py-2.5 rounded-lg bg-info-soft t-info tracking-wide">
                         +261 38 97 234 12

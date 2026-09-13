@@ -33,6 +33,7 @@ export type Database = {
           amount_paid: number | null
           code: string
           created_at: string
+          duree_jours: number | null
           expires_at: string | null
           generated_by: string | null
           id: string
@@ -49,6 +50,7 @@ export type Database = {
           amount_paid?: number | null
           code: string
           created_at?: string
+          duree_jours?: number | null
           expires_at?: string | null
           generated_by?: string | null
           id?: string
@@ -65,6 +67,7 @@ export type Database = {
           amount_paid?: number | null
           code?: string
           created_at?: string
+          duree_jours?: number | null
           expires_at?: string | null
           generated_by?: string | null
           id?: string
@@ -1962,6 +1965,7 @@ export type Database = {
       }
       stores: {
         Row: {
+          abonnement_jusqu_au: string | null
           activated_at: string | null
           activation_status: string
           address: string | null
@@ -1986,6 +1990,7 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          abonnement_jusqu_au?: string | null
           activated_at?: string | null
           activation_status?: string
           address?: string | null
@@ -2010,6 +2015,7 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          abonnement_jusqu_au?: string | null
           activated_at?: string | null
           activation_status?: string
           address?: string | null
@@ -2253,6 +2259,7 @@ export type Database = {
       activate_store_with_code: {
         Args: { p_code: string; p_store_id: string }
         Returns: {
+          abonnement_jusqu_au: string | null
           activated_at: string | null
           activation_status: string
           address: string | null
@@ -2332,6 +2339,7 @@ export type Database = {
       copy_store: {
         Args: { p_new_name: string; p_source_store_id: string }
         Returns: {
+          abonnement_jusqu_au: string | null
           activated_at: string | null
           activation_status: string
           address: string | null
