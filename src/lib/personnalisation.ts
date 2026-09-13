@@ -52,6 +52,7 @@ export const MODULES_PERSONNALISABLES: { cle: string; libelleParDefaut: string }
   { cle: "capital", libelleParDefaut: "Capital" },
   { cle: "depenses", libelleParDefaut: "Dépenses" },
   { cle: "vendeurs", libelleParDefaut: "Vendeurs" },
+  { cle: "salaires", libelleParDefaut: "Salaires" },
 ];
 
 const PAR_DEFAUT = new Map(MODULES_PERSONNALISABLES.map((m) => [m.cle, m.libelleParDefaut]));

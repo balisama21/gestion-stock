@@ -22,6 +22,7 @@ import { universDe } from "./components/navigation";
 import { SousNavigation } from "./components/shared/SousNavigation";
 import { SquelettePage } from "./components/shared/SquelettePage";
 import { construireNotifications } from "./lib/activite";
+import { avancesPrisesSurLaCaisse } from "./lib/salaires";
 import { useJournalActivite } from "./hooks/useJournalActivite";
 import { useTaches } from "./hooks/useTaches";
 import { useEvenements } from "./hooks/useEvenements";
@@ -103,6 +104,9 @@ const VentesView = lazy(() =>
 );
 const VendeursView = lazy(() =>
   import("./components/VendeursView").then((m) => ({ default: m.VendeursView })),
+);
+const SalairesView = lazy(() =>
+  import("./components/SalairesView").then((m) => ({ default: m.SalairesView })),
 );
 const DepensesView = lazy(() =>
   import("./components/DepensesView").then((m) => ({ default: m.DepensesView })),
@@ -509,6 +513,12 @@ function AppInner() {
       const totalRemis = storeData.remises
         .filter((r) => r.vendeur === nom)
         .reduce((acc, r) => acc + r.montant, 0);
+      // Une avance prise sur la caisse qu'il détient : il garde de
+      // l'argent qu'il avait encaissé, donc il en détient d'autant
+      // moins pour la boutique. C'est le SEUL pont entre le salaire et
+      // le solde en poche, et il est explicite — une avance payée
+      // depuis le coffre ne passe pas par ici.
+      const totalAvancesSurCaisse = avancesPrisesSurLaCaisse(storeData.paiementsSalaire, nom);
       const member = storeMembers.find((m) => (m.full_name || m.email) === nom);
       const id =
         member?.id ?? (nom === ownerName && workspace.isOwner ? user?.id : undefined) ?? `V${i}`;
@@ -520,10 +530,20 @@ function AppInner() {
         totalVentesNombre: sellerSales.length,
         totalDepenses,
         totalRemis,
-        soldeNetEnPoche: totalEncaisse - totalDepenses - totalRemis,
+        totalAvancesSurCaisse,
+        soldeNetEnPoche: totalEncaisse - totalDepenses - totalRemis - totalAvancesSurCaisse,
       };
     });
-  }, [sales, expenses, storeData.remises, storeMembers, profile, user, workspace.isOwner]);
+  }, [
+    sales,
+    expenses,
+    storeData.remises,
+    storeData.paiementsSalaire,
+    storeMembers,
+    profile,
+    user,
+    workspace.isOwner,
+  ]);
 
   // "Mon activité" — utilisé uniquement pour la vue restreinte d'un
   // collaborateur sans permission dashboard/capital complète (MyActivityView).
@@ -1526,6 +1546,37 @@ function AppInner() {
                     onDeleteSale={handleDeleteSale}
                     onEditExpense={handleEditExpense}
                     onDeleteExpense={handleDeleteExpense}
+                  />
+                )}
+                {activeTab === "salaires" && (
+                  <SalairesView
+                    salaires={storeData.salaires}
+                    paiements={storeData.paiementsSalaire}
+                    // Les noms déjà connus, pour la saisie assistée.
+                    // Une LISTE FERMÉE exclurait par construction tout
+                    // nouvel employé — un livreur embauché lundi
+                    // n'apparaît dans aucune vente. C'est donc une
+                    // suggestion, jamais une contrainte.
+                    nomsConnus={Array.from(
+                      new Set([
+                        ...computedSellers.map((v) => v.nom),
+                        ...storeData.salaires.map((s) => s.employe),
+                      ]),
+                    ).sort((a, b) => a.localeCompare(b, "fr"))}
+                    membres={storeMembers}
+                    locale={locale}
+                    // Fixer un salaire, approuver, verser. La base
+                    // refuserait de toute façon : un bouton absent est
+                    // une politesse, pas une sécurité.
+                    peutGerer={
+                      workspace.isOwner ||
+                      hasModuleAction(workspace.memberPermissionsDetailed ?? {}, "salaires", "pay")
+                    }
+                    onAddSalaire={storeData.addSalaire}
+                    onDeleteSalaire={storeData.deleteSalaire}
+                    onAddPaiement={storeData.addPaiementSalaire}
+                    onUpdatePaiement={storeData.updatePaiementSalaire}
+                    onDeletePaiement={storeData.deletePaiementSalaire}
                   />
                 )}
                 {activeTab === "depenses" && (

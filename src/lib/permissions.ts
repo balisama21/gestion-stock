@@ -338,6 +338,25 @@ export const MODULE_DEFINITIONS: ModuleDef[] = [
     fields: [],
   },
   {
+    // La portée porte ici tout le sens du module : « own » veut dire
+    // « ma paie », « all » veut dire « celle de toute l'équipe ». C'est
+    // aussi le seul module dont la portée est appliquée EN BASE et pas
+    // seulement à l'affichage — un salaire lu par un collègue est un
+    // incident, pas une gêne.
+    key: "salaires",
+    label: "Salaires",
+    hasScope: true,
+    actions: [
+      { key: "view", label: "Voir les salaires" },
+      { key: "create", label: "Fixer un salaire" },
+      { key: "edit", label: "Modifier une fiche" },
+      { key: "request_advance", label: "Demander une avance" },
+      { key: "approve", label: "Approuver ou refuser une demande" },
+      { key: "pay", label: "Verser de l'argent" },
+    ],
+    fields: [],
+  },
+  {
     key: "depenses",
     label: "Dépenses",
     hasScope: true,
@@ -646,6 +665,10 @@ const MANAGER_TEMPLATE: PermissionsMap = Object.fromEntries([
     fields: getModuleDef("prestataires")!.fields.map((f) => f.key),
   }),
   module("vendeurs", true, { actions: ["view"] }),
+  module("salaires", true, {
+    scope: "all",
+    actions: ["view", "create", "edit", "request_advance", "approve", "pay"],
+  }),
   module("depenses", true, { scope: "all", actions: ["view", "create", "edit"] }),
   module("statistiques", true, { fields: getModuleDef("statistiques")!.fields.map((f) => f.key) }),
   module("rapports", true, { actions: ["export"] }),
@@ -707,6 +730,12 @@ const COMPTABLE_TEMPLATE: PermissionsMap = Object.fromEntries([
     fields: ["coordonnees", "prestations"],
   }),
   module("vendeurs", false),
+  // Voir, sans verser. « Approuver » et « verser » sont un seul et même
+  // privilège en base : donner l'un donnerait l'autre, alors qu'un
+  // comptable enregistre et n'a pas à décider d'une avance. Le
+  // propriétaire peut toujours le lui ouvrir, collaborateur par
+  // collaborateur.
+  module("salaires", true, { scope: "all", actions: ["view"] }),
   module("depenses", true, { scope: "all", actions: ["view", "create", "edit"] }),
   module("statistiques", true, { fields: getModuleDef("statistiques")!.fields.map((f) => f.key) }),
   module("rapports", true, { actions: ["export"] }),
@@ -750,6 +779,9 @@ const VENDEUR_TEMPLATE: PermissionsMap = Object.fromEntries([
   module("fournisseurs", false),
   module("prestataires", false),
   module("vendeurs", false),
+  // Sa paie à lui, et le droit de demander une avance. Rien de plus :
+  // la portée « own » est appliquée en base, pas seulement à l'écran.
+  module("salaires", true, { scope: "own", actions: ["view", "request_advance"] }),
   module("depenses", false),
   module("statistiques", true, { fields: ["perf_personnelles"] }),
   module("rapports", false),
@@ -793,6 +825,7 @@ const GESTIONNAIRE_STOCK_TEMPLATE: PermissionsMap = Object.fromEntries([
     fields: getModuleDef("prestataires")!.fields.map((f) => f.key),
   }),
   module("vendeurs", false),
+  module("salaires", true, { scope: "own", actions: ["view", "request_advance"] }),
   module("depenses", false),
   module("statistiques", false),
   module("rapports", false),

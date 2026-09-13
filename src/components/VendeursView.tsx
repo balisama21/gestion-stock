@@ -454,6 +454,9 @@ export const VendeursView: React.FC<VendeursViewProps> = ({
                         v.totalDepenses > 0
                           ? `${formatCurrency(v.totalDepenses)} de dépenses`
                           : null,
+                        v.totalAvancesSurCaisse > 0
+                          ? `${formatCurrency(v.totalAvancesSurCaisse)} d'avance gardée`
+                          : null,
                       ]
                         .filter(Boolean)
                         .join(" · ")}
@@ -619,8 +622,15 @@ export const VendeursView: React.FC<VendeursViewProps> = ({
             </div>
           }
         >
-          {/* Indicateurs du vendeur, dans le même bandeau que les listes. */}
-          <div className="app-statbar grid-cols-2 sm:grid-cols-5">
+          {/* Indicateurs du vendeur, dans le même bandeau que les listes.
+              La colonne des avances n'apparaît que si la personne en a
+              pris sur sa caisse : une colonne à zéro n'apprend rien et
+              prend la place des autres. */}
+          <div
+            className={`app-statbar grid-cols-2 ${
+              activeSellerModal.totalAvancesSurCaisse > 0 ? "sm:grid-cols-6" : "sm:grid-cols-5"
+            }`}
+          >
             <StatCol
               label="Ventes"
               value={formatCurrency(activeSellerModal.totalVentesMontant)}
@@ -643,6 +653,13 @@ export const VendeursView: React.FC<VendeursViewProps> = ({
                 remises.filter((r) => r.vendeur === activeSellerModal.nom).length > 1 ? "s" : ""
               }`}
             />
+            {activeSellerModal.totalAvancesSurCaisse > 0 && (
+              <StatCol
+                label="Avance gardée"
+                value={formatCurrency(activeSellerModal.totalAvancesSurCaisse)}
+                hint="Sur salaire, prise ici"
+              />
+            )}
             <StatCol
               label="Solde en poche"
               value={formatCurrency(activeSellerModal.soldeNetEnPoche)}

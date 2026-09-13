@@ -125,11 +125,21 @@ export interface Seller {
   /** Ce qu'il a déjà rendu à la caisse. */
   totalRemis: number;
   /**
+   * Les avances sur salaire qu'il a prises sur la caisse qu'il détenait.
+   *
+   * Il garde alors de l'argent qu'il avait encaissé : il en détient
+   * d'autant moins pour la boutique. Une avance payée depuis le coffre
+   * ne compte pas ici — elle sort de la trésorerie sans toucher sa
+   * poche.
+   */
+  totalAvancesSurCaisse: number;
+  /**
    * Ce qu'il détient encore et n'a pas rendu.
    *
-   * Ventes encaissées − ses dépenses − ses remises. Un solde négatif est
-   * légitime : il veut dire que la boutique lui doit de l'argent, parce
-   * qu'il a payé une dépense de sa propre poche.
+   * Ventes encaissées − ses dépenses − ses remises − ses avances prises
+   * sur sa caisse. Un solde négatif est légitime : il veut dire que la
+   * boutique lui doit de l'argent, parce qu'il a payé une dépense de sa
+   * propre poche.
    */
   soldeNetEnPoche: number;
 }
@@ -173,6 +183,7 @@ export type ActiveTab =
   | "livraisons"
   | "ventes"
   | "vendeurs"
+  | "salaires"
   | "depenses"
   | "statistiques"
   | "historique"

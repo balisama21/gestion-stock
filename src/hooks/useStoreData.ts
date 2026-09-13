@@ -2,6 +2,12 @@ import { useState, useEffect, useCallback } from "react";
 import { supabase } from "../lib/supabase";
 import type { Database } from "../lib/database.types";
 import type { Sale as AppSale } from "../types";
+import type {
+  PaiementSalaire,
+  Salaire,
+  StatutPaiement,
+  TypePaiement,
+} from "../lib/salaires";
 
 type Product = Database["public"]["Tables"]["products"]["Row"];
 type Sale = Database["public"]["Tables"]["sales"]["Row"];
@@ -193,6 +199,49 @@ export interface StoreData {
     note?: string | null;
   }) => Promise<{ error: string | null }>;
   deleteRemise: (id: string) => Promise<{ error: string | null }>;
+
+  /**
+   * Les fiches de salaire, et l'argent verse au titre du salaire.
+   *
+   * Les regles de lecture sont en base : un employe ne recoit ici que
+   * ses propres lignes, le responsable les recoit toutes. L'ecran n'a
+   * donc rien a filtrer — ce qu'il ne doit pas voir n'arrive pas.
+   */
+  salaires: Salaire[];
+  paiementsSalaire: PaiementSalaire[];
+  addSalaire: (data: {
+    employe: string;
+    poste?: string | null;
+    montant: number;
+    debut_le: string;
+    user_id?: string | null;
+    note?: string | null;
+  }) => Promise<{ error: string | null }>;
+  updateSalaire: (
+    id: string,
+    data: Partial<Pick<Salaire, "employe" | "poste" | "montant" | "debut_le" | "fin_le" | "note">>,
+  ) => Promise<{ error: string | null }>;
+  deleteSalaire: (id: string) => Promise<{ error: string | null }>;
+  addPaiementSalaire: (data: {
+    employe: string;
+    type: TypePaiement;
+    montant: number;
+    periode: string;
+    statut: StatutPaiement;
+    user_id?: string | null;
+    motif?: string | null;
+    depuis_la_caisse_du_vendeur?: boolean;
+  }) => Promise<{ error: string | null }>;
+  /** Approuver, refuser, verser, annuler : tout passe par le statut. */
+  updatePaiementSalaire: (
+    id: string,
+    data: Partial<
+      Pick<PaiementSalaire, "statut" | "motif_refus" | "montant" | "periode"> & {
+        depuis_la_caisse_du_vendeur: boolean;
+      }
+    >,
+  ) => Promise<{ error: string | null }>;
+  deletePaiementSalaire: (id: string) => Promise<{ error: string | null }>;
 
   addDelivery: (
     data: Omit<LivraisonInsert, "store_id" | "created_by">,
@@ -537,6 +586,9 @@ export function useStoreData(storeId: string | null, userId: string | null): Sto
   const [remises, setRemises] = useState<Database["public"]["Tables"]["remises_vendeur"]["Row"][]>(
     [],
   );
+  /** Les fiches de salaire et l argent verse a ce titre. */
+  const [salaires, setSalaires] = useState<Salaire[]>([]);
+  const [paiementsSalaire, setPaiementsSalaire] = useState<PaiementSalaire[]>([]);
   const [orders, setOrders] = useState<Order[]>([]);
   const [clients, setClients] = useState<Client[]>([]);
   const [apports, setApports] = useState<CapitalApport[]>([]);
@@ -561,6 +613,8 @@ export function useStoreData(storeId: string | null, userId: string | null): Sto
       setPurchases([]);
       setExpenses([]);
       setRemises([]);
+      setSalaires([]);
+      setPaiementsSalaire([]);
       setOrders([]);
       setClients([]);
       setApports([]);
@@ -602,6 +656,8 @@ export function useStoreData(storeId: string | null, userId: string | null): Sto
         quoteItemsRes,
         deliveriesRes,
         remisesRes,
+        salairesRes,
+        paiementsSalaireRes,
       ] = await Promise.all([
         supabase
           .from("products")
@@ -689,6 +745,20 @@ export function useStoreData(storeId: string | null, userId: string | null): Sto
           .select("*")
           .eq("store_id", storeId)
           .order("date", { ascending: false }),
+
+        // Les regles de lecture filtrent deja : un employe ne recoit que
+        // ses propres lignes, un responsable les recoit toutes.
+        supabase
+          .from("salaires")
+          .select("*")
+          .eq("store_id", storeId)
+          .order("debut_le", { ascending: false }),
+
+        supabase
+          .from("paiements_salaire")
+          .select("*")
+          .eq("store_id", storeId)
+          .order("periode", { ascending: false }),
       ]);
 
       if (productsRes.data) setProducts(productsRes.data);
@@ -710,6 +780,8 @@ export function useStoreData(storeId: string | null, userId: string | null): Sto
       if (quoteItemsRes.data) setQuoteItems(quoteItemsRes.data);
       if (deliveriesRes.data) setDeliveries(deliveriesRes.data);
       if (remisesRes.data) setRemises(remisesRes.data);
+      if (salairesRes.data) setSalaires(salairesRes.data);
+      if (paiementsSalaireRes.data) setPaiementsSalaire(paiementsSalaireRes.data);
     } catch (e: any) {
       setError(e.message);
     } finally {
@@ -976,6 +1048,120 @@ export function useStoreData(storeId: string | null, userId: string | null): Sto
   const deleteRemise = useCallback(
     async (id: string) => {
       const { error } = await supabase.from("remises_vendeur").delete().eq("id", id);
+      if (!error) fetchAll();
+      return { error: error?.message ?? null };
+    },
+    [fetchAll],
+  );
+
+  /**
+   * Poser le salaire de quelqu un.
+   *
+   * C est le geste qui fait ENTRER la personne : le nom se saisit
+   * librement, sans qu elle ait eu la moindre activite dans la boutique.
+   * La base ferme d elle-meme la fiche precedente la veille, il n y a
+   * donc rien a cloturer a la main.
+   */
+  const addSalaire = useCallback(
+    async (data: {
+      employe: string;
+      poste?: string | null;
+      montant: number;
+      debut_le: string;
+      user_id?: string | null;
+      note?: string | null;
+    }) => {
+      if (!storeId || !userId) return { error: "Non autorisé" };
+
+      const { error } = await supabase
+        .from("salaires")
+        .insert({ ...data, store_id: storeId, cree_par: userId });
+
+      if (!error) fetchAll();
+
+      return { error: error?.message ?? null };
+    },
+    [storeId, userId, fetchAll],
+  );
+
+  const updateSalaire = useCallback(
+    async (
+      id: string,
+      data: Partial<
+        Pick<Salaire, "employe" | "poste" | "montant" | "debut_le" | "fin_le" | "note">
+      >,
+    ) => {
+      const { error } = await supabase.from("salaires").update(data).eq("id", id);
+      if (!error) fetchAll();
+      return { error: error?.message ?? null };
+    },
+    [fetchAll],
+  );
+
+  const deleteSalaire = useCallback(
+    async (id: string) => {
+      const { error } = await supabase.from("salaires").delete().eq("id", id);
+      if (!error) fetchAll();
+      return { error: error?.message ?? null };
+    },
+    [fetchAll],
+  );
+
+  /**
+   * Une avance ou un solde de salaire.
+   *
+   * Le responsable enregistre un versement deja fait en un seul geste
+   * (`statut` a `versee`) ; un employe ne peut qu ouvrir une demande
+   * (`en_attente`), a son nom. Ce n est pas cette fonction qui l impose,
+   * ce sont les regles de la base : un bouton absent est une politesse,
+   * le refus est ailleurs.
+   *
+   * La tresorerie ne bouge que sur `versee` — le salaire lui-meme est un
+   * engagement, pas une sortie d argent.
+   */
+  const addPaiementSalaire = useCallback(
+    async (data: {
+      employe: string;
+      type: TypePaiement;
+      montant: number;
+      periode: string;
+      statut: StatutPaiement;
+      user_id?: string | null;
+      motif?: string | null;
+      depuis_la_caisse_du_vendeur?: boolean;
+    }) => {
+      if (!storeId || !userId) return { error: "Non autorisé" };
+
+      const { error } = await supabase
+        .from("paiements_salaire")
+        .insert({ ...data, store_id: storeId, demande_par: userId });
+
+      if (!error) fetchAll();
+
+      return { error: error?.message ?? null };
+    },
+    [storeId, userId, fetchAll],
+  );
+
+  const updatePaiementSalaire = useCallback(
+    async (
+      id: string,
+      data: Partial<
+        Pick<PaiementSalaire, "statut" | "motif_refus" | "montant" | "periode"> & {
+          depuis_la_caisse_du_vendeur: boolean;
+        }
+      >,
+    ) => {
+      const { error } = await supabase.from("paiements_salaire").update(data).eq("id", id);
+      if (!error) fetchAll();
+      return { error: error?.message ?? null };
+    },
+    [fetchAll],
+  );
+
+  const deletePaiementSalaire = useCallback(
+    async (id: string) => {
+      const { error } = await supabase.from("paiements_salaire").delete().eq("id", id);
       if (!error) fetchAll();
       return { error: error?.message ?? null };
     },
@@ -1623,6 +1809,14 @@ export function useStoreData(storeId: string | null, userId: string | null): Sto
     remises,
     addRemise,
     deleteRemise,
+    salaires,
+    paiementsSalaire,
+    addSalaire,
+    updateSalaire,
+    deleteSalaire,
+    addPaiementSalaire,
+    updatePaiementSalaire,
+    deletePaiementSalaire,
     orders,
     clients,
     apports,

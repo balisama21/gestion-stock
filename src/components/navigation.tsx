@@ -105,7 +105,10 @@ export const NAV_GROUPS: NavGroup[] = [
   },
   {
     title: "Équipe",
-    items: [{ id: "vendeurs", label: "Vendeurs", icon: <Users className="w-4 h-4" /> }],
+    items: [
+      { id: "vendeurs", label: "Vendeurs", icon: <Users className="w-4 h-4" /> },
+      { id: "salaires", label: "Salaires", icon: <Wallet className="w-4 h-4" /> },
+    ],
   },
 ];
 
@@ -126,6 +129,10 @@ const UNIVERS: ActiveTab[][] = [
   ["produits", "achats", "fournisseurs", "prestataires"],
   ["clients", "paiements"],
   ["capital", "depenses", "rapports"],
+  // Les deux faces de l'équipe : ce que chacun détient de votre argent,
+  // et ce que vous lui devez. Deux comptes opposés qu'on consulte
+  // souvent l'un après l'autre.
+  ["vendeurs", "salaires"],
 ];
 
 /**
