@@ -21,8 +21,23 @@ export interface ReglageModule {
   masque?: boolean;
 }
 
+/**
+ * Quand prévenir, avant un rendez-vous.
+ *
+ * Deux nombres, réglés par l'entreprise. Une clé absente veut dire
+ * « comme prévu par le logiciel » : voir `delaisDeRappel` dans
+ * `lib/rappels.ts`, qui porte les valeurs par défaut et les bornes.
+ */
+export interface ReglagesRappels {
+  /** L'heure, la veille, pour ce qui vient demain ou plus tard. */
+  veilleHeure?: number;
+  /** Combien de minutes avant, pour ce qui tombe aujourd'hui. */
+  memeJourMinutes?: number;
+}
+
 export interface Personnalisation {
   modules?: Record<string, ReglageModule>;
+  rappels?: ReglagesRappels;
 }
 
 /**
@@ -61,7 +76,12 @@ const PAR_DEFAUT = new Map(MODULES_PERSONNALISABLES.map((m) => [m.cle, m.libelle
 export const lirePersonnalisation = (brut: unknown): Personnalisation => {
   if (!brut || typeof brut !== "object" || Array.isArray(brut)) return {};
   const p = brut as Personnalisation;
-  return { modules: p.modules && typeof p.modules === "object" ? p.modules : {} };
+  return {
+    modules: p.modules && typeof p.modules === "object" ? p.modules : {},
+    // Recopiée telle quelle : les valeurs sont bornées à la lecture par
+    // `delaisDeRappel`, qui sait seul ce qui est permis.
+    ...(p.rappels && typeof p.rappels === "object" ? { rappels: p.rappels } : {}),
+  };
 };
 
 /** Le nom donné à un module, ou celui du logiciel si rien n'est réglé. */

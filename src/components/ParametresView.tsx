@@ -23,6 +23,7 @@ import {
 } from "../lib/offres";
 import { ChampsPersonnalisesSection } from "./settings/ChampsPersonnalisesSection";
 import { VocabulaireSection } from "./settings/VocabulaireSection";
+import { RappelsSection } from "./settings/RappelsSection";
 import { CategoriesSection } from "./settings/CategoriesSection";
 import { lirePersonnalisation, type Personnalisation } from "../lib/personnalisation";
 import type { ChampPerso } from "../lib/champsPersonnalises";
@@ -987,6 +988,13 @@ export const ParametresView: React.FC<ParametresViewProps> = ({
 
       {activeTab === "vocabulaire" && (
         <VocabulaireSection
+          personnalisation={lirePersonnalisation(personnalisation)}
+          onSave={onSavePersonnalisation}
+        />
+      )}
+
+      {activeTab === "rappels" && (
+        <RappelsSection
           personnalisation={lirePersonnalisation(personnalisation)}
           onSave={onSavePersonnalisation}
         />

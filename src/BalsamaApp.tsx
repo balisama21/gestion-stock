@@ -23,6 +23,7 @@ import { SousNavigation } from "./components/shared/SousNavigation";
 import { SquelettePage } from "./components/shared/SquelettePage";
 import { construireNotifications } from "./lib/activite";
 import { avancesPrisesSurLaCaisse, demandesEnAttente } from "./lib/salaires";
+import { delaisDeRappel } from "./lib/rappels";
 import { useJournalActivite } from "./hooks/useJournalActivite";
 import { useTaches } from "./hooks/useTaches";
 import { useEvenements } from "./hooks/useEvenements";
@@ -870,6 +871,9 @@ function AppInner() {
         // reçoit que ses propres lignes, et n'aura donc jamais sous les
         // yeux la demande d'un collègue.
         avancesEnAttente,
+        // Reglable par l entreprise depuis les Parametres : la cloche
+        // doit prevenir a l heure que le commercant a choisie.
+        delaisRappel: delaisDeRappel(personnalisation.rappels),
         formatMontant: formatCurrency,
       }),
     [
@@ -897,6 +901,7 @@ function AppInner() {
       workspace.activeStore,
       workspace.isOwner,
       avancesEnAttente,
+      personnalisation.rappels,
     ],
   );
 

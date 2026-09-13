@@ -2,7 +2,13 @@ import type { ActiveTab, Sale, Purchase, Expense, CapitalApport, Product } from 
 import type { Database } from "./database.types";
 import { getModuleScope, type PermissionsMap } from "./permissions";
 import { estEnRetard, type Tache } from "./taches";
-import { evenementARappeler, estEchu, type Rappel } from "./rappels";
+import {
+  DELAIS_PAR_DEFAUT,
+  evenementARappeler,
+  estEchu,
+  type DelaisRappel,
+  type Rappel,
+} from "./rappels";
 import { heureDe, jourDe, type Evenement } from "./evenements";
 import { dateDuJour } from "./dates";
 import { ALERTE_AVANT_ECHEANCE_JOURS } from "./offres";
@@ -153,6 +159,13 @@ export interface SourcesActivite {
    * savoir que personne ne l'a vue.
    */
   avancesEnAttente: { id: string; employe: string; montant: number }[];
+  /**
+   * Combien de temps a l avance prevenir d un rendez-vous.
+   *
+   * Reglable par l entreprise depuis les Parametres. Absent : les
+   * valeurs prevues par le logiciel.
+   */
+  delaisRappel?: DelaisRappel;
   formatMontant: (montant: number) => string;
 }
 
@@ -505,7 +518,9 @@ export function construireNotifications(s: SourcesActivite): Notification[] {
   // Les rendez-vous qui approchent. Le délai est celui décrit dans
   // `rappels.ts` : la veille à 18 h, ou l'heure qui précède pour ce qui
   // tombe aujourd'hui.
-  for (const e of s.evenements.filter((x) => evenementARappeler(x, maintenant))) {
+  for (const e of s.evenements.filter((x) =>
+    evenementARappeler(x, maintenant, s.delaisRappel ?? DELAIS_PAR_DEFAUT),
+  )) {
     alertes.push({
       id: `alerte-rdv-${e.id}`,
       genre: "alerte",

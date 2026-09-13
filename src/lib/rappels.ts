@@ -51,18 +51,52 @@ export const libelleRecurrence = (r: string) =>
   RECURRENCES.find((x) => x.valeur === r)?.libelle ?? r;
 
 /**
- * Le délai par défaut avant un rendez-vous.
+ * Le délai avant un rendez-vous.
  *
  * La veille à 18 h pour ce qui vient demain ou plus tard : c'est l'heure
  * où l'on range sa journée et où l'on regarde la suivante. Une heure
  * avant pour ce qui tombe aujourd'hui : prévenir la veille d'un
  * rendez-vous déjà passé ne sert à rien.
  *
- * Ces deux nombres seront réglables dans les Paramètres ; ils vivent ici
- * pour que le jour venu il n'y ait qu'un endroit à changer.
+ * Ce sont les valeurs PAR DÉFAUT. Chaque entreprise peut les changer
+ * depuis les Paramètres — un boulanger qui ouvre à quatre heures du
+ * matin ne veut pas être prévenu à dix-huit heures la veille.
  */
-export const VEILLE_HEURE = 18;
-export const MEME_JOUR_MINUTES = 60;
+export const DELAIS_PAR_DEFAUT: DelaisRappel = { veilleHeure: 18, memeJourMinutes: 60 };
+
+export interface DelaisRappel {
+  /** L'heure, la veille, pour ce qui vient demain ou plus tard. 0 à 23. */
+  veilleHeure: number;
+  /** Combien de minutes avant, pour ce qui tombe aujourd'hui. */
+  memeJourMinutes: number;
+}
+
+/** Un nombre entier dans ses bornes, ou la valeur de repli. */
+const borner = (v: unknown, min: number, max: number, defaut: number): number => {
+  const n = Math.round(Number(v));
+  if (!Number.isFinite(n)) return defaut;
+  return Math.min(max, Math.max(min, n));
+};
+
+/**
+ * Les délais retenus, à partir de ce que l'entreprise a réglé.
+ *
+ * Les bornes sont posées ici et nulle part ailleurs : une valeur
+ * aberrante en base — saisie à la main, ou venue d'une version
+ * antérieure — ne doit pas produire une date impossible. Une heure hors
+ * de 0 à 23 ferait glisser le rappel d'un jour sans que personne ne
+ * comprenne pourquoi.
+ *
+ * Le plancher de cinq minutes sur le jour même évite un rappel qui
+ * paraîtrait au moment même du rendez-vous ; le plafond d'une journée
+ * évite qu'il ne remonte la veille par un autre chemin que celui prévu.
+ */
+export const delaisDeRappel = (
+  regles?: { veilleHeure?: number; memeJourMinutes?: number } | null,
+): DelaisRappel => ({
+  veilleHeure: borner(regles?.veilleHeure, 0, 23, DELAIS_PAR_DEFAUT.veilleHeure),
+  memeJourMinutes: borner(regles?.memeJourMinutes, 5, 1440, DELAIS_PAR_DEFAUT.memeJourMinutes),
+});
 
 const finDuJour = (d: Date): Date =>
   new Date(d.getFullYear(), d.getMonth(), d.getDate(), 23, 59, 59, 999);
@@ -78,7 +112,11 @@ const aLHeure = (jour: Date, heure: string): Date => {
  * Rendu séparément du reste parce que c'est la seule règle que
  * l'utilisateur verra écrite en toutes lettres dans les réglages.
  */
-export const momentDuRappel = (debutIso: string, maintenant = new Date()): Date => {
+export const momentDuRappel = (
+  debutIso: string,
+  maintenant = new Date(),
+  delais: DelaisRappel = DELAIS_PAR_DEFAUT,
+): Date => {
   const debut = new Date(debutIso);
   // « Le jour même » se juge par rapport à AUJOURD'HUI, pas par rapport à
   // l'événement — c'est tout le sens de la règle.
@@ -90,16 +128,27 @@ export const momentDuRappel = (debutIso: string, maintenant = new Date()): Date 
   // existait dans le code sans jamais s'appliquer. L'essai à blanc l'a
   // montré en affichant les deux moments côte à côte.
   if (jourLocal(debut) === jourLocal(maintenant)) {
-    return new Date(debut.getTime() - MEME_JOUR_MINUTES * 60000);
+    return new Date(debut.getTime() - delais.memeJourMinutes * 60000);
   }
-  return new Date(debut.getFullYear(), debut.getMonth(), debut.getDate() - 1, VEILLE_HEURE, 0, 0);
+  return new Date(
+    debut.getFullYear(),
+    debut.getMonth(),
+    debut.getDate() - 1,
+    delais.veilleHeure,
+    0,
+    0,
+  );
 };
 
 /** Un événement mérite-t-il d'être annoncé maintenant ? */
-export const evenementARappeler = (e: Evenement, maintenant = new Date()): boolean => {
+export const evenementARappeler = (
+  e: Evenement,
+  maintenant = new Date(),
+  delais: DelaisRappel = DELAIS_PAR_DEFAUT,
+): boolean => {
   const debut = new Date(e.debut);
   if (debut < maintenant) return false;
-  return momentDuRappel(e.debut, maintenant) <= maintenant;
+  return momentDuRappel(e.debut, maintenant, delais) <= maintenant;
 };
 
 /**

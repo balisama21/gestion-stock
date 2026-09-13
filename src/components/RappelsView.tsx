@@ -5,11 +5,11 @@ import { Modal } from "./shared/Modal";
 import { DataList } from "./shared/DataList";
 import { Toggle } from "./shared/Toggle";
 import { dateDuJour } from "../lib/dates";
+import { usePersonnalisation } from "../lib/personnalisation";
 import {
   JOURS_SEMAINE,
-  MEME_JOUR_MINUTES,
   RECURRENCES,
-  VEILLE_HEURE,
+  delaisDeRappel,
   estEchu,
   libelleQuand,
   libelleRecurrence,
@@ -61,6 +61,9 @@ export const RappelsView: React.FC<RappelsViewProps> = ({
   onBasculer,
   onSupprimer,
 }) => {
+  /** Les délais réglés par la boutique, pour les dire en toutes lettres. */
+  const delais = delaisDeRappel(usePersonnalisation().rappels);
+
   const [formOuvert, setFormOuvert] = useState(false);
   const [enregistrement, setEnregistrement] = useState(false);
   const [messageErreur, setMessageErreur] = useState<string | null>(null);
@@ -160,7 +163,8 @@ export const RappelsView: React.FC<RappelsViewProps> = ({
         <ul className="mt-2 space-y-1.5 text-sm text-muted-foreground">
           <li>
             <span className="text-foreground">Un rendez-vous qui approche</span> — la veille à{" "}
-            {VEILLE_HEURE} h, ou {MEME_JOUR_MINUTES} minutes avant s&apos;il tombe aujourd&apos;hui.
+            {delais.veilleHeure} h, ou {delais.memeJourMinutes} minutes avant s&apos;il tombe
+            aujourd&apos;hui. Ces deux délais se règlent dans Paramètres → Rappels.
           </li>
           <li>
             <span className="text-foreground">Une tâche qu&apos;on vous confie</span>, et celles qui

@@ -41,7 +41,12 @@ export const VocabulaireSection: React.FC<VocabulaireSectionProps> = ({
     // Les réglages vides sont retirés avant d'écrire : une clé qui ne dit
     // rien vaut mieux absente, c'est ce qui laisse le module suivre les
     // évolutions du logiciel plutôt qu'un choix figé un jour donné.
-    const propre: Personnalisation = { modules: {} };
+    //
+    // Le reste de la personnalisation est RECOPIÉ. Cet écran ne règle que
+    // le vocabulaire et les modules ; reconstruire l'objet à partir de
+    // rien effacerait les réglages voisins — les délais de rappel, par
+    // exemple — au premier enregistrement fait ici.
+    const propre: Personnalisation = { ...personnalisation, modules: {} };
     for (const [cle, r] of Object.entries(brouillon.modules ?? {})) {
       const libelle = r.libelle?.trim();
       const entree: { libelle?: string; masque?: boolean } = {};

@@ -1,6 +1,7 @@
 import React from "react";
 import { useAuth } from "../../hooks/useAuth";
 import {
+  BellRing,
   User,
   Shield,
   Store,
@@ -26,6 +27,7 @@ export type SettingsTab =
   | "preferences"
   | "champs"
   | "vocabulaire"
+  | "rappels"
   | "categories";
 
 interface TabDef {
@@ -122,6 +124,13 @@ const GROUPS: GroupDef[] = [
         label: "Vocabulaire et modules",
         hint: "Vos mots, vos écrans",
         icon: <Languages className="w-4 h-4" />,
+        ownerOnly: true,
+      },
+      {
+        id: "rappels",
+        label: "Rappels",
+        hint: "Quand on vous prévient",
+        icon: <BellRing className="w-4 h-4" />,
         ownerOnly: true,
       },
       {
