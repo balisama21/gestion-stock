@@ -51,6 +51,7 @@ import {
   type PaperFormatId,
 } from "../lib/paperFormats";
 import { dateDuJour } from "../lib/dates";
+import { envoyerFichier, supprimerFichier } from "../lib/stockageFichiers";
 
 interface AchatsViewProps {
   purchases: Purchase[];
@@ -125,6 +126,19 @@ interface AchatsViewProps {
   onReapprovisionnementOuvert?: () => void;
   onEditProductDetails?: (id: string, data: any) => Promise<{ error: string | null }>;
   /**
+   * Rattacher une photo au produit que cet achat vient de creer.
+   *
+   * Un achat dont la designation ne correspond a rien CREE un produit :
+   * la photo choisie ici lui revient donc, exactement comme la fiche
+   * descriptive juste au-dessus. Absente, la section Photos retombe sur
+   * son ancien message.
+   */
+  onAddProductImage?: (
+    productId: string,
+    chemin: string,
+    ordre?: number,
+  ) => Promise<{ error: string | null }>;
+  /**
    * Champs visibles pour l'utilisateur courant — `null`/`undefined` = tout
    * visible (propriétaire). Permet à un collaborateur de consulter les
    * approvisionnements (quoi, combien, quand) sans voir les prix négociés
@@ -149,6 +163,7 @@ export const AchatsView: React.FC<AchatsViewProps> = ({
   reapprovisionner = null,
   onReapprovisionnementOuvert,
   onEditProductDetails,
+  onAddProductImage,
   visibleFields,
 }) => {
   // null/undefined = tout visible (propriétaire). Sinon, seuls les champs
@@ -209,6 +224,35 @@ export const AchatsView: React.FC<AchatsViewProps> = ({
     };
   }, [achatAModifier, modQuantite, modPrix, modRegle]);
 
+  /**
+   * Envoie les photos gardées pendant la saisie, une fois le produit né.
+   *
+   * Rend le message du premier échec, ou `null` si tout est passé. Un
+   * fichier parti sans sa ligne en base est retiré du stockage : sinon
+   * il occuperait de la place sans que rien ne puisse plus le désigner.
+   */
+  const envoyerLesPhotosDuProduit = async (
+    productId: string,
+    fichiers: File[],
+  ): Promise<string | null> => {
+    if (!storeId || !onAddProductImage) return null;
+    for (let i = 0; i < fichiers.length; i += 1) {
+      const { chemin, error } = await envoyerFichier(
+        "produits",
+        storeId,
+        `produits/${productId}`,
+        fichiers[i],
+      );
+      if (error || !chemin) return error ?? "Cette image n'a pas pu être envoyée.";
+      const suite = await onAddProductImage(productId, chemin, i);
+      if (suite.error) {
+        await supprimerFichier("produits", chemin);
+        return suite.error;
+      }
+    }
+    return null;
+  };
+
   const ouvrirCorrection = (p: Purchase) => {
     setModDate(p.date);
     setModQuantite(String(p.quantite));
@@ -223,6 +267,8 @@ export const AchatsView: React.FC<AchatsViewProps> = ({
   const [saving, setSaving] = useState(false);
   /** La fiche du produit que cet achat s'apprête à créer, le cas échéant. */
   const [detailsProduit, setDetailsProduit] = useState<ValeursDetails>(DETAILS_VIDES);
+  /** Les photos choisies pour le produit que cet achat va creer. */
+  const [photosProduit, setPhotosProduit] = useState<File[]>([]);
 
   // Search & Filter state
   const [searchTerm, setSearchTerm] = useState("");
@@ -370,8 +416,20 @@ export const AchatsView: React.FC<AchatsViewProps> = ({
       }
     }
 
+    // Les photos en dernier : les plus lourdes et les plus faillibles.
+    // Un réseau qui lâche ne doit pas emporter l'achat avec lui.
+    if (creeUnProduit && photosProduit.length > 0 && result.productId && onAddProductImage) {
+      const echec = await envoyerLesPhotosDuProduit(result.productId, photosProduit);
+      if (echec) {
+        setSaving(false);
+        setErreurAchat(`${echec} L'achat, lui, a bien été enregistré.`);
+        return;
+      }
+    }
+
     setSaving(false);
     setDetailsProduit(DETAILS_VIDES);
+    setPhotosProduit([]);
     setDesignation("");
     setReglement("comptant");
     setMontantRegle(0);
@@ -1296,6 +1354,8 @@ export const AchatsView: React.FC<AchatsViewProps> = ({
                 images={[]}
                 storeId={storeId}
                 productId={null}
+                photosEnAttente={onAddProductImage ? photosProduit : undefined}
+                onPhotosEnAttenteChange={onAddProductImage ? setPhotosProduit : undefined}
                 onAddImage={async () => ({ error: "Envoi indisponible." })}
                 onDeleteImage={async () => ({ error: "Suppression indisponible." })}
               />

@@ -1487,6 +1487,10 @@ function AppInner() {
                     fournisseurs={storeData.suppliers}
                     storeId={workspace.activeStore?.id ?? null}
                     onEditProductDetails={storeData.updateProductDetails}
+                    // Un achat dont la désignation ne correspond à rien
+                    // crée un produit : la photo choisie dans sa fiche
+                    // lui revient, comme le reste de sa description.
+                    onAddProductImage={storeData.addProductImage}
                     onAddPurchase={handleAddPurchase}
                     // Supprimer un achat saisi par erreur. La base
                     // remet le stock comme avant et efface le règlement

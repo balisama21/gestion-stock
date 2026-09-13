@@ -24,6 +24,7 @@ import { StatCol } from "./shared/StatBar";
 import { Modal } from "./shared/Modal";
 import { DetailsProduit } from "./produits/DetailsProduit";
 import { DETAILS_VIDES, detailsVersBase, type ValeursDetails } from "../lib/detailsProduit";
+import { envoyerFichier, supprimerFichier } from "../lib/stockageFichiers";
 import type { Database } from "../lib/database.types";
 
 interface ProduitsViewProps {
@@ -157,6 +158,13 @@ export const ProduitsView: React.FC<ProduitsViewProps> = ({
   // inertes tant que le produit n'existe pas — il n'y a pas encore
   // d'identifiant auquel les rattacher.
   const [addDetails, setAddDetails] = useState<ValeursDetails>(DETAILS_VIDES);
+  /**
+   * Les photos choisies avant que le produit n'existe.
+   *
+   * Elles partent juste apres sa creation, quand il y a enfin un
+   * identifiant auquel les rattacher. Voir `envoyerLesPhotos`.
+   */
+  const [addPhotos, setAddPhotos] = useState<File[]>([]);
   const [addErreur, setAddErreur] = useState<string | null>(null);
 
   // Sélection multiple
@@ -276,6 +284,33 @@ export const ProduitsView: React.FC<ProduitsViewProps> = ({
 
   const clearSelection = () => setSelectedIds(new Set());
 
+  /**
+   * Envoie les photos gardées pendant la saisie, une fois le produit né.
+   *
+   * Rend le message du premier échec, ou `null` si tout est passé. Le
+   * fichier parti sans sa ligne en base est retiré du stockage : sinon
+   * il occuperait de la place sans que rien ne puisse plus le désigner —
+   * même prudence que dans la fiche produit.
+   */
+  const envoyerLesPhotos = async (productId: string, fichiers: File[]): Promise<string | null> => {
+    if (!storeId || !onAddProductImage) return null;
+    for (let i = 0; i < fichiers.length; i += 1) {
+      const { chemin, error } = await envoyerFichier(
+        "produits",
+        storeId,
+        `produits/${productId}`,
+        fichiers[i],
+      );
+      if (error || !chemin) return error ?? "Cette image n'a pas pu être envoyée.";
+      const suite = await onAddProductImage(productId, chemin, i);
+      if (suite.error) {
+        await supprimerFichier("produits", chemin);
+        return suite.error;
+      }
+    }
+    return null;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (saving || !designation.trim()) return;
@@ -318,9 +353,21 @@ export const ProduitsView: React.FC<ProduitsViewProps> = ({
       }
     }
 
+    // Les photos en dernier : elles sont le plus lourd et le plus
+    // faillible — un réseau qui lâche ne doit pas emporter le produit.
+    if (addPhotos.length > 0 && result.id) {
+      const echec = await envoyerLesPhotos(result.id, addPhotos);
+      if (echec) {
+        setSaving(false);
+        setAddErreur(`${echec} Le produit, lui, a bien été créé.`);
+        return;
+      }
+    }
+
     setSaving(false);
     setDesignation("");
     setAddDetails(DETAILS_VIDES);
+    setAddPhotos([]);
     setIsAddModalOpen(false);
   };
 
@@ -333,6 +380,7 @@ export const ProduitsView: React.FC<ProduitsViewProps> = ({
   const fermerCreation = () => {
     setIsAddModalOpen(false);
     setAddDetails(DETAILS_VIDES);
+    setAddPhotos([]);
     setAddErreur(null);
   };
 
@@ -805,12 +853,14 @@ export const ProduitsView: React.FC<ProduitsViewProps> = ({
             onChange={setAddDetails}
             categories={categories}
             fournisseurs={fournisseurs}
-            // Un produit qui n'existe pas encore n'a ni image ni
-            // identifiant : la section Photos reste visible et explique
-            // qu'elle s'ouvrira une fois le produit enregistré.
+            // Le produit n'existe pas encore, donc aucune image ne lui
+            // est rattachee : celles qu'on choisit ici attendent dans
+            // `addPhotos` et partent des sa creation.
             images={[]}
             storeId={storeId}
             productId={null}
+            photosEnAttente={onAddProductImage ? addPhotos : undefined}
+            onPhotosEnAttenteChange={onAddProductImage ? setAddPhotos : undefined}
             onAddImage={onAddProductImage ?? (async () => ({ error: "Envoi indisponible." }))}
             onDeleteImage={
               onDeleteProductImage ?? (async () => ({ error: "Suppression indisponible." }))

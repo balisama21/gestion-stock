@@ -29,6 +29,24 @@ interface DetailsProduitProps {
     ordre?: number,
   ) => Promise<{ error: string | null }>;
   onDeleteImage: (id: string) => Promise<{ error: string | null }>;
+  /**
+   * Les photos choisies avant que le produit n'existe.
+   *
+   * Une photo a besoin d'un identifiant de produit pour être rangée et
+   * rattachée. À la création, cet identifiant n'existe pas encore : le
+   * champ affichait donc « les photos s'ajoutent une fois le produit
+   * créé », ce qui est vrai mais oblige à revenir sur sa fiche, et ce
+   * n'est pas ce qu'on attend d'un formulaire de création.
+   *
+   * On garde donc les fichiers en mémoire, avec leur aperçu, et l'écran
+   * qui appelle ce composant les envoie juste après avoir créé le
+   * produit — au moment où l'identifiant existe enfin.
+   *
+   * Absent : le champ retombe sur l'ancien message, ce qui laisse les
+   * appels non encore adaptés se comporter comme avant.
+   */
+  photosEnAttente?: File[];
+  onPhotosEnAttenteChange?: (fichiers: File[]) => void;
 }
 
 /**
@@ -54,6 +72,8 @@ export const DetailsProduit: React.FC<DetailsProduitProps> = ({
   productId,
   onAddImage,
   onDeleteImage,
+  photosEnAttente = [],
+  onPhotosEnAttenteChange,
 }) => {
   const [envoi, setEnvoi] = useState(false);
   const [erreurImage, setErreurImage] = useState<string | null>(null);
@@ -63,10 +83,43 @@ export const DetailsProduit: React.FC<DetailsProduitProps> = ({
 
   const options = React.useMemo(() => optionsCategories(categories), [categories]);
 
+  /** Le mode « on garde la photo sous le bras » : produit pas encore créé. */
+  const enAttente = !productId && Boolean(onPhotosEnAttenteChange);
+
+  /**
+   * Les aperçus des photos en attente.
+   *
+   * Les adresses temporaires se révoquent quand la liste change ou que
+   * le formulaire se ferme : sans cela, chaque photo choisie laisserait
+   * son fichier en mémoire jusqu'au rechargement de la page.
+   */
+  const apercus = React.useMemo(
+    () => photosEnAttente.map((f) => URL.createObjectURL(f)),
+    [photosEnAttente],
+  );
+  React.useEffect(() => () => apercus.forEach((u) => URL.revokeObjectURL(u)), [apercus]);
+
+  const nombrePhotos = images.length + photosEnAttente.length;
+
   const choisirImage = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const fichier = e.target.files?.[0];
     e.target.value = "";
-    if (!fichier || !storeId || !productId) return;
+    if (!fichier || !storeId) return;
+
+    // Avant que le produit n'existe : on garde le fichier et on montre
+    // l'aperçu tout de suite. Le contrôle du type se fait ici, pour ne
+    // pas laisser découvrir un refus au moment de l'enregistrement.
+    if (enAttente) {
+      if (!fichier.type.startsWith("image/")) {
+        setErreurImage("Seules les images JPEG, PNG, WebP ou AVIF sont acceptées.");
+        return;
+      }
+      setErreurImage(null);
+      onPhotosEnAttenteChange?.([...photosEnAttente, fichier]);
+      return;
+    }
+
+    if (!productId) return;
 
     setEnvoi(true);
     setErreurImage(null);
@@ -143,8 +196,7 @@ export const DetailsProduit: React.FC<DetailsProduitProps> = ({
             />
           </div>
           <p className="mt-1 text-[11px] text-muted-foreground">
-            Scannez l&apos;étiquette une fois ici, et le produit se retrouvera au
-            code à la caisse.
+            Scannez l&apos;étiquette une fois ici, et le produit se retrouvera au code à la caisse.
           </p>
         </div>
 
@@ -311,15 +363,19 @@ export const DetailsProduit: React.FC<DetailsProduitProps> = ({
       {/* ── Les photos ── */}
       <div>
         <p className="mb-2 text-xs font-medium text-muted-foreground">
-          Photos {images.length > 0 && `(${images.length})`}
+          Photos {nombrePhotos > 0 && `(${nombrePhotos})`}
         </p>
 
-        {!productId ? (
+        {!productId && !enAttente ? (
           <p className="text-[11px] text-muted-foreground">
             Les photos s&apos;ajoutent une fois le produit créé.
           </p>
         ) : (
           <>
+            {/* Les deux cas — photo déjà envoyée, photo encore en
+                attente — se présentent exactement pareil : même taille,
+                même recadrage, même coin. Seule la légende du bas
+                change, pour dire ce qui reste à faire. */}
             <div className="flex flex-wrap gap-3">
               {images.map((image, i) => (
                 <figure key={image.id} className="relative">
@@ -340,6 +396,34 @@ export const DetailsProduit: React.FC<DetailsProduitProps> = ({
                   <button
                     type="button"
                     onClick={() => retirerImage(image)}
+                    className="app-btn-icon absolute -right-2 -top-2 h-7 w-7 bg-card"
+                    aria-label="Retirer cette photo"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" />
+                  </button>
+                </figure>
+              ))}
+
+              {apercus.map((apercu, i) => (
+                <figure key={apercu} className="relative">
+                  <img
+                    src={apercu}
+                    alt=""
+                    className="h-20 w-20 rounded-xl border border-border object-cover"
+                  />
+                  {images.length === 0 && i === 0 && (
+                    <span
+                      className="absolute left-1 top-1 rounded-md bg-success-soft px-1 py-0.5"
+                      title="Vignette du produit"
+                    >
+                      <Star className="h-3 w-3 t-success" aria-label="Vignette du produit" />
+                    </span>
+                  )}
+                  <button
+                    type="button"
+                    onClick={() =>
+                      onPhotosEnAttenteChange?.(photosEnAttente.filter((_, j) => j !== i))
+                    }
                     className="app-btn-icon absolute -right-2 -top-2 h-7 w-7 bg-card"
                     aria-label="Retirer cette photo"
                   >
@@ -376,6 +460,9 @@ export const DetailsProduit: React.FC<DetailsProduitProps> = ({
             <p className="mt-2 text-[11px] text-muted-foreground">
               La première photo sert de vignette. Les images sont réduites à 1280 pixels avant
               l&apos;envoi.
+              {enAttente && photosEnAttente.length > 0 && (
+                <> Elles partiront à l&apos;enregistrement du produit.</>
+              )}
             </p>
           </>
         )}
