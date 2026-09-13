@@ -4,17 +4,23 @@ import { SettingsLayout, SettingsTab } from "./settings/SettingsLayout";
 import { supabase } from "../lib/supabase";
 import { useWorkspace } from "../hooks/useWorkspace";
 import { useAuth } from "../hooks/useAuth";
-import { normalizePermissions, type PermissionsMap, type RoleKey } from "../lib/permissions";
+import {
+  normalizePermissions,
+  ROLE_TEMPLATES,
+  type PermissionsMap,
+  type RoleKey,
+} from "../lib/permissions";
 import { AccountSection } from "./settings/AccountSection";
 import { SecuritySection } from "./settings/SecuritySection";
 import { StoreSection, type StoreFormValues } from "./settings/StoreSection";
 import { TeamSection, type TeamMember, type RecoveryRequest } from "./settings/TeamSection";
+import { TransfertBoutiqueSection } from "./settings/TransfertBoutiqueSection";
 import { ChampsPersonnalisesSection } from "./settings/ChampsPersonnalisesSection";
 import { VocabulaireSection } from "./settings/VocabulaireSection";
 import { CategoriesSection } from "./settings/CategoriesSection";
 import { lirePersonnalisation, type Personnalisation } from "../lib/personnalisation";
 import type { ChampPerso } from "../lib/champsPersonnalises";
-import type { Database } from "../lib/database.types";
+import type { Database, Json } from "../lib/database.types";
 import { BillingSection } from "./settings/BillingSection";
 import { Modal } from "./shared/Modal";
 import { compressLogo, formatPoids } from "../lib/compressLogo";
@@ -490,6 +496,29 @@ export const ParametresView: React.FC<ParametresViewProps> = ({
   };
 
   /**
+   * Transmettre la boutique à un membre de l'équipe.
+   *
+   * Rien n'est décidé ici. La fonction en base vérifie elle-même que
+   * l'appelant est bien le propriétaire, que le destinataire fait déjà
+   * partie de l'équipe et qu'il n'est pas livreur ; on lui passe
+   * seulement les permissions que l'ancien propriétaire conservera.
+   * Le gabarit « admin » vit dans permissions.ts — le recopier en SQL
+   * créerait une seconde vérité qui finirait par diverger.
+   */
+  const handleTransfererBoutique = async (userId: string): Promise<string | null> => {
+    if (!inviteStoreId) return "Aucune boutique sélectionnée.";
+    const { error } = await supabase.rpc("transferer_boutique", {
+      p_store_id: inviteStoreId,
+      p_nouveau_proprietaire: userId,
+      p_permissions_ancien: ROLE_TEMPLATES.admin as unknown as Json,
+    });
+    if (error) return error.message;
+    await workspace.refreshStores();
+    await fetchRealMembers();
+    return null;
+  };
+
+  /**
    * Produit un lien de réinitialisation pour un membre, à transmettre
    * de la main à la main.
    *
@@ -589,6 +618,9 @@ export const ParametresView: React.FC<ParametresViewProps> = ({
   };
 
   const ownedStoresForInvite = workspace.accessibleStores.filter((s) => s.owner_id === user?.id);
+
+  /** La boutique affichée dans l'onglet Équipe, si elle nous appartient. */
+  const boutiqueTransmissible = ownedStoresForInvite.find((s) => s.id === inviteStoreId) ?? null;
 
   useEffect(() => {
     if (!inviteStoreId && workspace.activeStore) {
@@ -973,6 +1005,17 @@ export const ParametresView: React.FC<ParametresViewProps> = ({
           estAdminPlateforme={estAdminPlateforme}
           onGenerateForRequest={handleGenerateForRequest}
           onDismissRequest={handleDismissRequest}
+        />
+      )}
+
+      {/* La transmission ne s'affiche que pour la boutique dont on est
+          soi-même propriétaire : un responsable, même avec tous les
+          droits, n'a pas à voir une porte que la base lui fermerait. */}
+      {activeTab === "equipe" && boutiqueTransmissible && (
+        <TransfertBoutiqueSection
+          nomBoutique={boutiqueTransmissible.name}
+          membres={realMembers}
+          onTransferer={handleTransfererBoutique}
         />
       )}
 

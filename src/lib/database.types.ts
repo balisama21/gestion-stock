@@ -2493,6 +2493,14 @@ export type Database = {
       storage_boutique_du_chemin: { Args: { chemin: string }; Returns: string }
       store_allows_write: { Args: { p_store_id: string }; Returns: boolean }
       store_is_locked: { Args: { p_store_id: string }; Returns: boolean }
+      transferer_boutique: {
+        Args: {
+          p_nouveau_proprietaire: string
+          p_permissions_ancien?: Json
+          p_store_id: string
+        }
+        Returns: Json
+      }
       update_product: {
         Args: {
           p_designation: string
