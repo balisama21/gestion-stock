@@ -35,6 +35,8 @@ interface BillingSectionProps {
   isTrial: boolean;
   daysRemaining: number;
   trialEndsAt: Date | null;
+  /** Échéance d'un abonnement au mois. Null pour une activation à vie. */
+  abonnementJusquAu: Date | null;
 
   myLicenseCode: string | null;
   loadingMyLicense: boolean;
@@ -100,6 +102,7 @@ export const BillingSection: React.FC<BillingSectionProps> = ({
   isTrial,
   daysRemaining,
   trialEndsAt,
+  abonnementJusquAu,
   myLicenseCode,
   loadingMyLicense,
   mvolaNumber,
@@ -137,17 +140,43 @@ export const BillingSection: React.FC<BillingSectionProps> = ({
 
   return (
     <>
+      {/* Une boutique au mois est active elle aussi, mais avec une
+          échéance. Lui dire « à vie, aucune action nécessaire » la
+          laisserait se faire verrouiller sans prévenir. */}
       {storeIsActive && (
         <StatusCard
           tone="success"
           icon={<CheckCircle2 className="h-5 w-5" />}
-          badge="Active — à vie"
-          title="Votre boutique est active"
+          badge={abonnementJusquAu ? "Active — au mois" : "Active — à vie"}
+          title={
+            abonnementJusquAu
+              ? `Votre mois court jusqu'au ${abonnementJusquAu.toLocaleDateString("fr-FR", {
+                  day: "numeric",
+                  month: "long",
+                  year: "numeric",
+                })}`
+              : "Votre boutique est active"
+          }
         >
-          <p>
-            Vous pouvez utiliser {storeName || "votre boutique"} sans limite, à vie. Aucune action
-            n'est nécessaire.
-          </p>
+          {abonnementJusquAu ? (
+            <p>
+              Il vous reste{" "}
+              <strong className="text-foreground">
+                {Math.max(
+                  0,
+                  Math.ceil((abonnementJusquAu.getTime() - Date.now()) / (1000 * 60 * 60 * 24)),
+                )}{" "}
+                jour(s)
+              </strong>
+              . Renouvelez avant cette date pour ne pas être interrompu — rien n&apos;est prélevé
+              automatiquement, c&apos;est vous qui décidez de payer le mois suivant.
+            </p>
+          ) : (
+            <p>
+              Vous pouvez utiliser {storeName || "votre boutique"} sans limite, à vie. Aucune
+              action n&apos;est nécessaire.
+            </p>
+          )}
           {activatedAt && (
             <p className="mt-2 text-xs">
               Activée le {new Date(activatedAt).toLocaleDateString("fr-FR")}
@@ -192,7 +221,9 @@ export const BillingSection: React.FC<BillingSectionProps> = ({
           tone="danger"
           icon={<Lock className="h-5 w-5" />}
           badge="Verrouillée"
-          title="Votre période d'essai est terminée"
+          title={
+            abonnementJusquAu ? "Votre mois est terminé" : "Votre période d'essai est terminée"
+          }
         >
           <p>
             Votre boutique est temporairement verrouillée. Activez-la ci-dessous pour retrouver un

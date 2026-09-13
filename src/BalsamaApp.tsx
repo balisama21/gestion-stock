@@ -1200,7 +1200,16 @@ function AppInner() {
     const trialExpired =
       activeStore.activation_status === "trial" &&
       new Date(activeStore.trial_ends_at).getTime() < Date.now();
-    const isStoreLocked = activeStore.activation_status === "locked" || trialExpired;
+    // Une boutique au mois porte une échéance : passée cette date elle
+    // est verrouillée bien qu'elle soit « active ». Ce calcul reproduit
+    // exactement celui de store_is_locked() en base — s'il en divergeait,
+    // l'écran laisserait entrer là où le serveur refuse d'écrire.
+    const moisEchu =
+      activeStore.activation_status === "active" &&
+      activeStore.abonnement_jusqu_au != null &&
+      new Date(activeStore.abonnement_jusqu_au).getTime() < Date.now();
+    const isStoreLocked =
+      activeStore.activation_status === "locked" || trialExpired || moisEchu;
 
     if (isStoreLocked) {
       return (

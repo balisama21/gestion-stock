@@ -843,9 +843,20 @@ export const ParametresView: React.FC<ParametresViewProps> = ({
     ? new Date(workspace.activeStore.trial_ends_at)
     : null;
   const isTrialExpired = trialEndsAt ? trialEndsAt.getTime() < Date.now() : false;
+  // Échéance d'un abonnement au mois. Nulle pour une activation à vie :
+  // ces boutiques-là ne se verrouillent jamais pour cette raison.
+  const abonnementJusquAu = workspace.activeStore?.abonnement_jusqu_au
+    ? new Date(workspace.activeStore.abonnement_jusqu_au)
+    : null;
+  const moisEchu = abonnementJusquAu ? abonnementJusquAu.getTime() < Date.now() : false;
+  // Ces deux calculs reproduisent store_is_locked() en base. S'ils en
+  // divergeaient, l'écran annoncerait « active » là où le serveur refuse
+  // déjà d'écrire.
   const storeIsLocked =
-    storeActivationStatus === "locked" || (storeActivationStatus === "trial" && isTrialExpired);
-  const storeIsActive = storeActivationStatus === "active";
+    storeActivationStatus === "locked" ||
+    (storeActivationStatus === "trial" && isTrialExpired) ||
+    (storeActivationStatus === "active" && moisEchu);
+  const storeIsActive = storeActivationStatus === "active" && !moisEchu;
   const daysRemaining = trialEndsAt
     ? Math.max(0, Math.ceil((trialEndsAt.getTime() - Date.now()) / (1000 * 60 * 60 * 24)))
     : 0;
@@ -1042,6 +1053,7 @@ export const ParametresView: React.FC<ParametresViewProps> = ({
           isTrial={storeActivationStatus === "trial"}
           daysRemaining={daysRemaining}
           trialEndsAt={trialEndsAt}
+          abonnementJusquAu={abonnementJusquAu}
           myLicenseCode={myLicenseCode}
           loadingMyLicense={loadingMyLicense}
           mvolaNumber={MVOLA_NUMBER}
