@@ -653,7 +653,7 @@ export const ProduitsView: React.FC<ProduitsViewProps> = ({
         <form id="product-add-form" onSubmit={handleSubmit} className="space-y-4">
           <div>
             <label className="mb-1.5 block text-sm font-medium text-foreground">
-              Désignation *
+              Désignation
             </label>
             <input
               type="text"
@@ -668,7 +668,7 @@ export const ProduitsView: React.FC<ProduitsViewProps> = ({
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
               <label className="mb-1.5 block text-sm font-medium text-foreground">
-                Prix d'achat (Ar) *
+                Prix d'achat (Ar)
               </label>
               <input
                 type="number"
@@ -680,7 +680,7 @@ export const ProduitsView: React.FC<ProduitsViewProps> = ({
             </div>
             <div>
               <label className="mb-1.5 block text-sm font-medium text-foreground">
-                Prix de vente (Ar) *
+                Prix de vente (Ar)
               </label>
               <input
                 type="number"
@@ -706,7 +706,7 @@ export const ProduitsView: React.FC<ProduitsViewProps> = ({
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
               <label className="mb-1.5 block text-sm font-medium text-foreground">
-                Stock initial *
+                Stock initial
               </label>
               <input
                 type="number"
@@ -718,7 +718,7 @@ export const ProduitsView: React.FC<ProduitsViewProps> = ({
             </div>
             <div>
               <label className="mb-1.5 block text-sm font-medium text-foreground">
-                Seuil d'alerte *
+                Seuil d'alerte
               </label>
               <input
                 type="number"
@@ -805,7 +805,7 @@ export const ProduitsView: React.FC<ProduitsViewProps> = ({
           <form id="product-edit-form" onSubmit={handleEditSubmit} className="space-y-4">
             <div>
               <label className="mb-1.5 block text-sm font-medium text-foreground">
-                Désignation *
+                Désignation
               </label>
               <input
                 type="text"
@@ -819,7 +819,7 @@ export const ProduitsView: React.FC<ProduitsViewProps> = ({
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div>
                 <label className="mb-1.5 block text-sm font-medium text-foreground">
-                  Prix d'achat (Ar) *
+                  Prix d'achat (Ar)
                 </label>
                 <input
                   type="number"
@@ -831,7 +831,7 @@ export const ProduitsView: React.FC<ProduitsViewProps> = ({
               </div>
               <div>
                 <label className="mb-1.5 block text-sm font-medium text-foreground">
-                  Prix de vente (Ar) *
+                  Prix de vente (Ar)
                 </label>
                 <input
                   type="number"
@@ -857,7 +857,7 @@ export const ProduitsView: React.FC<ProduitsViewProps> = ({
 
             <div>
               <label className="mb-1.5 block text-sm font-medium text-foreground">
-                Seuil d'alerte *
+                Seuil d'alerte
               </label>
               <input
                 type="number"
