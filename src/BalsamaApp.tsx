@@ -1502,6 +1502,15 @@ function AppInner() {
                         ? storeData.deletePurchase
                         : undefined
                     }
+                    // Corriger un achat : le stock bouge du delta de
+                    // quantité, le total est recalculé et le règlement
+                    // comptant est repris, le tout en une transaction.
+                    onUpdatePurchase={
+                      workspace.isOwner ||
+                      hasModuleAction(workspace.memberPermissionsDetailed ?? {}, "achats", "edit")
+                        ? storeData.updatePurchase
+                        : undefined
+                    }
                     reapprovisionner={reapprovisionner}
                     onReapprovisionnementOuvert={() => setReapprovisionner(null)}
                     visibleFields={achatsVisibleFields}

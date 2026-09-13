@@ -361,6 +361,23 @@ export interface StoreData {
   }) => Promise<{ error: string | null }>;
 
   deletePurchase: (id: string) => Promise<{ error: string | null }>;
+  /**
+   * Corriger un achat deja enregistre.
+   *
+   * `montantRegle` dit ce qui est reellement paye APRES correction. Nul,
+   * les reglements ne bougent pas — et la base refuse alors de faire
+   * passer le total sous ce qui a deja ete verse.
+   */
+  updatePurchase: (
+    id: string,
+    data: {
+      date: string;
+      quantite: number;
+      prixAchatUnit: number;
+      fournisseur: string;
+      montantRegle?: number | null;
+    },
+  ) => Promise<{ error: string | null }>;
 
   // CRUD Expenses
   addExpense: (
@@ -1006,6 +1023,41 @@ export function useStoreData(storeId: string | null, userId: string | null): Sto
     async (id: string) => {
       const { error } = await supabase.rpc("delete_purchase", {
         p_purchase_id: id,
+      });
+
+      if (!error) fetchAll();
+
+      return { error: error?.message ?? null };
+    },
+    [fetchAll],
+  );
+
+  /**
+   * Corriger un achat.
+   *
+   * Tout passe par `modifier_achat` : le stock bouge du delta de
+   * quantite, le total est recalcule, le reglement comptant est repris,
+   * et le tout tient dans une seule transaction. Une ecriture directe
+   * sur la table laisserait le stock et le reglement derriere.
+   */
+  const updatePurchase = useCallback(
+    async (
+      id: string,
+      data: {
+        date: string;
+        quantite: number;
+        prixAchatUnit: number;
+        fournisseur: string;
+        montantRegle?: number | null;
+      },
+    ) => {
+      const { error } = await supabase.rpc("modifier_achat", {
+        p_purchase_id: id,
+        p_date: data.date,
+        p_quantite: data.quantite,
+        p_prix_achat_unit: data.prixAchatUnit,
+        p_fournisseur: data.fournisseur,
+        p_montant_regle: data.montantRegle ?? undefined,
       });
 
       if (!error) fetchAll();
@@ -1886,6 +1938,7 @@ export function useStoreData(storeId: string | null, userId: string | null): Sto
     refundSale,
     addPurchase,
     deletePurchase,
+    updatePurchase,
     addExpense,
     updateExpense,
     deleteExpense,

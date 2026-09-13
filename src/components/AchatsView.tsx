@@ -20,6 +20,7 @@ import {
   Tag,
   Download,
   Trash2,
+  Pencil,
 } from "lucide-react";
 import {
   formatCurrency,
@@ -100,6 +101,25 @@ interface AchatsViewProps {
    * Absent quand l'action « supprimer » n'est pas accordée.
    */
   onDeletePurchase?: (id: string) => Promise<{ error: string | null }>;
+  /**
+   * Corriger un achat déjà enregistré.
+   *
+   * La DÉSIGNATION n'y figure pas, et ce n'est pas un oubli : changer le
+   * produit concerné reviendrait à déplacer du stock d'un article vers
+   * un autre et à rejouer la règle de correspondance qui a créé la
+   * fiche. C'est une suppression suivie d'un nouvel achat, pas une
+   * correction — et l'écran le dit plutôt que de laisser essayer.
+   */
+  onUpdatePurchase?: (
+    id: string,
+    data: {
+      date: string;
+      quantite: number;
+      prixAchatUnit: number;
+      fournisseur: string;
+      montantRegle?: number | null;
+    },
+  ) => Promise<{ error: string | null }>;
   reapprovisionner?: { designation: string; prixAchat: number; fournisseur: string } | null;
   /** Appelé une fois le formulaire ouvert, pour ne pas le rouvrir sans fin. */
   onReapprovisionnementOuvert?: () => void;
@@ -125,6 +145,7 @@ export const AchatsView: React.FC<AchatsViewProps> = ({
   fournisseurs = [],
   storeId = null,
   onDeletePurchase,
+  onUpdatePurchase,
   reapprovisionner = null,
   onReapprovisionnementOuvert,
   onEditProductDetails,
@@ -144,6 +165,59 @@ export const AchatsView: React.FC<AchatsViewProps> = ({
   const [selectedPurchaseReceipt, setSelectedPurchaseReceipt] = useState<Purchase | null>(null);
   /** L'achat qu'on s'apprête à supprimer, et ce que la base en dit. */
   const [achatASupprimer, setAchatASupprimer] = useState<Purchase | null>(null);
+  /** L'achat qu'on corrige, et la saisie en cours. */
+  const [achatAModifier, setAchatAModifier] = useState<Purchase | null>(null);
+  const [modDate, setModDate] = useState("");
+  const [modQuantite, setModQuantite] = useState("");
+  const [modPrix, setModPrix] = useState("");
+  const [modFournisseur, setModFournisseur] = useState("");
+  const [modRegle, setModRegle] = useState("");
+  const [modEnCours, setModEnCours] = useState(false);
+  const [modErreur, setModErreur] = useState<string | null>(null);
+
+  /**
+   * Ce que la correction va déplacer, calculé pendant la saisie.
+   *
+   * Un achat touche trois choses à la fois — le stock du produit, le
+   * total qui pèse sur la caisse, le règlement versé au fournisseur —
+   * et rien ne le dit tant qu'on n'a pas enregistré. Ces trois écarts
+   * s'affichent donc sous le formulaire, avant le clic.
+   */
+  const effetCorrection = useMemo(() => {
+    if (!achatAModifier) {
+      return { stock: 0, tresorerie: 0, nouveauTotal: 0, resteDu: 0 };
+    }
+    const q = Math.trunc(Number(modQuantite) || 0);
+    const nouveauTotal = q * (Number(modPrix) || 0);
+    const regle = Number(modRegle) || 0;
+    return {
+      stock: q - achatAModifier.quantite,
+      // La trésorerie est la somme des achats : elle remonte de ce que
+      // le total perd, et inversement.
+      tresorerie: achatAModifier.totalAchat - nouveauTotal,
+      nouveauTotal,
+      resteDu: Math.max(0, nouveauTotal - regle),
+      /**
+       * On ne règle pas plus que ce qu'on doit.
+       *
+       * Le cas arrive tout seul : baisser un prix sur un achat réglé
+       * comptant laisse un règlement supérieur au nouveau total. La base
+       * le refuse ; le dire ici évite de le découvrir en cliquant.
+       */
+      regleTropHaut: regle > nouveauTotal,
+      excedent: Math.max(0, regle - nouveauTotal),
+    };
+  }, [achatAModifier, modQuantite, modPrix, modRegle]);
+
+  const ouvrirCorrection = (p: Purchase) => {
+    setModDate(p.date);
+    setModQuantite(String(p.quantite));
+    setModPrix(String(p.prixAchatUnit));
+    setModFournisseur(p.fournisseur);
+    setModRegle(String(p.montantPaye));
+    setModErreur(null);
+    setAchatAModifier(p);
+  };
   const [suppressionEnCours, setSuppressionEnCours] = useState(false);
   const [erreurSuppression, setErreurSuppression] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
@@ -545,6 +619,16 @@ export const AchatsView: React.FC<AchatsViewProps> = ({
                   <Eye className="w-4 h-4" />
                   Voir le bon
                 </button>
+                {onUpdatePurchase && (
+                  <button
+                    onClick={() => ouvrirCorrection(p)}
+                    className="app-btn-icon h-9 w-9"
+                    title={`Corriger l'achat ${p.numero}`}
+                    aria-label={`Corriger l'achat ${p.numero}`}
+                  >
+                    <Pencil className="h-4 w-4" />
+                  </button>
+                )}
                 {onDeletePurchase && (
                   <button
                     onClick={() => {
@@ -563,6 +647,222 @@ export const AchatsView: React.FC<AchatsViewProps> = ({
           }))}
         />
       </div>
+
+      {/* ── Corriger un achat ──
+          Un achat touche trois choses à la fois : le stock du produit,
+          le total qui pèse sur la caisse, et le règlement déjà versé au
+          fournisseur. L'écran montre les trois écarts AVANT
+          d'enregistrer, plutôt que de laisser découvrir après coup ce
+          qui a bougé.
+
+          Le champ « montant réglé » n'est pas un luxe : les achats de
+          cette application sont réglés comptant, au centime près. Sans
+          lui, baisser un prix — le cas le plus courant d'une faute de
+          frappe — laisserait un règlement supérieur au total, et la base
+          refuserait la correction. */}
+      {achatAModifier && onUpdatePurchase && (
+        <Modal
+          open
+          onClose={() => setAchatAModifier(null)}
+          size="md"
+          icon={<Pencil className="h-4 w-4" />}
+          title="Corriger l'achat"
+          description={`N° ${achatAModifier.numero}`}
+          dismissible={!modEnCours}
+          footer={
+            <>
+              <button
+                onClick={() => setAchatAModifier(null)}
+                disabled={modEnCours}
+                className="app-btn-secondary"
+              >
+                Annuler
+              </button>
+              <button
+                onClick={async () => {
+                  setModEnCours(true);
+                  setModErreur(null);
+                  const { error } = await onUpdatePurchase(achatAModifier.id, {
+                    date: modDate,
+                    quantite: Math.trunc(Number(modQuantite) || 0),
+                    prixAchatUnit: Number(modPrix) || 0,
+                    fournisseur: modFournisseur.trim(),
+                    montantRegle: Number(modRegle) || 0,
+                  });
+                  setModEnCours(false);
+                  if (error) setModErreur(error);
+                  else setAchatAModifier(null);
+                }}
+                disabled={
+                  modEnCours ||
+                  Math.trunc(Number(modQuantite) || 0) <= 0 ||
+                  effetCorrection.regleTropHaut
+                }
+                className="app-btn-primary"
+              >
+                {modEnCours ? "Enregistrement…" : "Enregistrer la correction"}
+              </button>
+            </>
+          }
+        >
+          <div className="space-y-4">
+            {/* La désignation se lit, ne se change pas : le produit
+                concerné est décidé à l'enregistrement et ne se déplace
+                pas après coup. */}
+            <div>
+              <label className="mb-1.5 block text-sm font-medium text-foreground">Produit</label>
+              <input
+                value={getPurchaseLabel(achatAModifier, products)}
+                readOnly
+                disabled
+                className="app-field opacity-70"
+              />
+              <p className="mt-1.5 text-xs text-muted-foreground">
+                Pour changer de produit, supprimez cet achat et enregistrez-en un nouveau : le
+                stock de deux articles différents serait concerné.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+              <div>
+                <label
+                  htmlFor="mod-date"
+                  className="mb-1.5 block text-sm font-medium text-foreground"
+                >
+                  Date
+                </label>
+                <input
+                  id="mod-date"
+                  type="date"
+                  value={modDate}
+                  onChange={(e) => setModDate(e.target.value)}
+                  className="app-field"
+                />
+              </div>
+              <div>
+                <label htmlFor="mod-qte" className="mb-1.5 block text-sm font-medium text-foreground">
+                  Quantité
+                </label>
+                <input
+                  id="mod-qte"
+                  type="number"
+                  inputMode="numeric"
+                  min={1}
+                  value={modQuantite}
+                  onChange={(e) => setModQuantite(e.target.value)}
+                  className="app-field"
+                />
+              </div>
+            </div>
+
+            {showPrix && (
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <div>
+                  <label
+                    htmlFor="mod-prix"
+                    className="mb-1.5 block text-sm font-medium text-foreground"
+                  >
+                    Prix unitaire
+                  </label>
+                  <input
+                    id="mod-prix"
+                    type="number"
+                    inputMode="numeric"
+                    min={0}
+                    value={modPrix}
+                    onChange={(e) => setModPrix(e.target.value)}
+                    className="app-field"
+                  />
+                </div>
+                <div>
+                  <label
+                    htmlFor="mod-regle"
+                    className="mb-1.5 block text-sm font-medium text-foreground"
+                  >
+                    Montant réglé
+                  </label>
+                  <input
+                    id="mod-regle"
+                    type="number"
+                    inputMode="numeric"
+                    min={0}
+                    value={modRegle}
+                    onChange={(e) => setModRegle(e.target.value)}
+                    className="app-field"
+                  />
+                  {effetCorrection.regleTropHaut && (
+                    <p className="mt-1.5 flex items-start gap-1.5 text-xs t-warning">
+                      <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
+                      <span>
+                        {formatCurrency(effetCorrection.excedent)} de trop : on ne règle pas plus
+                        que le montant de l&apos;achat.
+                      </span>
+                    </p>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {showFournisseur && (
+              <div>
+                <label
+                  htmlFor="mod-fournisseur"
+                  className="mb-1.5 block text-sm font-medium text-foreground"
+                >
+                  Fournisseur
+                </label>
+                <input
+                  id="mod-fournisseur"
+                  value={modFournisseur}
+                  onChange={(e) => setModFournisseur(e.target.value)}
+                  className="app-field"
+                />
+              </div>
+            )}
+
+            {/* Ce que la correction va déplacer, avant de l'enregistrer. */}
+            {(effetCorrection.stock !== 0 || effetCorrection.tresorerie !== 0) && (
+              <div className="rounded-xl border border-border p-3">
+                <p className="mb-1.5 text-xs font-medium uppercase tracking-wide text-muted-foreground">
+                  Ce que la correction déplace
+                </p>
+                <ul className="space-y-1 text-sm text-muted-foreground">
+                  {effetCorrection.stock !== 0 && (
+                    <li>
+                      Le stock de « {getPurchaseLabel(achatAModifier, products)} »{" "}
+                      {effetCorrection.stock > 0 ? "montera" : "descendra"} de{" "}
+                      <strong>{Math.abs(effetCorrection.stock)}</strong> unité
+                      {Math.abs(effetCorrection.stock) > 1 ? "s" : ""}.
+                    </li>
+                  )}
+                  {showPrix && effetCorrection.tresorerie !== 0 && (
+                    <li>
+                      La trésorerie {effetCorrection.tresorerie > 0 ? "remontera" : "baissera"} de{" "}
+                      <strong>{formatCurrency(Math.abs(effetCorrection.tresorerie))}</strong>.
+                    </li>
+                  )}
+                  {showPrix && (
+                    <li>
+                      Nouveau total :{" "}
+                      <strong>{formatCurrency(effetCorrection.nouveauTotal)}</strong>
+                      {effetCorrection.resteDu > 0 && (
+                        <> — reste dû {formatCurrency(effetCorrection.resteDu)}</>
+                      )}
+                    </li>
+                  )}
+                </ul>
+              </div>
+            )}
+
+            {modErreur && (
+              <p className="flex items-start gap-1.5 text-sm t-danger">
+                <AlertCircle className="mt-0.5 h-4 w-4 shrink-0" />
+                <span>{modErreur}</span>
+              </p>
+            )}
+          </div>
+        </Modal>
+      )}
 
       {/* ── Supprimer un achat ──
           Un achat saisi par erreur n'est pas qu'une ligne dans une

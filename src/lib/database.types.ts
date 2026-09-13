@@ -2668,6 +2668,17 @@ export type Database = {
       is_platform_admin: { Args: never; Returns: boolean }
       is_store_member: { Args: { p_store_id: string }; Returns: boolean }
       is_store_owner: { Args: { p_store_id: string }; Returns: boolean }
+      modifier_achat: {
+        Args: {
+          p_date: string
+          p_fournisseur: string
+          p_montant_regle?: number
+          p_prix_achat_unit: number
+          p_purchase_id: string
+          p_quantite: number
+        }
+        Returns: Json
+      }
       next_store_counter: {
         Args: { p_counter_type: string; p_store_id: string }
         Returns: number
