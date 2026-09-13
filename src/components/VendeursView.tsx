@@ -314,6 +314,23 @@ export const VendeursView: React.FC<VendeursViewProps> = ({
         }
       />
 
+      {/* ── Ce que « en poche » veut dire, quand on est encore seul ──
+          Le solde répond à « combien cette personne détient-elle et
+          n'a pas rendu ». Seul dans sa boutique, on est à la fois celui
+          qui encaisse et celui qui garde la caisse : le chiffre est
+          juste mais ne désigne rien d'autre que le cumul de ses propres
+          ventes. Le dire ici évite de le lire comme un solde
+          disponible — c'est la trésorerie qui porte celui-là. */}
+      {sellers.length <= 1 && (
+        <p className="app-card px-4 py-3 text-sm leading-relaxed text-muted-foreground">
+          Tant que vous vendez seul, ce solde n&apos;est que le cumul de vos propres
+          encaissements : votre poche et votre caisse sont le même argent. Il prend tout son sens
+          dès qu&apos;un collaborateur encaisse à votre place — il dira alors combien il détient et
+          ne vous a pas encore remis. L&apos;argent réellement disponible, lui, se lit dans la
+          trésorerie.
+        </p>
+      )}
+
       {/* Le solde net cumulé est le chiffre qui décide s'il faut aller
           récupérer de l'argent : il est posé seul, avant tout le reste. */}
       <div className="app-card flex items-center justify-between gap-4 border-l-2 border-l-primary p-4">

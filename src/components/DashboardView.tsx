@@ -359,24 +359,35 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Left column */}
         <div className="space-y-5">
-          {/* Vendeurs — liste dense, sans fond ni encadré par ligne */}
-          <div className="app-card overflow-hidden">
-            <div className="flex items-center justify-between border-b border-border px-4 py-3">
-              <h3 className="app-section-title">
-                <Users className="h-3.5 w-3.5" /> Solde net vendeurs
-              </h3>
-              <button
-                onClick={() => onNavigateTab("vendeurs")}
-                className="text-xs font-medium text-primary hover:underline"
-              >
-                Gérer
-              </button>
-            </div>
-            {sellers.length === 0 ? (
-              <p className="px-4 py-6 text-center text-sm text-muted-foreground">
-                Aucun vendeur actif.
-              </p>
-            ) : (
+          {/* ── Solde net vendeurs ──
+              Ce bloc répond à une seule question : « combien d'argent
+              encaissé une personne détient-elle encore, et n'a pas
+              rendu à la caisse ? » Il n'a donc de sens qu'à partir de
+              DEUX vendeurs.
+
+              Seul dans sa boutique, le commerçant est à la fois celui
+              qui encaisse et celui qui garde la caisse : sa poche et sa
+              trésorerie sont le même tas d'argent. Lui montrer un
+              second chiffre qui prétend dire autre chose sans le dire
+              l'induit en erreur — il croit lire un solde disponible et
+              lit un cumul de ses ventes, qui ne redescend jamais.
+
+              Le calcul n'est pas modifié, et l'écran Vendeurs reste
+              accessible : c'est l'affichage qui se tait tant que la
+              question ne se pose pas. */}
+          {sellers.length > 1 && (
+            <div className="app-card overflow-hidden">
+              <div className="flex items-center justify-between border-b border-border px-4 py-3">
+                <h3 className="app-section-title">
+                  <Users className="h-3.5 w-3.5" /> Solde net vendeurs
+                </h3>
+                <button
+                  onClick={() => onNavigateTab("vendeurs")}
+                  className="text-xs font-medium text-primary hover:underline"
+                >
+                  Gérer
+                </button>
+              </div>
               <div className="app-list">
                 {sellers.map((v) => (
                   <div key={v.id} className="app-list-row justify-between">
@@ -391,8 +402,8 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                   </div>
                 ))}
               </div>
-            )}
-          </div>
+            </div>
+          )}
 
           {/* Alertes de stock — la couleur ne sert qu'au badge de statut */}
           <div className="app-card overflow-hidden">
