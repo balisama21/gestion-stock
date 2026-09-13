@@ -1220,8 +1220,23 @@ td {
     @apply inline-flex shrink-0 items-center justify-center rounded-xl border border-transparent
       bg-transparent text-foreground transition-colors hover:bg-accent focus-visible:outline-none
       focus-visible:ring-2 focus-visible:ring-ring;
-    height: 44px;
-    width: 44px;
+    /* ── 44 px, quoi que dise l'appel ──
+
+       Quarante-sept des cinquante-sept boutons d'icône imposaient leur
+       taille dans le JSX — `h-9 w-9`, `h-8`, parfois `h-7` — soit 26 à
+       36 pixels, sous la cible tactile que cette feuille défend partout
+       ailleurs. Les utilitaires de Tailwind l'emportant sur cette
+       couche, `height`/`width` ne pesaient rien : `min-height` et
+       `min-width`, eux, gagnent contre une largeur fixe.
+
+       Pourquoi agrandir la boîte plutôt que d'étendre la zone au-delà
+       de l'icône : deux boutons voisins séparés de quatre pixels
+       occupent soixante-douze pixels à eux deux. On n'y loge pas deux
+       cibles de quarante-quatre sans qu'elles se chevauchent — et un
+       appui destiné au crayon déclencherait la corbeille. La place, il
+       faut la prendre pour de bon. */
+    min-height: 44px;
+    min-width: 44px;
     transition:
       background-color 150ms ease,
       transform 90ms ease-out;
