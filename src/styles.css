@@ -1204,9 +1204,21 @@ td {
   .app-btn-danger:hover {
     filter: brightness(0.95);
   }
+  /* Un bouton d'icône ne porte plus ni cadre ni fond.
+
+     C'est la même règle que celle appliquée plus haut au pied des
+     fiches : une seule action porte un cadre, celle qu'on est venu
+     faire. Un crayon et une corbeille enfermés chacun dans son carré
+     gris, à côté d'un « Voir le bon » posé à plat, faisaient trois
+     traitements pour trois actions de même rang — et l'œil ne savait
+     plus laquelle comptait.
+
+     Il reste l'icône, ce qui suffit à la reconnaître, et le survol ou
+     l'appui la rallument. La bordure transparente est conservée pour
+     que la cible tactile garde exactement la même taille qu'avant. */
   .app-btn-icon {
-    @apply inline-flex shrink-0 items-center justify-center rounded-xl border border-border
-      bg-muted text-foreground transition-colors hover:bg-accent focus-visible:outline-none
+    @apply inline-flex shrink-0 items-center justify-center rounded-xl border border-transparent
+      bg-transparent text-foreground transition-colors hover:bg-accent focus-visible:outline-none
       focus-visible:ring-2 focus-visible:ring-ring;
     height: 44px;
     width: 44px;
