@@ -1363,6 +1363,10 @@ function AppInner() {
                     products={products}
                     locale={locale}
                     settings={storeSettings}
+                    categories={storeData.categories}
+                    fournisseurs={storeData.suppliers}
+                    storeId={workspace.activeStore?.id ?? null}
+                    onEditProductDetails={storeData.updateProductDetails}
                     onAddPurchase={handleAddPurchase}
                     visibleFields={achatsVisibleFields}
                   />

@@ -703,7 +703,12 @@ export function useStoreData(storeId: string | null, userId: string | null): Sto
           ? crypto.randomUUID()
           : `product-${Date.now()}-${Math.random()}`;
 
-      const { error } = await supabase.rpc("create_product", {
+      // La fonction renvoie la ligne créée en entier ; on ne gardait que
+      // l'erreur. L'identifiant sert maintenant à écrire la fiche
+      // descriptive juste après, sur le produit qui vient de naître —
+      // sans lui, il faudrait le retrouver à tâtons dans la liste
+      // rechargée, ou créer d'abord puis rouvrir pour compléter.
+      const { data: cree, error } = await supabase.rpc("create_product", {
         p_store_id: storeId,
         p_designation: data.designation,
         p_prix_achat: data.prix_achat,
@@ -718,7 +723,10 @@ export function useStoreData(storeId: string | null, userId: string | null): Sto
 
       if (!error) fetchAll();
 
-      return { error: error?.message ?? null };
+      const id =
+        cree && typeof cree === "object" && "id" in cree ? ((cree as { id: string }).id ?? null) : null;
+
+      return { error: error?.message ?? null, id };
     },
     [storeId, userId, fetchAll],
   );
@@ -846,7 +854,11 @@ export function useStoreData(storeId: string | null, userId: string | null): Sto
           ? crypto.randomUUID()
           : `purchase-${Date.now()}-${Math.random()}`;
 
-      const { error } = await supabase.rpc("add_purchase", {
+      // Comme pour la création d'un produit, la fonction renvoie la
+      // ligne écrite. On en garde le `product_id` : quand l'achat vient
+      // de créer le produit, c'est le seul moyen d'enregistrer ensuite
+      // sa fiche descriptive sans avoir à le retrouver dans la liste.
+      const { data: ecrit, error } = await supabase.rpc("add_purchase", {
         p_store_id: storeId,
         p_date: data.date,
         p_product_id: data.product_id ?? null,
@@ -867,7 +879,12 @@ export function useStoreData(storeId: string | null, userId: string | null): Sto
 
       if (!error) fetchAll();
 
-      return { error: error?.message ?? null };
+      const productId =
+        ecrit && typeof ecrit === "object" && "product_id" in ecrit
+          ? ((ecrit as { product_id: string | null }).product_id ?? null)
+          : null;
+
+      return { error: error?.message ?? null, productId };
     },
     [storeId, userId, fetchAll],
   );

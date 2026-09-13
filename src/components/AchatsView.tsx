@@ -28,6 +28,9 @@ import {
   getPurchaseVariant,
 } from "../utils/formulas";
 import { VariantBadge } from "./shared/VariantBadge";
+import { DetailsProduit } from "./produits/DetailsProduit";
+import { DETAILS_VIDES, detailsVersBase, type ValeursDetails } from "../lib/detailsProduit";
+import type { Database } from "../lib/database.types";
 import { PageHeader } from "./shared/PageHeader";
 import { FilterBar, FilterField } from "./shared/FilterBar";
 import { DataList } from "./shared/DataList";
@@ -61,7 +64,20 @@ interface AchatsViewProps {
     /** Ce qui sort de la caisse maintenant. Omis = réglé en totalité. */
     montantPaye?: number | null;
     dateEcheance?: string | null;
-  }) => Promise<{ error: string | null }>;
+    /** Ce qui décrit le produit, quand l'achat vient d'en créer un. */
+  }) => Promise<{ error: string | null; productId?: string | null }>;
+  /**
+   * De quoi remplir la fiche produit depuis un achat.
+   *
+   * Un achat dont la désignation ne correspond à rien CRÉE un produit :
+   * il faut donc pouvoir le décrire ici, sinon il naîtrait sans
+   * catégorie ni code-barres et il faudrait aller le compléter ailleurs.
+   * C'est exactement la même fiche que dans l'écran Produits.
+   */
+  categories?: Database["public"]["Tables"]["categories"]["Row"][];
+  fournisseurs?: Database["public"]["Tables"]["suppliers"]["Row"][];
+  storeId?: string | null;
+  onEditProductDetails?: (id: string, data: any) => Promise<{ error: string | null }>;
   /**
    * Champs visibles pour l'utilisateur courant — `null`/`undefined` = tout
    * visible (propriétaire). Permet à un collaborateur de consulter les
@@ -79,6 +95,10 @@ export const AchatsView: React.FC<AchatsViewProps> = ({
   locale,
   settings,
   onAddPurchase,
+  categories = [],
+  fournisseurs = [],
+  storeId = null,
+  onEditProductDetails,
   visibleFields,
 }) => {
   // null/undefined = tout visible (propriétaire). Sinon, seuls les champs
@@ -94,6 +114,8 @@ export const AchatsView: React.FC<AchatsViewProps> = ({
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedPurchaseReceipt, setSelectedPurchaseReceipt] = useState<Purchase | null>(null);
   const [saving, setSaving] = useState(false);
+  /** La fiche du produit que cet achat s'apprête à créer, le cas échéant. */
+  const [detailsProduit, setDetailsProduit] = useState<ValeursDetails>(DETAILS_VIDES);
 
   // Search & Filter state
   const [searchTerm, setSearchTerm] = useState("");
@@ -141,6 +163,23 @@ export const AchatsView: React.FC<AchatsViewProps> = ({
     }
   }
 
+  /**
+   * Cet achat va-t-il créer un produit, ou recharger un existant ?
+   *
+   * La règle est recopiée telle quelle depuis l'écriture — désignation,
+   * prix d'achat et fournisseur identiques — et c'est délibéré : si
+   * l'écran jugeait autrement que la base, il montrerait une fiche pour
+   * un produit qui ne sera jamais créé, ou la cacherait pour un produit
+   * qui va l'être.
+   */
+  const produitCorrespondant = products.find(
+    (p) =>
+      p.designation.toLowerCase() === designation.trim().toLowerCase() &&
+      Math.abs(p.prixAchat - Number(prixAchatUnit)) < 0.01 &&
+      p.fournisseur.toLowerCase() === fournisseur.trim().toLowerCase(),
+  );
+  const creeUnProduit = !produitCorrespondant && designation.trim() !== "";
+
   // Auto-fill form when selecting an existing product
   const handleSelectExistingProduct = (prodId: string) => {
     if (!prodId) return;
@@ -175,13 +214,33 @@ export const AchatsView: React.FC<AchatsViewProps> = ({
       montantPaye: regle,
       dateEcheance: reglement === "credit" && echeance ? echeance : null,
     });
-    setSaving(false);
 
     if (result.error) {
+      setSaving(false);
       setErreurAchat(result.error);
       return;
     }
 
+    // L'achat est passé. Si c'est lui qui vient de créer le produit et
+    // que sa fiche a été remplie, on l'enregistre maintenant — sur
+    // l'identifiant que l'achat rapporte, pas sur une recherche.
+    const ficheRemplie = JSON.stringify(detailsProduit) !== JSON.stringify(DETAILS_VIDES);
+    if (creeUnProduit && ficheRemplie && onEditProductDetails && result.productId) {
+      const details = await onEditProductDetails(
+        result.productId,
+        detailsVersBase(detailsProduit),
+      );
+      if (details.error) {
+        setSaving(false);
+        // L'achat et le stock, eux, sont bien enregistrés : le dire,
+        // sinon l'utilisateur ressaisirait l'achat en double.
+        setErreurAchat(`${details.error} L'achat, lui, a bien été enregistré.`);
+        return;
+      }
+    }
+
+    setSaving(false);
+    setDetailsProduit(DETAILS_VIDES);
     setDesignation("");
     setReglement("comptant");
     setMontantRegle(0);
@@ -751,6 +810,33 @@ export const AchatsView: React.FC<AchatsViewProps> = ({
               )}
             />
           </div>
+
+          {/* ── La fiche du produit que cet achat va créer ──
+              Elle n'apparaît QUE dans ce cas. Recharger un produit qui
+              existe déjà ne doit pas proposer une fiche vide : on
+              écraserait sa catégorie et son code-barres par du blanc,
+              et personne ne comprendrait pourquoi. */}
+          {creeUnProduit && (
+            <div className="border-t border-border pt-4">
+              <p className="mb-1 text-sm font-medium text-foreground">Nouveau produit au catalogue</p>
+              <p className="mb-4 text-xs leading-relaxed text-muted-foreground">
+                Cette désignation ne correspond à aucun produit existant : elle en créera un.
+                Décrivez-le maintenant si vous le souhaitez — tout est facultatif, et modifiable
+                ensuite depuis l&apos;écran Produits.
+              </p>
+              <DetailsProduit
+                valeurs={detailsProduit}
+                onChange={setDetailsProduit}
+                categories={categories}
+                fournisseurs={fournisseurs}
+                images={[]}
+                storeId={storeId}
+                productId={null}
+                onAddImage={async () => ({ error: "Envoi indisponible." })}
+                onDeleteImage={async () => ({ error: "Suppression indisponible." })}
+              />
+            </div>
+          )}
         </form>
       </Modal>
 

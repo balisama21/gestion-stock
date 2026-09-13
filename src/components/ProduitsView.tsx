@@ -32,12 +32,14 @@ interface ProduitsViewProps {
   /**
    * Ce qu'il faut pour créer un produit.
    *
-   * Une forme explicite, et non plus un `Omit<Product, …>` : depuis que
-   * la fiche porte dix informations descriptives de plus, dériver la
-   * charge de création du type complet obligerait le formulaire à
-   * fournir une référence, une catégorie et une TVA pour créer une
-   * simple ligne de stock. Ces informations se renseignent après, dans
-   * la fiche.
+   * Une forme explicite, et non un `Omit<Product, …>` : la création
+   * passe par une fonction verrouillée côté base parce qu'elle touche
+   * au stock et aux prix, et cette fonction n'accepte que ces
+   * champs-là. Les informations descriptives s'écrivent juste après,
+   * par `onEditProductDetails`, sur l'identifiant renvoyé ici.
+   *
+   * `id` est donc indispensable : sans lui, le formulaire de création
+   * ne pourrait pas enregistrer la fiche qu'il vient de faire remplir.
    */
   onAddProduct: (newProduct: {
     designation: string;
@@ -47,7 +49,7 @@ interface ProduitsViewProps {
     stockInitial: number;
     stockActuel: number;
     seuilAlerte: number;
-  }) => Promise<{ error: string | null }>;
+  }) => Promise<{ error: string | null; id?: string | null }>;
   onEditProduct?: (
     id: string,
     data: {
@@ -134,6 +136,12 @@ export const ProduitsView: React.FC<ProduitsViewProps> = ({
   const [fournisseur, setFournisseur] = useState("");
   const [stockInitial, setStockInitial] = useState(20);
   const [seuilAlerte, setSeuilAlerte] = useState(5);
+  // La fiche descriptive, renseignable dès la création : c'est tout
+  // l'objet de l'harmonisation. Les photos, elles, restent visibles mais
+  // inertes tant que le produit n'existe pas — il n'y a pas encore
+  // d'identifiant auquel les rattacher.
+  const [addDetails, setAddDetails] = useState<ValeursDetails>(DETAILS_VIDES);
+  const [addErreur, setAddErreur] = useState<string | null>(null);
 
   // Sélection multiple
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -243,6 +251,13 @@ export const ProduitsView: React.FC<ProduitsViewProps> = ({
     if (saving || !designation.trim()) return;
 
     setSaving(true);
+    setAddErreur(null);
+
+    // Deux écritures, dans cet ordre, et pour la même raison qu'à la
+    // modification : la première passe par une fonction verrouillée côté
+    // base parce qu'elle touche au stock et aux prix ; la seconde n'écrit
+    // que des informations descriptives, sur l'identifiant que la
+    // première vient de rendre.
     const result = await onAddProduct({
       designation: designation.trim(),
       prixAchat: Number(prixAchat),
@@ -252,11 +267,43 @@ export const ProduitsView: React.FC<ProduitsViewProps> = ({
       stockActuel: Number(stockInitial),
       seuilAlerte: Number(seuilAlerte),
     });
-    setSaving(false);
-    if (result.error) return;
+    if (result.error) {
+      setSaving(false);
+      setAddErreur(result.error);
+      return;
+    }
 
+    // Rien n'est envoyé si la fiche n'a pas été touchée : un produit
+    // créé au comptoir en trois champs ne doit pas déclencher une
+    // écriture de plus pour n'y inscrire que des valeurs par défaut.
+    const ficheRemplie = JSON.stringify(addDetails) !== JSON.stringify(DETAILS_VIDES);
+    if (ficheRemplie && onEditProductDetails && result.id) {
+      const details = await onEditProductDetails(result.id, detailsVersBase(addDetails));
+      if (details.error) {
+        setSaving(false);
+        // Le produit existe : le dire, sinon l'utilisateur croirait
+        // avoir tout perdu et le créerait une seconde fois.
+        setAddErreur(`${details.error} Le produit, lui, a bien été créé.`);
+        return;
+      }
+    }
+
+    setSaving(false);
     setDesignation("");
+    setAddDetails(DETAILS_VIDES);
     setIsAddModalOpen(false);
+  };
+
+  /**
+   * Fermer la création remet la fiche à blanc.
+   *
+   * Sans cela, un code-barres saisi puis abandonné se retrouverait sur
+   * le produit suivant — et personne ne comprendrait d'où il vient.
+   */
+  const fermerCreation = () => {
+    setIsAddModalOpen(false);
+    setAddDetails(DETAILS_VIDES);
+    setAddErreur(null);
   };
 
   const openEditModal = (p: Product) => {
@@ -575,23 +622,30 @@ export const ProduitsView: React.FC<ProduitsViewProps> = ({
       {/* ── Nouveau produit ── */}
       <Modal
         open={isAddModalOpen}
-        onClose={() => setIsAddModalOpen(false)}
+        onClose={fermerCreation}
         size="md"
         icon={<Package className="h-4 w-4" />}
         title="Nouveau produit"
         description="Une variante se crée comme un produit à part entière, avec son propre prix."
+        dismissible={!saving}
         footer={
           <>
             <button
               type="button"
-              onClick={() => setIsAddModalOpen(false)}
+              onClick={fermerCreation}
+              disabled={saving}
               className="app-btn-secondary"
             >
               Annuler
             </button>
-            <button type="submit" form="product-add-form" className="app-btn-primary">
+            <button
+              type="submit"
+              form="product-add-form"
+              disabled={saving}
+              className="app-btn-primary"
+            >
               <Save className="h-4 w-4" />
-              Enregistrer
+              {saving ? "Enregistrement…" : "Enregistrer"}
             </button>
           </>
         }
@@ -675,6 +729,34 @@ export const ProduitsView: React.FC<ProduitsViewProps> = ({
               />
             </div>
           </div>
+
+          {/* La même fiche qu'à la modification, et volontairement la
+              même : renseigner un code-barres ou une catégorie ne doit
+              pas demander de créer d'abord le produit puis de rouvrir sa
+              fiche. Aucun de ces champs n'est obligatoire — seuls ceux
+              marqués d'une astérisque au-dessus le sont. */}
+          <DetailsProduit
+            valeurs={addDetails}
+            onChange={setAddDetails}
+            categories={categories}
+            fournisseurs={fournisseurs}
+            // Un produit qui n'existe pas encore n'a ni image ni
+            // identifiant : la section Photos reste visible et explique
+            // qu'elle s'ouvrira une fois le produit enregistré.
+            images={[]}
+            storeId={storeId}
+            productId={null}
+            onAddImage={onAddProductImage ?? (async () => ({ error: "Envoi indisponible." }))}
+            onDeleteImage={
+              onDeleteProductImage ?? (async () => ({ error: "Suppression indisponible." }))
+            }
+          />
+
+          {addErreur && (
+            <p className="rounded-xl border border-danger-border bg-danger-soft px-3.5 py-2.5 text-sm font-medium t-danger">
+              {addErreur}
+            </p>
+          )}
         </form>
       </Modal>
 
