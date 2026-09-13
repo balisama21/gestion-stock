@@ -42,6 +42,7 @@ import { VariantBadge } from "./shared/VariantBadge";
 import { PageHeader, HeaderMetric } from "./shared/PageHeader";
 import { FilterBar, FilterField } from "./shared/FilterBar";
 import { DataList, type DataListItem } from "./shared/DataList";
+import { VignetteProduit, vignettesParProduit } from "./shared/VignetteProduit";
 import { StatBar, StatCol } from "./shared/StatBar";
 import { Modal } from "./shared/Modal";
 import { useInvoicePrefs } from "../lib/invoicePrefs";
@@ -72,6 +73,11 @@ interface LignePanier {
 interface VentesViewProps {
   sales: Sale[];
   products: Product[];
+  /**
+   * Les photos des produits, pour que la caisse montre l'article plutot
+   * que son seul nom. Absentes : le carre a initiale prend la place.
+   */
+  productImages?: { product_id: string | null; chemin: string; ordre: number }[];
   /** Les fiches clients de la boutique, pour rattacher la vente à l'une d'elles. */
   clients: Client[];
   sellers: Seller[];
@@ -126,6 +132,7 @@ interface VentesViewProps {
 export const VentesView: React.FC<VentesViewProps> = ({
   sales,
   products,
+  productImages = [],
   clients,
   sellers,
   locale,
@@ -141,6 +148,9 @@ export const VentesView: React.FC<VentesViewProps> = ({
 }) => {
   // null/undefined = tout visible (propriétaire). Sinon, seuls les champs
   // explicitement listés sont montrés.
+  /** Quelle photo représente chaque produit, calculée une fois. */
+  const vignettes = useMemo(() => vignettesParProduit(productImages), [productImages]);
+
   const showField = (key: string) => !visibleFields || visibleFields.includes(key);
   const showMontant = showField("montant");
   const showPaiement = showField("paiement");
@@ -539,6 +549,9 @@ export const VentesView: React.FC<VentesViewProps> = ({
     const nom = prod ? getProductLabel(prod, products) : getSaleLabel(s, products);
     return {
       id: s.id,
+      leading: (
+        <VignetteProduit nom={nom} chemin={s.productId ? vignettes.get(s.productId) : null} />
+      ),
       primary: (
         <span className="flex min-w-0 items-center gap-2">
           <span className="truncate">
@@ -1136,8 +1149,13 @@ export const VentesView: React.FC<VentesViewProps> = ({
                       key={ligne.productId}
                       className="app-list-row flex-col items-stretch gap-2"
                     >
-                      <div className="flex w-full items-center justify-between gap-3">
-                        <span className="app-list-primary min-w-0 flex-1">{nom}</span>
+                      <div className="flex w-full items-center gap-2.5">
+                        <VignetteProduit
+                          nom={nom}
+                          chemin={vignettes.get(ligne.productId)}
+                          taille={32}
+                        />
+                        <span className="app-list-primary min-w-0 flex-1 truncate">{nom}</span>
                         <span className="app-list-amount">
                           {formatCurrency(ligne.quantite * ligne.prixVenteUnit)}
                         </span>

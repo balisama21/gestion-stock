@@ -37,6 +37,7 @@ import {
   type ClePeriode,
 } from "../lib/periodes";
 import { DataList } from "./shared/DataList";
+import { VignetteProduit, vignettesParProduit } from "./shared/VignetteProduit";
 import { useNotificationPrefs } from "../lib/notificationPrefs";
 import type { Database } from "../lib/database.types";
 
@@ -59,6 +60,12 @@ interface DashboardViewProps {
   quotes: { statut: string; total: number; valide_jusqu_au: string | null }[];
   /** Les courses, pour dire ce que les livreurs n'ont pas encore rendu. */
   deliveries: { statut: string; montant_encaisse: number; argent_remis_le: string | null }[];
+  /**
+   * Les photos des produits, pour que les listes montrent l'article
+   * plutôt que son seul nom. Absentes : le carré à initiale prend la
+   * place, et l'alignement des lignes ne change pas.
+   */
+  productImages?: { product_id: string | null; chemin: string; ordre: number }[];
   /** Les tâches, pour dire lesquelles ont dépassé leur échéance. */
   taches?: { statut: string; echeance: string | null }[];
   /** Les demandes d'avance sur salaire qui attendent une décision. */
@@ -94,6 +101,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   clients = [],
   taches = [],
   avancesEnAttente = [],
+  productImages = [],
   locale,
   showPrixAchat = true,
   onNavigateTab,
@@ -113,6 +121,9 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
    */
   const perso = usePersonnalisation();
   const montre = (cle: string) => !moduleMasque(perso, cle);
+
+  /** Quelle photo represente chaque produit, calculee une fois. */
+  const vignettes = useMemo(() => vignettesParProduit(productImages), [productImages]);
 
   /**
    * La période regardée.
@@ -581,6 +592,11 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                   const isOut = p.stockActuel <= 0;
                   const contenu = (
                     <>
+                      <VignetteProduit
+                        nom={p.designation}
+                        chemin={vignettes.get(p.id)}
+                        taille={32}
+                      />
                       <span className="min-w-0 flex-1">
                         <span className="app-list-primary flex min-w-0 items-center gap-2">
                           <span className="truncate">{getProductLabel(p, products)}</span>
@@ -707,6 +723,12 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                 const prod = products.find((p) => p.id === s.productId);
                 return {
                   id: s.id,
+                  leading: (
+                    <VignetteProduit
+                      nom={s.designation}
+                      chemin={s.productId ? vignettes.get(s.productId) : null}
+                    />
+                  ),
                   primary: (
                     <span className="flex min-w-0 items-center gap-2">
                       <span className="truncate">
@@ -748,17 +770,24 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                     key={p.id}
                     className="flex justify-between items-center gap-3 text-sm border-b border-border/50 pb-3.5 last:border-0 last:pb-0"
                   >
-                    <div className="min-w-0">
-                      <div className="font-semibold text-foreground truncate">
-                        {(() => {
-                          const linkedProduct = products.find((prod) => prod.id === p.productId);
-                          return linkedProduct
-                            ? getProductLabel(linkedProduct, products)
-                            : p.designation;
-                        })()}
-                      </div>
-                      <div className="text-xs text-muted-foreground">
-                        {formatDateLocale(p.date, locale)}
+                    <div className="flex min-w-0 items-center gap-2.5">
+                      <VignetteProduit
+                        nom={p.designation}
+                        chemin={p.productId ? vignettes.get(p.productId) : null}
+                        taille={32}
+                      />
+                      <div className="min-w-0">
+                        <div className="truncate font-semibold text-foreground">
+                          {(() => {
+                            const linkedProduct = products.find((prod) => prod.id === p.productId);
+                            return linkedProduct
+                              ? getProductLabel(linkedProduct, products)
+                              : p.designation;
+                          })()}
+                        </div>
+                        <div className="text-xs text-muted-foreground">
+                          {formatDateLocale(p.date, locale)}
+                        </div>
                       </div>
                     </div>
                     <div className="font-mono font-bold t-warning whitespace-nowrap">

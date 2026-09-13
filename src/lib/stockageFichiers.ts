@@ -175,6 +175,31 @@ export function adresseImageProduit(chemin: string): string {
 }
 
 /**
+ * L'adresse d'une MINIATURE, redimensionnée par le serveur.
+ *
+ * Une liste de vingt produits qui téléchargerait vingt photos de 1280
+ * pixels ferait passer plusieurs mégaoctets pour afficher des carrés de
+ * trente-six. Le stockage sait recadrer à la volée : l'adresse porte la
+ * taille voulue, le serveur renvoie l'image à cette taille, et il la met
+ * en cache pour les visiteurs suivants.
+ *
+ * Mesuré sur une photo réelle de la boutique : 132 631 octets pour
+ * l'originale, 1 927 pour la miniature de 96 pixels.
+ *
+ * `resize: cover` recadre au centre plutôt que de déformer : une photo
+ * portrait et une photo paysage donnent le même carré, ce qui est la
+ * condition pour qu'une liste s'aligne.
+ */
+export function adresseVignetteProduit(chemin: string, cote = 96): string {
+  const base = supabase.storage.from("produits").getPublicUrl(chemin).data.publicUrl;
+  // On compose l'adresse plutôt que de passer par l'option `transform`
+  // du client : celle-ci n'existe pas dans toutes les versions, et la
+  // forme publique de l'adresse, elle, est stable.
+  const rendu = base.replace("/object/public/", "/render/image/public/");
+  return `${rendu}?width=${cote}&height=${cote}&resize=cover&quality=70`;
+}
+
+/**
  * Une adresse temporaire pour un document privé.
  *
  * Une heure : assez pour ouvrir un justificatif ou le télécharger, trop

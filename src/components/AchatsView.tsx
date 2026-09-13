@@ -36,6 +36,7 @@ import type { Database } from "../lib/database.types";
 import { PageHeader } from "./shared/PageHeader";
 import { FilterBar, FilterField } from "./shared/FilterBar";
 import { DataList } from "./shared/DataList";
+import { VignetteProduit, vignettesParProduit } from "./shared/VignetteProduit";
 import { StatCol } from "./shared/StatBar";
 import { Modal } from "./shared/Modal";
 import {
@@ -138,6 +139,8 @@ interface AchatsViewProps {
     chemin: string,
     ordre?: number,
   ) => Promise<{ error: string | null }>;
+  /** Les photos des produits, pour illustrer les lignes d achat. */
+  productImages?: Database["public"]["Tables"]["product_images"]["Row"][];
   /**
    * Champs visibles pour l'utilisateur courant — `null`/`undefined` = tout
    * visible (propriétaire). Permet à un collaborateur de consulter les
@@ -164,6 +167,7 @@ export const AchatsView: React.FC<AchatsViewProps> = ({
   onReapprovisionnementOuvert,
   onEditProductDetails,
   onAddProductImage,
+  productImages = [],
   visibleFields,
 }) => {
   // null/undefined = tout visible (propriétaire). Sinon, seuls les champs
@@ -286,6 +290,9 @@ export const AchatsView: React.FC<AchatsViewProps> = ({
   const [paperId, setPaperId] = useState<PaperFormatId>("t80");
   const paper = getPaperFormat(paperId);
   const isTicket = paper.layout === "ticket";
+
+  /** Quelle photo represente chaque produit, calculee une fois. */
+  const vignettes = useMemo(() => vignettesParProduit(productImages), [productImages]);
 
   const todayStr = useMemo(() => dateDuJour(), []);
   const currentMonthStr = useMemo(() => todayStr.slice(0, 7), [todayStr]);
@@ -632,6 +639,12 @@ export const AchatsView: React.FC<AchatsViewProps> = ({
           emptyLabel="Aucun achat ne correspond à ces filtres."
           items={filteredPurchases.map((p) => ({
             id: p.id,
+            leading: (
+              <VignetteProduit
+                nom={p.designation}
+                chemin={p.productId ? vignettes.get(p.productId) : null}
+              />
+            ),
             primary: (
               <span className="flex min-w-0 items-center gap-2">
                 <span className="truncate">

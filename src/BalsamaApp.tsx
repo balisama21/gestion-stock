@@ -1392,6 +1392,7 @@ function AppInner() {
                       clients={storeData.clients}
                       quotes={storeData.quotes}
                       deliveries={storeData.deliveries}
+                      productImages={storeData.productImages}
                       taches={organisation.taches}
                       // Les règles de lecture ont déjà fait le tri : un
                       // collaborateur ne reçoit que ses propres lignes,
@@ -1491,6 +1492,7 @@ function AppInner() {
                     // crée un produit : la photo choisie dans sa fiche
                     // lui revient, comme le reste de sa description.
                     onAddProductImage={storeData.addProductImage}
+                    productImages={storeData.productImages}
                     onAddPurchase={handleAddPurchase}
                     // Supprimer un achat saisi par erreur. La base
                     // remet le stock comme avant et efface le règlement
@@ -1624,6 +1626,7 @@ function AppInner() {
                 )}
                 {activeTab === "ventes" && (
                   <VentesView
+                    productImages={storeData.productImages}
                     sales={visibleSales}
                     products={products}
                     clients={storeData.clients}

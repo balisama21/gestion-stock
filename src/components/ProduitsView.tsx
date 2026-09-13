@@ -20,6 +20,7 @@ import { VariantBadge } from "./shared/VariantBadge";
 import { PageHeader } from "./shared/PageHeader";
 import { FilterBar, FilterField } from "./shared/FilterBar";
 import { DataList } from "./shared/DataList";
+import { VignetteProduit, vignettesParProduit } from "./shared/VignetteProduit";
 import { StatCol } from "./shared/StatBar";
 import { Modal } from "./shared/Modal";
 import { DetailsProduit } from "./produits/DetailsProduit";
@@ -134,6 +135,9 @@ export const ProduitsView: React.FC<ProduitsViewProps> = ({
   const showPrixAchat = showField("prix_achat");
   const showFournisseur = showField("fournisseur");
   const showValeurStock = showField("valeur_stock");
+
+  /** Quelle photo represente chaque produit, calculee une fois. */
+  const vignettes = useMemo(() => vignettesParProduit(productImages), [productImages]);
 
   const canDo = (key: string) => !allowedActions || allowedActions.includes(key);
   const canCreate = canDo("create");
@@ -635,17 +639,26 @@ export const ProduitsView: React.FC<ProduitsViewProps> = ({
             const bas = !rupture && p.stockActuel <= p.seuilAlerte;
             return {
               id: p.id,
-              leading:
-                onDeleteProducts && canDelete ? (
-                  <input
-                    type="checkbox"
-                    checked={selectedIds.has(p.id)}
-                    onChange={() => toggleOne(p.id)}
-                    onClick={(e) => e.stopPropagation()}
-                    className="h-4 w-4 cursor-pointer rounded border-muted-foreground/40 accent-emerald-600"
-                    aria-label={`Sélectionner ${getProductLabel(p, products)}`}
+              // La case et la vignette cohabitent : l'une sert a agir sur
+              // plusieurs lignes, l'autre a reconnaitre celle qu'on lit.
+              leading: (
+                <span className="flex items-center gap-2">
+                  {onDeleteProducts && canDelete && (
+                    <input
+                      type="checkbox"
+                      checked={selectedIds.has(p.id)}
+                      onChange={() => toggleOne(p.id)}
+                      onClick={(e) => e.stopPropagation()}
+                      className="h-4 w-4 cursor-pointer rounded border-muted-foreground/40 accent-emerald-600"
+                      aria-label={`Sélectionner ${getProductLabel(p, products)}`}
+                    />
+                  )}
+                  <VignetteProduit
+                    nom={getProductLabel(p, products)}
+                    chemin={vignettes.get(p.id)}
                   />
-                ) : undefined,
+                </span>
+              ),
               primary: (
                 <span className="flex min-w-0 items-center gap-2">
                   <span className="truncate">{getProductLabel(p, products)}</span>
