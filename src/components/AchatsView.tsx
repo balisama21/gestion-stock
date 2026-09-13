@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useRef } from "react";
+import React, { useState, useMemo, useRef, useEffect } from "react";
 import { Purchase, Product, LocaleSetting, StoreSettings } from "../types";
 import { APP_NAME } from "../lib/appConfig";
 import {
@@ -79,6 +79,18 @@ interface AchatsViewProps {
   categories?: Database["public"]["Tables"]["categories"]["Row"][];
   fournisseurs?: Database["public"]["Tables"]["suppliers"]["Row"][];
   storeId?: string | null;
+  /**
+   * Un produit à réapprovisionner, venu du tableau de bord.
+   *
+   * Le formulaire s'ouvre déjà rempli : désignation, prix d'achat et
+   * fournisseur repris de la fiche, il ne reste que la quantité. La
+   * désignation doit être celle du produit AU MOT PRÈS — c'est sur elle
+   * que la base reconnaît un achat comme un réapprovisionnement plutôt
+   * que comme la création d'un nouveau produit.
+   */
+  reapprovisionner?: { designation: string; prixAchat: number; fournisseur: string } | null;
+  /** Appelé une fois le formulaire ouvert, pour ne pas le rouvrir sans fin. */
+  onReapprovisionnementOuvert?: () => void;
   onEditProductDetails?: (id: string, data: any) => Promise<{ error: string | null }>;
   /**
    * Champs visibles pour l'utilisateur courant — `null`/`undefined` = tout
@@ -100,6 +112,8 @@ export const AchatsView: React.FC<AchatsViewProps> = ({
   categories = [],
   fournisseurs = [],
   storeId = null,
+  reapprovisionner = null,
+  onReapprovisionnementOuvert,
   onEditProductDetails,
   visibleFields,
 }) => {
@@ -151,6 +165,30 @@ export const AchatsView: React.FC<AchatsViewProps> = ({
   const [montantRegle, setMontantRegle] = useState(0);
   const [echeance, setEcheance] = useState("");
   const [erreurAchat, setErreurAchat] = useState<string | null>(null);
+
+  /**
+   * Le tableau de bord demande un réapprovisionnement.
+   *
+   * La quantité reste à saisir — c'est la seule chose que le logiciel ne
+   * peut pas deviner, et la seule chose qu'on veut vraiment décider. Le
+   * champ reçoit le focus juste après, pour qu'il n'y ait plus qu'à
+   * taper un nombre.
+   */
+  useEffect(() => {
+    if (!reapprovisionner) return;
+    setDesignation(reapprovisionner.designation);
+    setPrixAchatUnit(reapprovisionner.prixAchat);
+    setFournisseur(reapprovisionner.fournisseur);
+    setDate(dateDuJour());
+    setQuantite(0);
+    setReglement("comptant");
+    setMontantRegle(0);
+    setEcheance("");
+    setErreurAchat(null);
+    setDetailsProduit(DETAILS_VIDES);
+    setIsModalOpen(true);
+    onReapprovisionnementOuvert?.();
+  }, [reapprovisionner, onReapprovisionnementOuvert]);
 
   // Ce que la saisie du règlement a d'impossible, dit tout de suite plutôt
   // qu'au moment d'enregistrer : on ne verse pas une somme négative, et on

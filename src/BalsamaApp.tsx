@@ -557,6 +557,24 @@ function AppInner() {
   const mySellerData = computedSellers.find((s) => s.nom === myName) ?? null;
 
   /**
+   * Le produit que le tableau de bord veut réapprovisionner.
+   *
+   * Posé au clic sur une ligne de stock bas, consommé par l'écran Achats
+   * qui ouvre alors son formulaire déjà rempli, puis remis à nul — sans
+   * quoi le formulaire se rouvrirait à chaque retour sur l'onglet.
+   */
+  const [reapprovisionner, setReapprovisionner] = useState<{
+    designation: string;
+    prixAchat: number;
+    fournisseur: string;
+  } | null>(null);
+
+  /** Enregistrer un achat : le propriétaire, ou qui en a reçu le droit. */
+  const peutEnregistrerUnAchat =
+    workspace.isOwner ||
+    hasModuleAction(workspace.memberPermissionsDetailed ?? {}, "achats", "create");
+
+  /**
    * Les demandes d'avance qui attendent une décision.
    *
    * Calculées une fois pour deux lecteurs : la cloche et le bloc « En
@@ -1382,6 +1400,21 @@ function AppInner() {
                       avancesEnAttente={avancesEnAttente}
                       locale={locale}
                       onNavigateTab={setActiveTab}
+                      // Absent quand la personne n'a pas le droit
+                      // d'enregistrer un achat : la ligne de stock
+                      // redevient alors une simple information.
+                      onReapprovisionner={
+                        peutEnregistrerUnAchat
+                          ? (p) => {
+                              setReapprovisionner({
+                                designation: p.designation,
+                                prixAchat: p.prixAchat,
+                                fournisseur: p.fournisseur,
+                              });
+                              setActiveTab("achats");
+                            }
+                          : undefined
+                      }
                       showPrixAchat={
                         produitsVisibleFields === null ||
                         produitsVisibleFields.includes("prix_achat")
@@ -1442,6 +1475,8 @@ function AppInner() {
                     storeId={workspace.activeStore?.id ?? null}
                     onEditProductDetails={storeData.updateProductDetails}
                     onAddPurchase={handleAddPurchase}
+                    reapprovisionner={reapprovisionner}
+                    onReapprovisionnementOuvert={() => setReapprovisionner(null)}
                     visibleFields={achatsVisibleFields}
                   />
                 )}

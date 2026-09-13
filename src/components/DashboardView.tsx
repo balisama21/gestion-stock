@@ -15,6 +15,7 @@ import {
   Clock,
   CreditCard,
   Truck,
+  ChevronRight,
 } from "lucide-react";
 import {
   formatCurrency,
@@ -63,6 +64,14 @@ interface DashboardViewProps {
    */
   showPrixAchat?: boolean;
   onNavigateTab: (tab: any) => void;
+  /**
+   * Ouvrir les Achats sur un formulaire déjà rempli pour ce produit.
+   *
+   * Absent quand l'utilisateur n'a pas le droit d'enregistrer un achat :
+   * la ligne redevient alors une simple ligne d'information, sans
+   * chevron ni clic — inutile de proposer un geste qui sera refusé.
+   */
+  onReapprovisionner?: (produit: Product) => void;
 }
 
 export const DashboardView: React.FC<DashboardViewProps> = ({
@@ -81,6 +90,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   locale,
   showPrixAchat = true,
   onNavigateTab,
+  onReapprovisionner,
 }) => {
   // Réglage « Alertes de trésorerie » (Paramètres → Notifications).
   const [notificationPrefs] = useNotificationPrefs();
@@ -458,25 +468,57 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               </p>
             ) : (
               <div className="app-list">
+                {/* ── La ligne entière réapprovisionne ──
+                    Plutôt qu'un bouton « Réapprovisionner » de plus : sur
+                    un téléphone, il écraserait le nom du produit, qui est
+                    justement ce qu'on vient lire ici. Le chevron dit que
+                    la ligne mène quelque part, comme partout ailleurs
+                    dans l'application.
+
+                    Elle ouvre les Achats sur un formulaire déjà rempli —
+                    désignation, prix d'achat et fournisseur repris de la
+                    fiche. Il ne reste que la quantité. Envoyer vers la
+                    fiche produit ne servirait à rien : on n'y
+                    réapprovisionne pas. */}
                 {lowStockProducts.map((p) => {
                   const isOut = p.stockActuel <= 0;
-                  return (
-                    <div key={p.id} className="app-list-row justify-between">
-                      <div className="min-w-0 flex-1">
-                        <div className="app-list-primary flex min-w-0 items-center gap-2">
+                  const contenu = (
+                    <>
+                      <span className="min-w-0 flex-1">
+                        <span className="app-list-primary flex min-w-0 items-center gap-2">
                           <span className="truncate">{getProductLabel(p, products)}</span>
                           <VariantBadge
                             prix={getProductVariant(p, products)}
                             autorise={showPrixAchat}
                           />
-                        </div>
-                        <div className="app-list-secondary">seuil {p.seuilAlerte}</div>
-                      </div>
+                        </span>
+                        <span className="app-list-secondary block">
+                          {onReapprovisionner ? "seuil " + p.seuilAlerte + " · réapprovisionner" : "seuil " + p.seuilAlerte}
+                        </span>
+                      </span>
                       <span
                         className={`app-badge shrink-0 ${isOut ? "app-badge-danger" : "app-badge-warning"}`}
                       >
                         {isOut ? "Rupture" : `${p.stockActuel} restant`}
                       </span>
+                      {onReapprovisionner && (
+                        <ChevronRight className="hidden h-4 w-4 shrink-0 text-muted-foreground/50 sm:block" />
+                      )}
+                    </>
+                  );
+                  return onReapprovisionner ? (
+                    <button
+                      key={p.id}
+                      type="button"
+                      onClick={() => onReapprovisionner(p)}
+                      className="app-list-row w-full justify-between text-left"
+                      title={`Réapprovisionner ${getProductLabel(p, products)}`}
+                    >
+                      {contenu}
+                    </button>
+                  ) : (
+                    <div key={p.id} className="app-list-row justify-between">
+                      {contenu}
                     </div>
                   );
                 })}
