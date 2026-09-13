@@ -128,12 +128,20 @@ export interface SourcesActivite {
    * dans le second — et cette dernière est nulle pour une activation à
    * vie, qui n'expire jamais.
    *
+   * `jeSuisProprietaire` décide à lui seul si l'échéance est annoncée :
+   * elle est réservée à celui qui peut y faire quelque chose. On le
+   * passe explicitement plutôt que de le déduire de `permissions`, qui
+   * vaut `null` pour le propriétaire — un signal indirect se casse au
+   * premier remaniement, et le jour où il casserait, l'alerte
+   * changerait de public sans que personne ne s'en aperçoive.
+   *
    * Nul quand aucune boutique n'est chargée.
    */
   boutique: {
     statut: string;
     finEssai: Date | null;
     finAbonnement: Date | null;
+    jeSuisProprietaire: boolean;
   } | null;
   formatMontant: (montant: number) => string;
 }
@@ -506,11 +514,13 @@ export function construireNotifications(s: SourcesActivite): Notification[] {
   // plus rien à dire ici : la boutique est verrouillée et c'est l'écran
   // entier qui l'annonce, pas une ligne dans une cloche.
   //
-  // Elle n'est filtrée par aucune permission. Un collaborateur ne peut
-  // pas payer, mais une boutique qui se verrouille l'empêche de
-  // travailler comme les autres : le lui cacher ne le protège de rien,
-  // et le prévenir lui laisse la possibilité d'alerter le propriétaire.
-  if (s.boutique) {
+  // Elle est réservée au propriétaire. Lui seul peut payer et saisir le
+  // code : annoncer l'échéance à un vendeur lui mettrait sous les yeux,
+  // chaque jour pendant une semaine, une ligne sur laquelle il ne peut
+  // rien — et le renverrait vers un écran de facturation qui ne lui est
+  // pas destiné. Une alerte dont on ne peut rien faire n'est pas une
+  // alerte, c'est du bruit.
+  if (s.boutique && s.boutique.jeSuisProprietaire) {
     const echeance =
       s.boutique.statut === "trial" ? s.boutique.finEssai : s.boutique.finAbonnement;
     if (echeance) {
@@ -525,8 +535,8 @@ export function construireNotifications(s: SourcesActivite): Notification[] {
               ? "Votre essai se termine aujourd'hui"
               : `Votre essai se termine dans ${jours} ${pluriel(jours, "jour")}`
             : jours === 0
-              ? "L'abonnement se termine aujourd'hui"
-              : `L'abonnement se termine dans ${jours} ${pluriel(jours, "jour")}`,
+              ? "Votre abonnement se termine aujourd'hui"
+              : `Votre abonnement se termine dans ${jours} ${pluriel(jours, "jour")}`,
           detail: essai
             ? "Activez la boutique pour continuer à enregistrer des écritures."
             : "Renouvelez pour continuer à enregistrer des écritures.",

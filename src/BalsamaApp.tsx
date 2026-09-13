@@ -782,6 +782,7 @@ function AppInner() {
               finAbonnement: workspace.activeStore.abonnement_jusqu_au
                 ? new Date(workspace.activeStore.abonnement_jusqu_au)
                 : null,
+              jeSuisProprietaire: workspace.isOwner,
             }
           : null,
         formatMontant: formatCurrency,
@@ -809,6 +810,7 @@ function AppInner() {
       memos.rappels,
       notificationPrefs.stockAlerts,
       workspace.activeStore,
+      workspace.isOwner,
     ],
   );
 
