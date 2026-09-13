@@ -143,6 +143,16 @@ export interface SourcesActivite {
     finAbonnement: Date | null;
     jeSuisProprietaire: boolean;
   } | null;
+  /**
+   * Les demandes d'avance qui attendent une décision.
+   *
+   * Elles ne peuvent pas se déduire comme les créations : une demande
+   * est un ÉTAT qui dure tant que personne ne tranche, pas un événement
+   * passé. Sans cette ligne, une demande n'existerait que pour qui
+   * pense à ouvrir l'écran des salaires — et un employé attendrait sans
+   * savoir que personne ne l'a vue.
+   */
+  avancesEnAttente: { id: string; employe: string; montant: number }[];
   formatMontant: (montant: number) => string;
 }
 
@@ -504,6 +514,31 @@ export function construireNotifications(s: SourcesActivite): Notification[] {
       quand: "",
       ton: "info",
       onglet: "agenda",
+    });
+  }
+
+  // ─────────── Les avances qui attendent une décision ───────────
+  //
+  // Réservée à qui voit toute l'équipe : le propriétaire, ou un
+  // responsable à qui la portée « all » a été ouverte. Un employé n'a
+  // rien à décider, et la sienne, il sait qu'il l'a faite.
+  //
+  // L'argent est dans la caisse de quelqu'un : tant que personne n'a
+  // tranché, l'employé attend sans rien pouvoir faire. C'est exactement
+  // un état qui dure, donc une alerte et non une activité.
+  if (peutVoir("salaires") && s.avancesEnAttente.length > 0) {
+    const total = s.avancesEnAttente.reduce((acc, a) => acc + a.montant, 0);
+    alertes.push({
+      id: `alerte-avances-attente-${s.avancesEnAttente.length}`,
+      genre: "alerte",
+      titre: `${s.avancesEnAttente.length} ${pluriel(s.avancesEnAttente.length, "demande")} d'avance en attente`,
+      detail: `${s.avancesEnAttente
+        .slice(0, 3)
+        .map((a) => a.employe)
+        .join(", ")} — ${s.formatMontant(total)}`,
+      quand: "",
+      ton: "warning",
+      onglet: "salaires",
     });
   }
 

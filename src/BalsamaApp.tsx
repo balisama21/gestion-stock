@@ -22,7 +22,7 @@ import { universDe } from "./components/navigation";
 import { SousNavigation } from "./components/shared/SousNavigation";
 import { SquelettePage } from "./components/shared/SquelettePage";
 import { construireNotifications } from "./lib/activite";
-import { avancesPrisesSurLaCaisse } from "./lib/salaires";
+import { avancesPrisesSurLaCaisse, demandesEnAttente } from "./lib/salaires";
 import { useJournalActivite } from "./hooks/useJournalActivite";
 import { useTaches } from "./hooks/useTaches";
 import { useEvenements } from "./hooks/useEvenements";
@@ -107,6 +107,9 @@ const VendeursView = lazy(() =>
 );
 const SalairesView = lazy(() =>
   import("./components/SalairesView").then((m) => ({ default: m.SalairesView })),
+);
+const MaPaieView = lazy(() =>
+  import("./components/MaPaieView").then((m) => ({ default: m.MaPaieView })),
 );
 const DepensesView = lazy(() =>
   import("./components/DepensesView").then((m) => ({ default: m.DepensesView })),
@@ -553,6 +556,24 @@ function AppInner() {
     : myStoreMember?.full_name || myStoreMember?.email || "";
   const mySellerData = computedSellers.find((s) => s.nom === myName) ?? null;
 
+  // ── Les salaires : deux écrans derrière un seul onglet ──
+  //
+  // La PORTÉE décide, et c'est exactement la règle appliquée en base par
+  // `peut_voir_tous_les_salaires`. Qui voit toute l'équipe reçoit
+  // l'écran du responsable ; les autres reçoivent le leur. Ce n'est pas
+  // une précaution — les règles de lecture ne leur remettraient de toute
+  // façon que leurs propres lignes — mais l'écran du responsable leur
+  // afficherait une « masse salariale » d'une seule personne, ce qui
+  // n'aurait aucun sens.
+  const voitTousLesSalaires =
+    workspace.isOwner ||
+    getModuleScope(workspace.memberPermissionsDetailed ?? {}, "salaires") === "all";
+  // Fixer un salaire, approuver, verser. La base refuserait de toute
+  // façon : un bouton absent est une politesse, pas une sécurité.
+  const peutGererLesSalaires =
+    workspace.isOwner ||
+    hasModuleAction(workspace.memberPermissionsDetailed ?? {}, "salaires", "pay");
+
   const hasCapitalAccess =
     workspace.isOwner ||
     workspace.memberPermissions === null ||
@@ -811,6 +832,14 @@ function AppInner() {
               jeSuisProprietaire: workspace.isOwner,
             }
           : null,
+        // Les règles de lecture ont déjà fait le tri : un employé ne
+        // reçoit que ses propres lignes, et n'aura donc jamais sous les
+        // yeux la demande d'un collègue.
+        avancesEnAttente: demandesEnAttente(storeData.paiementsSalaire).map((d) => ({
+          id: d.id,
+          employe: d.employe,
+          montant: Number(d.montant),
+        })),
         formatMontant: formatCurrency,
       }),
     [
@@ -837,6 +866,7 @@ function AppInner() {
       notificationPrefs.stockAlerts,
       workspace.activeStore,
       workspace.isOwner,
+      storeData.paiementsSalaire,
     ],
   );
 
@@ -1548,7 +1578,35 @@ function AppInner() {
                     onDeleteExpense={handleDeleteExpense}
                   />
                 )}
-                {activeTab === "salaires" && (
+                {/* ── Deux écrans derrière un seul onglet ──
+                    La PORTÉE décide, et elle est la même qu'en base :
+                    qui voit toute l'équipe reçoit l'écran du
+                    responsable, les autres le leur. Ce n'est pas une
+                    précaution — les règles de lecture ne leur
+                    remettraient de toute façon que leurs propres
+                    lignes, et l'écran du responsable leur montrerait
+                    une masse salariale d'une seule personne, ce qui
+                    n'aurait aucun sens. */}
+                {activeTab === "salaires" && !voitTousLesSalaires && (
+                  <MaPaieView
+                    salaires={storeData.salaires}
+                    paiements={storeData.paiementsSalaire}
+                    locale={locale}
+                    onDemander={({ employe, montant, motif, periode }) =>
+                      storeData.addPaiementSalaire({
+                        employe,
+                        type: "avance",
+                        montant,
+                        periode,
+                        statut: "en_attente",
+                        user_id: user?.id ?? null,
+                        motif,
+                      })
+                    }
+                    onAnnuler={(id) => storeData.updatePaiementSalaire(id, { statut: "annulee" })}
+                  />
+                )}
+                {activeTab === "salaires" && voitTousLesSalaires && (
                   <SalairesView
                     salaires={storeData.salaires}
                     paiements={storeData.paiementsSalaire}
@@ -1565,13 +1623,7 @@ function AppInner() {
                     ).sort((a, b) => a.localeCompare(b, "fr"))}
                     membres={storeMembers}
                     locale={locale}
-                    // Fixer un salaire, approuver, verser. La base
-                    // refuserait de toute façon : un bouton absent est
-                    // une politesse, pas une sécurité.
-                    peutGerer={
-                      workspace.isOwner ||
-                      hasModuleAction(workspace.memberPermissionsDetailed ?? {}, "salaires", "pay")
-                    }
+                    peutGerer={peutGererLesSalaires}
                     onAddSalaire={storeData.addSalaire}
                     onDeleteSalaire={storeData.deleteSalaire}
                     onAddPaiement={storeData.addPaiementSalaire}

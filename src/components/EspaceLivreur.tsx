@@ -14,6 +14,9 @@ import { formatCurrency, formatDateLocale } from "../utils/formulas";
 import { Modal } from "./shared/Modal";
 import { useLivraisonsDuLivreur } from "../hooks/useLivraisonsDuLivreur";
 import { useTachesDuLivreur } from "../hooks/useTachesDuLivreur";
+import { useMaPaie } from "../hooks/useMaPaie";
+import { MaPaieView } from "./MaPaieView";
+import type { PaiementSalaire, Salaire } from "../lib/salaires";
 import { estEnRetard, libelleEcheance, type Tache } from "../lib/taches";
 import { dateDuJour } from "../lib/dates";
 import {
@@ -59,6 +62,7 @@ export const EspaceLivreur: React.FC<EspaceLivreurProps> = ({
 }) => {
   const donnees = useLivraisonsDuLivreur(storeId, userId);
   const travail = useTachesDuLivreur(storeId, userId);
+  const paie = useMaPaie(storeId, userId);
   return (
     <TableauDuLivreur
       storeName={storeName}
@@ -66,6 +70,10 @@ export const EspaceLivreur: React.FC<EspaceLivreurProps> = ({
       onSignOut={onSignOut}
       {...donnees}
       {...travail}
+      salaires={paie.salaires}
+      paiementsSalaire={paie.paiements}
+      onDemanderUneAvance={paie.demanderUneAvance}
+      onRetirerLaDemande={paie.retirerLaDemande}
     />
   );
 };
@@ -90,6 +98,20 @@ interface TableauDuLivreurProps {
    */
   taches?: Tache[];
   avancerTache?: (id: string, statut: string) => Promise<{ error: string | null }>;
+  /**
+   * Sa paie. Facultative comme les tâches : un livreur à qui l'on n'a
+   * pas fixé de salaire ne verra jamais cette partie, et l'écran de
+   * prévisualisation peut s'en passer.
+   */
+  salaires?: Salaire[];
+  paiementsSalaire?: PaiementSalaire[];
+  onDemanderUneAvance?: (data: {
+    employe: string;
+    montant: number;
+    motif: string | null;
+    periode: string;
+  }) => Promise<{ error: string | null }>;
+  onRetirerLaDemande?: (id: string) => Promise<{ error: string | null }>;
 }
 
 /** Ce que le livreur voit, quelles que soient ses courses. */
@@ -104,6 +126,10 @@ export const TableauDuLivreur: React.FC<TableauDuLivreurProps> = ({
   avancer,
   taches = [],
   avancerTache,
+  salaires = [],
+  paiementsSalaire = [],
+  onDemanderUneAvance,
+  onRetirerLaDemande,
 }) => {
   const [remise, setRemise] = useState<Livraison | null>(null);
   const [echec, setEchec] = useState<Livraison | null>(null);
@@ -343,6 +369,31 @@ export const TableauDuLivreur: React.FC<TableauDuLivreurProps> = ({
                 );
               })}
             </div>
+          </section>
+        )}
+
+        {/* ── Sa paie ──
+            Même règle que les tâches : la section n'existe pas tant
+            qu'on ne lui a pas fixé de salaire. Un livreur à qui personne
+            n'en a fixé voit exactement l'écran d'avant.
+
+            C'est la forme courte — son salaire, ce qui lui reste à
+            percevoir, ses lignes du mois et un bouton. Les six mois
+            d'historique restent dans l'application ; ici on travaille
+            debout, entre deux arrêts. */}
+        {salaires.length > 0 && onDemanderUneAvance && onRetirerLaDemande && (
+          <section className="space-y-2">
+            <h2 className="px-1 text-[13px] font-medium uppercase tracking-wide text-muted-foreground">
+              Ma paie
+            </h2>
+            <MaPaieView
+              salaires={salaires}
+              paiements={paiementsSalaire}
+              locale="FR"
+              compact
+              onDemander={onDemanderUneAvance}
+              onAnnuler={onRetirerLaDemande}
+            />
           </section>
         )}
       </main>
