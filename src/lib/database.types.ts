@@ -2532,6 +2532,10 @@ export type Database = {
         }
         Returns: Json
       }
+      ajuster_stock: {
+        Args: { p_delta: number; p_note?: string; p_product_id: string }
+        Returns: Json
+      }
       avancer_livraison: {
         Args: {
           p_delivery_id: string

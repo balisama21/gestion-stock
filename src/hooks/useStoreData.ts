@@ -201,6 +201,19 @@ export interface StoreData {
   deleteRemise: (id: string) => Promise<{ error: string | null }>;
 
   /**
+   * Corriger le stock d un produit a la main.
+   *
+   * `delta` est un ECART, pas un nouveau total : +5 ajoute cinq unites,
+   * -3 en retire trois. La base ecrit le chiffre et sa ligne de journal
+   * ensemble, ou refuse les deux.
+   */
+  ajusterStock: (
+    productId: string,
+    delta: number,
+    note?: string | null,
+  ) => Promise<{ error: string | null }>;
+
+  /**
    * Les fiches de salaire, et l'argent verse au titre du salaire.
    *
    * Les regles de lecture sont en base : un employe ne recoit ici que
@@ -1055,6 +1068,27 @@ export function useStoreData(storeId: string | null, userId: string | null): Sto
   );
 
   /**
+   * Corriger le stock a la main.
+   *
+   * Passe par la fonction `ajuster_stock` et jamais par une ecriture
+   * directe sur la colonne : le stock est le solde d un journal, et un
+   * chiffre qu on reecrit sans ecrire le mouvement correspondant fait
+   * diverger les deux pour toujours.
+   */
+  const ajusterStock = useCallback(
+    async (productId: string, delta: number, note?: string | null) => {
+      const { error } = await supabase.rpc("ajuster_stock", {
+        p_product_id: productId,
+        p_delta: delta,
+        p_note: note ?? null,
+      });
+      if (!error) fetchAll();
+      return { error: error?.message ?? null };
+    },
+    [fetchAll],
+  );
+
+  /**
    * Poser le salaire de quelqu un.
    *
    * C est le geste qui fait ENTRER la personne : le nom se saisit
@@ -1809,6 +1843,7 @@ export function useStoreData(storeId: string | null, userId: string | null): Sto
     remises,
     addRemise,
     deleteRemise,
+    ajusterStock,
     salaires,
     paiementsSalaire,
     addSalaire,

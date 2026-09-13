@@ -1448,6 +1448,19 @@ function AppInner() {
                   ))}
                 {activeTab === "produits" && (
                   <ProduitsView
+                    // Le stock se corrige par un mouvement d'ajustement,
+                    // jamais par une écriture directe sur la colonne :
+                    // le chiffre et son journal doivent bouger ensemble.
+                    onAjusterStock={
+                      workspace.isOwner ||
+                      hasModuleAction(
+                        workspace.memberPermissionsDetailed ?? {},
+                        "produits",
+                        "adjust_stock",
+                      )
+                        ? storeData.ajusterStock
+                        : undefined
+                    }
                     products={products}
                     locale={locale}
                     onAddProduct={handleAddProduct}

@@ -62,6 +62,21 @@ interface ProduitsViewProps {
   ) => Promise<{ error: string | null }>;
   onDeleteProducts?: (ids: string[]) => Promise<{ error: string | null }>;
   /**
+   * Corriger le stock d'un produit.
+   *
+   * `delta` est un ÉCART et non un nouveau total : c'est ce qui permet
+   * d'écrire le mouvement correspondant dans le journal du stock. Un
+   * nouveau total ne dirait pas ce qui s'est passé — il faudrait le
+   * déduire, et la déduction serait fausse dès qu'une vente s'intercale.
+   *
+   * Absent quand l'action « adjust_stock » n'est pas accordée.
+   */
+  onAjusterStock?: (
+    id: string,
+    delta: number,
+    note?: string | null,
+  ) => Promise<{ error: string | null }>;
+  /**
    * Les informations descriptives de la fiche produit.
    *
    * Séparées de `onEditProduct` à dessein : celui-ci passe par une
@@ -108,6 +123,7 @@ export const ProduitsView: React.FC<ProduitsViewProps> = ({
   onEditProductDetails,
   onAddProductImage,
   onDeleteProductImage,
+  onAjusterStock,
   visibleFields,
   allowedActions,
 }) => {
@@ -154,6 +170,20 @@ export const ProduitsView: React.FC<ProduitsViewProps> = ({
   const [editFournisseur, setEditFournisseur] = useState("");
   const [editSeuilAlerte, setEditSeuilAlerte] = useState(0);
   const [editSaving, setEditSaving] = useState(false);
+  /**
+   * La correction de stock, pendant qu'on modifie la fiche.
+   *
+   * Un ÉCART et non un nouveau total : on dit « j'en ajoute 5 » ou « j'en
+   * retire 3 ». Saisir le total obligerait à faire la soustraction de
+   * tête, et cette soustraction serait fausse si une vente passait
+   * pendant la saisie.
+   *
+   * La quantité repart à vide à chaque ouverture : on ne veut pas qu'un
+   * chiffre oublié s'applique au prochain enregistrement.
+   */
+  const [editStockSens, setEditStockSens] = useState<"ajouter" | "retirer">("ajouter");
+  const [editStockQte, setEditStockQte] = useState("");
+  const [editStockNote, setEditStockNote] = useState("");
   const [editDetails, setEditDetails] = useState<ValeursDetails>(DETAILS_VIDES);
   const [editErreur, setEditErreur] = useState<string | null>(null);
 
@@ -313,6 +343,9 @@ export const ProduitsView: React.FC<ProduitsViewProps> = ({
     setEditPrixVenteDefaut(p.prixVenteDefaut);
     setEditFournisseur(p.fournisseur);
     setEditSeuilAlerte(p.seuilAlerte);
+    setEditStockSens("ajouter");
+    setEditStockQte("");
+    setEditStockNote("");
     setEditErreur(null);
     setEditDetails({
       sku: p.sku ?? "",
@@ -327,6 +360,20 @@ export const ProduitsView: React.FC<ProduitsViewProps> = ({
       statut: p.statut ?? "actif",
     });
   };
+
+  /**
+   * Où l'on arrive si l'on enregistre maintenant.
+   *
+   * Nul tant qu'aucune quantité n'est saisie : il n'y a alors rien à
+   * annoncer, et afficher « stock après : 12 » quand rien ne change
+   * ferait croire qu'on s'apprête à écrire quelque chose.
+   */
+  const stockApresCorrection = useMemo(() => {
+    if (!editingProduct) return null;
+    const qte = Math.abs(Math.trunc(Number(editStockQte) || 0));
+    if (qte === 0) return null;
+    return editingProduct.stockActuel + (editStockSens === "retirer" ? -qte : qte);
+  }, [editingProduct, editStockQte, editStockSens]);
 
   const handleEditSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -360,6 +407,24 @@ export const ProduitsView: React.FC<ProduitsViewProps> = ({
         // Le premier enregistrement a bien eu lieu : le dire, sinon
         // l'utilisateur croirait avoir tout perdu et recommencerait.
         setEditErreur(`${details.error} Les prix et le seuil, eux, ont bien été enregistrés.`);
+        return;
+      }
+    }
+
+    // La correction de stock en dernier, et seulement si une quantité a
+    // été saisie. En dernier parce qu'elle écrit dans le journal du
+    // stock : si les prix devaient échouer, mieux vaut que le journal
+    // n'ait rien enregistré que l'inverse.
+    const qte = Math.abs(Math.trunc(Number(editStockQte) || 0));
+    if (qte > 0 && onAjusterStock) {
+      const delta = editStockSens === "retirer" ? -qte : qte;
+      const stock = await onAjusterStock(editingProduct.id, delta, editStockNote.trim() || null);
+      if (stock.error) {
+        setEditSaving(false);
+        // Le reste est passé : le dire, sinon l'utilisateur croirait
+        // avoir tout perdu et recommencerait la fiche entière.
+        setEditErreur(`${stock.error} Le reste de la fiche a bien été enregistré.`);
+        setEditStockQte("");
         return;
       }
     }
@@ -799,6 +864,72 @@ export const ProduitsView: React.FC<ProduitsViewProps> = ({
                 informations sans risque : les ventes et achats déjà enregistrés ne sont pas
                 affectés.
               </span>
+            </div>
+          )}
+
+          {/* ── Corriger le stock ──
+              On saisit un ÉCART, pas un nouveau total : « j'en ajoute 5 »
+              plutôt que « il y en a 47 ». C'est ce que le journal du
+              stock enregistre, et c'est aussi ce qu'on a en tête en
+              rangeant un carton ou en constatant une casse.
+
+              Le stock après correction s'affiche sous le champ : on voit
+              où l'on arrive avant d'enregistrer, sans faire l'addition. */}
+          {onAjusterStock && (
+            <div className="mb-4 rounded-xl border border-border p-3">
+              <div className="mb-2 flex items-baseline justify-between gap-3">
+                <span className="text-sm font-medium text-foreground">Corriger le stock</span>
+                <span className="text-xs text-muted-foreground">
+                  actuellement {editingProduct.stockActuel}
+                  {editingProduct.stockReserve > 0 && (
+                    <> · dont {editingProduct.stockReserve} réservé</>
+                  )}
+                </span>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2">
+                <select
+                  value={editStockSens}
+                  onChange={(e) => setEditStockSens(e.target.value as "ajouter" | "retirer")}
+                  className="app-field"
+                  aria-label="Ajouter ou retirer du stock"
+                >
+                  <option value="ajouter">Ajouter</option>
+                  <option value="retirer">Retirer</option>
+                </select>
+                <input
+                  type="number"
+                  inputMode="numeric"
+                  min={0}
+                  step={1}
+                  value={editStockQte}
+                  onChange={(e) => setEditStockQte(e.target.value)}
+                  placeholder="Quantité"
+                  className="app-field"
+                  aria-label="Quantité à ajouter ou retirer"
+                />
+              </div>
+
+              {stockApresCorrection !== null && (
+                <p
+                  className={`mt-2 text-xs ${stockApresCorrection < editingProduct.stockReserve ? "t-danger" : "text-muted-foreground"}`}
+                >
+                  Stock après correction : <strong>{stockApresCorrection}</strong>
+                  {stockApresCorrection < 0 && " — impossible, il n'y en a pas tant"}
+                  {stockApresCorrection >= 0 &&
+                    stockApresCorrection < editingProduct.stockReserve &&
+                    ` — impossible, ${editingProduct.stockReserve} sont réservés par des commandes`}
+                </p>
+              )}
+
+              <input
+                type="text"
+                value={editStockNote}
+                onChange={(e) => setEditStockNote(e.target.value)}
+                placeholder="Motif : inventaire, casse, perte… (facultatif)"
+                className="app-field mt-2"
+                aria-label="Motif de la correction"
+              />
             </div>
           )}
 
