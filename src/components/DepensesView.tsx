@@ -801,7 +801,7 @@ export const DepensesView: React.FC<DepensesViewProps> = ({
       >
         <form id="expense-add-form" onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="mb-1.5 block text-sm font-medium text-foreground">Date *</label>
+            <label className="mb-1.5 block text-sm font-medium text-foreground">Date</label>
             <input
               type="date"
               required
@@ -922,7 +922,7 @@ export const DepensesView: React.FC<DepensesViewProps> = ({
 
           <div>
             <label className="mb-1.5 block text-sm font-medium text-foreground">
-              Montant (Ar) *
+              Montant (Ar)
             </label>
             <input
               type="number"
@@ -986,7 +986,7 @@ export const DepensesView: React.FC<DepensesViewProps> = ({
             className="space-y-4"
           >
             <div>
-              <label className="mb-1.5 block text-sm font-medium text-foreground">Date *</label>
+              <label className="mb-1.5 block text-sm font-medium text-foreground">Date</label>
               <input
                 type="date"
                 required
@@ -1030,7 +1030,7 @@ export const DepensesView: React.FC<DepensesViewProps> = ({
 
             <div>
               <label className="mb-1.5 block text-sm font-medium text-foreground">
-                Montant (Ar) *
+                Montant (Ar)
               </label>
               <input
                 type="number"

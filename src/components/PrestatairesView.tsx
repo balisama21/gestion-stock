@@ -325,10 +325,9 @@ export const PrestatairesView: React.FC<PrestatairesViewProps> = ({
       setFormulaire((p) => ({ ...p, [cle]: e.target.value })),
   });
 
-  const etiquette = (pour: string, texte: string, obligatoire = false) => (
+  const etiquette = (pour: string, texte: string) => (
     <label htmlFor={pour} className="mb-1 block text-xs font-medium text-muted-foreground">
       {texte}
-      {obligatoire && <span className="t-danger"> *</span>}
     </label>
   );
 
@@ -389,7 +388,7 @@ export const PrestatairesView: React.FC<PrestatairesViewProps> = ({
                 Identité
               </legend>
               <div>
-                {etiquette("pr-nom", "Nom", true)}
+                {etiquette("pr-nom", "Nom")}
                 <input id="pr-nom" type="text" required className="app-field" {...champ("nom")} />
               </div>
               <div>

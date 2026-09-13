@@ -412,7 +412,7 @@ export const CapitalView: React.FC<CapitalViewProps> = ({
         <form id="apport-form" onSubmit={handleSubmitApport} className="space-y-4">
           <div>
             <label className="mb-1.5 block text-sm font-medium text-foreground">
-              Montant de l'apport (Ar) *
+              Montant de l'apport (Ar)
             </label>
             <input
               type="number"
@@ -427,7 +427,7 @@ export const CapitalView: React.FC<CapitalViewProps> = ({
 
           <div>
             <label className="mb-1.5 block text-sm font-medium text-foreground">
-              Source *
+              Source
             </label>
             <input
               type="text"

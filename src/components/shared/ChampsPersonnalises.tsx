@@ -83,7 +83,6 @@ export const ChampsPersoSaisie: React.FC<SaisieProps> = ({
           <div key={champ.id} className={champ.type === "texte_long" ? "sm:col-span-2" : undefined}>
             <label htmlFor={id} className="mb-1 block text-xs font-medium text-muted-foreground">
               {champ.libelle}
-              {champ.obligatoire && <span className="t-danger"> *</span>}
             </label>
 
             {champ.type === "texte_long" ? (

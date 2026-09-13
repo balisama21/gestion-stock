@@ -293,7 +293,7 @@ export const PaiementsARecevoirView: React.FC<PaiementsARecevoirViewProps> = ({
           <form id="receivable-payment-form" onSubmit={handleSubmitPayment} className="space-y-4">
             <div>
               <label className="mb-1.5 block text-sm font-medium text-foreground">
-                Montant reçu *
+                Montant reçu
               </label>
               <input
                 type="number"

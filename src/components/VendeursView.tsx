@@ -433,7 +433,7 @@ export const VendeursView: React.FC<VendeursViewProps> = ({
         <form onSubmit={handleAdd} className="space-y-4">
           <div>
             <label className="mb-1.5 block text-sm font-medium text-foreground">
-              Adresse e-mail *
+              Adresse e-mail
             </label>
             <input
               type="email"

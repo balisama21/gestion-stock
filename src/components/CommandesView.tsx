@@ -774,7 +774,7 @@ export const CommandesView: React.FC<CommandesViewProps> = ({
           <form id="order-payment-form" onSubmit={handleAddPayment} className="space-y-4">
             <div>
               <label className="mb-1.5 block text-sm font-medium text-foreground">
-                Montant reçu *
+                Montant reçu
               </label>
               <input
                 type="number"
@@ -926,7 +926,7 @@ export const CommandesView: React.FC<CommandesViewProps> = ({
               de 640 px et retrouve sa grille au-delà. */}
           <div>
             <div className="mb-2 flex items-center justify-between gap-3">
-              <h4 className="app-section-title">Produits *</h4>
+              <h4 className="app-section-title">Produits</h4>
               <button
                 type="button"
                 onClick={addItem}

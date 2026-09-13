@@ -64,7 +64,9 @@ interface AchatsViewProps {
     /** Ce qui sort de la caisse maintenant. Omis = réglé en totalité. */
     montantPaye?: number | null;
     dateEcheance?: string | null;
-    /** Ce qui décrit le produit, quand l'achat vient d'en créer un. */
+    // `productId` est celui du produit touché par l'achat — qu'il vienne
+    // d'être créé ou qu'il existait déjà. C'est sur lui que la fiche
+    // descriptive s'écrit ensuite.
   }) => Promise<{ error: string | null; productId?: string | null }>;
   /**
    * De quoi remplir la fiche produit depuis un achat.
@@ -641,7 +643,7 @@ export const AchatsView: React.FC<AchatsViewProps> = ({
           <div className="space-y-4 border-t border-border pt-4">
             <div>
               <label className="mb-1.5 block text-sm font-medium text-foreground">
-                Date d'achat *
+                Date d'achat
               </label>
               <input
                 type="date"
@@ -654,7 +656,7 @@ export const AchatsView: React.FC<AchatsViewProps> = ({
 
             <div>
               <label className="mb-1.5 block text-sm font-medium text-foreground">
-                Désignation *
+                Désignation
               </label>
               <input
                 type="text"
@@ -669,7 +671,7 @@ export const AchatsView: React.FC<AchatsViewProps> = ({
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div>
                 <label className="mb-1.5 block text-sm font-medium text-foreground">
-                  Quantité *
+                  Quantité
                 </label>
                 <input
                   type="number"
@@ -682,7 +684,7 @@ export const AchatsView: React.FC<AchatsViewProps> = ({
               </div>
               <div>
                 <label className="mb-1.5 block text-sm font-medium text-foreground">
-                  Prix d'achat unitaire (Ar) *
+                  Prix d'achat unitaire (Ar)
                 </label>
                 <input
                   type="number"
