@@ -37,6 +37,7 @@ import {
   type ClePeriode,
 } from "../lib/periodes";
 import { DataList } from "./shared/DataList";
+import { LigneJournal } from "./shared/LigneJournal";
 import { dateDuJour } from "../lib/dates";
 import { SelecteurPeriode } from "./shared/SelecteurPeriode";
 import { VignetteProduit, vignettesParProduit } from "./shared/VignetteProduit";
@@ -310,20 +311,17 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
    * les vingt-sept autres gardent la leur.
    */
   /**
-   * La date d'une vente recente, sans son annee quand c'est celle qui
-   * court.
+   * La quantité en toutes lettres plutôt qu'en abrégé.
    *
-   * « 13/09/2026 a 10:24 » ne tient pas dans la ligne grise d'un
-   * telephone : c'est l'heure, l'information neuve, qui se faisait
-   * couper. L'annee est celle qu'on devine — ces ventes sont les six
-   * dernieres — et elle revient des qu'elle cesse d'aller de soi. Le
-   * decoupage se fait par la fin, ce qui vaut pour les deux formats :
-   * l'annee est en derniere position en FR comme en US.
+   * « ×20 » collé au nom du produit se lit comme une référence ou une
+   * taille ; « 20 unités », posé dans le second rang, se lit comme une
+   * quantité. Le mot suit l'unité de la fiche produit quand elle est
+   * renseignée — « 20 sacs », « 20 litres » — et retombe sur « unité »
+   * sinon, ce qui est le cas de tout le catalogue aujourd'hui.
    */
-  const anneeCourante = new Date().getFullYear();
-  const dateDeLaVente = (jour: string): string => {
-    const complet = formatDateLocale(jour, locale);
-    return jour.slice(0, 4) === String(anneeCourante) ? complet.slice(0, 5) : complet;
+  const quantiteEnMots = (nombre: number, produit?: Product): string => {
+    const unite = produit?.unite?.trim() || "unité";
+    return `${nombre} ${nombre > 1 ? `${unite}s` : unite}`;
   };
 
   const heureDeLaVente = (vente: Sale): string | null => {
@@ -740,9 +738,11 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                       <div className="app-list-primary font-mono">{o.numero}</div>
                       <div className="app-list-secondary">{o.client?.nom ?? "Sans client"}</div>
                     </div>
-                    <span className="app-list-amount t-danger">
-                      {formatCurrency(o.reste_a_payer ?? 0)}
-                    </span>
+                    {/* Neutre comme tous les montants de l'écran : le
+                        titre du bloc dit déjà que cet argent n'est pas
+                        rentré, et le rouge le répétait sans rien
+                        ajouter. */}
+                    <span className="app-list-amount">{formatCurrency(o.reste_a_payer ?? 0)}</span>
                   </div>
                 ))}
               </div>
@@ -766,31 +766,12 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               </button>
             </div>
 
-            {/* ── Une ligne qui occupe sa largeur ──
-                Ce bloc ne passe pas par DataList, et c'est la seule
-                exception de l'écran. La liste commune empile tout à
-                gauche — nom sur une ligne, puis quantité, vendeur et
-                date entassés sur la ligne grise en dessous — ce qui
-                laissait ici un vide de plusieurs centaines de pixels au
-                milieu pendant que les informations se serraient sur le
-                bord. Dans la colonne large de l'accueil, ce vide ne se
-                justifie pas.
-
-                Les zones sont donc posées à largeur fixe : c'est ce qui
-                les fait s'aligner d'une ligne à l'autre. Des colonnes
-                dimensionnées par leur contenu danseraient d'une ligne à
-                la suivante, et l'œil ne pourrait plus descendre une
-                colonne du regard.
-
-                LE SEUIL SE MESURE SUR LE BLOC, PAS SUR L'ÉCRAN, et
-                c'est tout l'intérêt de `@container` ici : à 1024 pixels
-                de large, l'accueil passe en deux colonnes et ce bloc
-                n'en fait plus que 623 — moins large qu'à 768, où il
-                occupe toute la page. Une règle en `md:` montrait donc
-                les zones précisément là où la place manquait, et le nom
-                du produit tombait à 73 pixels. Sous 672 pixels de bloc,
-                tout revient à la forme hiérarchisée de l'application —
-                le nom, puis une seule ligne grise. */}
+            {/* ── Le journal des ventes ──
+                Nom du produit en gras, second rang gris pour la
+                quantité et le vendeur, date en colonne à part, montant,
+                badge. Ni la quantité ni la date ne portent de couleur :
+                seul le badge en a, et c'est ce qui lui permet de se
+                voir. */}
             {ventesPeriode.length === 0 ? (
               <p className="px-4 py-8 text-center text-sm text-muted-foreground">
                 Aucune vente récente.
@@ -801,143 +782,153 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                   const prod = products.find((p) => p.id === s.productId);
                   const categorie = nomCategorie(prod);
                   const heure = heureDeLaVente(s);
-                  const quand = heure
-                    ? `${dateDeLaVente(s.date)} à ${heure}`
-                    : dateDeLaVente(s.date);
                   return (
-                    <div key={s.id} className="app-list-row gap-3 py-3">
-                      <VignetteProduit
-                        nom={s.designation}
-                        chemin={s.productId ? vignettes.get(s.productId) : null}
-                      />
-
-                      <div className="min-w-0 flex-1">
-                        <div className="flex min-w-0 items-center gap-2">
-                          <span className="app-list-primary">
-                            {prod ? getProductLabel(prod, products) : getSaleLabel(s, products)}
-                          </span>
+                    <LigneJournal
+                      key={s.id}
+                      vignette={
+                        <VignetteProduit
+                          nom={s.designation}
+                          chemin={s.productId ? vignettes.get(s.productId) : null}
+                        />
+                      }
+                      titre={prod ? getProductLabel(prod, products) : getSaleLabel(s, products)}
+                      etiquettes={
+                        <>
                           <VariantBadge
                             prix={getSaleVariant(s, products)}
                             autorise={showPrixAchat}
                           />
-                          {/* Rien tant qu'aucune catégorie n'est
-                              renseignée. Réservée aux grands écrans :
-                              plus bas, la place va au nom du produit et
-                              aux trois zones alignées. */}
+                          {/* Rien tant qu'aucune catégorie n'est renseignée. */}
                           {categorie && (
                             <span className="app-badge app-badge-neutral hidden shrink-0 @3xl:inline-flex">
                               {categorie}
                             </span>
                           )}
-                        </div>
-                        {/* La forme repliée, sous 768 px. */}
-                        <span className="app-list-secondary block @2xl:hidden">
-                          ×{s.quantite} · {s.vendeur} · {quand}
+                        </>
+                      }
+                      details={[quantiteEnMots(s.quantite, prod), s.vendeur]}
+                      quand={
+                        heure
+                          ? `${formatDateLocale(s.date, locale)} à ${heure}`
+                          : formatDateLocale(s.date, locale)
+                      }
+                      montant={formatCurrency(s.totalVente)}
+                      badge={
+                        <span
+                          className={`app-badge shrink-0 ${
+                            s.statutCredit === "Payé"
+                              ? "app-badge-success"
+                              : s.statutCredit === "Partiel"
+                                ? "app-badge-warning"
+                                : "app-badge-danger"
+                          }`}
+                        >
+                          {s.statutCredit}
                         </span>
-                      </div>
-
-                      <span className="hidden w-12 shrink-0 text-center text-sm tabular-nums text-muted-foreground @2xl:block">
-                        ×{s.quantite}
-                      </span>
-                      {/* 128 px, mesures a l'appui : « Mamy Herinatenaina »
-                          — un vrai vendeur de la boutique — demande 128
-                          pixels exactement, et se faisait couper a 96. */}
-                      <span className="hidden w-32 shrink-0 truncate text-sm text-muted-foreground @2xl:block">
-                        {s.vendeur}
-                      </span>
-                      <span className="hidden w-28 shrink-0 text-sm tabular-nums text-muted-foreground @2xl:block">
-                        {quand}
-                      </span>
-
-                      <span className="app-list-amount">{formatCurrency(s.totalVente)}</span>
-                      <span
-                        className={`app-badge shrink-0 ${
-                          s.statutCredit === "Payé"
-                            ? "app-badge-success"
-                            : s.statutCredit === "Partiel"
-                              ? "app-badge-warning"
-                              : "app-badge-danger"
-                        }`}
-                      >
-                        {s.statutCredit}
-                      </span>
-                    </div>
+                      }
+                    />
                   );
                 })}
               </div>
             )}
           </div>
 
-          {/* Achats & Dépenses */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-            <div className="app-card p-4">
-              <h3 className="app-section-title mb-3">
-                <ShoppingCart className="w-4 h-4 t-warning" /> Derniers Achats
-              </h3>
-              <div className="space-y-3">
-                {achatsPeriode.slice(0, 4).map((p) => (
-                  <div
-                    key={p.id}
-                    className="flex justify-between items-center gap-3 text-sm border-b border-border/50 pb-3.5 last:border-0 last:pb-0"
-                  >
-                    <div className="flex min-w-0 items-center gap-2.5">
-                      <VignetteProduit
-                        nom={p.designation}
-                        chemin={p.productId ? vignettes.get(p.productId) : null}
-                        taille={32}
-                      />
-                      <div className="min-w-0">
-                        <div className="truncate font-semibold text-foreground">
-                          {(() => {
-                            const linkedProduct = products.find((prod) => prod.id === p.productId);
-                            return linkedProduct
-                              ? getProductLabel(linkedProduct, products)
-                              : p.designation;
-                          })()}
-                        </div>
-                        <div className="text-xs text-muted-foreground">
-                          {formatDateLocale(p.date, locale)}
-                        </div>
-                      </div>
-                    </div>
-                    <div className="font-mono font-bold t-warning whitespace-nowrap">
-                      {formatCurrency(p.totalAchat)}
-                    </div>
-                  </div>
-                ))}
-                {purchases.length === 0 && (
-                  <div className="text-sm text-muted-foreground text-center py-4">
-                    Aucun achat enregistré.
-                  </div>
-                )}
+          {/* ── Achats et dépenses ──
+              Mêmes lignes que les ventes juste au-dessus : titre en
+              gras, second rang gris, date, montant, badge. Ces deux
+              blocs suivaient encore leur propre mise en page, avec une
+              icône orange, une icône rouge et des montants colorés —
+              trois teintes qui ne disaient rien que le titre du bloc ne
+              disait déjà, et qui affaiblissaient le seul endroit où la
+              couleur porte : le badge de statut. */}
+          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2">
+            <div className="app-card overflow-hidden">
+              <div className="border-b border-border px-4 py-3">
+                <h3 className="app-section-title">
+                  <ShoppingCart className="h-3.5 w-3.5" /> Derniers achats
+                </h3>
               </div>
+              {achatsPeriode.length === 0 ? (
+                <p className="px-4 py-8 text-center text-sm text-muted-foreground">
+                  Aucun achat enregistré.
+                </p>
+              ) : (
+                <div className="app-list @container">
+                  {achatsPeriode.slice(0, 4).map((a) => {
+                    const prod = products.find((x) => x.id === a.productId);
+                    return (
+                      <LigneJournal
+                        key={a.id}
+                        vignette={
+                          <VignetteProduit
+                            nom={a.designation}
+                            chemin={a.productId ? vignettes.get(a.productId) : null}
+                            taille={32}
+                          />
+                        }
+                        titre={prod ? getProductLabel(prod, products) : a.designation}
+                        details={[quantiteEnMots(a.quantite, prod), a.fournisseur]}
+                        quand={formatDateLocale(a.date, locale)}
+                        montant={formatCurrency(a.totalAchat)}
+                        /* Le statut est affiché même quand il est
+                           « Payé », comme dans les ventes : une colonne
+                           de badges qui s'interrompt se lit comme une
+                           donnée manquante, pas comme une bonne
+                           nouvelle. */
+                        badge={
+                          a.statutPaiement ? (
+                            <span
+                              className={`app-badge shrink-0 ${
+                                a.statutPaiement === "Payé"
+                                  ? "app-badge-success"
+                                  : a.statutPaiement === "Partiel"
+                                    ? "app-badge-warning"
+                                    : "app-badge-danger"
+                              }`}
+                            >
+                              {a.statutPaiement}
+                            </span>
+                          ) : undefined
+                        }
+                      />
+                    );
+                  })}
+                </div>
+              )}
             </div>
 
-            <div className="app-card p-4">
-              <h3 className="app-section-title mb-3">
-                <ArrowRightLeft className="w-4 h-4 t-danger" /> Dernières Dépenses
-              </h3>
-              <div className="space-y-3">
-                {depensesPeriode.slice(0, 4).map((e) => (
-                  <div
-                    key={e.id}
-                    className="flex justify-between items-center gap-3 text-sm border-b border-border/50 pb-3.5 last:border-0 last:pb-0"
-                  >
-                    <div className="min-w-0">
-                      <div className="font-semibold text-foreground truncate">{e.vendeur}</div>
-                      <div className="text-xs text-muted-foreground">{e.type}</div>
-                    </div>
-                    <div className="font-mono font-bold t-danger whitespace-nowrap">
-                      {formatCurrency(e.montant)}
-                    </div>
-                  </div>
-                ))}
-                {expenses.length === 0 && (
-                  <div className="text-sm text-muted-foreground text-center py-4">
-                    Aucune dépense enregistrée.
-                  </div>
-                )}
+            <div className="app-card overflow-hidden">
+              <div className="border-b border-border px-4 py-3">
+                <h3 className="app-section-title">
+                  <ArrowRightLeft className="h-3.5 w-3.5" /> Dernières dépenses
+                </h3>
               </div>
+              {depensesPeriode.length === 0 ? (
+                <p className="px-4 py-8 text-center text-sm text-muted-foreground">
+                  Aucune dépense enregistrée.
+                </p>
+              ) : (
+                <div className="app-list @container">
+                  {depensesPeriode.slice(0, 4).map((d) => {
+                    /* Le libellé saisi porte le sens — « Carburant »,
+                       « frais de deplacement » ; le type ne dit que
+                       « Autre dépense ». Il passe donc devant, et le
+                       type descend d'un rang. Vide, c'est le type qui
+                       remonte : plutôt que de laisser une ligne sans
+                       titre, et sans le répéter en dessous. */
+                    const libelle = d.note?.trim();
+                    return (
+                      <LigneJournal
+                        key={d.id}
+                        titre={libelle || d.type}
+                        details={[libelle ? d.type : null, d.vendeur]}
+                        quand={formatDateLocale(d.date, locale)}
+                        montant={formatCurrency(d.montant)}
+                      />
+                    );
+                  })}
+                </div>
+              )}
             </div>
           </div>
         </div>
