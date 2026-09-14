@@ -1,7 +1,8 @@
 import React, { useRef, useState } from "react";
-import { ImagePlus, Loader2, Star, Trash2 } from "lucide-react";
+import { Eraser, ImagePlus, Loader2, Star, Trash2 } from "lucide-react";
 import { adresseImageProduit, envoyerFichier, supprimerFichier } from "../../lib/stockageFichiers";
 import { BoutonScan } from "../shared/BoutonScan";
+import { DetourerPhoto } from "./DetourerPhoto";
 import type { Database } from "../../lib/database.types";
 import {
   TYPES_PRODUIT,
@@ -145,6 +146,82 @@ export const DetailsProduit: React.FC<DetailsProduitProps> = ({
     }
   };
 
+  /**
+   * La photo en cours de detourage — deja envoyee, ou encore en attente.
+   *
+   * Le FICHIER est porte ici, pas seulement la reference : une photo
+   * deja envoyee doit etre relue depuis le stockage avant d'etre
+   * retravaillee, et cette lecture a le droit d'echouer. Mieux vaut
+   * qu'elle echoue a l'ouverture, avec un message, qu'au milieu du
+   * traitement.
+   */
+  const [detourage, setDetourage] = React.useState<
+    | { genre: "envoyee"; image: ImageProduit; fichier: File }
+    | { genre: "attente"; index: number; fichier: File }
+    | null
+  >(null);
+
+  const ouvrirDetourage = async (image: ImageProduit) => {
+    setErreurImage(null);
+    try {
+      const reponse = await fetch(adresseImageProduit(image.chemin));
+      if (!reponse.ok) throw new Error(String(reponse.status));
+      const blob = await reponse.blob();
+      setDetourage({
+        genre: "envoyee",
+        image,
+        fichier: new File([blob], "photo", { type: blob.type || "image/jpeg" }),
+      });
+    } catch {
+      setErreurImage("Cette photo n'a pas pu être relue pour le détourage.");
+    }
+  };
+
+  /**
+   * Garder la version detouree.
+   *
+   * L'ORDRE DES GESTES porte tout le filet de securite : on envoie le
+   * nouveau fichier, on l'enregistre a la place de l'ancien dans la
+   * fiche, et seulement APRES on efface l'ancien. Si quoi que ce soit
+   * echoue en chemin, la photo d'origine est toujours la — et le
+   * fichier a moitie envoye, lui, est retire.
+   *
+   * Le nouveau reprend l'`ordre` de l'ancien : une photo detouree ne
+   * doit pas se retrouver en fin de liste et perdre son role de
+   * vignette au passage.
+   */
+  const garderDetourage = async (detoure: File) => {
+    if (!detourage) return;
+
+    if (detourage.genre === "attente") {
+      onPhotosEnAttenteChange?.(
+        photosEnAttente.map((f, j) => (j === detourage.index ? detoure : f)),
+      );
+      return;
+    }
+
+    if (!storeId || !productId) return;
+    const ancienne = detourage.image;
+
+    const { chemin, error } = await envoyerFichier(
+      "produits",
+      storeId,
+      `produits/${productId}`,
+      detoure,
+    );
+    if (error || !chemin) throw new Error(error ?? "Cette image n'a pas pu être envoyée.");
+
+    const ajout = await onAddImage(productId, chemin, ancienne.ordre);
+    if (ajout.error) {
+      await supprimerFichier("produits", chemin);
+      throw new Error(ajout.error);
+    }
+
+    const retrait = await onDeleteImage(ancienne.id);
+    if (retrait.error) throw new Error(retrait.error);
+    await supprimerFichier("produits", ancienne.chemin);
+  };
+
   const retirerImage = async (image: ImageProduit) => {
     setErreurImage(null);
     const { error } = await onDeleteImage(image.id);
@@ -157,6 +234,14 @@ export const DetailsProduit: React.FC<DetailsProduitProps> = ({
 
   return (
     <div className="space-y-5 border-t border-border pt-5">
+      {detourage && (
+        <DetourerPhoto
+          open
+          fichier={detourage.fichier}
+          onClose={() => setDetourage(null)}
+          onGarder={garderDetourage}
+        />
+      )}
       <p className="text-xs font-semibold uppercase tracking-wide text-muted-foreground">
         Fiche produit
       </p>
@@ -398,6 +483,19 @@ export const DetailsProduit: React.FC<DetailsProduitProps> = ({
                       <Star className="h-3 w-3 t-success" aria-label="Vignette du produit" />
                     </span>
                   )}
+                  {/* Deux gestes sur une photo : la detourer, la retirer.
+                      Poses en coin plutot qu'en dessous — sous une
+                      vignette de quatre-vingts pixels, deux boutons en
+                      ligne seraient plus larges que la photo. */}
+                  <button
+                    type="button"
+                    onClick={() => ouvrirDetourage(image)}
+                    className="app-btn-icon absolute -left-2 -top-2 h-7 w-7 bg-card"
+                    aria-label="Détourer cette photo"
+                    title="Détourer : retirer le fond"
+                  >
+                    <Eraser className="h-3.5 w-3.5" />
+                  </button>
                   <button
                     type="button"
                     onClick={() => retirerImage(image)}
@@ -420,6 +518,20 @@ export const DetailsProduit: React.FC<DetailsProduitProps> = ({
                       <Star className="h-3 w-3 t-success" aria-label="Vignette du produit" />
                     </span>
                   )}
+                  {/* Detourable avant meme d'etre envoyee : le fichier
+                      est deja la, en memoire, et rien n'oblige a creer
+                      le produit pour nettoyer sa photo. */}
+                  <button
+                    type="button"
+                    onClick={() =>
+                      setDetourage({ genre: "attente", index: i, fichier: photosEnAttente[i] })
+                    }
+                    className="app-btn-icon absolute -left-2 -top-2 h-7 w-7 bg-card"
+                    aria-label="Détourer cette photo"
+                    title="Détourer : retirer le fond"
+                  >
+                    <Eraser className="h-3.5 w-3.5" />
+                  </button>
                   <button
                     type="button"
                     onClick={() =>
