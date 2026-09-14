@@ -242,6 +242,7 @@ export const VentesView: React.FC<VentesViewProps> = ({
         id: v.id,
         designation: getSaleLabel(v, products),
         reference: products.find((p) => p.id === v.productId)?.numero ?? null,
+        unite: products.find((p) => p.id === v.productId)?.unite ?? null,
         quantite: v.quantite,
         prixUnitaire: v.prixVenteUnit,
         total: v.totalVente,
@@ -1596,7 +1597,8 @@ export const VentesView: React.FC<VentesViewProps> = ({
                         <p className="font-semibold text-slate-900">{l.designation}</p>
                         <div className="flex justify-between gap-3 text-[10px] text-slate-600">
                           <span>
-                            {l.quantite} × {formatCurrency(l.prixUnitaire)}
+                            {quantiteEnMots(l.quantite, l.unite)} ×{" "}
+                            {formatCurrency(l.prixUnitaire)}
                           </span>
                           <span className="font-semibold text-slate-900">
                             {formatCurrency(l.total)}

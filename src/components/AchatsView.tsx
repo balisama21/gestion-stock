@@ -1560,7 +1560,10 @@ export const AchatsView: React.FC<AchatsViewProps> = ({
                           </p>
                           <div className="flex justify-between gap-3 text-[10px] text-slate-600">
                             <span>
-                              {p.quantite} unité{p.quantite > 1 ? "s" : ""}
+                              {quantiteEnMots(
+                                p.quantite,
+                                products.find((prod) => prod.id === p.productId)?.unite,
+                              )}
                               {showPrix ? ` × ${formatCurrency(p.prixAchatUnit)}` : ""}
                             </span>
                             {showPrix && (

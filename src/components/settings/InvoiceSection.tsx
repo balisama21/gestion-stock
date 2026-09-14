@@ -3,6 +3,7 @@ import { Receipt, RotateCcw, Monitor } from "lucide-react";
 import { SettingsSection, SettingsRow, SettingsBlock } from "./primitives";
 import { Toggle } from "../shared/Toggle";
 import { useInvoicePrefs, type InvoicePrefs } from "../../lib/invoicePrefs";
+import { quantiteEnMots } from "../../utils/formulas";
 import type { StoreSettings } from "../../types";
 
 interface InvoiceSectionProps {
@@ -79,11 +80,21 @@ const Preview: React.FC<{ settings: StoreSettings; prefs: InvoicePrefs }> = ({
 
       <div className="my-2 border-t border-dashed border-slate-300" />
 
-      <div className="flex justify-between">
-        <span>Kapa mena ×3</span>
-        <span>
-          {sousTotal.toLocaleString("fr-FR")} {devise}
-        </span>
+      {/* La meme disposition que les vrais documents : la designation
+          prend toute la largeur, et la ligne de calcul se lit en
+          dessous. Sur 58 mm, quatre colonnes serrees deviennent
+          illisibles — et cet apercu ne servirait a rien s'il montrait
+          autre chose que ce qui sortira de l'imprimante. */}
+      <div>
+        <p className="font-semibold">Kapa mena</p>
+        <div className="flex justify-between gap-3 text-slate-600">
+          <span>
+            {quantiteEnMots(3)} × {(sousTotal / 3).toLocaleString("fr-FR")} {devise}
+          </span>
+          <span className="font-semibold text-slate-900">
+            {sousTotal.toLocaleString("fr-FR")} {devise}
+          </span>
+        </div>
       </div>
 
       <div className="my-2 border-t border-dashed border-slate-300" />
