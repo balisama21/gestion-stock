@@ -23,7 +23,7 @@ export const vignettesParProduit = (
 };
 
 interface VignetteProduitProps {
-  /** De quoi tirer l'initiale quand il n'y a pas de photo. */
+  /** Le nom du produit, porte en infobulle sur la photo. */
   nom: string;
   /** Le chemin de la photo dans le stockage. Nul = pas de photo. */
   chemin?: string | null;
@@ -33,33 +33,46 @@ interface VignetteProduitProps {
 }
 
 /**
- * La vignette d'un produit, photo ou non.
+ * La vignette d'un produit — la photo seule, ou rien.
  *
- * ── Les deux cas se ressemblent, exprès ──
+ * ── Ni cadre, ni fond ──
  *
- * Un produit sans photo n'est pas un produit cassé : c'est le cas le
- * plus fréquent dans une boutique qui démarre. Il reçoit donc le même
- * carré, au même endroit, avec le même arrondi et le même filet — seul
- * le contenu change. Une liste où certaines lignes ont un visuel et
- * d'autres un trou ne s'aligne plus, et l'œil trébuche à chaque saut.
+ * La photo se pose directement sur la page. Pas de filet, pas d'aplat
+ * gris derriere, pas de coin arrondi : rien qui dise « ceci est une
+ * miniature ». Un produit detoure flotte alors sur le blanc, comme sur
+ * les catalogues en ligne ; une photo ordinaire se montre telle
+ * qu'elle est, sans qu'on lui ait dessine une boite autour.
  *
- * L'initiale plutôt qu'un pictogramme de colis : le motif existe déjà
- * pour les vendeurs et les clients, il n'introduit donc aucun style
- * nouveau, et surtout deux produits différents ne se ressemblent pas —
- * ce qu'un colis gris répété vingt fois ne donne pas.
+ * `object-contain` et non `cover` : sans cadre, plus rien ne delimite
+ * la zone dans laquelle recadrer, et un produit ampute de ses bords se
+ * verrait d'autant plus. L'adresse demandee au stockage porte le meme
+ * `resize=contain`, pour que le rognage ne revienne pas par le serveur.
+ *
+ * ── Sans photo, RIEN ──
+ *
+ * Plus de carre a initiale. Un produit sans photo ne recoit aucune
+ * forme, aucun trait, aucune lettre.
+ *
+ * La PLACE, elle, reste. C'est une nuance, et elle porte tout : le
+ * span garde sa taille mais ne peint rien. Sans cela, les lignes sans
+ * photo verraient leur texte glisser vers la gauche et la liste
+ * cesserait de s'aligner — l'oeil trebuche a chaque saut, et une
+ * colonne de noms en dents de scie se lit mal. Une place vide ne se
+ * voit pas ; un decalage, si.
  *
  * ── Le poids ──
  *
- * L'adresse demandée porte la taille voulue : le serveur renvoie une
- * miniature, pas la photo d'origine. Sur un cliché réel de la boutique,
- * 132 631 octets deviennent 1 927 — soixante-neuf fois moins. Cela
- * compte pour une liste de vingt lignes ouverte en données mobiles.
+ * L'adresse demandee porte la taille voulue : le serveur renvoie une
+ * miniature, pas la photo d'origine. Sur un cliche reel de la
+ * boutique, 132 631 octets deviennent 1 927 — soixante-neuf fois
+ * moins. Cela compte pour une liste de vingt lignes ouverte en donnees
+ * mobiles.
  *
  * ── Quand l'image ne vient pas ──
  *
- * Fichier effacé du stockage, réseau coupé, adresse périmée : plutôt que
- * la petite icône d'image brisée du navigateur, on retombe sur le carré
- * à initiale. L'utilisateur voit une liste propre, pas une panne.
+ * Fichier efface du stockage, reseau coupe, adresse perimee : on
+ * retombe sur la place vide plutot que sur la petite icone d'image
+ * brisee du navigateur.
  */
 export const VignetteProduit: React.FC<VignetteProduitProps> = ({
   nom,
@@ -69,33 +82,25 @@ export const VignetteProduit: React.FC<VignetteProduitProps> = ({
 }) => {
   const [echec, setEchec] = useState(false);
   const cote = { width: taille, height: taille };
-  const forme = `shrink-0 rounded-lg border border-border ${className}`;
 
   if (!chemin || echec) {
-    return (
-      <span
-        style={cote}
-        aria-hidden="true"
-        className={`${forme} flex items-center justify-center bg-muted font-medium text-muted-foreground`}
-      >
-        {nom.trim().charAt(0).toUpperCase() || "?"}
-      </span>
-    );
+    return <span style={cote} aria-hidden="true" className={`shrink-0 ${className}`} />;
   }
 
   return (
     <img
-      // Le double de la taille d'affichage : sur un écran dense, une
-      // miniature à l'échelle exacte paraît floue.
+      // Le double de la taille d'affichage : sur un ecran dense, une
+      // miniature a l'echelle exacte parait floue.
       src={adresseVignetteProduit(chemin, taille * 2)}
       alt=""
+      title={nom}
       width={taille}
       height={taille}
       style={cote}
       loading="lazy"
       decoding="async"
       onError={() => setEchec(true)}
-      className={`${forme} bg-muted object-cover`}
+      className={`shrink-0 object-contain ${className}`}
     />
   );
 };

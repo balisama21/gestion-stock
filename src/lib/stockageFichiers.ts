@@ -97,7 +97,19 @@ export async function reduireImage(fichier: File): Promise<File> {
     if (!ctx) return fichier;
     ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
 
-    const type = fichier.type === "image/png" ? "image/png" : "image/jpeg";
+    // ── Le format de sortie garde le canal alpha ──
+    //
+    // Un JPEG ne sait pas etre transparent : une photo detouree qui y
+    // passerait ressortirait sur fond NOIR, ce qui est pire que son
+    // fond d'origine. PNG et WebP le savent, et le canvas sait les
+    // ecrire tous les deux. L'AVIF part en PNG : `toBlob` ne l'ecrit
+    // pas encore dans tous les navigateurs et retomberait en silence.
+    const type =
+      fichier.type === "image/png" || fichier.type === "image/webp"
+        ? fichier.type
+        : fichier.type === "image/avif"
+          ? "image/png"
+          : "image/jpeg";
     const blob = await new Promise<Blob | null>((ok) => canvas.toBlob(ok, type, QUALITE));
     if (!blob || blob.size >= fichier.size) return fichier;
 
@@ -196,7 +208,12 @@ export function adresseVignetteProduit(chemin: string, cote = 96): string {
   // du client : celle-ci n'existe pas dans toutes les versions, et la
   // forme publique de l'adresse, elle, est stable.
   const rendu = base.replace("/object/public/", "/render/image/public/");
-  return `${rendu}?width=${cote}&height=${cote}&resize=cover&quality=70`;
+  // `contain` et non `cover` : la vignette ne porte plus de cadre, donc
+  // rien ne delimite la zone dans laquelle recadrer. Une photo rognee
+  // sur ses bords se verrait d'autant plus qu'aucun filet ne dit ou
+  // elle s'arrete — et un produit detoure doit se voir en entier, pas
+  // amoute de ses cotes.
+  return `${rendu}?width=${cote}&height=${cote}&resize=contain&quality=70`;
 }
 
 /**

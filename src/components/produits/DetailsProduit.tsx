@@ -374,8 +374,13 @@ export const DetailsProduit: React.FC<DetailsProduitProps> = ({
           <>
             {/* Les deux cas — photo déjà envoyée, photo encore en
                 attente — se présentent exactement pareil : même taille,
-                même recadrage, même coin. Seule la légende du bas
-                change, pour dire ce qui reste à faire. */}
+                même cadrage. Seule la légende du bas change, pour dire
+                ce qui reste à faire.
+
+                Ni filet ni fond, comme partout ailleurs : la photo se
+                pose sur la page. Ici la corbeille en coin et l'étoile
+                de la vignette restent, elles, et suffisent à dire où
+                commence et où finit chaque image. */}
             <div className="flex flex-wrap gap-3">
               {images.map((image, i) => (
                 <figure key={image.id} className="relative">
@@ -383,7 +388,7 @@ export const DetailsProduit: React.FC<DetailsProduitProps> = ({
                     src={adresseImageProduit(image.chemin)}
                     alt=""
                     loading="lazy"
-                    className="h-20 w-20 rounded-xl border border-border object-cover"
+                    className="h-20 w-20 object-contain"
                   />
                   {i === 0 && (
                     <span
@@ -406,11 +411,7 @@ export const DetailsProduit: React.FC<DetailsProduitProps> = ({
 
               {apercus.map((apercu, i) => (
                 <figure key={apercu} className="relative">
-                  <img
-                    src={apercu}
-                    alt=""
-                    className="h-20 w-20 rounded-xl border border-border object-cover"
-                  />
+                  <img src={apercu} alt="" className="h-20 w-20 object-contain" />
                   {images.length === 0 && i === 0 && (
                     <span
                       className="absolute left-1 top-1 rounded-md bg-success-soft px-1 py-0.5"
