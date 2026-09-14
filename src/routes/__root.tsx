@@ -13,6 +13,7 @@ import { useEffect, type ReactNode } from "react";
 import appCss from "../styles.css?url";
 import { installerRepriseApresDeploiement } from "../lib/chunkRecovery";
 import { enregistrerServiceWorker } from "../lib/pwa";
+import { accorderLaBarreDEtat } from "../lib/couleurDeBarre";
 import { InstallPrompt } from "../components/shared/InstallPrompt";
 import { APP_NAME, APP_SHORT_NAME, APP_TAGLINE } from "../lib/appConfig";
 
@@ -77,7 +78,16 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
   head: () => ({
     meta: [
       { charSet: "utf-8" },
-      { name: "viewport", content: "width=device-width, initial-scale=1" },
+      // `viewport-fit=cover` : la page occupe TOUT l'ecran, y compris
+      // sous la barre d'etat et sous la barre de gestes. Sans lui, le
+      // systeme reserve ces bandes et les peint de sa propre couleur —
+      // un bandeau noir en haut du telephone — et, surtout, toutes les
+      // valeurs `env(safe-area-inset-*)` valent zero : le code qui les
+      // emploie deja pour ecarter la barre du bas ne servait a rien.
+      {
+        name: "viewport",
+        content: "width=device-width, initial-scale=1, viewport-fit=cover",
+      },
       { title: APP_NAME },
       {
         name: "description",
@@ -91,7 +101,18 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
       },
 
       { property: "og:type", content: "website" },
-      { name: "theme-color", content: "#008647" },
+      // La barre d'etat prend la couleur de ce qui se trouve JUSTE en
+      // dessous d'elle, c'est-a-dire l'en-tete de l'application. Le vert
+      // de la marque y ferait un bandeau colore la ou l'on veut
+      // justement n'en voir aucun.
+      //
+      // Cette valeur-ci n'est que la premiere, celle du mode clair,
+      // servie avant que le code ne s'execute ; `accorderLaBarreDEtat`
+      // prend le relais et la garde accordee au theme reellement
+      // affiche. Une seule balise ici, et c'est necessaire : le
+      // gestionnaire d'en-tete dedoublonne les metas par leur `name` et
+      // n'en garderait qu'une de toute facon.
+      { name: "theme-color", content: "#ffffff" },
       { name: "mobile-web-app-capable", content: "yes" },
       { name: "apple-mobile-web-app-capable", content: "yes" },
       { name: "apple-mobile-web-app-status-bar-style", content: "default" },
@@ -140,6 +161,10 @@ function RootComponent() {
     installerRepriseApresDeploiement();
     enregistrerServiceWorker();
   }, []);
+
+  // La barre d'etat du telephone suit l'en-tete de l'application,
+  // clair comme sombre, plutot que de rester un bandeau noir.
+  useEffect(() => accorderLaBarreDEtat(), []);
 
   return (
     <QueryClientProvider client={queryClient}>

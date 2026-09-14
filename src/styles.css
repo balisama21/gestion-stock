@@ -360,14 +360,18 @@ html {
   max-width: 1400px;
   margin-left: auto;
   margin-right: auto;
-  padding-left: 1rem;
-  padding-right: 1rem;
+  /* `max()` et non une addition : l'ecart habituel d'un centimetre
+     suffit deja la plupart du temps, et l'encoche ne prend le dessus
+     que lorsqu'elle mord plus large — telephone couche, ecran
+     arrondi. Ajouter les deux creuserait une marge inutile. */
+  padding-left: max(1rem, env(safe-area-inset-left, 0px));
+  padding-right: max(1rem, env(safe-area-inset-right, 0px));
 }
 
 @media (min-width: 640px) {
   .app-container {
-    padding-left: 1.5rem;
-    padding-right: 1.5rem;
+    padding-left: max(1.5rem, env(safe-area-inset-left, 0px));
+    padding-right: max(1.5rem, env(safe-area-inset-right, 0px));
   }
 }
 
@@ -759,6 +763,20 @@ td {
   transition-duration: 260ms;
   transition-timing-function: cubic-bezier(0.4, 0, 1, 1);
 }
+/* ── La barre du haut passe SOUS la barre d'etat ──
+
+   Avec `viewport-fit=cover`, la page commence au pixel zero de
+   l'ecran : sans cette marge, le nom de la boutique se glisserait
+   derriere l'heure et la batterie. La marge fait aussi peindre le fond
+   blanc de l'en-tete derriere les icones du systeme — c'est elle qui
+   remplace le bandeau noir par la couleur de l'application.
+
+   `env()` vaut zero partout ou il n'y a pas d'encoche : sur un
+   ordinateur, sur un telephone sans decoupe, rien ne bouge. */
+.app-bar-haut {
+  padding-top: env(safe-area-inset-top, 0px);
+}
+
 .app-bar-haut[data-masquee="true"] {
   transform: translateY(-100%);
 }

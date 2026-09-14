@@ -1359,7 +1359,7 @@ function AppInner() {
           onToggleSidebar={toggleSidebar}
         />
 
-        <main className="app-container flex-1 py-4 md:py-6 pb-24 lg:pb-6">
+        <main className="app-container flex-1 py-4 pb-[calc(6rem+env(safe-area-inset-bottom,0px))] md:py-6 lg:pb-6">
           {/* La rangee des ecrans du meme univers. Rendue ici, en un
               seul endroit, plutot que dans chacune des quinze vues :
               elle s applique du meme coup aux ecrans de repli affiches

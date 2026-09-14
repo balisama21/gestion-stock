@@ -206,7 +206,7 @@ export const TableauDuLivreur: React.FC<TableauDuLivreurProps> = ({
     <div className="min-h-dvh bg-background">
       {/* Un en-tête, pas une barre de navigation : il n'y a nulle part
           où aller. */}
-      <header className="sticky top-0 z-10 border-b border-border bg-card">
+      <header className="app-bar-haut sticky top-0 z-10 border-b border-border bg-card">
         <div className="mx-auto flex max-w-2xl items-center justify-between gap-3 px-4 py-3">
           <div className="min-w-0">
             <p className="truncate text-sm font-semibold text-foreground">{nom}</p>
