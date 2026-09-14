@@ -26,7 +26,7 @@ import {
   getSaleVariant,
 } from "../utils/formulas";
 import { VariantBadge } from "./shared/VariantBadge";
-import { GrilleIndicateurs } from "./shared/StatBar";
+import { BarreIndicateurs } from "./shared/StatBar";
 import { moduleMasque, usePersonnalisation } from "../lib/personnalisation";
 import { construireEnSuspens } from "../lib/enSuspens";
 import {
@@ -147,11 +147,11 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
    * « En suspens » sont des soldes : ils décrivent l'instant présent et
    * n'ont pas de durée.
    *
-   * Les cartes étant désormais sur une seule ligne, ce partage ne se
-   * voit plus par leur place : chacune porte donc son horizon sous son
-   * chiffre. C'est la mention « argent disponible » ou « ce mois-ci »
-   * qui dit, carte par carte, ce que le sélecteur touche — et elle doit
-   * rester, sans quoi rien ne le dirait plus.
+   * Les indicateurs tenant désormais sur une seule barre, ce partage ne
+   * se voit plus par leur place : chaque colonne porte donc son horizon
+   * sous son chiffre. C'est la mention « argent disponible » ou « ce
+   * mois-ci » qui dit, colonne par colonne, ce que le sélecteur touche
+   * — et elle doit rester, sans quoi rien ne le dirait plus.
    */
   const [clePeriode, setClePeriode] = useState<ClePeriode>(PERIODE_PAR_DEFAUT);
   const periode = useMemo(() => calculerPeriode(clePeriode), [clePeriode]);
@@ -356,8 +356,11 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           cette densité de chiffres, le fond de couleur et la pastille
           d'icône fatiguent plus qu'ils n'orientent. */}
       {/* ── Les indicateurs, sur une seule ligne ──
-          Trésorerie, ventes, achats, dépenses et stock en cartes de
-          même taille, côte à côte.
+          Trésorerie, ventes, achats, dépenses et stock dans UNE carte,
+          en colonnes de même largeur séparées d'un filet — et non une
+          carte par chiffre. Six cadres alignés se lisent comme six
+          objets sans rapport ; une bande unique se lit comme ce
+          qu'elle est, le résumé d'une seule activité.
 
           CE QUE CE REGROUPEMENT DOIT COMPENSER. La trésorerie et le
           stock sont des SOLDES : ils décrivent l'instant présent. Les
@@ -370,7 +373,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           chiffre, « argent disponible » ici, « ce mois-ci » là. Sans
           cette mention, on croirait le sélecteur maître des cinq
           cartes, et l'on lirait une trésorerie du mois dernier. */}
-      <GrilleIndicateurs
+      <BarreIndicateurs
         items={[
           {
             key: "tresorerie",
@@ -381,10 +384,10 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               : isTresorerieLow
                 ? "sous le seuil"
                 : "argent disponible",
+            // Le mot passe en orange quand la caisse est basse ou
+            // négative : la couleur ne touche que lui, jamais le fond
+            // ni la colonne entière.
             alert: isTresorerieNegative || isTresorerieLow,
-            // Le filet ne paraît que s'il y a quelque chose à signaler :
-            // un liseré permanent cesse d'être un signal.
-            filet: isTresorerieNegative ? "danger" : isTresorerieLow ? "warning" : undefined,
             icon: <Wallet className="h-3.5 w-3.5" />,
             onClick: () => onNavigateTab("capital"),
           },

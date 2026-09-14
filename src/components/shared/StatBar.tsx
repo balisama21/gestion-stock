@@ -32,15 +32,6 @@ export interface StatItem {
    * texte secondaire, jamais en fond.
    */
   alert?: boolean;
-  /**
-   * Filet d'état sur le bord gauche de la carte, dans la grille.
-   *
-   * Jamais décoratif : il ne paraît que lorsque la valeur demande
-   * quelque chose. Une trésorerie saine n'en porte pas — un filet
-   * permanent, fût-il vert, cesse d'être un signal au bout de trois
-   * jours et redevient de la décoration.
-   */
-  filet?: "danger" | "warning";
 }
 
 interface StatBarProps {
@@ -163,10 +154,10 @@ export const StatBar: React.FC<StatBarProps> = ({ items, className = "" }) => (
 );
 
 /* ═══════════════════════════════════════════════════════════════════
-   Les mêmes indicateurs, mais en cartes de taille égale sur une ligne
+   La même barre, mais qui compte ses colonnes
    ═══════════════════════════════════════════════════════════════════ */
 
-/** Nombre de colonnes sur grand écran, selon le nombre de cartes.
+/** Nombre de colonnes sur grand écran, selon le nombre d'indicateurs.
     Écrites en toutes lettres : Tailwind ne voit pas les classes
     composées à l'exécution et les retirerait de la feuille finale. */
 const COLONNES: Record<number, string> = {
@@ -178,35 +169,41 @@ const COLONNES: Record<number, string> = {
   6: "xl:grid-cols-6",
 };
 
-const FILET: Record<NonNullable<StatItem["filet"]>, string> = {
-  danger: "border-l-2 border-l-danger",
-  warning: "border-l-2 border-l-warning",
-};
-
 /**
- * Une ligne de cartes de même taille — trésorerie, ventes, achats,
- * dépenses, stock — plutôt qu'une bande à colonnes.
+ * La barre d'indicateurs du tableau de bord : UNE carte, des colonnes
+ * séparées d'un filet — jamais une carte par chiffre.
  *
- * ── Ce que chaque carte doit dire d'elle-même ──
+ * Trois différences avec `StatBar`, et c'est pourquoi elle existe à
+ * côté plutôt qu'à la place.
  *
- * La bande séparait les FLUX des SOLDES en deux blocs titrés, parce
- * que le sélecteur de période ne gouverne que les premiers. Sur une
- * seule ligne, ce regroupement disparaît : chaque carte porte donc son
- * propre horizon sous le chiffre — « argent disponible » pour une
- * caisse, « ce mois-ci » pour des ventes. L'information est la même,
- * dite carte par carte au lieu de bloc par bloc.
+ * ── Elle compte ses colonnes ──
  *
- * ── Hauteurs égales ──
+ * `StatBar` en fixe six, quel que soit le nombre d'indicateurs reçus.
+ * Ici le nombre suit la liste : une boutique qui a retiré le module
+ * Commandes en affiche cinq, sur cinq colonnes pleines, et non cinq
+ * colonnes suivies d'un vide.
  *
- * `h-full` sur chaque carte, et la grille étire ses rangées : une
- * carte à deux lignes de texte prend la hauteur de sa voisine à
- * quatre. Sans cela, une ligne de cartes se lit comme un graphique en
- * bâtons dont les hauteurs ne voudraient rien dire.
+ * ── Elle dit l'horizon ET la tendance ──
+ *
+ * `StatBar` montre l'un ou l'autre. Le tableau de bord a besoin des
+ * deux depuis que ses indicateurs tiennent sur une seule ligne : la
+ * trésorerie et le stock sont des SOLDES, les ventes et les achats des
+ * FLUX, et le sélecteur de période ne gouverne que les seconds. Deux
+ * blocs titrés le disaient par leur place ; une barre unique ne le peut
+ * plus, c'est donc chaque colonne qui porte son horizon sous son
+ * chiffre — « argent disponible » ici, « ce mois-ci » là.
+ *
+ * ── L'ordre des deux lignes ──
+ *
+ * L'horizon AVANT la tendance : il qualifie le chiffre au-dessus de lui
+ * — « 43 300 Ar, ce mois-ci » — alors que la tendance parle du
+ * pourcentage. Dans l'autre sens on lit deux phrases de période à la
+ * suite sans savoir laquelle porte sur quoi.
  */
-export const GrilleIndicateurs: React.FC<StatBarProps> = ({ items, className = "" }) => (
+export const BarreIndicateurs: React.FC<StatBarProps> = ({ items, className = "" }) => (
   <div
-    className={`grid grid-cols-2 gap-3 md:grid-cols-3 sm:gap-4 ${
-      COLONNES[items.length] ?? "xl:grid-cols-4"
+    className={`app-statbar grid-cols-2 sm:grid-cols-3 ${
+      COLONNES[items.length] ?? "xl:grid-cols-6"
     } ${className}`}
   >
     {items.map((item) => {
@@ -215,9 +212,7 @@ export const GrilleIndicateurs: React.FC<StatBarProps> = ({ items, className = "
         <Wrapper
           key={item.key}
           {...(item.onClick ? { onClick: item.onClick, type: "button" as const } : {})}
-          className={`app-card flex h-full flex-col gap-1 p-3.5 text-left sm:p-4 ${
-            item.filet ? FILET[item.filet] : ""
-          } ${item.onClick ? "transition-colors hover:bg-muted/40" : ""}`}
+          className="app-statbar-item"
         >
           <span className="app-statbar-label">
             {item.icon && <span className="shrink-0 opacity-70">{item.icon}</span>}
@@ -226,11 +221,6 @@ export const GrilleIndicateurs: React.FC<StatBarProps> = ({ items, className = "
 
           <span className="app-statbar-value truncate">{item.value}</span>
 
-          {/* L'horizon d'abord, la tendance ensuite. Il qualifie le
-              chiffre au-dessus — « 43 300 Ar, ce mois-ci » — tandis que
-              la tendance parle du pourcentage. Dans l'autre sens, on
-              lisait deux phrases de période à la suite sans savoir
-              laquelle portait sur quoi. */}
           {item.hint && (
             <span className={`app-statbar-hint ${item.alert ? "t-warning" : ""}`}>{item.hint}</span>
           )}
