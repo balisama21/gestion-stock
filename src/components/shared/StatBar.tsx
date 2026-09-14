@@ -32,6 +32,15 @@ export interface StatItem {
    * texte secondaire, jamais en fond.
    */
   alert?: boolean;
+  /**
+   * Filet d'état sur le bord gauche de la carte, dans la grille.
+   *
+   * Jamais décoratif : il ne paraît que lorsque la valeur demande
+   * quelque chose. Une trésorerie saine n'en porte pas — un filet
+   * permanent, fût-il vert, cesse d'être un signal au bout de trois
+   * jours et redevient de la décoration.
+   */
+  filet?: "danger" | "warning";
 }
 
 interface StatBarProps {
@@ -62,7 +71,10 @@ const Trend: React.FC<{ trend: NonNullable<StatItem["trend"]> }> = ({ trend }) =
           }`}
         >
           <Icon className="h-3 w-3" />
-          {Math.abs(rounded)} %
+          {/* Espace INSÉCABLE avant le pourcent : dans une carte étroite,
+              l'espace ordinaire laissait « 155 » en fin de ligne et le
+              « % » tout seul au début de la suivante. */}
+          {Math.abs(rounded)}&nbsp;%
         </span>
       )}
       {flat && <span>stable</span>}
@@ -92,14 +104,7 @@ interface StatColProps {
  * `tone` et `hintTone` sont acceptés mais ignorés : la couleur de fond
  * et la pastille d'icône ont disparu avec le passage au style sobre.
  */
-export const StatCol: React.FC<StatColProps> = ({
-  label,
-  value,
-  hint,
-  icon,
-  alert,
-  onClick,
-}) => {
+export const StatCol: React.FC<StatColProps> = ({ label, value, hint, icon, alert, onClick }) => {
   const Wrapper = onClick ? "button" : "div";
   return (
     <Wrapper
@@ -126,9 +131,7 @@ export const StatCol: React.FC<StatColProps> = ({
  * densité, la couleur décorative fatigue plus qu'elle n'aide.
  */
 export const StatBar: React.FC<StatBarProps> = ({ items, className = "" }) => (
-  <div
-    className={`app-statbar grid-cols-2 sm:grid-cols-3 xl:grid-cols-6 ${className}`}
-  >
+  <div className={`app-statbar grid-cols-2 sm:grid-cols-3 xl:grid-cols-6 ${className}`}>
     {items.map((item) => {
       const Wrapper = item.onClick ? "button" : "div";
       return (
@@ -153,6 +156,86 @@ export const StatBar: React.FC<StatBarProps> = ({ items, className = "" }) => (
               </span>
             )
           )}
+        </Wrapper>
+      );
+    })}
+  </div>
+);
+
+/* ═══════════════════════════════════════════════════════════════════
+   Les mêmes indicateurs, mais en cartes de taille égale sur une ligne
+   ═══════════════════════════════════════════════════════════════════ */
+
+/** Nombre de colonnes sur grand écran, selon le nombre de cartes.
+    Écrites en toutes lettres : Tailwind ne voit pas les classes
+    composées à l'exécution et les retirerait de la feuille finale. */
+const COLONNES: Record<number, string> = {
+  1: "xl:grid-cols-1",
+  2: "xl:grid-cols-2",
+  3: "xl:grid-cols-3",
+  4: "xl:grid-cols-4",
+  5: "xl:grid-cols-5",
+  6: "xl:grid-cols-6",
+};
+
+const FILET: Record<NonNullable<StatItem["filet"]>, string> = {
+  danger: "border-l-2 border-l-danger",
+  warning: "border-l-2 border-l-warning",
+};
+
+/**
+ * Une ligne de cartes de même taille — trésorerie, ventes, achats,
+ * dépenses, stock — plutôt qu'une bande à colonnes.
+ *
+ * ── Ce que chaque carte doit dire d'elle-même ──
+ *
+ * La bande séparait les FLUX des SOLDES en deux blocs titrés, parce
+ * que le sélecteur de période ne gouverne que les premiers. Sur une
+ * seule ligne, ce regroupement disparaît : chaque carte porte donc son
+ * propre horizon sous le chiffre — « argent disponible » pour une
+ * caisse, « ce mois-ci » pour des ventes. L'information est la même,
+ * dite carte par carte au lieu de bloc par bloc.
+ *
+ * ── Hauteurs égales ──
+ *
+ * `h-full` sur chaque carte, et la grille étire ses rangées : une
+ * carte à deux lignes de texte prend la hauteur de sa voisine à
+ * quatre. Sans cela, une ligne de cartes se lit comme un graphique en
+ * bâtons dont les hauteurs ne voudraient rien dire.
+ */
+export const GrilleIndicateurs: React.FC<StatBarProps> = ({ items, className = "" }) => (
+  <div
+    className={`grid grid-cols-2 gap-3 md:grid-cols-3 sm:gap-4 ${
+      COLONNES[items.length] ?? "xl:grid-cols-4"
+    } ${className}`}
+  >
+    {items.map((item) => {
+      const Wrapper = item.onClick ? "button" : "div";
+      return (
+        <Wrapper
+          key={item.key}
+          {...(item.onClick ? { onClick: item.onClick, type: "button" as const } : {})}
+          className={`app-card flex h-full flex-col gap-1 p-3.5 text-left sm:p-4 ${
+            item.filet ? FILET[item.filet] : ""
+          } ${item.onClick ? "transition-colors hover:bg-muted/40" : ""}`}
+        >
+          <span className="app-statbar-label">
+            {item.icon && <span className="shrink-0 opacity-70">{item.icon}</span>}
+            <span className="truncate">{item.label}</span>
+          </span>
+
+          <span className="app-statbar-value truncate">{item.value}</span>
+
+          {/* L'horizon d'abord, la tendance ensuite. Il qualifie le
+              chiffre au-dessus — « 43 300 Ar, ce mois-ci » — tandis que
+              la tendance parle du pourcentage. Dans l'autre sens, on
+              lisait deux phrases de période à la suite sans savoir
+              laquelle portait sur quoi. */}
+          {item.hint && (
+            <span className={`app-statbar-hint ${item.alert ? "t-warning" : ""}`}>{item.hint}</span>
+          )}
+
+          {item.trend && <Trend trend={item.trend} />}
         </Wrapper>
       );
     })}

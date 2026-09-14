@@ -26,7 +26,7 @@ import {
   getSaleVariant,
 } from "../utils/formulas";
 import { VariantBadge } from "./shared/VariantBadge";
-import { StatBar } from "./shared/StatBar";
+import { GrilleIndicateurs } from "./shared/StatBar";
 import { moduleMasque, usePersonnalisation } from "../lib/personnalisation";
 import { construireEnSuspens } from "../lib/enSuspens";
 import {
@@ -145,9 +145,13 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
    * Elle ne porte QUE sur les flux — ventes, achats, dépenses et les
    * listes récentes. La trésorerie, le stock, les commandes en cours et
    * « En suspens » sont des soldes : ils décrivent l'instant présent et
-   * n'ont pas de durée. L'écran le montre en les plaçant hors du bloc
-   * que le sélecteur commande, plutôt qu'en l'expliquant dans une note
-   * que personne ne lit.
+   * n'ont pas de durée.
+   *
+   * Les cartes étant désormais sur une seule ligne, ce partage ne se
+   * voit plus par leur place : chacune porte donc son horizon sous son
+   * chiffre. C'est la mention « argent disponible » ou « ce mois-ci »
+   * qui dit, carte par carte, ce que le sélecteur touche — et elle doit
+   * rester, sans quoi rien ne le dirait plus.
    */
   const [clePeriode, setClePeriode] = useState<ClePeriode>(PERIODE_PAR_DEFAUT);
   const periode = useMemo(() => calculerPeriode(clePeriode), [clePeriode]);
@@ -208,9 +212,6 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   const unpaidOrders = orders.filter((o) => (o.reste_a_payer ?? 0) > 0);
   const isTresorerieNegative = capital.tresorerieGlobaleActuelle < 0;
   const isTresorerieLow = capital.tresorerieGlobaleActuelle < capital.seuilAlerteTresorerie;
-  /** Vrai quand un bandeau d'alerte va déjà annoncer l'état de la caisse. */
-  const bandeauTresorerie =
-    notificationPrefs.treasuryAlerts && (isTresorerieNegative || isTresorerieLow);
 
   // ── Tendances : la période choisie contre la précédente ──
   //
@@ -282,19 +283,20 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   return (
     <div className="space-y-6">
       {/* ── L'accueil ──
-          Le tableau de bord était le seul écran sans en-tête : on
-          arrivait directement sur un bandeau d'alerte ou sur un chiffre,
-          sans savoir où l'on venait d'atterrir. Il reprend donc la même
-          carte d'en-tête que les onze autres vues — titre, phrase,
-          actions à droite — plutôt qu'un bloc posé à même le fond, qui
-          ferait de l'accueil la seule page bâtie autrement.
+          Texte libre posé sur le fond de page, sans carte autour.
+
+          C'est le seul en-tête de l'application à ne pas porter la
+          carte blanche des autres vues, et c'est voulu : les onze
+          autres pages ouvrent sur une liste ou un formulaire, que
+          l'en-tête doit annoncer. L'accueil, lui, ouvre sur une
+          conversation — on y salue quelqu'un. Une salutation encadrée
+          d'un filet se lit comme un avis affiché.
 
           À droite, le sélecteur de période : c'est la seule commande de
-          cet écran, et un en-tête est l'endroit où l'on cherche la
-          commande d'une page. */}
-      <div className="app-page-head">
-        <div className="app-page-head-text">
-          <h1 className="app-page-title">
+          cet écran, et le haut de page est l'endroit où on la cherche. */}
+      <div className="flex flex-col gap-4 px-1 sm:flex-row sm:items-center sm:justify-between">
+        <div className="min-w-0 flex-1">
+          <h1 className="flex items-center gap-2.5 text-xl font-bold tracking-tight text-foreground sm:text-2xl">
             <span className="truncate">Bonjour{prenom ? `, ${prenom}` : ""} !</span>
             <span aria-hidden="true" className="shrink-0">
               👋
@@ -303,11 +305,11 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           {/* La phrase suit la période choisie. Annoncer « votre
               activité aujourd'hui » à côté d'un bouton qui affiche
               « Ce mois » ferait mentir l'une des deux. */}
-          <p className="app-page-subtitle">
+          <p className="mt-1 text-sm text-muted-foreground">
             Voici un aperçu de votre activité {LIBELLE_DUREE[clePeriode]}.
           </p>
         </div>
-        <div className="app-page-actions">
+        <div className="w-full shrink-0 sm:w-auto">
           <SelecteurPeriode periode={periode} onChange={setClePeriode} />
         </div>
       </div>
@@ -353,197 +355,149 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           Une seule bande compacte plutôt que six cartes colorées : à
           cette densité de chiffres, le fond de couleur et la pastille
           d'icône fatiguent plus qu'ils n'orientent. */}
-      {/* ── La trésorerie, posée seule ──
-          C'est le chiffre qu'un commerçant vient lire en premier : ce
-          qu'il a réellement en caisse aujourd'hui. Noyée parmi cinq
-          autres colonnes de même poids, elle se cherchait.
+      {/* ── Les indicateurs, sur une seule ligne ──
+          Trésorerie, ventes, achats, dépenses et stock en cartes de
+          même taille, côte à côte.
 
-          Aucun style nouveau : c'est exactement la carte au filet
-          vertical déjà employée pour « Solde net en poche » et « Reste à
-          payer ». Le filet prend la couleur de l'état, comme les
-          bandeaux d'alerte juste au-dessus. */}
-      <button
-        type="button"
-        onClick={() => onNavigateTab("capital")}
-        className={`app-card flex w-full items-center justify-between gap-4 border-l-2 p-4 text-left ${
-          isTresorerieNegative
-            ? "border-l-danger"
-            : isTresorerieLow
-              ? "border-l-warning"
-              : "border-l-primary"
-        }`}
-      >
-        <span className="min-w-0">
-          <span className="mb-0.5 flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
-            <Wallet className="h-3.5 w-3.5" aria-hidden="true" />
-            Trésorerie
-          </span>
-          <span className="block font-mono text-xl font-semibold tabular-nums text-foreground">
-            {formatCurrency(capital.tresorerieGlobaleActuelle)}
-          </span>
-        </span>
-        {/* Le bandeau juste au-dessus le dit déjà, en plus long et avec
-            le geste à faire : le répéter à cent pixels d'intervalle
-            n'ajoute rien. Mais si les alertes de trésorerie sont
-            coupées dans les Paramètres, il n'y a pas de bandeau — et
-            c'est alors cette mention qui porte l'information. */}
-        {!bandeauTresorerie && (
-          <span
-            className={`shrink-0 text-right text-xs ${
-              isTresorerieNegative || isTresorerieLow ? "t-warning" : "text-muted-foreground"
-            }`}
-          >
-            {isTresorerieNegative
+          CE QUE CE REGROUPEMENT DOIT COMPENSER. La trésorerie et le
+          stock sont des SOLDES : ils décrivent l'instant présent. Les
+          ventes, les achats et les dépenses sont des FLUX : ils
+          n'existent que rapportés à une durée, et le sélecteur de
+          période ne gouverne qu'eux. Deux blocs titrés le disaient
+          jusqu'ici — « Activité » d'un côté, « En ce moment » de
+          l'autre. Sur une ligne unique, ce regroupement disparaît :
+          c'est donc chaque carte qui porte son horizon sous son
+          chiffre, « argent disponible » ici, « ce mois-ci » là. Sans
+          cette mention, on croirait le sélecteur maître des cinq
+          cartes, et l'on lirait une trésorerie du mois dernier. */}
+      <GrilleIndicateurs
+        items={[
+          {
+            key: "tresorerie",
+            label: "Trésorerie",
+            value: formatCurrency(capital.tresorerieGlobaleActuelle),
+            hint: isTresorerieNegative
               ? "solde négatif"
               : isTresorerieLow
                 ? "sous le seuil"
-                : "argent disponible"}
-          </span>
-        )}
-      </button>
-
-      {/* ── Ce que la période commande, et ce qu'elle ne commande pas ──
-          Les trois colonnes ci-dessous sont des FLUX : elles n'existent
-          que rapportées à une durée. Le sélecteur les gouverne, et il
-          est posé sur leur titre pour qu'on voie d'un coup d'œil
-          jusqu'où va son emprise.
-
-          La trésorerie, juste au-dessus, et le stock, juste en dessous,
-          sont des SOLDES : ils décrivent l'instant présent. Les placer
-          hors de ce bloc dit mieux qu'une note qu'ils ne bougent pas
-          quand on change de période. */}
-      <div>
-        {/* La période a quitté cette ligne pour l'en-tête, mais son
-            emprise reste dite ici, et à l'endroit exact où elle
-            s'exerce : « Activité — ce mois-ci » face à « En ce moment »
-            plus bas, on voit sans l'expliquer lequel des deux blocs
-            bouge quand on change de période. */}
-        <div className="mb-2 px-1">
-          <span className="text-[13px] font-medium uppercase tracking-wide text-muted-foreground">
-            Activité — {LIBELLE_DUREE[clePeriode]}
-          </span>
-        </div>
-
-        <StatBar
-          items={[
-            {
-              key: "ventes",
-              label: "Ventes",
-              value: formatCurrency(totalSalesAmount),
-              trend: salesTrend,
-              icon: <DollarSign className="h-3.5 w-3.5" />,
-              onClick: () => onNavigateTab("ventes"),
-            },
-            {
-              key: "achats",
-              label: "Achats",
-              value: formatCurrency(totalPurchasesAmount),
-              trend: purchasesTrend,
-              icon: <ShoppingCart className="h-3.5 w-3.5" />,
-              onClick: () => onNavigateTab("achats"),
-            },
-            {
-              key: "depenses",
-              label: "Dépenses",
-              value: formatCurrency(totalExpensesAmount),
-              trend: expensesTrend,
-              icon: <ArrowDownRight className="h-3.5 w-3.5" />,
-              onClick: () => onNavigateTab("depenses"),
-            },
-          ]}
-        />
-      </div>
-
-      {/* ── Les soldes : ce qui est vrai maintenant ──
-          Hors de l'emprise du sélecteur, et placés après lui pour que
-          cela se voie. « Le stock sur 7 jours » ne voudrait rien dire :
-          c'est ce qu'il y a en rayon aujourd'hui. */}
-      <div>
-        <div className="mb-2 px-1">
-          <span className="text-[13px] font-medium uppercase tracking-wide text-muted-foreground">
-            En ce moment
-          </span>
-        </div>
-        <StatBar
-          items={[
-            ...(montre("commandes")
-              ? [
-                  {
-                    key: "commandes",
-                    label: "Commandes",
-                    value: `${orders.length}`,
-                    hint:
-                      pendingOrders.length > 0
-                        ? `${pendingOrders.length} en cours`
-                        : "aucune en cours",
-                    alert: pendingOrders.length > 0,
-                    icon: <ShoppingBag className="h-3.5 w-3.5" />,
-                    onClick: () => onNavigateTab("commandes"),
-                  },
-                ]
-              : []),
-            {
-              key: "stock",
-              label: "Stock",
-              value: formatCurrency(totalStockValue),
-              hint:
-                lowStockProducts.length > 0
-                  ? `${lowStockProducts.length} à réapprovisionner`
-                  : `${products.length} référence${products.length > 1 ? "s" : ""}`,
-              alert: lowStockProducts.length > 0,
-              icon: <Package className="h-3.5 w-3.5" />,
-              onClick: () => onNavigateTab("produits"),
-            },
-          ]}
-        />
-      </div>
-
-      {enSuspens.length > 0 && (
-        <section className="app-card overflow-hidden">
-          <div className="border-b border-border px-4 py-3">
-            <h2 className="app-section-title">
-              <Clock className="h-3.5 w-3.5" aria-hidden="true" />
-              En suspens
-            </h2>
-          </div>
-          <div className="app-list">
-            {enSuspens.map((l) => (
-              <button
-                key={l.cle}
-                type="button"
-                onClick={() => onNavigateTab(l.onglet)}
-                className="app-list-row w-full justify-between gap-3 text-left"
-              >
-                <span className="min-w-0 flex-1">
-                  <span className="app-list-primary block">{l.libelle}</span>
-                  {/* La couleur ne porte que sur les mots qui disent le
-                      retard, jamais sur la ligne entière ni sur une
-                      pastille qui les répéterait. */}
-                  <span className="app-list-secondary block">
-                    {l.detail}
-                    {l.alerte && (
-                      <>
-                        {l.detail && ", "}
-                        <span className="t-warning">{l.alerte}</span>
-                      </>
-                    )}
-                  </span>
-                </span>
-                {/* Une tâche en retard ne se chiffre pas : plutôt que
-                    d'écrire « 0 Ar » à sa droite, on n'écrit rien. */}
-                {l.montant !== null && (
-                  <span className="app-list-amount">{formatCurrency(l.montant)}</span>
-                )}
-              </button>
-            ))}
-          </div>
-        </section>
-      )}
+                : "argent disponible",
+            alert: isTresorerieNegative || isTresorerieLow,
+            // Le filet ne paraît que s'il y a quelque chose à signaler :
+            // un liseré permanent cesse d'être un signal.
+            filet: isTresorerieNegative ? "danger" : isTresorerieLow ? "warning" : undefined,
+            icon: <Wallet className="h-3.5 w-3.5" />,
+            onClick: () => onNavigateTab("capital"),
+          },
+          {
+            key: "ventes",
+            label: "Ventes",
+            value: formatCurrency(totalSalesAmount),
+            trend: salesTrend,
+            hint: LIBELLE_DUREE[clePeriode],
+            icon: <DollarSign className="h-3.5 w-3.5" />,
+            onClick: () => onNavigateTab("ventes"),
+          },
+          {
+            key: "achats",
+            label: "Achats",
+            value: formatCurrency(totalPurchasesAmount),
+            trend: purchasesTrend,
+            hint: LIBELLE_DUREE[clePeriode],
+            icon: <ShoppingCart className="h-3.5 w-3.5" />,
+            onClick: () => onNavigateTab("achats"),
+          },
+          {
+            key: "depenses",
+            label: "Dépenses",
+            value: formatCurrency(totalExpensesAmount),
+            trend: expensesTrend,
+            hint: LIBELLE_DUREE[clePeriode],
+            icon: <ArrowDownRight className="h-3.5 w-3.5" />,
+            onClick: () => onNavigateTab("depenses"),
+          },
+          {
+            key: "stock",
+            label: "Stock",
+            value: formatCurrency(totalStockValue),
+            hint:
+              lowStockProducts.length > 0
+                ? `${lowStockProducts.length} à réapprovisionner`
+                : `${products.length} référence${products.length > 1 ? "s" : ""}`,
+            alert: lowStockProducts.length > 0,
+            icon: <Package className="h-3.5 w-3.5" />,
+            onClick: () => onNavigateTab("produits"),
+          },
+          ...(montre("commandes")
+            ? [
+                {
+                  key: "commandes",
+                  label: "Commandes",
+                  value: `${orders.length}`,
+                  hint:
+                    pendingOrders.length > 0
+                      ? `${pendingOrders.length} en cours`
+                      : "aucune en cours",
+                  alert: pendingOrders.length > 0,
+                  icon: <ShoppingBag className="h-3.5 w-3.5" />,
+                  onClick: () => onNavigateTab("commandes"),
+                },
+              ]
+            : []),
+        ]}
+      />
 
       {/* ── Main Content Grid ── */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Left column */}
         <div className="space-y-5">
+          {/* ── En suspens ──
+              Première carte de la colonne, avant les soldes vendeurs :
+              c'est la seule liste de l'écran sur laquelle on a quelque
+              chose à FAIRE. Elle occupait toute la largeur ; en colonne
+              elle laisse la place aux ventes récentes, qui sont ce que
+              l'on vient lire, et la page tient enfin en deux colonnes
+              de hauteur comparable. */}
+          {enSuspens.length > 0 && (
+            <section className="app-card overflow-hidden">
+              <div className="border-b border-border px-4 py-3">
+                <h2 className="app-section-title">
+                  <Clock className="h-3.5 w-3.5" aria-hidden="true" />
+                  En suspens
+                </h2>
+              </div>
+              <div className="app-list">
+                {enSuspens.map((l) => (
+                  <button
+                    key={l.cle}
+                    type="button"
+                    onClick={() => onNavigateTab(l.onglet)}
+                    className="app-list-row w-full justify-between gap-3 text-left"
+                  >
+                    <span className="min-w-0 flex-1">
+                      <span className="app-list-primary block">{l.libelle}</span>
+                      {/* La couleur ne porte que sur les mots qui disent le
+                          retard, jamais sur la ligne entière ni sur une
+                          pastille qui les répéterait. */}
+                      <span className="app-list-secondary block">
+                        {l.detail}
+                        {l.alerte && (
+                          <>
+                            {l.detail && ", "}
+                            <span className="t-warning">{l.alerte}</span>
+                          </>
+                        )}
+                      </span>
+                    </span>
+                    {/* Une tâche en retard ne se chiffre pas : plutôt que
+                        d'écrire « 0 Ar » à sa droite, on n'écrit rien. */}
+                    {l.montant !== null && (
+                      <span className="app-list-amount">{formatCurrency(l.montant)}</span>
+                    )}
+                  </button>
+                ))}
+              </div>
+            </section>
+          )}
           {/* ── Solde net vendeurs ──
               Ce bloc répond à une seule question : « combien d'argent
               encaissé une personne détient-elle encore, et n'a pas
