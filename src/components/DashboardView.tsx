@@ -30,14 +30,16 @@ import { StatBar } from "./shared/StatBar";
 import { moduleMasque, usePersonnalisation } from "../lib/personnalisation";
 import { construireEnSuspens } from "../lib/enSuspens";
 import {
-  PERIODES,
+  LIBELLE_DUREE,
   PERIODE_PAR_DEFAUT,
   calculerPeriode,
   filtrerParIntervalle,
   type ClePeriode,
 } from "../lib/periodes";
 import { DataList } from "./shared/DataList";
+import { SelecteurPeriode } from "./shared/SelecteurPeriode";
 import { VignetteProduit, vignettesParProduit } from "./shared/VignetteProduit";
+import { useAuth } from "../hooks/useAuth";
 import { useNotificationPrefs } from "../lib/notificationPrefs";
 import type { Database } from "../lib/database.types";
 
@@ -109,6 +111,18 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
 }) => {
   // Réglage « Alertes de trésorerie » (Paramètres → Notifications).
   const [notificationPrefs] = useNotificationPrefs();
+
+  /**
+   * Le prénom, pour dire bonjour à quelqu'un plutôt qu'à un écran.
+   *
+   * Le premier mot du nom complet, et rien d'autre : « Bonjour,
+   * Maminirina » se dit, « Bonjour, Maminirina Rakotoarisoa » se lit
+   * comme une convocation. Un compte créé sans nom — cela arrive, le
+   * champ est facultatif à l'inscription — garde un accueil qui
+   * fonctionne, sans trou ni virgule orpheline.
+   */
+  const { profile } = useAuth();
+  const prenom = (profile?.full_name ?? "").trim().split(/\s+/)[0] || "";
 
   /**
    * Les modules que cette boutique a retirés.
@@ -267,6 +281,37 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
 
   return (
     <div className="space-y-6">
+      {/* ── L'accueil ──
+          Le tableau de bord était le seul écran sans en-tête : on
+          arrivait directement sur un bandeau d'alerte ou sur un chiffre,
+          sans savoir où l'on venait d'atterrir. Il reprend donc la même
+          carte d'en-tête que les onze autres vues — titre, phrase,
+          actions à droite — plutôt qu'un bloc posé à même le fond, qui
+          ferait de l'accueil la seule page bâtie autrement.
+
+          À droite, le sélecteur de période : c'est la seule commande de
+          cet écran, et un en-tête est l'endroit où l'on cherche la
+          commande d'une page. */}
+      <div className="app-page-head">
+        <div className="app-page-head-text">
+          <h1 className="app-page-title">
+            <span className="truncate">Bonjour{prenom ? `, ${prenom}` : ""} !</span>
+            <span aria-hidden="true" className="shrink-0">
+              👋
+            </span>
+          </h1>
+          {/* La phrase suit la période choisie. Annoncer « votre
+              activité aujourd'hui » à côté d'un bouton qui affiche
+              « Ce mois » ferait mentir l'une des deux. */}
+          <p className="app-page-subtitle">
+            Voici un aperçu de votre activité {LIBELLE_DUREE[clePeriode]}.
+          </p>
+        </div>
+        <div className="app-page-actions">
+          <SelecteurPeriode periode={periode} onChange={setClePeriode} />
+        </div>
+      </div>
+
       {/* ── Alert Banners ── */}
       {/* Bandeaux d'alerte : carte blanche avec un simple filet coloré à
           gauche. Un aplat de couleur pleine largeur attire l'œil bien
@@ -368,23 +413,15 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           hors de ce bloc dit mieux qu'une note qu'ils ne bougent pas
           quand on change de période. */}
       <div>
-        <div className="mb-2 flex flex-wrap items-center justify-between gap-2 px-1">
+        {/* La période a quitté cette ligne pour l'en-tête, mais son
+            emprise reste dite ici, et à l'endroit exact où elle
+            s'exerce : « Activité — ce mois-ci » face à « En ce moment »
+            plus bas, on voit sans l'expliquer lequel des deux blocs
+            bouge quand on change de période. */}
+        <div className="mb-2 px-1">
           <span className="text-[13px] font-medium uppercase tracking-wide text-muted-foreground">
-            Activité
+            Activité — {LIBELLE_DUREE[clePeriode]}
           </span>
-          <div className="flex flex-wrap items-center gap-1.5">
-            {PERIODES.map((p) => (
-              <button
-                key={p.cle}
-                type="button"
-                onClick={() => setClePeriode(p.cle)}
-                className={`app-chip ${clePeriode === p.cle ? "app-chip-active" : ""}`}
-                aria-pressed={clePeriode === p.cle}
-              >
-                {p.libelle}
-              </button>
-            ))}
-          </div>
         </div>
 
         <StatBar

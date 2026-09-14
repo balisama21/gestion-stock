@@ -150,3 +150,69 @@ export function filtrerParIntervalle<T>(
   if (!i) return lignes;
   return lignes.filter((l) => dansIntervalle(date(l), i));
 }
+
+/**
+ * La durée, dite comme on la dirait dans une phrase.
+ *
+ * Le libellé des puces — « Aujourd'hui », « 7 jours », « Ce mois »,
+ * « Tout » — nomme un bouton ; il ne se glisse pas dans une phrase.
+ * « Voici un aperçu de votre activité Tout » ne veut rien dire.
+ *
+ * Ces mots-ci se posent aussi bien dans la phrase d'accueil que dans le
+ * titre de la section qu'ils gouvernent, et c'est justement le but :
+ * une seule formulation pour une seule période, si bien que l'en-tête
+ * et la section ne peuvent pas se contredire.
+ */
+export const LIBELLE_DUREE: Record<ClePeriode, string> = {
+  jour: "aujourd'hui",
+  semaine: "ces 7 derniers jours",
+  mois: "ce mois-ci",
+  tout: "depuis le début",
+};
+
+/**
+ * Ce que la période couvre vraiment, en toutes lettres.
+ *
+ * « Ce mois » ne dit pas jusqu'où il va. Le 14 septembre il s'arrête
+ * aujourd'hui, pas au 30 : l'écrire noir sur blanc évite de lire un
+ * total de mois entier là où il n'y a que quatorze jours — c'est le
+ * même piège que celui traité plus haut pour les pourcentages, vu
+ * cette fois du côté de l'affichage.
+ *
+ * Le mois et l'année ne se répètent pas quand les deux bornes les
+ * partagent : « 8 – 14 septembre 2026 » plutôt que « 8 septembre 2026
+ * – 14 septembre 2026 », qui prend deux fois la place pour la même
+ * chose et déborde sur un téléphone.
+ */
+export function libelleIntervalle(periode: Periode): string {
+  const i = periode.intervalle;
+  if (!i) return "Tout l'historique";
+
+  // Date LOCALE, jamais l'analyse par défaut de la chaîne : `new
+  // Date("2026-09-14")` vaut minuit à Greenwich, soit la veille au soir
+  // à Antananarivo. C'est exactement le décalage que dateDuJour()
+  // corrige à l'écriture ; il n'a pas à revenir à la lecture.
+  const enDate = (s: string): Date => {
+    const [a, m, j] = s.split("-").map(Number);
+    return new Date(a, m - 1, j);
+  };
+
+  const debut = enDate(i.debut);
+  const fin = enDate(i.fin);
+  const ecrire = (d: Date, opts: Intl.DateTimeFormatOptions) => d.toLocaleDateString("fr-FR", opts);
+
+  const complet: Intl.DateTimeFormatOptions = {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  };
+
+  if (i.debut === i.fin) return ecrire(fin, complet);
+  if (debut.getFullYear() !== fin.getFullYear()) {
+    return `${ecrire(debut, complet)} – ${ecrire(fin, complet)}`;
+  }
+  if (debut.getMonth() !== fin.getMonth()) {
+    return `${ecrire(debut, { day: "numeric", month: "long" })} – ${ecrire(fin, complet)}`;
+  }
+  return `${debut.getDate()} – ${ecrire(fin, complet)}`;
+}
