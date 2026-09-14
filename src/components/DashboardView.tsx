@@ -26,7 +26,7 @@ import {
   getSaleVariant,
 } from "../utils/formulas";
 import { VariantBadge } from "./shared/VariantBadge";
-import { BarreIndicateurs } from "./shared/StatBar";
+import { BarreIndicateurs, Tendance } from "./shared/StatBar";
 import { moduleMasque, usePersonnalisation } from "../lib/personnalisation";
 import { construireEnSuspens } from "../lib/enSuspens";
 import {
@@ -37,6 +37,7 @@ import {
   type ClePeriode,
 } from "../lib/periodes";
 import { DataList } from "./shared/DataList";
+import { dateDuJour } from "../lib/dates";
 import { SelecteurPeriode } from "./shared/SelecteurPeriode";
 import { VignetteProduit, vignettesParProduit } from "./shared/VignetteProduit";
 import { useAuth } from "../hooks/useAuth";
@@ -68,6 +69,12 @@ interface DashboardViewProps {
    * place, et l'alignement des lignes ne change pas.
    */
   productImages?: { product_id: string | null; chemin: string; ordre: number }[];
+  /**
+   * Les catégories de produits, pour l'étiquette portée par chaque
+   * ligne de vente. Facultatives, et souvent absentes : une boutique
+   * qui n'en a créé aucune ne voit simplement pas d'étiquette.
+   */
+  categories?: { id: string; nom: string; usage: string }[];
   /** Les tâches, pour dire lesquelles ont dépassé leur échéance. */
   taches?: { statut: string; echeance: string | null }[];
   /** Les demandes d'avance sur salaire qui attendent une décision. */
@@ -101,6 +108,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   quotes = [],
   deliveries = [],
   clients = [],
+  categories = [],
   taches = [],
   avancesEnAttente = [],
   productImages = [],
@@ -279,6 +287,69 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
     ),
     "down",
   );
+
+  // ── Ce que les ventes de la période disent d'elles-mêmes ──
+  //
+  // Le TOTAL n'est pas repris ici : la barre d'indicateurs, deux cents
+  // pixels plus haut, le donne déjà avec la même tendance. Restent le
+  // nombre et le panier moyen, qu'elle ne dit pas.
+  const nbVentes = ventesPeriode.length;
+  const panierMoyen = nbVentes > 0 ? totalSalesAmount / nbVentes : 0;
+  const ventesPrecedentes = filtrerParIntervalle(sales, (v) => v.date, periode.precedent);
+  const nbVentesTrend = buildTrend(nbVentes, ventesPrecedentes.length, "up");
+  const panierMoyenTrend = buildTrend(
+    panierMoyen,
+    ventesPrecedentes.length > 0
+      ? ventesPrecedentes.reduce((acc, v) => acc + v.totalVente, 0) / ventesPrecedentes.length
+      : 0,
+    "up",
+  );
+
+  /** Le nom de la catégorie d'un produit, quand il en a une. */
+  const nomCategorie = (produit?: Product): string | null => {
+    if (!produit?.categoryId) return null;
+    return categories.find((c) => c.id === produit.categoryId)?.nom ?? null;
+  };
+
+  /**
+   * L'heure d'une vente — et le silence quand elle serait fausse.
+   *
+   * `saisieLe` est l'instant où la ligne a été écrite, `date` le jour
+   * COMMERCIAL de la vente. Ils coïncident presque toujours. Presque :
+   * sur les trente ventes de la boutique, trois portent la date du 14
+   * et ont été saisies entre une heure et deux heures du matin le 15 —
+   * un commerce qui ferme après minuit et enregistre sa journée une
+   * fois la porte close.
+   *
+   * Afficher « 14/08 à 01:12 » daterait la vente de sa saisie. Quand
+   * les deux jours divergent, on ne dit donc pas d'heure du tout :
+   * mieux vaut une information en moins qu'une information fausse, et
+   * les vingt-sept autres gardent la leur.
+   */
+  /**
+   * La date d'une vente recente, sans son annee quand c'est celle qui
+   * court.
+   *
+   * « 13/09/2026 a 10:24 » ne tient pas dans la ligne grise d'un
+   * telephone : c'est l'heure, l'information neuve, qui se faisait
+   * couper. L'annee est celle qu'on devine — ces ventes sont les six
+   * dernieres — et elle revient des qu'elle cesse d'aller de soi. Le
+   * decoupage se fait par la fin, ce qui vaut pour les deux formats :
+   * l'annee est en derniere position en FR comme en US.
+   */
+  const anneeCourante = new Date().getFullYear();
+  const dateDeLaVente = (jour: string): string => {
+    const complet = formatDateLocale(jour, locale);
+    return jour.slice(0, 4) === String(anneeCourante) ? complet.slice(0, 5) : complet;
+  };
+
+  const heureDeLaVente = (vente: Sale): string | null => {
+    if (!vente.saisieLe) return null;
+    const instant = new Date(vente.saisieLe);
+    if (Number.isNaN(instant.getTime())) return null;
+    if (dateDuJour(instant) !== vente.date) return null;
+    return `${String(instant.getHours()).padStart(2, "0")}:${String(instant.getMinutes()).padStart(2, "0")}`;
+  };
 
   return (
     <div className="space-y-6">
@@ -700,21 +771,53 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         <div className="lg:col-span-2 space-y-5">
           {/* Recent Sales */}
           <div className="app-card overflow-hidden">
-            <div className="flex items-center justify-between border-b border-border px-4 py-3">
-              <h3 className="app-section-title">
-                <TrendingUp className="h-3.5 w-3.5" /> Ventes récentes
-              </h3>
-              <button
-                onClick={() => onNavigateTab("ventes")}
-                className="text-xs font-medium text-primary hover:underline"
-              >
-                Tout voir
-              </button>
+            <div className="border-b border-border px-4 py-3">
+              <div className="flex items-center justify-between gap-3">
+                <h3 className="app-section-title">
+                  <TrendingUp className="h-3.5 w-3.5" /> Ventes récentes —{" "}
+                  {LIBELLE_DUREE[clePeriode]}
+                </h3>
+                <button
+                  onClick={() => onNavigateTab("ventes")}
+                  className="shrink-0 text-xs font-medium text-primary hover:underline"
+                >
+                  Tout voir
+                </button>
+              </div>
+
+              {/* ── Le contexte chiffré, avant le détail des lignes ──
+                  Deux chiffres seulement, et la mention de comparaison
+                  posée UNE fois pour les deux : répétée derrière chacun,
+                  « vs même période le mois dernier » prendrait plus de
+                  place que les chiffres qu'elle qualifie. */}
+              {nbVentes > 0 && (
+                <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
+                  <span className="flex items-center gap-1.5">
+                    <span className="font-mono text-sm font-semibold tabular-nums text-foreground">
+                      {nbVentes}
+                    </span>
+                    vente{nbVentes > 1 ? "s" : ""}
+                    <Tendance trend={nbVentesTrend} compact />
+                  </span>
+                  <span className="flex items-center gap-1.5">
+                    panier moyen
+                    <span className="font-mono text-sm font-semibold tabular-nums text-foreground">
+                      {formatCurrency(panierMoyen)}
+                    </span>
+                    <Tendance trend={panierMoyenTrend} compact />
+                  </span>
+                  {!nbVentesTrend.noBaseline && (
+                    <span className="opacity-80">{periode.libelleComparaison}</span>
+                  )}
+                </div>
+              )}
             </div>
             <DataList
               emptyLabel="Aucune vente récente."
               items={ventesPeriode.slice(0, 6).map((s) => {
                 const prod = products.find((p) => p.id === s.productId);
+                const categorie = nomCategorie(prod);
+                const heure = heureDeLaVente(s);
                 return {
                   id: s.id,
                   leading: (
@@ -730,9 +833,40 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                         {s.quantite}
                       </span>
                       <VariantBadge prix={getSaleVariant(s, products)} autorise={showPrixAchat} />
+                      {/* Rien tant qu'aucune catégorie n'est renseignée :
+                          l'étiquette s'allumera d'elle-même le jour où la
+                          boutique en créera.
+
+                          Masquée sous 640 px, et c'est mesuré : à 375, le
+                          badge prenait 78 des 147 pixels de la ligne et
+                          rognait le nom du produit, qui passait de
+                          « atody ×1 » à « atody… ». Sur un téléphone, le
+                          nom de l'article prime sur son rayon. Au-delà,
+                          le bloc vit dans la colonne large et les deux
+                          tiennent sans se gêner. */}
+                      {categorie && (
+                        <span className="app-badge app-badge-neutral hidden shrink-0 sm:inline-flex">
+                          {categorie}
+                        </span>
+                      )}
                     </span>
                   ),
-                  meta: [formatDateLocale(s.date, locale), s.vendeur],
+                  /* Le vendeur d'abord, avec son initiale : c'est lui
+                     qu'on cherche du regard en parcourant six lignes. La
+                     pastille reste EN LIGNE dans le texte gris, donc la
+                     ligne continue de tronquer d'un seul tenant. */
+                  metaLeading: (
+                    <span
+                      aria-hidden="true"
+                      className="mr-1.5 inline-flex h-[18px] w-[18px] items-center justify-center rounded border border-border bg-muted align-middle text-[10px] font-medium text-foreground"
+                    >
+                      {s.vendeur.trim().charAt(0).toUpperCase() || "?"}
+                    </span>
+                  ),
+                  meta: [
+                    s.vendeur,
+                    heure ? `${dateDeLaVente(s.date)} à ${heure}` : dateDeLaVente(s.date),
+                  ],
                   amount: formatCurrency(s.totalVente),
                   badge: (
                     <span

@@ -26,6 +26,18 @@ export interface DataListItem {
    * sont retirées et le séparateur « · » est posé automatiquement.
    */
   meta?: (string | null | undefined | false)[];
+  /**
+   * Petit element pose EN LIGNE au debut des informations grises :
+   * pastille a initiale, puce de couleur. Il reste dans le meme span
+   * que le texte, qui continue donc de tronquer d'un seul tenant.
+   *
+   * Pourquoi pas un element dans `meta` : ce tableau est joint par
+   * « · » et n'accepte que des chaines. L'ouvrir aux noeuds React
+   * obligerait a transformer la ligne grise en conteneur flex, ce qui
+   * lui ferait perdre sa troncature — dans les quatorze ecrans qui
+   * s'en servent, pas seulement ici.
+   */
+  metaLeading?: React.ReactNode;
   /** Montant, aligné à droite. */
   amount?: string;
   /** Complément sous le montant (marge, reste dû…). */
@@ -108,8 +120,11 @@ export const DataList: React.FC<DataListProps> = ({ items, emptyLabel, className
                   tout le contexte sur une seule ligne grise. */}
               <span className="min-w-0 flex-1">
                 <span className="app-list-primary block">{item.primary}</span>
-                {meta.length > 0 && (
-                  <span className="app-list-secondary block">{meta.join(" · ")}</span>
+                {(meta.length > 0 || item.metaLeading) && (
+                  <span className="app-list-secondary block">
+                    {item.metaLeading}
+                    {meta.join(" · ")}
+                  </span>
                 )}
               </span>
 

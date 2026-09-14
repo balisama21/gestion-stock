@@ -2,12 +2,7 @@ import { useState, useEffect, useCallback } from "react";
 import { supabase } from "../lib/supabase";
 import type { Database } from "../lib/database.types";
 import type { Sale as AppSale } from "../types";
-import type {
-  PaiementSalaire,
-  Salaire,
-  StatutPaiement,
-  TypePaiement,
-} from "../lib/salaires";
+import type { PaiementSalaire, Salaire, StatutPaiement, TypePaiement } from "../lib/salaires";
 
 type Product = Database["public"]["Tables"]["products"]["Row"];
 type Sale = Database["public"]["Tables"]["sales"]["Row"];
@@ -56,6 +51,7 @@ const versVente = (row: SaleRow): AppSale => ({
   montantRembourse: row.montant_rembourse,
   soldeDu: row.solde_du,
   statutCredit: row.statut_credit as AppSale["statutCredit"],
+  saisieLe: row.created_at,
 });
 
 /**
@@ -854,7 +850,9 @@ export function useStoreData(storeId: string | null, userId: string | null): Sto
       if (!error) fetchAll();
 
       const id =
-        cree && typeof cree === "object" && "id" in cree ? ((cree as { id: string }).id ?? null) : null;
+        cree && typeof cree === "object" && "id" in cree
+          ? ((cree as { id: string }).id ?? null)
+          : null;
 
       return { error: error?.message ?? null, id };
     },

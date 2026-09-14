@@ -1313,8 +1313,7 @@ function AppInner() {
       activeStore.activation_status === "active" &&
       activeStore.abonnement_jusqu_au != null &&
       new Date(activeStore.abonnement_jusqu_au).getTime() < Date.now();
-    const isStoreLocked =
-      activeStore.activation_status === "locked" || trialExpired || moisEchu;
+    const isStoreLocked = activeStore.activation_status === "locked" || trialExpired || moisEchu;
 
     if (isStoreLocked) {
       return (
@@ -1398,6 +1397,7 @@ function AppInner() {
                       quotes={storeData.quotes}
                       deliveries={storeData.deliveries}
                       productImages={storeData.productImages}
+                      categories={storeData.categories}
                       taches={organisation.taches}
                       // Les règles de lecture ont déjà fait le tri : un
                       // collaborateur ne reçoit que ses propres lignes,
@@ -1505,11 +1505,7 @@ function AppInner() {
                     // puisqu'elle est la somme des achats qui restent.
                     onDeletePurchase={
                       workspace.isOwner ||
-                      hasModuleAction(
-                        workspace.memberPermissionsDetailed ?? {},
-                        "achats",
-                        "delete",
-                      )
+                      hasModuleAction(workspace.memberPermissionsDetailed ?? {}, "achats", "delete")
                         ? storeData.deletePurchase
                         : undefined
                     }

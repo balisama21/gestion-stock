@@ -40,9 +40,20 @@ interface StatBarProps {
   className?: string;
 }
 
-const Trend: React.FC<{ trend: NonNullable<StatItem["trend"]> }> = ({ trend }) => {
+/**
+ * Une evolution, fleche et pourcentage.
+ *
+ * `compact` retire la mention « vs … ». A n'employer que la ou cette
+ * mention est deja portee UNE fois pour plusieurs chiffres : deux
+ * tendances cote a cote qui repetent chacune « vs meme periode le mois
+ * dernier » occupent quatre lignes pour dire une chose.
+ */
+export const Tendance: React.FC<{
+  trend: NonNullable<StatItem["trend"]>;
+  compact?: boolean;
+}> = ({ trend, compact = false }) => {
   if (trend.noBaseline) {
-    return <span className="text-xs text-muted-foreground">{trend.label}</span>;
+    return compact ? null : <span className="text-xs text-muted-foreground">{trend.label}</span>;
   }
   const rounded = Math.round(trend.percent);
   const flat = rounded === 0;
@@ -69,7 +80,7 @@ const Trend: React.FC<{ trend: NonNullable<StatItem["trend"]> }> = ({ trend }) =
         </span>
       )}
       {flat && <span>stable</span>}
-      <span>{trend.label}</span>
+      {!compact && <span>{trend.label}</span>}
     </span>
   );
 };
@@ -139,7 +150,7 @@ export const StatBar: React.FC<StatBarProps> = ({ items, className = "" }) => (
           <span className="app-statbar-value truncate">{item.value}</span>
 
           {item.trend ? (
-            <Trend trend={item.trend} />
+            <Tendance trend={item.trend} />
           ) : (
             item.hint && (
               <span className={`app-statbar-hint ${item.alert ? "t-warning" : ""}`}>
@@ -225,7 +236,7 @@ export const BarreIndicateurs: React.FC<StatBarProps> = ({ items, className = ""
             <span className={`app-statbar-hint ${item.alert ? "t-warning" : ""}`}>{item.hint}</span>
           )}
 
-          {item.trend && <Trend trend={item.trend} />}
+          {item.trend && <Tendance trend={item.trend} />}
         </Wrapper>
       );
     })}

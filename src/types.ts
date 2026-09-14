@@ -73,6 +73,17 @@ export interface Sale {
   montantRembourse: number;
   soldeDu: number;
   statutCredit: "Payé" | "Partiel" | "Impayé";
+  /**
+   * Quand la ligne a ete ecrite, horodatage complet.
+   *
+   * A ne pas confondre avec `date`, qui est le jour COMMERCIAL de la
+   * vente. Les deux coincident presque toujours, mais pas quand on
+   * saisit la journee apres la fermeture : une boutique qui ferme a
+   * minuit passe enregistre ses ventes du 14 a une heure du matin le
+   * 15. L'affichage doit donc comparer les deux avant d'annoncer une
+   * heure, sans quoi il daterait la vente de sa saisie.
+   */
+  saisieLe?: string;
 }
 
 export interface Payment {
