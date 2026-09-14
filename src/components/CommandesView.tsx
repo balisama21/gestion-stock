@@ -20,7 +20,9 @@ import {
   History,
   Trash2,
 } from "lucide-react";
-import { formatCurrency, getProductLabel, getSaleLabel } from "../utils/formulas";
+import { formatCurrency, getProductLabel, getSaleLabel,
+  quantiteEnMots,
+} from "../utils/formulas";
 import { PageHeader } from "./shared/PageHeader";
 import { StatCol } from "./shared/StatBar";
 import { Modal } from "./shared/Modal";
@@ -588,7 +590,8 @@ export const CommandesView: React.FC<CommandesViewProps> = ({
                               className="flex justify-between text-xs p-2 bg-muted/40 rounded-lg"
                             >
                               <span className="text-foreground font-medium">
-                                {getOrderItemLabel(item, products)} × {item.quantite}
+                                {getOrderItemLabel(item, products)} ·{" "}
+                                {quantiteEnMots(item.quantite, products.find((x) => x.id === item.product_id)?.unite)}
                               </span>
                               <span className="font-mono text-foreground">
                                 {formatCurrency(item.total_vente)}

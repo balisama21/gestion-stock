@@ -1,3 +1,4 @@
+import { quantiteEnMots } from "../utils/formulas";
 import type { ActiveTab, Sale, Purchase, Expense, CapitalApport, Product } from "../types";
 import type { Database } from "./database.types";
 import { getModuleScope, type PermissionsMap } from "./permissions";
@@ -571,8 +572,7 @@ export function construireNotifications(s: SourcesActivite): Notification[] {
   // pas destiné. Une alerte dont on ne peut rien faire n'est pas une
   // alerte, c'est du bruit.
   if (s.boutique && s.boutique.jeSuisProprietaire) {
-    const echeance =
-      s.boutique.statut === "trial" ? s.boutique.finEssai : s.boutique.finAbonnement;
+    const echeance = s.boutique.statut === "trial" ? s.boutique.finEssai : s.boutique.finAbonnement;
     if (echeance) {
       const jours = Math.ceil((echeance.getTime() - maintenant.getTime()) / 86400000);
       if (jours >= 0 && jours <= ALERTE_AVANT_ECHEANCE_JOURS) {
@@ -658,7 +658,7 @@ export function construireNotifications(s: SourcesActivite): Notification[] {
         id: `act-achat-${a.id}`,
         genre: "activite",
         titre: `Achat ${fmt(a.totalAchat)}`,
-        detail: `${a.quantite} × ${a.designation}${a.fournisseur ? ` · ${a.fournisseur}` : ""}`,
+        detail: `${a.designation} · ${quantiteEnMots(a.quantite)}${a.fournisseur ? ` · ${a.fournisseur}` : ""}`,
         quand: a.date,
         acteur: nomDe(a.auteurId),
         ton: "info",

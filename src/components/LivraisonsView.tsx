@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from "react";
 import { Banknote, Edit3, MapPin, Phone, Plus, Save, Trash2, Truck, Wallet } from "lucide-react";
-import { formatCurrency, formatDateLocale } from "../utils/formulas";
+import { formatCurrency, formatDateLocale, quantiteEnMots } from "../utils/formulas";
 import { PageHeader, HeaderMetric } from "./shared/PageHeader";
 import { FilterBar, FilterField } from "./shared/FilterBar";
 import { DataList, type DataListItem } from "./shared/DataList";
@@ -310,7 +310,7 @@ export const LivraisonsView: React.FC<LivraisonsViewProps> = ({
               {contenu.map((a, i) => (
                 <div key={i} className="app-list-row justify-between gap-3">
                   <span className="app-list-primary min-w-0 flex-1">{a.designation}</span>
-                  <span className="app-list-amount">×{a.quantite}</span>
+                  <span className="app-list-amount">{quantiteEnMots(a.quantite)}</span>
                 </div>
               ))}
             </div>

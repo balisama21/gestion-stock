@@ -206,3 +206,35 @@ export function getPurchaseVariant(
 ): number | null {
   return getVariantPrice(purchase.designation, purchase.prixAchatUnit, products);
 }
+
+/**
+ * Une quantite dite en toutes lettres : « 20 litres », « 1 unite ».
+ *
+ * POURQUOI PAS « ×20 ». Colle au nom du produit, l'abrege se lisait
+ * comme une reference ou un format — « Huile ×20 » ressemble a une
+ * designation de catalogue. Pose dans le rang secondaire d'une ligne,
+ * « 20 litres » se lit pour ce qu'il est : une quantite. Le signe ×
+ * reste reserve a ce qu'il denote vraiment, une multiplication :
+ * « 3 × 4 000 Ar » sur un ticket ou dans un detail de prix.
+ *
+ * L'UNITE VIENT DE LA FICHE PRODUIT quand elle y est renseignee, et
+ * retombe sur « unite » sinon. Aucun produit de la boutique n'en porte
+ * aujourd'hui ; le jour ou l'un d'eux dira « sac » ou « litre », les
+ * lignes le diront sans qu'on y retouche.
+ *
+ * LE PLURIEL SE MEFIE DES SYMBOLES. « 20 sacs » prend son s, « 20 kg »
+ * ne le prend pas : un symbole d'unite est invariable, et « 20 kgs »
+ * se voit.
+ *
+ * Ce qui separe les deux n'est PAS la longueur — premiere version de
+ * cette fonction, et « 12 sac » en est sorti : trois lettres, donc
+ * traite comme un symbole. C'est la VOYELLE. Un symbole d'unite n'en a
+ * pas — kg, mL, cm, L — la ou tout mot francais en porte une. S'y
+ * ajoutent les tres courts et ceux qui finissent deja en s, x ou z.
+ */
+export function quantiteEnMots(nombre: number, unite?: string | null): string {
+  const mot = unite?.trim() || "unité";
+  const sansVoyelle = !/[aeiouyàâäéèêëîïôöùûü]/i.test(mot);
+  const invariable = nombre <= 1 || sansVoyelle || mot.length <= 2 || /[sxz]$/i.test(mot);
+  return `${nombre} ${invariable ? mot : `${mot}s`}`;
+}

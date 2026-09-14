@@ -28,6 +28,7 @@ import {
   getProductLabel,
   getPurchaseLabel,
   getPurchaseVariant,
+  quantiteEnMots,
 } from "../utils/formulas";
 import { VariantBadge } from "./shared/VariantBadge";
 import { DetailsProduit } from "./produits/DetailsProduit";
@@ -647,13 +648,14 @@ export const AchatsView: React.FC<AchatsViewProps> = ({
             ),
             primary: (
               <span className="flex min-w-0 items-center gap-2">
-                <span className="truncate">
-                  {getPurchaseLabel(p, products)} ×{p.quantite}
-                </span>
+                <span className="truncate">{getPurchaseLabel(p, products)}</span>
                 <VariantBadge prix={getPurchaseVariant(p, products)} autorise={showPrix} />
               </span>
             ),
             meta: [
+              // En toutes lettres dans le rang secondaire, comme sur le
+              // tableau de bord et dans les ventes.
+              quantiteEnMots(p.quantite, products.find((x) => x.id === p.productId)?.unite),
               formatDateLocale(p.date, locale),
               showFournisseur ? p.fournisseur || null : null,
               showPrix ? `${formatCurrency(p.prixAchatUnit)} / u` : null,
@@ -984,8 +986,11 @@ export const AchatsView: React.FC<AchatsViewProps> = ({
         >
           <div className="space-y-3">
             <p className="text-sm text-foreground">
-              <strong>{getPurchaseLabel(achatASupprimer, products)}</strong> ×
-              {achatASupprimer.quantite}
+              <strong>{getPurchaseLabel(achatASupprimer, products)}</strong> —{" "}
+              {quantiteEnMots(
+                achatASupprimer.quantite,
+                products.find((x) => x.id === achatASupprimer.productId)?.unite,
+              )}
               {showPrix && <> — {formatCurrency(achatASupprimer.totalAchat)}</>}
             </p>
 

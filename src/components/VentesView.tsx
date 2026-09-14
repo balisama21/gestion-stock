@@ -37,6 +37,7 @@ import {
   getProductLabel,
   getSaleLabel,
   getSaleVariant,
+  quantiteEnMots,
 } from "../utils/formulas";
 import { VariantBadge } from "./shared/VariantBadge";
 import { PageHeader, HeaderMetric } from "./shared/PageHeader";
@@ -554,15 +555,17 @@ export const VentesView: React.FC<VentesViewProps> = ({
       ),
       primary: (
         <span className="flex min-w-0 items-center gap-2">
-          <span className="truncate">
-            {nom} ×{s.quantite}
-          </span>
+          <span className="truncate">{nom}</span>
           {/* Le prix d'achat révèle la marge dès lors que le prix
               de vente est visible : même permission. */}
           <VariantBadge prix={getSaleVariant(s, products)} autorise={showMargeLigne} />
         </span>
       ),
       meta: [
+        // La quantite descend dans le rang secondaire et se dit en
+        // toutes lettres : collee au nom, « ×20 » se lisait comme un
+        // format de catalogue plutot que comme une quantite.
+        quantiteEnMots(s.quantite, prod?.unite),
         formatDateLocale(s.date, locale),
         s.vendeur,
         showMontant ? `${formatCurrency(s.prixVenteUnit)} / u` : null,
@@ -720,16 +723,14 @@ export const VentesView: React.FC<VentesViewProps> = ({
             return (
               <div key={v.id} className="app-list-row flex-col items-stretch gap-1.5">
                 <div className="flex w-full items-center justify-between gap-3">
-                  <span className="app-list-primary min-w-0 flex-1">
-                    {nom} ×{v.quantite}
-                  </span>
+                  <span className="app-list-primary min-w-0 flex-1">{nom}</span>
                   {showMontant && (
                     <span className="app-list-amount">{formatCurrency(v.totalVente)}</span>
                   )}
                 </div>
                 <div className="flex w-full items-center justify-between gap-2">
                   <span className="app-list-secondary truncate">
-                    {v.numero}
+                    {quantiteEnMots(v.quantite, prod?.unite)} · {v.numero}
                     {showMontant ? ` · ${formatCurrency(v.prixVenteUnit)} / u` : ""}
                   </span>
                   <span className="flex shrink-0 items-center gap-1">

@@ -24,6 +24,7 @@ import {
   getProductVariant,
   getSaleLabel,
   getSaleVariant,
+  quantiteEnMots,
 } from "../utils/formulas";
 import { VariantBadge } from "./shared/VariantBadge";
 import { BarreIndicateurs } from "./shared/StatBar";
@@ -310,20 +311,6 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
    * mieux vaut une information en moins qu'une information fausse, et
    * les vingt-sept autres gardent la leur.
    */
-  /**
-   * La quantité en toutes lettres plutôt qu'en abrégé.
-   *
-   * « ×20 » collé au nom du produit se lit comme une référence ou une
-   * taille ; « 20 unités », posé dans le second rang, se lit comme une
-   * quantité. Le mot suit l'unité de la fiche produit quand elle est
-   * renseignée — « 20 sacs », « 20 litres » — et retombe sur « unité »
-   * sinon, ce qui est le cas de tout le catalogue aujourd'hui.
-   */
-  const quantiteEnMots = (nombre: number, produit?: Product): string => {
-    const unite = produit?.unite?.trim() || "unité";
-    return `${nombre} ${nombre > 1 ? `${unite}s` : unite}`;
-  };
-
   const heureDeLaVente = (vente: Sale): string | null => {
     if (!vente.saisieLe) return null;
     const instant = new Date(vente.saisieLe);
@@ -806,7 +793,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                           )}
                         </>
                       }
-                      details={[quantiteEnMots(s.quantite, prod), s.vendeur]}
+                      details={[quantiteEnMots(s.quantite, prod?.unite), s.vendeur]}
                       quand={
                         heure
                           ? `${formatDateLocale(s.date, locale)} à ${heure}`
@@ -867,7 +854,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                           />
                         }
                         titre={prod ? getProductLabel(prod, products) : a.designation}
-                        details={[quantiteEnMots(a.quantite, prod), a.fournisseur]}
+                        details={[quantiteEnMots(a.quantite, prod?.unite), a.fournisseur]}
                         quand={formatDateLocale(a.date, locale)}
                         montant={formatCurrency(a.totalAchat)}
                         /* Le statut est affiché même quand il est

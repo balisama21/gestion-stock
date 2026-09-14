@@ -19,7 +19,9 @@ import {
   Wallet,
   Save,
 } from "lucide-react";
-import { formatCurrency, formatDateLocale, getSaleLabel } from "../utils/formulas";
+import { formatCurrency, formatDateLocale, getSaleLabel,
+  quantiteEnMots,
+} from "../utils/formulas";
 import { PageHeader } from "./shared/PageHeader";
 import { StatCol } from "./shared/StatBar";
 import { DataList } from "./shared/DataList";
@@ -719,8 +721,8 @@ export const VendeursView: React.FC<VendeursViewProps> = ({
                     id: s.id,
                     primary: getSaleLabel(s, products),
                     meta: [
+                      quantiteEnMots(s.quantite, products.find((x) => x.id === s.productId)?.unite),
                       formatDateLocale(s.date, locale),
-                      `×${s.quantite}`,
                       formatCurrency(s.prixVenteUnit),
                     ],
                     amount: formatCurrency(s.totalVente),

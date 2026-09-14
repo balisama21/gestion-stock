@@ -10,7 +10,7 @@ import {
   Save,
   Truck,
 } from "lucide-react";
-import { formatCurrency, formatDateLocale } from "../utils/formulas";
+import { formatCurrency, formatDateLocale, quantiteEnMots } from "../utils/formulas";
 import { Modal } from "./shared/Modal";
 import { useLivraisonsDuLivreur } from "../hooks/useLivraisonsDuLivreur";
 import { useTachesDuLivreur } from "../hooks/useTachesDuLivreur";
@@ -551,7 +551,7 @@ const CarteCourse: React.FC<{
           {contenu.map((a, i) => (
             <div key={i} className="app-list-row justify-between gap-3">
               <span className="app-list-primary min-w-0 flex-1">{a.designation}</span>
-              <span className="app-list-amount">×{a.quantite}</span>
+              <span className="app-list-amount">{quantiteEnMots(a.quantite)}</span>
             </div>
           ))}
         </div>
