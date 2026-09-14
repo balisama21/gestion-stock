@@ -26,7 +26,7 @@ import {
   getSaleVariant,
 } from "../utils/formulas";
 import { VariantBadge } from "./shared/VariantBadge";
-import { BarreIndicateurs, Tendance } from "./shared/StatBar";
+import { BarreIndicateurs } from "./shared/StatBar";
 import { moduleMasque, usePersonnalisation } from "../lib/personnalisation";
 import { construireEnSuspens } from "../lib/enSuspens";
 import {
@@ -286,23 +286,6 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
       periode.precedent,
     ),
     "down",
-  );
-
-  // ── Ce que les ventes de la période disent d'elles-mêmes ──
-  //
-  // Le TOTAL n'est pas repris ici : la barre d'indicateurs, deux cents
-  // pixels plus haut, le donne déjà avec la même tendance. Restent le
-  // nombre et le panier moyen, qu'elle ne dit pas.
-  const nbVentes = ventesPeriode.length;
-  const panierMoyen = nbVentes > 0 ? totalSalesAmount / nbVentes : 0;
-  const ventesPrecedentes = filtrerParIntervalle(sales, (v) => v.date, periode.precedent);
-  const nbVentesTrend = buildTrend(nbVentes, ventesPrecedentes.length, "up");
-  const panierMoyenTrend = buildTrend(
-    panierMoyen,
-    ventesPrecedentes.length > 0
-      ? ventesPrecedentes.reduce((acc, v) => acc + v.totalVente, 0) / ventesPrecedentes.length
-      : 0,
-    "up",
   );
 
   /** Le nom de la catégorie d'un produit, quand il en a une. */
@@ -771,119 +754,118 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
         <div className="lg:col-span-2 space-y-5">
           {/* Recent Sales */}
           <div className="app-card overflow-hidden">
-            <div className="border-b border-border px-4 py-3">
-              <div className="flex items-center justify-between gap-3">
-                <h3 className="app-section-title">
-                  <TrendingUp className="h-3.5 w-3.5" /> Ventes récentes —{" "}
-                  {LIBELLE_DUREE[clePeriode]}
-                </h3>
-                <button
-                  onClick={() => onNavigateTab("ventes")}
-                  className="shrink-0 text-xs font-medium text-primary hover:underline"
-                >
-                  Tout voir
-                </button>
-              </div>
-
-              {/* ── Le contexte chiffré, avant le détail des lignes ──
-                  Deux chiffres seulement, et la mention de comparaison
-                  posée UNE fois pour les deux : répétée derrière chacun,
-                  « vs même période le mois dernier » prendrait plus de
-                  place que les chiffres qu'elle qualifie. */}
-              {nbVentes > 0 && (
-                <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-muted-foreground">
-                  <span className="flex items-center gap-1.5">
-                    <span className="font-mono text-sm font-semibold tabular-nums text-foreground">
-                      {nbVentes}
-                    </span>
-                    vente{nbVentes > 1 ? "s" : ""}
-                    <Tendance trend={nbVentesTrend} compact />
-                  </span>
-                  <span className="flex items-center gap-1.5">
-                    panier moyen
-                    <span className="font-mono text-sm font-semibold tabular-nums text-foreground">
-                      {formatCurrency(panierMoyen)}
-                    </span>
-                    <Tendance trend={panierMoyenTrend} compact />
-                  </span>
-                  {!nbVentesTrend.noBaseline && (
-                    <span className="opacity-80">{periode.libelleComparaison}</span>
-                  )}
-                </div>
-              )}
+            <div className="flex items-center justify-between gap-3 border-b border-border px-4 py-3">
+              <h3 className="app-section-title">
+                <TrendingUp className="h-3.5 w-3.5" /> Ventes récentes — {LIBELLE_DUREE[clePeriode]}
+              </h3>
+              <button
+                onClick={() => onNavigateTab("ventes")}
+                className="shrink-0 text-xs font-medium text-primary hover:underline"
+              >
+                Tout voir
+              </button>
             </div>
-            <DataList
-              emptyLabel="Aucune vente récente."
-              items={ventesPeriode.slice(0, 6).map((s) => {
-                const prod = products.find((p) => p.id === s.productId);
-                const categorie = nomCategorie(prod);
-                const heure = heureDeLaVente(s);
-                return {
-                  id: s.id,
-                  leading: (
-                    <VignetteProduit
-                      nom={s.designation}
-                      chemin={s.productId ? vignettes.get(s.productId) : null}
-                    />
-                  ),
-                  primary: (
-                    <span className="flex min-w-0 items-center gap-2">
-                      <span className="truncate">
-                        {prod ? getProductLabel(prod, products) : getSaleLabel(s, products)} ×
-                        {s.quantite}
-                      </span>
-                      <VariantBadge prix={getSaleVariant(s, products)} autorise={showPrixAchat} />
-                      {/* Rien tant qu'aucune catégorie n'est renseignée :
-                          l'étiquette s'allumera d'elle-même le jour où la
-                          boutique en créera.
 
-                          Masquée sous 640 px, et c'est mesuré : à 375, le
-                          badge prenait 78 des 147 pixels de la ligne et
-                          rognait le nom du produit, qui passait de
-                          « atody ×1 » à « atody… ». Sur un téléphone, le
-                          nom de l'article prime sur son rayon. Au-delà,
-                          le bloc vit dans la colonne large et les deux
-                          tiennent sans se gêner. */}
-                      {categorie && (
-                        <span className="app-badge app-badge-neutral hidden shrink-0 sm:inline-flex">
-                          {categorie}
+            {/* ── Une ligne qui occupe sa largeur ──
+                Ce bloc ne passe pas par DataList, et c'est la seule
+                exception de l'écran. La liste commune empile tout à
+                gauche — nom sur une ligne, puis quantité, vendeur et
+                date entassés sur la ligne grise en dessous — ce qui
+                laissait ici un vide de plusieurs centaines de pixels au
+                milieu pendant que les informations se serraient sur le
+                bord. Dans la colonne large de l'accueil, ce vide ne se
+                justifie pas.
+
+                Les zones sont donc posées à largeur fixe : c'est ce qui
+                les fait s'aligner d'une ligne à l'autre. Des colonnes
+                dimensionnées par leur contenu danseraient d'une ligne à
+                la suivante, et l'œil ne pourrait plus descendre une
+                colonne du regard.
+
+                LE SEUIL SE MESURE SUR LE BLOC, PAS SUR L'ÉCRAN, et
+                c'est tout l'intérêt de `@container` ici : à 1024 pixels
+                de large, l'accueil passe en deux colonnes et ce bloc
+                n'en fait plus que 623 — moins large qu'à 768, où il
+                occupe toute la page. Une règle en `md:` montrait donc
+                les zones précisément là où la place manquait, et le nom
+                du produit tombait à 73 pixels. Sous 672 pixels de bloc,
+                tout revient à la forme hiérarchisée de l'application —
+                le nom, puis une seule ligne grise. */}
+            {ventesPeriode.length === 0 ? (
+              <p className="px-4 py-8 text-center text-sm text-muted-foreground">
+                Aucune vente récente.
+              </p>
+            ) : (
+              <div className="app-list @container">
+                {ventesPeriode.slice(0, 6).map((s) => {
+                  const prod = products.find((p) => p.id === s.productId);
+                  const categorie = nomCategorie(prod);
+                  const heure = heureDeLaVente(s);
+                  const quand = heure
+                    ? `${dateDeLaVente(s.date)} à ${heure}`
+                    : dateDeLaVente(s.date);
+                  return (
+                    <div key={s.id} className="app-list-row gap-3 py-3">
+                      <VignetteProduit
+                        nom={s.designation}
+                        chemin={s.productId ? vignettes.get(s.productId) : null}
+                      />
+
+                      <div className="min-w-0 flex-1">
+                        <div className="flex min-w-0 items-center gap-2">
+                          <span className="app-list-primary">
+                            {prod ? getProductLabel(prod, products) : getSaleLabel(s, products)}
+                          </span>
+                          <VariantBadge
+                            prix={getSaleVariant(s, products)}
+                            autorise={showPrixAchat}
+                          />
+                          {/* Rien tant qu'aucune catégorie n'est
+                              renseignée. Réservée aux grands écrans :
+                              plus bas, la place va au nom du produit et
+                              aux trois zones alignées. */}
+                          {categorie && (
+                            <span className="app-badge app-badge-neutral hidden shrink-0 @3xl:inline-flex">
+                              {categorie}
+                            </span>
+                          )}
+                        </div>
+                        {/* La forme repliée, sous 768 px. */}
+                        <span className="app-list-secondary block @2xl:hidden">
+                          ×{s.quantite} · {s.vendeur} · {quand}
                         </span>
-                      )}
-                    </span>
-                  ),
-                  /* Le vendeur d'abord, avec son initiale : c'est lui
-                     qu'on cherche du regard en parcourant six lignes. La
-                     pastille reste EN LIGNE dans le texte gris, donc la
-                     ligne continue de tronquer d'un seul tenant. */
-                  metaLeading: (
-                    <span
-                      aria-hidden="true"
-                      className="mr-1.5 inline-flex h-[18px] w-[18px] items-center justify-center rounded border border-border bg-muted align-middle text-[10px] font-medium text-foreground"
-                    >
-                      {s.vendeur.trim().charAt(0).toUpperCase() || "?"}
-                    </span>
-                  ),
-                  meta: [
-                    s.vendeur,
-                    heure ? `${dateDeLaVente(s.date)} à ${heure}` : dateDeLaVente(s.date),
-                  ],
-                  amount: formatCurrency(s.totalVente),
-                  badge: (
-                    <span
-                      className={`app-badge ${
-                        s.statutCredit === "Payé"
-                          ? "app-badge-success"
-                          : s.statutCredit === "Partiel"
-                            ? "app-badge-warning"
-                            : "app-badge-danger"
-                      }`}
-                    >
-                      {s.statutCredit}
-                    </span>
-                  ),
-                };
-              })}
-            />
+                      </div>
+
+                      <span className="hidden w-12 shrink-0 text-center text-sm tabular-nums text-muted-foreground @2xl:block">
+                        ×{s.quantite}
+                      </span>
+                      {/* 128 px, mesures a l'appui : « Mamy Herinatenaina »
+                          — un vrai vendeur de la boutique — demande 128
+                          pixels exactement, et se faisait couper a 96. */}
+                      <span className="hidden w-32 shrink-0 truncate text-sm text-muted-foreground @2xl:block">
+                        {s.vendeur}
+                      </span>
+                      <span className="hidden w-28 shrink-0 text-sm tabular-nums text-muted-foreground @2xl:block">
+                        {quand}
+                      </span>
+
+                      <span className="app-list-amount">{formatCurrency(s.totalVente)}</span>
+                      <span
+                        className={`app-badge shrink-0 ${
+                          s.statutCredit === "Payé"
+                            ? "app-badge-success"
+                            : s.statutCredit === "Partiel"
+                              ? "app-badge-warning"
+                              : "app-badge-danger"
+                        }`}
+                      >
+                        {s.statutCredit}
+                      </span>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
           </div>
 
           {/* Achats & Dépenses */}
