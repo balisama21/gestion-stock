@@ -1,0 +1,42 @@
+-- ═══════════════════════════════════════════════════════════════════
+-- L'agenda refusait de creer un evenement
+-- ═══════════════════════════════════════════════════════════════════
+--
+-- « permission denied for function est_invite_a », au moment meme de
+-- creer un rendez-vous.
+--
+-- LES DEUX FONCTIONS SONT BIEN ECRITES : STABLE, SECURITY DEFINER,
+-- `search_path` fige a 'public'. Il ne leur manquait que le droit de
+-- s'executer. Leur ACL n'accordait EXECUTE qu'a `postgres` et a
+-- `service_role` — jamais a `authenticated`, c'est-a-dire a personne
+-- qui se serve reellement de l'application. Leurs soeurs
+-- `est_dans_la_boutique` et `store_allows_write` l'avaient depuis
+-- toujours, ce qui explique que tout le reste fonctionnait.
+--
+-- POURQUOI L'ERREUR TOMBAIT SUR UNE CREATION, ET NON SUR UNE LECTURE.
+-- L'application relit la ligne qu'elle vient d'ecrire, et cette
+-- relecture passe par la politique de lecture d'`evenements`, laquelle
+-- appelle `est_invite_a`. L'ecriture n'etait donc jamais en cause.
+--
+-- ET POURQUOI MEME UN EVENEMENT « TOUTE L'EQUIPE » ECHOUAIT. La regle
+-- s'ecrit `createur = moi OR visibilite = 'equipe' OR (… AND
+-- est_invite_a(id))`. On pourrait croire le troisieme terme jamais
+-- atteint pour un evenement d'equipe : PostgreSQL ne garantit pas
+-- l'ordre d'evaluation d'un OR, et le planificateur est libre
+-- d'appeler la fonction quand meme. Constate sur les donnees reelles :
+-- avec `visibilite = 'equipe'`, la creation etait refusee.
+--
+-- `anon` reste exclu : ces deux fonctions servent a savoir ce qu'une
+-- personne CONNECTEE a le droit de voir. Un visiteur anonyme n'a rien
+-- a demander a l'agenda d'une boutique.
+--
+-- Verifie sur les donnees de production, en transaction annulee :
+--
+--   avant  equipe=REFUSE : permission denied for function est_invite_a
+--   apres  equipe=REUSSI, relu 1 fois
+--          prive=REUSSI
+--          choisis=REUSSI, participants lisibles
+--          anon peut executer est_invite_a = faux
+
+GRANT EXECUTE ON FUNCTION public.est_invite_a(uuid) TO authenticated;
+GRANT EXECUTE ON FUNCTION public.peut_voir_evenement(uuid) TO authenticated;
