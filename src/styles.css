@@ -349,6 +349,26 @@
    collage fonctionne. */
 html {
   overflow-x: hidden;
+  /* ── Ce que le systeme peint autour de la page ──
+
+     `color-scheme` dit au navigateur de quelle famille est cette page.
+     Sans lui, tout ce que le systeme dessine lui-meme — la toile sous
+     le contenu, le rebond en fin de defilement, les barres de
+     defilement, les champs natifs — retombe sur son defaut, qui peut
+     etre sombre. Sur un telephone, cela se voit la ou la page ne peint
+     pas encore : une bande sous la barre d'etat au premier rendu.
+
+     `light` ici et `dark` sur le theme sombre, plutot que
+     « light dark » : l'application a sa propre bascule, et suivre le
+     reglage du telephone la contredirait. */
+  color-scheme: light;
+  background-color: var(--color-background);
+}
+
+.dark,
+html:has(.dark),
+html.dark {
+  color-scheme: dark;
 }
 
 /* ── Mobile ergonomics ── */
