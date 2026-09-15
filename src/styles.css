@@ -365,6 +365,36 @@ html {
   background-color: var(--color-background);
 }
 
+/* ── La bande derriere l'heure et la batterie ──
+
+   Sur un telephone qui dessine l'application BORD A BORD, la barre
+   d'etat devient transparente et c'est la page qui doit peindre
+   dessous. Si elle ne peint rien, on voit le fond du systeme — noir.
+   La marge posee sur l'en-tete ne suffit pas toujours : elle ne vaut
+   que la ou un en-tete existe, et pas sur l'ecran de connexion, pas
+   pendant un chargement, pas derriere une fenetre.
+
+   Cette bande-ci est posee une fois pour toutes, sur le document. Elle
+   fait exactement la hauteur de l'encoche declaree par le telephone :
+   la ou il n'y en a pas — un ordinateur, un telephone qui reserve
+   lui-meme la place — elle mesure zero et ne se voit pas.
+
+   `z-index` tres haut, car elle doit rester devant une fenetre modale :
+   une feuille qui monte du bas ne doit pas repeindre en sombre la
+   bande qu'on vient d'eclaircir. `pointer-events: none` pour qu'elle
+   n'intercepte aucun geste. */
+body::before {
+  content: "";
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: env(safe-area-inset-top, 0px);
+  background-color: var(--color-card);
+  z-index: 200;
+  pointer-events: none;
+}
+
 .dark,
 html:has(.dark),
 html.dark {
