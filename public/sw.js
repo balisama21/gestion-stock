@@ -22,17 +22,27 @@
  * hors ligne, et c'est un choix.
  */
 
-const VERSION = "tantana-v5";
+const VERSION = "tantana-v6";
 const CACHE_STATIQUE = `${VERSION}-statique`;
 const CACHE_POLICES = `${VERSION}-polices`;
 
 // Les fichiers d'assets portent une empreinte dans leur nom : un contenu
 // modifié change de nom. Ils sont donc immuables, et les garder en cache
 // ne peut jamais donner une version périmée.
+//
+// LE MANIFESTE N'EN EST PAS UN, et il était pourtant dans cette liste.
+// `/manifest.webmanifest` garde son nom quoi qu'il contienne : mis au
+// cache immuable, la version du jour de l'installation y restait pour
+// toujours. C'est par là que le navigateur apprend la couleur de la
+// barre d'état d'une application installée — la changer ne servait donc
+// à rien, le téléphone continuait de lire l'ancienne. Il passe au
+// réseau d'abord, et ne retombe sur le cache que hors ligne.
 const estAssetImmuable = (url) =>
   url.origin === self.location.origin &&
-  (url.pathname.startsWith("/assets/") ||
-    /\.(png|svg|ico|webmanifest|woff2?)$/.test(url.pathname));
+  (url.pathname.startsWith("/assets/") || /\.(png|svg|ico|woff2?)$/.test(url.pathname));
+
+const estManifeste = (url) =>
+  url.origin === self.location.origin && url.pathname.endsWith(".webmanifest");
 
 const estPolice = (url) =>
   url.hostname.endsWith("gstatic.com") || url.hostname.endsWith("googleapis.com");
@@ -69,6 +79,28 @@ self.addEventListener("fetch", (event) => {
   // Navigations et appels de données : réseau, sans intermédiaire.
   if (request.mode === "navigate") return;
   if (url.hostname.endsWith(".supabase.co")) return;
+
+  // Le manifeste : réseau d'abord, cache en secours. Le navigateur le
+  // relit régulièrement pour savoir si l'application installée a changé
+  // d'icône, de nom ou de couleur ; lui servir une copie figée revient
+  // à lui cacher ces changements.
+  if (estManifeste(url)) {
+    event.respondWith(
+      (async () => {
+        const cache = await caches.open(CACHE_STATIQUE);
+        try {
+          const reponse = await fetch(request, { cache: "no-cache" });
+          if (reponse.ok) cache.put(request, reponse.clone());
+          return reponse;
+        } catch (echec) {
+          const enCache = await cache.match(request);
+          if (enCache) return enCache;
+          throw echec;
+        }
+      })(),
+    );
+    return;
+  }
 
   if (estAssetImmuable(url)) {
     event.respondWith(
