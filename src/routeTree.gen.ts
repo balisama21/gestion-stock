@@ -11,7 +11,6 @@
 import { Route as rootRouteImport } from './routes/__root'
 import { Route as IndexRouteImport } from './routes/index'
 import { Route as AcceptInviteRouteImport } from './routes/accept-invite'
-import { Route as DiagnosticAffichageRouteImport } from './routes/diagnostic-affichage'
 import { Route as ResetPasswordRouteImport } from './routes/reset-password'
 
 const IndexRoute = IndexRouteImport.update({
@@ -24,11 +23,6 @@ const AcceptInviteRoute = AcceptInviteRouteImport.update({
   path: '/accept-invite',
   getParentRoute: () => rootRouteImport,
 } as any)
-const DiagnosticAffichageRoute = DiagnosticAffichageRouteImport.update({
-  id: '/diagnostic-affichage',
-  path: '/diagnostic-affichage',
-  getParentRoute: () => rootRouteImport,
-} as any)
 const ResetPasswordRoute = ResetPasswordRouteImport.update({
   id: '/reset-password',
   path: '/reset-password',
@@ -38,40 +32,30 @@ const ResetPasswordRoute = ResetPasswordRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/accept-invite': typeof AcceptInviteRoute
-  '/diagnostic-affichage': typeof DiagnosticAffichageRoute
   '/reset-password': typeof ResetPasswordRoute
 }
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/accept-invite': typeof AcceptInviteRoute
-  '/diagnostic-affichage': typeof DiagnosticAffichageRoute
   '/reset-password': typeof ResetPasswordRoute
 }
 export interface FileRoutesById {
   __root__: typeof rootRouteImport
   '/': typeof IndexRoute
   '/accept-invite': typeof AcceptInviteRoute
-  '/diagnostic-affichage': typeof DiagnosticAffichageRoute
   '/reset-password': typeof ResetPasswordRoute
 }
 export interface FileRouteTypes {
   fileRoutesByFullPath: FileRoutesByFullPath
-  fullPaths:
-    '/' | '/accept-invite' | '/diagnostic-affichage' | '/reset-password'
+  fullPaths: '/' | '/accept-invite' | '/reset-password'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/accept-invite' | '/diagnostic-affichage' | '/reset-password'
-  id:
-    | '__root__'
-    | '/'
-    | '/accept-invite'
-    | '/diagnostic-affichage'
-    | '/reset-password'
+  to: '/' | '/accept-invite' | '/reset-password'
+  id: '__root__' | '/' | '/accept-invite' | '/reset-password'
   fileRoutesById: FileRoutesById
 }
 export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AcceptInviteRoute: typeof AcceptInviteRoute
-  DiagnosticAffichageRoute: typeof DiagnosticAffichageRoute
   ResetPasswordRoute: typeof ResetPasswordRoute
 }
 
@@ -91,13 +75,6 @@ declare module '@tanstack/react-router' {
       preLoaderRoute: typeof AcceptInviteRouteImport
       parentRoute: typeof rootRouteImport
     }
-    '/diagnostic-affichage': {
-      id: '/diagnostic-affichage'
-      path: '/diagnostic-affichage'
-      fullPath: '/diagnostic-affichage'
-      preLoaderRoute: typeof DiagnosticAffichageRouteImport
-      parentRoute: typeof rootRouteImport
-    }
     '/reset-password': {
       id: '/reset-password'
       path: '/reset-password'
@@ -111,7 +88,6 @@ declare module '@tanstack/react-router' {
 const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AcceptInviteRoute: AcceptInviteRoute,
-  DiagnosticAffichageRoute: DiagnosticAffichageRoute,
   ResetPasswordRoute: ResetPasswordRoute,
 }
 export const routeTree = rootRouteImport
