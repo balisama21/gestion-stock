@@ -1,11 +1,32 @@
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import "./dashboard.css";
 import { useDashboardPeriod } from "./hooks/useDashboardPeriod";
-import { dateCourte, dateLongue, heure } from "./lib/format";
+import { useDashboardPermissions, MONTANT_MASQUE } from "./hooks/useDashboardPermissions";
+import { useDashboardData } from "./hooks/useDashboardData";
+import { dateCourte, dateLongue, heure, montant, nombre, pourcent } from "./lib/format";
 import { MenuOption, MenuPill, Pill } from "./components/Pill";
 import { Card, CardHeader } from "./components/Card";
-import { CarteSquelette } from "./components/States";
+import { CarteSquelette, EtatErreur } from "./components/States";
+import { Chip, ChipRienDUrgent } from "./components/Chip";
 import { Drawer, DrawerLigne } from "./components/Drawer";
+import { Trend } from "./components/Trend";
+import { allerALaCarte } from "./lib/defilement";
+import { phraseDeSynthese, syntheseCompacte } from "./lib/summary";
+import {
+  chiffresClients,
+  chiffresCommandes,
+  chiffresFlux,
+  chiffresFournisseurs,
+  chiffresPaiements,
+  chiffresResultat,
+  chiffresStock,
+  chiffresVentes,
+  pointsDAttention,
+  topProduits,
+  type SourcesChiffres,
+} from "./lib/chiffres";
+import { VUES, VUE_PAR_CLE } from "./roles";
+import { CARTE_PAR_CLE } from "./registry";
 import { dateDuJour } from "../../lib/dates";
 import { useAuth } from "../../hooks/useAuth";
 
@@ -13,23 +34,32 @@ import { useAuth } from "../../hooks/useAuth";
  * LE TABLEAU DE BORD v2
  *
  * Portage de `docs/maquette/tableau-de-bord-complet.html`. Voir
- * `docs/dashboard-v2/audit.md` pour ce que chaque carte ira chercher.
+ * `docs/dashboard-v2/audit.md` pour la carte des données.
  *
- * ÉTAT : phase 1. L'en-tête fonctionne — date, salutation, sélecteur de
- * période avec sa comparaison, mode focus, thème. Les cartes arrivent
- * aux phases suivantes ; en attendant, la grille montre des squelettes,
- * qui disent la forme sans inventer de chiffres.
+ * ÉTAT : phase 2. L'en-tête est complet — période et comparaison,
+ * phrase de synthèse, points d'attention, vue par métier, mode focus,
+ * thème. Les chiffres sont branchés sur les vraies données et se
+ * relisent tous dans la table de contrôle, qui sert à les comparer à
+ * l'ancien tableau de bord avant que les cartes ne les habillent aux
+ * phases suivantes.
  *
  * CETTE PAGE NE DESSINE PAS LA COQUILLE. La maquette redessinait aussi
- * la barre latérale et l'en-tête de l'application ; ceux-ci existent
- * déjà (`Sidebar.tsx`, `Header.tsx`) et servent vingt-cinq écrans. La
- * v2 ne remplace que le contenu.
+ * la barre latérale ; celle-ci existe déjà et sert vingt-cinq écrans.
+ *
+ * ELLE NE FAIT AUCUNE ÉCRITURE. Ni au chargement, ni au rafraîchissement.
  */
 
 const ICONE_CALENDRIER = (
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
     <rect x="3" y="5" width="18" height="16" rx="2" />
     <path d="M3 10h18M8 3v4M16 3v4" />
+  </svg>
+);
+
+const ICONE_PERSONNE = (
+  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+    <circle cx="12" cy="8" r="4" />
+    <path d="M4 21a8 8 0 0 1 16 0" />
   </svg>
 );
 
@@ -69,15 +99,54 @@ const ICONE_LUNE = (
 /** Mémorise le mode focus, comme la maquette, sous le même préfixe. */
 const CLE_FOCUS = "tantana.dash.focus";
 
+/**
+ * Les mêmes props que l'ancien tableau de bord, à quelques près.
+ *
+ * Tout vient de `useStoreData`, déjà chargé par la coquille : le
+ * tableau de bord ne redemande RIEN de ce que l'application a en main.
+ * Les deux seules lectures propres à cet écran sont dans
+ * `useDashboardData`, et elles portent sur des tables que personne ne
+ * lisait.
+ */
 export interface DashboardV2PageProps {
+  /** La boutique active. `null` : rien à lire. */
+  storeId: string | null;
+  sales: SourcesChiffres["sales"];
+  purchases: SourcesChiffres["purchases"];
+  expenses: SourcesChiffres["expenses"];
+  products: SourcesChiffres["products"];
+  payments: SourcesChiffres["payments"];
+  sellers: SourcesChiffres["sellers"];
+  capital: SourcesChiffres["capital"];
+  orders: SourcesChiffres["orders"];
+  clients: SourcesChiffres["clients"];
+  quotes: SourcesChiffres["quotes"];
+  deliveries: SourcesChiffres["deliveries"];
+  taches: SourcesChiffres["taches"];
+  /** Les règlements versés aux fournisseurs, pour la carte du même nom. */
+  supplierPayments: { date: string; montant: number }[];
   /** Le thème de l'application. La v2 s'y branche, elle n'en crée pas un second. */
   theme: "light" | "dark";
   setTheme: (t: "light" | "dark") => void;
-  /** Relance les lectures. Le bouton ⟳ de l'en-tête. */
+  /** Relance les lectures de `useStoreData`. */
   onRafraichir?: () => void;
 }
 
 export const DashboardV2Page: React.FC<DashboardV2PageProps> = ({
+  storeId,
+  sales,
+  purchases,
+  expenses,
+  products,
+  payments,
+  sellers,
+  capital,
+  orders,
+  clients,
+  quotes,
+  deliveries,
+  taches,
+  supplierPayments,
   theme,
   setTheme,
   onRafraichir,
@@ -97,6 +166,71 @@ export const DashboardV2Page: React.FC<DashboardV2PageProps> = ({
   const aujourdhui = dateDuJour();
   const { periode, choisir, choisirIntervalle, apercus, intervalleLibre } =
     useDashboardPeriod(aujourdhui);
+  const droits = useDashboardPermissions();
+
+  // Les deux lectures que l'application ne fait pas encore, et
+  // seulement si une carte autorisée en a besoin.
+  const donnees = useDashboardData(storeId, periode.intervalle, droits.besoins);
+
+  const toutes: SourcesChiffres = useMemo(
+    () => ({
+      sales,
+      purchases,
+      expenses,
+      products,
+      payments,
+      sellers,
+      capital,
+      orders,
+      clients,
+      quotes,
+      deliveries,
+      taches,
+      mouvements: donnees.mouvements,
+    }),
+    [
+      sales,
+      purchases,
+      expenses,
+      products,
+      payments,
+      sellers,
+      capital,
+      orders,
+      clients,
+      quotes,
+      deliveries,
+      taches,
+      donnees.mouvements,
+    ],
+  );
+
+  const chiffres = useMemo(() => {
+    const ventes = chiffresVentes(toutes, periode);
+    const flux = chiffresFlux(toutes, periode, ventes);
+    const stock = chiffresStock(toutes, periode, aujourdhui);
+    return {
+      ventes,
+      flux,
+      stock,
+      resultat: chiffresResultat(toutes, periode),
+      paiements: chiffresPaiements(toutes, periode, flux, aujourdhui),
+      clients: chiffresClients(toutes, periode, aujourdhui),
+      commandes: chiffresCommandes(toutes),
+      fournisseurs: chiffresFournisseurs(toutes, periode, supplierPayments, aujourdhui),
+      top: topProduits(toutes, periode),
+      attention: pointsDAttention(toutes, chiffresStock(toutes, periode, aujourdhui), aujourdhui),
+    };
+  }, [toutes, periode, aujourdhui, supplierPayments]);
+
+  const synthese = useMemo(
+    () => phraseDeSynthese(chiffres.ventes, periode, chiffres.attention),
+    [chiffres.ventes, chiffres.attention, periode],
+  );
+  const compacte = useMemo(
+    () => syntheseCompacte(chiffres.ventes, periode),
+    [chiffres.ventes, periode],
+  );
 
   /**
    * L'heure du dernier chargement.
@@ -107,6 +241,9 @@ export const DashboardV2Page: React.FC<DashboardV2PageProps> = ({
    */
   const [chargeA, setChargeA] = useState<Date | null>(null);
   useEffect(() => setChargeA(new Date()), []);
+  useEffect(() => {
+    if (donnees.luA) setChargeA(donnees.luA);
+  }, [donnees.luA]);
 
   const [focus, setFocus] = useState(false);
   useEffect(() => {
@@ -138,8 +275,9 @@ export const DashboardV2Page: React.FC<DashboardV2PageProps> = ({
       b.classList.add("spin");
     }
     setChargeA(new Date());
+    donnees.recharger();
     onRafraichir?.();
-  }, [onRafraichir]);
+  }, [donnees, onRafraichir]);
 
   // Les deux champs de l'intervalle libre, tant qu'ils ne sont pas validés.
   const [du, setDu] = useState(intervalleLibre.debut);
@@ -156,6 +294,11 @@ export const DashboardV2Page: React.FC<DashboardV2PageProps> = ({
   const salutation = heureLocale >= 18 || heureLocale < 4 ? "Bonsoir" : "Bonjour";
   const jour = new Date();
   const sombre = theme === "dark";
+  const vueCourante = VUE_PAR_CLE.get(droits.vue);
+
+  /** Un montant que cette personne n'a pas le droit de voir. */
+  const sous = (module: string, champ: string, valeur: number) =>
+    droits.champVisible(module, champ) ? montant(valeur) : MONTANT_MASQUE;
 
   return (
     <div className={`dash2${focus ? " calm" : ""}`}>
@@ -188,6 +331,34 @@ export const DashboardV2Page: React.FC<DashboardV2PageProps> = ({
           </div>
 
           <div className="tools">
+            {droits.vuesDisponibles.length > 1 && (
+              <MenuPill
+                icon={ICONE_PERSONNE}
+                label="Vue"
+                value={vueCourante?.nom ?? "Dirigeant"}
+                alignLeft
+                ariaLabel={`Vue : ${vueCourante?.nom ?? "Dirigeant"}`}
+              >
+                {(fermer) =>
+                  VUES.filter((v) => droits.vuesDisponibles.includes(v.cle)).map((v) => (
+                    <MenuOption
+                      key={v.cle}
+                      checked={droits.vue === v.cle}
+                      onClick={() => {
+                        droits.changerDeVue(v.cle);
+                        fermer();
+                      }}
+                    >
+                      <span className="two-lines">
+                        {v.nom}
+                        <small>{v.resume}</small>
+                      </span>
+                    </MenuOption>
+                  ))
+                }
+              </MenuPill>
+            )}
+
             <MenuPill
               icon={ICONE_CALENDRIER}
               label={periode.nom}
@@ -266,21 +437,260 @@ export const DashboardV2Page: React.FC<DashboardV2PageProps> = ({
           </div>
 
           <div className="brief">
-            <p aria-live="polite">
-              La période regardée va du <b>{periode.libelle}</b>, comparée à{" "}
-              <b>{periode.libellePrecedent}</b>.
+            <p className="synthese" aria-live="polite">
+              {synthese.map((m, i) =>
+                m.fort ? (
+                  <b key={i}>{m.texte}</b>
+                ) : (
+                  <React.Fragment key={i}>{m.texte}</React.Fragment>
+                ),
+              )}
             </p>
+
+            {/* Sous neuf cents pixels, la phrase cède la place au bandeau :
+                le montant, la comparaison, la période de référence. */}
+            <div className="pulse" aria-live="polite">
+              <div className="pulse-main">
+                <small>Ventes · {periode.libelle}</small>
+                <b className="num">{compacte.montant}</b>
+              </div>
+              {(compacte.comparaison || compacte.reference) && (
+                <div className="pulse-cmp">
+                  {compacte.comparaison && (
+                    <span className={`trend ${compacte.ton}`}>{compacte.comparaison}</span>
+                  )}
+                  {compacte.reference && <small>{compacte.reference}</small>}
+                </div>
+              )}
+            </div>
+
+            <div className="attn-label">
+              {chiffres.attention.total > 0
+                ? `À regarder aujourd'hui · ${chiffres.attention.total}`
+                : "Aujourd'hui"}
+            </div>
+            <div className="attn" aria-label="Points d'attention">
+              {chiffres.attention.total === 0 ? (
+                <ChipRienDUrgent />
+              ) : (
+                <>
+                  {chiffres.attention.tachesEnRetard > 0 && (
+                    <Chip
+                      nombre={chiffres.attention.tachesEnRetard}
+                      singulier="tâche en retard"
+                      pluriel="tâches en retard"
+                      ton="crit"
+                      cible="carte-taches"
+                      onAller={allerALaCarte}
+                    />
+                  )}
+                  {chiffres.attention.produitsARecommander > 0 && (
+                    <Chip
+                      nombre={chiffres.attention.produitsARecommander}
+                      singulier="produit à recommander"
+                      pluriel="produits à recommander"
+                      ton="warn"
+                      cible="carte-ruptures"
+                      onAller={allerALaCarte}
+                    />
+                  )}
+                  {chiffres.attention.devisSansReponse > 0 && (
+                    <Chip
+                      nombre={chiffres.attention.devisSansReponse}
+                      singulier="devis sans réponse"
+                      pluriel="devis sans réponse"
+                      ton="info"
+                      cible="carte-taches"
+                      onAller={allerALaCarte}
+                    />
+                  )}
+                </>
+              )}
+            </div>
+
+            {droits.vue !== "dirigeant" && vueCourante && (
+              <div className="rolenote">
+                {ICONE_OEIL}
+                Vue <b>{vueCourante.nom}</b> · {droits.cartes.length} cartes selon les permissions
+              </div>
+            )}
           </div>
         </header>
 
         <section className="grid" aria-label="Tableau de bord">
-          <Card span={12}>
-            <CardHeader title="Socle en place — phase 1" />
+          {/* ── Table de contrôle ──
+              Provisoire, et c'est le livrable de la phase 2 : chaque
+              chiffre que les cartes afficheront, en clair, pour être
+              confronté à l'ancien tableau de bord et aux pages Ventes,
+              Stock, Bilan et Paiements avant qu'on l'habille. Elle
+              disparaît quand les cartes prennent sa place. */}
+          <Card span={12} id="carte-controle">
+            <CardHeader
+              title="Table de contrôle — phase 2"
+              action={<span className="tag neutre">provisoire</span>}
+            />
             <p style={{ margin: 0, color: "var(--ink-2)" }}>
-              Les jetons, les composants de base et le sélecteur de période sont posés. Les dix-neuf
-              cartes et le bandeau « Aujourd&apos;hui » arrivent aux phases suivantes, branchés sur
-              les vraies données de la boutique.
+              Les chiffres ci-dessous sont ceux que les cartes afficheront. Comparez-les à
+              l&apos;ancien tableau de bord et aux pages Ventes, Stock, Bilan et Paiements sur la
+              même période&nbsp;: ils doivent coïncider.
             </p>
+
+            {(donnees.erreurs.mouvements || donnees.erreurs.journal) && (
+              <EtatErreur
+                message={
+                  donnees.erreurs.mouvements
+                    ? `Mouvements de stock : ${donnees.erreurs.mouvements}`
+                    : `Journal : ${donnees.erreurs.journal}`
+                }
+                onReessayer={donnees.recharger}
+              />
+            )}
+
+            <div className="controle">
+              <Bloc titre="Ventes">
+                <L
+                  nom="Total de la période"
+                  valeur={sous("ventes", "montant", chiffres.ventes.total)}
+                />
+                <L
+                  nom="Période précédente"
+                  valeur={sous("ventes", "montant", chiffres.ventes.totalPrecedent)}
+                />
+                <L nom="Tickets" valeur={nombre(chiffres.ventes.tickets)} />
+                <L nom="Lignes de vente" valeur={nombre(chiffres.ventes.lignes)} />
+                <L
+                  nom="Panier moyen"
+                  valeur={sous("ventes", "montant", chiffres.ventes.panierMoyen)}
+                />
+                <L nom="Marge brute" valeur={sous("ventes", "marge", chiffres.ventes.marge)} />
+                <L
+                  nom="Évolution"
+                  valeur={
+                    <Trend
+                      data={{
+                        valeur: chiffres.ventes.total,
+                        reference: chiffres.ventes.totalPrecedent,
+                      }}
+                    />
+                  }
+                />
+              </Bloc>
+
+              <Bloc titre="Trésorerie et flux">
+                <L
+                  nom="Trésorerie (calcul existant)"
+                  valeur={sous("capital", "montant", capital.tresorerieGlobaleActuelle)}
+                />
+                <L nom="Encaissé sur la période" valeur={montant(chiffres.flux.encaisse)} />
+                <L nom="Achats" valeur={sous("achats", "prix_achat", chiffres.flux.achats)} />
+                <L nom="Dépenses" valeur={montant(chiffres.flux.depenses)} />
+                <L nom="Sorties totales" valeur={montant(chiffres.flux.sorties)} />
+                <L nom="Sorties par jour" valeur={montant(chiffres.flux.sortiesParJour)} />
+                <L nom="Part des ventes" valeur={pourcent(chiffres.flux.partDesVentes)} />
+              </Bloc>
+
+              <Bloc titre="Résultat (nouveau)">
+                <L nom="Marge brute" valeur={montant(chiffres.resultat.marge)} />
+                <L nom="− Dépenses" valeur={montant(chiffres.resultat.depenses)} />
+                <L nom="= Bénéfice" valeur={montant(chiffres.resultat.benefice)} />
+                <L nom="Période précédente" valeur={montant(chiffres.resultat.beneficePrecedent)} />
+                <L
+                  nom="Achats non déduits"
+                  valeur={montant(chiffres.resultat.achatsNonDeduits)}
+                  note="Ils deviennent un coût quand les produits se vendent"
+                />
+              </Bloc>
+
+              <Bloc titre="Stock">
+                <L
+                  nom="Valeur du stock"
+                  valeur={sous("produits", "valeur_stock", chiffres.stock.valeur)}
+                />
+                <L nom="À recommander" valeur={nombre(chiffres.stock.aRecommander.length)} />
+                <L nom="En rupture" valeur={nombre(chiffres.stock.enRupture.length)} />
+                <L nom="Entrées du jour" valeur={`${nombre(chiffres.stock.entreesDuJour)} u.`} />
+                <L nom="Sorties du jour" valeur={`${nombre(chiffres.stock.sortiesDuJour)} u.`} />
+                <L
+                  nom="Source des mouvements"
+                  valeur={chiffres.stock.mouvementsEnRepli ? "achats et ventes" : "stock_movements"}
+                  note={
+                    chiffres.stock.mouvementsEnRepli
+                      ? "La table n'a rien rendu : repli sur les quantités"
+                      : `${donnees.mouvements.length} lignes lues`
+                  }
+                />
+              </Bloc>
+
+              <Bloc titre="Paiements">
+                <L nom="Encaissé" valeur={montant(chiffres.paiements.encaisse)} />
+                <L
+                  nom="À recevoir (moins de 30 j)"
+                  valeur={montant(chiffres.paiements.aRecevoir)}
+                  note={`${chiffres.paiements.aRecevoirClients} client(s)`}
+                />
+                <L
+                  nom="En retard (plus de 30 j)"
+                  valeur={montant(chiffres.paiements.enRetard)}
+                  note={`${chiffres.paiements.enRetardClients} client(s)`}
+                />
+              </Bloc>
+
+              <Bloc titre="Clients, commandes, fournisseurs">
+                <L nom="Nouveaux clients" valeur={nombre(chiffres.clients.nouveaux)} />
+                <L nom="Clients actifs" valeur={nombre(chiffres.clients.actifs)} />
+                <L nom="À relancer" valeur={nombre(chiffres.clients.aRelancer.length)} />
+                <L nom="Commandes reçues" valeur={nombre(chiffres.commandes.recues)} />
+                <L nom="En préparation" valeur={nombre(chiffres.commandes.enPreparation)} />
+                <L nom="En livraison" valeur={nombre(chiffres.commandes.enLivraison)} />
+                <L nom="À encaisser" valeur={nombre(chiffres.commandes.aEncaisser)} />
+                <L nom="Dû aux fournisseurs" valeur={montant(chiffres.fournisseurs.totalDu)} />
+                <L
+                  nom="Échéances dépassées"
+                  valeur={nombre(chiffres.fournisseurs.echeancesDepassees)}
+                />
+                <L
+                  nom="Payé sur la période"
+                  valeur={montant(chiffres.fournisseurs.payeSurLaPeriode)}
+                />
+              </Bloc>
+
+              <Bloc titre="Produits les plus vendus">
+                {chiffres.top.length === 0 ? (
+                  <L nom="Aucune vente sur la période" valeur="—" />
+                ) : (
+                  chiffres.top.map((p) => (
+                    <L
+                      key={p.id}
+                      nom={p.nom}
+                      valeur={montant(p.montant)}
+                      note={`${pourcent(p.part)} · ${nombre(p.quantite)} ${p.unite ?? "unité"}`}
+                    />
+                  ))
+                )}
+              </Bloc>
+
+              <Bloc titre="Lectures et permissions">
+                <L nom="Vue" valeur={vueCourante?.nom ?? "—"} />
+                <L
+                  nom="Cartes retenues"
+                  valeur={nombre(droits.cartes.length)}
+                  note={droits.cartes.map((c) => CARTE_PAR_CLE.get(c)?.titre ?? c).join(" · ")}
+                />
+                <L nom="Tuiles retenues" valeur={nombre(droits.tuiles.length)} />
+                <L
+                  nom="Sources demandées"
+                  valeur={nombre(droits.besoins.size)}
+                  note={[...droits.besoins].sort().join(", ")}
+                />
+                <L
+                  nom="Lignes de journal"
+                  valeur={nombre(donnees.journal.length)}
+                  note="Créations comprises, contrairement à la cloche"
+                />
+                <L nom="Lecture en cours" valeur={donnees.chargement ? "oui" : "non"} />
+              </Bloc>
+            </div>
+
             <div>
               <button type="button" className="btn ghost" onClick={() => setPanneau(true)}>
                 Ouvrir le panneau de détail
@@ -288,11 +698,14 @@ export const DashboardV2Page: React.FC<DashboardV2PageProps> = ({
             </div>
           </Card>
 
-          <CarteSquelette span={5} />
-          <CarteSquelette span={7} lignes={5} />
-          <CarteSquelette span={4} />
-          <CarteSquelette span={4} />
-          <CarteSquelette span={4} />
+          {/* Les cartes de la maquette prennent la place de ces squelettes
+              aux phases 3 à 5, dans l'ordre que la vue a décidé. */}
+          {droits.cartes.map((cle) => {
+            const def = CARTE_PAR_CLE.get(cle);
+            return (
+              <CarteSquelette key={cle} span={def?.span ?? 4} lignes={def?.span === 8 ? 5 : 3} />
+            );
+          })}
         </section>
       </div>
 
@@ -309,9 +722,37 @@ export const DashboardV2Page: React.FC<DashboardV2PageProps> = ({
       >
         <DrawerLigne titre="Période regardée" detail={periode.nom} valeur={periode.libelle} />
         <DrawerLigne titre="Comparée à" valeur={periode.libellePrecedent} />
+        <DrawerLigne
+          titre="Ventes de la période"
+          valeur={montant(chiffres.ventes.total)}
+          detail={`${chiffres.ventes.tickets} ticket(s)`}
+        />
       </Drawer>
     </div>
   );
 };
+
+/* ─── deux petites briques, propres à la table de contrôle ─── */
+
+const Bloc: React.FC<{ titre: string; children: React.ReactNode }> = ({ titre, children }) => (
+  <div className="controle-bloc">
+    <div className="controle-titre">{titre}</div>
+    {children}
+  </div>
+);
+
+const L: React.FC<{ nom: string; valeur: React.ReactNode; note?: string }> = ({
+  nom,
+  valeur,
+  note,
+}) => (
+  <div className="controle-ligne">
+    <span>
+      {nom}
+      {note && <small>{note}</small>}
+    </span>
+    <b className="num">{valeur}</b>
+  </div>
+);
 
 export default DashboardV2Page;

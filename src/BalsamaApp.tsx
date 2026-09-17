@@ -1405,6 +1405,20 @@ function AppInner() {
                   (hasDashboardAccess ? (
                     dashboardV2 ? (
                       <DashboardV2Page
+                        storeId={workspace.activeStore?.id ?? null}
+                        capital={computedCapital}
+                        products={products}
+                        sales={sales}
+                        purchases={purchases}
+                        expenses={expenses}
+                        payments={storeData.payments}
+                        sellers={computedSellers}
+                        orders={storeData.orders}
+                        clients={storeData.clients}
+                        quotes={storeData.quotes}
+                        deliveries={storeData.deliveries}
+                        taches={organisation.taches}
+                        supplierPayments={storeData.supplierPayments}
                         theme={theme}
                         setTheme={setTheme}
                         onRafraichir={storeData.refresh}

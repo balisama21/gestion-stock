@@ -679,28 +679,39 @@
   .dash2 .hello h1 {
     font-size: 22px;
   }
-  /* Le sélecteur de période prend toute la place qui reste ; le mode
-     focus et le thème, privés de leur libellé, se réduisent à deux
-     icônes carrées. C'est l'intention de la maquette, qui les fait
-     remonter en icônes dans la barre du haut — barre que cette page ne
-     dessine pas, l'application ayant déjà la sienne. Sans cela, le
-     bouton du thème s'étirait sur une ligne entière pour une seule
-     icône au milieu. */
+  /* Les sélecteurs s'étalent, le mode focus et le thème — privés de
+     leur libellé — se réduisent à deux icônes carrées. C'est
+     l'intention de la maquette, qui les fait remonter en icônes dans la
+     barre du haut ; barre que cette page ne dessine pas, l'application
+     ayant déjà la sienne.
+
+     EN SOUPLESSE, PAS EN COLONNES FIXES. Le nombre de sélecteurs
+     change : un membre n'a que la période, le propriétaire a aussi la
+     vue. Une grille à trois colonnes écrasait alors la période dans
+     quarante pixels et renvoyait le thème seul sur une ligne entière.
+     Avec une base de cent cinquante pixels qui grandit, les deux
+     sélecteurs partagent la largeur quand elle suffit, et les icônes
+     passent d'elles-mêmes à la ligne suivante quand elle ne suffit
+     plus. */
   .dash2 .tools {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) 40px 40px;
+    display: flex;
+    flex-wrap: wrap;
     gap: 8px;
     align-items: center;
   }
   .dash2 .tools > .menu-holder {
+    flex: 1 1 150px;
     min-width: 0;
   }
-  .dash2 .tools .pill {
+  .dash2 .tools > .menu-holder .pill {
     width: 100%;
     min-width: 0;
     height: 40px;
   }
   .dash2 .tools > .pill {
+    flex: 0 0 auto;
+    width: 40px;
+    height: 40px;
     padding: 0;
     justify-content: center;
   }
@@ -1019,5 +1030,145 @@
   .dash2-drawer,
   .dash2-scrim {
     transition: none !important;
+  }
+}
+
+/* ── phrase de synthèse, et son bandeau de remplacement ──
+   Sous neuf cents pixels, la phrase prend quatre lignes pour dire ce
+   qu'un montant et une pastille disent en une ; c'est le bandeau qui
+   parle, et la phrase se tait. Les deux sortent du même calcul. */
+
+.dash2 .pulse {
+  display: none;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  padding: 12px 14px;
+  box-shadow: var(--shadow);
+  margin-top: 10px;
+}
+.dash2 .pulse-main {
+  min-width: 0;
+}
+.dash2 .pulse-main small,
+.dash2 .pulse-cmp small {
+  display: block;
+  color: var(--muted);
+  font-size: 12px;
+  white-space: nowrap;
+}
+.dash2 .pulse-main b {
+  display: block;
+  font-size: 22px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+.dash2 .pulse-cmp {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 4px;
+  text-align: right;
+  flex: none;
+}
+.dash2 .pulse-cmp .trend {
+  font-size: 13px;
+  padding: 3px 10px;
+}
+.dash2 .attn-label {
+  display: none;
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+  font-weight: 600;
+  margin-top: 16px;
+}
+
+/* ── la vue prévisualisée ── */
+
+.dash2 .rolenote {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 12px;
+  color: var(--muted);
+  margin-top: 10px;
+}
+.dash2 .rolenote b {
+  color: var(--ink-2);
+  font-weight: 600;
+}
+.dash2 .rolenote svg {
+  width: 13px;
+  height: 13px;
+  flex: none;
+}
+
+/* ── table de contrôle (provisoire, phase 2) ── */
+
+.dash2 .controle {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 14px;
+}
+.dash2 .controle-bloc {
+  border: 1px solid var(--line-2);
+  border-radius: 12px;
+  padding: 12px 14px;
+  min-width: 0;
+}
+.dash2 .controle-titre {
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+.dash2 .controle-ligne {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 4px 12px;
+  align-items: baseline;
+  padding: 5px 0;
+  border-bottom: 1px solid var(--line-2);
+  font-size: 13px;
+}
+.dash2 .controle-ligne:last-child {
+  border-bottom: 0;
+}
+.dash2 .controle-ligne > span {
+  color: var(--ink-2);
+  min-width: 0;
+}
+.dash2 .controle-ligne small {
+  display: block;
+  color: var(--muted);
+  font-size: 11.5px;
+  overflow-wrap: anywhere;
+}
+.dash2 .controle-ligne b {
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+@media (max-width: 900px) {
+  .dash2 .synthese {
+    display: none;
+  }
+  .dash2 .pulse {
+    display: flex;
+  }
+  .dash2 .attn-label {
+    display: block;
+  }
+  .dash2 .rolenote {
+    margin-top: 8px;
   }
 }
