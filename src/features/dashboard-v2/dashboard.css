@@ -1,0 +1,1023 @@
+/* ═══════════════════════════════════════════════════════════════════
+   TABLEAU DE BORD v2 — JETONS ET SOCLE
+
+   Portage de `docs/maquette/tableau-de-bord-complet.html`. La maquette
+   pose ses jetons sur `:root` ; ici ils vivent sous `.dash2`, la classe
+   que porte la page, et nulle part ailleurs.
+
+   POURQUOI CETTE ISOLATION. L'application a déjà sa palette, en OKLCH,
+   posée sur `:root` dans `src/styles.css` et lue par vingt-cinq écrans.
+   Deux palettes sur le même sélecteur, c'est la dernière chargée qui
+   gagne — donc un écran au hasard qui change de couleur selon l'ordre
+   des imports. Sous une classe, les deux cohabitent sans se voir.
+
+   LE THÈME SOMBRE SUIT CELUI DE L'APPLICATION. La maquette écoutait
+   `prefers-color-scheme` et `data-theme`. L'application, elle, pose la
+   classe `.dark` sur `<html>` depuis son propre réglage (Paramètres →
+   Apparence, mémorisé sous `balsama-theme`), et `src/lib/couleurDeBarre.ts`
+   surveille cette classe pour peindre la barre système du téléphone.
+   On se branche donc sur `.dark`, et sur rien d'autre : un second
+   mécanisme de thème donnerait deux vérités sur le même écran.
+
+   LES POLICES SONT CELLES DU SYSTÈME. La maquette demandait Onest et
+   JetBrains Mono. `src/styles.css` s'ouvre sur le bloc qui explique
+   pourquoi ces deux familles ont justement été retirées : deux fichiers
+   à aller chercher avant le premier texte, et une application qui
+   change d'allure dès que la connexion manque. Les chiffres gardent
+   leur alignement par `font-variant-numeric: tabular-nums`, qui est
+   précisément ce que la classe `.num` de la maquette cherchait.
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* `.dash2` habille la page ; `.dash2-portal` est le conteneur que le
+   panneau de détail ouvre à la racine du document. Les deux portent les
+   mêmes jetons : un élément en `position: fixed` reste soumis à la
+   cascade, mais plus à l'arbre de mise en page, et une animation en
+   cours sur un ancêtre suffirait à le repositionner par rapport à cet
+   ancêtre plutôt qu'à l'écran. Sorti à la racine, il ne dépend plus de
+   rien — encore faut-il lui redonner ses couleurs. */
+.dash2,
+.dash2-portal {
+  --bg: #f2f5f2;
+  --surface: #ffffff;
+  --surface-2: #f6f8f5;
+  --line: #e2e8e3;
+  --line-2: #edf1ee;
+  --ink: #17211d;
+  --ink-2: #44504a;
+  --muted: #76817b;
+  --accent: #0e7c5a;
+  --accent-ink: #0b6a4c;
+  --accent-soft: #e1f1e9;
+  --warn: #b06f12;
+  --warn-soft: #fbf0dc;
+  --crit: #c0473a;
+  --crit-soft: #fbe6e2;
+  --info: #3a72a6;
+  --info-soft: #e3edf6;
+  --paper: #fffdf6;
+  --paper-line: #e9e3d3;
+  --hero-1: #0f7255;
+  --hero-2: #093f2f;
+  --hero-ink: #f1faf5;
+  --shadow: 0 1px 2px rgba(20, 40, 30, 0.05), 0 6px 20px -12px rgba(20, 40, 30, 0.18);
+  --sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
+  --mono: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
+}
+
+.dark .dash2,
+.dark .dash2-portal {
+  --bg: #0d1210;
+  --surface: #141b18;
+  --surface-2: #19211e;
+  --line: #25302b;
+  --line-2: #1f2925;
+  --ink: #e3eae6;
+  --ink-2: #b6c1bb;
+  --muted: #86928c;
+  --accent: #3bb688;
+  --accent-ink: #62cfa5;
+  --accent-soft: #16302556;
+  --warn: #e1a447;
+  --warn-soft: #2e2615;
+  --crit: #e2715f;
+  --crit-soft: #33201c;
+  --info: #72a8db;
+  --info-soft: #172535;
+  --paper: #1a201d;
+  --paper-line: #2c3430;
+  --hero-1: #0f5c45;
+  --hero-2: #08342a;
+  --hero-ink: #eaf6f0;
+  --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px -14px rgba(0, 0, 0, 0.6);
+}
+
+/* ── base ── */
+
+.dash2,
+.dash2-portal,
+.dash2 *,
+.dash2-portal *,
+.dash2 *::before,
+.dash2-portal *::before,
+.dash2 *::after,
+.dash2-portal *::after {
+  box-sizing: border-box;
+}
+
+.dash2,
+.dash2-portal {
+  font-family: var(--sans);
+  color: var(--ink);
+  font-size: 14px;
+  line-height: 1.45;
+  -webkit-font-smoothing: antialiased;
+  min-width: 0;
+}
+
+.dash2 {
+  background: var(--bg);
+}
+
+.dash2 button,
+.dash2-portal button {
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+
+.dash2 :focus-visible,
+.dash2-portal :focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+/* Les chiffres s'alignent en colonne et ne changent plus de largeur
+   quand ils changent de valeur : un montant qui se met à jour ne fait
+   plus sauter la ligne autour de lui. */
+.dash2 .num,
+.dash2-portal .num {
+  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.01em;
+}
+
+.dash2-wrap {
+  max-width: 1240px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: 18px;
+  min-width: 0;
+}
+
+/* ── en-tête ── */
+
+.dash2 .top {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 14px 24px;
+  flex-wrap: wrap;
+}
+.dash2 .hello {
+  min-width: 0;
+  flex: 1 1 320px;
+}
+.dash2 .brief {
+  flex: 1 1 100%;
+  min-width: 0;
+}
+.dash2 .eyebrow {
+  display: flex;
+  align-items: center;
+  gap: 8px 14px;
+  flex-wrap: wrap;
+  font-size: 12.5px;
+  color: var(--muted);
+  margin-bottom: 6px;
+}
+.dash2 .fresh {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+.dash2 .fresh i {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+.dash2 .icon-btn {
+  border: 0;
+  background: none;
+  color: var(--muted);
+  width: 24px;
+  height: 24px;
+  border-radius: 6px;
+  display: grid;
+  place-items: center;
+  padding: 0;
+}
+.dash2 .icon-btn:hover {
+  background: var(--surface-2);
+  color: var(--ink);
+}
+.dash2 .icon-btn svg {
+  width: 14px;
+  height: 14px;
+}
+.dash2 .icon-btn.spin svg {
+  animation: dash2-spin 0.7s linear;
+}
+@keyframes dash2-spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+.dash2 .date-courte {
+  display: none;
+}
+.dash2 .hello h1 {
+  margin: 0;
+  font-size: 26px;
+  font-weight: 650;
+  letter-spacing: -0.02em;
+  text-wrap: balance;
+}
+.dash2 .brief p {
+  margin: 0;
+  color: var(--ink-2);
+  max-width: 66ch;
+  font-size: 14.5px;
+}
+.dash2 .brief p b {
+  color: var(--ink);
+  font-weight: 600;
+}
+
+/* ── puces d'attention ── */
+
+.dash2 .attn {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+  margin-top: 12px;
+}
+.dash2 .chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  padding: 4px 10px 4px 5px;
+  border-radius: 999px;
+  font-size: 12.5px;
+  font-weight: 600;
+  border: 1px solid transparent;
+  background: var(--surface-2);
+  color: var(--ink-2);
+}
+.dash2 .chip .n {
+  min-width: 22px;
+  height: 22px;
+  padding: 0 6px;
+  border-radius: 99px;
+  display: grid;
+  place-items: center;
+  font-family: var(--mono);
+  font-size: 11.5px;
+  color: var(--surface);
+}
+.dash2 .chip svg {
+  width: 13px;
+  height: 13px;
+  opacity: 0.7;
+}
+.dash2 .chip:hover {
+  border-color: currentColor;
+}
+.dash2 .chip.crit {
+  background: var(--crit-soft);
+  color: var(--crit);
+}
+.dash2 .chip.crit .n {
+  background: var(--crit);
+}
+.dash2 .chip.warn {
+  background: var(--warn-soft);
+  color: var(--warn);
+}
+.dash2 .chip.warn .n {
+  background: var(--warn);
+}
+.dash2 .chip.info {
+  background: var(--info-soft);
+  color: var(--info);
+}
+.dash2 .chip.info .n {
+  background: var(--info);
+}
+.dash2 .chip.ok {
+  background: var(--accent-soft);
+  color: var(--accent-ink);
+  padding-left: 10px;
+  cursor: default;
+}
+.dash2 .chip.ok:hover {
+  border-color: transparent;
+}
+
+/* ── boutons de l'en-tête ── */
+
+.dash2 .tools {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+.dash2 .pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  border-radius: 999px;
+  padding: 0 13px;
+  height: 36px;
+  font-size: 13px;
+  color: var(--ink-2);
+  white-space: nowrap;
+}
+.dash2 .pill:hover {
+  border-color: var(--muted);
+}
+.dash2 .pill svg {
+  width: 15px;
+  height: 15px;
+  flex: none;
+}
+.dash2 .pill .chev {
+  width: 13px;
+  height: 13px;
+  opacity: 0.6;
+  transition: transform 0.15s;
+}
+.dash2 .pill[aria-expanded="true"] .chev {
+  transform: rotate(180deg);
+}
+.dash2 .pill[aria-pressed="true"] {
+  background: var(--accent-soft);
+  border-color: transparent;
+  color: var(--accent-ink);
+  font-weight: 600;
+}
+.dash2 .pill.square {
+  width: 36px;
+  padding: 0;
+  justify-content: center;
+}
+.dash2 .pill b {
+  color: var(--ink);
+  font-weight: 600;
+}
+.dash2 .pill-label {
+  color: var(--ink-2);
+}
+
+/* ── menus déroulants ── */
+
+.dash2 .menu-holder {
+  position: relative;
+}
+.dash2 .menu {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 6px);
+  z-index: 30;
+  width: min(290px, calc(100vw - 32px));
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 14px;
+  box-shadow: 0 18px 40px -16px rgba(10, 30, 20, 0.35);
+  padding: 6px;
+}
+.dash2 .menu.left {
+  left: 0;
+  right: auto;
+}
+.dash2 .opt {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  border: 0;
+  background: none;
+  padding: 9px 10px;
+  border-radius: 9px;
+  text-align: left;
+  font-size: 13.5px;
+  color: var(--ink);
+}
+.dash2 .opt small {
+  color: var(--muted);
+  font-size: 12px;
+  font-family: var(--mono);
+}
+.dash2 .opt:hover {
+  background: var(--surface-2);
+}
+.dash2 .opt[aria-checked="true"] {
+  background: var(--accent-soft);
+  color: var(--accent-ink);
+  font-weight: 600;
+}
+.dash2 .opt span.two-lines {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+.dash2 .opt span.two-lines small {
+  font-family: var(--sans);
+}
+.dash2 .custom {
+  border-top: 1px solid var(--line-2);
+  margin-top: 6px;
+  padding: 10px 6px 4px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+.dash2 .custom label {
+  font-size: 11.5px;
+  color: var(--muted);
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.dash2 .custom input {
+  font: inherit;
+  font-size: 13px;
+  padding: 6px 8px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface-2);
+  color: var(--ink);
+  min-width: 0;
+  color-scheme: light dark;
+}
+.dash2 .custom .btn {
+  grid-column: 1/-1;
+}
+.dash2 .custom .err {
+  grid-column: 1/-1;
+  color: var(--crit);
+  font-size: 12px;
+  margin: 0;
+}
+@media (max-width: 900px) {
+  .dash2 .menu {
+    right: auto;
+    left: 0;
+  }
+}
+
+/* ── grille et cartes ── */
+
+.dash2 .grid {
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  gap: 16px;
+}
+.dash2 .s4 {
+  grid-column: span 4;
+}
+.dash2 .s5 {
+  grid-column: span 5;
+}
+.dash2 .s6 {
+  grid-column: span 6;
+}
+.dash2 .s7 {
+  grid-column: span 7;
+}
+.dash2 .s8 {
+  grid-column: span 8;
+}
+.dash2 .s12 {
+  grid-column: span 12;
+}
+.dash2 .card {
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: 16px;
+  padding: 18px;
+  box-shadow: var(--shadow);
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+  animation: dash2-rise 0.5s ease both;
+}
+.dash2 .card:nth-child(2) {
+  animation-delay: 0.04s;
+}
+.dash2 .card:nth-child(3) {
+  animation-delay: 0.08s;
+}
+.dash2 .card:nth-child(4) {
+  animation-delay: 0.12s;
+}
+.dash2 .card:nth-child(5) {
+  animation-delay: 0.16s;
+}
+.dash2 .card:nth-child(6) {
+  animation-delay: 0.2s;
+}
+.dash2 .card:nth-child(7) {
+  animation-delay: 0.24s;
+}
+.dash2 .card:nth-child(8) {
+  animation-delay: 0.28s;
+}
+.dash2 .card:nth-child(9) {
+  animation-delay: 0.32s;
+}
+@keyframes dash2-rise {
+  from {
+    transform: translateY(8px);
+  }
+  to {
+    transform: none;
+  }
+}
+.dash2 .card.flash {
+  animation: dash2-flash 1.2s ease;
+}
+@keyframes dash2-flash {
+  0%,
+  40% {
+    box-shadow: 0 0 0 3px var(--accent);
+  }
+  100% {
+    box-shadow: var(--shadow);
+  }
+}
+
+.dash2 .ch {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+.dash2 .ch h2 {
+  margin: 0;
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+  font-weight: 600;
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+.dash2 .ch h2 svg {
+  width: 15px;
+  height: 15px;
+  flex: none;
+}
+.dash2 .link,
+.dash2-portal .link {
+  background: none;
+  border: 0;
+  color: var(--accent-ink);
+  font-weight: 600;
+  font-size: 13px;
+  padding: 2px 4px;
+}
+.dash2 .link:hover,
+.dash2-portal .link:hover {
+  text-decoration: underline;
+}
+.dash2 .btn,
+.dash2-portal .btn {
+  border: 0;
+  background: var(--accent);
+  color: #fff;
+  border-radius: 9px;
+  padding: 8px 12px;
+  font-weight: 600;
+  font-size: 13px;
+}
+.dash2 .btn.ghost,
+.dash2-portal .btn.ghost {
+  background: var(--surface-2);
+  color: var(--ink);
+  border: 1px solid var(--line);
+}
+.dash2 .btn:hover,
+.dash2-portal .btn:hover {
+  filter: brightness(1.06);
+}
+
+.dash2 .trend {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-size: 12px;
+  font-weight: 600;
+  border-radius: 999px;
+  padding: 2px 8px;
+}
+.dash2 .trend.up {
+  color: var(--accent-ink);
+  background: var(--accent-soft);
+}
+.dash2 .trend.down {
+  color: var(--info);
+  background: var(--info-soft);
+}
+.dash2 .trend.flat {
+  color: var(--ink-2);
+  background: var(--surface-2);
+}
+
+.dash2 .tag,
+.dash2-portal .tag {
+  font-size: 10.5px;
+  font-weight: 600;
+  border-radius: 5px;
+  padding: 1px 6px;
+  white-space: nowrap;
+}
+.dash2 .tag.crit,
+.dash2-portal .tag.crit {
+  background: var(--crit-soft);
+  color: var(--crit);
+}
+.dash2 .tag.warn,
+.dash2-portal .tag.warn {
+  background: var(--warn-soft);
+  color: var(--warn);
+}
+.dash2 .tag.ok,
+.dash2-portal .tag.ok {
+  background: var(--accent-soft);
+  color: var(--accent-ink);
+}
+.dash2 .tag.info,
+.dash2-portal .tag.info {
+  background: var(--info-soft);
+  color: var(--info);
+}
+.dash2 .tag.neutre,
+.dash2-portal .tag.neutre {
+  background: var(--surface-2);
+  color: var(--ink-2);
+}
+
+/* ── en-tête compact, à partir de la tablette ──
+   Les deux sélecteurs prennent toute la largeur en deux colonnes
+   égales, leurs libellés gris disparaissent au profit des valeurs, et
+   focus et thème passent en icônes. La phrase de synthèse cède la place
+   au bandeau « Ventes · période · montant », monté en phase 3. */
+
+@media (max-width: 900px) {
+  .dash2 .top {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+  .dash2 .hello {
+    flex: none;
+  }
+  .dash2 .eyebrow {
+    font-size: 12px;
+    margin-bottom: 2px;
+    gap: 4px 10px;
+  }
+  .dash2 .hello h1 {
+    font-size: 22px;
+  }
+  /* Le sélecteur de période prend toute la place qui reste ; le mode
+     focus et le thème, privés de leur libellé, se réduisent à deux
+     icônes carrées. C'est l'intention de la maquette, qui les fait
+     remonter en icônes dans la barre du haut — barre que cette page ne
+     dessine pas, l'application ayant déjà la sienne. Sans cela, le
+     bouton du thème s'étirait sur une ligne entière pour une seule
+     icône au milieu. */
+  .dash2 .tools {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 40px 40px;
+    gap: 8px;
+    align-items: center;
+  }
+  .dash2 .tools > .menu-holder {
+    min-width: 0;
+  }
+  .dash2 .tools .pill {
+    width: 100%;
+    min-width: 0;
+    height: 40px;
+  }
+  .dash2 .tools > .pill {
+    padding: 0;
+    justify-content: center;
+  }
+  .dash2 .tools .pill b {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .dash2 .tools .pill .chev {
+    margin-left: auto;
+  }
+  .dash2 .pill-label {
+    display: none;
+  }
+  .dash2 .date-longue {
+    display: none;
+  }
+  .dash2 .date-courte {
+    display: inline;
+  }
+  .dash2 .attn {
+    display: grid;
+    grid-auto-flow: column;
+    grid-auto-columns: minmax(0, 1fr);
+    gap: 8px;
+    margin-top: 8px;
+  }
+  .dash2 .attn .chip {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+    border-radius: 12px;
+    padding: 10px 9px;
+    font-size: 11.5px;
+    line-height: 1.25;
+    height: 100%;
+    text-align: left;
+    hyphens: auto;
+    overflow-wrap: anywhere;
+    min-width: 0;
+  }
+  .dash2 .attn .chip svg {
+    display: none;
+  }
+  .dash2 .attn .chip.ok {
+    grid-column: 1/-1;
+    flex-direction: row;
+    align-items: center;
+  }
+}
+
+/* ── état vide ── */
+
+.dash2 .empty,
+.dash2-portal .empty {
+  display: flex;
+  gap: 12px;
+  align-items: center;
+  background: var(--accent-soft);
+  border-radius: 12px;
+  padding: 12px 14px;
+}
+.dash2 .empty .ok,
+.dash2-portal .empty .ok {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  background: var(--accent);
+  display: grid;
+  place-items: center;
+  flex: none;
+}
+.dash2 .empty b,
+.dash2-portal .empty b {
+  display: block;
+  font-size: 13.5px;
+  color: var(--accent-ink);
+}
+.dash2 .empty small,
+.dash2-portal .empty small {
+  color: var(--ink-2);
+  font-size: 12px;
+}
+
+/* ── carte en erreur ── */
+
+.dash2 .card-err {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  align-items: flex-start;
+  background: var(--crit-soft);
+  border-radius: 12px;
+  padding: 12px 14px;
+}
+.dash2 .card-err b {
+  font-size: 13.5px;
+  color: var(--crit);
+}
+.dash2 .card-err small {
+  color: var(--ink-2);
+  font-size: 12px;
+}
+
+/* ── squelettes ── */
+
+.dash2 .sk {
+  display: block;
+  border-radius: 7px;
+  background: var(--line-2);
+  position: relative;
+  overflow: hidden;
+}
+.dash2 .sk::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  transform: translateX(-100%);
+  background: linear-gradient(90deg, transparent, var(--surface-2), transparent);
+  animation: dash2-shimmer 1.4s infinite;
+}
+@keyframes dash2-shimmer {
+  to {
+    transform: translateX(100%);
+  }
+}
+.dash2 .sk-lines {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+
+/* ── mode focus ── */
+
+.dash2.calm .card.secondary {
+  display: none;
+}
+.dash2.calm .card {
+  box-shadow: none;
+}
+
+/* ── panneau de détail ── */
+
+.dash2-scrim {
+  position: fixed;
+  inset: 0;
+  background: rgba(12, 24, 18, 0.32);
+  z-index: 60;
+  opacity: 0;
+  transition: opacity 0.18s;
+}
+.dash2-scrim.on {
+  opacity: 1;
+}
+.dash2-drawer {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  width: min(460px, 100vw);
+  background: var(--surface);
+  border-left: 1px solid var(--line);
+  z-index: 61;
+  display: flex;
+  flex-direction: column;
+  box-shadow: -18px 0 50px -24px rgba(10, 30, 20, 0.45);
+  transform: translateX(24px);
+  opacity: 0;
+  transition:
+    transform 0.22s ease,
+    opacity 0.18s ease;
+  padding-top: env(safe-area-inset-top, 0px);
+}
+.dash2-drawer.on {
+  transform: none;
+  opacity: 1;
+}
+.dash2-drawer .dh {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 12px;
+  padding: 18px 18px 12px;
+  border-bottom: 1px solid var(--line-2);
+}
+.dash2-drawer .dh h3 {
+  margin: 0;
+  font-size: 17px;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+}
+.dash2-drawer .dh p {
+  margin: 3px 0 0;
+  color: var(--muted);
+  font-size: 12.5px;
+}
+.dash2-drawer .close {
+  border: 1px solid var(--line);
+  background: var(--surface);
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  display: grid;
+  place-items: center;
+  flex: none;
+  color: var(--ink-2);
+}
+.dash2-drawer .close:hover {
+  border-color: var(--muted);
+}
+.dash2-drawer .close svg {
+  width: 16px;
+  height: 16px;
+}
+.dash2-drawer .db {
+  flex: 1;
+  overflow: auto;
+  padding: 8px 12px;
+  overscroll-behavior: contain;
+}
+.dash2-drawer .df {
+  padding: 12px 18px calc(12px + env(safe-area-inset-bottom, 0px));
+  border-top: 1px solid var(--line-2);
+  display: flex;
+  gap: 8px;
+}
+.dash2-drawer .df .btn {
+  flex: 1;
+}
+.dash2-drawer .li {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 2px 12px;
+  align-items: center;
+  padding: 11px 8px;
+  border-bottom: 1px solid var(--line-2);
+}
+.dash2-drawer .li:last-child {
+  border-bottom: 0;
+}
+.dash2-drawer .li b {
+  font-size: 13.5px;
+  font-weight: 600;
+}
+.dash2-drawer .li small {
+  color: var(--muted);
+  font-size: 12px;
+}
+.dash2-drawer .li .num {
+  font-weight: 600;
+  font-size: 13.5px;
+  text-align: right;
+}
+.dash2-drawer .li .tag {
+  justify-self: end;
+}
+.dash2-drawer .total {
+  display: flex;
+  justify-content: space-between;
+  padding: 12px 8px 4px;
+  font-weight: 700;
+  border-top: 1px dashed var(--line);
+  margin-top: 4px;
+}
+
+/* ── responsive, exactement les paliers de la maquette ── */
+
+@media (max-width: 1180px) {
+  .dash2 .s4 {
+    grid-column: span 6;
+  }
+  .dash2 .s5,
+  .dash2 .s7,
+  .dash2 .s8 {
+    grid-column: span 12;
+  }
+}
+@media (max-width: 680px) {
+  .dash2 .s4,
+  .dash2 .s5,
+  .dash2 .s6,
+  .dash2 .s7,
+  .dash2 .s8 {
+    grid-column: span 12;
+  }
+  .dash2 .hello h1 {
+    font-size: 22px;
+  }
+  .dash2-drawer {
+    top: auto;
+    left: 0;
+    width: 100%;
+    max-height: 88dvh;
+    border-left: 0;
+    border-top: 1px solid var(--line);
+    border-radius: 18px 18px 0 0;
+    transform: translateY(30px);
+    padding-top: 0;
+  }
+  .dash2-drawer::before {
+    content: "";
+    width: 38px;
+    height: 4px;
+    border-radius: 99px;
+    background: var(--line);
+    margin: 8px auto 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .dash2 .card,
+  .dash2 .sk::after {
+    animation: none;
+  }
+  .dash2 *,
+  .dash2-drawer,
+  .dash2-scrim {
+    transition: none !important;
+  }
+}

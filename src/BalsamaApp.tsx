@@ -43,6 +43,7 @@ import { workspaceContext, useWorkspaceState, useWorkspace } from "./hooks/useWo
 import { useStoreData } from "./hooks/useStoreData";
 import { useStoreMembers } from "./hooks/useStoreMembers";
 import { useNotificationPrefs } from "./lib/notificationPrefs";
+import { useDashboardV2 } from "./features/dashboard-v2/drapeau";
 import {
   contextePersonnalisation,
   lirePersonnalisation,
@@ -69,6 +70,14 @@ import {
 const AuthPage = lazy(() => import("./components/AuthPage").then((m) => ({ default: m.AuthPage })));
 const DashboardView = lazy(() =>
   import("./components/DashboardView").then((m) => ({ default: m.DashboardView })),
+);
+// Le tableau de bord v2, derriere son drapeau. Tant qu il est baisse,
+// ce module n est meme pas telecharge : la refonte ne coute rien aux
+// boutiques qui ne l ont pas demandee.
+const DashboardV2Page = lazy(() =>
+  import("./features/dashboard-v2/DashboardV2Page").then((m) => ({
+    default: m.DashboardV2Page,
+  })),
 );
 const CapitalView = lazy(() =>
   import("./components/CapitalView").then((m) => ({ default: m.CapitalView })),
@@ -186,6 +195,15 @@ function AppInner() {
   );
 
   const [activeTab, setActiveTab] = useState<ActiveTab>("dashboard");
+
+  /**
+   * Quel tableau de bord s affiche.
+   *
+   * Le drapeau se lit ici et nulle part ailleurs : c est le seul
+   * endroit de l application ou l ecran d accueil se choisit. Voir
+   * src/features/dashboard-v2/drapeau.ts pour les deux interrupteurs.
+   */
+  const dashboardV2 = useDashboardV2();
 
   // Sur quelle section ouvrir les Parametres a la prochaine arrivee.
   // La roue dentee ne dit rien et laisse « Mon compte » ; le logo de
@@ -1385,47 +1403,55 @@ function AppInner() {
               <Suspense fallback={<EcranQuiArrive />}>
                 {activeTab === "dashboard" &&
                   (hasDashboardAccess ? (
-                    <DashboardView
-                      capital={computedCapital}
-                      products={products}
-                      sales={sales}
-                      purchases={purchases}
-                      expenses={expenses}
-                      sellers={computedSellers}
-                      orders={storeData.orders}
-                      clients={storeData.clients}
-                      quotes={storeData.quotes}
-                      deliveries={storeData.deliveries}
-                      productImages={storeData.productImages}
-                      categories={storeData.categories}
-                      taches={organisation.taches}
-                      // Les règles de lecture ont déjà fait le tri : un
-                      // collaborateur ne reçoit que ses propres lignes,
-                      // et ne verra donc jamais la demande d'un collègue
-                      // apparaître dans « En suspens ».
-                      avancesEnAttente={avancesEnAttente}
-                      locale={locale}
-                      onNavigateTab={setActiveTab}
-                      // Absent quand la personne n'a pas le droit
-                      // d'enregistrer un achat : la ligne de stock
-                      // redevient alors une simple information.
-                      onReapprovisionner={
-                        peutEnregistrerUnAchat
-                          ? (p) => {
-                              setReapprovisionner({
-                                designation: p.designation,
-                                prixAchat: p.prixAchat,
-                                fournisseur: p.fournisseur,
-                              });
-                              setActiveTab("achats");
-                            }
-                          : undefined
-                      }
-                      showPrixAchat={
-                        produitsVisibleFields === null ||
-                        produitsVisibleFields.includes("prix_achat")
-                      }
-                    />
+                    dashboardV2 ? (
+                      <DashboardV2Page
+                        theme={theme}
+                        setTheme={setTheme}
+                        onRafraichir={storeData.refresh}
+                      />
+                    ) : (
+                      <DashboardView
+                        capital={computedCapital}
+                        products={products}
+                        sales={sales}
+                        purchases={purchases}
+                        expenses={expenses}
+                        sellers={computedSellers}
+                        orders={storeData.orders}
+                        clients={storeData.clients}
+                        quotes={storeData.quotes}
+                        deliveries={storeData.deliveries}
+                        productImages={storeData.productImages}
+                        categories={storeData.categories}
+                        taches={organisation.taches}
+                        // Les règles de lecture ont déjà fait le tri : un
+                        // collaborateur ne reçoit que ses propres lignes,
+                        // et ne verra donc jamais la demande d'un collègue
+                        // apparaître dans « En suspens ».
+                        avancesEnAttente={avancesEnAttente}
+                        locale={locale}
+                        onNavigateTab={setActiveTab}
+                        // Absent quand la personne n'a pas le droit
+                        // d'enregistrer un achat : la ligne de stock
+                        // redevient alors une simple information.
+                        onReapprovisionner={
+                          peutEnregistrerUnAchat
+                            ? (p) => {
+                                setReapprovisionner({
+                                  designation: p.designation,
+                                  prixAchat: p.prixAchat,
+                                  fournisseur: p.fournisseur,
+                                });
+                                setActiveTab("achats");
+                              }
+                            : undefined
+                        }
+                        showPrixAchat={
+                          produitsVisibleFields === null ||
+                          produitsVisibleFields.includes("prix_achat")
+                        }
+                      />
+                    )
                   ) : (
                     <MyActivityView
                       variant="dashboard"
