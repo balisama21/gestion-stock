@@ -10,6 +10,15 @@ import { CarteSquelette, EtatErreur } from "./components/States";
 import { Chip, ChipRienDUrgent } from "./components/Chip";
 import { Drawer, DrawerLigne } from "./components/Drawer";
 import { BandeauAujourdhui } from "./components/BandeauAujourdhui";
+import { CarteTresorerie } from "./cards/CarteTresorerie";
+import { CarteVentes } from "./cards/CarteVentes";
+import { CarteAgenda } from "./cards/CarteAgenda";
+import { CarteStock } from "./cards/CarteStock";
+import { CarteSorties } from "./cards/CarteSorties";
+import { CarteTaches } from "./cards/CarteTaches";
+import { CarteVendeurs } from "./cards/CarteVendeurs";
+import { CarteCommandes } from "./cards/CarteCommandes";
+import { CarteFilVentes } from "./cards/CarteFilVentes";
 import { Trend } from "./components/Trend";
 import { allerALaCarte } from "./lib/defilement";
 import { phraseDeSynthese, syntheseCompacte } from "./lib/summary";
@@ -29,7 +38,7 @@ import {
 } from "./lib/chiffres";
 import { lireJournal } from "./lib/journal";
 import { VUES, VUE_PAR_CLE } from "./roles";
-import { CARTE_PAR_CLE, type CleTuile } from "./registry";
+import { CARTE_PAR_CLE, type CleCarte, type CleTuile } from "./registry";
 import { dateDuJour } from "../../lib/dates";
 import { useAuth } from "../../hooks/useAuth";
 
@@ -125,9 +134,39 @@ export interface DashboardV2PageProps {
   clients: SourcesChiffres["clients"];
   quotes: SourcesChiffres["quotes"];
   deliveries: SourcesChiffres["deliveries"];
-  taches: SourcesChiffres["taches"];
+  /** Les tâches, avec de quoi les nommer et les cocher. */
+  taches: { id: string; titre: string; statut: string; echeance: string | null }[];
+  /** Les photos de produits, pour le fil des ventes. */
+  productImages: { product_id: string | null; chemin: string; ordre: number }[];
+  /** L'agenda de la boutique. */
+  evenements: {
+    id: string;
+    titre: string;
+    debut: string;
+    journee_entiere: boolean;
+  }[];
+  rappels: {
+    id: string;
+    titre: string;
+    actif: boolean;
+    recurrence: string;
+    heure: string | null;
+    jour_mois: number | null;
+    jour_semaine: number | null;
+    evenement_id: string | null;
+    tache_id: string | null;
+  }[];
+  /** Le nom de la boutique, en tête du ticket des sorties. */
+  nomBoutique: string;
   /** Les règlements versés aux fournisseurs, pour la carte du même nom. */
   supplierPayments: { date: string; montant: number }[];
+  /**
+   * Termine une tâche, par la fonction de l'application.
+   *
+   * Absente quand la personne n'en a pas le droit : la case est alors
+   * désactivée plutôt que d'échouer en silence.
+   */
+  onTerminerTache?: (id: string) => unknown;
   /** Le thème de l'application. La v2 s'y branche, elle n'en crée pas un second. */
   theme: "light" | "dark";
   setTheme: (t: "light" | "dark") => void;
@@ -159,7 +198,12 @@ export const DashboardV2Page: React.FC<DashboardV2PageProps> = ({
   quotes,
   deliveries,
   taches,
+  productImages,
+  evenements,
+  rappels,
+  nomBoutique,
   supplierPayments,
+  onTerminerTache,
   theme,
   setTheme,
   onRafraichir,
@@ -336,6 +380,90 @@ export const DashboardV2Page: React.FC<DashboardV2PageProps> = ({
   /** Un montant que cette personne n'a pas le droit de voir. */
   const sous = (module: string, champ: string, valeur: number) =>
     droits.champVisible(module, champ) ? montant(valeur) : MONTANT_MASQUE;
+
+  /**
+   * Chaque carte construite, rangée par sa clé.
+   *
+   * La VUE décide de l'ordre et de la présence ; ce tableau ne fait que
+   * fournir le contenu. Une clé absente d'ici garde son squelette : la
+   * grille n'a pas à savoir où en est le chantier.
+   *
+   * La navigation remplace le panneau de détail tant qu'il n'est pas
+   * construit — chaque lien conduit déjà quelque part.
+   */
+  const portee = droits.portee("ventes");
+  const cartes: Partial<Record<CleCarte, React.ReactNode>> = {
+    tresorerie: (
+      <CarteTresorerie
+        capital={capital}
+        flux={chiffres.flux}
+        periode={periode.libelle}
+        montantVisible={droits.champVisible("capital", "montant")}
+      />
+    ),
+    ventes: (
+      <CarteVentes
+        ventes={chiffres.ventes}
+        periode={periode}
+        montantVisible={droits.champVisible("ventes", "montant")}
+        onDetails={onNavigateTab ? () => onNavigateTab("ventes") : undefined}
+      />
+    ),
+    agenda: (
+      <CarteAgenda
+        sources={{ evenements, taches, deliveries, rappels }}
+        onOuvrir={onNavigateTab ? () => onNavigateTab("agenda") : undefined}
+      />
+    ),
+    stock: (
+      <CarteStock
+        stock={chiffres.stock}
+        valeurVisible={droits.champVisible("produits", "valeur_stock")}
+        onProduit={onNavigateTab ? () => onNavigateTab("produits") : undefined}
+        onCommander={onNavigateTab ? () => onNavigateTab("achats") : undefined}
+      />
+    ),
+    sorties: (
+      <CarteSorties
+        flux={chiffres.flux}
+        periode={periode}
+        nomBoutique={nomBoutique}
+        achatsVisibles={droits.champVisible("achats", "prix_achat")}
+      />
+    ),
+    taches: (
+      <CarteTaches
+        taches={taches}
+        devis={quotes}
+        onTerminer={onTerminerTache}
+        onVoirTaches={onNavigateTab ? () => onNavigateTab("taches") : undefined}
+        onVoirDevis={onNavigateTab ? () => onNavigateTab("devis") : undefined}
+      />
+    ),
+    vendeurs: (
+      <CarteVendeurs
+        vendeurs={sellers}
+        montantsVisibles={droits.champVisible("vendeurs", "montant")}
+        onGerer={onNavigateTab ? () => onNavigateTab("vendeurs") : undefined}
+      />
+    ),
+    commandes: (
+      <CarteCommandes
+        commandes={chiffres.commandes}
+        onOuvrir={onNavigateTab ? () => onNavigateTab("commandes") : undefined}
+      />
+    ),
+    fil: (
+      <CarteFilVentes
+        ventes={sales}
+        produits={products}
+        images={productImages}
+        montantsVisibles={droits.champVisible("ventes", "montant")}
+        titre={portee === "own" ? "Mes ventes" : "Fil des ventes"}
+        onToutVoir={onNavigateTab ? () => onNavigateTab("ventes") : undefined}
+      />
+    ),
+  };
 
   return (
     <div className={`dash2${focus ? " calm" : ""}`}>
@@ -746,9 +874,12 @@ export const DashboardV2Page: React.FC<DashboardV2PageProps> = ({
             </div>
           </Card>
 
-          {/* Les cartes de la maquette prennent la place de ces squelettes
-              aux phases 3 à 5, dans l'ordre que la vue a décidé. */}
+          {/* Chaque carte dans l'ordre que la vue a decide. Celles qui
+              restent a construire gardent leur squelette : la place est
+              deja reservee, rien ne sautera quand le contenu arrivera. */}
           {droits.cartes.map((cle) => {
+            const rendue = cartes[cle];
+            if (rendue) return <React.Fragment key={cle}>{rendue}</React.Fragment>;
             const def = CARTE_PAR_CLE.get(cle);
             return (
               <CarteSquelette key={cle} span={def?.span ?? 4} lignes={def?.span === 8 ? 5 : 3} />

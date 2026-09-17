@@ -67,32 +67,33 @@ construit.
 
 ## Grille principale
 
-| #   | Carte                           | État                                            |
-| --- | ------------------------------- | ----------------------------------------------- |
-| 1   | Trésorerie (portefeuille)       | ⏳ phase 4                                      |
-| 2   | Ventes du mois (courbe cumulée) | ⏳ phase 4                                      |
-| 3   | Agenda (calendrier)             | ⏳ phase 4                                      |
-| 4   | Étagère de stock                | ⏳ phase 4                                      |
-| 5   | Ticket « Sorties »              | ⏳ phase 4                                      |
-| 6   | À faire + devis                 | ⏳ phase 4                                      |
-| 7   | Classement vendeurs             | ⏳ phase 4                                      |
-| 8   | Suivi des commandes             | ⏳ phase 4                                      |
-| 9   | Fil des ventes                  | ⏳ phase 4                                      |
-| 10  | **Objectif (jauge)**            | ⚠️ **carte retirée** — aucune donnée d'objectif |
-| 11  | Résultat du mois                | ⏳ phase 5                                      |
-| 12  | Paiements                       | ⏳ phase 5                                      |
-| 13  | Clients                         | ⏳ phase 5                                      |
-| 14  | Journal d'activité              | ⏳ phase 5                                      |
-| 15  | Ruptures à venir                | ⏳ phase 5                                      |
-| 16  | Entrées & sorties de stock      | ⏳ phase 5                                      |
-| 17  | Produits les plus vendus        | ⏳ phase 5                                      |
-| 18  | Livraisons & réceptions         | ⏳ phase 5                                      |
-| 19  | Fournisseurs à payer            | ⏳ phase 5                                      |
-| —   | Panneau de détail               | ⏳ phase 5                                      |
+### Cartes 1 à 9 — construites
 
-En attendant, la grille affiche un squelette à la largeur exacte de
-chaque carte, dans l'ordre que la vue a décidé : la place est déjà
-réservée, rien ne sautera quand le contenu arrivera.
+| #   | Carte                                        | État | Note                                                                                                                                                                                                                                                                                     |
+| --- | -------------------------------------------- | ---- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | **Trésorerie** (portefeuille)                | ✅   | dégradé, puce dorée, gros solde, barre entrées / sorties. Le solde vient de `computedCapital`, celui de la barre latérale, sans recalcul. Ajout : la mention passe en teinte d'alerte sous le seuil de trésorerie de la boutique.                                                        |
+| 2   | **Ventes du mois** (courbe cumulée)          | ✅   | aire dégradée, période précédente en pointillé, zone « reste du mois », point de fin, infobulle au survol (jour + cumul)                                                                                                                                                                 |
+| 2b  | ↳ ligne d'objectif orange                    | ⚠️   | aucune donnée d'objectif. L'axe se cale désormais sur le plus haut des deux cumuls, arrondi au palier rond, au lieu du plafond 500 000 de la maquette.                                                                                                                                   |
+| 3   | **Agenda** (calendrier de bureau)            | ✅   | en-tête vert à anneaux, quantièmes, jour courant, pastilles d'événement, liste des trois prochains. Quatre sources réunies : événements, échéances de tâches, livraisons prévues, rappels.                                                                                               |
+| 3b  | ↳ rappels **quotidiens**                     | ⚠️   | écartés : une pastille sur les trente jours du mois ne dit plus ce qui est prévu. Les rappels mensuels et hebdomadaires sont là ; ceux liés à un événement ou une tâche le sont déjà par eux.                                                                                            |
+| 4   | **Étagère de stock**                         | ✅   | dix casiers par produit, rouges sous le seuil, les cinq plus proches du seuil, valeur du stock, « Préparer la commande »                                                                                                                                                                 |
+| 5   | **Ticket « Sorties »**                       | ✅   | papier, bord déchiré, pointillés de conduite, part par personne, moyenne par jour, part des ventes, tampon de comparaison, code-barres                                                                                                                                                   |
+| 5b  | ↳ le tampon en rouge                         | ⚠️   | il reste bleu quelle que soit la variation : acheter plus n'est ni bon ni mauvais, c'est du stock qui change de forme. Règle déjà appliquée dans l'application.                                                                                                                          |
+| 6   | **À faire** + devis en attente               | ✅   | cases à cocher, étiquettes « échue », « aujourd'hui », date. **Cocher appelle la fonction de l'application** (`useTaches`) ; sans le droit, la case est désactivée.                                                                                                                      |
+| 7   | **Classement vendeurs**                      | ✅   | avatar à initiale, rang, barre relative au premier, solde net. Le solde vient de `computedSellers`, sans recalcul. La couleur de l'avatar est tirée du nom : la même personne garde la sienne.                                                                                           |
+| 8   | **Suivi des commandes**                      | ✅   | quatre étapes sur ligne pointillée, état vide vert quand tout est à zéro                                                                                                                                                                                                                 |
+| 9   | **Fil des ventes**                           | ✅   | groupé par jour, filet vertical, quantité en toutes lettres, vendeur, montant, badge de paiement                                                                                                                                                                                         |
+| 9b  | ↳ **carré de couleur à initiale** du produit | ⚠️   | remplacé par la **vraie photo**, sans cadre ni fond, et par **rien** quand il n'y en a pas — seule la place est conservée pour que les lignes restent alignées. C'est la règle demandée pour tous les écrans de l'application ; un carré à initiale est précisément ce qu'elle interdit. |
+| 10  | **Objectif** (jauge)                         | ⚠️   | **carte retirée** — aucune donnée d'objectif en base                                                                                                                                                                                                                                     |
+
+### Cartes 11 à 19 — à venir
+
+Résultat du mois, Paiements, Clients, Journal d'activité, Ruptures à
+venir, Entrées & sorties de stock, Produits les plus vendus, Livraisons
+& réceptions, Fournisseurs à payer, et le panneau de détail. ⏳ phase 5.
+
+En attendant, elles gardent un squelette à leur largeur exacte, dans
+l'ordre que la vue a décidé : la place est déjà réservée.
 
 ## Comportements de la maquette volontairement écartés
 

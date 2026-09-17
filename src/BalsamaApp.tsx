@@ -598,6 +598,11 @@ function AppInner() {
     workspace.isOwner ||
     hasModuleAction(workspace.memberPermissionsDetailed ?? {}, "ventes", "create");
 
+  /** Cocher une tache : le proprietaire, ou qui a le droit de la modifier. */
+  const peutTerminerUneTache =
+    workspace.isOwner ||
+    hasModuleAction(workspace.memberPermissionsDetailed ?? {}, "taches", "edit");
+
   /**
    * Les demandes d'avance qui attendent une décision.
    *
@@ -1423,7 +1428,16 @@ function AppInner() {
                         quotes={storeData.quotes}
                         deliveries={storeData.deliveries}
                         taches={organisation.taches}
+                        productImages={storeData.productImages}
+                        evenements={calendrier.evenements}
+                        rappels={memos.rappels}
+                        nomBoutique={workspace.activeStore?.name || APP_NAME}
                         supplierPayments={storeData.supplierPayments}
+                        onTerminerTache={
+                          peutTerminerUneTache
+                            ? (id) => organisation.changerStatut(id, "termine")
+                            : undefined
+                        }
                         theme={theme}
                         setTheme={setTheme}
                         onRafraichir={storeData.refresh}
