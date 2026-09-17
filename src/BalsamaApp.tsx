@@ -593,6 +593,11 @@ function AppInner() {
     workspace.isOwner ||
     hasModuleAction(workspace.memberPermissionsDetailed ?? {}, "achats", "create");
 
+  /** Enregistrer une vente : meme regle, pour le bouton « + Vendre ». */
+  const peutEnregistrerUneVente =
+    workspace.isOwner ||
+    hasModuleAction(workspace.memberPermissionsDetailed ?? {}, "ventes", "create");
+
   /**
    * Les demandes d'avance qui attendent une décision.
    *
@@ -1422,6 +1427,10 @@ function AppInner() {
                         theme={theme}
                         setTheme={setTheme}
                         onRafraichir={storeData.refresh}
+                        onNavigateTab={(onglet) =>
+                          setActiveTab(onglet as ActiveTab)
+                        }
+                        peutVendre={peutEnregistrerUneVente}
                       />
                     ) : (
                       <DashboardView

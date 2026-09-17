@@ -9,6 +9,7 @@ import { Card, CardHeader } from "./components/Card";
 import { CarteSquelette, EtatErreur } from "./components/States";
 import { Chip, ChipRienDUrgent } from "./components/Chip";
 import { Drawer, DrawerLigne } from "./components/Drawer";
+import { BandeauAujourdhui } from "./components/BandeauAujourdhui";
 import { Trend } from "./components/Trend";
 import { allerALaCarte } from "./lib/defilement";
 import { phraseDeSynthese, syntheseCompacte } from "./lib/summary";
@@ -19,14 +20,16 @@ import {
   chiffresFournisseurs,
   chiffresPaiements,
   chiffresResultat,
+  chiffresDuJour,
   chiffresStock,
   chiffresVentes,
   pointsDAttention,
   topProduits,
   type SourcesChiffres,
 } from "./lib/chiffres";
+import { lireJournal } from "./lib/journal";
 import { VUES, VUE_PAR_CLE } from "./roles";
-import { CARTE_PAR_CLE } from "./registry";
+import { CARTE_PAR_CLE, type CleTuile } from "./registry";
 import { dateDuJour } from "../../lib/dates";
 import { useAuth } from "../../hooks/useAuth";
 
@@ -130,6 +133,16 @@ export interface DashboardV2PageProps {
   setTheme: (t: "light" | "dark") => void;
   /** Relance les lectures de `useStoreData`. */
   onRafraichir?: () => void;
+  /**
+   * Ouvrir un autre ecran de l'application.
+   *
+   * Le panneau de detail et les fleches des tuiles menent vers la page
+   * qui sait vraiment faire le geste, plutot que de reecrire un
+   * formulaire de creation : voir l'ecart n. 3 de l'audit.
+   */
+  onNavigateTab?: (onglet: string) => void;
+  /** Faux quand la personne n'a pas le droit d'enregistrer une vente. */
+  peutVendre?: boolean;
 }
 
 export const DashboardV2Page: React.FC<DashboardV2PageProps> = ({
@@ -150,6 +163,8 @@ export const DashboardV2Page: React.FC<DashboardV2PageProps> = ({
   theme,
   setTheme,
   onRafraichir,
+  onNavigateTab,
+  peutVendre = true,
 }) => {
   /**
    * Le prénom, pour dire bonjour à quelqu'un plutôt qu'à un écran.
@@ -218,10 +233,32 @@ export const DashboardV2Page: React.FC<DashboardV2PageProps> = ({
       clients: chiffresClients(toutes, periode, aujourdhui),
       commandes: chiffresCommandes(toutes),
       fournisseurs: chiffresFournisseurs(toutes, periode, supplierPayments, aujourdhui),
+      duJour: chiffresDuJour(toutes, aujourdhui),
       top: topProduits(toutes, periode),
       attention: pointsDAttention(toutes, chiffresStock(toutes, periode, aujourdhui), aujourdhui),
     };
   }, [toutes, periode, aujourdhui, supplierPayments]);
+
+  /** Les lignes du journal d'aujourd'hui, dites en francais. */
+  const journalDuJour = useMemo(
+    () => lireJournal(donnees.journal).filter((e) => e.jour === aujourdhui),
+    [donnees.journal, aujourdhui],
+  );
+
+  /**
+   * Ou mene la fleche de chaque tuile.
+   *
+   * Vers l'ecran qui sait vraiment faire le geste. Le panneau de detail
+   * arrive en phase 5 ; d'ici la, la fleche conduit deja quelque part
+   * plutot que de ne rien faire.
+   */
+  const DESTINATION: Record<CleTuile, string> = {
+    ventes: "ventes",
+    entrees: "paiements",
+    sorties: "depenses",
+    stock: "produits",
+    activite: "historique",
+  };
 
   const synthese = useMemo(
     () => phraseDeSynthese(chiffres.ventes, periode, chiffres.attention),
@@ -516,6 +553,17 @@ export const DashboardV2Page: React.FC<DashboardV2PageProps> = ({
             )}
           </div>
         </header>
+
+        <BandeauAujourdhui
+          tuiles={droits.tuiles}
+          jour={chiffres.duJour}
+          stock={chiffres.stock}
+          journal={journalDuJour}
+          valeurStockVisible={droits.champVisible("produits", "valeur_stock")}
+          montantsAchatVisibles={droits.champVisible("achats", "prix_achat")}
+          onOuvrir={(cle) => onNavigateTab?.(DESTINATION[cle])}
+          onVendre={peutVendre && onNavigateTab ? () => onNavigateTab("ventes") : undefined}
+        />
 
         <section className="grid" aria-label="Tableau de bord">
           {/* ── Table de contrôle ──

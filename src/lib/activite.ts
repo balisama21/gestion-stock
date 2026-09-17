@@ -181,7 +181,19 @@ const MAX_ACTIVITES = 60;
  * changera ici. `e` porte l'accord — « Vente supprimée », « Achat
  * supprimé ».
  */
-const ENTITES: Record<string, { libelle: string; e: "" | "e"; module: string; onglet: ActiveTab }> =
+/**
+ * Le nom de chaque table, dit comme on le dirait a voix haute.
+ *
+ * Exporte pour que le tableau de bord v2 emploie le meme vocabulaire
+ * que la cloche et l historique : « Vente », « Reglement »,
+ * « Depense ». Deux tables de traduction pour les memes lignes
+ * finiraient par diverger, et le meme geste porterait deux noms selon
+ * l ecran.
+ */
+export const ENTITES: Record<
+  string,
+  { libelle: string; e: "" | "e"; module: string; onglet: ActiveTab }
+> =
   {
     sales: { libelle: "Vente", e: "e", module: "ventes", onglet: "ventes" },
     purchases: { libelle: "Achat", e: "", module: "achats", onglet: "achats" },

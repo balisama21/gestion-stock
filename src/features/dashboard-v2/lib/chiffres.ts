@@ -644,3 +644,135 @@ export function pointsDAttention(
     total: tachesEnRetard + produitsARecommander + devisSansReponse,
   };
 }
+
+/* ═══════════════════════════════════════════════════════════════════
+   Aujourd'hui — indépendant de la période choisie
+   ═══════════════════════════════════════════════════════════════════ */
+
+export interface ChiffresDuJour {
+  jour: string;
+  /** La veille, pour ne pas la redire deux fois dans le meme pied. */
+  hier: string;
+  /** Ventes du jour, et de quoi les situer. */
+  ventes: number;
+  tickets: number;
+  ventesHier: number;
+  /** Le dernier jour AVANT aujourd'hui où quelque chose s'est vendu. */
+  dernierJourVendu: { jour: string; montant: number } | null;
+  /** Encaissements du jour, et du mois en cours. */
+  encaisse: number;
+  encaisseDuMois: number;
+  /** Une barre par jour du mois en cours, jusqu'à aujourd'hui. */
+  encaisseParJourDuMois: { jour: string; montant: number }[];
+  /** Sorties du jour, et du mois en cours. */
+  sorties: number;
+  achatsDuMois: number;
+  depensesDuMois: number;
+  /** La plus proche échéance fournisseur encore ouverte. */
+  prochaineEcheance: { nom: string; jour: string; montant: number; enRetard: boolean } | null;
+  /** Mouvements de stock du jour, en unités. */
+  entreesStock: number;
+  sortiesStock: number;
+}
+
+/**
+ * Ce que la journée a donné.
+ *
+ * LE BANDEAU « AUJOURD'HUI » NE SUIT PAS LE SÉLECTEUR DE PÉRIODE.
+ * Son titre dit « aujourd'hui » : s'il changeait quand on regarde le
+ * mois dernier, il mentirait. Ces chiffres se calculent donc sur le
+ * jour et sur le mois en cours, quelle que soit la période affichée
+ * par le reste de l'écran.
+ */
+export function chiffresDuJour(s: SourcesChiffres, aujourdhui = dateDuJour()): ChiffresDuJour {
+  const hier = decalerJours(aujourdhui, -1);
+  const debutDuMois = `${aujourdhui.slice(0, 7)}-01`;
+  const mois: Intervalle = { debut: debutDuMois, fin: aujourdhui };
+
+  const ventesDuJour = s.sales.filter((v) => v.date === aujourdhui);
+
+  // Le dernier jour où quelque chose s'est vendu, avant aujourd'hui.
+  // Sans lui, une journée encore vide se compare à une veille vide et
+  // ne dit rien ; avec lui, elle dit au moins quand la caisse a sonné
+  // pour la dernière fois.
+  const avant = s.sales.filter((v) => v.date < aujourdhui);
+  let dernierJourVendu: { jour: string; montant: number } | null = null;
+  if (avant.length > 0) {
+    const jour = avant.reduce((m, v) => (v.date > m ? v.date : m), avant[0].date);
+    dernierJourVendu = {
+      jour,
+      montant: somme(
+        avant.filter((v) => v.date === jour),
+        (v) => v.totalVente,
+      ),
+    };
+  }
+
+  const paiementsDuMois = dans(s.payments, (r) => jourDe(r.created_at), mois);
+  const parJour = new Map<string, number>();
+  for (const r of paiementsDuMois) {
+    const j = jourDe(r.created_at);
+    parJour.set(j, (parJour.get(j) ?? 0) + r.montant);
+  }
+
+  const achatsDuJour = s.purchases.filter((a) => a.date === aujourdhui);
+  const depensesDuJour = s.expenses.filter((d) => d.date === aujourdhui);
+
+  const echeances = s.purchases
+    .filter((a) => (a.soldeDu ?? 0) > 0 && a.dateEcheance)
+    .sort((a, b) => (a.dateEcheance ?? "").localeCompare(b.dateEcheance ?? ""));
+  const prochaine = echeances[0];
+
+  const mouvementsDuJour = s.mouvements.filter((m) => jourDe(m.created_at) === aujourdhui);
+  const enRepli = s.mouvements.length === 0;
+
+  return {
+    jour: aujourdhui,
+    hier,
+    ventes: somme(ventesDuJour, (v) => v.totalVente),
+    tickets: new Set(ventesDuJour.map((v) => v.ticketId ?? v.id)).size,
+    ventesHier: somme(
+      s.sales.filter((v) => v.date === hier),
+      (v) => v.totalVente,
+    ),
+    dernierJourVendu,
+    encaisse: somme(
+      s.payments.filter((r) => jourDe(r.created_at) === aujourdhui),
+      (r) => r.montant,
+    ),
+    encaisseDuMois: somme(paiementsDuMois, (r) => r.montant),
+    encaisseParJourDuMois: joursDe(mois).map((jour) => ({
+      jour,
+      montant: parJour.get(jour) ?? 0,
+    })),
+    sorties: somme(achatsDuJour, (a) => a.totalAchat) + somme(depensesDuJour, (d) => d.montant),
+    achatsDuMois: somme(
+      dans(s.purchases, (a) => a.date, mois),
+      (a) => a.totalAchat,
+    ),
+    depensesDuMois: somme(
+      dans(s.expenses, (d) => d.date, mois),
+      (d) => d.montant,
+    ),
+    prochaineEcheance: prochaine
+      ? {
+          nom: prochaine.fournisseur || prochaine.designation,
+          jour: prochaine.dateEcheance as string,
+          montant: prochaine.soldeDu ?? 0,
+          enRetard: (prochaine.dateEcheance as string) < aujourdhui,
+        }
+      : null,
+    entreesStock: enRepli
+      ? somme(achatsDuJour, (a) => a.quantite)
+      : somme(
+          mouvementsDuJour.filter((m) => m.stock_actuel_delta > 0),
+          (m) => m.stock_actuel_delta,
+        ),
+    sortiesStock: enRepli
+      ? somme(ventesDuJour, (v) => v.quantite)
+      : -somme(
+          mouvementsDuJour.filter((m) => m.stock_actuel_delta < 0),
+          (m) => m.stock_actuel_delta,
+        ),
+  };
+}
