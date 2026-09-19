@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from "react";
 import { Card, CardHeader } from "../components/Card";
+import { EtatErreur } from "../components/States";
 import { dateLocale, montant } from "../lib/format";
 import { dateDuJour } from "../../../lib/dates";
 import type { EvenementJournal, GenreJournal } from "../lib/journal";
@@ -71,8 +72,11 @@ export const CarteJournal: React.FC<{
   montantsVisibles: boolean;
   /** Filtre imposé de l'extérieur — la flèche de la tuile « Activité ». */
   filtreInitial?: Filtre;
+  /** Le message que la lecture du journal a renvoyé, s'il y en a un. */
+  erreur?: string | null;
+  onReessayer?: () => void;
   onHistorique?: () => void;
-}> = ({ journal, montantsVisibles, filtreInitial = "tout", onHistorique }) => {
+}> = ({ journal, montantsVisibles, filtreInitial = "tout", erreur, onReessayer, onHistorique }) => {
   const aujourdhui = dateDuJour();
   const [filtre, setFiltre] = useState<Filtre>(filtreInitial);
 
@@ -121,6 +125,8 @@ export const CarteJournal: React.FC<{
           )
         }
       />
+
+      {erreur && <EtatErreur message={erreur} onReessayer={onReessayer} />}
 
       <div className="filters" role="group" aria-label="Filtrer le journal">
         {FILTRES.map((f) => (

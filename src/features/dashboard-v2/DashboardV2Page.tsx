@@ -122,6 +122,23 @@ const ICONE_LUNE = (
 const CLE_FOCUS = "tantana.dash.focus";
 
 /**
+ * L'interrupteur de la table de contrôle.
+ *
+ * Elle liste en clair tous les chiffres des cartes, pour les
+ * confronter à l'ancien tableau de bord et aux pages Ventes, Stock,
+ * Bilan et Paiements. C'est un outil de recette, pas un élément du
+ * tableau de bord : il n'a rien à faire sous les yeux d'un
+ * commerçant, et la maquette n'en contient pas.
+ *
+ * Il reste néanmoins à portée, parce que la comparaison des chiffres
+ * ne peut se faire que sur une vraie boutique — pas sur un banc
+ * d'essai. Dans la console du navigateur :
+ *
+ *   localStorage.setItem('tantana.dash.controle', '1')
+ */
+const CLE_CONTROLE = "tantana.dash.controle";
+
+/**
  * Les mêmes props que l'ancien tableau de bord, à quelques près.
  *
  * Tout vient de `useStoreData`, déjà chargé par la coquille : le
@@ -348,11 +365,13 @@ export const DashboardV2Page: React.FC<DashboardV2PageProps> = ({
   }, [donnees.luA]);
 
   const [focus, setFocus] = useState(false);
+  const [controle, setControle] = useState(false);
   useEffect(() => {
     try {
       setFocus(window.localStorage.getItem(CLE_FOCUS) === "true");
+      setControle(window.localStorage.getItem(CLE_CONTROLE) === "1");
     } catch {
-      /* Navigation privée : le mode focus repart simplement à zéro. */
+      /* Navigation privée : les deux réglages repartent à zéro. */
     }
   }, []);
 
@@ -532,6 +551,8 @@ export const DashboardV2Page: React.FC<DashboardV2PageProps> = ({
       <CarteJournal
         journal={lignesJournal}
         montantsVisibles={droits.champVisible("historique", "montant")}
+        erreur={donnees.erreurs.journal}
+        onReessayer={donnees.recharger}
         onHistorique={onNavigateTab ? () => onNavigateTab("historique") : undefined}
       />
     ),
@@ -541,7 +562,14 @@ export const DashboardV2Page: React.FC<DashboardV2PageProps> = ({
         onProduit={(produit) => setPanneau({ cle: "produit", produit })}
       />
     ),
-    mouvements: <CarteMouvements stock={chiffres.stock} periode={periode} />,
+    mouvements: (
+      <CarteMouvements
+        stock={chiffres.stock}
+        periode={periode}
+        erreur={donnees.erreurs.mouvements}
+        onReessayer={donnees.recharger}
+      />
+    ),
     top: (
       <CarteTopProduits
         top={chiffres.top}
@@ -828,188 +856,195 @@ export const DashboardV2Page: React.FC<DashboardV2PageProps> = ({
           })}
 
           {/* ── Table de contrôle ──
-              Provisoire, et c'est le livrable de la phase 2 : chaque
-              chiffre que les cartes afficheront, en clair, pour être
-              confronté à l'ancien tableau de bord et aux pages Ventes,
-              Stock, Bilan et Paiements avant qu'on l'habille. Elle
-              disparaît quand les cartes prennent sa place. */}
-          <Card span={12} id="carte-controle">
-            <CardHeader
-              title="Table de contrôle — phase 2"
-              action={<span className="tag neutre">provisoire</span>}
-            />
-            <p style={{ margin: 0, color: "var(--ink-2)" }}>
-              Les chiffres ci-dessous sont ceux que les cartes afficheront. Comparez-les à
-              l&apos;ancien tableau de bord et aux pages Ventes, Stock, Bilan et Paiements sur la
-              même période&nbsp;: ils doivent coïncider.
-            </p>
-
-            {(donnees.erreurs.mouvements || donnees.erreurs.journal) && (
-              <EtatErreur
-                message={
-                  donnees.erreurs.mouvements
-                    ? `Mouvements de stock : ${donnees.erreurs.mouvements}`
-                    : `Journal : ${donnees.erreurs.journal}`
-                }
-                onReessayer={donnees.recharger}
+              Outil de recette, pas element du tableau de bord : la
+              maquette n en contient pas, et un commercant n a rien a en
+              faire. Il reste a portee derriere son interrupteur, parce
+              que la comparaison des chiffres ne peut se faire que sur
+              une vraie boutique. Voir CLE_CONTROLE. */}
+          {controle && (
+            <Card span={12} id="carte-controle">
+              <CardHeader
+                title="Table de contrôle"
+                action={<span className="tag neutre">provisoire</span>}
               />
-            )}
+              <p style={{ margin: 0, color: "var(--ink-2)" }}>
+                Les chiffres ci-dessous sont ceux que les cartes afficheront. Comparez-les à
+                l&apos;ancien tableau de bord et aux pages Ventes, Stock, Bilan et Paiements sur la
+                même période&nbsp;: ils doivent coïncider.
+              </p>
 
-            <div className="controle">
-              <Bloc titre="Ventes">
-                <L
-                  nom="Total de la période"
-                  valeur={sous("ventes", "montant", chiffres.ventes.total)}
-                />
-                <L
-                  nom="Période précédente"
-                  valeur={sous("ventes", "montant", chiffres.ventes.totalPrecedent)}
-                />
-                <L nom="Tickets" valeur={nombre(chiffres.ventes.tickets)} />
-                <L nom="Lignes de vente" valeur={nombre(chiffres.ventes.lignes)} />
-                <L
-                  nom="Panier moyen"
-                  valeur={sous("ventes", "montant", chiffres.ventes.panierMoyen)}
-                />
-                <L nom="Marge brute" valeur={sous("ventes", "marge", chiffres.ventes.marge)} />
-                <L
-                  nom="Évolution"
-                  valeur={
-                    <Trend
-                      data={{
-                        valeur: chiffres.ventes.total,
-                        reference: chiffres.ventes.totalPrecedent,
-                      }}
-                    />
+              {(donnees.erreurs.mouvements || donnees.erreurs.journal) && (
+                <EtatErreur
+                  message={
+                    donnees.erreurs.mouvements
+                      ? `Mouvements de stock : ${donnees.erreurs.mouvements}`
+                      : `Journal : ${donnees.erreurs.journal}`
                   }
+                  onReessayer={donnees.recharger}
                 />
-              </Bloc>
+              )}
 
-              <Bloc titre="Trésorerie et flux">
-                <L
-                  nom="Trésorerie (calcul existant)"
-                  valeur={sous("capital", "montant", capital.tresorerieGlobaleActuelle)}
-                />
-                <L nom="Encaissé sur la période" valeur={montant(chiffres.flux.encaisse)} />
-                <L nom="Achats" valeur={sous("achats", "prix_achat", chiffres.flux.achats)} />
-                <L nom="Dépenses" valeur={montant(chiffres.flux.depenses)} />
-                <L nom="Sorties totales" valeur={montant(chiffres.flux.sorties)} />
-                <L nom="Sorties par jour" valeur={montant(chiffres.flux.sortiesParJour)} />
-                <L nom="Part des ventes" valeur={pourcent(chiffres.flux.partDesVentes)} />
-              </Bloc>
+              <div className="controle">
+                <Bloc titre="Ventes">
+                  <L
+                    nom="Total de la période"
+                    valeur={sous("ventes", "montant", chiffres.ventes.total)}
+                  />
+                  <L
+                    nom="Période précédente"
+                    valeur={sous("ventes", "montant", chiffres.ventes.totalPrecedent)}
+                  />
+                  <L nom="Tickets" valeur={nombre(chiffres.ventes.tickets)} />
+                  <L nom="Lignes de vente" valeur={nombre(chiffres.ventes.lignes)} />
+                  <L
+                    nom="Panier moyen"
+                    valeur={sous("ventes", "montant", chiffres.ventes.panierMoyen)}
+                  />
+                  <L nom="Marge brute" valeur={sous("ventes", "marge", chiffres.ventes.marge)} />
+                  <L
+                    nom="Évolution"
+                    valeur={
+                      <Trend
+                        data={{
+                          valeur: chiffres.ventes.total,
+                          reference: chiffres.ventes.totalPrecedent,
+                        }}
+                      />
+                    }
+                  />
+                </Bloc>
 
-              <Bloc titre="Résultat (nouveau)">
-                <L nom="Marge brute" valeur={montant(chiffres.resultat.marge)} />
-                <L nom="− Dépenses" valeur={montant(chiffres.resultat.depenses)} />
-                <L nom="= Bénéfice" valeur={montant(chiffres.resultat.benefice)} />
-                <L nom="Période précédente" valeur={montant(chiffres.resultat.beneficePrecedent)} />
-                <L
-                  nom="Achats non déduits"
-                  valeur={montant(chiffres.resultat.achatsNonDeduits)}
-                  note="Ils deviennent un coût quand les produits se vendent"
-                />
-              </Bloc>
+                <Bloc titre="Trésorerie et flux">
+                  <L
+                    nom="Trésorerie (calcul existant)"
+                    valeur={sous("capital", "montant", capital.tresorerieGlobaleActuelle)}
+                  />
+                  <L nom="Encaissé sur la période" valeur={montant(chiffres.flux.encaisse)} />
+                  <L nom="Achats" valeur={sous("achats", "prix_achat", chiffres.flux.achats)} />
+                  <L nom="Dépenses" valeur={montant(chiffres.flux.depenses)} />
+                  <L nom="Sorties totales" valeur={montant(chiffres.flux.sorties)} />
+                  <L nom="Sorties par jour" valeur={montant(chiffres.flux.sortiesParJour)} />
+                  <L nom="Part des ventes" valeur={pourcent(chiffres.flux.partDesVentes)} />
+                </Bloc>
 
-              <Bloc titre="Stock">
-                <L
-                  nom="Valeur du stock"
-                  valeur={sous("produits", "valeur_stock", chiffres.stock.valeur)}
-                />
-                <L nom="À recommander" valeur={nombre(chiffres.stock.aRecommander.length)} />
-                <L nom="En rupture" valeur={nombre(chiffres.stock.enRupture.length)} />
-                <L nom="Entrées du jour" valeur={`${nombre(chiffres.stock.entreesDuJour)} u.`} />
-                <L nom="Sorties du jour" valeur={`${nombre(chiffres.stock.sortiesDuJour)} u.`} />
-                <L
-                  nom="Source des mouvements"
-                  valeur={chiffres.stock.mouvementsEnRepli ? "achats et ventes" : "stock_movements"}
-                  note={
-                    chiffres.stock.mouvementsEnRepli
-                      ? "La table n'a rien rendu : repli sur les quantités"
-                      : `${donnees.mouvements.length} lignes lues`
-                  }
-                />
-              </Bloc>
+                <Bloc titre="Résultat (nouveau)">
+                  <L nom="Marge brute" valeur={montant(chiffres.resultat.marge)} />
+                  <L nom="− Dépenses" valeur={montant(chiffres.resultat.depenses)} />
+                  <L nom="= Bénéfice" valeur={montant(chiffres.resultat.benefice)} />
+                  <L
+                    nom="Période précédente"
+                    valeur={montant(chiffres.resultat.beneficePrecedent)}
+                  />
+                  <L
+                    nom="Achats non déduits"
+                    valeur={montant(chiffres.resultat.achatsNonDeduits)}
+                    note="Ils deviennent un coût quand les produits se vendent"
+                  />
+                </Bloc>
 
-              <Bloc titre="Paiements">
-                <L nom="Encaissé" valeur={montant(chiffres.paiements.encaisse)} />
-                <L
-                  nom="À recevoir (moins de 30 j)"
-                  valeur={montant(chiffres.paiements.aRecevoir)}
-                  note={pluriel(chiffres.paiements.aRecevoirClients, "client")}
-                />
-                <L
-                  nom="En retard (plus de 30 j)"
-                  valeur={montant(chiffres.paiements.enRetard)}
-                  note={pluriel(chiffres.paiements.enRetardClients, "client")}
-                />
-              </Bloc>
+                <Bloc titre="Stock">
+                  <L
+                    nom="Valeur du stock"
+                    valeur={sous("produits", "valeur_stock", chiffres.stock.valeur)}
+                  />
+                  <L nom="À recommander" valeur={nombre(chiffres.stock.aRecommander.length)} />
+                  <L nom="En rupture" valeur={nombre(chiffres.stock.enRupture.length)} />
+                  <L nom="Entrées du jour" valeur={`${nombre(chiffres.stock.entreesDuJour)} u.`} />
+                  <L nom="Sorties du jour" valeur={`${nombre(chiffres.stock.sortiesDuJour)} u.`} />
+                  <L
+                    nom="Source des mouvements"
+                    valeur={
+                      chiffres.stock.mouvementsEnRepli ? "achats et ventes" : "stock_movements"
+                    }
+                    note={
+                      chiffres.stock.mouvementsEnRepli
+                        ? "La table n'a rien rendu : repli sur les quantités"
+                        : `${donnees.mouvements.length} lignes lues`
+                    }
+                  />
+                </Bloc>
 
-              <Bloc titre="Clients, commandes, fournisseurs">
-                <L nom="Nouveaux clients" valeur={nombre(chiffres.clients.nouveaux)} />
-                <L nom="Clients actifs" valeur={nombre(chiffres.clients.actifs)} />
-                <L nom="À relancer" valeur={nombre(chiffres.clients.aRelancer.length)} />
-                <L nom="Commandes reçues" valeur={nombre(chiffres.commandes.recues)} />
-                <L nom="En préparation" valeur={nombre(chiffres.commandes.enPreparation)} />
-                <L nom="En livraison" valeur={nombre(chiffres.commandes.enLivraison)} />
-                <L nom="À encaisser" valeur={nombre(chiffres.commandes.aEncaisser)} />
-                <L nom="Dû aux fournisseurs" valeur={montant(chiffres.fournisseurs.totalDu)} />
-                <L
-                  nom="Échéances dépassées"
-                  valeur={nombre(chiffres.fournisseurs.echeancesDepassees)}
-                />
-                <L
-                  nom="Payé sur la période"
-                  valeur={montant(chiffres.fournisseurs.payeSurLaPeriode)}
-                />
-              </Bloc>
+                <Bloc titre="Paiements">
+                  <L nom="Encaissé" valeur={montant(chiffres.paiements.encaisse)} />
+                  <L
+                    nom="À recevoir (moins de 30 j)"
+                    valeur={montant(chiffres.paiements.aRecevoir)}
+                    note={pluriel(chiffres.paiements.aRecevoirClients, "client")}
+                  />
+                  <L
+                    nom="En retard (plus de 30 j)"
+                    valeur={montant(chiffres.paiements.enRetard)}
+                    note={pluriel(chiffres.paiements.enRetardClients, "client")}
+                  />
+                </Bloc>
 
-              <Bloc titre="Produits les plus vendus">
-                {chiffres.top.length === 0 ? (
-                  <L nom="Aucune vente sur la période" valeur="—" />
-                ) : (
-                  chiffres.top.map((p) => (
-                    <L
-                      key={p.id}
-                      nom={p.nom}
-                      valeur={montant(p.montant)}
-                      note={`${pourcent(p.part)} · ${nombre(p.quantite)} ${p.unite ?? "unité"}`}
-                    />
-                  ))
-                )}
-              </Bloc>
+                <Bloc titre="Clients, commandes, fournisseurs">
+                  <L nom="Nouveaux clients" valeur={nombre(chiffres.clients.nouveaux)} />
+                  <L nom="Clients actifs" valeur={nombre(chiffres.clients.actifs)} />
+                  <L nom="À relancer" valeur={nombre(chiffres.clients.aRelancer.length)} />
+                  <L nom="Commandes reçues" valeur={nombre(chiffres.commandes.recues)} />
+                  <L nom="En préparation" valeur={nombre(chiffres.commandes.enPreparation)} />
+                  <L nom="En livraison" valeur={nombre(chiffres.commandes.enLivraison)} />
+                  <L nom="À encaisser" valeur={nombre(chiffres.commandes.aEncaisser)} />
+                  <L nom="Dû aux fournisseurs" valeur={montant(chiffres.fournisseurs.totalDu)} />
+                  <L
+                    nom="Échéances dépassées"
+                    valeur={nombre(chiffres.fournisseurs.echeancesDepassees)}
+                  />
+                  <L
+                    nom="Payé sur la période"
+                    valeur={montant(chiffres.fournisseurs.payeSurLaPeriode)}
+                  />
+                </Bloc>
 
-              <Bloc titre="Lectures et permissions">
-                <L nom="Vue" valeur={vueCourante?.nom ?? "—"} />
-                <L
-                  nom="Cartes retenues"
-                  valeur={nombre(droits.cartes.length)}
-                  note={droits.cartes.map((c) => CARTE_PAR_CLE.get(c)?.titre ?? c).join(" · ")}
-                />
-                <L nom="Tuiles retenues" valeur={nombre(droits.tuiles.length)} />
-                <L
-                  nom="Sources demandées"
-                  valeur={nombre(droits.besoins.size)}
-                  note={[...droits.besoins].sort().join(", ")}
-                />
-                <L
-                  nom="Lignes de journal"
-                  valeur={nombre(donnees.journal.length)}
-                  note="Créations comprises, contrairement à la cloche"
-                />
-                <L nom="Lecture en cours" valeur={donnees.chargement ? "oui" : "non"} />
-              </Bloc>
-            </div>
+                <Bloc titre="Produits les plus vendus">
+                  {chiffres.top.length === 0 ? (
+                    <L nom="Aucune vente sur la période" valeur="—" />
+                  ) : (
+                    chiffres.top.map((p) => (
+                      <L
+                        key={p.id}
+                        nom={p.nom}
+                        valeur={montant(p.montant)}
+                        note={`${pourcent(p.part)} · ${nombre(p.quantite)} ${p.unite ?? "unité"}`}
+                      />
+                    ))
+                  )}
+                </Bloc>
 
-            <div>
-              <button
-                type="button"
-                className="btn ghost"
-                onClick={() => setPanneau({ cle: "resultat" })}
-              >
-                Voir le détail du calcul du résultat
-              </button>
-            </div>
-          </Card>
+                <Bloc titre="Lectures et permissions">
+                  <L nom="Vue" valeur={vueCourante?.nom ?? "—"} />
+                  <L
+                    nom="Cartes retenues"
+                    valeur={nombre(droits.cartes.length)}
+                    note={droits.cartes.map((c) => CARTE_PAR_CLE.get(c)?.titre ?? c).join(" · ")}
+                  />
+                  <L nom="Tuiles retenues" valeur={nombre(droits.tuiles.length)} />
+                  <L
+                    nom="Sources demandées"
+                    valeur={nombre(droits.besoins.size)}
+                    note={[...droits.besoins].sort().join(", ")}
+                  />
+                  <L
+                    nom="Lignes de journal"
+                    valeur={nombre(donnees.journal.length)}
+                    note="Créations comprises, contrairement à la cloche"
+                  />
+                  <L nom="Lecture en cours" valeur={donnees.chargement ? "oui" : "non"} />
+                </Bloc>
+              </div>
+
+              <div>
+                <button
+                  type="button"
+                  className="btn ghost"
+                  onClick={() => setPanneau({ cle: "resultat" })}
+                >
+                  Voir le détail du calcul du résultat
+                </button>
+              </div>
+            </Card>
+          )}
         </section>
       </div>
 

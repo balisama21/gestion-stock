@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { Card, CardHeader } from "../components/Card";
+import { EtatErreur } from "../components/States";
 import { dateLocale, jourEtMois, nombre } from "../lib/format";
 import type { ChiffresStock } from "../lib/chiffres";
 import type { Periode } from "../hooks/useDashboardPeriod";
@@ -25,7 +26,17 @@ const MG = { gauche: 40, droite: 10, haut: 12, bas: 26 };
 export const CarteMouvements: React.FC<{
   stock: ChiffresStock;
   periode: Periode;
-}> = ({ stock, periode }) => {
+  /**
+   * Le message que la lecture de `stock_movements` a renvoyé.
+   *
+   * La carte le montre elle-même : une lecture refusée ne doit ni
+   * passer inaperçue, ni emporter le reste de la page. Le repli sur
+   * les achats et les ventes reste affiché dessous — mieux vaut un
+   * chiffre approché et signalé qu'une carte vide.
+   */
+  erreur?: string | null;
+  onReessayer?: () => void;
+}> = ({ stock, periode, erreur, onReessayer }) => {
   const [survol, setSurvol] = useState<number | null>(null);
 
   const jours = stock.parJour;
@@ -71,6 +82,8 @@ export const CarteMouvements: React.FC<{
           ) : undefined
         }
       />
+
+      {erreur && <EtatErreur message={erreur} onReessayer={onReessayer} />}
 
       <div className="mvtot">
         <span>

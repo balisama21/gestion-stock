@@ -180,15 +180,11 @@ const MAX_ACTIVITES = 60;
  * parler français, et le jour où l'application sera traduite, tout se
  * changera ici. `e` porte l'accord — « Vente supprimée », « Achat
  * supprimé ».
- */
-/**
- * Le nom de chaque table, dit comme on le dirait a voix haute.
  *
- * Exporte pour que le tableau de bord v2 emploie le meme vocabulaire
- * que la cloche et l historique : « Vente », « Reglement »,
- * « Depense ». Deux tables de traduction pour les memes lignes
- * finiraient par diverger, et le meme geste porterait deux noms selon
- * l ecran.
+ * Exportée pour que le tableau de bord v2 dise les mêmes mots que la
+ * cloche et l'historique. Deux tables de traduction pour les mêmes
+ * lignes finiraient par diverger, et le même geste porterait deux noms
+ * selon l'écran.
  */
 export const ENTITES: Record<
   string,
