@@ -3,8 +3,15 @@
 Refonte de l'écran d'accueil d'après `docs/maquette/tableau-de-bord-complet.html`,
 branchée sur les données réelles, derrière un drapeau.
 
-- Branche : `feat/dashboard-v2`, partie de `main` (`2863a01`).
-- Sept commits, un par phase.
+- Branche : `feat/dashboard-v2`, partie de `main` (`2863a01`), **fusionnée
+  le 19 septembre 2026** (commit de fusion `3cf72f3`).
+- Dix commits : un par phase, puis le drapeau par lien et la collision
+  de classe `top`.
+- **En ligne pour tout le monde** depuis le 19 septembre : la variable
+  `VITE_DASHBOARD_V2` vaut `1` sur Netlify, contexte « all ». La retirer
+  et redéployer rend l'ancien écran ; republier le déploiement
+  `6aa92935…` du 15 septembre le rend en quelques secondes, sans
+  reconstruction.
 - **Aucune migration, aucun SQL exécuté, aucune modification de
   `database.types.ts`** — vérifié sur le diff complet.
 
@@ -247,15 +254,19 @@ location.reload();
 | Aucun défilement horizontal                               | ✅ aux quatre largeurs ; seul le bandeau du jour défile, sur téléphone                                                                  |
 | Vue fondateur et vue vendeur                              | ✅ les six vues mesurées ; le vendeur ne voit ni trésorerie, ni résultat, ni les autres vendeurs                                        |
 | Désactiver le drapeau rétablit l'ancien                   | ✅ prouvé par le diff : aucune ligne supprimée                                                                                          |
-| **Les chiffres correspondent à l'ancien tableau de bord** | ⏳ **à faire par vous** — voir ci-dessous                                                                                               |
+| **Les chiffres correspondent à l'ancien tableau de bord** | ✅ **confirmé le 19 septembre 2026** par le propriétaire, sur sa boutique — voir ci-dessous                                             |
 
-### Le seul point que je n'ai pas pu vérifier
+### Le point que je n'ai pas pu vérifier moi-même
 
 Le tableau de bord est derrière l'authentification et je n'ai pas de
-session : **les valeurs ne peuvent être confrontées que sur votre
+session : **les valeurs ne peuvent être confrontées que sur une vraie
 boutique**. C'est à cela que sert la table de contrôle.
 
-À comparer, sur la même période :
+**Fait le 19 septembre 2026** : le propriétaire a confronté les chiffres
+sur sa propre boutique et rapporte que tout concorde. C'est ce qui a
+décidé la mise en ligne pour tous, le même jour.
+
+Ce qui a été comparé, sur la même période :
 
 | Dans la table de contrôle                  | Avec                            |
 | ------------------------------------------ | ------------------------------- |
@@ -267,9 +278,16 @@ boutique**. C'est à cela que sert la table de contrôle.
 | À recevoir + en retard                     | la page Paiements à recevoir    |
 | Dû aux fournisseurs                        | la page Fournisseurs            |
 
-Une ligne mérite une attention particulière : **« Source des
-mouvements »**. Elle dit si `stock_movements` a répondu, avec le nombre
-de lignes lues, ou si l'écran est retombé sur les quantités d'achats et
-de ventes. Cette table n'ayant jamais été lue par l'application, ses
-règles de sécurité n'ont jamais été exercées — votre boutique est le
-premier endroit où on le saura.
+Une ligne reste à regarder, et la concordance des totaux ne la règle
+pas : **« Source des mouvements »**. Elle dit si `stock_movements` a
+répondu, avec le nombre de lignes lues, ou si l'écran est retombé sur
+les quantités d'achats et de ventes.
+
+Le piège est que **ce repli produit précisément les nombres auxquels on
+compare**, puisqu'il les dérive des achats et des ventes. Des totaux qui
+coïncident peuvent donc être le signe que la lecture a échoué, pas
+qu'elle a réussi. Seule cette ligne tranche.
+
+L'enjeu : `stock_movements` n'ayant jamais été lue par l'application
+avant cette refonte, ses règles de sécurité n'ont jamais été exercées.
+Une boutique en service est le premier endroit où on le saura.
