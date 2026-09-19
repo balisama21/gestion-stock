@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React, { useCallback, useRef, useState } from "react";
 import { ActiveTab, StoreSettings } from "../types";
 import {
   Settings,
@@ -24,6 +24,7 @@ import { visibleNavGroups, visibleBottomTabs, canSeeSettings } from "./navigatio
 import { useWorkspace } from "../hooks/useWorkspace";
 import { useAuth } from "../hooks/useAuth";
 import { useBarresAuDefilement } from "../hooks/useBarresAuDefilement";
+import { useClicExterieur } from "../hooks/useClicExterieur";
 import { supabase } from "../lib/supabase";
 import { APP_NAME } from "../lib/appConfig";
 import { usePersonnalisation } from "../lib/personnalisation";
@@ -101,6 +102,16 @@ export const Header: React.FC<HeaderProps> = ({
 }) => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
+
+  /**
+   * La zone qui englobe la cloche ET son panneau. Cliquer ailleurs le
+   * referme, y compris sur la barre laterale et sur la barre du bas,
+   * que le voile invisible d avant ne couvrait pas : elles sont en
+   * `z-50`, il etait en `z-40`.
+   */
+  const zoneNotif = useRef<HTMLDivElement>(null);
+  const fermerNotif = useCallback(() => setNotifOpen(false), []);
+  useClicExterieur(zoneNotif, notifOpen, fermerNotif);
   const [workspaceMenuOpen, setWorkspaceMenuOpen] = useState(false);
   const [showCreateStoreModal, setShowCreateStoreModal] = useState(false);
   const [newStoreName, setNewStoreName] = useState("");
@@ -460,7 +471,7 @@ export const Header: React.FC<HeaderProps> = ({
                 de ce fichier. */}
             <div className="flex shrink-0 items-center gap-1 sm:gap-2 lg:ml-auto">
               {/* Notifications */}
-              <div className="relative">
+              <div className="relative" ref={zoneNotif}>
                 <button
                   onClick={() => setNotifOpen(!notifOpen)}
                   className={`app-btn-icon relative ${
@@ -485,7 +496,7 @@ export const Header: React.FC<HeaderProps> = ({
                     nonLues={nonLues}
                     onToutMarquerLu={toutMarquerLu}
                     onOuvrirEcran={handleTabClick}
-                    onFermer={() => setNotifOpen(false)}
+                    onFermer={fermerNotif}
                   />
                 )}
               </div>

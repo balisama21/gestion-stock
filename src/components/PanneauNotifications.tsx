@@ -103,7 +103,11 @@ export const PanneauNotifications: React.FC<PanneauNotificationsProps> = ({
 
   return (
     <>
-      <div className="fixed inset-0 z-40" onClick={onFermer} />
+      {/* Il n'y a plus de voile invisible ici. C'est `useClicExterieur`,
+          posé dans l'en-tête, qui referme le panneau — il ne dépend
+          d'aucun empilement, couvre donc la barre latérale et la barre
+          du bas, et laisse le clic arriver à sa destination au lieu de
+          l'avaler. Le raisonnement complet est en tête du hook. */}
       {/* ── Deux positionnements, et il en faut deux ──
           Sur téléphone, le panneau se pose SOUS la barre du haut et
           s'étend d'un bord à l'autre. Il ne s'accrochait auparavant
