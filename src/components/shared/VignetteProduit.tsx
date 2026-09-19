@@ -63,11 +63,13 @@ interface VignetteProduitProps {
  * fait un repere utilisable. Elle ne dit RIEN de l'etat de la ligne :
  * ce n'est pas une couleur de statut, seulement de reconnaissance.
  *
- * DES COINS ARRONDIS, PAS UN CERCLE. Le cercle est reserve aux
- * personnes — c'est la forme de `.av` pour les vendeurs et les
- * clients. Un article est un objet ; le carre adouci est ce qu'en font
- * tous les catalogues, et la difference de forme distingue d'un coup
- * d'oeil un produit d'un humain dans une liste melangee.
+ * UN CERCLE, comme les avatars des vendeurs et des clients. J'avais
+ * d'abord pose un carre a coins arrondis, en me disant qu'un objet ne
+ * se represente pas comme une personne et que la difference de forme
+ * aiderait a les distinguer. L'utilisateur a tranche pour le cercle :
+ * une seule forme de vignette dans toute l'application se retient
+ * mieux qu'une regle a deux cas, et les rapports de taille de `.av`
+ * sont deja calibres pour un disque.
  *
  * LA PLACE RESTE LA MEME, et cela porte tout : la pastille occupe
  * exactement les dimensions de la photo qu'elle remplace. Sans cela,
@@ -119,12 +121,12 @@ export const VignetteProduit: React.FC<VignetteProduitProps> = ({
         style={{
           ...cote,
           background: teinteDe(nom),
-          // Tout est proportionnel au cote : la meme vignette sert a
-          // 36 pixels dans une liste et bien plus grand dans une fiche.
-          // Les rapports reprennent ceux de `.av` — 13 px de texte pour
-          // 36 de cote — pour que les deux vignettes soient de la meme
+          borderRadius: "50%",
+          // La taille suit le cote : la meme vignette sert a 36 pixels
+          // dans une liste et bien plus grand dans une fiche. Le
+          // rapport est celui de `.av` — 13 px de texte pour 36 de
+          // cote — pour que les deux vignettes soient de la meme
           // famille.
-          borderRadius: Math.round(taille * 0.22),
           fontSize: Math.round(taille * 0.36),
           lineHeight: 1,
         }}
