@@ -180,8 +180,16 @@ const MAX_ACTIVITES = 60;
  * parler français, et le jour où l'application sera traduite, tout se
  * changera ici. `e` porte l'accord — « Vente supprimée », « Achat
  * supprimé ».
+ *
+ * Exportée pour que le tableau de bord v2 dise les mêmes mots que la
+ * cloche et l'historique. Deux tables de traduction pour les mêmes
+ * lignes finiraient par diverger, et le même geste porterait deux noms
+ * selon l'écran.
  */
-const ENTITES: Record<string, { libelle: string; e: "" | "e"; module: string; onglet: ActiveTab }> =
+export const ENTITES: Record<
+  string,
+  { libelle: string; e: "" | "e"; module: string; onglet: ActiveTab }
+> =
   {
     sales: { libelle: "Vente", e: "e", module: "ventes", onglet: "ventes" },
     purchases: { libelle: "Achat", e: "", module: "achats", onglet: "achats" },

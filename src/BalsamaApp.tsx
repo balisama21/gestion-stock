@@ -44,6 +44,10 @@ import { useStoreData } from "./hooks/useStoreData";
 import { useStoreMembers } from "./hooks/useStoreMembers";
 import { useNotificationPrefs } from "./lib/notificationPrefs";
 import {
+  useCaptureDuDrapeau,
+  useDashboardV2,
+} from "./features/dashboard-v2/drapeau";
+import {
   contextePersonnalisation,
   lirePersonnalisation,
   moduleMasque,
@@ -69,6 +73,14 @@ import {
 const AuthPage = lazy(() => import("./components/AuthPage").then((m) => ({ default: m.AuthPage })));
 const DashboardView = lazy(() =>
   import("./components/DashboardView").then((m) => ({ default: m.DashboardView })),
+);
+// Le tableau de bord v2, derriere son drapeau. Tant qu il est baisse,
+// ce module n est meme pas telecharge : la refonte ne coute rien aux
+// boutiques qui ne l ont pas demandee.
+const DashboardV2Page = lazy(() =>
+  import("./features/dashboard-v2/DashboardV2Page").then((m) => ({
+    default: m.DashboardV2Page,
+  })),
 );
 const CapitalView = lazy(() =>
   import("./components/CapitalView").then((m) => ({ default: m.CapitalView })),
@@ -186,6 +198,15 @@ function AppInner() {
   );
 
   const [activeTab, setActiveTab] = useState<ActiveTab>("dashboard");
+
+  /**
+   * Quel tableau de bord s affiche.
+   *
+   * Le drapeau se lit ici et nulle part ailleurs : c est le seul
+   * endroit de l application ou l ecran d accueil se choisit. Voir
+   * src/features/dashboard-v2/drapeau.ts pour les deux interrupteurs.
+   */
+  const dashboardV2 = useDashboardV2();
 
   // Sur quelle section ouvrir les Parametres a la prochaine arrivee.
   // La roue dentee ne dit rien et laisse « Mon compte » ; le logo de
@@ -574,6 +595,16 @@ function AppInner() {
   const peutEnregistrerUnAchat =
     workspace.isOwner ||
     hasModuleAction(workspace.memberPermissionsDetailed ?? {}, "achats", "create");
+
+  /** Enregistrer une vente : meme regle, pour le bouton « + Vendre ». */
+  const peutEnregistrerUneVente =
+    workspace.isOwner ||
+    hasModuleAction(workspace.memberPermissionsDetailed ?? {}, "ventes", "create");
+
+  /** Cocher une tache : le proprietaire, ou qui a le droit de la modifier. */
+  const peutTerminerUneTache =
+    workspace.isOwner ||
+    hasModuleAction(workspace.memberPermissionsDetailed ?? {}, "taches", "edit");
 
   /**
    * Les demandes d'avance qui attendent une décision.
@@ -1385,47 +1416,91 @@ function AppInner() {
               <Suspense fallback={<EcranQuiArrive />}>
                 {activeTab === "dashboard" &&
                   (hasDashboardAccess ? (
-                    <DashboardView
-                      capital={computedCapital}
-                      products={products}
-                      sales={sales}
-                      purchases={purchases}
-                      expenses={expenses}
-                      sellers={computedSellers}
-                      orders={storeData.orders}
-                      clients={storeData.clients}
-                      quotes={storeData.quotes}
-                      deliveries={storeData.deliveries}
-                      productImages={storeData.productImages}
-                      categories={storeData.categories}
-                      taches={organisation.taches}
-                      // Les règles de lecture ont déjà fait le tri : un
-                      // collaborateur ne reçoit que ses propres lignes,
-                      // et ne verra donc jamais la demande d'un collègue
-                      // apparaître dans « En suspens ».
-                      avancesEnAttente={avancesEnAttente}
-                      locale={locale}
-                      onNavigateTab={setActiveTab}
-                      // Absent quand la personne n'a pas le droit
-                      // d'enregistrer un achat : la ligne de stock
-                      // redevient alors une simple information.
-                      onReapprovisionner={
-                        peutEnregistrerUnAchat
-                          ? (p) => {
-                              setReapprovisionner({
-                                designation: p.designation,
-                                prixAchat: p.prixAchat,
-                                fournisseur: p.fournisseur,
-                              });
-                              setActiveTab("achats");
-                            }
-                          : undefined
-                      }
-                      showPrixAchat={
-                        produitsVisibleFields === null ||
-                        produitsVisibleFields.includes("prix_achat")
-                      }
-                    />
+                    dashboardV2 ? (
+                      // Les collections `visible*` sont celles que recoivent
+                      // deja les pages Ventes, Depenses et Clients : elles ne
+                      // contiennent que ce que cette personne a le droit de
+                      // lire, selon la portee de chaque module. Le tableau de
+                      // bord v2 s en sert plutot que des listes completes,
+                      // pour qu un collaborateur en portee « mes donnees » y
+                      // lise ses chiffres a lui. La tresorerie et les soldes
+                      // vendeurs restent globaux : ce sont des soldes de
+                      // boutique, et leurs cartes ont leurs propres droits.
+                      <DashboardV2Page
+                        storeId={workspace.activeStore?.id ?? null}
+                        capital={computedCapital}
+                        products={products}
+                        sales={visibleSales}
+                        purchases={purchases}
+                        expenses={visibleExpenses}
+                        payments={visiblePayments}
+                        sellers={computedSellers}
+                        orders={visibleOrders}
+                        clients={visibleClients}
+                        quotes={storeData.quotes}
+                        deliveries={storeData.deliveries}
+                        taches={organisation.taches}
+                        productImages={storeData.productImages}
+                        evenements={calendrier.evenements}
+                        rappels={memos.rappels}
+                        nomBoutique={workspace.activeStore?.name || APP_NAME}
+                        supplierPayments={storeData.supplierPayments}
+                        onTerminerTache={
+                          peutTerminerUneTache
+                            ? (id) => organisation.changerStatut(id, "termine")
+                            : undefined
+                        }
+                        theme={theme}
+                        setTheme={setTheme}
+                        onRafraichir={storeData.refresh}
+                        onNavigateTab={(onglet) =>
+                          setActiveTab(onglet as ActiveTab)
+                        }
+                        peutVendre={peutEnregistrerUneVente}
+                      />
+                    ) : (
+                      <DashboardView
+                        capital={computedCapital}
+                        products={products}
+                        sales={sales}
+                        purchases={purchases}
+                        expenses={expenses}
+                        sellers={computedSellers}
+                        orders={storeData.orders}
+                        clients={storeData.clients}
+                        quotes={storeData.quotes}
+                        deliveries={storeData.deliveries}
+                        productImages={storeData.productImages}
+                        categories={storeData.categories}
+                        taches={organisation.taches}
+                        // Les règles de lecture ont déjà fait le tri : un
+                        // collaborateur ne reçoit que ses propres lignes,
+                        // et ne verra donc jamais la demande d'un collègue
+                        // apparaître dans « En suspens ».
+                        avancesEnAttente={avancesEnAttente}
+                        locale={locale}
+                        onNavigateTab={setActiveTab}
+                        // Absent quand la personne n'a pas le droit
+                        // d'enregistrer un achat : la ligne de stock
+                        // redevient alors une simple information.
+                        onReapprovisionner={
+                          peutEnregistrerUnAchat
+                            ? (p) => {
+                                setReapprovisionner({
+                                  designation: p.designation,
+                                  prixAchat: p.prixAchat,
+                                  fournisseur: p.fournisseur,
+                                });
+                                setActiveTab("achats");
+                              }
+                            : undefined
+                        }
+                        showPrixAchat={
+                          produitsVisibleFields === null ||
+                          produitsVisibleFields.includes("prix_achat")
+                        }
+                      />
+                    )
                   ) : (
                     <MyActivityView
                       variant="dashboard"
@@ -1934,6 +2009,11 @@ function WorkspaceLoader({ children }: { children: React.ReactNode }) {
 // so this component simply consumes it via useAuth() instead of creating its own instance.
 export default function App() {
   const { user, profile, loading, isActivated, isPasswordRecovery } = useAuth();
+
+  // Un lien du genre « …/?dashboard_v2=1 » allume le nouveau tableau de
+  // bord sur cet appareil. Lu ici, a l ouverture de la page, pour que le
+  // choix survive a l ecran de connexion.
+  useCaptureDuDrapeau();
   const [locked, setLocked] = useState(false);
   // Empêche de re-verrouiller plusieurs fois pendant la même session déjà
   // déverrouillée : on ne veut appliquer cette règle qu'UNE SEULE fois,
