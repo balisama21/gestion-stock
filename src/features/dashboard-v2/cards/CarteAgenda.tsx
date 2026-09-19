@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { Card } from "../components/Card";
 import { dateLocale, pluriel } from "../lib/format";
 import { dateDuJour } from "../../../lib/dates";
@@ -17,6 +17,18 @@ import { agendaDuMois, joursDuMois, prochainsDepuis, type SourcesAgenda } from "
  * à partir de ce jour-là. On regarde la semaine prochaine sans quitter
  * le tableau de bord, et la flèche de l'en-tête reste le seul chemin
  * vers l'agenda complet.
+ *
+ * LE CHEVRON REPLIE LA GRILLE. Six rangées de quantièmes, c'est la
+ * carte la plus haute du tableau de bord, et l'essentiel de ce qu'on
+ * vient y chercher tient dans les trois lignes du bas : ce qui arrive.
+ * Repliée, la carte garde son en-tête et cette liste, et rend sa
+ * hauteur aux voisines.
+ *
+ * LE CHOIX EST RETENU, par navigateur. Quelqu'un qui n'utilise pas le
+ * calendrier ne doit pas avoir à le replier à chaque visite. Lu après
+ * le premier rendu et non pendant : le serveur n'a pas de
+ * `localStorage`, et lire pendant le rendu ferait diverger les deux
+ * arbres.
  */
 
 const FLECHE = (
@@ -31,6 +43,23 @@ const FLECHE = (
   </svg>
 );
 
+/** Le chevron du repli. Vers le bas quand la grille est dépliée. */
+const CHEVRON = (
+  <svg
+    viewBox="0 0 24 24"
+    fill="none"
+    stroke="currentColor"
+    strokeWidth="2.4"
+    strokeLinecap="round"
+    strokeLinejoin="round"
+  >
+    <path d="m6 9 6 6 6-6" />
+  </svg>
+);
+
+/** Même préfixe que le mode focus et la table de contrôle. */
+const CLE_REPLI = "tantana.dash.agenda-replie";
+
 const JOURS = ["L", "M", "M", "J", "V", "S", "D"];
 
 export const CarteAgenda: React.FC<{
@@ -44,6 +73,29 @@ export const CarteAgenda: React.FC<{
   }, [aujourdhui]);
 
   const [selection, setSelection] = useState<string | null>(null);
+
+  const [replie, setReplie] = useState(false);
+  useEffect(() => {
+    try {
+      setReplie(window.localStorage.getItem(CLE_REPLI) === "1");
+    } catch {
+      /* Navigation privée : le calendrier repart déplié. */
+    }
+  }, []);
+
+  const basculer = () => {
+    const suivant = !replie;
+    setReplie(suivant);
+    // Un jour choisi dans la grille n'a plus de sens quand la grille
+    // disparaît : la liste du bas repart d'aujourd'hui.
+    if (suivant) setSelection(null);
+    try {
+      if (suivant) window.localStorage.setItem(CLE_REPLI, "1");
+      else window.localStorage.removeItem(CLE_REPLI);
+    } catch {
+      /* Le choix ne vaut alors que pour cette page-ci. */
+    }
+  };
 
   const table = useMemo(
     () => agendaDuMois(sources, annee, mois, aujourdhui),
@@ -63,60 +115,83 @@ export const CarteAgenda: React.FC<{
   });
 
   return (
-    <Card span={4} id="carte-agenda" className="agenda">
+    <Card span={4} id="carte-agenda" className={`agenda${replie ? " replie" : ""}`}>
       <div className="cal-head">
         <div>
           <b>{nomDuMois}</b>
           <br />
           <small>Agenda de la boutique</small>
         </div>
-        {onOuvrir && (
-          <button className="nav-btn" type="button" onClick={onOuvrir} aria-label="Ouvrir l'agenda">
-            {FLECHE}
+        <div className="cal-actions">
+          <button
+            className={`nav-btn plier${replie ? " replie" : ""}`}
+            type="button"
+            onClick={basculer}
+            aria-expanded={!replie}
+            aria-label={replie ? "Déplier le calendrier" : "Replier le calendrier"}
+            title={replie ? "Déplier le calendrier" : "Replier le calendrier"}
+          >
+            {CHEVRON}
           </button>
-        )}
+          {onOuvrir && (
+            <button
+              className="nav-btn"
+              type="button"
+              onClick={onOuvrir}
+              aria-label="Ouvrir l'agenda"
+            >
+              {FLECHE}
+            </button>
+          )}
+        </div>
       </div>
 
-      <div className="cal">
-        {JOURS.map((j, i) => (
-          <div className="dow" key={i}>
-            {j}
-          </div>
-        ))}
-        {Array.from({ length: vides }, (_, i) => (
-          <div key={`v${i}`} />
-        ))}
-        {jours.map((jour) => {
-          const items = table.get(jour) ?? [];
-          const quantieme = Number(jour.slice(8));
-          const classes = [
-            "d",
-            jour < aujourdhui ? "past" : "",
-            jour === aujourdhui ? "today" : "",
-            jour === selection ? "sel" : "",
-          ]
-            .filter(Boolean)
-            .join(" ");
-          return (
-            <button
-              key={jour}
-              type="button"
-              className={classes}
-              onClick={() => setSelection(jour)}
-              aria-label={`${quantieme} ${nomDuMois}${items.length ? `, ${pluriel(items.length, "élément")}` : ""}`}
-            >
-              {quantieme}
-              {items.length > 0 && (
-                <span className="ev">
-                  {items.slice(0, 3).map((it) => (
-                    <i key={it.id} />
-                  ))}
-                </span>
-              )}
-            </button>
-          );
-        })}
-      </div>
+      {/* Retiree du DOM, et non masquee : `.cal` est un `display:
+          grid` qui l'emporterait sur l'attribut `hidden`, et ses
+          trente boutons resteraient atteignables au clavier dans une
+          carte pourtant repliee. */}
+      {!replie && (
+        <div className="cal">
+          {JOURS.map((j, i) => (
+            <div className="dow" key={i}>
+              {j}
+            </div>
+          ))}
+          {Array.from({ length: vides }, (_, i) => (
+            <div key={`v${i}`} />
+          ))}
+          {jours.map((jour) => {
+            const items = table.get(jour) ?? [];
+            const quantieme = Number(jour.slice(8));
+            const classes = [
+              "d",
+              jour < aujourdhui ? "past" : "",
+              jour === aujourdhui ? "today" : "",
+              jour === selection ? "sel" : "",
+            ]
+              .filter(Boolean)
+              .join(" ");
+            return (
+              <button
+                key={jour}
+                type="button"
+                className={classes}
+                onClick={() => setSelection(jour)}
+                aria-label={`${quantieme} ${nomDuMois}${items.length ? `, ${pluriel(items.length, "élément")}` : ""}`}
+              >
+                {quantieme}
+                {items.length > 0 && (
+                  <span className="ev">
+                    {items.slice(0, 3).map((it) => (
+                      <i key={it.id} />
+                    ))}
+                  </span>
+                )}
+              </button>
+            );
+          })}
+        </div>
+      )}
 
       <div className="evlist">
         {prochains.length === 0 ? (

@@ -1766,6 +1766,35 @@
   width: 14px;
   height: 14px;
 }
+/* Les deux boutons de l'en-tête : replier, puis ouvrir en grand. */
+.dash2 .cal-head .cal-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  flex: none;
+}
+/* Le chevron pointe vers le bas quand la grille est dépliée, et se
+   retourne une fois repliée : il montre toujours ce que le clic va
+   faire. */
+.dash2 .cal-head .nav-btn.plier svg {
+  transition: transform 0.18s ease;
+}
+.dash2 .cal-head .nav-btn.plier.replie svg {
+  transform: rotate(180deg);
+}
+@media (prefers-reduced-motion: reduce) {
+  .dash2 .cal-head .nav-btn.plier svg {
+    transition: none;
+  }
+}
+/* Repliée, la grille disparaît et la liste du bas remonte contre
+   l'en-tête vert. Son filet pointillé n'a plus rien à séparer : on
+   l'efface et on rend l'air en marge. */
+.dash2 .agenda.replie .evlist {
+  margin-top: 14px;
+  border-top: 0;
+  padding-top: 0;
+}
 .dash2 .cal {
   display: grid;
   grid-template-columns: repeat(7, 1fr);
