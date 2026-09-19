@@ -61,6 +61,11 @@ export interface LigneJournalComplete {
   id: number;
   cree_le: string;
   entite: string;
+  /**
+   * La ligne visée. Sert à rapprocher une modification de la création
+   * qu'elle prolonge — voir `retouchesDeCreation` dans `lib/activite`.
+   */
+  entite_id: string | null;
   action: string;
   etiquette: string | null;
   montant: number | null;
@@ -189,7 +194,7 @@ export function useDashboardData(
       if (!veutJournal) return { ok: true, lignes: [] };
       const { data, error } = await supabase
         .from("journal_activite")
-        .select("id, cree_le, entite, action, etiquette, montant, acteur_id")
+        .select("id, cree_le, entite, entite_id, action, etiquette, montant, acteur_id")
         .eq("store_id", storeId)
         .order("cree_le", { ascending: false })
         .limit(LIGNES_JOURNAL);

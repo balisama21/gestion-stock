@@ -204,6 +204,100 @@ export const ENTITES: Record<
   };
 
 /**
+ * LES RETOUCHES QUI FONT PARTIE DE LA CRÉATION
+ *
+ * Enregistrer une vente inscrivait « Vente créée » PUIS « Vente
+ * modifiée » à la même minute. Créer un produit avec sa fiche
+ * descriptive inscrivait « Produit créé » PUIS « Produit modifié ».
+ * Un seul geste, deux lignes — et la seconde ne dit rien que la
+ * première ne dise déjà.
+ *
+ * D'OÙ CELA VIENT. Le déclencheur `journaliser_activite` écoute les
+ * `UPDATE` autant que les `INSERT`, et deux écritures suivent de près
+ * une création :
+ *
+ *   ventes    `create_sale` insère la vente, puis lui rattache son
+ *             ticket de caisse — `UPDATE sales SET ticket_id = …`,
+ *             dans la même transaction. `ticket_id` est un numéro de
+ *             regroupement interne, jamais une correction humaine.
+ *   produits  l'écran Produits crée la fiche en trois champs, puis
+ *             envoie le reste du formulaire s'il a été rempli. Deux
+ *             allers-retours, une fraction de seconde d'écart, mais
+ *             une seule intention : « je crée ce produit ».
+ *
+ * CE QUE FAIT CETTE FONCTION. Elle rend les identifiants des lignes de
+ * modification à taire. Trois conditions, toutes nécessaires : même
+ * entité, même personne, et moins de dix secondes après la création.
+ * Dix secondes parce que le second appel part sur le réseau du client,
+ * qui n'est pas toujours rapide ; même personne pour qu'une correction
+ * faite par quelqu'un d'autre reste visible quoi qu'il arrive.
+ *
+ * C'est une règle d'AFFICHAGE : la ligne reste en base, et le jour où
+ * le déclencheur cessera de l'écrire, cette fonction continuera de
+ * nettoyer l'historique déjà accumulé.
+ *
+ * QUI S'EN SERT, ET QUI NE PEUT PAS ENCORE. Le tableau de bord, qui lit
+ * le journal créations comprises, a tout ce qu'il faut. L'historique de
+ * la cloche, lui, écarte les créations dès la requête (`useJournalActivite`)
+ * et les déduit des données chargées : il n'a donc aucune ligne de
+ * création à opposer à la modification. Lui rendre ce service
+ * demanderait d'exposer `created_at` sur les types métier `Sale` et
+ * `Product`, c'est-à-dire de toucher la couche de données d'une
+ * application en service pour un confort d'affichage. Le vrai remède
+ * est côté base — voir `docs/dashboard-v2/sql-propose.sql`.
+ */
+export interface GesteJournal {
+  id: number;
+  cree_le: string;
+  entite: string;
+  entite_id: string | null;
+  action: string;
+  acteur_id: string | null;
+}
+
+/** Au-delà, c'est une correction, plus une création qui se termine. */
+const DELAI_RETOUCHE_MS = 10_000;
+
+export function retouchesDeCreation(journal: readonly GesteJournal[]): Set<number> {
+  // Quand chaque ligne est née. Une entité peut avoir été créée,
+  // supprimée, recréée : on garde la création la plus récente d'avant
+  // la modification, donc on parcourt dans l'ordre chronologique.
+  const creeA = new Map<string, number>();
+  const aTaire = new Set<number>();
+
+  // À horodatage ÉGAL, l'identifiant départage. Ce n'est pas un détail :
+  // quand la base crée puis modifie une ligne dans la même transaction,
+  // les deux portent exactement le même `cree_le`, parce que `now()`
+  // vaut l'heure de début de transaction. Sans ce second critère, la
+  // modification pouvait être examinée avant sa propre création, et
+  // échappait alors à la règle. `id` est un compteur : l'ordre des
+  // numéros est l'ordre d'écriture.
+  const chronologique = [...journal].sort((a, b) =>
+    a.cree_le === b.cree_le ? a.id - b.id : a.cree_le < b.cree_le ? -1 : 1,
+  );
+
+  for (const l of chronologique) {
+    if (!l.entite_id) continue;
+    const cle = `${l.entite}:${l.entite_id}:${l.acteur_id ?? ""}`;
+    const instant = Date.parse(l.cree_le);
+    if (Number.isNaN(instant)) continue;
+
+    if (l.action === "creation") {
+      creeA.set(cle, instant);
+      continue;
+    }
+    if (l.action !== "modification") continue;
+
+    const naissance = creeA.get(cle);
+    if (naissance !== undefined && instant - naissance <= DELAI_RETOUCHE_MS) {
+      aTaire.add(l.id);
+    }
+  }
+
+  return aTaire;
+}
+
+/**
  * Le nom d'une colonne, dit comme on le dirait à voix haute.
  *
  * La table en contient une centaine ; seules les plus souvent corrigées

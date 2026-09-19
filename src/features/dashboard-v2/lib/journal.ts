@@ -1,4 +1,4 @@
-import { ENTITES } from "../../../lib/activite";
+import { ENTITES, retouchesDeCreation } from "../../../lib/activite";
 import { dateDuJour } from "../../../lib/dates";
 import type { LigneJournalComplete } from "../hooks/useDashboardData";
 
@@ -64,7 +64,18 @@ export function lireLigneJournal(l: LigneJournalComplete): EvenementJournal | nu
   };
 }
 
-/** Les lignes lisibles, dans l'ordre où elles sont arrivées. */
+/**
+ * Les lignes lisibles, dans l'ordre où elles sont arrivées.
+ *
+ * Les retouches qui appartiennent à une création sont tues : enregistrer
+ * une vente écrivait « Vente créée » puis « Vente modifiée » à la même
+ * seconde, parce que la base rattache son ticket de caisse juste après
+ * l'avoir insérée. Un seul geste ne doit faire qu'une ligne.
+ */
 export function lireJournal(lignes: LigneJournalComplete[]): EvenementJournal[] {
-  return lignes.map(lireLigneJournal).filter((e): e is EvenementJournal => e !== null);
+  const aTaire = retouchesDeCreation(lignes);
+  return lignes
+    .filter((l) => !aTaire.has(l.id))
+    .map(lireLigneJournal)
+    .filter((e): e is EvenementJournal => e !== null);
 }
