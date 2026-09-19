@@ -43,7 +43,10 @@ import { workspaceContext, useWorkspaceState, useWorkspace } from "./hooks/useWo
 import { useStoreData } from "./hooks/useStoreData";
 import { useStoreMembers } from "./hooks/useStoreMembers";
 import { useNotificationPrefs } from "./lib/notificationPrefs";
-import { useDashboardV2 } from "./features/dashboard-v2/drapeau";
+import {
+  useCaptureDuDrapeau,
+  useDashboardV2,
+} from "./features/dashboard-v2/drapeau";
 import {
   contextePersonnalisation,
   lirePersonnalisation,
@@ -2006,6 +2009,11 @@ function WorkspaceLoader({ children }: { children: React.ReactNode }) {
 // so this component simply consumes it via useAuth() instead of creating its own instance.
 export default function App() {
   const { user, profile, loading, isActivated, isPasswordRecovery } = useAuth();
+
+  // Un lien du genre « …/?dashboard_v2=1 » allume le nouveau tableau de
+  // bord sur cet appareil. Lu ici, a l ouverture de la page, pour que le
+  // choix survive a l ecran de connexion.
+  useCaptureDuDrapeau();
   const [locked, setLocked] = useState(false);
   // Empêche de re-verrouiller plusieurs fois pendant la même session déjà
   // déverrouillée : on ne veut appliquer cette règle qu'UNE SEULE fois,
