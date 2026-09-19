@@ -183,6 +183,48 @@ export interface SourcesActivite {
   formatMontant: (montant: number) => string;
 }
 
+/**
+ * LES ÉCRANS QUI SAVENT RECEVOIR UNE RÉFÉRENCE
+ *
+ * Viser une ligne consiste à pré-remplir la recherche de l'écran
+ * d'arrivée. Si cet écran ne cherche pas sur ce qu'on lui donne, il
+ * s'ouvre sur une liste VIDE — ce qui est pire que de ne pas filtrer
+ * du tout : on croit qu'il n'y a rien.
+ *
+ * C'est arrivé : un règlement envoyait « PAY044 » à « Paiements à
+ * recevoir », qui ne cherche que sur le libellé d'une créance et le
+ * nom du client. Résultat : rien.
+ *
+ * Cette liste est donc la seule autorisation. Un écran n'y figure
+ * qu'à deux conditions, toutes deux vérifiées dans son code : il
+ * s'abonne bien à `useRechercheInitiale`, ET sa recherche porte sur
+ * le numéro court ou le nom qu'on lui envoie.
+ *
+ * « paiements » en est volontairement absent : cet écran liste ce qui
+ * RESTE dû, et un règlement encaissé peut n'y figurer nulle part. Les
+ * règlements pointent désormais vers la vente qu'ils soldent.
+ */
+const ECRANS_QUI_VISENT = new Set<ActiveTab>([
+  "ventes",
+  "achats",
+  "depenses",
+  "produits",
+  "clients",
+  "devis",
+  "livraisons",
+  "commandes",
+]);
+
+/**
+ * La référence, si et seulement si l'écran visé sait s'en servir.
+ * Sinon rien : l'écran s'ouvre entier, ce qui est le comportement
+ * d'avant et ne trompe personne.
+ */
+function viser(onglet: ActiveTab, reference: string | null | undefined) {
+  const propre = reference?.trim();
+  return propre && ECRANS_QUI_VISENT.has(onglet) ? propre : undefined;
+}
+
 /** Combien d'événements on garde. Au-delà, on consulte l'écran dédié. */
 const MAX_ACTIVITES = 60;
 
@@ -753,11 +795,19 @@ export function construireNotifications(s: SourcesActivite): Notification[] {
         // Un ticket de plusieurs articles n'a pas de numéro à lui :
         // on vise alors sa première ligne, qui suffit à amener
         // l'œil au bon endroit de la liste.
-        reference: premiere.numero || undefined,
+        reference: viser("ventes", premiere.numero),
       });
     }
 
+    // Un règlement encaissé n'est plus une créance : l'écran
+    // « Paiements à recevoir » peut ne pas le contenir du tout, et il ne
+    // cherche de toute façon pas sur un numéro de règlement. On conduit
+    // donc à la VENTE que ce règlement solde, qui est là où l'on va
+    // vraiment regarder. Faute de vente identifiable, on garde l'écran
+    // des paiements, sans filtre.
+    const numeroDeLaVente = new Map(s.sales.map((v) => [v.id, v.numero]));
     for (const r of s.reglements) {
+      const vente = r.sale_id ? numeroDeLaVente.get(r.sale_id) : undefined;
       activites.push({
         id: `act-reglement-${r.id}`,
         genre: "activite",
@@ -766,8 +816,8 @@ export function construireNotifications(s: SourcesActivite): Notification[] {
         quand: r.created_at,
         acteur: nomDe(r.recorded_by),
         ton: "success",
-        onglet: "paiements",
-        reference: r.numero || undefined,
+        onglet: vente ? "ventes" : "paiements",
+        reference: viser("ventes", vente),
       });
     }
   }
@@ -783,7 +833,7 @@ export function construireNotifications(s: SourcesActivite): Notification[] {
         acteur: nomDe(a.auteurId),
         ton: "info",
         onglet: "achats",
-        reference: a.numero || undefined,
+        reference: viser("achats", a.numero),
       });
     }
   }
@@ -799,7 +849,7 @@ export function construireNotifications(s: SourcesActivite): Notification[] {
         acteur: d.vendeur || undefined,
         ton: "warning",
         onglet: "depenses",
-        reference: d.numero || undefined,
+        reference: viser("depenses", d.numero),
       });
     }
   }
@@ -838,6 +888,7 @@ export function construireNotifications(s: SourcesActivite): Notification[] {
         acteur: nomDe(d.created_by),
         ton: d.statut === "accepte" ? "success" : d.statut === "refuse" ? "danger" : "info",
         onglet: "devis",
+        reference: viser("devis", d.numero),
       });
     }
   }
@@ -861,6 +912,9 @@ export function construireNotifications(s: SourcesActivite): Notification[] {
         acteur: nomDe(l.created_by),
         ton: l.statut === "livree" ? "success" : l.statut === "echouee" ? "danger" : "neutre",
         onglet: "livraisons",
+        // À défaut de numéro, le destinataire : la vue cherche sur les
+        // deux.
+        reference: viser("livraisons", l.numero || l.destinataire),
       });
     }
   }
@@ -876,6 +930,7 @@ export function construireNotifications(s: SourcesActivite): Notification[] {
         acteur: nomDe(c.owner_id),
         ton: "info",
         onglet: "commandes",
+        reference: viser("commandes", c.numero),
       });
     }
   }
@@ -891,6 +946,9 @@ export function construireNotifications(s: SourcesActivite): Notification[] {
         acteur: nomDe(c.created_by),
         ton: "neutre",
         onglet: "clients",
+        // Le nom, pas le prénom seul : la vue cherche sur les deux,
+        // mais un prénom courant ramènerait plusieurs fiches.
+        reference: viser("clients", c.nom),
       });
     }
   }
@@ -925,6 +983,12 @@ export function construireNotifications(s: SourcesActivite): Notification[] {
       acteur: nomDe(j.acteur_id),
       ton: supprime ? "danger" : "warning",
       onglet: ent.onglet,
+      // L'étiquette EST le numéro court — « P023 », « V025 » — ou le
+      // nom, selon la table : c'est exactement ce que la recherche de
+      // l'écran d'arrivée sait trouver. Une suppression garde sa
+      // référence : la ligne n'existe plus, la recherche ne ramènera
+      // rien, et c'est la bonne réponse à « montre-la-moi ».
+      reference: viser(ent.onglet, j.etiquette),
     });
   }
 

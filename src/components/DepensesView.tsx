@@ -91,7 +91,7 @@ export const DepensesView: React.FC<DepensesViewProps> = ({
   // Search & Filter State
   const [searchTerm, setSearchTerm] = useState("");
   // Une notification peut viser une ligne précise : la recherche
-  // s'ouvre alors remplie dessus. Voir `src/lib/cibleRecherche.tsx`.
+  // s'ouvre alors remplie dessus. Voir `src/lib/cibleRecherche.ts`.
   useRechercheInitiale("depenses", setSearchTerm);
   const [sellerFilter, setSellerFilter] = useState("Tous");
   const [typeFilter, setTypeFilter] = useState("Tous");

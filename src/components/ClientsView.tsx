@@ -193,7 +193,7 @@ export const ClientsView: React.FC<ClientsViewProps> = ({
 }) => {
   const [search, setSearch] = useState("");
   // Une notification peut viser une ligne précise : la recherche
-  // s'ouvre alors remplie dessus. Voir `src/lib/cibleRecherche.tsx`.
+  // s'ouvre alors remplie dessus. Voir `src/lib/cibleRecherche.ts`.
   useRechercheInitiale("clients", setSearch);
   const [filtre, setFiltre] = useState<"tous" | "actifs" | "inactifs" | "impayes">("tous");
   const [formulaireOuvert, setFormulaireOuvert] = useState(false);

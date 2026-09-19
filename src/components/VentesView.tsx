@@ -496,7 +496,7 @@ export const VentesView: React.FC<VentesViewProps> = ({
 
   const [searchQuery, setSearchQuery] = useState("");
   // Une notification peut viser une ligne précise : la recherche
-  // s'ouvre alors remplie dessus. Voir `src/lib/cibleRecherche.tsx`.
+  // s'ouvre alors remplie dessus. Voir `src/lib/cibleRecherche.ts`.
   useRechercheInitiale("ventes", setSearchQuery);
   const [selectedSellerFilter, setSelectedSellerFilter] = useState("Tous");
   const [selectedStatusFilter, setSelectedStatusFilter] = useState("Tous");

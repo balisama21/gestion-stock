@@ -31,6 +31,7 @@ import {
   type LigneSaisie,
 } from "../lib/devis";
 import { dateDuJour, dateDansNJours } from "../lib/dates";
+import { useRechercheInitiale } from "../lib/cibleRecherche";
 
 type Client = Database["public"]["Tables"]["clients"]["Row"];
 
@@ -120,6 +121,9 @@ export const DevisView: React.FC<DevisViewProps> = ({
   peutSupprimer = true,
 }) => {
   const [recherche, setRecherche] = useState("");
+  // Une notification peut viser une ligne précise : la recherche
+  // s'ouvre alors remplie dessus. Voir `src/lib/cibleRecherche.ts`.
+  useRechercheInitiale("devis", setRecherche);
   const [filtreStatut, setFiltreStatut] = useState("Tous");
 
   const [formulaireOuvert, setFormulaireOuvert] = useState(false);

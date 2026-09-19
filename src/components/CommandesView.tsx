@@ -53,6 +53,7 @@ function getOrderItemLabel(
   );
 }
 import type { Database } from "../lib/database.types";
+import { useRechercheInitiale } from "../lib/cibleRecherche";
 
 type Order = Database["public"]["Tables"]["orders"]["Row"] & {
   client?: Database["public"]["Tables"]["clients"]["Row"] | null;
@@ -150,6 +151,9 @@ export const CommandesView: React.FC<CommandesViewProps> = ({
   onDeleteOrder,
 }) => {
   const [search, setSearch] = useState("");
+  // Une notification peut viser une ligne précise : la recherche
+  // s'ouvre alors remplie dessus. Voir `src/lib/cibleRecherche.ts`.
+  useRechercheInitiale("commandes", setSearch);
   const [filterStatus, setFilterStatus] = useState<OrderStatus | "all">("all");
   const [filterPayment, setFilterPayment] = useState<PaymentStatus | "all">("all");
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);

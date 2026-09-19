@@ -18,6 +18,7 @@ import {
   type Livraison,
 } from "../lib/livraisons";
 import { dateDuJour } from "../lib/dates";
+import { useRechercheInitiale } from "../lib/cibleRecherche";
 
 /** Un membre de l'équipe, tel que l'écran a besoin de le connaître. */
 interface Membre {
@@ -81,6 +82,9 @@ export const LivraisonsView: React.FC<LivraisonsViewProps> = ({
   peutSupprimer = true,
 }) => {
   const [recherche, setRecherche] = useState("");
+  // Une notification peut viser une ligne précise : la recherche
+  // s'ouvre alors remplie dessus. Voir `src/lib/cibleRecherche.ts`.
+  useRechercheInitiale("livraisons", setRecherche);
   const [filtreStatut, setFiltreStatut] = useState("en_cours_seulement");
 
   const [formulaireOuvert, setFormulaireOuvert] = useState(false);

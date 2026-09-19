@@ -147,7 +147,7 @@ export const ProduitsView: React.FC<ProduitsViewProps> = ({
 
   const [searchTerm, setSearchTerm] = useState("");
   // Une notification peut viser une ligne précise : la recherche
-  // s'ouvre alors remplie dessus. Voir `src/lib/cibleRecherche.tsx`.
+  // s'ouvre alors remplie dessus. Voir `src/lib/cibleRecherche.ts`.
   useRechercheInitiale("produits", setSearchTerm);
   const [stockFilter, setStockFilter] = useState<"Tous" | "OK" | "Alerte">("Tous");
   const [supplierFilter, setSupplierFilter] = useState<string>("Tous");

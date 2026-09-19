@@ -49,7 +49,7 @@ export const PaiementsARecevoirView: React.FC<PaiementsARecevoirViewProps> = ({
 }) => {
   const [search, setSearch] = useState("");
   // Une notification peut viser une ligne précise : la recherche
-  // s'ouvre alors remplie dessus. Voir `src/lib/cibleRecherche.tsx`.
+  // s'ouvre alors remplie dessus. Voir `src/lib/cibleRecherche.ts`.
   useRechercheInitiale("paiements", setSearch);
   const [selected, setSelected] = useState<Receivable | null>(null);
   const [showPaymentModal, setShowPaymentModal] = useState(false);

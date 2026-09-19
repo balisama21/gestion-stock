@@ -279,7 +279,7 @@ export const AchatsView: React.FC<AchatsViewProps> = ({
   // Search & Filter state
   const [searchTerm, setSearchTerm] = useState("");
   // Une notification peut viser une ligne précise : la recherche
-  // s'ouvre alors remplie dessus. Voir `src/lib/cibleRecherche.tsx`.
+  // s'ouvre alors remplie dessus. Voir `src/lib/cibleRecherche.ts`.
   useRechercheInitiale("achats", setSearchTerm);
   const [supplierFilter, setSupplierFilter] = useState("Tous");
 
