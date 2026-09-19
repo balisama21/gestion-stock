@@ -3,6 +3,7 @@ import { Card, CardHeader } from "../components/Card";
 import { EtatVide } from "../components/States";
 import { montant, nombre } from "../lib/format";
 import type { ChiffresClients } from "../lib/chiffres";
+import { teinteDe } from "../../../lib/teintes";
 
 /**
  * 13. CLIENTS
@@ -15,15 +16,6 @@ import type { ChiffresClients } from "../lib/chiffres";
  * gestion qui enverrait des relances tout seul finirait par en envoyer
  * une de trop.
  */
-
-/** Six teintes de la palette, choisies par le nom : stables d'un rendu à l'autre. */
-const TEINTES = ["#0E7C5A", "#3A72A6", "#B06F12", "#8A5A9E", "#6B4A2E", "#C0473A"];
-
-function teinteDe(nom: string): string {
-  let somme = 0;
-  for (let i = 0; i < nom.length; i++) somme = (somme + nom.charCodeAt(i)) % 997;
-  return TEINTES[somme % TEINTES.length];
-}
 
 export const CarteClients: React.FC<{
   clients: ChiffresClients;

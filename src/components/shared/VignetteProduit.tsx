@@ -1,5 +1,6 @@
 import React, { useState } from "react";
 import { adresseVignetteProduit } from "../../lib/stockageFichiers";
+import { teinteDe } from "../../lib/teintes";
 
 /**
  * Quelle photo sert de vignette, pour chaque produit.
@@ -48,25 +49,36 @@ interface VignetteProduitProps {
  * verrait d'autant plus. L'adresse demandee au stockage porte le meme
  * `resize=contain`, pour que le rognage ne revienne pas par le serveur.
  *
- * ── Sans photo, l'INITIALE ──
+ * ── Sans photo, l'INITIALE sur sa pastille ──
  *
- * Un produit sans photo porte la premiere lettre de son nom. La place
- * n'est plus laissee vide : une colonne de blancs ne disait pas
- * « ce produit n'a pas de photo », elle donnait l'impression que
- * l'ecran n'avait pas fini de charger.
+ * Un produit sans photo porte la premiere lettre de son nom, en blanc,
+ * sur un fond colore a coins arrondis. La place n'est plus laissee
+ * vide : une colonne de blancs ne disait pas « ce produit n'a pas de
+ * photo », elle donnait l'impression que l'ecran n'avait pas fini de
+ * charger.
  *
- * SIMPLEMENT UNE LETTRE, et c'est voulu : pas de carre, pas d'aplat,
- * pas de couleur. Le carre a initiale colore qu'on voit partout
- * ailleurs enfreindrait la regle de la maison — le rouge, l'orange, le
- * bleu et le violet sont reserves aux badges de statut, le vert aux
- * actions. L'initiale se pose donc en gris discret, a la place exacte
- * qu'aurait occupee la photo.
+ * LA COULEUR VIENT DU NOM, par `teinteDe`, la meme fonction qui colore
+ * les avatars des vendeurs et des clients. Un article garde donc sa
+ * teinte d'un chargement a l'autre et d'un ecran a l'autre, ce qui en
+ * fait un repere utilisable. Elle ne dit RIEN de l'etat de la ligne :
+ * ce n'est pas une couleur de statut, seulement de reconnaissance.
  *
- * LA PLACE RESTE LA MEME, et cela porte tout : la lettre occupe
+ * DES COINS ARRONDIS, PAS UN CERCLE. Le cercle est reserve aux
+ * personnes — c'est la forme de `.av` pour les vendeurs et les
+ * clients. Un article est un objet ; le carre adouci est ce qu'en font
+ * tous les catalogues, et la difference de forme distingue d'un coup
+ * d'oeil un produit d'un humain dans une liste melangee.
+ *
+ * LA PLACE RESTE LA MEME, et cela porte tout : la pastille occupe
  * exactement les dimensions de la photo qu'elle remplace. Sans cela,
  * les lignes sans photo verraient leur texte glisser vers la gauche et
  * la liste cesserait de s'aligner — l'oeil trebuche a chaque saut, et
  * une colonne de noms en dents de scie se lit mal.
+ *
+ * LA PHOTO, ELLE, N'EST PAS ENCADREE. Quand elle existe, elle se pose
+ * toujours nue sur la page, sans fond ni coin arrondi. Ce n'est pas un
+ * oubli : une pastille est une convention qui remplace une image
+ * absente, pas un cadre qu'on imposerait a une image presente.
  *
  * ── Le poids ──
  *
@@ -102,14 +114,18 @@ export const VignetteProduit: React.FC<VignetteProduitProps> = ({
   const cote = { width: taille, height: taille };
 
   if (!chemin || echec) {
-    const lettre = initialeDe(nom);
     return (
       <span
         style={{
           ...cote,
-          // Proportionnelle au cote : la meme vignette sert a 36 pixels
-          // dans une liste et bien plus grand dans une fiche produit.
-          fontSize: Math.round(taille * 0.42),
+          background: teinteDe(nom),
+          // Tout est proportionnel au cote : la meme vignette sert a
+          // 36 pixels dans une liste et bien plus grand dans une fiche.
+          // Les rapports reprennent ceux de `.av` — 13 px de texte pour
+          // 36 de cote — pour que les deux vignettes soient de la meme
+          // famille.
+          borderRadius: Math.round(taille * 0.22),
+          fontSize: Math.round(taille * 0.36),
           lineHeight: 1,
         }}
         title={nom}
@@ -117,9 +133,9 @@ export const VignetteProduit: React.FC<VignetteProduitProps> = ({
         // lecture d'ecran qui annoncerait « H » avant « Huile » ne
         // ferait que begayer.
         aria-hidden="true"
-        className={`flex shrink-0 select-none items-center justify-center font-medium text-muted-foreground ${className}`}
+        className={`flex shrink-0 select-none items-center justify-center font-bold text-white ${className}`}
       >
-        {lettre}
+        {initialeDe(nom)}
       </span>
     );
   }

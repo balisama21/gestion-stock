@@ -3,6 +3,7 @@ import { Card, CardHeader } from "../components/Card";
 import { EtatVide } from "../components/States";
 import { montant, nombre } from "../lib/format";
 import type { Seller } from "../../../types";
+import { teinteDe } from "../../../lib/teintes";
 
 /**
  * 7. CLASSEMENT DES VENDEURS
@@ -21,15 +22,6 @@ import type { Seller } from "../../../types";
  * LA BARRE EST RELATIVE AU PREMIER, non à un total : on lit un
  * classement, pas une part de marché.
  */
-
-/** Six teintes de la palette, choisies par le nom. */
-const TEINTES = ["#0E7C5A", "#3A72A6", "#B06F12", "#8A5A9E", "#6B4A2E", "#C0473A"];
-
-function teinteDe(nom: string): string {
-  let somme = 0;
-  for (let i = 0; i < nom.length; i++) somme = (somme + nom.charCodeAt(i)) % 997;
-  return TEINTES[somme % TEINTES.length];
-}
 
 export const CarteVendeurs: React.FC<{
   vendeurs: Seller[];
