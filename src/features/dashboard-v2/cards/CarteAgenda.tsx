@@ -1,6 +1,6 @@
 import React, { useMemo, useState } from "react";
 import { Card } from "../components/Card";
-import { dateLocale } from "../lib/format";
+import { dateLocale, pluriel } from "../lib/format";
 import { dateDuJour } from "../../../lib/dates";
 import { agendaDuMois, joursDuMois, prochainsDepuis, type SourcesAgenda } from "../lib/agenda";
 
@@ -103,7 +103,7 @@ export const CarteAgenda: React.FC<{
               type="button"
               className={classes}
               onClick={() => setSelection(jour)}
-              aria-label={`${quantieme} ${nomDuMois}${items.length ? `, ${items.length} élément(s)` : ""}`}
+              aria-label={`${quantieme} ${nomDuMois}${items.length ? `, ${pluriel(items.length, "élément")}` : ""}`}
             >
               {quantieme}
               {items.length > 0 && (

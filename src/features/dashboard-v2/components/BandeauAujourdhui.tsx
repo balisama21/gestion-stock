@@ -1,5 +1,13 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
-import { dateLocale, heure, jourEtMois, jourMoisChiffres, montant, nombre } from "../lib/format";
+import {
+  dateLocale,
+  heure,
+  jourEtMois,
+  jourMoisChiffres,
+  montant,
+  montantEnDeux,
+  nombre,
+} from "../lib/format";
 import type { ChiffresDuJour, ChiffresStock } from "../lib/chiffres";
 import type { EvenementJournal } from "../lib/journal";
 import type { CleTuile } from "../registry";
@@ -105,20 +113,17 @@ const TITRES: Record<CleTuile, string> = {
  * Un montant en gros, l'unité en petit à côté.
  *
  * `formatCurrency` rend « 344 800 Ar » d'un seul tenant ; la maquette
- * veut le nombre en trente pixels et « Ar » en quatorze. On coupe donc
- * sur la dernière espace, sans réécrire le formatage — c'est lui qui
- * décide où tombent les séparateurs de milliers.
+ * veut le nombre en trente pixels et « Ar » en quatorze. `montantEnDeux`
+ * sait où couper — et ce n'est pas là où l'on croit : voir son
+ * commentaire, dans `lib/format.ts`.
  */
 const GrosMontant: React.FC<{ valeur: number; signe?: "plus" | "moins" }> = ({ valeur, signe }) => {
-  const texte = montant(valeur);
-  const coupe = texte.lastIndexOf("\u00a0");
-  const chiffre = coupe > 0 ? texte.slice(0, coupe) : texte;
-  const unite = coupe > 0 ? texte.slice(coupe + 1) : "";
+  const { chiffres, unite } = montantEnDeux(valeur);
   const prefixe = signe === "plus" ? "+" : signe === "moins" ? "−" : "";
   return (
     <div className={`tile-valeur num${signe === "plus" && valeur > 0 ? " pos" : ""}`}>
       {prefixe}
-      {chiffre}
+      {chiffres}
       {unite && <small>{unite}</small>}
     </div>
   );

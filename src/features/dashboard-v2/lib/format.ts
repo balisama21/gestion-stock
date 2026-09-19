@@ -22,6 +22,32 @@ import { formatCurrency } from "../../../utils/formulas";
 /** « 344 800 Ar ». Le format de toute l'application. */
 export const montant = (n: number): string => formatCurrency(n);
 
+/**
+ * Le même montant coupé en deux : les chiffres, puis l'unité.
+ *
+ * La maquette écrit le nombre en gros et « Ar » en petit à côté. Reste
+ * à savoir où couper, et c'est plus subtil qu'il n'y paraît :
+ * `formatCurrency` sépare les MILLIERS par une espace INSÉCABLE, et
+ * colle l'unité derrière une espace ORDINAIRE. C'est donc la dernière
+ * espace ordinaire qui marque la coupure.
+ *
+ * Chercher la dernière insécable, comme on le fait spontanément,
+ * coupe au milieu du nombre : « 409 200 Ar » s'affiche alors « 409 »
+ * en quarante-quatre pixels suivi de « 200 Ar » en dix-huit. Le défaut
+ * est passé inaperçu trois phases durant, parce qu'un montant à trois
+ * chiffres — « 5 200 Ar » — a l'air presque normal ainsi.
+ */
+export function montantEnDeux(valeur: number | string): {
+  chiffres: string;
+  unite: string;
+} {
+  const texte = typeof valeur === "number" ? montant(valeur) : valeur;
+  const coupe = texte.lastIndexOf(" ");
+  return coupe > 0
+    ? { chiffres: texte.slice(0, coupe), unite: texte.slice(coupe + 1) }
+    : { chiffres: texte, unite: "" };
+}
+
 /** « 344 800 », sans l'unité — pour les colonnes qui la portent déjà. */
 export function nombre(n: number): string {
   return new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 0 })
@@ -39,6 +65,19 @@ export function nombre(n: number): string {
 export function montantSigne(n: number): string {
   if (n === 0) return montant(0);
   return (n > 0 ? "+" : "−") + montant(Math.abs(n));
+}
+
+/**
+ * « 1 jour », « 5 jours », « 0 jour ».
+ *
+ * Les « jour(s) » entre parenthèses sont une facilité d'écriture qui se
+ * voit : elles disent au lecteur qu'un programme n'a pas su choisir.
+ * En français, le singulier vaut jusqu'à un inclus, pluriel au-delà —
+ * et zéro reste au singulier.
+ */
+export function pluriel(n: number, singulier: string, plur?: string): string {
+  const mot = Math.abs(n) > 1 ? (plur ?? `${singulier}s`) : singulier;
+  return `${nombre(n)} ${mot}`;
 }
 
 /** « 12 % », espace insécable comprise. */

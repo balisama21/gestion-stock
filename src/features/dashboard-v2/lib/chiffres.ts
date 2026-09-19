@@ -49,7 +49,7 @@ export interface SourcesChiffres {
   sellers: Seller[];
   capital: CapitalSummary;
   orders: { statut_commande: string; reste_a_payer: number | null; created_at: string }[];
-  clients: { id: string; nom: string; created_at: string }[];
+  clients: { id: string; nom: string; created_at: string; telephone?: string | null }[];
   quotes: { statut: string; total: number }[];
   deliveries: { statut: string; date_prevue?: string | null }[];
   taches: { statut: string; echeance: string | null }[];
@@ -457,7 +457,13 @@ export function chiffresPaiements(
 export interface ChiffresClients {
   nouveaux: number;
   actifs: number;
-  aRelancer: { id: string | null; nom: string; du: number; depuis: number }[];
+  aRelancer: {
+    id: string | null;
+    nom: string;
+    telephone: string | null;
+    du: number;
+    depuis: number;
+  }[];
 }
 
 export function chiffresClients(
@@ -475,17 +481,17 @@ export function chiffresClients(
 
   const dus = new Map<
     string,
-    { id: string | null; nom: string; du: number; plusVieille: string }
+    { id: string | null; nom: string; telephone: string | null; du: number; plusVieille: string }
   >();
   for (const v of s.sales.filter((x) => x.soldeDu > 0)) {
-    const nom = v.clientId
-      ? (s.clients.find((c) => c.id === v.clientId)?.nom ?? v.clientCredit ?? "Client")
-      : (v.clientCredit ?? "Client");
+    const fiche = v.clientId ? s.clients.find((c) => c.id === v.clientId) : undefined;
+    const nom = fiche?.nom ?? v.clientCredit ?? "Client";
     const cle = v.clientId ?? nom;
     const deja = dus.get(cle);
     dus.set(cle, {
       id: v.clientId ?? null,
       nom,
+      telephone: fiche?.telephone ?? deja?.telephone ?? null,
       du: (deja?.du ?? 0) + v.soldeDu,
       plusVieille: deja && deja.plusVieille < v.date ? deja.plusVieille : v.date,
     });
@@ -498,7 +504,13 @@ export function chiffresClients(
     nouveaux,
     actifs,
     aRelancer: [...dus.values()]
-      .map((c) => ({ id: c.id, nom: c.nom, du: c.du, depuis: enJours(c.plusVieille) }))
+      .map((c) => ({
+        id: c.id,
+        nom: c.nom,
+        telephone: c.telephone,
+        du: c.du,
+        depuis: enJours(c.plusVieille),
+      }))
       .sort((a, b) => b.du - a.du),
   };
 }

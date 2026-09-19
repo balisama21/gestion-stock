@@ -1,6 +1,6 @@
 import React from "react";
 import { Card } from "../components/Card";
-import { montant, nombre } from "../lib/format";
+import { montant, montantEnDeux, nombre } from "../lib/format";
 import type { CapitalSummary } from "../../../types";
 import type { ChiffresFlux } from "../lib/chiffres";
 
@@ -31,10 +31,7 @@ export const CarteTresorerie: React.FC<{
   const total = entrees + sorties;
   const partEntrees = total > 0 ? (entrees / total) * 100 : 0;
 
-  const texte = montantVisible ? montant(solde) : "••• Ar";
-  const coupe = texte.lastIndexOf("\u00a0");
-  const chiffre = coupe > 0 ? texte.slice(0, coupe) : texte;
-  const unite = coupe > 0 ? texte.slice(coupe + 1) : "";
+  const { chiffres, unite } = montantEnDeux(montantVisible ? solde : "••• Ar");
 
   const sousLeSeuil = capital.seuilAlerteTresorerie > 0 && solde < capital.seuilAlerteTresorerie;
 
@@ -47,7 +44,7 @@ export const CarteTresorerie: React.FC<{
 
       <div>
         <div className="big num">
-          {chiffre}
+          {chiffres}
           {unite && <small>{unite}</small>}
         </div>
         <div className={`sub${sousLeSeuil ? " alerte" : ""}`}>

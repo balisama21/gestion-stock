@@ -2352,3 +2352,575 @@
     display: none;
   }
 }
+
+/* ═══════════════════════════════════════════════════════════════════
+   CARTES 11 À 19 — portage des styles de la maquette
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* ── 11. résultat du mois ── */
+
+.dash2 .eq {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.dash2 .eq .r {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  font-size: 13.5px;
+}
+.dash2 .eq .r .lead {
+  flex: 1;
+  border-bottom: 1.5px dotted var(--line);
+  transform: translateY(-4px);
+}
+.dash2 .eq .r .num {
+  font-weight: 600;
+}
+.dash2 .eq .r.minus {
+  color: var(--ink-2);
+}
+.dash2 .res {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  background: var(--accent-soft);
+  border-radius: 12px;
+  padding: 12px 14px;
+  flex-wrap: wrap;
+}
+.dash2 .res small {
+  display: block;
+  color: var(--accent-ink);
+  font-size: 12px;
+  font-weight: 600;
+}
+.dash2 .res b {
+  font-size: 26px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  color: var(--accent-ink);
+}
+.dash2 .res b small {
+  display: inline;
+  font-size: 13px;
+  margin-left: 3px;
+}
+.dash2 .res.negatif {
+  background: var(--crit-soft);
+}
+.dash2 .res.negatif small,
+.dash2 .res.negatif b {
+  color: var(--crit);
+}
+.dash2 .cmp {
+  display: grid;
+  grid-template-columns: 62px 1fr auto;
+  gap: 6px 10px;
+  align-items: center;
+  font-size: 12px;
+  color: var(--muted);
+}
+.dash2 .cmp .bar {
+  height: 8px;
+  border-radius: 99px;
+  background: var(--line-2);
+  overflow: hidden;
+}
+.dash2 .cmp .bar i {
+  display: block;
+  height: 100%;
+  border-radius: 99px;
+}
+.dash2 .cmp .num {
+  color: var(--ink-2);
+  font-size: 12px;
+}
+
+/* ── 12. paiements ── */
+
+.dash2 .stack {
+  display: flex;
+  height: 12px;
+  border-radius: 99px;
+  overflow: hidden;
+  gap: 2px;
+  background: var(--line-2);
+}
+.dash2 .stack i {
+  display: block;
+  height: 100%;
+}
+.dash2 .lignes {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.dash2 .lrow {
+  display: grid;
+  grid-template-columns: 10px 1fr auto;
+  gap: 10px;
+  align-items: center;
+  padding: 7px 6px;
+  border-radius: 9px;
+  border: 0;
+  background: none;
+  text-align: left;
+  width: 100%;
+  color: inherit;
+}
+.dash2 .lrow:hover {
+  background: var(--surface-2);
+}
+.dash2 .lrow i {
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+}
+.dash2 .lrow span {
+  font-size: 13px;
+  min-width: 0;
+}
+.dash2 .lrow span small {
+  display: block;
+  color: var(--muted);
+  font-size: 11.5px;
+}
+.dash2 .lrow b {
+  font-size: 13.5px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.dash2 .lrow.late b {
+  color: var(--warn);
+}
+.dash2 .semaines {
+  display: grid;
+  gap: 8px;
+  align-items: end;
+  height: 64px;
+  border-bottom: 1px solid var(--line-2);
+  padding-bottom: 4px;
+}
+.dash2 .semaines div {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 4px;
+  height: 100%;
+  justify-content: flex-end;
+}
+.dash2 .semaines i {
+  display: block;
+  width: 60%;
+  border-radius: 5px 5px 2px 2px;
+  background: var(--accent);
+  opacity: 0.85;
+  min-height: 3px;
+}
+.dash2 .semaines small {
+  font-size: 10.5px;
+  color: var(--muted);
+  font-family: var(--mono);
+}
+.dash2 .sous-titre {
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+  font-weight: 600;
+}
+
+/* ── 13. clients ── */
+
+.dash2 .facts3 {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 8px;
+}
+.dash2 .fact {
+  background: var(--surface-2);
+  border-radius: 10px;
+  padding: 10px 12px;
+  min-width: 0;
+  border: 0;
+  text-align: left;
+  width: 100%;
+  color: inherit;
+}
+.dash2 .fact small {
+  display: block;
+  color: var(--muted);
+  font-size: 11.5px;
+}
+.dash2 .fact b {
+  font-size: 20px;
+  font-family: var(--mono);
+  display: block;
+}
+.dash2 .fact.warn {
+  background: var(--warn-soft);
+}
+.dash2 .fact.warn b {
+  color: var(--warn);
+}
+.dash2 .people {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.dash2 .person {
+  display: grid;
+  grid-template-columns: 36px minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: center;
+}
+.dash2 .person .info {
+  min-width: 0;
+}
+.dash2 .person .info b {
+  font-size: 13.5px;
+  font-weight: 600;
+  display: block;
+}
+.dash2 .person .info small {
+  color: var(--muted);
+  font-size: 12px;
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* ── 14. journal d'activité ── */
+
+.dash2 .filters {
+  display: flex;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+.dash2 .filters button {
+  border: 1px solid var(--line);
+  background: var(--surface);
+  border-radius: 999px;
+  height: 28px;
+  padding: 0 11px;
+  font-size: 12.5px;
+  color: var(--ink-2);
+}
+.dash2 .filters button:hover {
+  border-color: var(--muted);
+}
+.dash2 .filters button[aria-pressed="true"] {
+  background: var(--accent-soft);
+  color: var(--accent-ink);
+  border-color: transparent;
+  font-weight: 600;
+}
+.dash2 .tl {
+  display: flex;
+  flex-direction: column;
+}
+.dash2 .tlday {
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--muted);
+  font-weight: 600;
+  padding: 10px 0 4px;
+}
+.dash2 .ev-row {
+  display: grid;
+  grid-template-columns: 44px 28px minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: center;
+  padding: 6px 4px;
+  border-radius: 9px;
+}
+.dash2 .ev-row:hover {
+  background: var(--surface-2);
+}
+.dash2 .ev-row time {
+  font-family: var(--mono);
+  font-size: 12px;
+  color: var(--muted);
+  text-align: right;
+}
+.dash2 .ev-row .ic {
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+}
+.dash2 .ev-row .ic svg {
+  width: 14px;
+  height: 14px;
+}
+.dash2 .ev-row .ic.vente {
+  background: var(--accent-soft);
+  color: var(--accent-ink);
+}
+.dash2 .ev-row .ic.reglement {
+  background: var(--info-soft);
+  color: var(--info);
+}
+.dash2 .ev-row .ic.stock {
+  background: var(--warn-soft);
+  color: var(--warn);
+}
+.dash2 .ev-row .ic.autre {
+  background: var(--surface-2);
+  color: var(--ink-2);
+  border: 1px solid var(--line);
+}
+.dash2 .ev-row .tx {
+  font-size: 13px;
+  min-width: 0;
+}
+.dash2 .ev-row .tx small {
+  display: block;
+  color: var(--muted);
+  font-size: 11.5px;
+}
+.dash2 .ev-row .am {
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+/* ── 16. mouvements de stock ── */
+
+.dash2 .mv svg {
+  width: 100%;
+  height: auto;
+  display: block;
+  overflow: visible;
+}
+.dash2 .mv text {
+  font-family: var(--mono);
+  font-size: 10.5px;
+  fill: var(--muted);
+}
+.dash2 .mvtot {
+  display: flex;
+  gap: 18px;
+  flex-wrap: wrap;
+  font-size: 13px;
+  color: var(--ink-2);
+}
+.dash2 .mvtot span {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+}
+.dash2 .mvtot i {
+  width: 10px;
+  height: 10px;
+  border-radius: 3px;
+}
+.dash2 .mvtot b {
+  font-family: var(--mono);
+}
+
+/* ── 15. ruptures à venir ── */
+
+.dash2 .alist {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.dash2 .alert {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 3px 10px;
+  align-items: center;
+  padding: 9px 10px;
+  border-radius: 10px;
+  background: var(--surface-2);
+  border: 0;
+  text-align: left;
+  width: 100%;
+  color: inherit;
+}
+.dash2 .alert:hover {
+  background: var(--line-2);
+}
+.dash2 .alert b {
+  font-size: 13.5px;
+  font-weight: 600;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.dash2 .alert small {
+  grid-column: 1/-1;
+  color: var(--muted);
+  font-size: 12px;
+}
+.dash2 .cover {
+  height: 6px;
+  border-radius: 99px;
+  background: var(--line);
+  overflow: hidden;
+  grid-column: 1/-1;
+}
+.dash2 .cover i {
+  display: block;
+  height: 100%;
+  border-radius: 99px;
+}
+
+/* ── 18. livraisons ── */
+
+.dash2 .route {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.dash2 .stop {
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr) auto;
+  gap: 10px;
+  align-items: center;
+  padding: 10px;
+  border-radius: 12px;
+  border: 1px dashed var(--line);
+}
+.dash2 .stop .dd {
+  text-align: center;
+  border-radius: 8px;
+  background: var(--surface-2);
+  padding: 3px 0;
+  line-height: 1.1;
+}
+.dash2 .stop .dd b {
+  display: block;
+  font-family: var(--mono);
+  font-size: 15px;
+}
+.dash2 .stop .dd small {
+  font-size: 10px;
+  color: var(--muted);
+  text-transform: uppercase;
+}
+.dash2 .stop span {
+  font-size: 13px;
+}
+.dash2 .stop em {
+  font-style: normal;
+  display: block;
+  color: var(--muted);
+  font-size: 12px;
+}
+
+/* ── 17. produits les plus vendus ── */
+
+.dash2 .top {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.dash2 .top li {
+  display: grid;
+  grid-template-columns: 18px minmax(0, 1fr) auto;
+  gap: 3px 10px;
+  align-items: center;
+  border-radius: 8px;
+  padding: 2px 4px;
+  margin: -2px -4px;
+}
+.dash2 .top li.clic {
+  cursor: pointer;
+}
+.dash2 .top li.clic:hover {
+  background: var(--surface-2);
+}
+.dash2 .top .rk {
+  font-size: 11.5px;
+  color: var(--muted);
+  text-align: center;
+}
+.dash2 .top .nm {
+  font-size: 13.5px;
+  font-weight: 500;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.dash2 .top .am {
+  font-size: 13px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+.dash2 .top .bar {
+  grid-column: 2/-1;
+  height: 6px;
+  border-radius: 99px;
+  background: var(--line-2);
+  overflow: hidden;
+}
+.dash2 .top .bar i {
+  display: block;
+  height: 100%;
+  border-radius: 99px;
+  background: var(--accent);
+  min-width: 4px;
+}
+.dash2 .top li:not(:first-child) .bar i {
+  background: var(--info);
+}
+.dash2 .top small {
+  grid-column: 2/-1;
+  color: var(--muted);
+  font-size: 11.5px;
+}
+
+/* ── le panneau de détail : quelques briques de plus ── */
+
+.dash2-portal .form {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 8px 6px;
+}
+.dash2-portal .form label {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  font-size: 12.5px;
+  color: var(--ink-2);
+  font-weight: 500;
+}
+.dash2-portal .canaux {
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+.dash2-portal .canaux a {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  border: 1px solid var(--line);
+  background: var(--surface);
+  border-radius: 999px;
+  padding: 0 14px;
+  height: 36px;
+  font-size: 13px;
+  color: var(--ink-2);
+  text-decoration: none;
+  white-space: nowrap;
+}
+.dash2-portal .canaux a:hover {
+  border-color: var(--muted);
+}
+.dash2-portal .note {
+  color: var(--muted);
+  font-size: 12.5px;
+  padding: 10px 8px 0;
+  margin: 0;
+}

@@ -3,12 +3,11 @@ import "./dashboard.css";
 import { useDashboardPeriod } from "./hooks/useDashboardPeriod";
 import { useDashboardPermissions, MONTANT_MASQUE } from "./hooks/useDashboardPermissions";
 import { useDashboardData } from "./hooks/useDashboardData";
-import { dateCourte, dateLongue, heure, montant, nombre, pourcent } from "./lib/format";
+import { dateCourte, dateLongue, heure, montant, nombre, pluriel, pourcent } from "./lib/format";
 import { MenuOption, MenuPill, Pill } from "./components/Pill";
 import { Card, CardHeader } from "./components/Card";
 import { CarteSquelette, EtatErreur } from "./components/States";
 import { Chip, ChipRienDUrgent } from "./components/Chip";
-import { Drawer, DrawerLigne } from "./components/Drawer";
 import { BandeauAujourdhui } from "./components/BandeauAujourdhui";
 import { CarteTresorerie } from "./cards/CarteTresorerie";
 import { CarteVentes } from "./cards/CarteVentes";
@@ -19,6 +18,16 @@ import { CarteTaches } from "./cards/CarteTaches";
 import { CarteVendeurs } from "./cards/CarteVendeurs";
 import { CarteCommandes } from "./cards/CarteCommandes";
 import { CarteFilVentes } from "./cards/CarteFilVentes";
+import { CarteResultat } from "./cards/CarteResultat";
+import { CartePaiements } from "./cards/CartePaiements";
+import { CarteClients } from "./cards/CarteClients";
+import { CarteJournal } from "./cards/CarteJournal";
+import { CarteRuptures } from "./cards/CarteRuptures";
+import { CarteMouvements } from "./cards/CarteMouvements";
+import { CarteTopProduits } from "./cards/CarteTopProduits";
+import { CarteLivraisons } from "./cards/CarteLivraisons";
+import { CarteFournisseurs } from "./cards/CarteFournisseurs";
+import { PanneauDetail, type VueDetail } from "./components/PanneauDetail";
 import { Trend } from "./components/Trend";
 import { allerALaCarte } from "./lib/defilement";
 import { phraseDeSynthese, syntheseCompacte } from "./lib/summary";
@@ -37,6 +46,7 @@ import {
   type SourcesChiffres,
 } from "./lib/chiffres";
 import { lireJournal } from "./lib/journal";
+import { agendaDuMois } from "./lib/agenda";
 import { VUES, VUE_PAR_CLE } from "./roles";
 import { CARTE_PAR_CLE, type CleCarte, type CleTuile } from "./registry";
 import { dateDuJour } from "../../lib/dates";
@@ -133,7 +143,15 @@ export interface DashboardV2PageProps {
   orders: SourcesChiffres["orders"];
   clients: SourcesChiffres["clients"];
   quotes: SourcesChiffres["quotes"];
-  deliveries: SourcesChiffres["deliveries"];
+  /** Les livraisons, avec de quoi dresser la tournee. */
+  deliveries: {
+    id: string;
+    destinataire: string;
+    adresse?: string | null;
+    statut: string;
+    date_prevue?: string | null;
+    montant_a_encaisser?: number;
+  }[];
   /** Les tâches, avec de quoi les nommer et les cocher. */
   taches: { id: string; titre: string; statut: string; echeance: string | null }[];
   /** Les photos de produits, pour le fil des ventes. */
@@ -283,10 +301,13 @@ export const DashboardV2Page: React.FC<DashboardV2PageProps> = ({
     };
   }, [toutes, periode, aujourdhui, supplierPayments]);
 
+  /** Tout le journal, dit en francais. */
+  const lignesJournal = useMemo(() => lireJournal(donnees.journal), [donnees.journal]);
+
   /** Les lignes du journal d'aujourd'hui, dites en francais. */
   const journalDuJour = useMemo(
-    () => lireJournal(donnees.journal).filter((e) => e.jour === aujourdhui),
-    [donnees.journal, aujourdhui],
+    () => lignesJournal.filter((e) => e.jour === aujourdhui),
+    [lignesJournal, aujourdhui],
   );
 
   /**
@@ -296,12 +317,12 @@ export const DashboardV2Page: React.FC<DashboardV2PageProps> = ({
    * arrive en phase 5 ; d'ici la, la fleche conduit deja quelque part
    * plutot que de ne rien faire.
    */
-  const DESTINATION: Record<CleTuile, string> = {
-    ventes: "ventes",
-    entrees: "paiements",
-    sorties: "depenses",
-    stock: "produits",
-    activite: "historique",
+  const DETAIL_TUILE: Record<CleTuile, VueDetail> = {
+    ventes: { cle: "ventes" },
+    entrees: { cle: "encaisse" },
+    sorties: { cle: "sorties" },
+    stock: { cle: "ruptures" },
+    activite: { cle: "ventes" },
   };
 
   const synthese = useMemo(
@@ -369,7 +390,26 @@ export const DashboardV2Page: React.FC<DashboardV2PageProps> = ({
     setAu(intervalleLibre.fin);
   }, [intervalleLibre.debut, intervalleLibre.fin]);
 
-  const [panneau, setPanneau] = useState(false);
+  const [panneau, setPanneau] = useState<VueDetail | null>(null);
+
+  /**
+   * Ce qui est prevu ce mois-ci, pour le panneau de l'agenda.
+   *
+   * Calcule ici plutot que dans la carte : le panneau doit pouvoir
+   * l'ouvrir meme quand la carte Agenda n'est pas dans la vue.
+   */
+  const agendaDuMoisCourant = useMemo(() => {
+    const d = new Date();
+    const table = agendaDuMois(
+      { evenements, taches, deliveries, rappels },
+      d.getFullYear(),
+      d.getMonth(),
+      aujourdhui,
+    );
+    return [...table.entries()]
+      .sort(([a], [b]) => a.localeCompare(b))
+      .flatMap(([, items]) => items);
+  }, [evenements, taches, deliveries, rappels, aujourdhui]);
 
   const heureLocale = chargeA ? chargeA.getHours() : 12;
   const salutation = heureLocale >= 18 || heureLocale < 4 ? "Bonsoir" : "Bonjour";
@@ -406,21 +446,21 @@ export const DashboardV2Page: React.FC<DashboardV2PageProps> = ({
         ventes={chiffres.ventes}
         periode={periode}
         montantVisible={droits.champVisible("ventes", "montant")}
-        onDetails={onNavigateTab ? () => onNavigateTab("ventes") : undefined}
+        onDetails={() => setPanneau({ cle: "ventes" })}
       />
     ),
     agenda: (
       <CarteAgenda
         sources={{ evenements, taches, deliveries, rappels }}
-        onOuvrir={onNavigateTab ? () => onNavigateTab("agenda") : undefined}
+        onOuvrir={() => setPanneau({ cle: "agenda" })}
       />
     ),
     stock: (
       <CarteStock
         stock={chiffres.stock}
         valeurVisible={droits.champVisible("produits", "valeur_stock")}
-        onProduit={onNavigateTab ? () => onNavigateTab("produits") : undefined}
-        onCommander={onNavigateTab ? () => onNavigateTab("achats") : undefined}
+        onProduit={(produit) => setPanneau({ cle: "produit", produit })}
+        onCommander={() => setPanneau({ cle: "ruptures" })}
       />
     ),
     sorties: (
@@ -451,6 +491,69 @@ export const DashboardV2Page: React.FC<DashboardV2PageProps> = ({
       <CarteCommandes
         commandes={chiffres.commandes}
         onOuvrir={onNavigateTab ? () => onNavigateTab("commandes") : undefined}
+      />
+    ),
+    resultat: (
+      <CarteResultat
+        resultat={chiffres.resultat}
+        periode={periode}
+        visible={droits.champVisible("ventes", "marge")}
+        onDetail={() => setPanneau({ cle: "resultat" })}
+      />
+    ),
+    paiements: (
+      <CartePaiements
+        paiements={chiffres.paiements}
+        periode={periode}
+        visible={droits.champVisible("paiements", "montant")}
+        onEncaisse={() => setPanneau({ cle: "encaisse" })}
+        onRecevoir={() => setPanneau({ cle: "recevoir" })}
+        onRetard={() => setPanneau({ cle: "retard" })}
+      />
+    ),
+    clients: (
+      <CarteClients
+        clients={chiffres.clients}
+        visible={droits.champVisible("clients", "montant")}
+        onRelancer={(client) => setPanneau({ cle: "client", client })}
+        onTous={onNavigateTab ? () => onNavigateTab("clients") : undefined}
+      />
+    ),
+    journal: (
+      <CarteJournal
+        journal={lignesJournal}
+        montantsVisibles={droits.champVisible("historique", "montant")}
+        onHistorique={onNavigateTab ? () => onNavigateTab("historique") : undefined}
+      />
+    ),
+    ruptures: (
+      <CarteRuptures
+        stock={chiffres.stock}
+        onProduit={(produit) => setPanneau({ cle: "produit", produit })}
+      />
+    ),
+    mouvements: <CarteMouvements stock={chiffres.stock} periode={periode} />,
+    top: (
+      <CarteTopProduits
+        top={chiffres.top}
+        totalPeriode={chiffres.ventes.total}
+        periode={periode}
+        visible={droits.champVisible("ventes", "montant")}
+        onToutes={onNavigateTab ? () => onNavigateTab("ventes") : undefined}
+      />
+    ),
+    livraisons: (
+      <CarteLivraisons
+        livraisons={deliveries}
+        visible={droits.champVisible("livraisons", "montant")}
+        onOuvrir={onNavigateTab ? () => onNavigateTab("livraisons") : undefined}
+      />
+    ),
+    fournisseurs: (
+      <CarteFournisseurs
+        fournisseurs={chiffres.fournisseurs}
+        periode={periode}
+        onOuvrir={() => setPanneau({ cle: "fournisseurs" })}
       />
     ),
     fil: (
@@ -689,11 +792,29 @@ export const DashboardV2Page: React.FC<DashboardV2PageProps> = ({
           journal={journalDuJour}
           valeurStockVisible={droits.champVisible("produits", "valeur_stock")}
           montantsAchatVisibles={droits.champVisible("achats", "prix_achat")}
-          onOuvrir={(cle) => onNavigateTab?.(DESTINATION[cle])}
+          onOuvrir={(cle) => {
+            if (cle === "activite") {
+              onNavigateTab?.("historique");
+              return;
+            }
+            setPanneau(DETAIL_TUILE[cle]);
+          }}
           onVendre={peutVendre && onNavigateTab ? () => onNavigateTab("ventes") : undefined}
         />
 
         <section className="grid" aria-label="Tableau de bord">
+          {/* Chaque carte dans l'ordre que la vue a decide. Celles qui
+              restent a construire gardent leur squelette : la place est
+              deja reservee, rien ne sautera quand le contenu arrivera. */}
+          {droits.cartes.map((cle) => {
+            const rendue = cartes[cle];
+            if (rendue) return <React.Fragment key={cle}>{rendue}</React.Fragment>;
+            const def = CARTE_PAR_CLE.get(cle);
+            return (
+              <CarteSquelette key={cle} span={def?.span ?? 4} lignes={def?.span === 8 ? 5 : 3} />
+            );
+          })}
+
           {/* ── Table de contrôle ──
               Provisoire, et c'est le livrable de la phase 2 : chaque
               chiffre que les cartes afficheront, en clair, pour être
@@ -802,12 +923,12 @@ export const DashboardV2Page: React.FC<DashboardV2PageProps> = ({
                 <L
                   nom="À recevoir (moins de 30 j)"
                   valeur={montant(chiffres.paiements.aRecevoir)}
-                  note={`${chiffres.paiements.aRecevoirClients} client(s)`}
+                  note={pluriel(chiffres.paiements.aRecevoirClients, "client")}
                 />
                 <L
                   nom="En retard (plus de 30 j)"
                   valeur={montant(chiffres.paiements.enRetard)}
-                  note={`${chiffres.paiements.enRetardClients} client(s)`}
+                  note={pluriel(chiffres.paiements.enRetardClients, "client")}
                 />
               </Bloc>
 
@@ -868,45 +989,35 @@ export const DashboardV2Page: React.FC<DashboardV2PageProps> = ({
             </div>
 
             <div>
-              <button type="button" className="btn ghost" onClick={() => setPanneau(true)}>
-                Ouvrir le panneau de détail
+              <button
+                type="button"
+                className="btn ghost"
+                onClick={() => setPanneau({ cle: "resultat" })}
+              >
+                Voir le détail du calcul du résultat
               </button>
             </div>
           </Card>
-
-          {/* Chaque carte dans l'ordre que la vue a decide. Celles qui
-              restent a construire gardent leur squelette : la place est
-              deja reservee, rien ne sautera quand le contenu arrivera. */}
-          {droits.cartes.map((cle) => {
-            const rendue = cartes[cle];
-            if (rendue) return <React.Fragment key={cle}>{rendue}</React.Fragment>;
-            const def = CARTE_PAR_CLE.get(cle);
-            return (
-              <CarteSquelette key={cle} span={def?.span ?? 4} lignes={def?.span === 8 ? 5 : 3} />
-            );
-          })}
         </section>
       </div>
 
-      <Drawer
-        open={panneau}
-        onClose={() => setPanneau(false)}
-        title="Panneau de détail"
-        subtitle="Il s'ouvrira sur les lignes réelles de chaque carte"
-        footer={
-          <button type="button" className="btn ghost" onClick={() => setPanneau(false)}>
-            Fermer
-          </button>
-        }
-      >
-        <DrawerLigne titre="Période regardée" detail={periode.nom} valeur={periode.libelle} />
-        <DrawerLigne titre="Comparée à" valeur={periode.libellePrecedent} />
-        <DrawerLigne
-          titre="Ventes de la période"
-          valeur={montant(chiffres.ventes.total)}
-          detail={`${chiffres.ventes.tickets} ticket(s)`}
-        />
-      </Drawer>
+      <PanneauDetail
+        vue={panneau}
+        onFermer={() => setPanneau(null)}
+        onNaviguer={onNavigateTab}
+        donnees={{
+          periode,
+          ventes: chiffres.ventes,
+          flux: chiffres.flux,
+          stock: chiffres.stock,
+          paiements: chiffres.paiements,
+          clients: chiffres.clients,
+          fournisseurs: chiffres.fournisseurs,
+          resultat: chiffres.resultat,
+          agenda: agendaDuMoisCourant,
+          nomBoutique,
+        }}
+      />
     </div>
   );
 };

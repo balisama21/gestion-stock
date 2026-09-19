@@ -86,14 +86,37 @@ construit.
 | 9b  | ↳ **carré de couleur à initiale** du produit | ⚠️   | remplacé par la **vraie photo**, sans cadre ni fond, et par **rien** quand il n'y en a pas — seule la place est conservée pour que les lignes restent alignées. C'est la règle demandée pour tous les écrans de l'application ; un carré à initiale est précisément ce qu'elle interdit. |
 | 10  | **Objectif** (jauge)                         | ⚠️   | **carte retirée** — aucune donnée d'objectif en base                                                                                                                                                                                                                                     |
 
-### Cartes 11 à 19 — à venir
+### Cartes 11 à 19 — construites
 
-Résultat du mois, Paiements, Clients, Journal d'activité, Ruptures à
-venir, Entrées & sorties de stock, Produits les plus vendus, Livraisons
-& réceptions, Fournisseurs à payer, et le panneau de détail. ⏳ phase 5.
+| #   | Carte                                | État | Note                                                                                                                                    |
+| --- | ------------------------------------ | ---- | --------------------------------------------------------------------------------------------------------------------------------------- |
+| 11  | **Résultat du mois**                 | ✅   | équation à pointillés, bloc vert du bénéfice, comparaison en barres, et la phrase sur les achats de stock                               |
+| 12  | **Paiements**                        | ✅   | barre empilée encaissé / à recevoir / en retard, trois lignes cliquables, encaissements par semaine                                     |
+| 13  | **Clients**                          | ✅   | nouveaux, actifs, à relancer, puis la liste avec avatar et bouton                                                                       |
+| 14  | **Journal d'activité**               | ✅   | groupé par jour, pastille colorée par famille, six filtres. Il montre les **créations**, que la cloche écarte.                          |
+| 15  | **Ruptures à venir**                 | ✅   | en rupture puis bientôt, couverture en jours, barre de couverture                                                                       |
+| 16  | **Entrées & sorties de stock**       | ✅   | barres de part et d'autre de zéro, infobulle au survol, mention du repli quand `stock_movements` ne rend rien                           |
+| 17  | **Produits les plus vendus**         | ✅   | top 5, barre relative au premier, part des ventes, et la ligne « Autres »                                                               |
+| 18  | **Livraisons**                       | ✅   | celles du jour, puis celles à venir                                                                                                     |
+| 18b | ↳ « **& réceptions** » dans le titre | ⚠️   | **aucune table ne porte de date de réception prévue**. Le titre a perdu sa seconde moitié plutôt que d'annoncer une donnée inexistante. |
+| 19  | **Fournisseurs à payer**             | ✅   | soldes dus, échéances dépassées en rouge, déjà payé sur la période. La carte disparaît sans le droit de voir les prix d'achat.          |
 
-En attendant, elles gardent un squelette à leur largeur exacte, dans
-l'ordre que la vue a décidé : la place est déjà réservée.
+### Panneau de détail
+
+| Élément                                                                                                                                                 | État | Note                                                                                                                                                                                                                                                               |
+| ------------------------------------------------------------------------------------------------------------------------------------------------------- | ---- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| Colonne de 460 px à droite, feuille du bas ≤ 680 px                                                                                                     | ✅   | mesuré : 460 px                                                                                                                                                                                                                                                    |
+| Échap, ✕, clic à côté ; focus rendu à l'origine                                                                                                         | ✅   | tabulation piégée à l'intérieur tant qu'il est ouvert                                                                                                                                                                                                              |
+| Douze vues : ventes, encaissements, à recevoir, en retard, clients à relancer, un client, un produit, ruptures, sorties, fournisseurs, résultat, agenda | ✅   | lignes réelles, total, puis un bouton qui mène à la page                                                                                                                                                                                                           |
+| **Formulaires de création** (vente, dépense, achat, bon de commande)                                                                                    | ⚠️   | absents. Les formulaires de l'application ne sont pas des composants réutilisables ; le panneau montre, la page enregistre. Écart n° 3, validé.                                                                                                                    |
+| Relance d'un client : appel, SMS, WhatsApp pré-remplis                                                                                                  | ✅   | **rien n'est envoyé** : les liens ouvrent l'application de messages du téléphone                                                                                                                                                                                   |
+| ↳ numéro WhatsApp                                                                                                                                       | ⚠️   | `wa.me` refuse un numéro local. Un numéro commençant par zéro est présumé **malgache** (+261) — hypothèse assumée, l'application écrivant déjà l'Ariary en dur pour tout le monde. Un numéro non interprétable perd son lien WhatsApp, et garde l'appel et le SMS. |
+
+### Table de contrôle
+
+Provisoire, en bas de grille, et destinée à disparaître : elle affiche
+en clair tous les chiffres des cartes pour les confronter à l'ancien
+tableau de bord. Elle n'existe pas dans la maquette.
 
 ## Comportements de la maquette volontairement écartés
 
