@@ -5,6 +5,7 @@ import { PageHeader } from "./shared/PageHeader";
 import { Modal } from "./shared/Modal";
 import { Sale, Payment, Product } from "../types";
 import type { Database } from "../lib/database.types";
+import { useRechercheInitiale } from "../lib/cibleRecherche";
 
 type Order = Database["public"]["Tables"]["orders"]["Row"] & {
   client?: Database["public"]["Tables"]["clients"]["Row"] | null;
@@ -47,6 +48,9 @@ export const PaiementsARecevoirView: React.FC<PaiementsARecevoirViewProps> = ({
   onAddPaymentToOrder,
 }) => {
   const [search, setSearch] = useState("");
+  // Une notification peut viser une ligne précise : la recherche
+  // s'ouvre alors remplie dessus. Voir `src/lib/cibleRecherche.tsx`.
+  useRechercheInitiale("paiements", setSearch);
   const [selected, setSelected] = useState<Receivable | null>(null);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [showHistoryModal, setShowHistoryModal] = useState(false);

@@ -10,7 +10,12 @@ interface PanneauNotificationsProps {
   lues: Set<string>;
   nonLues: number;
   onToutMarquerLu: () => void;
-  onOuvrirEcran: (onglet: ActiveTab) => void;
+  /**
+   * Ouvre l'écran, et vise la ligne quand la notification en
+   * désigne une : la recherche de l'écran d'arrivée est pré-remplie
+   * sur la référence, et la liste n'affiche plus que cette ligne.
+   */
+  onOuvrirEcran: (onglet: ActiveTab, reference?: string) => void;
   onFermer: () => void;
 }
 
@@ -60,7 +65,7 @@ export const PanneauNotifications: React.FC<PanneauNotificationsProps> = ({
       <button
         key={n.id}
         onClick={() => {
-          if (n.onglet) onOuvrirEcran(n.onglet);
+          if (n.onglet) onOuvrirEcran(n.onglet, n.reference);
           onFermer();
         }}
         className="group flex w-full items-start gap-3 px-4 py-3 text-left transition-colors hover:bg-muted active:bg-muted"

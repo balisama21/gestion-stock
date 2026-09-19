@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo, lazy, Suspense } from "react";
 import { Zap, X } from "lucide-react";
+import { contexteCibleRecherche, useEtatCibleRecherche, useViserLigne } from "./lib/cibleRecherche";
 import {
   LocaleSetting,
   ActiveTab,
@@ -198,6 +199,25 @@ function AppInner() {
   );
 
   const [activeTab, setActiveTab] = useState<ActiveTab>("dashboard");
+
+  /**
+   * Ouvrir un écran EN VISANT une ligne, quand une notification en
+   * désigne une : l'écran s'ouvre avec sa recherche remplie sur
+   * « V025 », et sa liste n'affiche plus que cette ligne.
+   *
+   * Deux gestes se combinent ici parce que c'est le seul endroit où
+   * les deux sont à portée : le changement d'écran, qui appartient à
+   * la coquille, et la visée, qui vit dans son propre contexte pour
+   * ne pas traverser quinze composants en propriété.
+   */
+  const viser = useViserLigne();
+  const viserLigne = useCallback(
+    (onglet: ActiveTab, reference: string) => {
+      setActiveTab(onglet);
+      viser(onglet, reference);
+    },
+    [viser],
+  );
 
   /**
    * Quel tableau de bord s affiche.
@@ -1381,6 +1401,7 @@ function AppInner() {
         <Header
           activeTab={activeTab}
           setActiveTab={setActiveTab}
+          onViserLigne={viserLigne}
           settings={storeSettings}
           tresorerie={computedCapital.tresorerieGlobaleActuelle}
           seuilAlerte={computedCapital.seuilAlerteTresorerie}
@@ -2015,6 +2036,14 @@ export default function App() {
   // choix survive a l ecran de connexion.
   useCaptureDuDrapeau();
   const [locked, setLocked] = useState(false);
+
+  /**
+   * La ligne qu'une notification vient de désigner, tenue ici plutôt
+   * que dans `AppInner` : le rendu d'`AppInner` tient dans un seul
+   * arbre de deux mille lignes, qu'une balise de plus décalerait en
+   * entier. Ici, le fournisseur n'enveloppe qu'une ligne.
+   */
+  const cibleRecherche = useEtatCibleRecherche();
   // Empêche de re-verrouiller plusieurs fois pendant la même session déjà
   // déverrouillée : on ne veut appliquer cette règle qu'UNE SEULE fois,
   // au tout premier chargement (nouvel onglet, retour sur le site après
@@ -2116,7 +2145,14 @@ export default function App() {
           Pris en charge nativement par React 19. */}
       <div inert={locked ? true : undefined}>
         <WorkspaceLoader>
-          <AppInner />
+          {/* La ligne qu'une notification vient de désigner, mise à
+              disposition des écrans. Posé ici, et non dans
+              `AppInner`, pour n'envelopper qu'une ligne : le rendu
+              d'`AppInner` tient dans un seul arbre de deux mille
+              lignes, qu'une balise de plus décalerait en entier. */}
+          <contexteCibleRecherche.Provider value={cibleRecherche}>
+            <AppInner />
+          </contexteCibleRecherche.Provider>
         </WorkspaceLoader>
       </div>
 

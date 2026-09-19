@@ -30,6 +30,7 @@ import {
 } from "../lib/champsPersonnalises";
 import type { Sale, Payment } from "../types";
 import type { Database } from "../lib/database.types";
+import { useRechercheInitiale } from "../lib/cibleRecherche";
 
 type Client = Database["public"]["Tables"]["clients"]["Row"];
 type ClientInsert = Database["public"]["Tables"]["clients"]["Insert"];
@@ -191,6 +192,9 @@ export const ClientsView: React.FC<ClientsViewProps> = ({
   onNavigateToOrders,
 }) => {
   const [search, setSearch] = useState("");
+  // Une notification peut viser une ligne précise : la recherche
+  // s'ouvre alors remplie dessus. Voir `src/lib/cibleRecherche.tsx`.
+  useRechercheInitiale("clients", setSearch);
   const [filtre, setFiltre] = useState<"tous" | "actifs" | "inactifs" | "impayes">("tous");
   const [formulaireOuvert, setFormulaireOuvert] = useState(false);
   const [enEdition, setEnEdition] = useState<Client | null>(null);

@@ -27,6 +27,7 @@ import { DetailsProduit } from "./produits/DetailsProduit";
 import { DETAILS_VIDES, detailsVersBase, type ValeursDetails } from "../lib/detailsProduit";
 import { envoyerFichier, supprimerFichier } from "../lib/stockageFichiers";
 import type { Database } from "../lib/database.types";
+import { useRechercheInitiale } from "../lib/cibleRecherche";
 
 interface ProduitsViewProps {
   products: Product[];
@@ -145,6 +146,9 @@ export const ProduitsView: React.FC<ProduitsViewProps> = ({
   const canDelete = canDo("delete");
 
   const [searchTerm, setSearchTerm] = useState("");
+  // Une notification peut viser une ligne précise : la recherche
+  // s'ouvre alors remplie dessus. Voir `src/lib/cibleRecherche.tsx`.
+  useRechercheInitiale("produits", setSearchTerm);
   const [stockFilter, setStockFilter] = useState<"Tous" | "OK" | "Alerte">("Tous");
   const [supplierFilter, setSupplierFilter] = useState<string>("Tous");
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);

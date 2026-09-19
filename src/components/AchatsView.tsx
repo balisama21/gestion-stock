@@ -54,6 +54,7 @@ import {
 } from "../lib/paperFormats";
 import { dateDuJour } from "../lib/dates";
 import { envoyerFichier, supprimerFichier } from "../lib/stockageFichiers";
+import { useRechercheInitiale } from "../lib/cibleRecherche";
 
 interface AchatsViewProps {
   purchases: Purchase[];
@@ -277,6 +278,9 @@ export const AchatsView: React.FC<AchatsViewProps> = ({
 
   // Search & Filter state
   const [searchTerm, setSearchTerm] = useState("");
+  // Une notification peut viser une ligne précise : la recherche
+  // s'ouvre alors remplie dessus. Voir `src/lib/cibleRecherche.tsx`.
+  useRechercheInitiale("achats", setSearchTerm);
   const [supplierFilter, setSupplierFilter] = useState("Tous");
 
   // Print & Export Report Modal State

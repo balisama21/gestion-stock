@@ -38,6 +38,7 @@ import {
   type PaperFormatId,
 } from "../lib/paperFormats";
 import { dateDuJour } from "../lib/dates";
+import { useRechercheInitiale } from "../lib/cibleRecherche";
 
 interface DepensesViewProps {
   expenses: Expense[];
@@ -89,6 +90,9 @@ export const DepensesView: React.FC<DepensesViewProps> = ({
 
   // Search & Filter State
   const [searchTerm, setSearchTerm] = useState("");
+  // Une notification peut viser une ligne précise : la recherche
+  // s'ouvre alors remplie dessus. Voir `src/lib/cibleRecherche.tsx`.
+  useRechercheInitiale("depenses", setSearchTerm);
   const [sellerFilter, setSellerFilter] = useState("Tous");
   const [typeFilter, setTypeFilter] = useState("Tous");
 

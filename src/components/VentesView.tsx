@@ -61,6 +61,7 @@ import {
   type PaperFormatId,
 } from "../lib/paperFormats";
 import { dateDuJour } from "../lib/dates";
+import { useRechercheInitiale } from "../lib/cibleRecherche";
 
 type Client = Database["public"]["Tables"]["clients"]["Row"];
 
@@ -494,6 +495,9 @@ export const VentesView: React.FC<VentesViewProps> = ({
   };
 
   const [searchQuery, setSearchQuery] = useState("");
+  // Une notification peut viser une ligne précise : la recherche
+  // s'ouvre alors remplie dessus. Voir `src/lib/cibleRecherche.tsx`.
+  useRechercheInitiale("ventes", setSearchQuery);
   const [selectedSellerFilter, setSelectedSellerFilter] = useState("Tous");
   const [selectedStatusFilter, setSelectedStatusFilter] = useState("Tous");
 

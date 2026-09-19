@@ -47,6 +47,12 @@ import { usePersonnalisation } from "../lib/personnalisation";
 interface HeaderProps {
   activeTab: ActiveTab;
   setActiveTab: (tab: ActiveTab) => void;
+  /**
+   * Ouvrir un écran EN VISANT une ligne. Séparé de `setActiveTab`,
+   * qui sert à huit autres endroits et n'a aucune raison de porter
+   * un argument dont ils ne se servent pas.
+   */
+  onViserLigne?: (onglet: ActiveTab, reference: string) => void;
   settings: StoreSettings;
   /** Solde de trésorerie, affiché sous le nom de la boutique. */
   tresorerie: number;
@@ -92,6 +98,7 @@ interface HeaderProps {
 export const Header: React.FC<HeaderProps> = ({
   activeTab,
   setActiveTab,
+  onViserLigne,
   settings,
   tresorerie,
   seuilAlerte,
@@ -223,8 +230,9 @@ export const Header: React.FC<HeaderProps> = ({
   const showSettings = canSeeSettings(workspace.memberPermissions);
   const bottomTabs = visibleBottomTabs(workspace.memberPermissions, perso);
 
-  const handleTabClick = (id: ActiveTab) => {
-    setActiveTab(id);
+  const handleTabClick = (id: ActiveTab, reference?: string) => {
+    if (reference && onViserLigne) onViserLigne(id, reference);
+    else setActiveTab(id);
     setMobileMenuOpen(false);
     setNotifOpen(false);
   };

@@ -46,6 +46,19 @@ export interface Notification {
   acteur?: string;
   /** Écran ouvert au clic. */
   onglet?: ActiveTab;
+  /**
+   * De quoi retrouver la ligne sur l'écran d'arrivée : le numéro
+   * court quand il y en a un (« V025 », « ACH013 »), sinon un nom.
+   *
+   * La recherche de l'écran visé est pré-remplie dessus, et la
+   * liste n'affiche plus que cette ligne. Sans cela, une
+   * notification ouvre la bonne page et laisse refaire à la main le
+   * chemin qu'elle vient de décrire.
+   *
+   * Vide quand la notification parle d'un ENSEMBLE plutôt que d'une
+   * ligne : « 3 produits sous le seuil » n'a rien à pointer.
+   */
+  reference?: string;
 }
 
 /**
@@ -737,6 +750,10 @@ export function construireNotifications(s: SourcesActivite): Notification[] {
         acteur: premiere.vendeur || undefined,
         ton: "success",
         onglet: "ventes",
+        // Un ticket de plusieurs articles n'a pas de numéro à lui :
+        // on vise alors sa première ligne, qui suffit à amener
+        // l'œil au bon endroit de la liste.
+        reference: premiere.numero || undefined,
       });
     }
 
@@ -750,6 +767,7 @@ export function construireNotifications(s: SourcesActivite): Notification[] {
         acteur: nomDe(r.recorded_by),
         ton: "success",
         onglet: "paiements",
+        reference: r.numero || undefined,
       });
     }
   }
@@ -765,6 +783,7 @@ export function construireNotifications(s: SourcesActivite): Notification[] {
         acteur: nomDe(a.auteurId),
         ton: "info",
         onglet: "achats",
+        reference: a.numero || undefined,
       });
     }
   }
@@ -780,6 +799,7 @@ export function construireNotifications(s: SourcesActivite): Notification[] {
         acteur: d.vendeur || undefined,
         ton: "warning",
         onglet: "depenses",
+        reference: d.numero || undefined,
       });
     }
   }
