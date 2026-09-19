@@ -54,7 +54,7 @@ export const CarteTopProduits: React.FC<{
           detail="Le classement apparaîtra dès la première vente enregistrée."
         />
       ) : (
-        <ol className="top">
+        <ol className="best">
           {top.map((p, i) => (
             <li
               key={p.id}

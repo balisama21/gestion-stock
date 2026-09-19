@@ -2828,7 +2828,16 @@
 
 /* ── 17. produits les plus vendus ── */
 
-.dash2 .top {
+/* `best`, et surtout PAS `top`. La maquette nomme cette liste `x-top`,
+   mais `top` est déjà l'en-tête de la page, tout en haut de cette
+   feuille. Les deux règles ont la même spécificité : la seconde gagne,
+   et l'en-tête se retrouvait empilé en colonne, collé à droite, avec
+   trois cents pixels de vide — `flex: 1 1 320px` sur `.hello` devenant
+   une HAUTEUR dès que la direction passe en colonne. Le préfixe `x-`
+   de la maquette désignait ses accroches d'interaction, que React
+   remplace ; il ne protégeait ce nom que par accident. */
+
+.dash2 .best {
   list-style: none;
   margin: 0;
   padding: 0;
@@ -2836,7 +2845,7 @@
   flex-direction: column;
   gap: 10px;
 }
-.dash2 .top li {
+.dash2 .best li {
   display: grid;
   grid-template-columns: 18px minmax(0, 1fr) auto;
   gap: 3px 10px;
@@ -2845,47 +2854,47 @@
   padding: 2px 4px;
   margin: -2px -4px;
 }
-.dash2 .top li.clic {
+.dash2 .best li.clic {
   cursor: pointer;
 }
-.dash2 .top li.clic:hover {
+.dash2 .best li.clic:hover {
   background: var(--surface-2);
 }
-.dash2 .top .rk {
+.dash2 .best .rk {
   font-size: 11.5px;
   color: var(--muted);
   text-align: center;
 }
-.dash2 .top .nm {
+.dash2 .best .nm {
   font-size: 13.5px;
   font-weight: 500;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.dash2 .top .am {
+.dash2 .best .am {
   font-size: 13px;
   font-weight: 600;
   white-space: nowrap;
 }
-.dash2 .top .bar {
+.dash2 .best .bar {
   grid-column: 2/-1;
   height: 6px;
   border-radius: 99px;
   background: var(--line-2);
   overflow: hidden;
 }
-.dash2 .top .bar i {
+.dash2 .best .bar i {
   display: block;
   height: 100%;
   border-radius: 99px;
   background: var(--accent);
   min-width: 4px;
 }
-.dash2 .top li:not(:first-child) .bar i {
+.dash2 .best li:not(:first-child) .bar i {
   background: var(--info);
 }
-.dash2 .top small {
+.dash2 .best small {
   grid-column: 2/-1;
   color: var(--muted);
   font-size: 11.5px;
