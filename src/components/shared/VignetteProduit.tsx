@@ -48,17 +48,25 @@ interface VignetteProduitProps {
  * verrait d'autant plus. L'adresse demandee au stockage porte le meme
  * `resize=contain`, pour que le rognage ne revienne pas par le serveur.
  *
- * ── Sans photo, RIEN ──
+ * ── Sans photo, l'INITIALE ──
  *
- * Plus de carre a initiale. Un produit sans photo ne recoit aucune
- * forme, aucun trait, aucune lettre.
+ * Un produit sans photo porte la premiere lettre de son nom. La place
+ * n'est plus laissee vide : une colonne de blancs ne disait pas
+ * « ce produit n'a pas de photo », elle donnait l'impression que
+ * l'ecran n'avait pas fini de charger.
  *
- * La PLACE, elle, reste. C'est une nuance, et elle porte tout : le
- * span garde sa taille mais ne peint rien. Sans cela, les lignes sans
- * photo verraient leur texte glisser vers la gauche et la liste
- * cesserait de s'aligner — l'oeil trebuche a chaque saut, et une
- * colonne de noms en dents de scie se lit mal. Une place vide ne se
- * voit pas ; un decalage, si.
+ * SIMPLEMENT UNE LETTRE, et c'est voulu : pas de carre, pas d'aplat,
+ * pas de couleur. Le carre a initiale colore qu'on voit partout
+ * ailleurs enfreindrait la regle de la maison — le rouge, l'orange, le
+ * bleu et le violet sont reserves aux badges de statut, le vert aux
+ * actions. L'initiale se pose donc en gris discret, a la place exacte
+ * qu'aurait occupee la photo.
+ *
+ * LA PLACE RESTE LA MEME, et cela porte tout : la lettre occupe
+ * exactement les dimensions de la photo qu'elle remplace. Sans cela,
+ * les lignes sans photo verraient leur texte glisser vers la gauche et
+ * la liste cesserait de s'aligner — l'oeil trebuche a chaque saut, et
+ * une colonne de noms en dents de scie se lit mal.
  *
  * ── Le poids ──
  *
@@ -71,9 +79,19 @@ interface VignetteProduitProps {
  * ── Quand l'image ne vient pas ──
  *
  * Fichier efface du stockage, reseau coupe, adresse perimee : on
- * retombe sur la place vide plutot que sur la petite icone d'image
- * brisee du navigateur.
+ * retombe sur l'initiale plutot que sur la petite icone d'image brisee
+ * du navigateur.
  */
+
+/**
+ * La lettre a montrer, ou rien quand le nom n'en donne aucune.
+ *
+ * `trim()` d'abord : un nom saisi avec une espace devant donnerait une
+ * case vide, ce qui ressemblerait a une panne. Un nom qui commence par
+ * un chiffre garde son chiffre — « 500ml Huile » affiche « 5 », ce qui
+ * reste un reperage utile.
+ */
+const initialeDe = (nom: string): string => nom.trim().charAt(0).toUpperCase();
 export const VignetteProduit: React.FC<VignetteProduitProps> = ({
   nom,
   chemin,
@@ -84,7 +102,26 @@ export const VignetteProduit: React.FC<VignetteProduitProps> = ({
   const cote = { width: taille, height: taille };
 
   if (!chemin || echec) {
-    return <span style={cote} aria-hidden="true" className={`shrink-0 ${className}`} />;
+    const lettre = initialeDe(nom);
+    return (
+      <span
+        style={{
+          ...cote,
+          // Proportionnelle au cote : la meme vignette sert a 36 pixels
+          // dans une liste et bien plus grand dans une fiche produit.
+          fontSize: Math.round(taille * 0.42),
+          lineHeight: 1,
+        }}
+        title={nom}
+        // Decoratif : le nom du produit est ecrit juste a cote, et une
+        // lecture d'ecran qui annoncerait « H » avant « Huile » ne
+        // ferait que begayer.
+        aria-hidden="true"
+        className={`flex shrink-0 select-none items-center justify-center font-medium text-muted-foreground ${className}`}
+      >
+        {lettre}
+      </span>
+    );
   }
 
   return (
