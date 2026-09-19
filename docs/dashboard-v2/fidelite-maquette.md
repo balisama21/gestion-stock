@@ -118,6 +118,48 @@ Provisoire, en bas de grille, et destinée à disparaître : elle affiche
 en clair tous les chiffres des cartes pour les confronter à l'ancien
 tableau de bord. Elle n'existe pas dans la maquette.
 
+## Vues par métier, focus, thème
+
+Mesuré sur l'écran réel, vue par vue.
+
+| Vue                    | Cartes                                                                                                 | Tuiles                             | Grille dense |
+| ---------------------- | ------------------------------------------------------------------------------------------------------ | ---------------------------------- | ------------ |
+| Dirigeant              | 18 — toutes, dans l'ordre de la maquette                                                               | 5                                  | non          |
+| Responsable commercial | 10 : ventes, top, clients, paiements, vendeurs, fil, commandes, à faire, agenda, journal               | ventes, entrées, activité          | oui          |
+| Gestionnaire stock     | 10 : ruptures, étagère, mouvements, top, sorties, fournisseurs, commandes, livraisons, à faire, agenda | stock, sorties, activité           | oui          |
+| Comptabilité           | 10 : trésorerie, résultat, paiements, sorties, fournisseurs, ventes, clients, journal, à faire, agenda | entrées, sorties, ventes, activité | oui          |
+| Vendeur                | 7 : ventes, top, clients, fil, commandes, à faire, agenda                                              | ventes, stock, activité            | oui          |
+| Livreur                | 4 : livraisons, commandes, agenda, à faire                                                             | activité                           | oui          |
+
+L'ordre relevé dans le document correspond exactement à celui de la
+maquette pour chacune des six vues.
+
+| Élément                                                 | État | Note                                                                                                                         |
+| ------------------------------------------------------- | ---- | ---------------------------------------------------------------------------------------------------------------------------- |
+| Une vue ne donne aucun droit                            | ✅   | elle trie ce que les permissions ont laissé passer ; au pire elle montre moins                                               |
+| Vue par défaut déduite du rôle `store_members`          | ✅   | `admin`/`manager` → Dirigeant, `comptable` → Comptabilité, etc. ; rôle inconnu → vue complète, que les permissions filtrent  |
+| Seul le propriétaire peut prévisualiser les autres vues | ✅   | un membre n'a que la sienne, et le sélecteur disparaît                                                                       |
+| `grid-auto-flow: dense` dans les vues filtrées          | ✅   | activé sur les cinq vues filtrées, **pas** sur Dirigeant, où l'ordre de la maquette doit rester intact                       |
+| `scope: "own"` : filtre propriétaire                    | ✅   | la page reçoit les collections `visible*` de la coquille — les mêmes que les pages Ventes, Dépenses et Clients               |
+| `scope: "own"` : cartes renommées                       | ✅   | « Mes ventes » sur la courbe et sur le fil                                                                                   |
+| Champ interdit → `••• Ar`                               | ✅   | trésorerie, ventes, marge, valeur du stock, montants d'achat                                                                 |
+| Carte retirée quand son champ central est interdit      | ✅   | « Fournisseurs à payer » sans le droit de voir les prix d'achat                                                              |
+| Mode focus                                              | ✅   | mesuré : 19 cartes → 14, les 5 secondaires disparaissent, l'état est mémorisé                                                |
+| Thème sombre                                            | ✅   | mesuré : fond `#0d1210`, surface `#141b18` — les valeurs de la maquette. Il pilote le thème de l'application, pas un second. |
+
+## Responsive, mesuré
+
+| Largeur | s4           | s5 / s7 / s8    | Tuile       | Bandeau              | Page                        |
+| ------- | ------------ | --------------- | ----------- | -------------------- | --------------------------- |
+| 1440    | 403          | 507 / 717 / 821 | 238         | grille de 5          | aucun défilement horizontal |
+| 1024    | 473 (span 6) | 961 (span 12)   | 312 (3 + 2) | grille de 6          | aucun                       |
+| 768     | 345          | 705             | 227         | grille de 6          | aucun, en-tête compact      |
+| 360     | 328          | 328             | 276 (84 %)  | **défile**, 5 points | aucun                       |
+
+À 360 px, les seuls éléments qui dépassent la fenêtre sont les tuiles du
+bandeau — à l'intérieur de leur rail, qui défile. La page, elle, ne
+défile jamais horizontalement, à aucune des quatre largeurs.
+
 ## Comportements de la maquette volontairement écartés
 
 | Comportement                                      | Raison                                                                                                                                                                                                                         |

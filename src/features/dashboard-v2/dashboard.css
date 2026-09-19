@@ -469,6 +469,17 @@
   grid-template-columns: repeat(12, minmax(0, 1fr));
   gap: 16px;
 }
+/* Dans une vue filtree, la grille comble ses trous.
+
+   Une vue par metier retire des cartes ; celles qui restent n ont plus
+   forcement les largeurs qu il faut pour remplir chaque rangee, et la
+   grille laisse alors des creux. `dense` autorise une carte etroite a
+   remonter combler un trou laisse plus haut. On ne l active QUE la :
+   dans la vue complete, l ordre de lecture doit rester celui de la
+   maquette, et `dense` le remanierait sans raison. */
+.dash2 .grid.dense {
+  grid-auto-flow: row dense;
+}
 .dash2 .s4 {
   grid-column: span 4;
 }

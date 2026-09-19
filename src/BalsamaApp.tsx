@@ -1414,17 +1414,26 @@ function AppInner() {
                 {activeTab === "dashboard" &&
                   (hasDashboardAccess ? (
                     dashboardV2 ? (
+                      // Les collections `visible*` sont celles que recoivent
+                      // deja les pages Ventes, Depenses et Clients : elles ne
+                      // contiennent que ce que cette personne a le droit de
+                      // lire, selon la portee de chaque module. Le tableau de
+                      // bord v2 s en sert plutot que des listes completes,
+                      // pour qu un collaborateur en portee « mes donnees » y
+                      // lise ses chiffres a lui. La tresorerie et les soldes
+                      // vendeurs restent globaux : ce sont des soldes de
+                      // boutique, et leurs cartes ont leurs propres droits.
                       <DashboardV2Page
                         storeId={workspace.activeStore?.id ?? null}
                         capital={computedCapital}
                         products={products}
-                        sales={sales}
+                        sales={visibleSales}
                         purchases={purchases}
-                        expenses={expenses}
-                        payments={storeData.payments}
+                        expenses={visibleExpenses}
+                        payments={visiblePayments}
                         sellers={computedSellers}
-                        orders={storeData.orders}
-                        clients={storeData.clients}
+                        orders={visibleOrders}
+                        clients={visibleClients}
                         quotes={storeData.quotes}
                         deliveries={storeData.deliveries}
                         taches={organisation.taches}

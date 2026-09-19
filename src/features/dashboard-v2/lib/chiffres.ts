@@ -25,7 +25,7 @@ import type { MouvementStock } from "../hooks/useDashboardData";
  * produit et les cumuls jour par jour. Rien de tout cela n'existait.
  *
  * LES JOURS SONT LOCAUX. Les colonnes `date` portent déjà un jour du
- * calendrier ; les horodatages (`payments.created_at`,
+ * calendrier ; les horodatages (`payments.createdAt`,
  * `stock_movements.created_at`) sont ramenés au jour local par
  * `dateDuJour`, jamais par `toISOString` — voir `src/lib/dates.ts`.
  */
@@ -44,8 +44,14 @@ export interface SourcesChiffres {
   purchases: Purchase[];
   expenses: Expense[];
   products: Product[];
-  /** Lignes brutes de `payments` : le seul horodatage est `created_at`. */
-  payments: { montant: number; created_at: string }[];
+  /**
+   * Les règlements, tels que la coquille les traduit déjà.
+   *
+   * `payments` n'a PAS de colonne `date` : `createdAt` est son seul
+   * horodatage, et il porte un fuseau. Le jour se déduit donc en
+   * heure locale, jamais par `toISOString`.
+   */
+  payments: { montant: number; createdAt: string }[];
   sellers: Seller[];
   capital: CapitalSummary;
   orders: { statut_commande: string; reste_a_payer: number | null; created_at: string }[];
@@ -161,7 +167,7 @@ export interface ChiffresFlux {
 }
 
 export function chiffresFlux(s: SourcesChiffres, p: Periode, ventes: ChiffresVentes): ChiffresFlux {
-  const paiementsPeriode = dans(s.payments, (r) => jourDe(r.created_at), p.intervalle);
+  const paiementsPeriode = dans(s.payments, (r) => jourDe(r.createdAt), p.intervalle);
   const achatsPeriode = dans(s.purchases, (a) => a.date, p.intervalle);
   const depensesPeriode = dans(s.expenses, (d) => d.date, p.intervalle);
 
@@ -176,7 +182,7 @@ export function chiffresFlux(s: SourcesChiffres, p: Periode, ventes: ChiffresVen
 
   const parJour = new Map<string, number>();
   for (const r of paiementsPeriode) {
-    const j = jourDe(r.created_at);
+    const j = jourDe(r.createdAt);
     parJour.set(j, (parJour.get(j) ?? 0) + r.montant);
   }
 
@@ -185,7 +191,7 @@ export function chiffresFlux(s: SourcesChiffres, p: Periode, ventes: ChiffresVen
   return {
     encaisse: somme(paiementsPeriode, (r) => r.montant),
     encaissePrecedent: somme(
-      dans(s.payments, (r) => jourDe(r.created_at), p.precedent),
+      dans(s.payments, (r) => jourDe(r.createdAt), p.precedent),
       (r) => r.montant,
     ),
     encaisseParJour: joursDe(p.intervalle).map((jour) => ({
@@ -720,10 +726,10 @@ export function chiffresDuJour(s: SourcesChiffres, aujourdhui = dateDuJour()): C
     };
   }
 
-  const paiementsDuMois = dans(s.payments, (r) => jourDe(r.created_at), mois);
+  const paiementsDuMois = dans(s.payments, (r) => jourDe(r.createdAt), mois);
   const parJour = new Map<string, number>();
   for (const r of paiementsDuMois) {
-    const j = jourDe(r.created_at);
+    const j = jourDe(r.createdAt);
     parJour.set(j, (parJour.get(j) ?? 0) + r.montant);
   }
 
@@ -749,7 +755,7 @@ export function chiffresDuJour(s: SourcesChiffres, aujourdhui = dateDuJour()): C
     ),
     dernierJourVendu,
     encaisse: somme(
-      s.payments.filter((r) => jourDe(r.created_at) === aujourdhui),
+      s.payments.filter((r) => jourDe(r.createdAt) === aujourdhui),
       (r) => r.montant,
     ),
     encaisseDuMois: somme(paiementsDuMois, (r) => r.montant),

@@ -52,8 +52,10 @@ export const CarteVentes: React.FC<{
   ventes: ChiffresVentes;
   periode: Periode;
   montantVisible: boolean;
+  /** « Mes ventes » quand la portée est limitée au lecteur. */
+  titre?: string;
   onDetails?: () => void;
-}> = ({ ventes, periode, montantVisible, onDetails }) => {
+}> = ({ ventes, periode, montantVisible, titre, onDetails }) => {
   const [survol, setSurvol] = useState<number | null>(null);
 
   /**
@@ -105,7 +107,7 @@ export const CarteVentes: React.FC<{
   return (
     <Card span={7} id="carte-ventes">
       <CardHeader
-        title={`Ventes · ${periode.libelle}`}
+        title={titre ?? `Ventes · ${periode.libelle}`}
         icon={
           <svg
             viewBox="0 0 24 24"

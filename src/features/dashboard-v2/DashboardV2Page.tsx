@@ -431,7 +431,15 @@ export const DashboardV2Page: React.FC<DashboardV2PageProps> = ({
    * La navigation remplace le panneau de détail tant qu'il n'est pas
    * construit — chaque lien conduit déjà quelque part.
    */
+  /**
+   * La portée du module Ventes, qui renomme deux cartes.
+   *
+   * Une personne en portée « mes données » ne reçoit que ses propres
+   * lignes : lui écrire « Ventes du mois » lui ferait croire qu'elle
+   * lit le chiffre de la boutique. « Mes ventes » dit ce qu'elle lit.
+   */
   const portee = droits.portee("ventes");
+  const aSoi = portee === "own";
   const cartes: Partial<Record<CleCarte, React.ReactNode>> = {
     tresorerie: (
       <CarteTresorerie
@@ -445,6 +453,7 @@ export const DashboardV2Page: React.FC<DashboardV2PageProps> = ({
       <CarteVentes
         ventes={chiffres.ventes}
         periode={periode}
+        titre={aSoi ? `Mes ventes · ${periode.libelle}` : undefined}
         montantVisible={droits.champVisible("ventes", "montant")}
         onDetails={() => setPanneau({ cle: "ventes" })}
       />
@@ -562,7 +571,7 @@ export const DashboardV2Page: React.FC<DashboardV2PageProps> = ({
         produits={products}
         images={productImages}
         montantsVisibles={droits.champVisible("ventes", "montant")}
-        titre={portee === "own" ? "Mes ventes" : "Fil des ventes"}
+        titre={aSoi ? "Mes ventes" : "Fil des ventes"}
         onToutVoir={onNavigateTab ? () => onNavigateTab("ventes") : undefined}
       />
     ),
@@ -802,7 +811,10 @@ export const DashboardV2Page: React.FC<DashboardV2PageProps> = ({
           onVendre={peutVendre && onNavigateTab ? () => onNavigateTab("ventes") : undefined}
         />
 
-        <section className="grid" aria-label="Tableau de bord">
+        <section
+          className={`grid${droits.vue !== "dirigeant" ? " dense" : ""}`}
+          aria-label="Tableau de bord"
+        >
           {/* Chaque carte dans l'ordre que la vue a decide. Celles qui
               restent a construire gardent leur squelette : la place est
               deja reservee, rien ne sautera quand le contenu arrivera. */}
