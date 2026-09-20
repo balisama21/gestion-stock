@@ -57,6 +57,8 @@
   --hero-1: #0f7255;
   --hero-2: #093f2f;
   --hero-ink: #f1faf5;
+  --paper: #fffdf6;
+  --paper-line: #e9e3d3;
   --shadow: 0 1px 2px rgba(20, 40, 30, 0.05), 0 6px 20px -12px rgba(20, 40, 30, 0.18);
   /* Trois rayons, et trois seulement. Les angles allaient de 3 a
      16 pixels sans regle : dix valeurs differentes dans une meme
@@ -102,6 +104,8 @@
   --hero-1: #0f5c45;
   --hero-2: #08342a;
   --hero-ink: #eaf6f0;
+  --paper: #1a201d;
+  --paper-line: #2c3430;
   --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px -14px rgba(0, 0, 0, 0.6);
   /* Trois rayons, et trois seulement. Les angles allaient de 3 a
      16 pixels sans regle : dix valeurs differentes dans une meme
@@ -2028,23 +2032,58 @@
 
 /* ── 5. sorties, le ticket de caisse ── */
 
-/* Le ticket de caisse n'en est plus un. Papier creme, bords
-   dechires, ombre portee a part : c'etait un objet pose sur la page
-   au milieu de cartes qui, elles, se ressemblaient. La metaphore ne
-   disait rien que le titre ne dise deja. Cette carte n'a donc plus
-   aucun style propre : elle herite de `.card` comme les autres. */
+/* LA SEULE CARTE QUI GARDE UN HABILLAGE A ELLE.
+
+   L'etape (c) l'avait ramenee au blanc comme les autres, puisque la
+   consigne disait de retirer les bords dentelles. Vu a l'ecran,
+   l'utilisateur a prefere garder le ticket : une addition ressemble
+   a un recu, et la forme aide ici a lire ce que c'est. Seul le
+   tampon incline est parti, lui pour de bon.
+
+   Elle n'a donc ni fond de carte, ni bordure, ni ombre ordinaire :
+   l'ombre passe par un `filter`, seul moyen de la faire epouser un
+   bord dentelle plutot que le rectangle de la boite. */
+.dash2 .ticket-card {
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+  padding: 0;
+  filter: drop-shadow(0 1px 1px rgba(20, 40, 30, 0.08))
+    drop-shadow(0 8px 14px rgba(20, 40, 30, 0.08));
+}
+/* Les deux bords sont dechires : un ticket arrache d'un rouleau
+   l'est aux deux extremites. Deux masques coniques, un par bord,
+   qu'il faut INTERSECTER — sans `mask-composite`, le second
+   remplacerait le premier au lieu de s'y ajouter. */
 .dash2 .ticket {
+  background: var(--paper);
+  border-radius: 0;
+  padding: 30px 20px;
   display: flex;
   flex-direction: column;
-  gap: 10px;
+  gap: 12px;
   height: 100%;
+  -webkit-mask:
+    conic-gradient(from -45deg at bottom, #0000, #000 1deg 89deg, #0000 90deg) 50% / 16px 100%,
+    conic-gradient(from 135deg at top, #0000, #000 1deg 89deg, #0000 90deg) 50% / 16px 100%;
+  -webkit-mask-composite: source-in;
+  mask:
+    conic-gradient(from -45deg at bottom, #0000, #000 1deg 89deg, #0000 90deg) 50% / 16px 100%,
+    conic-gradient(from 135deg at top, #0000, #000 1deg 89deg, #0000 90deg) 50% / 16px 100%;
+  mask-composite: intersect;
 }
-/* Un titre de carte, comme partout ailleurs : a gauche, en
-   minuscules, sans lettres ecartees. */
+/* Le seul titre de l'ecran qui garde ses capitales : sur un recu,
+   elles ne decorent pas, elles font partie de ce qu'on imite. La
+   taille reste sur l'echelle commune. */
 .dash2 .ticket .shopname {
-  font-size: var(--t-corps);
-  font-weight: 600;
-  color: var(--ink-2);
+  text-align: center;
+  font-family: var(--mono);
+  font-size: var(--t-petit);
+  color: var(--muted);
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  border-bottom: 1px dashed var(--paper-line);
+  padding-bottom: 10px;
 }
 .dash2 .row {
   display: flex;
@@ -2055,7 +2094,7 @@
 }
 .dash2 .row .lead {
   flex: 1;
-  border-bottom: 1px dotted var(--line);
+  border-bottom: 1.5px dotted var(--paper-line);
   transform: translateY(-4px);
 }
 /* `margin-top: auto` : c'est le total qui absorbe désormais la
@@ -2064,7 +2103,7 @@
 .dash2 .row.total {
   font-size: var(--t-moyen);
   font-weight: 700;
-  border-top: 1px solid var(--line);
+  border-top: 1px dashed var(--paper-line);
   padding-top: 10px;
   margin-top: auto;
 }

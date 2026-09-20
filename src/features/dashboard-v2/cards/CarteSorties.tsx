@@ -5,16 +5,20 @@ import type { ChiffresFlux } from "../lib/chiffres";
 import type { Periode } from "../hooks/useDashboardPeriod";
 
 /**
- * 5. SORTIES
+ * 5. SORTIES — le ticket de caisse
  *
  * Achats et depenses de la periode, presentes comme ce qu'ils sont :
- * une addition. Les lignes secondaires — la part d'une personne, la
- * moyenne par jour, la part des ventes — restent en petit sous les
- * deux montants qui comptent, et le total ferme la carte.
+ * une addition. Le papier, les pointilles de conduite et le bord
+ * dechire disent « recu » avant qu'on ait lu le titre.
  *
- * LA COMPARAISON AVEC LA PERIODE PRECEDENTE A ETE RETIREE a la
- * demande : elle s'affichait en bas, et c'etait la seule information
- * de cette carte qui ne soit pas un montant de la periode en cours.
+ * C'EST LA SEULE CARTE QUI GARDE UN HABILLAGE A ELLE. La refonte les
+ * avait toutes ramenees au blanc ; vu a l'ecran, cette exception a
+ * ete conservee a la demande.
+ *
+ * LA COMPARAISON AVEC LA PERIODE PRECEDENTE, elle, est partie pour de
+ * bon : elle s'affichait en tampon incline sous le total, et c'etait
+ * la seule information de cette carte qui ne soit pas un montant de
+ * la periode en cours.
  */
 export const CarteSorties: React.FC<{
   flux: ChiffresFlux;
