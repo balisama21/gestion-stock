@@ -1559,19 +1559,20 @@
     justify-content: center;
     gap: 6px;
   }
+  /* DES POINTS, ET RIEN D'AUTRE. Celui de la page courante était un
+     bâtonnet de dix-huit pixels posé à côté de deux points de six :
+     trois repères de même nature, dont un dessiné comme s'il était
+     d'une autre. La couleur suffit à dire lequel est le nôtre. */
   .dash2 .dots button {
     width: 6px;
     height: 6px;
-    border-radius: 99px;
+    border-radius: 50%;
     border: 0;
     padding: 0;
     background: var(--line);
-    transition:
-      width 0.2s,
-      background 0.2s;
+    transition: background 0.2s;
   }
   .dash2 .dots button[aria-current="true"] {
-    width: 18px;
     background: var(--accent);
   }
   .dash2 .today-head h2 span {
