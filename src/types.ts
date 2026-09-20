@@ -161,6 +161,16 @@ export interface CapitalSummary {
   ventesTotalEncaisse: number;
   achatsTotal: number;
   depensesVendeursTotal: number;
+  /**
+   * Ce qui est ressorti de la caisse par un remboursement.
+   *
+   * Déjà déduit de `tresorerieGlobaleActuelle` depuis toujours, mais
+   * il n'était pas rendu : les cinq postes ci-dessus ne retombaient
+   * donc PAS sur le total dès qu'un remboursement existait, et l'écran
+   * Capital affichait une addition fausse. Aucun calcul n'a changé,
+   * c'est la même valeur, simplement exposée.
+   */
+  remboursementsTotal: number;
   tresorerieGlobaleActuelle: number;
   seuilAlerteTresorerie: number;
 }

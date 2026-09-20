@@ -427,6 +427,9 @@ export const DashboardV2Page: React.FC<DashboardV2PageProps> = ({
         capital={capital}
         flux={chiffres.flux}
         periode={periode.libelle}
+        /* Crédits récents et retards confondus : pour le lecteur du
+           solde, c'est le même argent — celui qui n'est pas rentré. */
+        duParLesClients={chiffres.paiements.aRecevoir + chiffres.paiements.enRetard}
         montantVisible={droits.champVisible("capital", "montant")}
       />
     ),

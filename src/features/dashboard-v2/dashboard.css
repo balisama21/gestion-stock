@@ -91,6 +91,14 @@
   --hero-1: oklch(from var(--primary) 0.49 calc(c * 0.85) h);
   --hero-2: oklch(from var(--primary) 0.33 calc(c * 0.5) h);
   --hero-ink: oklch(from var(--primary) 0.975 calc(c * 0.1) h);
+  /* L'ENCRE SECONDAIRE DE LA CARTE SOMBRE, et pourquoi 0,86.
+
+     Elle etait a 0,72 et 0,80 selon les endroits, ce qui donnait
+     3,66 et 4,10 pour 1 sur la partie CLAIRE du degrade — sous le
+     seuil de 4,5. Mesure : 0,86 donne 4,54 au pire endroit de la
+     carte, et 8,70 au plus sombre. Une seule valeur desormais, sans
+     quoi la question se reposera a chaque ligne ajoutee. */
+  --hero-ink-2: rgb(from var(--hero-ink) r g b / 0.86);
   /* Les deux barres du flux de trésorerie, qui se lisent sur ce fond
      sombre. Elles étaient écrites en dur dans CarteTresorerie.tsx.
      L'entrée suit le thème ; la sortie garde sa valeur — ce n'est pas
@@ -1618,7 +1626,7 @@
   overflow: hidden;
 }
 .dash2 .wallet .ch h2 {
-  color: rgba(241, 250, 245, 0.72);
+  color: var(--hero-ink-2);
 }
 .dash2 .wallet .puce {
   width: 38px;
@@ -1649,10 +1657,79 @@
   margin-left: 4px;
 }
 .dash2 .wallet .sub {
-  color: rgba(241, 250, 245, 0.72);
+  color: var(--hero-ink-2);
   font-size: var(--t-corps);
   margin-top: 8px;
 }
+/* ── LE DÉTAIL DU SOLDE, sur la carte sombre ──
+
+   Un état signé, du premier poste jusqu'au total, dans l'ordre exact du
+   calcul de `computedCapital`. Les libellés sont ceux de l'écran
+   Capital : deux endroits qui expliquent le même chiffre doivent le
+   dire avec les mêmes mots.
+
+   AUCUNE LIGNE N'EST MASQUÉE À ZÉRO. C'est un état financier, et une
+   ligne absente casserait l'addition que le lecteur refait de tête. La
+   note du bas, elle, est un champ et non une ligne de compte : elle ne
+   paraît que s'il y a vraiment du crédit en cours. */
+.dash2 .compo {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.dash2 .compo-tete {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.dash2 .compo-tete h3 {
+  font-size: var(--t-corps);
+  font-weight: 600;
+  color: var(--hero-ink-2);
+}
+.dash2 .compo-liste {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+}
+.dash2 .compo-liste div {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: var(--t-petit);
+}
+.dash2 .compo-liste dt {
+  color: var(--hero-ink-2);
+  min-width: 0;
+}
+.dash2 .compo-liste dd {
+  color: var(--hero-ink);
+  white-space: nowrap;
+}
+.dash2 .compo-total {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 12px;
+  border-top: 1px solid rgb(from var(--hero-ink) r g b / 0.22);
+  padding-top: 8px;
+  font-size: var(--t-corps);
+}
+.dash2 .compo-total b {
+  font-weight: 700;
+  white-space: nowrap;
+}
+.dash2 .compo-note {
+  font-size: var(--t-petit);
+  color: var(--hero-ink-2);
+}
+.dash2 .compo-note b {
+  color: var(--hero-ink);
+  font-weight: 600;
+}
+
 .dash2 .flow {
   display: flex;
   flex-direction: column;
@@ -1679,7 +1756,7 @@
   display: flex;
   gap: 7px;
   align-items: center;
-  color: rgba(241, 250, 245, 0.8);
+  color: var(--hero-ink-2);
 }
 .dash2 .flowleg b {
   color: #fff;

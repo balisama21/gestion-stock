@@ -13,6 +13,7 @@ export const initialCapital: CapitalSummary = {
   ventesTotalEncaisse: 0,
   achatsTotal: 0,
   depensesVendeursTotal: 0,
+  remboursementsTotal: 0,
   tresorerieGlobaleActuelle: 0,
   seuilAlerteTresorerie: 50000,
 };

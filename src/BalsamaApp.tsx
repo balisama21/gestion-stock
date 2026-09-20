@@ -867,6 +867,9 @@ function AppInner() {
       ventesTotalEncaisse: ventesTotalEncaisse + commandesTotalEncaisse,
       achatsTotal,
       depensesVendeursTotal,
+      // Rendu pour que la composition affichée retombe sur le total.
+      // Le calcul ci-dessous n'a pas bougé d'un caractère.
+      remboursementsTotal,
       tresorerieGlobaleActuelle:
         capitalInitial +
         apportsTotal +

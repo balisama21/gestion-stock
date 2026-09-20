@@ -17,28 +17,38 @@ import { useCallback, useEffect, useState } from "react";
  * TROIS ÉTATS ET NON DEUX, et c'est nécessaire depuis que le repli est
  * la valeur par défaut :
  *
- *   absent  → la valeur par défaut, donc replié
+ *   absent  → la valeur par défaut de l'appelant
  *   "1"     → replié, et la personne l'a voulu
  *   "0"     → DÉPLIÉ, et la personne l'a voulu
  *
- * Sans le « 0 », un dépliage ne se retiendrait pas : effacer la clé
- * ramènerait simplement le défaut, c'est-à-dire replié.
+ * Sans le « 0 », un dépliage ne se retiendrait pas quand le défaut est
+ * replié : effacer la clé ramènerait simplement ce défaut.
+ *
+ * LE DÉFAUT N'EST PAS TOUJOURS « REPLIÉ ». Le détail du solde de
+ * trésorerie arrive ouvert : c'est la réponse à la question que pose sa
+ * carte, pas un contenu qu'on déplie à l'occasion. Le calendrier et le
+ * journal, eux, restent repliés — on vient sur cet écran pour les
+ * chiffres du jour.
  *
  * LU APRÈS LE PREMIER RENDU, comme les autres réglages de cet écran :
  * le serveur n'a pas de `localStorage`, et le lire pendant le rendu
  * ferait diverger les deux arbres. On part donc du défaut, et le choix
  * retenu arrive à la première image.
  */
-export function useRepli(cle: string): { replie: boolean; basculer: () => void } {
-  const [replie, setReplie] = useState(true);
+export function useRepli(
+  cle: string,
+  replieParDefaut = true,
+): { replie: boolean; basculer: () => void } {
+  const [replie, setReplie] = useState(replieParDefaut);
 
   useEffect(() => {
     try {
-      setReplie(window.localStorage.getItem(cle) !== "0");
+      const retenu = window.localStorage.getItem(cle);
+      setReplie(retenu === null ? replieParDefaut : retenu === "1");
     } catch {
-      /* Navigation privée : la carte reste repliée, comme par défaut. */
+      /* Navigation privée : on s'en tient au défaut. */
     }
-  }, [cle]);
+  }, [cle, replieParDefaut]);
 
   const basculer = useCallback(() => {
     setReplie((avant) => {

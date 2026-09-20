@@ -150,6 +150,13 @@ export const CapitalView: React.FC<CapitalViewProps> = ({
       sign: "−",
       value: capital.depensesVendeursTotal,
     },
+    {
+      key: "remboursements",
+      label: "Remboursements clients",
+      hint: "Argent ressorti de la caisse",
+      sign: "−",
+      value: capital.remboursementsTotal,
+    },
   ];
 
   const couverture =
