@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useRef, useEffect } from "react";
+import React, { useState, useMemo } from "react";
 import { Product, LocaleSetting } from "../types";
 import {
   Package,
@@ -13,7 +13,6 @@ import {
   RefreshCw,
   Pencil,
   Trash2,
-  Ban,
 } from "lucide-react";
 import { formatCurrency, getProductLabel, getProductVariant } from "../utils/formulas";
 import { VariantBadge } from "./shared/VariantBadge";
@@ -175,9 +174,6 @@ export const ProduitsView: React.FC<ProduitsViewProps> = ({
   const [addPhotos, setAddPhotos] = useState<File[]>([]);
   const [addErreur, setAddErreur] = useState<string | null>(null);
 
-  // Sélection multiple
-  const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
-
   // Modale Modifier
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
   const [editDesignation, setEditDesignation] = useState("");
@@ -206,8 +202,6 @@ export const ProduitsView: React.FC<ProduitsViewProps> = ({
   // Modale Confirmer suppression (unique ou multiple)
   const [confirmDeleteIds, setConfirmDeleteIds] = useState<string[] | null>(null);
   const [deleting, setDeleting] = useState(false);
-
-  const headerCheckboxRef = useRef<HTMLInputElement>(null);
 
   // Unique suppliers
   const uniqueSuppliers = useMemo(() => {
@@ -243,54 +237,6 @@ export const ProduitsView: React.FC<ProduitsViewProps> = ({
   const totalReferences = products.length;
   const totalValeurStock = products.reduce((acc, p) => acc + p.stockActuel * p.prixAchat, 0);
   const totalAlertesStock = products.filter((p) => p.stockActuel <= p.seuilAlerte).length;
-
-  // Produits en rupture visibles dans la vue actuelle (pour le raccourci de sélection)
-  const ruptureIdsInView = useMemo(
-    () => filteredProducts.filter((p) => p.stockActuel <= 0).map((p) => p.id),
-    [filteredProducts],
-  );
-
-  // Gestion de l'état "indéterminé" de la case à cocher d'en-tête
-  const allVisibleSelected =
-    filteredProducts.length > 0 && filteredProducts.every((p) => selectedIds.has(p.id));
-  const someVisibleSelected = filteredProducts.some((p) => selectedIds.has(p.id));
-
-  useEffect(() => {
-    if (headerCheckboxRef.current) {
-      headerCheckboxRef.current.indeterminate = someVisibleSelected && !allVisibleSelected;
-    }
-  }, [someVisibleSelected, allVisibleSelected]);
-
-  const toggleOne = (id: string) => {
-    setSelectedIds((prev) => {
-      const next = new Set(prev);
-      if (next.has(id)) next.delete(id);
-      else next.add(id);
-      return next;
-    });
-  };
-
-  const toggleAllVisible = () => {
-    setSelectedIds((prev) => {
-      const next = new Set(prev);
-      if (allVisibleSelected) {
-        filteredProducts.forEach((p) => next.delete(p.id));
-      } else {
-        filteredProducts.forEach((p) => next.add(p.id));
-      }
-      return next;
-    });
-  };
-
-  const selectAllRuptures = () => {
-    setSelectedIds((prev) => {
-      const next = new Set(prev);
-      ruptureIdsInView.forEach((id) => next.add(id));
-      return next;
-    });
-  };
-
-  const clearSelection = () => setSelectedIds(new Set());
 
   /**
    * Envoie les photos gardées pendant la saisie, une fois le produit né.
@@ -502,11 +448,6 @@ export const ProduitsView: React.FC<ProduitsViewProps> = ({
     setDeleting(false);
     if (result.error) return;
 
-    setSelectedIds((prev) => {
-      const next = new Set(prev);
-      confirmDeleteIds.forEach((id) => next.delete(id));
-      return next;
-    });
     setConfirmDeleteIds(null);
   };
 
@@ -616,18 +557,6 @@ export const ProduitsView: React.FC<ProduitsViewProps> = ({
             ))}
           </select>
         </FilterField>
-
-        {ruptureIdsInView.length > 0 && canDelete && (
-          <button
-            type="button"
-            onClick={selectAllRuptures}
-            className="app-btn-danger w-full text-xs lg:w-auto"
-            title="Cocher tous les produits en rupture de stock visibles"
-          >
-            <Ban className="w-3.5 h-3.5" />
-            Sélectionner les ruptures ({ruptureIdsInView.length})
-          </button>
-        )}
       </FilterBar>
 
       {/* Liste unique — desktop ET mobile.
@@ -643,25 +572,12 @@ export const ProduitsView: React.FC<ProduitsViewProps> = ({
             const bas = !rupture && p.stockActuel <= p.seuilAlerte;
             return {
               id: p.id,
-              // La case et la vignette cohabitent : l'une sert a agir sur
-              // plusieurs lignes, l'autre a reconnaitre celle qu'on lit.
+              // La vignette seule, pour reconnaitre la ligne qu'on lit.
+              // La case a cocher qui l'accompagnait est partie avec la
+              // selection multiple : on supprime un produit depuis sa
+              // propre ligne, ce qui laisse voir lequel on supprime.
               leading: (
-                <span className="flex items-center gap-2">
-                  {onDeleteProducts && canDelete && (
-                    <input
-                      type="checkbox"
-                      checked={selectedIds.has(p.id)}
-                      onChange={() => toggleOne(p.id)}
-                      onClick={(e) => e.stopPropagation()}
-                      className="h-4 w-4 cursor-pointer rounded border-muted-foreground/40 accent-emerald-600"
-                      aria-label={`Sélectionner ${getProductLabel(p, products)}`}
-                    />
-                  )}
-                  <VignetteProduit
-                    nom={getProductLabel(p, products)}
-                    chemin={vignettes.get(p.id)}
-                  />
-                </span>
+                <VignetteProduit nom={getProductLabel(p, products)} chemin={vignettes.get(p.id)} />
               ),
               primary: (
                 <span className="flex min-w-0 items-center gap-2">
@@ -721,33 +637,6 @@ export const ProduitsView: React.FC<ProduitsViewProps> = ({
           })}
         />
       </div>
-
-      {/* Barre d'action flottante — sélection multiple */}
-      {selectedIds.size > 0 && (
-        /* bottom-24 sur mobile : au-dessus de la barre de navigation basse,
-           qui masquerait sinon les boutons de cette barre de sélection. */
-        <div className="fixed inset-x-3 bottom-24 z-40 flex flex-wrap items-center justify-center gap-3 rounded-2xl border border-success-border bg-card px-4 py-3 shadow-2xl sm:inset-x-auto sm:left-1/2 sm:-translate-x-1/2 md:bottom-6">
-          <span className="text-sm font-semibold text-foreground">
-            {selectedIds.size} produit{selectedIds.size > 1 ? "s" : ""} sélectionné
-            {selectedIds.size > 1 ? "s" : ""}
-          </span>
-          <button
-            onClick={clearSelection}
-            className="text-xs font-medium text-muted-foreground transition-colors hover:text-foreground"
-          >
-            Tout désélectionner
-          </button>
-          {onDeleteProducts && canDelete && (
-            <button
-              onClick={() => setConfirmDeleteIds(Array.from(selectedIds))}
-              className="app-btn-danger text-xs"
-            >
-              <Trash2 className="w-3.5 h-3.5" />
-              Supprimer ({selectedIds.size})
-            </button>
-          )}
-        </div>
-      )}
 
       {/* ── Nouveau produit ── */}
       <Modal
