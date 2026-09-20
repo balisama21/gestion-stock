@@ -7,6 +7,7 @@ import {
   permissionsToVisibleModules,
   type PermissionsMap,
 } from "../lib/permissions";
+import { lireBoutiqueActive, retenirBoutiqueActive } from "../lib/boutiqueActive";
 
 type Store = Database["public"]["Tables"]["stores"]["Row"];
 
@@ -68,8 +69,6 @@ export function useWorkspace(): WorkspaceContext {
 }
 
 export { workspaceContext };
-
-const ACTIVE_STORE_STORAGE_KEY = "balsama-active-store-id";
 
 export function useWorkspaceState(): WorkspaceContext {
   const { user } = useAuth();
@@ -146,10 +145,7 @@ export function useWorkspaceState(): WorkspaceContext {
         // possédée, sinon la première boutique où l'utilisateur est
         // collaborateur.
         const allIds = new Set([...owned.map((s) => s.id), ...memberStoreList.map((s) => s.id)]);
-        const stored =
-          typeof window !== "undefined"
-            ? window.localStorage.getItem(`${ACTIVE_STORE_STORAGE_KEY}:${user.id}`)
-            : null;
+        const stored = lireBoutiqueActive(user.id);
         const defaultId =
           stored && allIds.has(stored) ? stored : (owned[0]?.id ?? memberStoreList[0]?.id ?? null);
 
@@ -195,9 +191,7 @@ export function useWorkspaceState(): WorkspaceContext {
   const switchStore = useCallback(
     (storeId: string) => {
       setActiveStoreIdState(storeId);
-      if (user && typeof window !== "undefined") {
-        window.localStorage.setItem(`${ACTIVE_STORE_STORAGE_KEY}:${user.id}`, storeId);
-      }
+      if (user) retenirBoutiqueActive(user.id, storeId);
       // Best-effort, ne bloque jamais l'UI : sert uniquement de "dernière
       // boutique ouverte" pour d'éventuels usages futurs (ex: e-mails).
       // La donnée d'autorité reste toujours `stores`/`store_members`.
@@ -258,9 +252,7 @@ export function useWorkspaceState(): WorkspaceContext {
 
       setOwnedStores((prev) => [...prev, created]);
       setActiveStoreIdState(created.id);
-      if (typeof window !== "undefined") {
-        window.localStorage.setItem(`${ACTIVE_STORE_STORAGE_KEY}:${user.id}`, created.id);
-      }
+      retenirBoutiqueActive(user.id, created.id);
       setHasInitializedActiveStore(true);
 
       return { store: created, error: null };
@@ -308,9 +300,7 @@ export function useWorkspaceState(): WorkspaceContext {
 
       setOwnedStores((prev) => [...prev, created]);
       setActiveStoreIdState(created.id);
-      if (typeof window !== "undefined") {
-        window.localStorage.setItem(`${ACTIVE_STORE_STORAGE_KEY}:${user.id}`, created.id);
-      }
+      retenirBoutiqueActive(user.id, created.id);
 
       return { store: created, error: null };
     },

@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, createContext, useContext } from "react";
 import type { User, Session } from "@supabase/supabase-js";
 import { supabase } from "../lib/supabase";
+import { oublierBoutiqueActive } from "../lib/boutiqueActive";
 import type { Database } from "../lib/database.types";
 
 type Profile = Database["public"]["Tables"]["profiles"]["Row"];
@@ -186,10 +187,44 @@ export function useAuthState(): AuthState & AuthActions {
     return { error: error?.message ?? null };
   }, []);
 
+  /**
+   * Se déconnecter, et y arriver.
+   *
+   * Un bouton « sortez-moi de là » ne doit pas dépendre d'une
+   * requête. Trois précautions, dans cet ordre :
+   *
+   * — LA BOUTIQUE RETENUE EST OUBLIÉE D'ABORD. Sans cela, se
+   *   reconnecter ramenait dans la boutique qu'on venait de fuir.
+   *   Depuis un écran de boutique expirée, la déconnexion semblait
+   *   donc n'avoir rien fait : on revenait au même mur ;
+   *
+   * — L'APPEL AU SERVEUR NE PEUT PAS TRAÎNER. `signOut()` commence
+   *   par relire la session, et cette lecture peut échouer — réseau
+   *   coupé, verrou tenu par un autre onglet. Elle rend alors la
+   *   main SANS avoir rien effacé, et sans lever : le clic reste
+   *   sans effet visible ;
+   *
+   * — LA SESSION LOCALE PART QUOI QU'IL ARRIVE, et l'état est remis
+   *   à zéro ici plutôt que d'attendre `onAuthStateChange`, qui ne
+   *   vient pas quand rien n'a été effacé.
+   */
   const signOut = useCallback(async () => {
-    await supabase.auth.signOut();
+    if (user) oublierBoutiqueActive(user.id);
+
+    try {
+      await Promise.race([
+        supabase.auth.signOut(),
+        new Promise((tenir) => setTimeout(tenir, 3000)),
+      ]);
+    } catch {
+      /* le serveur a refusé : on continue quand même */
+    }
+    await supabase.auth.signOut({ scope: "local" }).catch(() => {});
+
+    setSession(null);
+    setUser(null);
     setProfile(null);
-  }, []);
+  }, [user]);
 
   // ACTIVATION : passe désormais exclusivement par la fonction RPC
   // `redeem_access_code`, côté base. Cette fonction (SECURITY DEFINER,

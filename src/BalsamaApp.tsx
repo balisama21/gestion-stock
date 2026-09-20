@@ -34,6 +34,7 @@ import { urgenceDe } from "./lib/agenda";
 import type { SettingsTab } from "./components/settings/SettingsLayout";
 import { CreateStoreOnboarding } from "./components/CreateStoreOnboarding";
 import { StoreLockedScreen } from "./components/StoreLockedScreen";
+import { boutiqueEstVerrouillee, vueAffichee, VUE_VERROUILLEE } from "./lib/verrouillage";
 import { PinLockScreen } from "./components/PinLockScreen";
 import { AppLoader } from "./components/shared/AppLoader";
 import { LimiteChargement } from "./components/shared/LimiteChargement";
@@ -1345,37 +1346,44 @@ function AppInner() {
     );
   }
 
-  // Essai gratuit expiré sans activation (ou verrouillage explicite) :
-  // affiche l'écran de blocage au lieu de l'app. Ceci est l'expérience
-  // utilisateur — la vraie barrière de sécurité est déjà posée côté
-  // Supabase par les RLS (voir can_modify_in_store / store_allows_write),
-  // donc même en contournant ce composant, aucune écriture n'est
-  // possible tant que la boutique n'est pas réellement activée en base.
-  {
-    const activeStore = workspace.activeStore;
-    const trialExpired =
-      activeStore.activation_status === "trial" &&
-      new Date(activeStore.trial_ends_at).getTime() < Date.now();
-    // Une boutique au mois porte une échéance : passée cette date elle
-    // est verrouillée bien qu'elle soit « active ». Ce calcul reproduit
-    // exactement celui de store_is_locked() en base — s'il en divergeait,
-    // l'écran laisserait entrer là où le serveur refuse d'écrire.
-    const moisEchu =
-      activeStore.activation_status === "active" &&
-      activeStore.abonnement_jusqu_au != null &&
-      new Date(activeStore.abonnement_jusqu_au).getTime() < Date.now();
-    const isStoreLocked = activeStore.activation_status === "locked" || trialExpired || moisEchu;
+  /*
+   * BOUTIQUE VERROUILLÉE : essai expiré, mois échu, ou verrou explicite.
+   *
+   * Ce n'est que l'expérience utilisateur — la vraie barrière est posée
+   * côté Supabase par les RLS (`can_modify_in_store`,
+   * `store_allows_write`) : même en contournant cet écran, aucune
+   * écriture n'est possible tant que la boutique n'est pas activée en
+   * base.
+   *
+   * LE BLOCAGE NE REMPLACE PLUS L'APPLICATION, SEULEMENT LA VUE. Il
+   * retournait ici même, avant l'en-tête et la barre latérale : une
+   * boutique expirée fermait alors l'accès aux AUTRES boutiques du
+   * compte, qui étaient en règle, et aux réglages du compte. On ne
+   * pouvait plus qu'entrer un code.
+   *
+   * Le calcul lui-même a déménagé dans src/lib/verrouillage.ts : la
+   * liste des boutiques que propose l'écran de blocage doit appliquer
+   * exactement la même règle, et deux copies finissent par diverger.
+   */
+  const boutiqueActive = workspace.activeStore;
+  const boutiqueVerrouillee = boutiqueEstVerrouillee(boutiqueActive);
 
-    if (isStoreLocked) {
-      return (
-        <StoreLockedScreen
-          storeName={activeStore.name}
-          storeId={activeStore.id}
-          onActivated={workspace.refreshStores}
-        />
-      );
-    }
-  }
+  /*
+   * L'onglet RÉELLEMENT affiché.
+   *
+   * Verrouillé, il vaut « verrouille » et aucune vue de données ne
+   * s'affiche : les conditions plus bas tombent d'elles-mêmes. Les
+   * Paramètres font exception et restent joignables — c'est là que
+   * vivent le profil, le changement d'e-mail et le support, qui n'ont
+   * rien à voir avec les données de la boutique expirée.
+   */
+  const vue = vueAffichee(activeTab, boutiqueVerrouillee);
+
+  /* Les autres boutiques du compte, avec leur état, pour que l'écran
+     de blocage ne soit jamais une impasse. */
+  const autresBoutiques = workspace.accessibleStores
+    .filter((b) => b.id !== boutiqueActive.id)
+    .map((b) => ({ id: b.id, nom: b.name, verrouillee: boutiqueEstVerrouillee(b) }));
 
   if (storeData.loading) {
     return <AppLoader etape="Chargement de vos données…" />;
@@ -1419,11 +1427,13 @@ function AppInner() {
               elle s applique du meme coup aux ecrans de repli affiches
               quand une permission manque. Elle ne parait que la ou elle
               a quelque chose a relier. */}
-          <SousNavigation
-            actif={activeTab}
-            items={universDe(activeTab, workspace.memberPermissions, personnalisation)}
-            onChoisir={setActiveTab}
-          />
+          {vue !== VUE_VERROUILLEE && (
+            <SousNavigation
+              actif={activeTab}
+              items={universDe(activeTab, workspace.memberPermissions, personnalisation)}
+              onChoisir={setActiveTab}
+            />
+          )}
 
           {/* La cle remet la limite a neuf a chaque changement d onglet.
               Sans elle, un ecran qui a echoue laisse son message en place
@@ -1434,10 +1444,21 @@ function AppInner() {
               d entree de la vue. Quatre pixels, deux dixiemes de
               seconde — la reponse au doigt qui vient de choisir, pas un
               effet d apparition. */}
-          <div key={activeTab} className="app-vue">
+          <div key={vue} className="app-vue">
             <LimiteChargement>
               <Suspense fallback={<EcranQuiArrive />}>
-                {activeTab === "dashboard" &&
+                {vue === VUE_VERROUILLEE && (
+                  <StoreLockedScreen
+                    storeName={boutiqueActive.name}
+                    storeId={boutiqueActive.id}
+                    onActivated={workspace.refreshStores}
+                    autresBoutiques={autresBoutiques}
+                    onChangerDeBoutique={workspace.switchStore}
+                    onOuvrirLeCompte={() => setActiveTab("settings")}
+                  />
+                )}
+
+                {vue === "dashboard" &&
                   (hasDashboardAccess ? (
                     dashboardV2 ? (
                       // Les collections `visible*` sont celles que recoivent
@@ -1529,7 +1550,7 @@ function AppInner() {
                       mySellerData={mySellerData}
                     />
                   ))}
-                {activeTab === "capital" &&
+                {vue === "capital" &&
                   (hasCapitalAccess ? (
                     <CapitalView
                       capital={computedCapital}
@@ -1548,7 +1569,7 @@ function AppInner() {
                       mySellerData={mySellerData}
                     />
                   ))}
-                {activeTab === "produits" && (
+                {vue === "produits" && (
                   <ProduitsView
                     // Le stock se corrige par un mouvement d'ajustement,
                     // jamais par une écriture directe sur la colonne :
@@ -1579,7 +1600,7 @@ function AppInner() {
                     allowedActions={produitsActions}
                   />
                 )}
-                {activeTab === "achats" && (
+                {vue === "achats" && (
                   <AchatsView
                     purchases={purchases}
                     products={products}
@@ -1619,7 +1640,7 @@ function AppInner() {
                     visibleFields={achatsVisibleFields}
                   />
                 )}
-                {activeTab === "taches" && (
+                {vue === "taches" && (
                   <TachesView
                     taches={organisation.taches}
                     membres={storeMembers}
@@ -1641,7 +1662,7 @@ function AppInner() {
                     onSupprimer={organisation.supprimer}
                   />
                 )}
-                {activeTab === "vue_equipe" && (
+                {vue === "vue_equipe" && (
                   <VueEquipeView
                     taches={organisation.taches}
                     evenements={calendrier.evenements}
@@ -1657,7 +1678,7 @@ function AppInner() {
                     onNavigateTab={(t) => setActiveTab(t as ActiveTab)}
                   />
                 )}
-                {activeTab === "rappels" && (
+                {vue === "rappels" && (
                   <RappelsView
                     rappels={memos.rappels}
                     membres={storeMembers}
@@ -1667,7 +1688,7 @@ function AppInner() {
                     onSupprimer={memos.supprimer}
                   />
                 )}
-                {activeTab === "agenda" && (
+                {vue === "agenda" && (
                   <AgendaView
                     evenements={calendrier.evenements}
                     membres={storeMembers}
@@ -1680,7 +1701,7 @@ function AppInner() {
                     onNavigateTab={(t) => setActiveTab(t as ActiveTab)}
                   />
                 )}
-                {activeTab === "devis" && (
+                {vue === "devis" && (
                   <DevisView
                     quotes={storeData.quotes}
                     quoteItems={storeData.quoteItems}
@@ -1697,7 +1718,7 @@ function AppInner() {
                     peutSupprimer={!devisActions || devisActions.includes("delete")}
                   />
                 )}
-                {activeTab === "livraisons" && (
+                {vue === "livraisons" && (
                   <LivraisonsView
                     deliveries={storeData.deliveries}
                     membres={storeMembers}
@@ -1721,7 +1742,7 @@ function AppInner() {
                     peutSupprimer={!livraisonsActions || livraisonsActions.includes("delete")}
                   />
                 )}
-                {activeTab === "ventes" && (
+                {vue === "ventes" && (
                   <VentesView
                     productImages={storeData.productImages}
                     sales={visibleSales}
@@ -1740,7 +1761,7 @@ function AppInner() {
                     visibleFields={ventesVisibleFields}
                   />
                 )}
-                {activeTab === "vendeurs" && (
+                {vue === "vendeurs" && (
                   <VendeursView
                     sellers={computedSellers}
                     sales={sales}
@@ -1780,7 +1801,7 @@ function AppInner() {
                     lignes, et l'écran du responsable leur montrerait
                     une masse salariale d'une seule personne, ce qui
                     n'aurait aucun sens. */}
-                {activeTab === "salaires" && !voitTousLesSalaires && (
+                {vue === "salaires" && !voitTousLesSalaires && (
                   <MaPaieView
                     salaires={storeData.salaires}
                     paiements={storeData.paiementsSalaire}
@@ -1799,7 +1820,7 @@ function AppInner() {
                     onAnnuler={(id) => storeData.updatePaiementSalaire(id, { statut: "annulee" })}
                   />
                 )}
-                {activeTab === "salaires" && voitTousLesSalaires && (
+                {vue === "salaires" && voitTousLesSalaires && (
                   <SalairesView
                     salaires={storeData.salaires}
                     paiements={storeData.paiementsSalaire}
@@ -1824,7 +1845,7 @@ function AppInner() {
                     onDeletePaiement={storeData.deletePaiementSalaire}
                   />
                 )}
-                {activeTab === "depenses" && (
+                {vue === "depenses" && (
                   <DepensesView
                     expenses={visibleExpenses}
                     sellers={computedSellers}
@@ -1840,7 +1861,7 @@ function AppInner() {
                     onDeleteExpense={depensesScope === "all" ? handleDeleteExpense : undefined}
                   />
                 )}
-                {activeTab === "rapports" && (
+                {vue === "rapports" && (
                   <RapportsView
                     sales={visibleSales}
                     purchases={purchases}
@@ -1852,7 +1873,7 @@ function AppInner() {
                     locale={locale}
                   />
                 )}
-                {activeTab === "statistiques" && (
+                {vue === "statistiques" && (
                   <StatistiquesView
                     sales={visibleSales}
                     products={products}
@@ -1867,7 +1888,7 @@ function AppInner() {
                     locale={locale}
                   />
                 )}
-                {activeTab === "historique" && (
+                {vue === "historique" && (
                   <HistoriqueView
                     purchases={historiquePurchases}
                     sales={visibleSales}
@@ -1878,7 +1899,7 @@ function AppInner() {
                     products={products}
                   />
                 )}
-                {activeTab === "commandes" && (
+                {vue === "commandes" && (
                   <CommandesView
                     orders={visibleOrders}
                     clients={storeData.clients}
@@ -1891,7 +1912,7 @@ function AppInner() {
                     onDeleteOrder={storeData.deleteOrder}
                   />
                 )}
-                {activeTab === "paiements" && (
+                {vue === "paiements" && (
                   <PaiementsARecevoirView
                     sales={visibleSales}
                     orders={visibleOrders}
@@ -1901,7 +1922,7 @@ function AppInner() {
                     onAddPaymentToOrder={storeData.addPaymentToOrder}
                   />
                 )}
-                {activeTab === "clients" && (
+                {vue === "clients" && (
                   <ClientsView
                     clients={visibleClients}
                     orders={storeData.orders}
@@ -1920,7 +1941,7 @@ function AppInner() {
                     champsPersonnalises={storeData.customFields}
                   />
                 )}
-                {activeTab === "fournisseurs" && (
+                {vue === "fournisseurs" && (
                   <FournisseursView
                     suppliers={storeData.suppliers}
                     purchases={purchases}
@@ -1935,7 +1956,7 @@ function AppInner() {
                     peutSupprimer={!fournisseursActions || fournisseursActions.includes("delete")}
                   />
                 )}
-                {activeTab === "prestataires" && (
+                {vue === "prestataires" && (
                   <PrestatairesView
                     providers={storeData.providers}
                     providerServices={storeData.providerServices}
@@ -1951,7 +1972,7 @@ function AppInner() {
                     peutSupprimer={!prestatairesActions || prestatairesActions.includes("delete")}
                   />
                 )}
-                {activeTab === "settings" && (
+                {vue === "settings" && (
                   <ParametresView
                     sectionInitiale={sectionParametres}
                     settings={storeSettings}
