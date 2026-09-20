@@ -495,7 +495,6 @@ export const DashboardV2Page: React.FC<DashboardV2PageProps> = ({
       <CarteSorties
         flux={chiffres.flux}
         periode={periode}
-        nomBoutique={nomBoutique}
         achatsVisibles={droits.champVisible("achats", "prix_achat")}
       />
     ),

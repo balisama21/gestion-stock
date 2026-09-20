@@ -22,9 +22,8 @@ import type { Periode } from "../hooks/useDashboardPeriod";
 export const CarteSorties: React.FC<{
   flux: ChiffresFlux;
   periode: Periode;
-  nomBoutique: string;
   achatsVisibles: boolean;
-}> = ({ flux, periode, nomBoutique, achatsVisibles }) => {
+}> = ({ flux, periode, achatsVisibles }) => {
   const forme = analyserTendance({ valeur: flux.achats, reference: flux.achatsPrecedent });
   const tampon =
     forme.genre === "fois"
@@ -40,10 +39,7 @@ export const CarteSorties: React.FC<{
   return (
     <Card span={4} id="carte-sorties" className="ticket-card">
       <div className="ticket">
-        <div className="shopname">
-          <b>{nomBoutique}</b>
-          Sorties · {periode.libelle}
-        </div>
+        <div className="shopname">Sorties · {periode.libelle}</div>
 
         <div className="row">
           <span>Achats</span>
@@ -81,7 +77,6 @@ export const CarteSorties: React.FC<{
         </div>
 
         {tampon && <div className="stamp">{tampon}</div>}
-        <div className="barcode" aria-hidden="true" />
       </div>
     </Card>
   );

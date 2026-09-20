@@ -8,10 +8,16 @@ import type { ChiffresStock, LigneStock } from "../lib/chiffres";
 /**
  * 4. ÉTAGÈRE DE STOCK
  *
- * Dix casiers par produit, remplis à proportion du stock disponible sur
+ * Une jauge par produit, remplie à proportion du stock disponible sur
  * son seuil d'alerte. Une jauge et non un chiffre : « 2 / 20 » demande
- * une division mentale, dix casiers dont un seul est plein se voit sans
- * y penser.
+ * une division mentale, un trait au quart plein se voit sans y penser.
+ *
+ * UN TRAIT CONTINU, ET NON DIX CASIERS. Elle était découpée en dix
+ * blocs : cinq produits faisaient cinquante petits rectangles alignés,
+ * et cette répétition fatigue l'œil. Le découpage prétendait aider à
+ * compter, mais on ne compte pas des casiers — le chiffre exact est
+ * déjà écrit juste au-dessus. Un trait fin dit la même proportion sans
+ * ce bruit.
  *
  * ROUGE SOUS LE SEUIL, et seulement là. C'est la règle de la page
  * Produits, reprise telle quelle (`stockActuel <= seuilAlerte`) : deux
@@ -55,11 +61,11 @@ export const CarteStock: React.FC<{
           </p>
         ) : (
           stock.etagere.map((p) => {
-            // Dix casiers : la part du disponible sur le seuil, arrondie
-            // au casier supérieur pour qu'un stock non nul en remplisse
-            // toujours au moins un.
+            // La part du disponible sur le seuil, bornée à 100 %. Un
+            // stock non nul garde un trait visible : une jauge vide et
+            // une jauge presque vide ne disent pas la même chose.
             const part = p.seuil > 0 ? p.disponible / p.seuil : 1;
-            const pleins = Math.max(p.disponible > 0 ? 1 : 0, Math.min(10, Math.round(part * 10)));
+            const rempli = p.disponible > 0 ? Math.max(4, Math.min(100, part * 100)) : 0;
             const Ligne = onProduit ? "button" : "div";
             return (
               <Ligne
@@ -73,10 +79,8 @@ export const CarteStock: React.FC<{
                 <span className="qty num">
                   {nombre(p.disponible)} / {nombre(p.seuil)}
                 </span>
-                <div className="bins" aria-hidden="true">
-                  {Array.from({ length: 10 }, (_, i) => (
-                    <i key={i} className={i < pleins ? "f" : ""} />
-                  ))}
+                <div className="jauge" aria-hidden="true">
+                  <i style={{ width: `${rempli}%` }} />
                 </div>
               </Ligne>
             );

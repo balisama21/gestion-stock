@@ -1955,23 +1955,33 @@
   font-size: 12px;
   color: var(--muted);
 }
-.dash2 .bins {
+/* Un trait continu, et non dix casiers. Cinq produits faisaient
+   cinquante petits rectangles alignés, et cette répétition fatigue
+   l'œil pour rien : le chiffre exact est déjà écrit juste au-dessus,
+   la jauge ne sert qu'à donner la proportion d'un coup. */
+.dash2 .jauge {
   grid-column: 1/-1;
-  display: grid;
-  grid-template-columns: repeat(10, 1fr);
-  gap: 3px;
-}
-.dash2 .bins i {
-  height: 9px;
-  border-radius: 3px;
+  height: 4px;
+  border-radius: 99px;
   background: var(--line-2);
-  border: 1px solid var(--line);
+  overflow: hidden;
 }
-.dash2 .bins i.f {
+.dash2 .jauge i {
+  display: block;
+  height: 100%;
+  border-radius: 99px;
   background: var(--accent);
-  border-color: transparent;
 }
-.dash2 .item.low .bins i.f {
+/* Le RAIL vire au rouge, pas seulement le remplissage. Un produit
+   à zéro n'a rien à remplir : avec les anciens casiers il ressortait
+   quand même, parce qu'un seuil nul les allumait tous en rouge — un
+   bandeau plein pour dire « il n'y en a plus », ce qui n'avait aucun
+   sens mais se voyait. Teinter le rail garde l'alerte visible sans
+   mentir sur le niveau. */
+.dash2 .item.low .jauge {
+  background: var(--crit-soft);
+}
+.dash2 .item.low .jauge i {
   background: var(--crit);
 }
 .dash2 .stock-foot {
@@ -1999,17 +2009,28 @@
   filter: drop-shadow(0 1px 1px rgba(20, 40, 30, 0.08))
     drop-shadow(0 8px 14px rgba(20, 40, 30, 0.08));
 }
+/* Les deux bords sont déchirés, pas seulement celui du bas : un
+   ticket arraché d'un rouleau l'est aux deux extrémités, et un coin
+   arrondi en haut face à des dents en bas se lisait comme un oubli.
+   Deux masques coniques, l'un par bord, qu'on INTERSECTE : sans
+   `mask-composite`, le second remplacerait le premier au lieu de
+   s'y ajouter. */
 .dash2 .ticket {
   background: var(--paper);
-  border-radius: 16px 16px 0 0;
-  padding: 18px 20px 30px;
+  border-radius: 0;
+  padding: 30px 20px;
   display: flex;
   flex-direction: column;
   gap: 12px;
   height: 100%;
-  -webkit-mask: conic-gradient(from -45deg at bottom, #0000, #000 1deg 89deg, #0000 90deg) 50% /
-    16px 100%;
-  mask: conic-gradient(from -45deg at bottom, #0000, #000 1deg 89deg, #0000 90deg) 50% / 16px 100%;
+  -webkit-mask:
+    conic-gradient(from -45deg at bottom, #0000, #000 1deg 89deg, #0000 90deg) 50% / 16px 100%,
+    conic-gradient(from 135deg at top, #0000, #000 1deg 89deg, #0000 90deg) 50% / 16px 100%;
+  -webkit-mask-composite: source-in;
+  mask:
+    conic-gradient(from -45deg at bottom, #0000, #000 1deg 89deg, #0000 90deg) 50% / 16px 100%,
+    conic-gradient(from 135deg at top, #0000, #000 1deg 89deg, #0000 90deg) 50% / 16px 100%;
+  mask-composite: intersect;
 }
 .dash2 .ticket .shopname {
   text-align: center;
@@ -2020,12 +2041,6 @@
   text-transform: uppercase;
   border-bottom: 1px dashed var(--paper-line);
   padding-bottom: 10px;
-}
-.dash2 .ticket .shopname b {
-  display: block;
-  color: var(--ink);
-  font-size: 13px;
-  letter-spacing: 0.2em;
 }
 .dash2 .row {
   display: flex;
@@ -2039,11 +2054,15 @@
   border-bottom: 1.5px dotted var(--paper-line);
   transform: translateY(-4px);
 }
+/* `margin-top: auto` : c'est le total qui absorbe désormais la
+   hauteur libre, rôle que tenait le code-barres. Il tombe donc en bas
+   du ticket, ce qui est sa place sur un vrai reçu. */
 .dash2 .row.total {
   font-size: 16px;
   font-weight: 700;
   border-top: 1px dashed var(--paper-line);
   padding-top: 10px;
+  margin-top: auto;
 }
 .dash2 .row small {
   color: var(--muted);
@@ -2062,21 +2081,6 @@
   letter-spacing: 0.04em;
   margin-top: 4px;
   text-align: center;
-}
-.dash2 .barcode {
-  height: 26px;
-  margin-top: auto;
-  background: repeating-linear-gradient(
-    90deg,
-    var(--ink) 0 2px,
-    transparent 2px 4px,
-    var(--ink) 4px 5px,
-    transparent 5px 8px,
-    var(--ink) 8px 11px,
-    transparent 11px 12px
-  );
-  opacity: 0.55;
-  border-radius: 2px;
 }
 
 /* ── 6. à faire ── */
