@@ -59,16 +59,16 @@ export const CarteTresorerie: React.FC<{
           className="flowbar"
           aria-label={`Entrées ${nombre(partEntrees)} %, sorties ${nombre(100 - partEntrees)} %`}
         >
-          <i style={{ width: `${partEntrees}%`, background: "#7BE0B5" }} />
-          <i style={{ width: `${100 - partEntrees}%`, background: "#F4B69A" }} />
+          <i style={{ width: `${partEntrees}%`, background: "var(--flux-entrees)" }} />
+          <i style={{ width: `${100 - partEntrees}%`, background: "var(--flux-sorties)" }} />
         </div>
         <div className="flowleg">
           <span>
-            <i className="dot" style={{ background: "#7BE0B5" }} />
+            <i className="dot" style={{ background: "var(--flux-entrees)" }} />
             Entrées {periode} <b>+{nombre(entrees)}</b>
           </span>
           <span>
-            <i className="dot" style={{ background: "#F4B69A" }} />
+            <i className="dot" style={{ background: "var(--flux-sorties)" }} />
             Sorties{" "}
             <b>
               {"−"}

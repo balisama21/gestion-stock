@@ -35,6 +35,31 @@
    cours sur un ancêtre suffirait à le repositionner par rapport à cet
    ancêtre plutôt qu'à l'écran. Sorti à la racine, il ne dépend plus de
    rien — encore faut-il lui redonner ses couleurs. */
+
+/* LE VERT VIENT DU THÈME, PAS D'ICI.
+
+   Les gris, les beiges et les couleurs d'alerte restent propres à cet
+   écran : c'est l'isolation décrite au-dessus, et elle a ses raisons.
+   Le VERT, lui, n'en est pas une. Il s'était pris ses propres valeurs
+   pendant la refonte, et toute la famille se retrouvait décalée de
+   cinq à neuf degrés de teinte vers le turquoise par rapport au reste
+   de l'application — assez pour qu'on le voie, pas assez pour qu'on
+   sache pourquoi.
+
+   Les trois jetons verts pointent donc sur ceux de `src/styles.css`,
+   et le rapport entre eux est conservé :
+
+     --accent      var(--primary)       le vert d'action, celui de la
+                                        barre latérale et des boutons
+     --accent-ink  var(--success)       le vert de texte, plus foncé
+                                        (0,50 contre 0,545 de clarté)
+     --accent-soft var(--success-soft)  le fond de badge, et le fond de
+                                        survol du bouton principal
+
+   ILS N'ONT PLUS D'ÉQUIVALENT EN THÈME SOMBRE ici, et c'est le but :
+   `--primary` et `--success` basculent déjà seuls sous `.dark`. Tant
+   que ce fichier redonnait ses propres verts sombres, changer le vert
+   de la marque n'en aurait changé que la moitié. */
 .dash2,
 .dash2-portal {
   --bg: #f2f5f2;
@@ -45,18 +70,33 @@
   --ink: #17211d;
   --ink-2: #44504a;
   --muted: #76817b;
-  --accent: #0e7c5a;
-  --accent-ink: #0b6a4c;
-  --accent-soft: #e1f1e9;
+  --accent: var(--primary);
+  --accent-ink: var(--success);
+  --accent-soft: var(--success-soft);
   --warn: #b06f12;
   --warn-soft: #fbf0dc;
   --crit: #c0473a;
   --crit-soft: #fbe6e2;
   --info: #3a72a6;
   --info-soft: #e3edf6;
-  --hero-1: #0f7255;
-  --hero-2: #093f2f;
-  --hero-ink: #f1faf5;
+  /* LA CARTE TRÉSORERIE, seule carte sombre de l'écran.
+
+     Ces trois-là ne peuvent pas être `--primary` tel quel : il faut du
+     foncé pour le fond et du très pâle pour le texte. `oklch(from …)`
+     reprend la TEINTE et la chroma du thème et ne change que la
+     clarté — la carte reste donc exactement aussi sombre qu'avant,
+     à deux millièmes de clarté près, mais dans le vert de la marque.
+     La chroma est rabattue aux clartés extrêmes, où le vert plein
+     sortirait de la gamme sRGB et serait rattrapé de travers. */
+  --hero-1: oklch(from var(--primary) 0.49 calc(c * 0.85) h);
+  --hero-2: oklch(from var(--primary) 0.33 calc(c * 0.5) h);
+  --hero-ink: oklch(from var(--primary) 0.975 calc(c * 0.1) h);
+  /* Les deux barres du flux de trésorerie, qui se lisent sur ce fond
+     sombre. Elles étaient écrites en dur dans CarteTresorerie.tsx.
+     L'entrée suit le thème ; la sortie garde sa valeur — ce n'est pas
+     un vert, et une couleur de statut non verte ne bouge pas. */
+  --flux-entrees: oklch(from var(--primary) 0.83 c h);
+  --flux-sorties: #f4b69a;
   --paper: #fffdf6;
   --paper-line: #e9e3d3;
   --shadow: 0 1px 2px rgba(20, 40, 30, 0.05), 0 6px 20px -12px rgba(20, 40, 30, 0.18);
@@ -92,18 +132,16 @@
   --ink: #e3eae6;
   --ink-2: #b6c1bb;
   --muted: #86928c;
-  --accent: #3bb688;
-  --accent-ink: #62cfa5;
-  --accent-soft: #16302556;
+  /* Aucun vert ici : `--accent`, `--accent-ink` et `--accent-soft`
+     pointent sur `--primary`, `--success` et `--success-soft`, qui
+     basculent déjà sous `.dark`. Les redonner reviendrait à tenir
+     deux vérités sur la même couleur. */
   --warn: #e1a447;
   --warn-soft: #2e2615;
   --crit: #e2715f;
   --crit-soft: #33201c;
   --info: #72a8db;
   --info-soft: #172535;
-  --hero-1: #0f5c45;
-  --hero-2: #08342a;
-  --hero-ink: #eaf6f0;
   --paper: #1a201d;
   --paper-line: #2c3430;
   --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px -14px rgba(0, 0, 0, 0.6);
