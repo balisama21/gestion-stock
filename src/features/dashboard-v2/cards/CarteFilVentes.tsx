@@ -1,6 +1,8 @@
 import React, { useMemo } from "react";
 import { Card, CardHeader } from "../components/Card";
+import { BoutonRepli } from "../components/BoutonRepli";
 import { EtatVide } from "../components/States";
+import { useRepli } from "../lib/repli";
 import { dateLocale, jourMoisChiffres, montant } from "../lib/format";
 import { dateDuJour } from "../../../lib/dates";
 import { getSaleLabel, quantiteEnMots } from "../../../utils/formulas";
@@ -33,6 +35,13 @@ import type { Product, Sale } from "../../../types";
  *
  * « 20 unités », jamais « ×20 » : collé au nom du produit, l'abrégé se
  * lit comme une référence de catalogue.
+ *
+ * ── ELLE SE REPLIE, COMME LE JOURNAL ──
+ *
+ * Même forme, même encombrement : huit lignes groupées par jour, sur
+ * huit colonnes. Elle arrive repliée pour la même raison que lui — on
+ * vient sur cet écran pour les chiffres du jour, et l'on déplie ce
+ * qu'on veut vraiment lire. Le choix se retient par navigateur.
  */
 
 const BADGE: Record<string, { texte: string; classe: string }> = {
@@ -79,8 +88,12 @@ export const CarteFilVentes: React.FC<{
     return d.toLocaleDateString("fr-FR", { weekday: "long" });
   };
 
+  // Même forme et même encombrement que le journal : elle arrive
+  // repliée comme lui.
+  const { replie, basculer } = useRepli("tantana.dash.fil-replie");
+
   return (
-    <Card span={8} id="carte-fil">
+    <Card span={8} id="carte-fil" className={replie ? "replie" : undefined}>
       <CardHeader
         title={titre}
         icon={
@@ -96,56 +109,62 @@ export const CarteFilVentes: React.FC<{
           </svg>
         }
         action={
-          onToutVoir && (
-            <button className="link" type="button" onClick={onToutVoir}>
-              Tout voir
-            </button>
-          )
+          <>
+            {/* Repliée, la carte n'a plus de liste à prolonger : le lien
+                vers l'historique n'a rien à quoi se rattacher. */}
+            {onToutVoir && !replie && (
+              <button className="link" type="button" onClick={onToutVoir}>
+                Tout voir
+              </button>
+            )}
+            <BoutonRepli replie={replie} onBasculer={basculer} quoi="le fil des ventes" />
+          </>
         }
       />
 
-      {parJour.length === 0 ? (
-        <EtatVide
-          titre="Aucune vente enregistrée"
-          detail="Les ventes du comptoir apparaîtront ici, jour après jour."
-        />
-      ) : (
-        <div className="feed">
-          {parJour.map(([jour, lignes]) => (
-            <div className="day" key={jour}>
-              <div className="when">
-                <b>{jourMoisChiffres(dateLocale(jour))}</b>
-                {nomDuJour(jour)}
-              </div>
-              <div className="items">
-                {lignes.map((v) => {
-                  const produit = produits.find((p) => p.id === v.productId);
-                  const badge = BADGE[v.statutCredit] ?? BADGE["Payé"];
-                  return (
-                    <div className="sale" key={v.id}>
-                      <VignetteProduit
-                        nom={getSaleLabel(v, produits)}
-                        chemin={v.productId ? vignettes.get(v.productId) : null}
-                        taille={34}
-                      />
-                      <div style={{ minWidth: 0 }}>
-                        <b>{getSaleLabel(v, produits)}</b>
-                        <small>
-                          {quantiteEnMots(v.quantite, produit?.unite)} · {v.vendeur}
-                        </small>
+      {!replie &&
+        (parJour.length === 0 ? (
+          <EtatVide
+            titre="Aucune vente enregistrée"
+            detail="Les ventes du comptoir apparaîtront ici, jour après jour."
+          />
+        ) : (
+          <div className="feed">
+            {parJour.map(([jour, lignes]) => (
+              <div className="day" key={jour}>
+                <div className="when">
+                  <b>{jourMoisChiffres(dateLocale(jour))}</b>
+                  {nomDuJour(jour)}
+                </div>
+                <div className="items">
+                  {lignes.map((v) => {
+                    const produit = produits.find((p) => p.id === v.productId);
+                    const badge = BADGE[v.statutCredit] ?? BADGE["Payé"];
+                    return (
+                      <div className="sale" key={v.id}>
+                        <VignetteProduit
+                          nom={getSaleLabel(v, produits)}
+                          chemin={v.productId ? vignettes.get(v.productId) : null}
+                          taille={34}
+                        />
+                        <div style={{ minWidth: 0 }}>
+                          <b>{getSaleLabel(v, produits)}</b>
+                          <small>
+                            {quantiteEnMots(v.quantite, produit?.unite)} · {v.vendeur}
+                          </small>
+                        </div>
+                        <div className="amt num">
+                          {montantsVisibles ? montant(v.totalVente) : "••• Ar"}
+                        </div>
+                        <span className={`paid ${badge.classe}`}>{badge.texte}</span>
                       </div>
-                      <div className="amt num">
-                        {montantsVisibles ? montant(v.totalVente) : "••• Ar"}
-                      </div>
-                      <span className={`paid ${badge.classe}`}>{badge.texte}</span>
-                    </div>
-                  );
-                })}
+                    );
+                  })}
+                </div>
               </div>
-            </div>
-          ))}
-        </div>
-      )}
+            ))}
+          </div>
+        ))}
     </Card>
   );
 };
