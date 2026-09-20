@@ -1,8 +1,10 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useMemo, useState } from "react";
+import { BoutonRepli } from "../components/BoutonRepli";
 import { Card } from "../components/Card";
 import { dateLocale, pluriel } from "../lib/format";
 import { dateDuJour } from "../../../lib/dates";
 import { agendaDuMois, joursDuMois, prochainsDepuis, type SourcesAgenda } from "../lib/agenda";
+import { useRepli } from "../lib/repli";
 
 /**
  * 3. AGENDA — le calendrier de bureau
@@ -43,20 +45,6 @@ const FLECHE = (
   </svg>
 );
 
-/** Le chevron du repli. Vers le bas quand la grille est dépliée. */
-const CHEVRON = (
-  <svg
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2.4"
-    strokeLinecap="round"
-    strokeLinejoin="round"
-  >
-    <path d="m6 9 6 6 6-6" />
-  </svg>
-);
-
 /** Même préfixe que le mode focus et la table de contrôle. */
 const CLE_REPLI = "tantana.dash.agenda-replie";
 
@@ -74,28 +62,7 @@ export const CarteAgenda: React.FC<{
 
   const [selection, setSelection] = useState<string | null>(null);
 
-  const [replie, setReplie] = useState(false);
-  useEffect(() => {
-    try {
-      setReplie(window.localStorage.getItem(CLE_REPLI) === "1");
-    } catch {
-      /* Navigation privée : le calendrier repart déplié. */
-    }
-  }, []);
-
-  const basculer = () => {
-    const suivant = !replie;
-    setReplie(suivant);
-    // Un jour choisi dans la grille n'a plus de sens quand la grille
-    // disparaît : la liste du bas repart d'aujourd'hui.
-    if (suivant) setSelection(null);
-    try {
-      if (suivant) window.localStorage.setItem(CLE_REPLI, "1");
-      else window.localStorage.removeItem(CLE_REPLI);
-    } catch {
-      /* Le choix ne vaut alors que pour cette page-ci. */
-    }
-  };
+  const { replie, basculer } = useRepli(CLE_REPLI);
 
   const table = useMemo(
     () => agendaDuMois(sources, annee, mois, aujourdhui),
@@ -123,16 +90,12 @@ export const CarteAgenda: React.FC<{
           <small>Agenda de la boutique</small>
         </div>
         <div className="cal-actions">
-          <button
-            className={`nav-btn plier${replie ? " replie" : ""}`}
-            type="button"
-            onClick={basculer}
-            aria-expanded={!replie}
-            aria-label={replie ? "Déplier le calendrier" : "Replier le calendrier"}
-            title={replie ? "Déplier le calendrier" : "Replier le calendrier"}
-          >
-            {CHEVRON}
-          </button>
+          <BoutonRepli
+            replie={replie}
+            onBasculer={basculer}
+            quoi="le calendrier"
+            className="nav-btn"
+          />
           {onOuvrir && (
             <button
               className="nav-btn"

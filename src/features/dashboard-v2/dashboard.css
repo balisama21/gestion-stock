@@ -200,8 +200,12 @@
   place-items: center;
   padding: 0;
 }
+/* Le survol renforce la couleur, il ne dessine pas un cadre. C'est la
+   règle de tous les boutons à symbole de cet écran : un pictogramme se
+   suffit, et une rangée de petites boîtes grises fait du bruit pour
+   rien. */
 .dash2 .icon-btn:hover {
-  background: var(--surface-2);
+  color: var(--ink);
   color: var(--ink);
 }
 .dash2 .icon-btn svg {
@@ -919,19 +923,22 @@
   color: var(--muted);
   font-size: 12.5px;
 }
+/* Une croix se reconnaît sans qu'on lui dessine une boîte autour.
+   La zone de clic garde ses 34 pixels — c'est elle qui compte pour
+   le doigt, pas le cadre. */
 .dash2-drawer .close {
-  border: 1px solid var(--line);
-  background: var(--surface);
+  border: 0;
+  background: none;
+  padding: 0;
   width: 34px;
   height: 34px;
-  border-radius: 10px;
   display: grid;
   place-items: center;
   flex: none;
   color: var(--ink-2);
 }
 .dash2-drawer .close:hover {
-  border-color: var(--muted);
+  color: var(--ink);
 }
 .dash2-drawer .close svg {
   width: 16px;
@@ -1751,16 +1758,23 @@
   opacity: 0.8;
   font-size: 12px;
 }
+/* Ni fond ni bordure : sur un en-tête déjà coloré, deux pastilles
+   claires ajoutaient une couche pour rien. Le blanc légèrement
+   attenué au repos se complète au survol : c'est là qu'est la
+   réponse, pas dans un cadre qui revient. */
 .dash2 .cal-head .nav-btn {
-  background: rgba(255, 255, 255, 0.16);
+  background: none;
   border: 0;
-  border-radius: 7px;
+  padding: 0;
   width: 26px;
   height: 26px;
-  color: #fff;
+  color: rgba(255, 255, 255, 0.82);
   display: grid;
   place-items: center;
   flex: none;
+}
+.dash2 .cal-head .nav-btn:hover {
+  color: #fff;
 }
 .dash2 .cal-head .nav-btn svg {
   width: 14px;
@@ -1776,17 +1790,26 @@
 /* Le chevron pointe vers le bas quand la grille est dépliée, et se
    retourne une fois repliée : il montre toujours ce que le clic va
    faire. */
-.dash2 .cal-head .nav-btn.plier svg {
+/* Le chevron pointe vers le bas quand le contenu est là, et se
+   retourne une fois rangé : il montre toujours ce que le clic va
+   faire. Vaut pour le calendrier comme pour le journal. */
+.dash2 .plier svg {
   transition: transform 0.18s ease;
 }
-.dash2 .cal-head .nav-btn.plier.replie svg {
+.dash2 .plier.replie svg {
   transform: rotate(180deg);
 }
 @media (prefers-reduced-motion: reduce) {
-  .dash2 .cal-head .nav-btn.plier svg {
+  .dash2 .plier svg {
     transition: none;
   }
 }
+/* Le journal replié n'est plus qu'un en-tête : on lui retire le
+   rembourrage du bas, qui laisserait une bande vide sous le titre. */
+.dash2 .card.replie {
+  padding-bottom: 12px;
+}
+
 /* Repliée, la grille disparaît et la liste du bas remonte contre
    l'en-tête vert. Son filet pointillé n'a plus rien à séparer : on
    l'efface et on rend l'air en marge. */

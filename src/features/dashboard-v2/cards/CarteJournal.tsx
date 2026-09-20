@@ -1,9 +1,11 @@
 import React, { useMemo, useState } from "react";
+import { BoutonRepli } from "../components/BoutonRepli";
 import { Card, CardHeader } from "../components/Card";
 import { EtatErreur } from "../components/States";
 import { dateLocale, montant } from "../lib/format";
 import { dateDuJour } from "../../../lib/dates";
 import type { EvenementJournal, GenreJournal } from "../lib/journal";
+import { useRepli } from "../lib/repli";
 
 /**
  * 14. JOURNAL D'ACTIVITÉ
@@ -102,8 +104,12 @@ export const CarteJournal: React.FC<{
     return `${sem.charAt(0).toUpperCase()}${sem.slice(1)} ${jour.slice(8)}/${jour.slice(5, 7)}`;
   };
 
+  // Le journal ne cesse de s'allonger : il arrive replié, et l'on
+  // déplie quand on vient vraiment le lire.
+  const { replie, basculer } = useRepli("tantana.dash.journal-replie");
+
   return (
-    <Card span={8} secondary id="carte-journal">
+    <Card span={8} secondary id="carte-journal" className={replie ? "replie" : undefined}>
       <CardHeader
         title="Journal d'activité"
         icon={
@@ -118,53 +124,62 @@ export const CarteJournal: React.FC<{
           </svg>
         }
         action={
-          onHistorique && (
-            <button className="link" type="button" onClick={onHistorique}>
-              Historique complet
-            </button>
-          )
+          <>
+            {onHistorique && !replie && (
+              <button className="link" type="button" onClick={onHistorique}>
+                Historique complet
+              </button>
+            )}
+            <BoutonRepli replie={replie} onBasculer={basculer} quoi="le journal" />
+          </>
         }
       />
 
+      {/* Une lecture qui a échoué se dit même repliée : c'est
+          précisément ce qu'on ne doit pas pouvoir manquer. */}
       {erreur && <EtatErreur message={erreur} onReessayer={onReessayer} />}
 
-      <div className="filters" role="group" aria-label="Filtrer le journal">
-        {FILTRES.map((f) => (
-          <button
-            key={f.cle}
-            type="button"
-            aria-pressed={filtre === f.cle}
-            onClick={() => setFiltre(f.cle)}
-          >
-            {f.libelle}
-          </button>
-        ))}
-      </div>
+      {!replie && (
+        <>
+          <div className="filters" role="group" aria-label="Filtrer le journal">
+            {FILTRES.map((f) => (
+              <button
+                key={f.cle}
+                type="button"
+                aria-pressed={filtre === f.cle}
+                onClick={() => setFiltre(f.cle)}
+              >
+                {f.libelle}
+              </button>
+            ))}
+          </div>
 
-      <div className="tl">
-        {groupes.length === 0 ? (
-          <div className="tlday">Rien pour ce filtre</div>
-        ) : (
-          groupes.map(([jour, lignes]) => (
-            <React.Fragment key={jour}>
-              <div className="tlday">{nomDuJour(jour)}</div>
-              {lignes.map((e) => (
-                <div className="ev-row" key={e.id}>
-                  <time>{e.heure}</time>
-                  <span className={`ic ${e.genre}`}>{ICONES[e.genre]}</span>
-                  <div className="tx">
-                    {e.texte}
-                    {e.detail && <small>{e.detail}</small>}
-                  </div>
-                  <span className="am num">
-                    {e.montant != null && montantsVisibles ? montant(e.montant) : ""}
-                  </span>
-                </div>
-              ))}
-            </React.Fragment>
-          ))
-        )}
-      </div>
+          <div className="tl">
+            {groupes.length === 0 ? (
+              <div className="tlday">Rien pour ce filtre</div>
+            ) : (
+              groupes.map(([jour, lignes]) => (
+                <React.Fragment key={jour}>
+                  <div className="tlday">{nomDuJour(jour)}</div>
+                  {lignes.map((e) => (
+                    <div className="ev-row" key={e.id}>
+                      <time>{e.heure}</time>
+                      <span className={`ic ${e.genre}`}>{ICONES[e.genre]}</span>
+                      <div className="tx">
+                        {e.texte}
+                        {e.detail && <small>{e.detail}</small>}
+                      </div>
+                      <span className="am num">
+                        {e.montant != null && montantsVisibles ? montant(e.montant) : ""}
+                      </span>
+                    </div>
+                  ))}
+                </React.Fragment>
+              ))
+            )}
+          </div>
+        </>
+      )}
     </Card>
   );
 };
