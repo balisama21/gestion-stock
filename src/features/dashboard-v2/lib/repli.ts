@@ -1,6 +1,19 @@
 import { useCallback, useEffect, useState } from "react";
 
 /**
+ * CE QU'UNE CARTE EN LISTE MONTRE QUAND ELLE EST REPLIÉE.
+ *
+ * Repliée, elle n'était plus qu'un titre : on savait qu'il y avait
+ * quelque chose dessous, jamais quoi. Trois lignes suffisent à dire de
+ * quoi il retourne — la dernière vente, le dernier geste — sans rendre
+ * à la carte la hauteur qu'on venait de lui retirer.
+ *
+ * Écrit ici plutôt que dans chaque carte : le jour où trois devient
+ * quatre, c'est un seul endroit.
+ */
+export const LIGNES_EN_APERCU = 3;
+
+/**
  * SE SOUVENIR QU'UNE CARTE EST REPLIÉE
  *
  * Deux cartes du tableau de bord sont longues par nature : le

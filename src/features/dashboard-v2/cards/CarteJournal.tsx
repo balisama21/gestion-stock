@@ -5,7 +5,7 @@ import { EtatErreur } from "../components/States";
 import { dateLocale, montant } from "../lib/format";
 import { dateDuJour } from "../../../lib/dates";
 import type { EvenementJournal, GenreJournal } from "../lib/journal";
-import { useRepli } from "../lib/repli";
+import { LIGNES_EN_APERCU, useRepli } from "../lib/repli";
 
 /**
  * 14. JOURNAL D'ACTIVITÉ
@@ -82,6 +82,12 @@ export const CarteJournal: React.FC<{
   const aujourdhui = dateDuJour();
   const [filtre, setFiltre] = useState<Filtre>(filtreInitial);
 
+  // Le journal ne cesse de s'allonger : il arrive replié, et montre
+  // alors ses trois dernières lignes plutôt que rien.
+  const { replie, basculer } = useRepli("tantana.dash.journal-replie");
+
+  // LE GROUPEMENT SE REFAIT SUR LA LISTE RÉDUITE, sans quoi une en-tête
+  // de jour pourrait rester seule, au-dessus de rien.
   const groupes = useMemo(() => {
     const retenues = journal.filter((e) => {
       if (filtre === "tout") return true;
@@ -89,13 +95,13 @@ export const CarteJournal: React.FC<{
       return e.genre === filtre;
     });
     const table = new Map<string, EvenementJournal[]>();
-    for (const e of retenues.slice(0, 40)) {
+    for (const e of retenues.slice(0, replie ? LIGNES_EN_APERCU : 40)) {
       const liste = table.get(e.jour) ?? [];
       liste.push(e);
       table.set(e.jour, liste);
     }
     return [...table.entries()];
-  }, [journal, filtre, aujourdhui]);
+  }, [journal, filtre, aujourdhui, replie]);
 
   const nomDuJour = (jour: string) => {
     if (jour === aujourdhui) return `Aujourd'hui · ${jour.slice(8)}/${jour.slice(5, 7)}`;
@@ -103,10 +109,6 @@ export const CarteJournal: React.FC<{
     const sem = d.toLocaleDateString("fr-FR", { weekday: "long" });
     return `${sem.charAt(0).toUpperCase()}${sem.slice(1)} ${jour.slice(8)}/${jour.slice(5, 7)}`;
   };
-
-  // Le journal ne cesse de s'allonger : il arrive replié, et l'on
-  // déplie quand on vient vraiment le lire.
-  const { replie, basculer } = useRepli("tantana.dash.journal-replie");
 
   return (
     <Card span={8} id="carte-journal" className={replie ? "replie" : undefined}>
@@ -125,7 +127,10 @@ export const CarteJournal: React.FC<{
         }
         action={
           <>
-            {onHistorique && !replie && (
+            {/* Le lien reste dans les deux états : replié, le journal ne
+                montre plus que trois lignes, et c'est là qu'on a le plus
+                envie de voir la suite. */}
+            {onHistorique && (
               <button className="link" type="button" onClick={onHistorique}>
                 Historique complet
               </button>
@@ -139,47 +144,48 @@ export const CarteJournal: React.FC<{
           précisément ce qu'on ne doit pas pouvoir manquer. */}
       {erreur && <EtatErreur message={erreur} onReessayer={onReessayer} />}
 
+      {/* Les filtres ne paraissent que déplié, où il y a de quoi
+          filtrer : six boutons au-dessus de trois lignes pèseraient
+          plus que la liste elle-même. */}
       {!replie && (
-        <>
-          <div className="filters" role="group" aria-label="Filtrer le journal">
-            {FILTRES.map((f) => (
-              <button
-                key={f.cle}
-                type="button"
-                aria-pressed={filtre === f.cle}
-                onClick={() => setFiltre(f.cle)}
-              >
-                {f.libelle}
-              </button>
-            ))}
-          </div>
-
-          <div className="tl">
-            {groupes.length === 0 ? (
-              <div className="tlday">Rien pour ce filtre</div>
-            ) : (
-              groupes.map(([jour, lignes]) => (
-                <React.Fragment key={jour}>
-                  <div className="tlday">{nomDuJour(jour)}</div>
-                  {lignes.map((e) => (
-                    <div className="ev-row" key={e.id}>
-                      <time>{e.heure}</time>
-                      <span className={`ic ${e.genre}`}>{ICONES[e.genre]}</span>
-                      <div className="tx">
-                        {e.texte}
-                        {e.detail && <small>{e.detail}</small>}
-                      </div>
-                      <span className="am num">
-                        {e.montant != null && montantsVisibles ? montant(e.montant) : ""}
-                      </span>
-                    </div>
-                  ))}
-                </React.Fragment>
-              ))
-            )}
-          </div>
-        </>
+        <div className="filters" role="group" aria-label="Filtrer le journal">
+          {FILTRES.map((f) => (
+            <button
+              key={f.cle}
+              type="button"
+              aria-pressed={filtre === f.cle}
+              onClick={() => setFiltre(f.cle)}
+            >
+              {f.libelle}
+            </button>
+          ))}
+        </div>
       )}
+
+      <div className="tl">
+        {groupes.length === 0 ? (
+          <div className="tlday">Rien pour ce filtre</div>
+        ) : (
+          groupes.map(([jour, lignes]) => (
+            <React.Fragment key={jour}>
+              <div className="tlday">{nomDuJour(jour)}</div>
+              {lignes.map((e) => (
+                <div className="ev-row" key={e.id}>
+                  <time>{e.heure}</time>
+                  <span className={`ic ${e.genre}`}>{ICONES[e.genre]}</span>
+                  <div className="tx">
+                    {e.texte}
+                    {e.detail && <small>{e.detail}</small>}
+                  </div>
+                  <span className="am num">
+                    {e.montant != null && montantsVisibles ? montant(e.montant) : ""}
+                  </span>
+                </div>
+              ))}
+            </React.Fragment>
+          ))
+        )}
+      </div>
     </Card>
   );
 };

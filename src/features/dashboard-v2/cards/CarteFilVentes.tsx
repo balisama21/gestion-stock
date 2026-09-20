@@ -2,7 +2,7 @@ import React, { useMemo } from "react";
 import { Card, CardHeader } from "../components/Card";
 import { BoutonRepli } from "../components/BoutonRepli";
 import { EtatVide } from "../components/States";
-import { useRepli } from "../lib/repli";
+import { LIGNES_EN_APERCU, useRepli } from "../lib/repli";
 import { dateLocale, jourMoisChiffres, montant } from "../lib/format";
 import { dateDuJour } from "../../../lib/dates";
 import { getSaleLabel, quantiteEnMots } from "../../../utils/formulas";
@@ -42,6 +42,10 @@ import type { Product, Sale } from "../../../types";
  * huit colonnes. Elle arrive repliée pour la même raison que lui — on
  * vient sur cet écran pour les chiffres du jour, et l'on déplie ce
  * qu'on veut vraiment lire. Le choix se retient par navigateur.
+ *
+ * REPLIÉE, ELLE MONTRE TROIS LIGNES et non rien du tout : un titre seul
+ * dit qu'il y a quelque chose dessous, jamais quoi. La dernière vente
+ * suffit souvent à répondre à la question qu'on se posait.
  */
 
 const BADGE: Record<string, { texte: string; classe: string }> = {
@@ -62,17 +66,26 @@ export const CarteFilVentes: React.FC<{
   const aujourdhui = dateDuJour();
   const vignettes = useMemo(() => vignettesParProduit(images), [images]);
 
+  // Même forme et même encombrement que le journal : elle arrive
+  // repliée comme lui, et montre alors ses trois dernières lignes.
+  const { replie, basculer } = useRepli("tantana.dash.fil-replie");
+
   /**
-   * Les huit dernières lignes, groupées par jour, du plus récent au plus
+   * Les dernières lignes, groupées par jour, du plus récent au plus
    * ancien.
    *
-   * Huit et non douze : chaque jour coûte une ligne de date en plus, et
-   * au-delà la carte dépasse d'une tête celles qui l'entourent. Ce fil
-   * sert à voir ce qui vient de se passer ; l'historique complet a sa
-   * page.
+   * Huit dépliée, et non douze : chaque jour coûte une ligne de date en
+   * plus, et au-delà la carte dépasse d'une tête celles qui l'entourent.
+   * Ce fil sert à voir ce qui vient de se passer ; l'historique complet
+   * a sa page.
+   *
+   * LE GROUPEMENT SE REFAIT SUR LA LISTE RÉDUITE, sans quoi une
+   * en-tête de jour pourrait rester seule, au-dessus de rien.
    */
   const parJour = useMemo(() => {
-    const recentes = [...ventes].sort((a, b) => b.date.localeCompare(a.date)).slice(0, 8);
+    const recentes = [...ventes]
+      .sort((a, b) => b.date.localeCompare(a.date))
+      .slice(0, replie ? LIGNES_EN_APERCU : 8);
     const table = new Map<string, Sale[]>();
     for (const v of recentes) {
       const liste = table.get(v.date) ?? [];
@@ -80,17 +93,13 @@ export const CarteFilVentes: React.FC<{
       table.set(v.date, liste);
     }
     return [...table.entries()];
-  }, [ventes]);
+  }, [ventes, replie]);
 
   const nomDuJour = (jour: string) => {
     if (jour === aujourdhui) return "aujourd'hui";
     const d = dateLocale(jour);
     return d.toLocaleDateString("fr-FR", { weekday: "long" });
   };
-
-  // Même forme et même encombrement que le journal : elle arrive
-  // repliée comme lui.
-  const { replie, basculer } = useRepli("tantana.dash.fil-replie");
 
   return (
     <Card span={8} id="carte-fil" className={replie ? "replie" : undefined}>
@@ -110,9 +119,10 @@ export const CarteFilVentes: React.FC<{
         }
         action={
           <>
-            {/* Repliée, la carte n'a plus de liste à prolonger : le lien
-                vers l'historique n'a rien à quoi se rattacher. */}
-            {onToutVoir && !replie && (
+            {/* Le lien reste dans les deux états : repliée, la carte ne
+                montre plus que trois lignes sur huit, et c'est là qu'on a
+                le plus envie de voir la suite. */}
+            {onToutVoir && (
               <button className="link" type="button" onClick={onToutVoir}>
                 Tout voir
               </button>
@@ -122,49 +132,48 @@ export const CarteFilVentes: React.FC<{
         }
       />
 
-      {!replie &&
-        (parJour.length === 0 ? (
-          <EtatVide
-            titre="Aucune vente enregistrée"
-            detail="Les ventes du comptoir apparaîtront ici, jour après jour."
-          />
-        ) : (
-          <div className="feed">
-            {parJour.map(([jour, lignes]) => (
-              <div className="day" key={jour}>
-                <div className="when">
-                  <b>{jourMoisChiffres(dateLocale(jour))}</b>
-                  {nomDuJour(jour)}
-                </div>
-                <div className="items">
-                  {lignes.map((v) => {
-                    const produit = produits.find((p) => p.id === v.productId);
-                    const badge = BADGE[v.statutCredit] ?? BADGE["Payé"];
-                    return (
-                      <div className="sale" key={v.id}>
-                        <VignetteProduit
-                          nom={getSaleLabel(v, produits)}
-                          chemin={v.productId ? vignettes.get(v.productId) : null}
-                          taille={34}
-                        />
-                        <div style={{ minWidth: 0 }}>
-                          <b>{getSaleLabel(v, produits)}</b>
-                          <small>
-                            {quantiteEnMots(v.quantite, produit?.unite)} · {v.vendeur}
-                          </small>
-                        </div>
-                        <div className="amt num">
-                          {montantsVisibles ? montant(v.totalVente) : "••• Ar"}
-                        </div>
-                        <span className={`paid ${badge.classe}`}>{badge.texte}</span>
-                      </div>
-                    );
-                  })}
-                </div>
+      {parJour.length === 0 ? (
+        <EtatVide
+          titre="Aucune vente enregistrée"
+          detail="Les ventes du comptoir apparaîtront ici, jour après jour."
+        />
+      ) : (
+        <div className="feed">
+          {parJour.map(([jour, lignes]) => (
+            <div className="day" key={jour}>
+              <div className="when">
+                <b>{jourMoisChiffres(dateLocale(jour))}</b>
+                {nomDuJour(jour)}
               </div>
-            ))}
-          </div>
-        ))}
+              <div className="items">
+                {lignes.map((v) => {
+                  const produit = produits.find((p) => p.id === v.productId);
+                  const badge = BADGE[v.statutCredit] ?? BADGE["Payé"];
+                  return (
+                    <div className="sale" key={v.id}>
+                      <VignetteProduit
+                        nom={getSaleLabel(v, produits)}
+                        chemin={v.productId ? vignettes.get(v.productId) : null}
+                        taille={34}
+                      />
+                      <div style={{ minWidth: 0 }}>
+                        <b>{getSaleLabel(v, produits)}</b>
+                        <small>
+                          {quantiteEnMots(v.quantite, produit?.unite)} · {v.vendeur}
+                        </small>
+                      </div>
+                      <div className="amt num">
+                        {montantsVisibles ? montant(v.totalVente) : "••• Ar"}
+                      </div>
+                      <span className={`paid ${badge.classe}`}>{badge.texte}</span>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
     </Card>
   );
 };
