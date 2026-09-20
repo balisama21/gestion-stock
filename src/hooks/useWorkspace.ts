@@ -8,6 +8,7 @@ import {
   type PermissionsMap,
 } from "../lib/permissions";
 import { lireBoutiqueActive, retenirBoutiqueActive } from "../lib/boutiqueActive";
+import { boutiqueEstVerrouillee } from "../lib/verrouillage";
 
 type Store = Database["public"]["Tables"]["stores"]["Row"];
 
@@ -265,6 +266,26 @@ export function useWorkspaceState(): WorkspaceContext {
       storeId: string,
       updates: Partial<Store>,
     ): Promise<{ store: Store | null; error: string | null }> => {
+      /*
+       * Une boutique verrouillée refuse déjà la modification en base
+       * (policy « La boutique ouverte se modifie »). Mais un refus de RLS
+       * sur un UPDATE est SILENCIEUX : la ligne devient simplement
+       * invisible, et PostgREST répond « aucune ligne trouvée » plutôt
+       * qu'une raison. On dit donc la raison ici, avant de partir pour
+       * rien — les Réglages restent joignables quand la boutique est
+       * fermée, et on peut donc y arriver de bonne foi.
+       *
+       * Ce n'est pas la barrière : elle reste en base, et cette ligne
+       * ne fait que traduire son refus.
+       */
+      const cible = [...ownedStores, ...memberStores].find((s) => s.id === storeId);
+      if (cible && boutiqueEstVerrouillee(cible)) {
+        return {
+          store: null,
+          error: "Cette boutique est verrouillée : activez-la pour modifier ses réglages.",
+        };
+      }
+
       const { data: updated, error } = await supabase
         .from("stores")
         .update(updates as any)
@@ -279,7 +300,7 @@ export function useWorkspaceState(): WorkspaceContext {
 
       return { store: updated as Store, error: null };
     },
-    [],
+    [ownedStores, memberStores],
   );
 
   const copyStore = useCallback(
