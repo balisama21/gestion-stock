@@ -21,7 +21,7 @@ import { Sidebar } from "./Sidebar";
 import { MenuPlus } from "./MenuPlus";
 import { PanneauNotifications } from "./PanneauNotifications";
 import { useNotificationsLues } from "../lib/notificationsLues";
-import type { Notification } from "../lib/activite";
+import type { ActionNotification, Notification } from "../lib/activite";
 import { visibleNavGroups, visibleBottomTabs, canSeeSettings } from "./navigation";
 import { useWorkspace } from "../hooks/useWorkspace";
 import { useAuth } from "../hooks/useAuth";
@@ -67,6 +67,15 @@ interface HeaderProps {
   onOuvrirIdentiteBoutique: () => void;
   /** Ce qui demande attention et ce qui vient de se passer. */
   notifications: Notification[];
+  /**
+   * Ce que fait un bouton posé sous une notification.
+   *
+   * L'en-tête ne le sait pas : il ne connaît que des clés, et
+   * `BalsamaApp` sait où elles mènent. Une notification qui décrit
+   * quatre produits à commander doit pouvoir ouvrir la liste de ces
+   * quatre-là, et c'est la coquille qui tient le filtre.
+   */
+  onActionNotification?: (action: ActionNotification) => void;
   /**
    * Le thème courant, et de quoi en changer.
    *
@@ -123,6 +132,7 @@ export const Header: React.FC<HeaderProps> = ({
   seuilAlerte,
   onOuvrirIdentiteBoutique,
   notifications,
+  onActionNotification,
   theme,
   setTheme,
   sidebarCollapsed,
@@ -552,6 +562,7 @@ export const Header: React.FC<HeaderProps> = ({
                     nonLues={nonLues}
                     onToutMarquerLu={toutMarquerLu}
                     onOuvrirEcran={handleTabClick}
+                    onAction={onActionNotification}
                     onFermer={fermerNotif}
                   />
                 )}

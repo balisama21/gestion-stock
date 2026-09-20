@@ -24,7 +24,10 @@ import {
 import { ChampsPersonnalisesSection } from "./settings/ChampsPersonnalisesSection";
 import { VocabulaireSection } from "./settings/VocabulaireSection";
 import { RappelsSection } from "./settings/RappelsSection";
-import { AlertesStockSection } from "./settings/AlertesStockSection";
+import {
+  AlertesStockSection,
+  type ReglagesAlertesStockProps,
+} from "./settings/AlertesStockSection";
 import { CategoriesSection } from "./settings/CategoriesSection";
 import { lirePersonnalisation, type Personnalisation } from "../lib/personnalisation";
 import type { ChampPerso } from "../lib/champsPersonnalises";
@@ -48,6 +51,16 @@ interface ParametresViewProps {
   /** Le vocabulaire et les modules retenus par la boutique. */
   personnalisation: Personnalisation;
   onSavePersonnalisation: (p: Personnalisation) => Promise<void> | void;
+  /**
+   * La préalerte de stock : ses réglages, et de quoi les enregistrer.
+   *
+   * Un seul objet plutôt que quatre propriétés : cet écran n'en fait
+   * rien lui-même, il les passe telles quelles à la section qui les
+   * règle. Ils viennent de `BalsamaApp`, qui les tient pour tout le
+   * monde — le catalogue produits et le tableau de bord lisent les
+   * mêmes.
+   */
+  alertesStock: ReglagesAlertesStockProps;
   /** Les familles de produits, et combien de produits chacune range. */
   categories: Database["public"]["Tables"]["categories"]["Row"][];
   compteParCategorie: Record<string, number>;
@@ -106,6 +119,7 @@ export const ParametresView: React.FC<ParametresViewProps> = ({
   onDeleteChampPersonnalise,
   personnalisation,
   onSavePersonnalisation,
+  alertesStock,
   categories,
   compteParCategorie,
   onAddCategorie,
@@ -1001,9 +1015,7 @@ export const ParametresView: React.FC<ParametresViewProps> = ({
         />
       )}
 
-      {activeTab === "alertes-stock" && (
-        <AlertesStockSection storeId={workspace.activeStore?.id ?? null} />
-      )}
+      {activeTab === "alertes-stock" && <AlertesStockSection {...alertesStock} />}
 
       {activeTab === "champs" && (
         <ChampsPersonnalisesSection

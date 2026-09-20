@@ -11,6 +11,7 @@ import {
   type Rappel,
 } from "./rappels";
 import { heureDe, jourDe, type Evenement } from "./evenements";
+import type { PrealerteAnnoncee } from "../hooks/usePrealertesStock";
 import { dateDuJour } from "./dates";
 import { ALERTE_AVANT_ECHEANCE_JOURS } from "./offres";
 
@@ -22,6 +23,16 @@ type Reglement = Database["public"]["Tables"]["payments"]["Row"];
 type LigneJournal = Database["public"]["Tables"]["journal_activite"]["Row"];
 
 export type TonNotif = "success" | "warning" | "danger" | "info" | "neutre";
+
+/**
+ * Un bouton sous une notification.
+ *
+ * Une CLÉ, et non une fonction : les notifications sont construites dans
+ * un `useMemo`, et y glisser des rappels de fonctions les ferait
+ * recalculer à chaque rendu. Le panneau, qui a les données sous la main,
+ * traduit la clé en geste.
+ */
+export type ActionNotification = "preparer-la-commande";
 
 export interface Notification {
   /** Stable d'un rendu à l'autre : c'est lui qui retient « déjà lu ». */
@@ -59,6 +70,22 @@ export interface Notification {
    * ligne : « 3 produits sous le seuil » n'a rien à pointer.
    */
   reference?: string;
+  /**
+   * Le détail, une ligne par élément, quand un résumé en une phrase ne
+   * suffit pas.
+   *
+   * « 4 produits approchent de leur seuil » dit combien, pas lesquels ni
+   * de combien — or c'est précisément ce qu'il faut pour décider quoi
+   * commander. Réservé aux notifications où chaque ligne appelle une
+   * décision distincte ; ailleurs, `detail` suffit.
+   */
+  lignes?: string[];
+  /**
+   * Ce qu'on peut faire depuis la notification, sans aller la chercher
+   * ailleurs. Vide pour la plupart : une notification qui mène quelque
+   * part se contente de son chevron.
+   */
+  actions?: ActionNotification[];
 }
 
 /**
@@ -140,6 +167,19 @@ export interface SourcesActivite {
   rappels: Rappel[];
   /** Réglage « Alertes de stock bas » (Paramètres → Notifications). */
   alertesStock: boolean;
+  /**
+   * Les produits qui approchent de leur seuil, tels que la BASE les a
+   * laissés sortir.
+   *
+   * Ils ne se déduisent pas des produits en mémoire, et c'est
+   * volontaire : l'anti-répétition, le résumé quotidien et le silence à
+   * l'activation vivent en base, et un calcul refait ici les ignorerait
+   * tous les trois. Voir `usePrealertesStock`.
+   *
+   * Vide quand la boutique n'a pas activé la préalerte — auquel cas la
+   * cloche ne change pas d'un pixel.
+   */
+  prealertes: PrealerteAnnoncee[];
   /**
    * L'échéance de la boutique, s'il y en a une.
    *
@@ -485,6 +525,45 @@ export function construireNotifications(s: SourcesActivite): Notification[] {
         quand: "",
         ton: "warning",
         onglet: "produits",
+      });
+    }
+
+    // ── Ce qui n'y est pas encore, mais s'en approche ──
+    //
+    // Une seule notification pour tous les produits concernés. Une par
+    // produit, sur un catalogue qui tourne, ferait une colonne de
+    // lignes qu'on cesserait de lire au bout d'une semaine.
+    //
+    // MAIS LE DÉTAIL EST DONNÉ, ligne par ligne : « 4 produits
+    // approchent de leur seuil » dit combien, pas lesquels ni de
+    // combien, et c'est justement ce qu'il faut pour décider quoi
+    // commander.
+    //
+    // Cinq lignes au plus. Au-delà, ce n'est plus une notification
+    // qu'on lit mais une liste qu'on ouvre — et le bouton mène
+    // précisément à cette liste.
+    if (s.prealertes.length > 0) {
+      const n = s.prealertes.length;
+      const montrees = s.prealertes.slice(0, 5);
+      const reste = n - montrees.length;
+      alertes.push({
+        id: `alerte-prealerte-stock-${n}`,
+        genre: "alerte",
+        titre: n > 1 ? `${n} produits approchent de leur seuil` : "1 produit approche de son seuil",
+        detail: "Il reste de quoi vendre, mais plus pour longtemps.",
+        lignes: [
+          // Dans la bande, le stock est forcément supérieur au seuil,
+          // donc au moins deux : « restantes » s'accorde toujours.
+          ...montrees.map(
+            (p) =>
+              `${p.produit} : ${quantiteEnMots(p.stock, p.unite)} restantes, seuil défini à ${p.seuil}.`,
+          ),
+          ...(reste > 0 ? [`et ${reste} ${pluriel(reste, "autre")}.`] : []),
+        ],
+        quand: "",
+        ton: "warning",
+        onglet: "produits",
+        actions: ["preparer-la-commande"],
       });
     }
   }

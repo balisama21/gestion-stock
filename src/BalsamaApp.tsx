@@ -22,7 +22,7 @@ import { Header } from "./components/Header";
 import { universDe } from "./components/navigation";
 import { SousNavigation } from "./components/shared/SousNavigation";
 import { SquelettePage } from "./components/shared/SquelettePage";
-import { construireNotifications } from "./lib/activite";
+import { construireNotifications, type ActionNotification } from "./lib/activite";
 import { avancesPrisesSurLaCaisse, demandesEnAttente } from "./lib/salaires";
 import { delaisDeRappel } from "./lib/rappels";
 import { useJournalActivite } from "./hooks/useJournalActivite";
@@ -44,6 +44,8 @@ import { useSessionTimeout } from "./hooks/useSessionTimeout";
 import { workspaceContext, useWorkspaceState, useWorkspace } from "./hooks/useWorkspace";
 import { useStoreData } from "./hooks/useStoreData";
 import { useStoreMembers } from "./hooks/useStoreMembers";
+import { useReglagesAlertesStock } from "./hooks/useReglagesAlertesStock";
+import { usePrealertesStock } from "./hooks/usePrealertesStock";
 import { useNotificationPrefs } from "./lib/notificationPrefs";
 import {
   useCaptureDuDrapeau,
@@ -199,6 +201,21 @@ function AppInner() {
     workspace.activeStore?.id ?? null,
   );
 
+  /**
+   * La préalerte de stock : ses réglages, et ce que la base a laissé
+   * sortir.
+   *
+   * Lus ICI et une seule fois, parce que trois écrans en dépendent —
+   * les Paramètres qui les règlent, le catalogue Produits pour son
+   * filtre « à recommander », la cloche pour sa notification. Trois
+   * lectures séparées divergeraient dès qu'on enregistre.
+   *
+   * Boutique qui n'a rien activé : aucune ligne en base, donc les
+   * valeurs par défaut et une liste vide. Rien ne change nulle part.
+   */
+  const alertesStock = useReglagesAlertesStock(workspace.activeStore?.id ?? null);
+  const { prealertes } = usePrealertesStock(workspace.activeStore?.id ?? null);
+
   const [activeTab, setActiveTab] = useState<ActiveTab>("dashboard");
 
   /**
@@ -216,6 +233,25 @@ function AppInner() {
     (onglet: ActiveTab, reference: string) => {
       setActiveTab(onglet);
       viser(onglet, reference);
+    },
+    [viser],
+  );
+
+  /**
+   * Ce que font les boutons posés sous une notification.
+   *
+   * « Préparer la commande » ouvre le catalogue DÉJÀ FILTRÉ sur ce
+   * qu'il faut racheter — le seuil dépassé comme la bande de préalerte
+   * —, la recherche vidée pour ne rien restreindre par-dessus. Une
+   * notification qui ne mènerait qu'à la liste entière ferait refaire à
+   * la main le tri qu'elle vient d'énoncer.
+   */
+  const actionNotification = useCallback(
+    (action: ActionNotification) => {
+      if (action === "preparer-la-commande") {
+        setActiveTab("produits");
+        viser("produits", "", "A recommander");
+      }
     },
     [viser],
   );
@@ -372,6 +408,20 @@ function AppInner() {
         statut: p.statut,
       })),
     [storeData.products],
+  );
+
+  /**
+   * Le catalogue, réduit à ce que la phrase d'exemple des réglages
+   * demande. Les produits sans seuil en sont exclus d'emblée : la
+   * préalerte ne les concerne pas, et l'exemple ne doit pas tomber sur
+   * l'un d'eux.
+   */
+  const produitsPourExemplePrealerte = useMemo(
+    () =>
+      products
+        .filter((p) => p.seuilAlerte > 0 && p.statut === "actif" && p.typeProduit !== "service")
+        .map((p) => ({ nom: p.displayName, seuil: p.seuilAlerte, stock: p.stockActuel })),
+    [products],
   );
 
   const sales: Sale[] = useMemo(
@@ -910,6 +960,7 @@ function AppInner() {
         evenements: calendrier.evenements,
         rappels: memos.rappels,
         alertesStock: notificationPrefs.stockAlerts,
+        prealertes,
         boutique: workspace.activeStore
           ? {
               statut: workspace.activeStore.activation_status,
@@ -953,6 +1004,7 @@ function AppInner() {
       calendrier.evenements,
       memos.rappels,
       notificationPrefs.stockAlerts,
+      prealertes,
       workspace.activeStore,
       workspace.isOwner,
       avancesEnAttente,
@@ -1418,6 +1470,7 @@ function AppInner() {
           seuilAlerte={computedCapital.seuilAlerteTresorerie}
           onOuvrirIdentiteBoutique={ouvrirIdentiteBoutique}
           notifications={notifications}
+          onActionNotification={actionNotification}
           theme={theme}
           setTheme={setTheme}
           sidebarCollapsed={sidebarCollapsed}
@@ -1574,6 +1627,7 @@ function AppInner() {
                   ))}
                 {vue === "produits" && (
                   <ProduitsView
+                    reglagesAlertes={alertesStock.reglages}
                     // Le stock se corrige par un mouvement d'ajustement,
                     // jamais par une écriture directe sur la colonne :
                     // le chiffre et son journal doivent bouger ensemble.
@@ -1981,6 +2035,12 @@ function AppInner() {
                     settings={storeSettings}
                     personnalisation={personnalisation}
                     onSavePersonnalisation={handleSavePersonnalisation}
+                    alertesStock={{
+                      reglages: alertesStock.reglages,
+                      chargement: alertesStock.chargement,
+                      enregistrer: alertesStock.enregistrer,
+                      produits: produitsPourExemplePrealerte,
+                    }}
                     categories={storeData.categories}
                     compteParCategorie={compteParCategorie}
                     onAddCategorie={storeData.addCategorie}

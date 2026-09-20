@@ -1,7 +1,17 @@
 import React from "react";
 import { Bell, CheckCheck, ChevronRight } from "lucide-react";
 import type { ActiveTab } from "../types";
-import { libelleQuand, type Notification, type TonNotif } from "../lib/activite";
+import {
+  libelleQuand,
+  type ActionNotification,
+  type Notification,
+  type TonNotif,
+} from "../lib/activite";
+
+/** Le libellé de chaque bouton d'action, écrit une seule fois. */
+const LIBELLE_ACTION: Record<ActionNotification, string> = {
+  "preparer-la-commande": "Préparer la commande",
+};
 
 interface PanneauNotificationsProps {
   alertes: Notification[];
@@ -16,6 +26,11 @@ interface PanneauNotificationsProps {
    * sur la référence, et la liste n'affiche plus que cette ligne.
    */
   onOuvrirEcran: (onglet: ActiveTab, reference?: string) => void;
+  /**
+   * Ce que fait un bouton d'action. Le panneau ne connaît que des clés
+   * ; c'est l'application qui sait où elles mènent.
+   */
+  onAction?: (action: ActionNotification) => void;
   onFermer: () => void;
 }
 
@@ -57,13 +72,21 @@ export const PanneauNotifications: React.FC<PanneauNotificationsProps> = ({
   nonLues,
   onToutMarquerLu,
   onOuvrirEcran,
+  onAction,
   onFermer,
 }) => {
   const ligne = (n: Notification) => {
     const nouvelle = !lues.has(n.id);
-    return (
+    const boutons = onAction ? (n.actions ?? []) : [];
+
+    // ── Pourquoi la ligne et ses boutons sont deux blocs frères ──
+    //
+    // Toute la ligne est un bouton, et un bouton ne se met pas DANS un
+    // bouton : le navigateur casse l'imbrication, et le clavier ne sait
+    // plus lequel des deux il active. Les actions sortent donc du
+    // bouton principal et se rangent juste en dessous.
+    const corps = (
       <button
-        key={n.id}
         onClick={() => {
           if (n.onglet) onOuvrirEcran(n.onglet, n.reference);
           onFermer();
@@ -98,11 +121,47 @@ export const PanneauNotifications: React.FC<PanneauNotificationsProps> = ({
               </span>
             )}
           </span>
+
+          {/* Le détail, une ligne par élément. Il n'est pas tronqué :
+              c'est pour le lire qu'il est là, et une ligne coupée à
+              « Huile 1 L : 5 unités res… » ne dit plus rien. */}
+          {n.lignes && n.lignes.length > 0 && (
+            <span className="mt-1.5 flex flex-col gap-0.5">
+              {n.lignes.map((l) => (
+                <span key={l} className="text-xs leading-snug text-muted-foreground">
+                  {l}
+                </span>
+              ))}
+            </span>
+          )}
         </span>
         {n.onglet && (
           <ChevronRight className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground/50 transition-colors group-hover:text-muted-foreground" />
         )}
       </button>
+    );
+
+    if (boutons.length === 0) return <div key={n.id}>{corps}</div>;
+
+    return (
+      <div key={n.id}>
+        {corps}
+        <div className="flex flex-wrap gap-2 px-4 pb-3 pl-7">
+          {boutons.map((a) => (
+            <button
+              key={a}
+              type="button"
+              onClick={() => {
+                onAction?.(a);
+                onFermer();
+              }}
+              className="app-btn-secondary text-xs"
+            >
+              {LIBELLE_ACTION[a]}
+            </button>
+          ))}
+        </div>
+      </div>
     );
   };
 

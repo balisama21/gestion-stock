@@ -43,6 +43,18 @@ export interface CibleRecherche {
   /** Ce qu'on tape dans sa recherche : « V025 », « Huile »… */
   texte: string;
   /**
+   * Un filtre à poser en arrivant, quand la notification parle d'un
+   * ENSEMBLE plutôt que d'une ligne.
+   *
+   * « 4 produits approchent de leur seuil » n'a pas de référence à
+   * viser : ce qu'il faut ouvrir, c'est la liste de ces quatre-là. Une
+   * recherche ne sait pas le faire, un filtre oui.
+   *
+   * Chaque écran décide de ce que la valeur veut dire chez lui ; ceux
+   * qui ne s'y abonnent pas l'ignorent.
+   */
+  filtre?: string;
+  /**
    * Change à chaque clic, même vers la même ligne.
    *
    * Sans elle, revenir deux fois sur la même notification ne referait
@@ -54,7 +66,7 @@ export interface CibleRecherche {
 
 export interface ValeurCibleRecherche {
   cible: CibleRecherche | null;
-  viser: (onglet: ActiveTab, texte: string) => void;
+  viser: (onglet: ActiveTab, texte: string, filtre?: string) => void;
 }
 
 export const contexteCibleRecherche = createContext<ValeurCibleRecherche>({
@@ -71,8 +83,8 @@ export const contexteCibleRecherche = createContext<ValeurCibleRecherche>({
 export function useEtatCibleRecherche(): ValeurCibleRecherche {
   const [cible, setCible] = useState<CibleRecherche | null>(null);
 
-  const viser = useCallback((onglet: ActiveTab, texte: string) => {
-    setCible((avant) => ({ onglet, texte, cle: (avant?.cle ?? 0) + 1 }));
+  const viser = useCallback((onglet: ActiveTab, texte: string, filtre?: string) => {
+    setCible((avant) => ({ onglet, texte, filtre, cle: (avant?.cle ?? 0) + 1 }));
   }, []);
 
   return useMemo(() => ({ cible, viser }), [cible, viser]);
@@ -84,7 +96,7 @@ export function useEtatCibleRecherche(): ValeurCibleRecherche {
  * Il ne change PAS d'écran — c'est la coquille qui sait le faire. Les
  * deux se combinent là où `setActiveTab` est à portée.
  */
-export function useViserLigne(): (onglet: ActiveTab, texte: string) => void {
+export function useViserLigne(): (onglet: ActiveTab, texte: string, filtre?: string) => void {
   return useContext(contexteCibleRecherche).viser;
 }
 
@@ -111,4 +123,26 @@ export function useRechercheInitiale(onglet: ActiveTab, appliquer: (texte: strin
     // recherche à chaque rendu de la vue.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [texte, cle]);
+}
+
+/**
+ * Le même abonnement, pour un FILTRE plutôt qu'une recherche.
+ *
+ *     useFiltreInitial("produits", setStockFilter);
+ *
+ * Ne fait rien tant que personne ne vise cet écran AVEC un filtre : une
+ * notification qui pointe une ligne précise n'en porte pas, et laisse
+ * donc le filtre de l'écran tel que l'utilisateur l'avait réglé.
+ */
+export function useFiltreInitial(onglet: ActiveTab, appliquer: (filtre: string) => void): void {
+  const { cible } = useContext(contexteCibleRecherche);
+  const pourMoi = cible?.onglet === onglet && cible.filtre !== undefined;
+  const filtre = pourMoi ? (cible.filtre ?? null) : null;
+  const cle = pourMoi ? cible.cle : null;
+
+  useEffect(() => {
+    if (filtre === null) return;
+    appliquer(filtre);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [filtre, cle]);
 }

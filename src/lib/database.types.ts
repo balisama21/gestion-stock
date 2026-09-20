@@ -1113,6 +1113,51 @@ export type Database = {
           },
         ]
       }
+      prealertes_stock: {
+        Row: {
+          email_le: string | null
+          franchie_le: string
+          niveau: number
+          notifiee_le: string | null
+          origine: string
+          product_id: string
+          store_id: string
+        }
+        Insert: {
+          email_le?: string | null
+          franchie_le?: string
+          niveau: number
+          notifiee_le?: string | null
+          origine: string
+          product_id: string
+          store_id: string
+        }
+        Update: {
+          email_le?: string | null
+          franchie_le?: string
+          niveau?: number
+          notifiee_le?: string | null
+          origine?: string
+          product_id?: string
+          store_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "prealertes_stock_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: true
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "prealertes_stock_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       product_images: {
         Row: {
           chemin: string
@@ -2524,7 +2569,37 @@ export type Database = {
       }
     }
     Views: {
-      [_ in never]: never
+      prealertes_a_annoncer: {
+        Row: {
+          email_le: string | null
+          franchie_le: string | null
+          niveau: number | null
+          notifiee_le: string | null
+          numero: string | null
+          product_id: string | null
+          produit: string | null
+          seuil_alerte: number | null
+          stock_actuel: number | null
+          store_id: string | null
+          unite: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "prealertes_stock_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: true
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "prealertes_stock_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Functions: {
       _legacy_array_to_permissions: { Args: { p_keys: Json }; Returns: Json }
@@ -2750,13 +2825,16 @@ export type Database = {
       delete_products: { Args: { p_product_ids: string[] }; Returns: number }
       delete_purchase: { Args: { p_purchase_id: string }; Returns: undefined }
       delete_sale: { Args: { p_sale_id: string }; Returns: undefined }
+      demander_les_resumes_par_email: { Args: never; Returns: number }
       est_dans_la_boutique: { Args: { p_store_id: string }; Returns: boolean }
       est_invite_a: { Args: { p_evenement_id: string }; Returns: boolean }
+      fuseau_des_boutiques: { Args: never; Returns: string }
       generate_access_code: { Args: never; Returns: string }
       get_auth_role: { Args: never; Returns: string }
       is_platform_admin: { Args: never; Returns: boolean }
       is_store_member: { Args: { p_store_id: string }; Returns: boolean }
       is_store_owner: { Args: { p_store_id: string }; Returns: boolean }
+      liberer_les_prealertes: { Args: never; Returns: number }
       modifier_achat: {
         Args: {
           p_date: string
@@ -2781,6 +2859,7 @@ export type Database = {
         }
         Returns: number
       }
+      niveau_surveille: { Args: { p_product_id: string }; Returns: number }
       peut_encaisser_une_remise: {
         Args: { p_store_id: string }
         Returns: boolean
@@ -2830,6 +2909,10 @@ export type Database = {
         Args: { p_delivery_ids: string[] }
         Returns: Json
       }
+      resynchroniser_prealertes: {
+        Args: { p_store_id: string }
+        Returns: undefined
+      }
       set_order_status: {
         Args: {
           p_new_status: Database["public"]["Enums"]["order_status"]
@@ -2848,6 +2931,7 @@ export type Database = {
       storage_boutique_du_chemin: { Args: { chemin: string }; Returns: string }
       store_allows_write: { Args: { p_store_id: string }; Returns: boolean }
       store_is_locked: { Args: { p_store_id: string }; Returns: boolean }
+      traiter_les_prealertes: { Args: never; Returns: string }
       transferer_boutique: {
         Args: {
           p_nouveau_proprietaire: string

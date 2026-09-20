@@ -13,7 +13,6 @@ import { REGLAGES_PAR_DEFAUT, type ReglagesAlertesStock } from "../../lib/preale
  */
 
 const enregistrer = vi.fn(async (_: ReglagesAlertesStock) => ({ error: null as string | null }));
-let reglages: ReglagesAlertesStock = REGLAGES_PAR_DEFAUT;
 
 /** Deux produits, dont un tout proche de son seuil : c'est lui l'exemple. */
 const PRODUITS = [
@@ -21,18 +20,15 @@ const PRODUITS = [
   { nom: "Huile 1 L", seuil: 3, stock: 5 },
 ];
 
-vi.mock("../../hooks/useReglagesAlertesStock", () => ({
-  useReglagesAlertesStock: () => ({
-    reglages,
-    produits: PRODUITS,
-    chargement: false,
-    erreur: null,
-    enregistrer,
-    recharger: vi.fn(),
-  }),
-}));
-
-const afficher = () => render(<AlertesStockSection storeId="une-boutique" />);
+const afficher = () =>
+  render(
+    <AlertesStockSection
+      reglages={REGLAGES_PAR_DEFAUT}
+      produits={PRODUITS}
+      chargement={false}
+      enregistrer={enregistrer}
+    />,
+  );
 
 /** La phrase d'exemple, quel que soit le découpage des <strong>. */
 const exemple = () => screen.getByText(/vous serez prévenu/).textContent?.replace(/\s+/g, " ");
@@ -40,10 +36,7 @@ const exemple = () => screen.getByText(/vous serez prévenu/).textContent?.repla
 const allumer = () => fireEvent.click(screen.getByRole("switch", { name: "Préalerte de stock" }));
 
 describe("les réglages de la préalerte de stock", () => {
-  beforeEach(() => {
-    reglages = REGLAGES_PAR_DEFAUT;
-    enregistrer.mockClear();
-  });
+  beforeEach(() => enregistrer.mockClear());
   afterEach(cleanup);
 
   it("éteinte, il n'y a rien d'autre à régler", () => {

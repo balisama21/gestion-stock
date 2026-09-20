@@ -2,11 +2,11 @@ import React, { useEffect, useState } from "react";
 import { Loader2, Mail, Monitor, PackageSearch, Save } from "lucide-react";
 import { SettingsBlock, SettingsFeedback, SettingsRow, SettingsSection } from "./primitives";
 import { Toggle } from "../shared/Toggle";
-import { useReglagesAlertesStock } from "../../hooks/useReglagesAlertesStock";
 import {
   BORNES,
   bornerReglages,
   exempleDePrealerte,
+  type ProduitPourExemple,
   type ReglagesAlertesStock,
 } from "../../lib/prealerteStock";
 
@@ -95,9 +95,28 @@ interface Champs {
   heure: string;
 }
 
-export const AlertesStockSection: React.FC<{ storeId: string | null }> = ({ storeId }) => {
-  const { reglages, produits, chargement, enregistrer } = useReglagesAlertesStock(storeId);
+/**
+ * Tout vient de la racine, rien n'est relu ici.
+ *
+ * Le catalogue produits et le tableau de bord lisent les mêmes
+ * réglages : deux lectures séparées divergeraient dès qu'on enregistre,
+ * et le patron activerait la préalerte sans que le reste de
+ * l'application le sache avant un rechargement.
+ */
+export interface ReglagesAlertesStockProps {
+  reglages: ReglagesAlertesStock;
+  /** Le catalogue, réduit à ce que la phrase d'exemple demande. */
+  produits: ProduitPourExemple[];
+  chargement: boolean;
+  enregistrer: (r: ReglagesAlertesStock) => Promise<{ error: string | null }>;
+}
 
+export const AlertesStockSection: React.FC<ReglagesAlertesStockProps> = ({
+  reglages,
+  produits,
+  chargement,
+  enregistrer,
+}) => {
   const [brouillon, setBrouillon] = useState<ReglagesAlertesStock>(reglages);
   const [champs, setChamps] = useState<Champs>({ ecart: "", pourcentage: "", heure: "" });
   const [envoi, setEnvoi] = useState(false);

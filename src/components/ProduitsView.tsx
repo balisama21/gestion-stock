@@ -26,11 +26,31 @@ import { DetailsProduit } from "./produits/DetailsProduit";
 import { DETAILS_VIDES, detailsVersBase, type ValeursDetails } from "../lib/detailsProduit";
 import { envoyerFichier, supprimerFichier } from "../lib/stockageFichiers";
 import type { Database } from "../lib/database.types";
-import { useRechercheInitiale } from "../lib/cibleRecherche";
+import { useFiltreInitial, useRechercheInitiale } from "../lib/cibleRecherche";
+import { niveauDePrealerte, type ReglagesAlertesStock } from "../lib/prealerteStock";
+
+/**
+ * LE QUATRIÈME FILTRE N'EXISTE QUE SI LA PRÉALERTE EST ACTIVE.
+ *
+ * « Alertes » montre ce qui est déjà sous le seuil ; « À recommander »
+ * y ajoute ce qui s'en approche, et c'est la liste qu'on envoie au
+ * fournisseur. Tant que la boutique n'a pas activé la préalerte, les
+ * deux diraient la même chose : le bouton n'apparaît donc pas, et
+ * l'écran reste exactement celui d'avant.
+ */
+const FILTRE_A_RECOMMANDER = "A recommander";
+type FiltreStock = "Tous" | "OK" | "Alerte" | typeof FILTRE_A_RECOMMANDER;
 
 interface ProduitsViewProps {
   products: Product[];
   locale: LocaleSetting;
+  /**
+   * Les réglages de préalerte de la boutique, tenus par `BalsamaApp`.
+   *
+   * Préalerte éteinte, `niveauDePrealerte` rend zéro et le quatrième
+   * filtre disparaît : rien ne change pour qui ne s'en sert pas.
+   */
+  reglagesAlertes: ReglagesAlertesStock;
   /**
    * Ce qu'il faut pour créer un produit.
    *
@@ -115,6 +135,7 @@ interface ProduitsViewProps {
 export const ProduitsView: React.FC<ProduitsViewProps> = ({
   products,
   locale,
+  reglagesAlertes,
   onAddProduct,
   onEditProduct,
   onDeleteProducts,
@@ -148,7 +169,11 @@ export const ProduitsView: React.FC<ProduitsViewProps> = ({
   // Une notification peut viser une ligne précise : la recherche
   // s'ouvre alors remplie dessus. Voir `src/lib/cibleRecherche.ts`.
   useRechercheInitiale("produits", setSearchTerm);
-  const [stockFilter, setStockFilter] = useState<"Tous" | "OK" | "Alerte">("Tous");
+  const [stockFilter, setStockFilter] = useState<FiltreStock>("Tous");
+
+  // Une notification de préalerte ouvre cet écran DÉJÀ FILTRÉ sur ce
+  // qu'il faut commander. Voir `src/lib/cibleRecherche.ts`.
+  useFiltreInitial("produits", (f) => setStockFilter(f as FiltreStock));
   const [supplierFilter, setSupplierFilter] = useState<string>("Tous");
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -222,21 +247,33 @@ export const ProduitsView: React.FC<ProduitsViewProps> = ({
         p.fournisseur.toLowerCase().includes(searchTerm.toLowerCase());
 
       const isLow = p.stockActuel <= p.seuilAlerte;
+      // « À recommander » englobe les DEUX niveaux : ce qui est déjà
+      // sous le seuil et ce qui s'en approche. C'est la liste qu'on
+      // envoie au fournisseur, et elle ne se coupe pas en deux.
+      const aRecommander =
+        isLow || p.stockActuel <= niveauDePrealerte(p.seuilAlerte, reglagesAlertes);
       const matchStock =
         stockFilter === "Tous" ||
         (stockFilter === "OK" && !isLow) ||
-        (stockFilter === "Alerte" && isLow);
+        (stockFilter === "Alerte" && isLow) ||
+        (stockFilter === FILTRE_A_RECOMMANDER && aRecommander);
 
       const matchSupplier = supplierFilter === "Tous" || p.fournisseur === supplierFilter;
 
       return matchSearch && matchStock && matchSupplier;
     });
-  }, [products, searchTerm, stockFilter, supplierFilter]);
+  }, [products, searchTerm, stockFilter, supplierFilter, reglagesAlertes]);
 
   // Key KPI Computations
   const totalReferences = products.length;
   const totalValeurStock = products.reduce((acc, p) => acc + p.stockActuel * p.prixAchat, 0);
   const totalAlertesStock = products.filter((p) => p.stockActuel <= p.seuilAlerte).length;
+  // Sous le seuil ET dans la bande : la liste complète à commander.
+  const totalARecommander = products.filter(
+    (p) =>
+      p.stockActuel <= p.seuilAlerte ||
+      p.stockActuel <= niveauDePrealerte(p.seuilAlerte, reglagesAlertes),
+  ).length;
 
   /**
    * Envoie les photos gardées pendant la saisie, une fois le produit né.
@@ -522,10 +559,23 @@ export const ProduitsView: React.FC<ProduitsViewProps> = ({
           <div className="flex w-full items-center gap-1 rounded-xl border border-border bg-muted p-1 lg:w-auto">
             {(
               [
-                { key: "Tous", label: "Tous", count: products.length },
-                { key: "OK", label: "OK", count: products.length - totalAlertesStock },
-                { key: "Alerte", label: "Alertes", count: totalAlertesStock },
-              ] as const
+                { key: "Tous" as const, label: "Tous", count: products.length },
+                {
+                  key: "OK" as const,
+                  label: "OK",
+                  count: products.length - totalAlertesStock,
+                },
+                { key: "Alerte" as const, label: "Alertes", count: totalAlertesStock },
+                ...(reglagesAlertes.prealerteActive
+                  ? [
+                      {
+                        key: FILTRE_A_RECOMMANDER,
+                        label: "À recommander",
+                        count: totalARecommander,
+                      },
+                    ]
+                  : []),
+              ] as { key: FiltreStock; label: string; count: number }[]
             ).map((opt) => (
               <button
                 key={opt.key}
