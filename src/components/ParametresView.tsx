@@ -24,6 +24,7 @@ import {
 import { ChampsPersonnalisesSection } from "./settings/ChampsPersonnalisesSection";
 import { VocabulaireSection } from "./settings/VocabulaireSection";
 import { RappelsSection } from "./settings/RappelsSection";
+import { AlertesStockSection } from "./settings/AlertesStockSection";
 import { CategoriesSection } from "./settings/CategoriesSection";
 import { lirePersonnalisation, type Personnalisation } from "../lib/personnalisation";
 import type { ChampPerso } from "../lib/champsPersonnalises";
@@ -998,6 +999,10 @@ export const ParametresView: React.FC<ParametresViewProps> = ({
           personnalisation={lirePersonnalisation(personnalisation)}
           onSave={onSavePersonnalisation}
         />
+      )}
+
+      {activeTab === "alertes-stock" && (
+        <AlertesStockSection storeId={workspace.activeStore?.id ?? null} />
       )}
 
       {activeTab === "champs" && (

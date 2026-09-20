@@ -13,6 +13,7 @@ import {
   ListPlus,
   Languages,
   FolderTree,
+  PackageSearch,
   LogOut,
 } from "lucide-react";
 
@@ -28,6 +29,7 @@ export type SettingsTab =
   | "champs"
   | "vocabulaire"
   | "rappels"
+  | "alertes-stock"
   | "categories";
 
 interface TabDef {
@@ -131,6 +133,13 @@ const GROUPS: GroupDef[] = [
         label: "Rappels",
         hint: "Quand on vous prévient",
         icon: <BellRing className="w-4 h-4" />,
+        ownerOnly: true,
+      },
+      {
+        id: "alertes-stock",
+        label: "Alertes de stock",
+        hint: "Prévenir avant la rupture",
+        icon: <PackageSearch className="w-4 h-4" />,
         ownerOnly: true,
       },
       {

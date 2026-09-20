@@ -1,0 +1,115 @@
+{
+  "_": [
+    "LA SOURCE UNIQUE DES CAS DE CALCUL DU NIVEAU DE PRÉALERTE.",
+    "",
+    "Le calcul existe deux fois — une fois en SQL pour le déclencheur qui",
+    "surveille le stock, une fois en TypeScript pour l'affichage et",
+    "l'export —, parce qu'il tourne dans deux mondes. Ce fichier est ce",
+    "qui les empêche de diverger : les deux rejouent exactement cette",
+    "liste.",
+    "",
+    "Côté TypeScript, src/lib/prealerteStock.test.ts la lit et vérifie",
+    "chaque ligne. Il vérifie AUSSI que le bloc VALUES de",
+    "docs/prealerte/verification-du-calcul.sql correspond à cette liste,",
+    "et affiche le bloc à recopier quand ce n'est plus le cas. Modifier",
+    "ce fichier sans régénérer l'autre fait donc un test rouge."
+  ],
+  "cas": [
+    {
+      "nom": "ecart : seuil 3 + 2, l'exemple du client",
+      "seuil": 3,
+      "mode": "ecart",
+      "ecart": 2,
+      "pourcentage": 50,
+      "attendu": 5
+    },
+    {
+      "nom": "ecart : seuil 5 + 2, l'exemple du client",
+      "seuil": 5,
+      "mode": "ecart",
+      "ecart": 2,
+      "pourcentage": 50,
+      "attendu": 7
+    },
+    {
+      "nom": "ecart : le plus petit reglage possible donne une unite d'avance",
+      "seuil": 1,
+      "mode": "ecart",
+      "ecart": 1,
+      "pourcentage": 50,
+      "attendu": 2
+    },
+    {
+      "nom": "ecart : sur un gros volume, deux unites d'avance ne servent a rien",
+      "seuil": 200,
+      "mode": "ecart",
+      "ecart": 2,
+      "pourcentage": 50,
+      "attendu": 202
+    },
+    {
+      "nom": "pourcentage : seuil 3 et 50 %, l'exemple du client, 4,5 arrondi a 5",
+      "seuil": 3,
+      "mode": "pourcentage",
+      "ecart": 2,
+      "pourcentage": 50,
+      "attendu": 5
+    },
+    {
+      "nom": "pourcentage : seuil 200 et 50 %, l'exemple du client",
+      "seuil": 200,
+      "mode": "pourcentage",
+      "ecart": 2,
+      "pourcentage": 50,
+      "attendu": 300
+    },
+    {
+      "nom": "pourcentage : 10,5 arrondi au superieur, pas a l'inferieur",
+      "seuil": 7,
+      "mode": "pourcentage",
+      "ecart": 2,
+      "pourcentage": 50,
+      "attendu": 11
+    },
+    {
+      "nom": "pourcentage : un resultat entier ne bouge pas",
+      "seuil": 4,
+      "mode": "pourcentage",
+      "ecart": 2,
+      "pourcentage": 25,
+      "attendu": 5
+    },
+    {
+      "nom": "pourcentage : le plus petit reglage donne quand meme une unite",
+      "seuil": 1,
+      "mode": "pourcentage",
+      "ecart": 2,
+      "pourcentage": 1,
+      "attendu": 2
+    },
+    {
+      "nom": "pourcentage : doubler le seuil",
+      "seuil": 10,
+      "mode": "pourcentage",
+      "ecart": 2,
+      "pourcentage": 100,
+      "attendu": 20
+    },
+    {
+      "nom": "sans seuil, le produit reste hors du systeme (ecart)",
+      "seuil": 0,
+      "mode": "ecart",
+      "ecart": 2,
+      "pourcentage": 50,
+      "attendu": 0
+    },
+    {
+      "nom": "sans seuil, le produit reste hors du systeme (pourcentage)",
+      "seuil": 0,
+      "mode": "pourcentage",
+      "ecart": 2,
+      "pourcentage": 50,
+      "attendu": 0
+    }
+  ]
+}

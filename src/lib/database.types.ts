@@ -102,6 +102,35 @@ export type Database = {
           },
         ]
       }
+      activations_de_compte: {
+        Row: {
+          abonnement_jusqu_au: string | null
+          active_le: string
+          mis_a_jour_le: string
+          user_id: string
+        }
+        Insert: {
+          abonnement_jusqu_au?: string | null
+          active_le?: string
+          mis_a_jour_le?: string
+          user_id: string
+        }
+        Update: {
+          abonnement_jusqu_au?: string | null
+          active_le?: string
+          mis_a_jour_le?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "activations_de_compte_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: true
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       admin_actions: {
         Row: {
           action_type: string
@@ -1800,6 +1829,50 @@ export type Database = {
           },
         ]
       }
+      reglages_alertes_stock: {
+        Row: {
+          canaux: string[]
+          ecart: number
+          frequence: string
+          heure_resume: number
+          mis_a_jour_le: string
+          mode: string
+          pourcentage: number
+          prealerte_active: boolean
+          store_id: string
+        }
+        Insert: {
+          canaux?: string[]
+          ecart?: number
+          frequence?: string
+          heure_resume?: number
+          mis_a_jour_le?: string
+          mode?: string
+          pourcentage?: number
+          prealerte_active?: boolean
+          store_id: string
+        }
+        Update: {
+          canaux?: string[]
+          ecart?: number
+          frequence?: string
+          heure_resume?: number
+          mis_a_jour_le?: string
+          mode?: string
+          pourcentage?: number
+          prealerte_active?: boolean
+          store_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "reglages_alertes_stock_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: true
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       remises_vendeur: {
         Row: {
           created_at: string
@@ -2500,6 +2573,21 @@ export type Database = {
           isSetofReturn: false
         }
       }
+      activer_le_compte: {
+        Args: { p_duree_jours: number; p_user_id: string }
+        Returns: {
+          abonnement_jusqu_au: string | null
+          active_le: string
+          mis_a_jour_le: string
+          user_id: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "activations_de_compte"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
       add_payment: {
         Args: {
           p_idempotency_key: string
@@ -2550,6 +2638,7 @@ export type Database = {
         Args: { p_owner_id: string; p_store_id: string }
         Returns: boolean
       }
+      compte_est_active: { Args: { p_user_id: string }; Returns: boolean }
       copy_store: {
         Args: { p_new_name: string; p_source_store_id: string }
         Returns: {
@@ -2683,6 +2772,15 @@ export type Database = {
         Args: { p_counter_type: string; p_store_id: string }
         Returns: number
       }
+      niveau_de_prealerte: {
+        Args: {
+          p_ecart: number
+          p_mode: string
+          p_pourcentage: number
+          p_seuil: number
+        }
+        Returns: number
+      }
       peut_encaisser_une_remise: {
         Args: { p_store_id: string }
         Returns: boolean
@@ -2696,6 +2794,18 @@ export type Database = {
         Returns: boolean
       }
       peut_voir_tous_les_salaires: {
+        Args: { p_store_id: string }
+        Returns: boolean
+      }
+      policies_sans_verrou: {
+        Args: never
+        Returns: {
+          commande: string
+          nom_table: string
+          policy: string
+        }[]
+      }
+      proprietaire_dune_boutique_ouverte: {
         Args: { p_store_id: string }
         Returns: boolean
       }
