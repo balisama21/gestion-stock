@@ -109,7 +109,7 @@ export const CarteJournal: React.FC<{
   const { replie, basculer } = useRepli("tantana.dash.journal-replie");
 
   return (
-    <Card span={8} secondary id="carte-journal" className={replie ? "replie" : undefined}>
+    <Card span={8} id="carte-journal" className={replie ? "replie" : undefined}>
       <CardHeader
         title="Journal d'activité"
         icon={

@@ -58,11 +58,11 @@ import { useAuth } from "../../hooks/useAuth";
  * `docs/dashboard-v2/audit.md` pour la carte des données.
  *
  * ÉTAT : phase 2. L'en-tête est complet — période et comparaison,
- * phrase de synthèse, points d'attention, vue par métier, mode focus,
- * thème. Les chiffres sont branchés sur les vraies données et se
- * relisent tous dans la table de contrôle, qui sert à les comparer à
- * l'ancien tableau de bord avant que les cartes ne les habillent aux
- * phases suivantes.
+ * phrase de synthèse, points d'attention, vue par métier, thème. Les
+ * chiffres sont branchés sur les vraies données et se relisent tous
+ * dans la table de contrôle, qui sert à les comparer à l'ancien
+ * tableau de bord avant que les cartes ne les habillent aux phases
+ * suivantes.
  *
  * CETTE PAGE NE DESSINE PAS LA COQUILLE. La maquette redessinait aussi
  * la barre latérale ; celle-ci existe déjà et sert vingt-cinq écrans.
@@ -116,9 +116,6 @@ const ICONE_LUNE = (
     <path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z" />
   </svg>
 );
-
-/** Mémorise le mode focus, comme la maquette, sous le même préfixe. */
-const CLE_FOCUS = "tantana.dash.focus";
 
 /**
  * L'interrupteur de la table de contrôle.
@@ -363,27 +360,13 @@ export const DashboardV2Page: React.FC<DashboardV2PageProps> = ({
     if (donnees.luA) setChargeA(donnees.luA);
   }, [donnees.luA]);
 
-  const [focus, setFocus] = useState(false);
   const [controle, setControle] = useState(false);
   useEffect(() => {
     try {
-      setFocus(window.localStorage.getItem(CLE_FOCUS) === "true");
       setControle(window.localStorage.getItem(CLE_CONTROLE) === "1");
     } catch {
-      /* Navigation privée : les deux réglages repartent à zéro. */
+      /* Navigation privée : le réglage repart à zéro. */
     }
-  }, []);
-
-  const basculerFocus = useCallback(() => {
-    setFocus((f) => {
-      const suivant = !f;
-      try {
-        window.localStorage.setItem(CLE_FOCUS, String(suivant));
-      } catch {
-        /* sans mémoire, le réglage vaut pour cette visite */
-      }
-      return suivant;
-    });
   }, []);
 
   const boutonRafraichir = useRef<HTMLButtonElement>(null);
@@ -622,7 +605,7 @@ export const DashboardV2Page: React.FC<DashboardV2PageProps> = ({
   };
 
   return (
-    <div className={`dash2${focus ? " calm" : ""}`}>
+    <div className="dash2">
       <div className="dash2-wrap">
         <header className="top">
           <div className="hello">
@@ -742,11 +725,6 @@ export const DashboardV2Page: React.FC<DashboardV2PageProps> = ({
                 </>
               )}
             </MenuPill>
-
-            <Pill onClick={basculerFocus} pressed={focus} title="Masquer les cartes secondaires">
-              {ICONE_OEIL}
-              <span className="pill-label">Mode focus</span>
-            </Pill>
 
             <Pill
               square

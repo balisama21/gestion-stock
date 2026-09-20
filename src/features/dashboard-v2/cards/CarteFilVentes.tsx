@@ -80,7 +80,7 @@ export const CarteFilVentes: React.FC<{
   };
 
   return (
-    <Card span={8} secondary id="carte-fil">
+    <Card span={8} id="carte-fil">
       <CardHeader
         title={titre}
         icon={

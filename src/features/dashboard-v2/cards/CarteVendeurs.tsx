@@ -36,7 +36,7 @@ export const CarteVendeurs: React.FC<{
   const tete = classement[0]?.soldeNetEnPoche ?? 0;
 
   return (
-    <Card span={4} secondary id="carte-vendeurs">
+    <Card span={4} id="carte-vendeurs">
       <CardHeader
         title="Classement vendeurs"
         icon={

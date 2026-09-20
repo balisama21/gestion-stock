@@ -53,7 +53,7 @@ export const CarteCommandes: React.FC<{
   ];
 
   return (
-    <Card span={4} secondary id="carte-commandes">
+    <Card span={4} id="carte-commandes">
       <CardHeader
         title="Suivi des commandes"
         icon={

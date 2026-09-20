@@ -60,7 +60,7 @@ export const CarteMouvements: React.FC<{
   const jourSurvole = survol != null ? jours[survol] : null;
 
   return (
-    <Card span={8} secondary id="carte-mouvements">
+    <Card span={8} id="carte-mouvements">
       <CardHeader
         title="Entrées & sorties de stock"
         icon={

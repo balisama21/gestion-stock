@@ -3,8 +3,8 @@ import React, { useCallback, useEffect, useId, useRef, useState } from "react";
 /**
  * LES BOUTONS EN GÉLULE DE L'EN-TÊTE, ET LEUR MENU
  *
- * Trois formes : un bouton simple, un bouton à deux états (le mode
- * focus), et un bouton qui ouvre un menu (la période, la vue).
+ * Deux formes : un bouton simple — la bascule clair/sombre — et un
+ * bouton qui ouvre un menu : la période, la vue.
  *
  * CE QUE LE MENU DOIT SAVOIR FAIRE, et que la maquette fait déjà :
  * se fermer sur Échap et rendre le focus au bouton, se fermer sur un
@@ -29,19 +29,17 @@ const CHEVRON = (
 
 export const Pill: React.FC<{
   onClick?: () => void;
-  pressed?: boolean;
   square?: boolean;
   title?: string;
   ariaLabel?: string;
   className?: string;
   children: React.ReactNode;
-}> = ({ onClick, pressed, square, title, ariaLabel, className = "", children }) => (
+}> = ({ onClick, square, title, ariaLabel, className = "", children }) => (
   <button
     type="button"
     onClick={onClick}
     title={title}
     aria-label={ariaLabel}
-    {...(pressed === undefined ? {} : { "aria-pressed": pressed })}
     className={`pill${square ? " square" : ""}${className ? ` ${className}` : ""}`}
   >
     {children}

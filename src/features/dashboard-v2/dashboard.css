@@ -385,12 +385,6 @@
 .dash2 .pill[aria-expanded="true"] .chev {
   transform: rotate(180deg);
 }
-.dash2 .pill[aria-pressed="true"] {
-  background: var(--accent-soft);
-  border-color: transparent;
-  color: var(--accent-ink);
-  font-weight: 600;
-}
 .dash2 .pill.square {
   width: 36px;
   padding: 0;
@@ -911,15 +905,6 @@
   display: flex;
   flex-direction: column;
   gap: 8px;
-}
-
-/* ── mode focus ── */
-
-.dash2.calm .card.secondary {
-  display: none;
-}
-.dash2.calm .card {
-  box-shadow: none;
 }
 
 /* ── panneau de détail ── */

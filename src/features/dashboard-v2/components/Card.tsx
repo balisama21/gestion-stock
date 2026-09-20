@@ -7,17 +7,11 @@ import React from "react";
  * petites capitales grises à gauche, une action facultative à droite,
  * puis le contenu. Le style vit dans `dashboard.css` (`.card`, `.ch`) —
  * ici on ne décrit que la structure.
- *
- * `secondary` marque les cartes que le mode focus masque. Ce n'est pas
- * un jugement sur leur utilité : ce sont celles qu'on consulte, par
- * opposition à celles qu'on surveille.
  */
 
 export interface CardProps {
   /** Largeur dans la grille de douze colonnes. */
   span?: 4 | 5 | 6 | 7 | 8 | 12;
-  /** Masquée par le mode focus. */
-  secondary?: boolean;
   /**
    * Sert d'ancre : une puce d'attention fait défiler jusqu'à la carte
    * qui porte cet identifiant, puis la fait clignoter.
@@ -29,7 +23,7 @@ export interface CardProps {
 }
 
 export const Card = React.forwardRef<HTMLElement, CardProps>(function Card(
-  { span = 4, secondary = false, id, className = "", style, children },
+  { span = 4, id, className = "", style, children },
   ref,
 ) {
   return (
@@ -37,7 +31,7 @@ export const Card = React.forwardRef<HTMLElement, CardProps>(function Card(
       ref={ref}
       id={id}
       style={style}
-      className={`card s${span}${secondary ? " secondary" : ""}${className ? ` ${className}` : ""}`}
+      className={`card s${span}${className ? ` ${className}` : ""}`}
     >
       {children}
     </article>
