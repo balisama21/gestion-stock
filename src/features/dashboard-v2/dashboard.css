@@ -60,6 +60,14 @@
   --hero-2: #093f2f;
   --hero-ink: #f1faf5;
   --shadow: 0 1px 2px rgba(20, 40, 30, 0.05), 0 6px 20px -12px rgba(20, 40, 30, 0.18);
+  /* Trois rayons, et trois seulement. Les angles allaient de 3 a
+     16 pixels sans regle : dix valeurs differentes dans une meme
+     colonne se remarquent sans qu'on sache pourquoi, et c'est
+     exactement le genre de bruit qui fatigue. Les pastilles et les
+     cercles gardent leur forme : ils ne sont pas des boites. */
+  --r-carte: 14px;
+  --r-bloc: 10px;
+  --r-petit: 7px;
   --sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   --mono: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
 }
@@ -89,6 +97,14 @@
   --hero-2: #08342a;
   --hero-ink: #eaf6f0;
   --shadow: 0 1px 2px rgba(0, 0, 0, 0.3), 0 8px 24px -14px rgba(0, 0, 0, 0.6);
+  /* Trois rayons, et trois seulement. Les angles allaient de 3 a
+     16 pixels sans regle : dix valeurs differentes dans une meme
+     colonne se remarquent sans qu'on sache pourquoi, et c'est
+     exactement le genre de bruit qui fatigue. Les pastilles et les
+     cercles gardent leur forme : ils ne sont pas des boites. */
+  --r-carte: 14px;
+  --r-bloc: 10px;
+  --r-petit: 7px;
 }
 
 /* ── base ── */
@@ -195,7 +211,7 @@
   color: var(--muted);
   width: 24px;
   height: 24px;
-  border-radius: 6px;
+  border-radius: var(--r-petit);
   display: grid;
   place-items: center;
   padding: 0;
@@ -254,7 +270,7 @@
   align-items: center;
   gap: 8px;
   padding: 4px 10px 4px 5px;
-  border-radius: 999px;
+  border-radius: 99px;
   font-size: 12.5px;
   font-weight: 600;
   border: 1px solid transparent;
@@ -325,7 +341,7 @@
   gap: 8px;
   border: 1px solid var(--line);
   background: var(--surface);
-  border-radius: 999px;
+  border-radius: 99px;
   padding: 0 13px;
   height: 36px;
   font-size: 13px;
@@ -381,7 +397,7 @@
   width: min(290px, calc(100vw - 32px));
   background: var(--surface);
   border: 1px solid var(--line);
-  border-radius: 14px;
+  border-radius: var(--r-carte);
   box-shadow: 0 18px 40px -16px rgba(10, 30, 20, 0.35);
   padding: 6px;
 }
@@ -398,7 +414,7 @@
   border: 0;
   background: none;
   padding: 9px 10px;
-  border-radius: 9px;
+  border-radius: var(--r-petit);
   text-align: left;
   font-size: 13.5px;
   color: var(--ink);
@@ -444,7 +460,7 @@
   font-size: 13px;
   padding: 6px 8px;
   border: 1px solid var(--line);
-  border-radius: 8px;
+  border-radius: var(--r-petit);
   background: var(--surface-2);
   color: var(--ink);
   min-width: 0;
@@ -468,19 +484,21 @@
 
 /* ── grille et cartes ── */
 
-/* Un groupe : son titre, puis sa grille. L'ecart entre groupes et
-   la largeur de la page se reglent a l'etape suivante ; ici on pose
-   seulement de quoi lire la structure. */
+/* Un groupe : son titre, puis sa grille. */
 .dash2 .groupe {
   display: flex;
   flex-direction: column;
   gap: 12px;
 }
+/* Le titre de groupe est plus fort que celui d'une carte : c'est lui
+   qui decoupe la page. Il reste visible sur telephone, en plus petit,
+   parce que c'est la que l'empilement rend le reperage difficile. */
 .dash2 .groupe-titre {
   margin: 0;
-  font-size: 13px;
+  font-size: 14px;
   font-weight: 600;
-  color: var(--ink-2);
+  color: var(--ink);
+  letter-spacing: -0.01em;
 }
 
 .dash2 .grid {
@@ -520,7 +538,7 @@
 .dash2 .card {
   background: var(--surface);
   border: 1px solid var(--line);
-  border-radius: 16px;
+  border-radius: var(--r-carte);
   padding: 18px;
   box-shadow: var(--shadow);
   min-width: 0;
@@ -580,12 +598,16 @@
   justify-content: space-between;
   gap: 10px;
 }
+/* Ni majuscules ni lettres ecartees. Un titre de carte n'a pas a
+   crier : il nomme, il ne hierarchise pas. Les capitales espacees se
+   lisent lettre a lettre, ce qui coute une fraction de seconde par
+   carte — quinze fois sur un ecran, cela se sent. */
 .dash2 .ch h2 {
   margin: 0;
-  font-size: 12px;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-  color: var(--muted);
+  font-size: 13px;
+  letter-spacing: 0;
+  text-transform: none;
+  color: var(--ink-2);
   font-weight: 600;
   display: flex;
   gap: 8px;
@@ -614,7 +636,7 @@
   border: 0;
   background: var(--accent);
   color: #fff;
-  border-radius: 9px;
+  border-radius: var(--r-petit);
   padding: 8px 12px;
   font-weight: 600;
   font-size: 13px;
@@ -636,7 +658,7 @@
   gap: 4px;
   font-size: 12px;
   font-weight: 600;
-  border-radius: 999px;
+  border-radius: 99px;
   padding: 2px 8px;
 }
 .dash2 .trend.up {
@@ -656,7 +678,7 @@
 .dash2-portal .tag {
   font-size: 10.5px;
   font-weight: 600;
-  border-radius: 5px;
+  border-radius: var(--r-petit);
   padding: 1px 6px;
   white-space: nowrap;
 }
@@ -773,7 +795,7 @@
     flex-direction: column;
     align-items: flex-start;
     gap: 6px;
-    border-radius: 12px;
+    border-radius: var(--r-bloc);
     padding: 10px 9px;
     font-size: 11.5px;
     line-height: 1.25;
@@ -801,7 +823,7 @@
   gap: 12px;
   align-items: center;
   background: var(--accent-soft);
-  border-radius: 12px;
+  border-radius: var(--r-bloc);
   padding: 12px 14px;
 }
 .dash2 .empty .ok,
@@ -834,7 +856,7 @@
   gap: 10px;
   align-items: flex-start;
   background: var(--crit-soft);
-  border-radius: 12px;
+  border-radius: var(--r-bloc);
   padding: 12px 14px;
 }
 .dash2 .card-err b {
@@ -1078,7 +1100,7 @@
   gap: 12px;
   background: var(--surface);
   border: 1px solid var(--line);
-  border-radius: 14px;
+  border-radius: var(--r-bloc);
   padding: 12px 14px;
   box-shadow: var(--shadow);
   margin-top: 10px;
@@ -1152,7 +1174,7 @@
 }
 .dash2 .controle-bloc {
   border: 1px solid var(--line-2);
-  border-radius: 12px;
+  border-radius: var(--r-bloc);
   padding: 12px 14px;
   min-width: 0;
 }
@@ -1265,7 +1287,7 @@
 .dash2 .tile {
   background: var(--surface);
   border: 1px solid var(--line);
-  border-radius: 16px;
+  border-radius: var(--r-carte);
   padding: 14px 16px;
   box-shadow: var(--shadow);
   display: flex;
@@ -1304,7 +1326,7 @@
 .dash2 .tile-go {
   width: 26px;
   height: 26px;
-  border-radius: 8px;
+  border-radius: var(--r-petit);
   border: 0;
   background: var(--surface-2);
   color: var(--ink-2);
@@ -1396,7 +1418,7 @@
 }
 .dash2 .duo div {
   background: var(--surface-2);
-  border-radius: 10px;
+  border-radius: var(--r-bloc);
   padding: 8px 10px;
   min-width: 0;
 }
@@ -1419,7 +1441,7 @@
   align-items: center;
   gap: 8px;
   border: 0;
-  border-radius: 10px;
+  border-radius: var(--r-bloc);
   padding: 8px 10px;
   font-size: 13px;
   font-weight: 600;
@@ -1695,7 +1717,7 @@
   pointer-events: none;
   background: var(--ink);
   color: var(--surface);
-  border-radius: 8px;
+  border-radius: var(--r-petit);
   padding: 6px 9px;
   font-size: 12px;
   white-space: nowrap;
@@ -1851,7 +1873,7 @@
   font-family: var(--mono);
   font-size: 12.5px;
   padding: 6px 0 9px;
-  border-radius: 8px;
+  border-radius: var(--r-petit);
   color: var(--ink-2);
   border: 0;
   background: none;
@@ -1904,7 +1926,7 @@
 }
 .dash2 .evi .dd {
   text-align: center;
-  border-radius: 8px;
+  border-radius: var(--r-petit);
   background: var(--surface-2);
   padding: 3px 0;
   line-height: 1.1;
@@ -1945,7 +1967,7 @@
   background: none;
   text-align: left;
   width: 100%;
-  border-radius: 8px;
+  border-radius: var(--r-bloc);
   padding: 2px 4px;
   margin: -2px -4px;
   color: inherit;
@@ -2087,7 +2109,7 @@
   align-self: center;
   border: 1.5px solid var(--info);
   color: var(--info);
-  border-radius: 8px;
+  border-radius: var(--r-bloc);
   padding: 4px 12px;
   font-family: var(--mono);
   font-size: 12px;
@@ -2111,7 +2133,7 @@
   gap: 10px;
   align-items: center;
   padding: 8px 6px;
-  border-radius: 9px;
+  border-radius: var(--r-bloc);
 }
 .dash2 .task:hover {
   background: var(--surface-2);
@@ -2159,7 +2181,7 @@
   gap: 12px;
   align-items: center;
   background: var(--warn-soft);
-  border-radius: 12px;
+  border-radius: var(--r-bloc);
   padding: 12px;
 }
 .dash2 .env {
@@ -2368,7 +2390,7 @@
   gap: 12px;
   align-items: center;
   padding: 8px;
-  border-radius: 10px;
+  border-radius: var(--r-bloc);
   min-width: 0;
 }
 .dash2 .sale:hover {
@@ -2469,7 +2491,7 @@
   justify-content: space-between;
   gap: 10px;
   background: var(--accent-soft);
-  border-radius: 12px;
+  border-radius: var(--r-bloc);
   padding: 12px 14px;
   flex-wrap: wrap;
 }
@@ -2546,7 +2568,7 @@
   gap: 10px;
   align-items: center;
   padding: 7px 6px;
-  border-radius: 9px;
+  border-radius: var(--r-bloc);
   border: 0;
   background: none;
   text-align: left;
@@ -2624,7 +2646,7 @@
 }
 .dash2 .fact {
   background: var(--surface-2);
-  border-radius: 10px;
+  border-radius: var(--r-bloc);
   padding: 10px 12px;
   min-width: 0;
   border: 0;
@@ -2686,7 +2708,7 @@
 .dash2 .filters button {
   border: 1px solid var(--line);
   background: var(--surface);
-  border-radius: 999px;
+  border-radius: 99px;
   height: 28px;
   padding: 0 11px;
   font-size: 12.5px;
@@ -2719,7 +2741,7 @@
   gap: 10px;
   align-items: center;
   padding: 6px 4px;
-  border-radius: 9px;
+  border-radius: var(--r-bloc);
 }
 .dash2 .ev-row:hover {
   background: var(--surface-2);
@@ -2820,7 +2842,7 @@
   gap: 3px 10px;
   align-items: center;
   padding: 9px 10px;
-  border-radius: 10px;
+  border-radius: var(--r-bloc);
   background: var(--surface-2);
   border: 0;
   text-align: left;
@@ -2867,12 +2889,12 @@
   gap: 10px;
   align-items: center;
   padding: 10px;
-  border-radius: 12px;
+  border-radius: var(--r-bloc);
   border: 1px dashed var(--line);
 }
 .dash2 .stop .dd {
   text-align: center;
-  border-radius: 8px;
+  border-radius: var(--r-petit);
   background: var(--surface-2);
   padding: 3px 0;
   line-height: 1.1;
@@ -2921,7 +2943,7 @@
   grid-template-columns: 18px minmax(0, 1fr) auto;
   gap: 3px 10px;
   align-items: center;
-  border-radius: 8px;
+  border-radius: var(--r-bloc);
   padding: 2px 4px;
   margin: -2px -4px;
 }
@@ -2998,7 +3020,7 @@
   gap: 7px;
   border: 1px solid var(--line);
   background: var(--surface);
-  border-radius: 999px;
+  border-radius: 99px;
   padding: 0 14px;
   height: 36px;
   font-size: 13px;
@@ -3014,4 +3036,54 @@
   font-size: 12.5px;
   padding: 10px 8px 0;
   margin: 0;
+}
+
+/* ══════════════════════════════════════════════════════════════════
+   LA MISE EN PAGE SUR ORDINATEUR
+
+   Tout ce qui suit est une couche a part, et c'est voulu. Le reste
+   de cette feuille est ecrit ordinateur d'abord, le telephone n'en
+   etant qu'une serie de corrections ; y toucher aurait donc change
+   les deux. Ici on n'ajoute qu'au-dessus de 900 pixels, et le
+   telephone garde exactement la disposition qui convient.
+   ══════════════════════════════════════════════════════════════════ */
+
+@media (min-width: 901px) {
+  /* 1100 pixels, centres. Les marges vides sont voulues : une ligne
+     de texte trop longue se relit mal, et une page qui occupe tout
+     l'ecran n'offre nulle part ou poser l'oeil. */
+  .dash2-wrap {
+    max-width: 1100px;
+  }
+
+  /* Environ 48 pixels entre deux familles : 18 de l'ecart commun,
+     plus 30 ici. C'est ce vide qui fait le decoupage, bien plus que
+     les titres. */
+  .dash2 .groupe {
+    margin-top: 30px;
+  }
+  .dash2 .groupe-titre {
+    font-size: 15px;
+  }
+
+  /* DEUX CARTES PAR RANGEE, JAMAIS TROIS. La grille reste a douze
+     colonnes : on ne change que les largeurs. Une carte large prend
+     la rangee entiere plutot que de se serrer a cote d'une autre. */
+  .dash2 .groupe .grid > .s4,
+  .dash2 .groupe .grid > .s5,
+  .dash2 .groupe .grid > .s6 {
+    grid-column: span 6;
+  }
+  .dash2 .groupe .grid > .s7,
+  .dash2 .groupe .grid > .s8,
+  .dash2 .groupe .grid > .s12 {
+    grid-column: span 12;
+  }
+
+  /* Le chiffre d'affaires occupe sa rangee seul, quelle que soit la
+     largeur que le registre lui donne. C'est le seul gros chiffre de
+     l'ecran. */
+  .dash2 .grid[aria-label="Chiffre d'affaires"] > .card {
+    grid-column: span 12;
+  }
 }
