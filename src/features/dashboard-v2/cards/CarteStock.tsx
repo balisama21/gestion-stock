@@ -75,6 +75,14 @@ export const CarteStock: React.FC<{
               >
                 <div className="nm">
                   <span>{p.nom}</span>
+                  {/* Le rail rouge ne suffit pas : un statut doit se lire
+                      sans distinguer les couleurs. La fleche et le mot le
+                      disent, la couleur ne fait que le renforcer. */}
+                  {p.sousLeSeuil && (
+                    <small className="bas">
+                      <span aria-hidden="true">↓</span> stock faible
+                    </small>
+                  )}
                 </div>
                 <span className="qty num">
                   {nombre(p.disponible)} / {nombre(p.seuil)}

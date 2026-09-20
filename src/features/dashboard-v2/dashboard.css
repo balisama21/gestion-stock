@@ -66,6 +66,16 @@
   --r-carte: 14px;
   --r-bloc: 10px;
   --r-petit: 7px;
+  /* Six tailles, la ou il y en avait vingt. Vingt tailles voisines
+     ne font pas une hierarchie : elles font un flou ou rien ne
+     ressort, et c'est ce qui obligeait a tout lire pour comprendre.
+     `geant` est reserve a UN chiffre par ecran. */
+  --t-geant: 30px;
+  --t-grand: 22px;
+  --t-moyen: 15px;
+  --t-corps: 13px;
+  --t-petit: 12px;
+  --t-mini: 11px;
   --sans: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, sans-serif;
   --mono: ui-monospace, "SFMono-Regular", Menlo, Consolas, monospace;
 }
@@ -101,6 +111,16 @@
   --r-carte: 14px;
   --r-bloc: 10px;
   --r-petit: 7px;
+  /* Six tailles, la ou il y en avait vingt. Vingt tailles voisines
+     ne font pas une hierarchie : elles font un flou ou rien ne
+     ressort, et c'est ce qui obligeait a tout lire pour comprendre.
+     `geant` est reserve a UN chiffre par ecran. */
+  --t-geant: 30px;
+  --t-grand: 22px;
+  --t-moyen: 15px;
+  --t-corps: 13px;
+  --t-petit: 12px;
+  --t-mini: 11px;
 }
 
 /* ── base ── */
@@ -120,7 +140,7 @@
 .dash2-portal {
   font-family: var(--sans);
   color: var(--ink);
-  font-size: 14px;
+  font-size: var(--t-corps);
   line-height: 1.45;
   -webkit-font-smoothing: antialiased;
   min-width: 0;
@@ -185,7 +205,7 @@
   align-items: center;
   gap: 8px 14px;
   flex-wrap: wrap;
-  font-size: 12.5px;
+  font-size: var(--t-petit);
   color: var(--muted);
   margin-bottom: 6px;
 }
@@ -237,7 +257,7 @@
 }
 .dash2 .hello h1 {
   margin: 0;
-  font-size: 26px;
+  font-size: var(--t-grand);
   font-weight: 650;
   letter-spacing: -0.02em;
   text-wrap: balance;
@@ -246,7 +266,7 @@
   margin: 0;
   color: var(--ink-2);
   max-width: 66ch;
-  font-size: 14.5px;
+  font-size: var(--t-corps);
 }
 .dash2 .brief p b {
   color: var(--ink);
@@ -267,7 +287,7 @@
   gap: 8px;
   padding: 4px 10px 4px 5px;
   border-radius: 99px;
-  font-size: 12.5px;
+  font-size: var(--t-petit);
   font-weight: 600;
   border: 1px solid transparent;
   background: var(--surface-2);
@@ -281,7 +301,7 @@
   display: grid;
   place-items: center;
   font-family: var(--mono);
-  font-size: 11.5px;
+  font-size: var(--t-petit);
   color: var(--surface);
 }
 .dash2 .chip svg {
@@ -340,7 +360,7 @@
   border-radius: 99px;
   padding: 0 13px;
   height: 36px;
-  font-size: 13px;
+  font-size: var(--t-corps);
   color: var(--ink-2);
   white-space: nowrap;
 }
@@ -412,12 +432,12 @@
   padding: 9px 10px;
   border-radius: var(--r-petit);
   text-align: left;
-  font-size: 13.5px;
+  font-size: var(--t-corps);
   color: var(--ink);
 }
 .dash2 .opt small {
   color: var(--muted);
-  font-size: 12px;
+  font-size: var(--t-petit);
   font-family: var(--mono);
 }
 .dash2 .opt:hover {
@@ -445,7 +465,7 @@
   gap: 8px;
 }
 .dash2 .custom label {
-  font-size: 11.5px;
+  font-size: var(--t-petit);
   color: var(--muted);
   display: flex;
   flex-direction: column;
@@ -453,7 +473,7 @@
 }
 .dash2 .custom input {
   font: inherit;
-  font-size: 13px;
+  font-size: var(--t-corps);
   padding: 6px 8px;
   border: 1px solid var(--line);
   border-radius: var(--r-petit);
@@ -468,7 +488,7 @@
 .dash2 .custom .err {
   grid-column: 1/-1;
   color: var(--crit);
-  font-size: 12px;
+  font-size: var(--t-petit);
   margin: 0;
 }
 @media (max-width: 900px) {
@@ -491,7 +511,7 @@
    parce que c'est la que l'empilement rend le reperage difficile. */
 .dash2 .groupe-titre {
   margin: 0;
-  font-size: 14px;
+  font-size: var(--t-corps);
   font-weight: 600;
   color: var(--ink);
   letter-spacing: -0.01em;
@@ -600,7 +620,7 @@
    carte — quinze fois sur un ecran, cela se sent. */
 .dash2 .ch h2 {
   margin: 0;
-  font-size: 13px;
+  font-size: var(--t-corps);
   letter-spacing: 0;
   text-transform: none;
   color: var(--ink-2);
@@ -620,7 +640,7 @@
   border: 0;
   color: var(--accent-ink);
   font-weight: 600;
-  font-size: 13px;
+  font-size: var(--t-corps);
   padding: 2px 4px;
 }
 .dash2 .link:hover,
@@ -635,7 +655,7 @@
   border-radius: var(--r-petit);
   padding: 8px 12px;
   font-weight: 600;
-  font-size: 13px;
+  font-size: var(--t-corps);
 }
 .dash2 .btn.ghost,
 .dash2-portal .btn.ghost {
@@ -652,7 +672,7 @@
   display: inline-flex;
   align-items: center;
   gap: 4px;
-  font-size: 12px;
+  font-size: var(--t-petit);
   font-weight: 600;
   border-radius: 99px;
   padding: 2px 8px;
@@ -672,7 +692,7 @@
 
 .dash2 .tag,
 .dash2-portal .tag {
-  font-size: 10.5px;
+  font-size: var(--t-mini);
   font-weight: 600;
   border-radius: var(--r-petit);
   padding: 1px 6px;
@@ -720,12 +740,8 @@
     flex: none;
   }
   .dash2 .eyebrow {
-    font-size: 12px;
     margin-bottom: 2px;
     gap: 4px 10px;
-  }
-  .dash2 .hello h1 {
-    font-size: 22px;
   }
   /* Les sélecteurs s'étalent, le mode focus et le thème — privés de
      leur libellé — se réduisent à deux icônes carrées. C'est
@@ -793,7 +809,7 @@
     gap: 6px;
     border-radius: var(--r-bloc);
     padding: 10px 9px;
-    font-size: 11.5px;
+    font-size: var(--t-petit);
     line-height: 1.25;
     height: 100%;
     text-align: left;
@@ -836,13 +852,13 @@
 .dash2 .empty b,
 .dash2-portal .empty b {
   display: block;
-  font-size: 13.5px;
+  font-size: var(--t-corps);
   color: var(--accent-ink);
 }
 .dash2 .empty small,
 .dash2-portal .empty small {
   color: var(--ink-2);
-  font-size: 12px;
+  font-size: var(--t-petit);
 }
 
 /* ── carte en erreur ── */
@@ -857,12 +873,12 @@
   padding: 12px 14px;
 }
 .dash2 .card-err b {
-  font-size: 13.5px;
+  font-size: var(--t-corps);
   color: var(--crit);
 }
 .dash2 .card-err small {
   color: var(--ink-2);
-  font-size: 12px;
+  font-size: var(--t-petit);
 }
 
 /* ── squelettes ── */
@@ -948,14 +964,14 @@
 }
 .dash2-drawer .dh h3 {
   margin: 0;
-  font-size: 17px;
+  font-size: var(--t-moyen);
   font-weight: 650;
   letter-spacing: -0.01em;
 }
 .dash2-drawer .dh p {
   margin: 3px 0 0;
   color: var(--muted);
-  font-size: 12.5px;
+  font-size: var(--t-petit);
 }
 /* Une croix se reconnaît sans qu'on lui dessine une boîte autour.
    La zone de clic garde ses 34 pixels — c'est elle qui compte pour
@@ -1005,16 +1021,16 @@
   border-bottom: 0;
 }
 .dash2-drawer .li b {
-  font-size: 13.5px;
+  font-size: var(--t-corps);
   font-weight: 600;
 }
 .dash2-drawer .li small {
   color: var(--muted);
-  font-size: 12px;
+  font-size: var(--t-petit);
 }
 .dash2-drawer .li .num {
   font-weight: 600;
-  font-size: 13.5px;
+  font-size: var(--t-corps);
   text-align: right;
 }
 .dash2-drawer .li .tag {
@@ -1048,9 +1064,6 @@
   .dash2 .s7,
   .dash2 .s8 {
     grid-column: span 12;
-  }
-  .dash2 .hello h1 {
-    font-size: 22px;
   }
   .dash2-drawer {
     top: auto;
@@ -1109,12 +1122,12 @@
 .dash2 .pulse-cmp small {
   display: block;
   color: var(--muted);
-  font-size: 12px;
+  font-size: var(--t-petit);
   white-space: nowrap;
 }
 .dash2 .pulse-main b {
   display: block;
-  font-size: 22px;
+  font-size: var(--t-grand);
   font-weight: 700;
   letter-spacing: -0.02em;
   line-height: 1.2;
@@ -1129,12 +1142,12 @@
   flex: none;
 }
 .dash2 .pulse-cmp .trend {
-  font-size: 13px;
+  font-size: var(--t-corps);
   padding: 3px 10px;
 }
 .dash2 .attn-label {
   display: none;
-  font-size: 11px;
+  font-size: var(--t-mini);
   color: var(--muted);
   font-weight: 600;
   margin-top: 16px;
@@ -1146,7 +1159,7 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  font-size: 12px;
+  font-size: var(--t-petit);
   color: var(--muted);
   margin-top: 10px;
 }
@@ -1174,7 +1187,7 @@
   min-width: 0;
 }
 .dash2 .controle-titre {
-  font-size: 11px;
+  font-size: var(--t-mini);
   letter-spacing: 0.08em;
   text-transform: uppercase;
   color: var(--muted);
@@ -1188,7 +1201,7 @@
   align-items: baseline;
   padding: 5px 0;
   border-bottom: 1px solid var(--line-2);
-  font-size: 13px;
+  font-size: var(--t-corps);
 }
 .dash2 .controle-ligne:last-child {
   border-bottom: 0;
@@ -1200,7 +1213,7 @@
 .dash2 .controle-ligne small {
   display: block;
   color: var(--muted);
-  font-size: 11.5px;
+  font-size: var(--t-petit);
   overflow-wrap: anywhere;
 }
 .dash2 .controle-ligne b {
@@ -1253,7 +1266,7 @@
 }
 .dash2 .today-head h2 {
   margin: 0;
-  font-size: 12px;
+  font-size: var(--t-petit);
   color: var(--muted);
   font-weight: 600;
   display: flex;
@@ -1266,7 +1279,7 @@
   letter-spacing: 0;
   font-weight: 500;
   color: var(--ink-2);
-  font-size: 13px;
+  font-size: var(--t-corps);
 }
 .dash2 .rail {
   display: grid;
@@ -1299,7 +1312,7 @@
   display: flex;
   align-items: center;
   gap: 7px;
-  font-size: 11.5px;
+  font-size: var(--t-petit);
   white-space: nowrap;
   min-width: 0;
   color: var(--muted);
@@ -1335,14 +1348,14 @@
   color: var(--accent-ink);
 }
 .dash2 .tile-valeur {
-  font-size: 30px;
+  font-size: var(--t-grand);
   font-weight: 700;
   letter-spacing: -0.03em;
   line-height: 1;
   overflow-wrap: anywhere;
 }
 .dash2 .tile-valeur small {
-  font-size: 14px;
+  font-size: var(--t-corps);
   font-weight: 600;
   color: var(--muted);
   margin-left: 4px;
@@ -1353,7 +1366,7 @@
 .dash2 .tile-note {
   margin: 0;
   color: var(--ink-2);
-  font-size: 13px;
+  font-size: var(--t-corps);
 }
 .dash2 .tile-pied {
   margin-top: auto;
@@ -1367,7 +1380,7 @@
 }
 .dash2 .tile-pied small {
   color: var(--muted);
-  font-size: 12px;
+  font-size: var(--t-petit);
 }
 .dash2 .tile-pied small b {
   color: var(--ink-2);
@@ -1414,14 +1427,14 @@
 .dash2 .duo small {
   display: block;
   color: var(--muted);
-  font-size: 11.5px;
+  font-size: var(--t-petit);
 }
 .dash2 .duo b {
-  font-size: 14px;
+  font-size: var(--t-corps);
   overflow-wrap: anywhere;
 }
 .dash2 .duo.gros b {
-  font-size: 20px;
+  font-size: var(--t-grand);
 }
 
 .dash2 .flag {
@@ -1431,7 +1444,7 @@
   border: 0;
   border-radius: var(--r-bloc);
   padding: 8px 10px;
-  font-size: 13px;
+  font-size: var(--t-corps);
   font-weight: 600;
   text-align: left;
 }
@@ -1446,7 +1459,7 @@
   place-items: center;
   background: var(--warn);
   color: var(--surface);
-  font-size: 11.5px;
+  font-size: var(--t-petit);
   flex: none;
 }
 
@@ -1461,7 +1474,7 @@
 }
 .dash2 .minitl li {
   position: relative;
-  font-size: 13px;
+  font-size: var(--t-corps);
   line-height: 1.3;
 }
 .dash2 .minitl li::before {
@@ -1486,7 +1499,7 @@
 }
 .dash2 .minitl time {
   font-family: var(--mono);
-  font-size: 11.5px;
+  font-size: var(--t-petit);
   color: var(--muted);
   margin-right: 6px;
 }
@@ -1607,21 +1620,21 @@
   border-block: 1px solid rgba(0, 0, 0, 0.2);
 }
 .dash2 .big {
-  font-size: 44px;
+  font-size: var(--t-grand);
   font-weight: 700;
   line-height: 1;
   letter-spacing: -0.03em;
   overflow-wrap: anywhere;
 }
 .dash2 .big small {
-  font-size: 18px;
+  font-size: var(--t-moyen);
   font-weight: 600;
   opacity: 0.75;
   margin-left: 4px;
 }
 .dash2 .wallet .sub {
   color: rgba(241, 250, 245, 0.72);
-  font-size: 13px;
+  font-size: var(--t-corps);
   margin-top: 8px;
 }
 .dash2 .flow {
@@ -1643,7 +1656,7 @@
   display: flex;
   justify-content: space-between;
   gap: 12px;
-  font-size: 12.5px;
+  font-size: var(--t-petit);
   flex-wrap: wrap;
 }
 .dash2 .flowleg span {
@@ -1677,13 +1690,13 @@
   flex-wrap: wrap;
 }
 .dash2 .kpi-row .v {
-  font-size: 30px;
+  font-size: var(--t-geant);
   font-weight: 700;
   letter-spacing: -0.02em;
 }
 .dash2 .kpi-row .c {
   color: var(--muted);
-  font-size: 13px;
+  font-size: var(--t-corps);
 }
 .dash2 .chart {
   position: relative;
@@ -1696,7 +1709,7 @@
 }
 .dash2 .chart text {
   font-family: var(--mono);
-  font-size: 10.5px;
+  font-size: var(--t-mini);
   fill: var(--muted);
 }
 .dash2 .tip {
@@ -1706,7 +1719,7 @@
   color: var(--surface);
   border-radius: var(--r-petit);
   padding: 6px 9px;
-  font-size: 12px;
+  font-size: var(--t-petit);
   white-space: nowrap;
   transform: translate(-50%, -110%);
   opacity: 0;
@@ -1721,7 +1734,7 @@
 .dash2 .legend {
   display: flex;
   gap: 16px;
-  font-size: 12px;
+  font-size: var(--t-petit);
   color: var(--muted);
   flex-wrap: wrap;
 }
@@ -1756,13 +1769,13 @@
   gap: 10px;
 }
 .dash2 .cal-head b {
-  font-size: 13px;
+  font-size: var(--t-corps);
   font-weight: 600;
   color: var(--ink-2);
   text-transform: capitalize;
 }
 .dash2 .cal-head small {
-  font-size: 12px;
+  font-size: var(--t-petit);
   color: var(--muted);
 }
 /* Ni fond ni bordure, comme tous les boutons a symbole. L'en-tete
@@ -1830,7 +1843,7 @@
   text-align: center;
 }
 .dash2 .cal .dow {
-  font-size: 10.5px;
+  font-size: var(--t-mini);
   color: var(--muted);
   text-transform: uppercase;
   letter-spacing: 0.05em;
@@ -1839,7 +1852,7 @@
 .dash2 .cal .d {
   position: relative;
   font-family: var(--mono);
-  font-size: 12.5px;
+  font-size: var(--t-petit);
   padding: 6px 0 9px;
   border-radius: var(--r-petit);
   color: var(--ink-2);
@@ -1902,20 +1915,20 @@
 .dash2 .evi .dd b {
   display: block;
   font-family: var(--mono);
-  font-size: 15px;
+  font-size: var(--t-moyen);
 }
 .dash2 .evi .dd small {
-  font-size: 10px;
+  font-size: var(--t-mini);
   color: var(--muted);
   text-transform: uppercase;
 }
 .dash2 .evi span {
-  font-size: 13px;
+  font-size: var(--t-corps);
 }
 .dash2 .evi em {
   font-style: normal;
   color: var(--muted);
-  font-size: 12px;
+  font-size: var(--t-petit);
   display: block;
 }
 
@@ -1943,8 +1956,17 @@
 .dash2 .item:hover {
   background: var(--surface-2);
 }
+/* Le mot qui double la couleur du rail. Voir le point 7 : un statut
+   ne doit jamais reposer sur la seule teinte. */
+.dash2 .item .nm .bas {
+  color: var(--crit);
+  font-size: var(--t-mini);
+  font-weight: 600;
+  white-space: nowrap;
+  flex: none;
+}
 .dash2 .item .nm {
-  font-size: 13.5px;
+  font-size: var(--t-corps);
   font-weight: 500;
   display: flex;
   gap: 8px;
@@ -1957,7 +1979,7 @@
   white-space: nowrap;
 }
 .dash2 .item .qty {
-  font-size: 12px;
+  font-size: var(--t-petit);
   color: var(--muted);
 }
 /* Un trait continu, et non dix casiers. Cinq produits faisaient
@@ -2001,7 +2023,7 @@
 .dash2 .stock-foot small {
   color: var(--muted);
   display: block;
-  font-size: 11.5px;
+  font-size: var(--t-petit);
 }
 
 /* ── 5. sorties, le ticket de caisse ── */
@@ -2020,7 +2042,7 @@
 /* Un titre de carte, comme partout ailleurs : a gauche, en
    minuscules, sans lettres ecartees. */
 .dash2 .ticket .shopname {
-  font-size: 13px;
+  font-size: var(--t-corps);
   font-weight: 600;
   color: var(--ink-2);
 }
@@ -2029,7 +2051,7 @@
   align-items: baseline;
   gap: 8px;
   font-family: var(--mono);
-  font-size: 13px;
+  font-size: var(--t-corps);
 }
 .dash2 .row .lead {
   flex: 1;
@@ -2040,7 +2062,7 @@
    hauteur libre, rôle que tenait le code-barres. Il tombe donc en bas
    du ticket, ce qui est sa place sur un vrai reçu. */
 .dash2 .row.total {
-  font-size: 16px;
+  font-size: var(--t-moyen);
   font-weight: 700;
   border-top: 1px solid var(--line);
   padding-top: 10px;
@@ -2048,14 +2070,14 @@
 }
 .dash2 .row small {
   color: var(--muted);
-  font-size: 11px;
+  font-size: var(--t-mini);
 }
 /* La comparaison avec la periode precedente est une information ;
    le cadre bleu incline de quatre degres n'en etait pas une. Reste
    la phrase, en texte secondaire. */
 .dash2 .stamp {
   color: var(--muted);
-  font-size: 12px;
+  font-size: var(--t-petit);
   margin-top: 2px;
 }
 
@@ -2106,7 +2128,7 @@
   opacity: 0.5;
 }
 .dash2 .task label {
-  font-size: 13.5px;
+  font-size: var(--t-corps);
   cursor: pointer;
   min-width: 0;
 }
@@ -2145,16 +2167,16 @@
 }
 .dash2 .devis b {
   display: block;
-  font-size: 13.5px;
+  font-size: var(--t-corps);
 }
 .dash2 .devis small {
   color: var(--warn);
-  font-size: 12px;
+  font-size: var(--t-petit);
 }
 .dash2 .progress-line {
   display: flex;
   justify-content: space-between;
-  font-size: 12px;
+  font-size: var(--t-petit);
   color: var(--muted);
 }
 
@@ -2178,7 +2200,7 @@
   display: grid;
   place-items: center;
   font-weight: 700;
-  font-size: 13px;
+  font-size: var(--t-corps);
   position: relative;
   color: #fff;
   flex: none;
@@ -2192,7 +2214,7 @@
   border-radius: 50%;
   background: var(--surface);
   color: var(--ink);
-  font-size: 10px;
+  font-size: var(--t-mini);
   display: grid;
   place-items: center;
   border: 1px solid var(--line);
@@ -2202,7 +2224,7 @@
   min-width: 0;
 }
 .dash2 .seller .info b {
-  font-size: 13.5px;
+  font-size: var(--t-corps);
   font-weight: 600;
 }
 .dash2 .seller .info small {
@@ -2211,7 +2233,7 @@
   overflow: hidden;
   text-overflow: ellipsis;
   color: var(--muted);
-  font-size: 11.5px;
+  font-size: var(--t-petit);
 }
 .dash2 .seller .bar {
   height: 6px;
@@ -2227,7 +2249,7 @@
   background: var(--accent);
 }
 .dash2 .seller .amt {
-  font-size: 13px;
+  font-size: var(--t-corps);
   font-weight: 600;
   text-align: right;
 }
@@ -2265,7 +2287,7 @@
   display: grid;
   place-items: center;
   font-family: var(--mono);
-  font-size: 13px;
+  font-size: var(--t-corps);
   font-weight: 600;
   color: var(--muted);
 }
@@ -2274,7 +2296,7 @@
   color: var(--accent-ink);
 }
 .dash2 .stage small {
-  font-size: 11.5px;
+  font-size: var(--t-petit);
   color: var(--muted);
   line-height: 1.2;
 }
@@ -2291,7 +2313,7 @@
   gap: 0 14px;
 }
 .dash2 .day .when {
-  font-size: 12px;
+  font-size: var(--t-petit);
   color: var(--muted);
   padding-top: 12px;
   text-align: right;
@@ -2299,7 +2321,7 @@
 .dash2 .day .when b {
   display: block;
   color: var(--ink);
-  font-size: 13px;
+  font-size: var(--t-corps);
   font-weight: 600;
 }
 .dash2 .day .items {
@@ -2335,7 +2357,7 @@
   background: var(--surface-2);
 }
 .dash2 .sale b {
-  font-size: 13.5px;
+  font-size: var(--t-corps);
   font-weight: 600;
   display: block;
   overflow: hidden;
@@ -2343,16 +2365,16 @@
 }
 .dash2 .sale small {
   color: var(--muted);
-  font-size: 12px;
+  font-size: var(--t-petit);
 }
 .dash2 .sale .amt {
-  font-size: 13.5px;
+  font-size: var(--t-corps);
   font-weight: 600;
   text-align: right;
   white-space: nowrap;
 }
 .dash2 .paid {
-  font-size: 11.5px;
+  font-size: var(--t-petit);
   font-weight: 600;
   border-radius: 99px;
   padding: 2px 9px;
@@ -2370,9 +2392,6 @@
 }
 
 @media (max-width: 680px) {
-  .dash2 .big {
-    font-size: 36px;
-  }
   .dash2 .day {
     grid-template-columns: 1fr;
   }
@@ -2410,7 +2429,7 @@
   display: flex;
   align-items: baseline;
   gap: 8px;
-  font-size: 13.5px;
+  font-size: var(--t-corps);
 }
 .dash2 .eq .r .lead {
   flex: 1;
@@ -2435,18 +2454,18 @@
 .dash2 .res small {
   display: block;
   color: var(--accent-ink);
-  font-size: 12px;
+  font-size: var(--t-petit);
   font-weight: 600;
 }
 .dash2 .res b {
-  font-size: 26px;
+  font-size: var(--t-grand);
   font-weight: 700;
   letter-spacing: -0.02em;
   color: var(--accent-ink);
 }
 .dash2 .res b small {
   display: inline;
-  font-size: 13px;
+  font-size: var(--t-corps);
   margin-left: 3px;
 }
 .dash2 .res.negatif {
@@ -2461,7 +2480,7 @@
   grid-template-columns: 62px 1fr auto;
   gap: 6px 10px;
   align-items: center;
-  font-size: 12px;
+  font-size: var(--t-petit);
   color: var(--muted);
 }
 .dash2 .cmp .bar {
@@ -2477,7 +2496,7 @@
 }
 .dash2 .cmp .num {
   color: var(--ink-2);
-  font-size: 12px;
+  font-size: var(--t-petit);
 }
 
 /* ── 12. paiements ── */
@@ -2521,16 +2540,16 @@
   border-radius: 3px;
 }
 .dash2 .lrow span {
-  font-size: 13px;
+  font-size: var(--t-corps);
   min-width: 0;
 }
 .dash2 .lrow span small {
   display: block;
   color: var(--muted);
-  font-size: 11.5px;
+  font-size: var(--t-petit);
 }
 .dash2 .lrow b {
-  font-size: 13.5px;
+  font-size: var(--t-corps);
   font-weight: 600;
   white-space: nowrap;
 }
@@ -2562,12 +2581,12 @@
   min-height: 3px;
 }
 .dash2 .semaines small {
-  font-size: 10.5px;
+  font-size: var(--t-mini);
   color: var(--muted);
   font-family: var(--mono);
 }
 .dash2 .sous-titre {
-  font-size: 11px;
+  font-size: var(--t-mini);
   color: var(--muted);
   font-weight: 600;
 }
@@ -2592,10 +2611,10 @@
 .dash2 .fact small {
   display: block;
   color: var(--muted);
-  font-size: 11.5px;
+  font-size: var(--t-petit);
 }
 .dash2 .fact b {
-  font-size: 20px;
+  font-size: var(--t-grand);
   font-family: var(--mono);
   display: block;
 }
@@ -2620,13 +2639,13 @@
   min-width: 0;
 }
 .dash2 .person .info b {
-  font-size: 13.5px;
+  font-size: var(--t-corps);
   font-weight: 600;
   display: block;
 }
 .dash2 .person .info small {
   color: var(--muted);
-  font-size: 12px;
+  font-size: var(--t-petit);
   display: block;
   white-space: nowrap;
   overflow: hidden;
@@ -2646,7 +2665,7 @@
   border-radius: 99px;
   height: 28px;
   padding: 0 11px;
-  font-size: 12.5px;
+  font-size: var(--t-petit);
   color: var(--ink-2);
 }
 .dash2 .filters button:hover {
@@ -2663,7 +2682,7 @@
   flex-direction: column;
 }
 .dash2 .tlday {
-  font-size: 11px;
+  font-size: var(--t-mini);
   color: var(--muted);
   font-weight: 600;
   padding: 10px 0 4px;
@@ -2681,7 +2700,7 @@
 }
 .dash2 .ev-row time {
   font-family: var(--mono);
-  font-size: 12px;
+  font-size: var(--t-petit);
   color: var(--muted);
   text-align: right;
 }
@@ -2714,16 +2733,16 @@
   border: 1px solid var(--line);
 }
 .dash2 .ev-row .tx {
-  font-size: 13px;
+  font-size: var(--t-corps);
   min-width: 0;
 }
 .dash2 .ev-row .tx small {
   display: block;
   color: var(--muted);
-  font-size: 11.5px;
+  font-size: var(--t-petit);
 }
 .dash2 .ev-row .am {
-  font-size: 13px;
+  font-size: var(--t-corps);
   font-weight: 600;
   white-space: nowrap;
 }
@@ -2738,14 +2757,14 @@
 }
 .dash2 .mv text {
   font-family: var(--mono);
-  font-size: 10.5px;
+  font-size: var(--t-mini);
   fill: var(--muted);
 }
 .dash2 .mvtot {
   display: flex;
   gap: 18px;
   flex-wrap: wrap;
-  font-size: 13px;
+  font-size: var(--t-corps);
   color: var(--ink-2);
 }
 .dash2 .mvtot span {
@@ -2786,7 +2805,7 @@
   background: var(--line-2);
 }
 .dash2 .alert b {
-  font-size: 13.5px;
+  font-size: var(--t-corps);
   font-weight: 600;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -2794,7 +2813,7 @@
 .dash2 .alert small {
   grid-column: 1/-1;
   color: var(--muted);
-  font-size: 12px;
+  font-size: var(--t-petit);
 }
 .dash2 .cover {
   height: 6px;
@@ -2835,21 +2854,21 @@
 .dash2 .stop .dd b {
   display: block;
   font-family: var(--mono);
-  font-size: 15px;
+  font-size: var(--t-moyen);
 }
 .dash2 .stop .dd small {
-  font-size: 10px;
+  font-size: var(--t-mini);
   color: var(--muted);
   text-transform: uppercase;
 }
 .dash2 .stop span {
-  font-size: 13px;
+  font-size: var(--t-corps);
 }
 .dash2 .stop em {
   font-style: normal;
   display: block;
   color: var(--muted);
-  font-size: 12px;
+  font-size: var(--t-petit);
 }
 
 /* ── 17. produits les plus vendus ── */
@@ -2887,19 +2906,19 @@
   background: var(--surface-2);
 }
 .dash2 .best .rk {
-  font-size: 11.5px;
+  font-size: var(--t-petit);
   color: var(--muted);
   text-align: center;
 }
 .dash2 .best .nm {
-  font-size: 13.5px;
+  font-size: var(--t-corps);
   font-weight: 500;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
 .dash2 .best .am {
-  font-size: 13px;
+  font-size: var(--t-corps);
   font-weight: 600;
   white-space: nowrap;
 }
@@ -2923,7 +2942,7 @@
 .dash2 .best small {
   grid-column: 2/-1;
   color: var(--muted);
-  font-size: 11.5px;
+  font-size: var(--t-petit);
 }
 
 /* ── le panneau de détail : quelques briques de plus ── */
@@ -2938,7 +2957,7 @@
   display: flex;
   flex-direction: column;
   gap: 5px;
-  font-size: 12.5px;
+  font-size: var(--t-petit);
   color: var(--ink-2);
   font-weight: 500;
 }
@@ -2956,7 +2975,7 @@
   border-radius: 99px;
   padding: 0 14px;
   height: 36px;
-  font-size: 13px;
+  font-size: var(--t-corps);
   color: var(--ink-2);
   text-decoration: none;
   white-space: nowrap;
@@ -2966,7 +2985,7 @@
 }
 .dash2-portal .note {
   color: var(--muted);
-  font-size: 12.5px;
+  font-size: var(--t-petit);
   padding: 10px 8px 0;
   margin: 0;
 }
@@ -2996,7 +3015,7 @@
     margin-top: 30px;
   }
   .dash2 .groupe-titre {
-    font-size: 15px;
+    font-size: var(--t-moyen);
   }
 
   /* DEUX CARTES PAR RANGEE, JAMAIS TROIS. La grille reste a douze
