@@ -54,8 +54,6 @@
   --crit-soft: #fbe6e2;
   --info: #3a72a6;
   --info-soft: #e3edf6;
-  --paper: #fffdf6;
-  --paper-line: #e9e3d3;
   --hero-1: #0f7255;
   --hero-2: #093f2f;
   --hero-ink: #f1faf5;
@@ -91,8 +89,6 @@
   --crit-soft: #33201c;
   --info: #72a8db;
   --info-soft: #172535;
-  --paper: #1a201d;
-  --paper-line: #2c3430;
   --hero-1: #0f5c45;
   --hero-2: #08342a;
   --hero-ink: #eaf6f0;
@@ -818,13 +814,14 @@
 /* ── état vide ── */
 
 .dash2 .empty,
+/* Plus de fond plein : la coche verte porte deja l etat, et un
+   aplat de plus dans une carte blanche fait une boite dans une
+   boite. */
 .dash2-portal .empty {
   display: flex;
   gap: 12px;
   align-items: center;
-  background: var(--accent-soft);
-  border-radius: var(--r-bloc);
-  padding: 12px 14px;
+  padding: 4px 0;
 }
 .dash2 .empty .ok,
 .dash2-portal .empty .ok {
@@ -1138,8 +1135,6 @@
 .dash2 .attn-label {
   display: none;
   font-size: 11px;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
   color: var(--muted);
   font-weight: 600;
   margin-top: 16px;
@@ -1259,8 +1254,6 @@
 .dash2 .today-head h2 {
   margin: 0;
   font-size: 12px;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
   color: var(--muted);
   font-weight: 600;
   display: flex;
@@ -1307,10 +1300,8 @@
   align-items: center;
   gap: 7px;
   font-size: 11.5px;
-  letter-spacing: 0.04em;
   white-space: nowrap;
   min-width: 0;
-  text-transform: uppercase;
   color: var(--muted);
   font-weight: 600;
 }
@@ -1417,9 +1408,6 @@
   gap: 8px;
 }
 .dash2 .duo div {
-  background: var(--surface-2);
-  border-radius: var(--r-bloc);
-  padding: 8px 10px;
   min-width: 0;
 }
 .dash2 .duo span,
@@ -1448,7 +1436,6 @@
   text-align: left;
 }
 .dash2 .flag.warn {
-  background: var(--warn-soft);
   color: var(--warn);
 }
 .dash2 .flag .n {
@@ -1754,64 +1741,45 @@
 
 /* ── 3. agenda, le calendrier de bureau ── */
 
+/* Plus rien de particulier : la carte de l'agenda est une carte. */
 .dash2 .agenda {
-  padding-top: 0;
   overflow: visible;
 }
+/* Un en-tete de carte ordinaire. Il etait un bandeau vert plein,
+   deborde de dix-huit pixels de chaque cote, surmonte de deux
+   anneaux imitant la reliure d'un calendrier mural. Trois
+   decorations pour dire « agenda », ce que le titre disait deja. */
 .dash2 .cal-head {
-  margin: 0 -18px;
-  background: var(--accent);
-  color: #fff;
-  border-radius: 15px 15px 0 0;
-  padding: 14px 18px 12px;
   display: flex;
   justify-content: space-between;
   align-items: center;
-  position: relative;
-}
-.dash2 .cal-head::before,
-.dash2 .cal-head::after {
-  content: "";
-  position: absolute;
-  top: -7px;
-  width: 10px;
-  height: 18px;
-  border-radius: 6px;
-  background: var(--surface);
-  border: 2px solid var(--line);
-}
-.dash2 .cal-head::before {
-  left: 30%;
-}
-.dash2 .cal-head::after {
-  right: 30%;
+  gap: 10px;
 }
 .dash2 .cal-head b {
-  font-size: 15px;
+  font-size: 13px;
   font-weight: 600;
+  color: var(--ink-2);
   text-transform: capitalize;
 }
 .dash2 .cal-head small {
-  opacity: 0.8;
   font-size: 12px;
+  color: var(--muted);
 }
-/* Ni fond ni bordure : sur un en-tête déjà coloré, deux pastilles
-   claires ajoutaient une couche pour rien. Le blanc légèrement
-   attenué au repos se complète au survol : c'est là qu'est la
-   réponse, pas dans un cadre qui revient. */
+/* Ni fond ni bordure, comme tous les boutons a symbole. L'en-tete
+   n'etant plus vert, la couleur revient a celle des autres. */
 .dash2 .cal-head .nav-btn {
   background: none;
   border: 0;
   padding: 0;
   width: 26px;
   height: 26px;
-  color: rgba(255, 255, 255, 0.82);
+  color: var(--muted);
   display: grid;
   place-items: center;
   flex: none;
 }
 .dash2 .cal-head .nav-btn:hover {
-  color: #fff;
+  color: var(--ink);
 }
 .dash2 .cal-head .nav-btn svg {
   width: 14px;
@@ -2038,46 +2006,23 @@
 
 /* ── 5. sorties, le ticket de caisse ── */
 
-.dash2 .ticket-card {
-  background: transparent;
-  border: 0;
-  box-shadow: none;
-  padding: 0;
-  filter: drop-shadow(0 1px 1px rgba(20, 40, 30, 0.08))
-    drop-shadow(0 8px 14px rgba(20, 40, 30, 0.08));
-}
-/* Les deux bords sont déchirés, pas seulement celui du bas : un
-   ticket arraché d'un rouleau l'est aux deux extrémités, et un coin
-   arrondi en haut face à des dents en bas se lisait comme un oubli.
-   Deux masques coniques, l'un par bord, qu'on INTERSECTE : sans
-   `mask-composite`, le second remplacerait le premier au lieu de
-   s'y ajouter. */
+/* Le ticket de caisse n'en est plus un. Papier creme, bords
+   dechires, ombre portee a part : c'etait un objet pose sur la page
+   au milieu de cartes qui, elles, se ressemblaient. La metaphore ne
+   disait rien que le titre ne dise deja. Cette carte n'a donc plus
+   aucun style propre : elle herite de `.card` comme les autres. */
 .dash2 .ticket {
-  background: var(--paper);
-  border-radius: 0;
-  padding: 30px 20px;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 10px;
   height: 100%;
-  -webkit-mask:
-    conic-gradient(from -45deg at bottom, #0000, #000 1deg 89deg, #0000 90deg) 50% / 16px 100%,
-    conic-gradient(from 135deg at top, #0000, #000 1deg 89deg, #0000 90deg) 50% / 16px 100%;
-  -webkit-mask-composite: source-in;
-  mask:
-    conic-gradient(from -45deg at bottom, #0000, #000 1deg 89deg, #0000 90deg) 50% / 16px 100%,
-    conic-gradient(from 135deg at top, #0000, #000 1deg 89deg, #0000 90deg) 50% / 16px 100%;
-  mask-composite: intersect;
 }
+/* Un titre de carte, comme partout ailleurs : a gauche, en
+   minuscules, sans lettres ecartees. */
 .dash2 .ticket .shopname {
-  text-align: center;
-  font-family: var(--mono);
-  font-size: 12px;
-  color: var(--muted);
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  border-bottom: 1px dashed var(--paper-line);
-  padding-bottom: 10px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink-2);
 }
 .dash2 .row {
   display: flex;
@@ -2088,7 +2033,7 @@
 }
 .dash2 .row .lead {
   flex: 1;
-  border-bottom: 1.5px dotted var(--paper-line);
+  border-bottom: 1px dotted var(--line);
   transform: translateY(-4px);
 }
 /* `margin-top: auto` : c'est le total qui absorbe désormais la
@@ -2097,7 +2042,7 @@
 .dash2 .row.total {
   font-size: 16px;
   font-weight: 700;
-  border-top: 1px dashed var(--paper-line);
+  border-top: 1px solid var(--line);
   padding-top: 10px;
   margin-top: auto;
 }
@@ -2105,19 +2050,13 @@
   color: var(--muted);
   font-size: 11px;
 }
+/* La comparaison avec la periode precedente est une information ;
+   le cadre bleu incline de quatre degres n'en etait pas une. Reste
+   la phrase, en texte secondaire. */
 .dash2 .stamp {
-  align-self: center;
-  border: 1.5px solid var(--info);
-  color: var(--info);
-  border-radius: var(--r-bloc);
-  padding: 4px 12px;
-  font-family: var(--mono);
+  color: var(--muted);
   font-size: 12px;
-  font-weight: 700;
-  transform: rotate(-4deg);
-  letter-spacing: 0.04em;
-  margin-top: 4px;
-  text-align: center;
+  margin-top: 2px;
 }
 
 /* ── 6. à faire ── */
@@ -2180,9 +2119,8 @@
   grid-template-columns: auto 1fr auto;
   gap: 12px;
   align-items: center;
-  background: var(--warn-soft);
-  border-radius: var(--r-bloc);
-  padding: 12px;
+  padding: 10px 0;
+  border-top: 1px solid var(--line);
 }
 .dash2 .env {
   width: 40px;
@@ -2490,9 +2428,8 @@
   align-items: center;
   justify-content: space-between;
   gap: 10px;
-  background: var(--accent-soft);
-  border-radius: var(--r-bloc);
-  padding: 12px 14px;
+  border-top: 1px solid var(--line);
+  padding: 12px 0 0;
   flex-wrap: wrap;
 }
 .dash2 .res small {
@@ -2631,8 +2568,6 @@
 }
 .dash2 .sous-titre {
   font-size: 11px;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
   color: var(--muted);
   font-weight: 600;
 }
@@ -2729,8 +2664,6 @@
 }
 .dash2 .tlday {
   font-size: 11px;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
   color: var(--muted);
   font-weight: 600;
   padding: 10px 0 4px;
@@ -2841,9 +2774,9 @@
   grid-template-columns: minmax(0, 1fr) auto;
   gap: 3px 10px;
   align-items: center;
-  padding: 9px 10px;
+  padding: 7px 0;
   border-radius: var(--r-bloc);
-  background: var(--surface-2);
+  background: none;
   border: 0;
   text-align: left;
   width: 100%;
