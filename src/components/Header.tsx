@@ -265,7 +265,14 @@ export const Header: React.FC<HeaderProps> = ({
   // le bouton qui referme le menu « Plus », et les deux menus déroulants
   // sont ancrés dans la barre du haut — ils la suivraient hors de
   // l'écran, ouverts, au premier mouvement du doigt.
-  const barresMasquees = useBarresAuDefilement(!mobileMenuOpen && !notifOpen && !workspaceMenuOpen);
+  /* `activeTab` en second : l'en-tête reste monté d'un écran à
+     l'autre, donc l'état des barres aussi. Sans cette clé, on
+     arrivait sur une page courte avec les barres masquées par la
+     page précédente, et rien ne pouvait plus les rappeler. */
+  const barresMasquees = useBarresAuDefilement(
+    !mobileMenuOpen && !notifOpen && !workspaceMenuOpen,
+    activeTab,
+  );
 
   // Bloc marque + sélecteur d'espace de travail. Rendu à un seul endroit
   // selon la taille d'écran : en haut de la sidebar sur desktop, dans la
