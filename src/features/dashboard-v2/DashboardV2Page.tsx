@@ -4,7 +4,7 @@ import { useDashboardPeriod } from "./hooks/useDashboardPeriod";
 import { useDashboardPermissions, MONTANT_MASQUE } from "./hooks/useDashboardPermissions";
 import { useDashboardData } from "./hooks/useDashboardData";
 import { dateCourte, dateLongue, heure, montant, nombre, pluriel, pourcent } from "./lib/format";
-import { MenuOption, MenuPill, Pill } from "./components/Pill";
+import { MenuOption, MenuPill } from "./components/Pill";
 import { Card, CardHeader } from "./components/Card";
 import { CarteSquelette, EtatErreur } from "./components/States";
 import { Chip, ChipRienDUrgent } from "./components/Chip";
@@ -58,11 +58,10 @@ import { useAuth } from "../../hooks/useAuth";
  * `docs/dashboard-v2/audit.md` pour la carte des données.
  *
  * ÉTAT : phase 2. L'en-tête est complet — période et comparaison,
- * phrase de synthèse, points d'attention, vue par métier, thème. Les
- * chiffres sont branchés sur les vraies données et se relisent tous
- * dans la table de contrôle, qui sert à les comparer à l'ancien
- * tableau de bord avant que les cartes ne les habillent aux phases
- * suivantes.
+ * phrase de synthèse, points d'attention, vue par métier. Les chiffres
+ * sont branchés sur les vraies données et se relisent tous dans la
+ * table de contrôle, qui sert à les comparer à l'ancien tableau de
+ * bord avant que les cartes ne les habillent aux phases suivantes.
  *
  * CETTE PAGE NE DESSINE PAS LA COQUILLE. La maquette redessinait aussi
  * la barre latérale ; celle-ci existe déjà et sert vingt-cinq écrans.
@@ -101,19 +100,6 @@ const ICONE_OEIL = (
   <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
     <circle cx="12" cy="12" r="3" />
     <path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z" />
-  </svg>
-);
-
-const ICONE_SOLEIL = (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round">
-    <circle cx="12" cy="12" r="4" />
-    <path d="M12 2v2M12 20v2M4.9 4.9l1.4 1.4M17.7 17.7l1.4 1.4M2 12h2M20 12h2M4.9 19.1l1.4-1.4M17.7 6.3l1.4-1.4" />
-  </svg>
-);
-
-const ICONE_LUNE = (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-    <path d="M21 12.8A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.8z" />
   </svg>
 );
 
@@ -198,9 +184,6 @@ export interface DashboardV2PageProps {
    * désactivée plutôt que d'échouer en silence.
    */
   onTerminerTache?: (id: string) => unknown;
-  /** Le thème de l'application. La v2 s'y branche, elle n'en crée pas un second. */
-  theme: "light" | "dark";
-  setTheme: (t: "light" | "dark") => void;
   /** Relance les lectures de `useStoreData`. */
   onRafraichir?: () => void;
   /**
@@ -235,8 +218,6 @@ export const DashboardV2Page: React.FC<DashboardV2PageProps> = ({
   nomBoutique,
   supplierPayments,
   onTerminerTache,
-  theme,
-  setTheme,
   onRafraichir,
   onNavigateTab,
   peutVendre = true,
@@ -415,7 +396,6 @@ export const DashboardV2Page: React.FC<DashboardV2PageProps> = ({
   const heureLocale = chargeA ? chargeA.getHours() : 12;
   const salutation = heureLocale >= 18 || heureLocale < 4 ? "Bonsoir" : "Bonjour";
   const jour = new Date();
-  const sombre = theme === "dark";
   const vueCourante = VUE_PAR_CLE.get(droits.vue);
 
   /** Un montant que cette personne n'a pas le droit de voir. */
@@ -725,14 +705,6 @@ export const DashboardV2Page: React.FC<DashboardV2PageProps> = ({
                 </>
               )}
             </MenuPill>
-
-            <Pill
-              square
-              onClick={() => setTheme(sombre ? "light" : "dark")}
-              ariaLabel={sombre ? "Passer en mode clair" : "Passer en mode sombre"}
-            >
-              {sombre ? ICONE_SOLEIL : ICONE_LUNE}
-            </Pill>
           </div>
 
           <div className="brief">

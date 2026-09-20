@@ -6,6 +6,8 @@ import {
   Menu,
   X,
   Bell,
+  Moon,
+  Sun,
   CheckCheck,
   ChevronDown,
   Building,
@@ -66,6 +68,15 @@ interface HeaderProps {
   /** Ce qui demande attention et ce qui vient de se passer. */
   notifications: Notification[];
   /**
+   * Le thème courant, et de quoi en changer.
+   *
+   * La barre du haut ne détient pas ce réglage : il vit dans
+   * `BalsamaApp`, qui l'écrit sur `<html>` et le mémorise. Elle n'en
+   * est qu'un interrupteur de plus, à côté de celui des Paramètres.
+   */
+  theme: "light" | "dark";
+  setTheme: (t: "light" | "dark") => void;
+  /**
    * État replié de la sidebar. Il est détenu par BalsamaApp car le
    * décalage du contenu principal doit suivre la largeur de la sidebar :
    * la barre du haut et le <main> l'appliquent tous les deux.
@@ -79,16 +90,24 @@ interface HeaderProps {
  *
  * Elle ne garde que ce dont on se sert sans y penser : le nom de la
  * boutique — qui ouvre le choix d'espace de travail et porte le solde de
- * trésorerie —, la cloche des alertes, et l'accès aux réglages.
+ * trésorerie —, la bascule clair/sombre, la cloche des alertes, et
+ * l'accès aux réglages.
  *
- * Deux choses en sont sorties, et aucune n'a été perdue :
+ * UNE CHOSE EN EST SORTIE, et elle n'a pas été perdue : la mention
+ * « Espace Fondateur / Collaborateur », qui répétait à longueur de
+ * journée une information apprise une fois. Le menu des espaces de
+ * travail la porte déjà, boutique par boutique, et la ligne qu'elle
+ * occupait porte maintenant la trésorerie.
  *
- * — la mention « Espace Fondateur / Collaborateur », qui répétait à
- *   longueur de journée une information apprise une fois. Le menu des
- *   espaces de travail la porte déjà, boutique par boutique. La ligne
- *   qu'elle occupait porte maintenant la trésorerie ;
- * — la bascule clair/sombre, qui existe dans Paramètres →
- *   Préférences. On choisit son thème une fois, pas dix fois par jour.
+ * LA BASCULE CLAIR/SOMBRE, ELLE, EST REVENUE. Elle était partie d'ici
+ * au motif qu'on choisit son thème une fois et qu'il se règle aussi
+ * dans Paramètres → Préférences ; elle avait alors trouvé place dans
+ * la barre d'outils du tableau de bord. À l'usage, elle n'y était
+ * bonne pour personne : un réglage qui vaut pour les quinze écrans
+ * n'a pas à vivre sur un seul d'entre eux, et il s'y trouvait en
+ * compagnie de chiffres, qu'on vient lire, plutôt que de gestes,
+ * qu'on vient faire. Elle est donc ici, avec les deux autres gestes
+ * qui valent partout.
  *
  * La trésorerie, elle, avait une ligne d'en-tête à elle seule sur
  * mobile, sur chacun des quinze écrans, dans un cadre étiqueté en
@@ -104,9 +123,13 @@ export const Header: React.FC<HeaderProps> = ({
   seuilAlerte,
   onOuvrirIdentiteBoutique,
   notifications,
+  theme,
+  setTheme,
   sidebarCollapsed,
   onToggleSidebar,
 }) => {
+  const sombre = theme === "dark";
+
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
 
@@ -473,11 +496,29 @@ export const Header: React.FC<HeaderProps> = ({
             {/* Marque : uniquement sur mobile — sur desktop elle vit dans la sidebar */}
             <div className="flex min-w-0 flex-1 lg:hidden">{brandBlock}</div>
 
-            {/* Ce que la barre du haut garde : de quoi être averti, et de
-                quoi aller aux réglages. Le badge Trésorerie et la bascule
-                clair/sombre en sont partis — le raisonnement est en tête
-                de ce fichier. */}
+            {/* Ce que la barre du haut garde : de quoi changer de thème,
+                de quoi être averti, et de quoi aller aux réglages. Le
+                badge Trésorerie en est parti — le raisonnement est en
+                tête de ce fichier. */}
             <div className="flex shrink-0 items-center gap-1 sm:gap-2 lg:ml-auto">
+              {/* Clair / sombre. L'icône et le libellé annoncent ce que
+                  le clic FERA, et non l'état courant : sur un écran
+                  clair on voit une lune, qui promet le mode sombre. Un
+                  soleil y voudrait dire « vous êtes en clair », ce que
+                  l'écran dit déjà tout seul. */}
+              <button
+                onClick={() => setTheme(sombre ? "light" : "dark")}
+                className="app-btn-icon"
+                title={sombre ? "Passer en mode clair" : "Passer en mode sombre"}
+                aria-label={sombre ? "Passer en mode clair" : "Passer en mode sombre"}
+              >
+                {sombre ? (
+                  <Sun className="h-4 w-4 text-primary" />
+                ) : (
+                  <Moon className="h-4 w-4 text-primary" />
+                )}
+              </button>
+
               {/* Notifications */}
               <div className="relative" ref={zoneNotif}>
                 <button

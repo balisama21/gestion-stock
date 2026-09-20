@@ -1,10 +1,13 @@
 import React, { useCallback, useEffect, useId, useRef, useState } from "react";
 
 /**
- * LES BOUTONS EN GÉLULE DE L'EN-TÊTE, ET LEUR MENU
+ * LE BOUTON EN GÉLULE DE L'EN-TÊTE, ET SON MENU
  *
- * Deux formes : un bouton simple — la bascule clair/sombre — et un
- * bouton qui ouvre un menu : la période, la vue.
+ * Une seule forme désormais : le bouton qui ouvre un menu — la
+ * période, la vue. Le bouton simple et le bouton à deux états
+ * servaient au mode focus et à la bascule clair/sombre, qui ne sont
+ * plus là : le premier a été jugé inutile, la seconde est remontée
+ * dans la barre du haut, où elle vaut pour les quinze écrans.
  *
  * CE QUE LE MENU DOIT SAVOIR FAIRE, et que la maquette fait déjà :
  * se fermer sur Échap et rendre le focus au bouton, se fermer sur un
@@ -25,25 +28,6 @@ const CHEVRON = (
   >
     <path d="M6 9l6 6 6-6" />
   </svg>
-);
-
-export const Pill: React.FC<{
-  onClick?: () => void;
-  square?: boolean;
-  title?: string;
-  ariaLabel?: string;
-  className?: string;
-  children: React.ReactNode;
-}> = ({ onClick, square, title, ariaLabel, className = "", children }) => (
-  <button
-    type="button"
-    onClick={onClick}
-    title={title}
-    aria-label={ariaLabel}
-    className={`pill${square ? " square" : ""}${className ? ` ${className}` : ""}`}
-  >
-    {children}
-  </button>
 );
 
 export interface MenuPillProps {

@@ -1407,6 +1407,8 @@ function AppInner() {
           seuilAlerte={computedCapital.seuilAlerteTresorerie}
           onOuvrirIdentiteBoutique={ouvrirIdentiteBoutique}
           notifications={notifications}
+          theme={theme}
+          setTheme={setTheme}
           sidebarCollapsed={sidebarCollapsed}
           onToggleSidebar={toggleSidebar}
         />
@@ -1471,8 +1473,6 @@ function AppInner() {
                             ? (id) => organisation.changerStatut(id, "termine")
                             : undefined
                         }
-                        theme={theme}
-                        setTheme={setTheme}
                         onRafraichir={storeData.refresh}
                         onNavigateTab={(onglet) =>
                           setActiveTab(onglet as ActiveTab)
