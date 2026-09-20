@@ -2072,14 +2072,6 @@
   color: var(--muted);
   font-size: var(--t-mini);
 }
-/* La comparaison avec la periode precedente est une information ;
-   le cadre bleu incline de quatre degres n'en etait pas une. Reste
-   la phrase, en texte secondaire. */
-.dash2 .stamp {
-  color: var(--muted);
-  font-size: var(--t-petit);
-  margin-top: 2px;
-}
 
 /* ── 6. à faire ── */
 

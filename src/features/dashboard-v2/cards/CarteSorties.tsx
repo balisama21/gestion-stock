@@ -1,39 +1,26 @@
 import React from "react";
 import { Card } from "../components/Card";
 import { montant, pourcent } from "../lib/format";
-import { analyserTendance } from "../lib/tendance";
 import type { ChiffresFlux } from "../lib/chiffres";
 import type { Periode } from "../hooks/useDashboardPeriod";
 
 /**
- * 5. SORTIES — le ticket de caisse
+ * 5. SORTIES
  *
- * Achats et dépenses de la période, présentés comme ce qu'ils sont :
- * une addition. Le papier, les pointillés de conduite et le bord
- * déchiré ne sont pas de la décoration — ils disent au premier regard
- * qu'on additionne, là où une carte de plus se serait lue comme un
- * indicateur parmi d'autres.
+ * Achats et depenses de la periode, presentes comme ce qu'ils sont :
+ * une addition. Les lignes secondaires — la part d'une personne, la
+ * moyenne par jour, la part des ventes — restent en petit sous les
+ * deux montants qui comptent, et le total ferme la carte.
  *
- * LE TAMPON NE SE COLORE PAS EN ROUGE. Acheter plus n'est ni bon ni
- * mauvais : c'est du stock qui change de forme. La règle vient de
- * l'application (`StatBar`), et elle vaut ici : une couleur qui se
- * trompe une fois sur deux ne s'écoute plus.
+ * LA COMPARAISON AVEC LA PERIODE PRECEDENTE A ETE RETIREE a la
+ * demande : elle s'affichait en bas, et c'etait la seule information
+ * de cette carte qui ne soit pas un montant de la periode en cours.
  */
 export const CarteSorties: React.FC<{
   flux: ChiffresFlux;
   periode: Periode;
   achatsVisibles: boolean;
 }> = ({ flux, periode, achatsVisibles }) => {
-  const forme = analyserTendance({ valeur: flux.achats, reference: flux.achatsPrecedent });
-  const tampon =
-    forme.genre === "fois"
-      ? `ACHATS ×${forme.facteur} VS PÉRIODE PRÉCÉDENTE`
-      : forme.genre === "pourcent"
-        ? `ACHATS ${forme.valeur > 0 ? "+" : "−"}${Math.abs(forme.valeur)} % VS PÉRIODE PRÉCÉDENTE`
-        : forme.genre === "nouveau"
-          ? "PREMIERS ACHATS DE LA PÉRIODE"
-          : null;
-
   const principal = flux.depensesParPersonne[0];
 
   return (
@@ -75,8 +62,6 @@ export const CarteSorties: React.FC<{
           <span className="lead" />
           <span>{achatsVisibles ? montant(flux.sorties) : montant(flux.depenses)}</span>
         </div>
-
-        {tampon && <div className="stamp">{tampon}</div>}
       </div>
     </Card>
   );
