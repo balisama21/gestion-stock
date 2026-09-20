@@ -55,7 +55,6 @@ export type CleCarte =
   | "resultat"
   | "paiements"
   | "clients"
-  | "journal"
   | "ruptures"
   | "mouvements"
   | "top"
@@ -64,8 +63,33 @@ export type CleCarte =
 
 export type CleTuile = "ventes" | "entrees" | "sorties" | "stock" | "activite";
 
+/**
+ * LES QUATRE FAMILLES DE L'ÉCRAN
+ *
+ * Dix-sept cartes posées à la suite dans une grille unique donnaient
+ * dix-sept choses à lire avant de comprendre. Regroupées sous un
+ * titre, elles se parcourent par question plutôt que par carte : ce
+ * qu'il faut faire, où en est l'argent, ce qui s'est vendu, ce qu'il
+ * reste en stock.
+ *
+ * « tête » n'est pas un groupe : c'est la carte du chiffre
+ * d'affaires, seule au-dessus des autres et sans titre. C'est le seul
+ * gros chiffre de l'écran, et rien ne doit lui disputer la place.
+ */
+export type GroupeCarte = "tete" | "aujourdhui" | "argent" | "ventes" | "stock";
+
+/** Dans l'ordre d'affichage. La tête n'y figure pas : elle n'a pas de titre. */
+export const GROUPES: { cle: Exclude<GroupeCarte, "tete">; titre: string }[] = [
+  { cle: "aujourdhui", titre: "Aujourd’hui" },
+  { cle: "argent", titre: "L’argent" },
+  { cle: "ventes", titre: "Les ventes" },
+  { cle: "stock", titre: "Le stock" },
+];
+
 export interface DefinitionCarte {
   cle: CleCarte;
+  /** Sous quel titre la carte se range. Voir `GROUPES`. */
+  groupe: GroupeCarte;
   titre: string;
   /** Largeur dans la grille de douze colonnes, sur grand écran. */
   span: 4 | 5 | 6 | 7 | 8 | 12;
@@ -98,6 +122,7 @@ export interface DefinitionCarte {
 export const CARTES: DefinitionCarte[] = [
   {
     cle: "tresorerie",
+    groupe: "argent",
     titre: "Trésorerie · argent disponible",
     span: 5,
     module: "capital",
@@ -106,6 +131,7 @@ export const CARTES: DefinitionCarte[] = [
   },
   {
     cle: "ventes",
+    groupe: "tete",
     titre: "Ventes du mois",
     span: 7,
     module: "ventes",
@@ -114,6 +140,7 @@ export const CARTES: DefinitionCarte[] = [
   },
   {
     cle: "agenda",
+    groupe: "aujourdhui",
     titre: "Agenda de la boutique",
     span: 4,
     module: "agenda",
@@ -121,6 +148,7 @@ export const CARTES: DefinitionCarte[] = [
   },
   {
     cle: "stock",
+    groupe: "stock",
     titre: "Étagère de stock",
     span: 4,
     module: "produits",
@@ -129,6 +157,7 @@ export const CARTES: DefinitionCarte[] = [
   },
   {
     cle: "sorties",
+    groupe: "argent",
     titre: "Sorties",
     span: 4,
     module: "depenses",
@@ -137,6 +166,7 @@ export const CARTES: DefinitionCarte[] = [
   },
   {
     cle: "taches",
+    groupe: "aujourdhui",
     titre: "À faire",
     span: 4,
     module: "taches",
@@ -144,6 +174,7 @@ export const CARTES: DefinitionCarte[] = [
   },
   {
     cle: "vendeurs",
+    groupe: "ventes",
     titre: "Classement vendeurs",
     span: 4,
     secondaire: true,
@@ -153,6 +184,7 @@ export const CARTES: DefinitionCarte[] = [
   },
   {
     cle: "commandes",
+    groupe: "ventes",
     titre: "Suivi des commandes",
     span: 4,
     secondaire: true,
@@ -162,6 +194,7 @@ export const CARTES: DefinitionCarte[] = [
   },
   {
     cle: "fil",
+    groupe: "ventes",
     titre: "Fil des ventes",
     span: 8,
     secondaire: true,
@@ -171,6 +204,7 @@ export const CARTES: DefinitionCarte[] = [
   },
   {
     cle: "resultat",
+    groupe: "argent",
     titre: "Résultat du mois",
     span: 4,
     module: "rapports",
@@ -179,6 +213,7 @@ export const CARTES: DefinitionCarte[] = [
   },
   {
     cle: "paiements",
+    groupe: "argent",
     titre: "Paiements",
     span: 4,
     module: "paiements",
@@ -187,22 +222,15 @@ export const CARTES: DefinitionCarte[] = [
   },
   {
     cle: "clients",
+    groupe: "ventes",
     titre: "Clients",
     span: 4,
     module: "clients",
     donnees: ["clients", "ventes"],
   },
   {
-    cle: "journal",
-    titre: "Journal d'activité",
-    span: 8,
-    secondaire: true,
-    module: "historique",
-    widget: "activites_recentes",
-    donnees: ["journal"],
-  },
-  {
     cle: "ruptures",
+    groupe: "stock",
     titre: "Ruptures à venir",
     span: 4,
     module: "produits",
@@ -211,6 +239,7 @@ export const CARTES: DefinitionCarte[] = [
   },
   {
     cle: "mouvements",
+    groupe: "stock",
     titre: "Entrées & sorties de stock",
     span: 8,
     secondaire: true,
@@ -220,6 +249,7 @@ export const CARTES: DefinitionCarte[] = [
   },
   {
     cle: "top",
+    groupe: "ventes",
     titre: "Produits les plus vendus",
     span: 4,
     module: "ventes",
@@ -228,6 +258,7 @@ export const CARTES: DefinitionCarte[] = [
   },
   {
     cle: "livraisons",
+    groupe: "aujourdhui",
     titre: "Livraisons & réceptions",
     span: 6,
     module: "livraisons",
@@ -235,6 +266,7 @@ export const CARTES: DefinitionCarte[] = [
   },
   {
     cle: "fournisseurs",
+    groupe: "argent",
     titre: "Fournisseurs à payer",
     span: 6,
     module: "fournisseurs",

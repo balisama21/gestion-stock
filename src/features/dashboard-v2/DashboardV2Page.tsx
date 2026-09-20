@@ -21,7 +21,6 @@ import { CarteFilVentes } from "./cards/CarteFilVentes";
 import { CarteResultat } from "./cards/CarteResultat";
 import { CartePaiements } from "./cards/CartePaiements";
 import { CarteClients } from "./cards/CarteClients";
-import { CarteJournal } from "./cards/CarteJournal";
 import { CarteRuptures } from "./cards/CarteRuptures";
 import { CarteMouvements } from "./cards/CarteMouvements";
 import { CarteTopProduits } from "./cards/CarteTopProduits";
@@ -48,7 +47,7 @@ import {
 import { lireJournal } from "./lib/journal";
 import { agendaDuMois } from "./lib/agenda";
 import { VUES, VUE_PAR_CLE } from "./roles";
-import { CARTE_PAR_CLE, type CleCarte, type CleTuile } from "./registry";
+import { CARTE_PAR_CLE, GROUPES, type CleCarte, type CleTuile } from "./registry";
 import { dateDuJour } from "../../lib/dates";
 import { useAuth } from "../../hooks/useAuth";
 
@@ -546,15 +545,6 @@ export const DashboardV2Page: React.FC<DashboardV2PageProps> = ({
         onTous={onNavigateTab ? () => onNavigateTab("clients") : undefined}
       />
     ),
-    journal: (
-      <CarteJournal
-        journal={lignesJournal}
-        montantsVisibles={droits.champVisible("historique", "montant")}
-        erreur={donnees.erreurs.journal}
-        onReessayer={donnees.recharger}
-        onHistorique={onNavigateTab ? () => onNavigateTab("historique") : undefined}
-      />
-    ),
     ruptures: (
       <CarteRuptures
         stock={chiffres.stock}
@@ -602,6 +592,33 @@ export const DashboardV2Page: React.FC<DashboardV2PageProps> = ({
         onToutVoir={onNavigateTab ? () => onNavigateTab("ventes") : undefined}
       />
     ),
+  };
+
+  /**
+   * Les cartes de chaque famille, dans l'ordre du registre.
+   *
+   * On part de `droits.cartes`, qui est DEJA filtre par les permissions
+   * et par la vue metier : un groupe ne peut donc pas faire reapparaitre
+   * une carte que quelqu'un n'a pas le droit de voir.
+   */
+  const { enTete, parGroupe } = useMemo(() => {
+    const tete: CleCarte[] = [];
+    const table = new Map<string, CleCarte[]>();
+    for (const cle of droits.cartes) {
+      const groupe = CARTE_PAR_CLE.get(cle)?.groupe;
+      if (!groupe) continue;
+      if (groupe === "tete") tete.push(cle);
+      else table.set(groupe, [...(table.get(groupe) ?? []), cle]);
+    }
+    return { enTete: tete, parGroupe: table };
+  }, [droits.cartes]);
+
+  /** Une carte, ou son squelette tant qu'elle reste a construire. */
+  const rendreCarte = (cle: CleCarte) => {
+    const rendue = cartes[cle];
+    if (rendue) return <React.Fragment key={cle}>{rendue}</React.Fragment>;
+    const def = CARTE_PAR_CLE.get(cle);
+    return <CarteSquelette key={cle} span={def?.span ?? 4} lignes={def?.span === 8 ? 5 : 3} />;
   };
 
   return (
@@ -826,6 +843,8 @@ export const DashboardV2Page: React.FC<DashboardV2PageProps> = ({
           jour={chiffres.duJour}
           stock={chiffres.stock}
           journal={journalDuJour}
+          erreurJournal={donnees.erreurs.journal}
+          onReessayerJournal={donnees.recharger}
           valeurStockVisible={droits.champVisible("produits", "valeur_stock")}
           montantsAchatVisibles={droits.champVisible("achats", "prix_achat")}
           onOuvrir={(cle) => {
@@ -838,29 +857,46 @@ export const DashboardV2Page: React.FC<DashboardV2PageProps> = ({
           onVendre={peutVendre && onNavigateTab ? () => onNavigateTab("ventes") : undefined}
         />
 
-        <section
-          className={`grid${droits.vue !== "dirigeant" ? " dense" : ""}`}
-          aria-label="Tableau de bord"
-        >
-          {/* Chaque carte dans l'ordre que la vue a decide. Celles qui
-              restent a construire gardent leur squelette : la place est
-              deja reservee, rien ne sautera quand le contenu arrivera. */}
-          {droits.cartes.map((cle) => {
-            const rendue = cartes[cle];
-            if (rendue) return <React.Fragment key={cle}>{rendue}</React.Fragment>;
-            const def = CARTE_PAR_CLE.get(cle);
-            return (
-              <CarteSquelette key={cle} span={def?.span ?? 4} lignes={def?.span === 8 ? 5 : 3} />
-            );
-          })}
+        {/* ── Le chiffre d'affaires, seul au-dessus ──
+            C'est le seul gros chiffre de l'ecran. Lui donner une rangee
+            entiere, sans titre de groupe et sans voisine, est ce qui
+            fait qu'on le lit en premier sans avoir a le chercher. */}
+        {enTete.length > 0 && (
+          <section className="grid" aria-label="Chiffre d'affaires">
+            {enTete.map(rendreCarte)}
+          </section>
+        )}
 
-          {/* ── Table de contrôle ──
+        {/* ── Les quatre familles ──
+            Un groupe vide ne se rend pas du tout, titre compris : une
+            vue metier ou une permission peut retirer toutes ses cartes,
+            et un intitule seul au-dessus du vide inquiete pour rien. */}
+        {GROUPES.map((groupe) => {
+          const cles = parGroupe.get(groupe.cle) ?? [];
+          if (cles.length === 0) return null;
+          return (
+            <section className="groupe" key={groupe.cle} aria-labelledby={`g-${groupe.cle}`}>
+              <h2 className="groupe-titre" id={`g-${groupe.cle}`}>
+                {groupe.titre}
+              </h2>
+              <div className={`grid${droits.vue !== "dirigeant" ? " dense" : ""}`}>
+                {cles.map(rendreCarte)}
+              </div>
+            </section>
+          );
+        })}
+
+        {/* La table de controle ne merite une rangee que si elle est
+            allumee : une section vide laisserait un ecart dans le
+            rythme des groupes. */}
+        {controle && (
+          <section className="grid" aria-label="Outils">
+            {/* ── Table de contrôle ──
               Outil de recette, pas element du tableau de bord : la
               maquette n en contient pas, et un commercant n a rien a en
               faire. Il reste a portee derriere son interrupteur, parce
               que la comparaison des chiffres ne peut se faire que sur
               une vraie boutique. Voir CLE_CONTROLE. */}
-          {controle && (
             <Card span={12} id="carte-controle">
               <CardHeader
                 title="Table de contrôle"
@@ -1043,8 +1079,8 @@ export const DashboardV2Page: React.FC<DashboardV2PageProps> = ({
                 </button>
               </div>
             </Card>
-          )}
-        </section>
+          </section>
+        )}
       </div>
 
       <PanneauDetail

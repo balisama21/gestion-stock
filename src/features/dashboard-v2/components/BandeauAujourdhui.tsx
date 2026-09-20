@@ -136,6 +136,17 @@ export interface BandeauProps {
   stock: ChiffresStock;
   /** Les lignes du journal d'aujourd'hui. */
   journal: EvenementJournal[];
+  /**
+   * Le message que la lecture du journal a renvoyé, s'il y en a un.
+   *
+   * C'est la carte « Journal d'activité » qui le portait ; elle a
+   * quitté le tableau de bord, et cette tuile est le dernier endroit
+   * qui montre ces données. Sans ce message, une lecture refusée
+   * afficherait simplement « Rien d'enregistré aujourd'hui », ce qui
+   * est faux et ne se remarque pas.
+   */
+  erreurJournal?: string | null;
+  onReessayerJournal?: () => void;
   /** Faux quand la personne n'a pas le droit de voir la valeur du stock. */
   valeurStockVisible: boolean;
   /** Faux quand elle n'a pas le droit de voir les montants d'achat. */
@@ -158,6 +169,8 @@ export const BandeauAujourdhui: React.FC<BandeauProps> = ({
   jour,
   stock,
   journal,
+  erreurJournal,
+  onReessayerJournal,
   valeurStockVisible,
   montantsAchatVisibles,
   onOuvrir,
@@ -416,7 +429,16 @@ export const BandeauAujourdhui: React.FC<BandeauProps> = ({
       <>
         {enTete("activite", "Voir l'activité du jour dans le journal")}
         <ol className="minitl">
-          {journal.length === 0 ? (
+          {erreurJournal ? (
+            <li className="vide echec">
+              Lecture impossible.{" "}
+              {onReessayerJournal && (
+                <button type="button" className="link" onClick={onReessayerJournal}>
+                  Réessayer
+                </button>
+              )}
+            </li>
+          ) : journal.length === 0 ? (
             <li className="vide">Rien d&apos;enregistré aujourd&apos;hui pour l&apos;instant.</li>
           ) : (
             journal.slice(0, 3).map((e) => (
@@ -430,8 +452,9 @@ export const BandeauAujourdhui: React.FC<BandeauProps> = ({
         </ol>
         <div className="tile-pied">
           <small>
-            {journal.length} événement{journal.length > 1 ? "s" : ""} · {nombre(jour.tickets)} vente
-            {jour.tickets > 1 ? "s" : ""}
+            {erreurJournal
+              ? `${nombre(jour.tickets)} vente${jour.tickets > 1 ? "s" : ""}`
+              : `${journal.length} événement${journal.length > 1 ? "s" : ""} · ${nombre(jour.tickets)} vente${jour.tickets > 1 ? "s" : ""}`}
           </small>
         </div>
       </>

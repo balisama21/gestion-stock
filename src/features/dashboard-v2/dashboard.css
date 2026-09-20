@@ -468,6 +468,21 @@
 
 /* ── grille et cartes ── */
 
+/* Un groupe : son titre, puis sa grille. L'ecart entre groupes et
+   la largeur de la page se reglent a l'etape suivante ; ici on pose
+   seulement de quoi lire la structure. */
+.dash2 .groupe {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+.dash2 .groupe-titre {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--ink-2);
+}
+
 .dash2 .grid {
   display: grid;
   grid-template-columns: repeat(12, minmax(0, 1fr));
