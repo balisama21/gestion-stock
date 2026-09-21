@@ -1,0 +1,105 @@
+-- ════════════════════════════════════════════════════════════════════
+-- CHANGEMENTS SQL PROPOSÉS — NON EXÉCUTÉS
+--
+-- Ce fichier n'est pas une migration. Il n'est pas dans
+-- supabase/migrations/ et ne part pas avec `supabase db push`.
+-- Rien de ce qui suit n'a été appliqué au projet de production.
+--
+-- La mission « documents v2 » n'a pas le droit de toucher au schéma.
+-- Ce que j'ai rencontré et qui mériterait un correctif est écrit ici,
+-- avec sa raison, pour que vous décidiez.
+-- ════════════════════════════════════════════════════════════════════
+
+
+-- ────────────────────────────────────────────────────────────────────
+-- 1. La numérotation des commandes compte des lignes
+-- ────────────────────────────────────────────────────────────────────
+--
+-- CE QUI EXISTE AUJOURD'HUI, en production :
+--
+--   CREATE FUNCTION public.set_order_numero() RETURNS trigger AS $$
+--   BEGIN
+--     NEW.numero := 'CMD-' || LPAD(
+--       (SELECT COUNT(*) + 1 FROM orders WHERE store_id = NEW.store_id)::TEXT,
+--       5, '0'
+--     );
+--     RETURN NEW;
+--   END;
+--   $$;
+--
+-- POURQUOI C'EST FRAGILE. Toutes les autres tables — ventes, devis,
+-- achats, paiements, produits, dépenses, livraisons, tâches, salaires —
+-- passent par `next_store_counter(store_id, type)`, un compteur dédié
+-- qui ne recule jamais. Les commandes, seules, comptent les lignes
+-- présentes. Deux conséquences :
+--
+--   • une commande supprimée libère son numéro, et la suivante le
+--     reprend : deux documents différents portent alors le même numéro,
+--     ce qu'un bon de commande signé ne pardonne pas ;
+--   • deux insertions simultanées lisent le même COUNT(*) et posent le
+--     même numéro. Il n'y a pas d'index unique sur (store_id, numero)
+--     pour l'empêcher.
+--
+-- Le format diffère aussi du reste : « CMD-00001 » sur cinq chiffres
+-- avec un tiret, là où les autres font « V026 », « DEV001 », « ACH004 ».
+--
+-- CE QUI LE REND NON URGENT : il y a zéro commande en base. Aucun
+-- numéro n'est donc à reprendre, et le correctif ne casserait rien.
+-- C'est précisément le bon moment, mais ce n'est pas ma décision.
+--
+-- CORRECTIF PROPOSÉ, à appliquer tel quel dans une migration à part :
+
+-- CREATE OR REPLACE FUNCTION public.set_order_numero()
+-- RETURNS trigger
+-- LANGUAGE plpgsql
+-- SECURITY DEFINER
+-- SET search_path = public
+-- AS $function$
+-- BEGIN
+--   -- Comme partout ailleurs : on ne renumérote pas ce qui porte déjà
+--   -- un numéro, pour qu'une reprise de données reste possible.
+--   IF NEW.numero IS NULL OR NEW.numero = '' THEN
+--     NEW.numero := 'CMD' || LPAD(
+--       next_store_counter(NEW.store_id, 'order')::text, 3, '0'
+--     );
+--   END IF;
+--   RETURN NEW;
+-- END;
+-- $function$;
+
+-- Et, pour que la base refuse elle-même le doublon plutôt que de le
+-- constater après coup :
+--
+-- CREATE UNIQUE INDEX CONCURRENTLY IF NOT EXISTS orders_numero_par_boutique
+--   ON public.orders (store_id, numero);
+--
+-- ⚠️ Cet index n'est posable qu'une fois la fonction corrigée, sinon
+-- une collision future ferait échouer l'insertion au lieu de la
+-- renuméroter. Et il faut le vérifier avant sur les autres tables :
+-- `sales`, `quotes`, `purchases` n'en ont pas non plus, alors que leur
+-- compteur, lui, est sûr.
+
+
+-- ────────────────────────────────────────────────────────────────────
+-- 2. Ce que je NE propose PAS, et pourquoi
+-- ────────────────────────────────────────────────────────────────────
+--
+-- COLONNE DE REMISE sur `sales` / `orders`. La maquette montre une
+-- ligne « Remise ». Aucune colonne ne la porte. Je n'en crée pas : une
+-- remise n'est pas qu'un champ d'affichage, elle change le total, la
+-- marge, et donc le bilan. Cela relève d'une décision produit et d'un
+-- chantier à part, pas d'une refonte de documents.
+--
+-- COLONNE D'ÉCHÉANCE sur `sales`. Le réglage de boutique suffit : la
+-- date se calcule à l'affichage depuis la date de vente. Une colonne
+-- n'aurait de sens que si l'échéance devenait négociable vente par
+-- vente — ce que rien ne demande aujourd'hui.
+--
+-- SÉPARATION DE `stores.nif_stat` EN DEUX COLONNES. Le champ est un
+-- texte libre déjà rempli chez le client (« 12739-27391ue-62 »). Le
+-- découper demanderait de deviner où couper. Le document l'imprime tel
+-- quel.
+--
+-- COLONNE POUR LES RÉGLAGES DE DOCUMENT. `stores.personnalisation`
+-- existe, elle est en jsonb, et deux sections des Paramètres s'en
+-- servent déjà de la bonne façon. Une colonne de plus serait du bruit.
