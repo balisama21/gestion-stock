@@ -59,6 +59,19 @@ export interface ReglagesTicket {
 }
 
 export interface ReglagesDocuments {
+  /**
+   * L'INTERRUPTEUR DE LA BOUTIQUE.
+   *
+   * `null` — la boutique suit ce que le déploiement a décidé.
+   * `true` — les nouveaux documents, quoi qu'en dise le déploiement.
+   * `false` — les anciens, quoi qu'en dise le déploiement.
+   *
+   * C'est le seul moyen de revenir aux anciennes factures SANS
+   * redéployer : il vit en base, se règle depuis Paramètres →
+   * Documents, donc depuis un téléphone. Voir `drapeau.ts` pour
+   * l'ordre dans lequel les interrupteurs se lisent.
+   */
+  actif: boolean | null;
   modele: ModeleDocument;
   couleur: string;
   logo: ChoixLogo;
@@ -73,6 +86,9 @@ export interface ReglagesDocuments {
 }
 
 export const REGLAGES_DOCUMENTS_PAR_DEFAUT: ReglagesDocuments = {
+  // Par défaut la boutique ne tranche pas : c'est le déploiement qui
+  // décide, et elle garde le pouvoir de dire non.
+  actif: null,
   modele: "classique",
   couleur: "#0E7C5A",
   logo: "auto",
@@ -142,6 +158,8 @@ export function lireReglagesDocuments(brut: unknown): ReglagesDocuments {
   const couleur = texte(r.couleur, d.couleur);
 
   return {
+    // Trois états, et non deux : `undefined` n'est pas `false`.
+    actif: typeof r.actif === "boolean" ? r.actif : null,
     modele: dans(r.modele, MODELES, d.modele),
     couleur: COULEUR_VALIDE.test(couleur) ? couleur : d.couleur,
     logo: dans(r.logo, LOGOS, d.logo),

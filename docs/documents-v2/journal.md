@@ -200,3 +200,67 @@ sur les rangs.
   code-barres de 22,7 et 17,8 mm — largement dans le papier.
 - **Reste à faire** : rien pour cette phase. L'impression sur une
   vraie imprimante thermique ne peut être vérifiée que par vous.
+
+---
+
+## Phase 5 — Paramètres → Documents — TERMINÉE
+
+- **Fait** : l'écran de réglages complet, l'enregistrement fusionnant
+  dans `stores.personnalisation.documents`, l'aperçu en direct sur une
+  vraie vente, et **l'interrupteur serveur** qui coupe les nouveaux
+  documents sans redéployer.
+- **Fichiers créés** : `src/components/settings/DocumentsSection.tsx`
+  + test (9 tests), `src/lib/personnalisation.test.ts` (6 tests),
+  `docs/documents-v2/bloques.md`,
+  `docs/documents-v2/captures/parametres-documents.png`.
+- **Fichiers modifiés** : `src/lib/personnalisation.ts` (les clés
+  inconnues sont enfin préservées), `src/components/ParametresView.tsx`,
+  `src/components/settings/SettingsLayout.tsx`,
+  `src/features/documents/lib/reglages.ts` (le réglage `actif`),
+  `src/features/documents/drapeau.ts` (quatre interrupteurs),
+  `src/BalsamaApp.tsx` (les ventes et produits passés à l'écran de
+  réglages, en lecture seule).
+
+### La correction que l'audit réclamait, faite en premier
+
+`lirePersonnalisation()` ne recopiait que `modules` et `rappels`.
+Comme tous les écrans de réglages relisent puis réenregistrent l'objet
+entier, **toute clé ajoutée par un autre écran disparaissait au
+premier enregistrement du vocabulaire** — sans message, et sans moyen
+de la retrouver. Corrigé avant d'écrire la moindre donnée, et
+verrouillé par six tests dont un aller-retour complet.
+
+### Décisions prises à ma place
+
+**Le drapeau serveur vit dans `stores.personnalisation.documents.actif`.**
+*Raison* : la consigne demande un réglage coupable à distance depuis un
+téléphone, sans redéployer, dans une table existante et sans SQL. Une
+variable d'environnement Netlify demande un redéploiement ; il n'existe
+aucune autre table de configuration ; et je n'ai pas le droit d'écrire
+en base moi-même. La colonne `personnalisation` existe, elle est en
+jsonb, deux sections s'en servent déjà, et l'écran de réglages est la
+seule écriture autorisée de toute la mission — c'est le seul endroit
+qui satisfait toutes les contraintes à la fois.
+*Revenir en arrière* : retirer la clé `actif`, le drapeau retombe sur
+`VITE_DOCUMENTS_V2`.
+
+**Trois états et non deux** (`null`, `true`, `false`). *Raison* : sans
+le troisième, une boutique qui n'a jamais touché au réglage serait
+comptée comme l'ayant refusé, et l'activation générale n'atteindrait
+personne. *Revenir en arrière* : `lireReglagesDocuments`, clé `actif`.
+
+**L'interrupteur est le premier réglage de l'écran.** *Raison* : c'est
+celui qu'on vient chercher en urgence ; il ne doit pas être au fond.
+*Revenir en arrière* : déplacer le bloc dans `DocumentsSection.tsx`.
+
+**L'aperçu montre la dernière vente réelle, jamais un exemple.**
+*Raison* : la consigne interdit les données de la maquette dans
+l'application, et on règle mieux un document en le voyant tel qu'il
+sortira. Sans aucune vente, l'aperçu le dit et s'efface.
+*Revenir en arrière* : `DocumentsSection.tsx`, bloc « Aperçu ».
+
+- **Vérifications** : tsc OK · lint OK **sur les fichiers de la
+  mission** (voir `bloques.md` : le dépôt entier échouait déjà avant,
+  20 513 erreurs de retours chariot) · build OK · **308 tests** ·
+  capture `parametres-documents.png`.
+- **Reste à faire** : rien pour cette phase.

@@ -2067,6 +2067,8 @@ function AppInner() {
                 )}
                 {vue === "settings" && (
                   <ParametresView
+                    sales={sales}
+                    products={products}
                     sectionInitiale={sectionParametres}
                     settings={storeSettings}
                     personnalisation={personnalisation}

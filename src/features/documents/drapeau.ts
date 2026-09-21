@@ -11,18 +11,31 @@ import { useEffect, useState } from "react";
  * mécanique y a déjà servi, elle est comprise, et deux interrupteurs
  * qui se ressemblent s'expliquent une seule fois.
  *
- *   ?documents_v2=1                   → depuis un lien, sur n'importe
- *                                       quel appareil ; le choix reste
- *   localStorage.documents_v2 = "1"   → pour un seul navigateur
- *   VITE_DOCUMENTS_V2 = "1"           → pour tout le monde, au build
+ * ── QUATRE INTERRUPTEURS, DU PLUS FORT AU PLUS FAIBLE ──────────────
+ *
+ *   1. ?documents_v2=0 ou 1     depuis un lien, sur n'importe quel
+ *                               appareil ; le choix reste ensuite
+ *   2. localStorage             ce navigateur-ci, pour essayer
+ *   3. personnalisation.documents.actif
+ *                               LA BOUTIQUE, en base — c'est celui
+ *                               qui se coupe depuis un téléphone,
+ *                               sans redéployer, par Paramètres →
+ *                               Documents
+ *   4. VITE_DOCUMENTS_V2        tout le monde, décidé au déploiement
+ *
+ * Le troisième est celui qui compte le jour où quelque chose cloche :
+ * le quatrième demande un nouveau déploiement, les deux premiers ne
+ * valent que pour un appareil. Le réglage de la boutique, lui, coupe
+ * pour tout le monde en trois secondes.
  *
  * Le paramètre d'adresse existe pour une raison précise : les deux
  * autres supposent une console, celle du navigateur ou celle du
  * serveur de build. Une facture se vérifie sur le téléphone du
  * comptoir, où ni l'une ni l'autre n'est à portée.
  *
- * Rien en base : le jour où la v2 devient la seule version, il n'y
- * aura ni colonne ni migration à défaire.
+ * Le réglage de la boutique vit dans une colonne qui existe déjà :
+ * le jour où la v2 devient la seule version, il n'y
+ * aura ni colonne ni migration à défaire, juste une clé à oublier.
  */
 
 /** Ce qui vaut « oui », pour ne pas piéger sur `"true"`. */
@@ -94,21 +107,29 @@ export function useCaptureDuDrapeauDocuments(): void {
 /**
  * Les documents v2 sont-ils demandés ?
  *
- * On part de ce que le serveur sait — la variable du build — et le
- * reste arrive à la première image. Lire `localStorage` pendant le
- * rendu ferait diverger le serveur et le navigateur sur la même page,
- * et React jetterait tout l'affichage pour le refaire.
+ * On part de ce que le serveur sait — la variable du build et le
+ * réglage de la boutique, tous deux connus au rendu serveur — et ce
+ * qui vient du navigateur arrive à la première image. Lire
+ * `localStorage` pendant le rendu ferait diverger le serveur et le
+ * navigateur sur la même page, et React jetterait tout l'affichage
+ * pour le refaire.
  *
- * L'adresse a le dernier mot, même sur la variable du build : c'est
- * elle qui permet d'éteindre la v2 depuis un téléphone quand elle est
- * allumée pour tout le monde.
+ * L'adresse a le dernier mot sur tout le reste : c'est le secours
+ * quand même l'écran de réglages n'est plus atteignable.
  */
-export function useDocumentsV2(): boolean {
-  const [actif, setActif] = useState(PAR_ENV);
+export function useDocumentsV2(reglageDeLaBoutique: boolean | null = null): boolean {
+  const [duNavigateur, setDuNavigateur] = useState<boolean | null>(null);
+  const [deLAdresse, setDeLAdresse] = useState<boolean | null>(null);
 
   useEffect(() => {
-    setActif(parAdresse() ?? (PAR_ENV || parNavigateur()));
+    // `useCaptureDuDrapeau` a déjà transformé un éventuel paramètre
+    // d'adresse en choix retenu ; il ne reste qu'à le lire.
+    setDeLAdresse(parAdresse());
+    setDuNavigateur(parNavigateur() ? true : null);
   }, []);
 
-  return actif;
+  if (deLAdresse !== null) return deLAdresse;
+  if (duNavigateur !== null) return duNavigateur;
+  if (reglageDeLaBoutique !== null) return reglageDeLaBoutique;
+  return PAR_ENV;
 }

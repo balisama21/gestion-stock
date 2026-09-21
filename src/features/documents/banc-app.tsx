@@ -6,6 +6,8 @@ import { documentDeVente } from "./lib/buildDocument";
 import { BOUTIQUE, CLIENT, PAIEMENT, PRODUITS, V024, V025, V026 } from "./lib/fixtures";
 import { REGLAGES_DOCUMENTS_PAR_DEFAUT as R, type ModeleDocument } from "./lib/reglages";
 import type { Sale } from "../../types";
+import { DocumentsSection } from "../../components/settings/DocumentsSection";
+import "../../styles.css";
 
 const base = { produits: PRODUITS, boutique: BOUTIQUE, reglages: R };
 
@@ -54,6 +56,7 @@ function Banc() {
   const [modele, setModele] = useState<ModeleDocument>("classique");
   const [format, setFormat] = useState<FormatDocument>("a4");
   const [cas, setCas] = useState(0);
+  const [reglages, setReglages] = useState(false);
 
   return (
     <div>
@@ -78,6 +81,10 @@ function Banc() {
           </button>
         ))}
         <span style={{ width: 20 }} />
+        <button onClick={() => setReglages((v) => !v)} style={{ fontWeight: reglages ? 700 : 400 }}>
+          reglages
+        </button>
+        <span style={{ width: 20 }} />
         {CAS.map((c, i) => (
           <button
             key={c.titre}
@@ -88,7 +95,17 @@ function Banc() {
           </button>
         ))}
       </div>
-      <DocumentPreview document={CAS[cas].doc} reglages={R} modele={modele} format={format} />
+      {reglages ? (
+        <DocumentsSection
+          personnalisation={{}}
+          onSave={() => {}}
+          settings={BOUTIQUE}
+          sales={panier(3)}
+          products={PRODUITS}
+        />
+      ) : (
+        <DocumentPreview document={CAS[cas].doc} reglages={R} modele={modele} format={format} />
+      )}
     </div>
   );
 }

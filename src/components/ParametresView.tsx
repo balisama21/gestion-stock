@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { StoreSettings, Seller, LocaleSetting, CapitalSummary } from "../types";
+import { StoreSettings, Seller, LocaleSetting, CapitalSummary, Sale, Product } from "../types";
 import { SettingsLayout, SettingsTab } from "./settings/SettingsLayout";
 import { supabase } from "../lib/supabase";
 import { useWorkspace } from "../hooks/useWorkspace";
@@ -15,12 +15,7 @@ import { SecuritySection } from "./settings/SecuritySection";
 import { StoreSection, type StoreFormValues } from "./settings/StoreSection";
 import { TeamSection, type TeamMember, type RecoveryRequest } from "./settings/TeamSection";
 import { TransfertBoutiqueSection } from "./settings/TransfertBoutiqueSection";
-import {
-  ABONNEMENT_MOIS_JOURS,
-  PRIX_A_VIE,
-  PRIX_MENSUEL,
-  type FormuleCode,
-} from "../lib/offres";
+import { ABONNEMENT_MOIS_JOURS, PRIX_A_VIE, PRIX_MENSUEL, type FormuleCode } from "../lib/offres";
 import { ChampsPersonnalisesSection } from "./settings/ChampsPersonnalisesSection";
 import { VocabulaireSection } from "./settings/VocabulaireSection";
 import { RappelsSection } from "./settings/RappelsSection";
@@ -38,6 +33,7 @@ import { compressLogo, formatPoids } from "../lib/compressLogo";
 import { PreferencesSection } from "./settings/PreferencesSection";
 import { NotificationsSection } from "./settings/NotificationsSection";
 import { InvoiceSection } from "./settings/InvoiceSection";
+import { DocumentsSection } from "./settings/DocumentsSection";
 import { InstallationSection } from "./settings/InstallationSection";
 import { Trash2 } from "lucide-react";
 
@@ -76,6 +72,13 @@ interface ParametresViewProps {
    * s'était produit à l'enregistrement de la boutique.
    */
   onUpdateSettings: (newSettings: Partial<StoreSettings>) => Promise<void> | void;
+  /**
+   * Les ventes et les produits de la boutique, pour l apercu des
+   * documents. En LECTURE SEULE : cet ecran ne les modifie jamais, il
+   * s en sert pour montrer a quoi ressemblera une vraie facture.
+   */
+  sales: Sale[];
+  products: Product[];
   sellers: Seller[];
   onDeleteSeller: (id: string) => void;
   locale: LocaleSetting;
@@ -126,6 +129,8 @@ export const ParametresView: React.FC<ParametresViewProps> = ({
   onUpdateCategorie,
   onDeleteCategorie,
   onUpdateSettings,
+  sales,
+  products,
   onDeleteSeller,
   locale,
   setLocale,
@@ -984,6 +989,16 @@ export const ParametresView: React.FC<ParametresViewProps> = ({
       )}
 
       {activeTab === "facture" && <InvoiceSection settings={settings} />}
+
+      {activeTab === "documents" && (
+        <DocumentsSection
+          personnalisation={lirePersonnalisation(personnalisation)}
+          onSave={onSavePersonnalisation}
+          settings={settings}
+          sales={sales}
+          products={products}
+        />
+      )}
 
       {activeTab === "categories" && (
         <div className="space-y-4">
