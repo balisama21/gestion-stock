@@ -350,3 +350,32 @@ La verification ne se contente pas de supposer : le module compile
 de `routes-CcgGGRaL.js`, telecharge depuis la production, contient
 `OUI.has(`1`)` — la variable a bien ete lue au build. Et la page
 chargee ne produit **aucune erreur de console**.
+
+---
+
+## Correctif apres deploiement — onglet « Documents » en double
+
+**Signale par vous, le 21/09 en fin de journee**, en regardant les
+Parametres : le mot « Documents » apparaissait deux fois dans la
+navigation.
+
+**Cause** : le script qui a branche l onglet dans `SettingsLayout`
+a ete relance apres un echec partiel, et a insere le bloc une
+seconde fois. Les deux blocs etaient identiques et consecutifs —
+a la relecture, ils se lisent comme un seul.
+
+**Consequence** : deux onglets identiques dans la barre laterale et
+dans la bande du telephone, et deux cles React identiques. Aucune
+donnee en jeu, aucun document affecte.
+
+**Corrige** : le second bloc retire, et un test ajoute qui compte
+les libelles d onglet. Une premiere version de ce test ne voyait
+rien — elle comptait le texte des boutons, alors que la barre
+laterale y ajoute le sous-titre. Corrigee, puis **verifiee en
+reintroduisant le doublon expres** : le test tombe (4 au lieu de 2),
+et repasse une fois le doublon retire.
+
+La lecon a retenir : un script de correction relance apres un echec
+partiel doit etre idempotent, ou verifie apres coup. Les autres
+insertions de la mission ont ete recomptees a cette occasion — une
+seule occurrence chacune.

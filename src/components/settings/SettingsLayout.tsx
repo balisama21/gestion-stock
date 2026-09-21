@@ -118,13 +118,6 @@ const GROUPS: GroupDef[] = [
         ownerOnly: true,
       },
       {
-        id: "documents",
-        label: "Documents",
-        hint: "Modèle, couleur, ticket",
-        icon: <FileText className="w-4 h-4" />,
-        ownerOnly: true,
-      },
-      {
         id: "champs",
         label: "Champs personnalisés",
         hint: "Vos propres informations",
