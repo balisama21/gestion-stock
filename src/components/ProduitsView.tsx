@@ -27,7 +27,7 @@ import { DETAILS_VIDES, detailsVersBase, type ValeursDetails } from "../lib/deta
 import { envoyerFichier, supprimerFichier } from "../lib/stockageFichiers";
 import type { Database } from "../lib/database.types";
 import { useFiltreInitial, useRechercheInitiale } from "../lib/cibleRecherche";
-import { niveauDePrealerte, type ReglagesAlertesStock } from "../lib/prealerteStock";
+import { estARecommander, type ReglagesAlertesStock } from "../lib/prealerteStock";
 
 /**
  * LE QUATRIÈME FILTRE N'EXISTE QUE SI LA PRÉALERTE EST ACTIVE.
@@ -248,10 +248,10 @@ export const ProduitsView: React.FC<ProduitsViewProps> = ({
 
       const isLow = p.stockActuel <= p.seuilAlerte;
       // « À recommander » englobe les DEUX niveaux : ce qui est déjà
-      // sous le seuil et ce qui s'en approche. C'est la liste qu'on
-      // envoie au fournisseur, et elle ne se coupe pas en deux.
-      const aRecommander =
-        isLow || p.stockActuel <= niveauDePrealerte(p.seuilAlerte, reglagesAlertes);
+      // sous le seuil et ce qui s'en approche. La règle est écrite une
+      // seule fois, dans `prealerteStock`, et le bon de commande la
+      // relit — les deux listes doivent être la même.
+      const aRecommander = estARecommander(p.stockActuel, p.seuilAlerte, reglagesAlertes);
       const matchStock =
         stockFilter === "Tous" ||
         (stockFilter === "OK" && !isLow) ||
@@ -269,10 +269,8 @@ export const ProduitsView: React.FC<ProduitsViewProps> = ({
   const totalValeurStock = products.reduce((acc, p) => acc + p.stockActuel * p.prixAchat, 0);
   const totalAlertesStock = products.filter((p) => p.stockActuel <= p.seuilAlerte).length;
   // Sous le seuil ET dans la bande : la liste complète à commander.
-  const totalARecommander = products.filter(
-    (p) =>
-      p.stockActuel <= p.seuilAlerte ||
-      p.stockActuel <= niveauDePrealerte(p.seuilAlerte, reglagesAlertes),
+  const totalARecommander = products.filter((p) =>
+    estARecommander(p.stockActuel, p.seuilAlerte, reglagesAlertes),
   ).length;
 
   /**

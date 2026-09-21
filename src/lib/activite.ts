@@ -32,7 +32,7 @@ export type TonNotif = "success" | "warning" | "danger" | "info" | "neutre";
  * recalculer à chaque rendu. Le panneau, qui a les données sous la main,
  * traduit la clé en geste.
  */
-export type ActionNotification = "preparer-la-commande";
+export type ActionNotification = "preparer-la-commande" | "telecharger-la-liste";
 
 export interface Notification {
   /** Stable d'un rendu à l'autre : c'est lui qui retient « déjà lu ». */
@@ -563,7 +563,10 @@ export function construireNotifications(s: SourcesActivite): Notification[] {
         quand: "",
         ton: "warning",
         onglet: "produits",
-        actions: ["preparer-la-commande"],
+        // Deux gestes, et ils ne sont pas le même : préparer, c'est
+        // ouvrir la liste pour la travailler ; télécharger, c'est
+        // l'envoyer au fournisseur sans rien ouvrir du tout.
+        actions: ["preparer-la-commande", "telecharger-la-liste"],
       });
     }
   }

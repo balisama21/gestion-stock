@@ -32,7 +32,9 @@ export const CarteStock: React.FC<{
   valeurVisible: boolean;
   onProduit?: (produit: LigneStock) => void;
   onCommander?: () => void;
-}> = ({ stock, valeurVisible, onProduit, onCommander }) => {
+  /** Ouvre le bon de commande : la liste prête à envoyer au fournisseur. */
+  onTelecharger?: () => void;
+}> = ({ stock, valeurVisible, onProduit, onCommander, onTelecharger }) => {
   const aRecommander = stock.aRecommander.length + stock.enRupture.length;
 
   return (
@@ -110,10 +112,22 @@ export const CarteStock: React.FC<{
             </>
           )}
         </div>
-        {onCommander && aRecommander > 0 && (
-          <button className="btn" type="button" onClick={onCommander}>
-            Préparer la commande
-          </button>
+        {/* Deux gestes, et le second n'est pas le premier : préparer,
+            c'est ouvrir la liste pour la travailler ; télécharger,
+            c'est l'envoyer au fournisseur sans rien ouvrir. */}
+        {aRecommander > 0 && (
+          <div className="stock-actions">
+            {onTelecharger && (
+              <button className="btn" type="button" onClick={onTelecharger}>
+                Télécharger la liste
+              </button>
+            )}
+            {onCommander && (
+              <button className="btn" type="button" onClick={onCommander}>
+                Préparer la commande
+              </button>
+            )}
+          </div>
         )}
       </div>
     </Card>

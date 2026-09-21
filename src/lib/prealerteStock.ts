@@ -181,6 +181,26 @@ export function etatDeStock(
   return niveau > 0 && stockActuel <= niveau ? "prealerte" : "normal";
 }
 
+/**
+ * Faut-il racheter ce produit ?
+ *
+ * LES DEUX NIVEAUX À LA FOIS. Ce qui est déjà sous le seuil et ce qui
+ * s'en approche : c'est la liste qu'on envoie au fournisseur, et elle
+ * ne se coupe pas en deux. Préalerte éteinte, elle se réduit d'elle-même
+ * au seuil, c'est-à-dire à ce que l'application faisait déjà.
+ *
+ * Écrit ici et appelé partout — filtre du catalogue, bon de commande —
+ * plutôt que recopié : la règle du seuil est déjà écrite à trois
+ * endroits dans ce dépôt, on ne recommence pas avec celle-ci.
+ */
+export function estARecommander(
+  stockActuel: number,
+  seuil: number,
+  r: ReglagesAlertesStock,
+): boolean {
+  return etatDeStock(stockActuel, seuil, r) !== "normal";
+}
+
 /* ═══════════════════════════════════════════════════════════════════
    Lire ce que la base rend
    ═══════════════════════════════════════════════════════════════════ */

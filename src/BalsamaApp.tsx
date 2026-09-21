@@ -46,6 +46,7 @@ import { useStoreData } from "./hooks/useStoreData";
 import { useStoreMembers } from "./hooks/useStoreMembers";
 import { useReglagesAlertesStock } from "./hooks/useReglagesAlertesStock";
 import { usePrealertesStock } from "./hooks/usePrealertesStock";
+import { BonDeCommande } from "./components/produits/BonDeCommande";
 import { useNotificationPrefs } from "./lib/notificationPrefs";
 import {
   useCaptureDuDrapeau,
@@ -246,11 +247,17 @@ function AppInner() {
    * notification qui ne mènerait qu'à la liste entière ferait refaire à
    * la main le tri qu'elle vient d'énoncer.
    */
+  const [bonDeCommandeOuvert, setBonDeCommandeOuvert] = useState(false);
+
   const actionNotification = useCallback(
     (action: ActionNotification) => {
       if (action === "preparer-la-commande") {
         setActiveTab("produits");
         viser("produits", "", "A recommander");
+      } else if (action === "telecharger-la-liste") {
+        // Rien à ouvrir, rien à chercher : le document se compose et se
+        // télécharge depuis n'importe quel écran.
+        setBonDeCommandeOuvert(true);
       }
     },
     [viser],
@@ -421,6 +428,33 @@ function AppInner() {
       products
         .filter((p) => p.seuilAlerte > 0 && p.statut === "actif" && p.typeProduit !== "service")
         .map((p) => ({ nom: p.displayName, seuil: p.seuilAlerte, stock: p.stockActuel })),
+    [products],
+  );
+
+  /**
+   * Le catalogue tel que le bon de commande le lit.
+   *
+   * Le tri de ce qui est à racheter n'est PAS fait ici : c'est
+   * `lignesDuBonDeCommande` qui s'en charge, avec la même règle que le
+   * filtre du catalogue. On ne fait ici que traduire les noms de
+   * champs et écarter ce qui n'a pas de stock à suivre — un service ou
+   * une fiche archivée n'entre pas dans un bon de commande.
+   */
+  const produitsARecommander = useMemo(
+    () =>
+      products
+        .filter((p) => p.statut === "actif" && p.typeProduit !== "service")
+        .map((p) => ({
+          id: p.id,
+          nom: p.displayName,
+          numero: p.numero,
+          sku: p.sku,
+          stockActuel: p.stockActuel,
+          seuilAlerte: p.seuilAlerte,
+          fournisseur: p.fournisseur,
+          prixAchat: p.prixAchat,
+          unite: p.unite,
+        })),
     [products],
   );
 
@@ -1551,6 +1585,7 @@ function AppInner() {
                             : undefined
                         }
                         onRafraichir={storeData.refresh}
+                        onTelechargerLaListe={() => setBonDeCommandeOuvert(true)}
                         onNavigateTab={(onglet) =>
                           setActiveTab(onglet as ActiveTab)
                         }
@@ -2098,6 +2133,18 @@ function AppInner() {
             </button>
           </div>
         )}
+
+        {/* Le bon de commande se compose depuis n'importe où : la
+            cloche l'ouvre, la carte Stock aussi. Il vit donc à la
+            racine plutôt que dans l'un des deux écrans, et l'autre
+            aurait dû aller le chercher. */}
+        <BonDeCommande
+          ouvert={bonDeCommandeOuvert}
+          onFermer={() => setBonDeCommandeOuvert(false)}
+          produits={produitsARecommander}
+          reglages={alertesStock.reglages}
+          settings={storeSettings}
+        />
       </div>
     </contextePersonnalisation.Provider>
   );

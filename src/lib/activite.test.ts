@@ -95,9 +95,12 @@ describe("la cloche annonce les produits qui approchent de leur seuil", () => {
     expect(n?.lignes?.at(-1)).toBe("et 3 autres.");
   });
 
-  it("propose de préparer la commande", () => {
+  it("propose d'agir, sans quitter la cloche", () => {
+    // Deux gestes qui ne sont pas le même : préparer, c'est ouvrir la
+    // liste pour la travailler ; télécharger, c'est l'envoyer au
+    // fournisseur sans rien ouvrir.
     const n = laPrealerte(sources({ prealertes: [prealerte("Huile 1 L", 5, 3)] }));
-    expect(n?.actions).toEqual(["preparer-la-commande"]);
+    expect(n?.actions).toEqual(["preparer-la-commande", "telecharger-la-liste"]);
   });
 
   it("suit le réglage « Alertes de stock bas » comme les autres", () => {

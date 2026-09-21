@@ -2118,6 +2118,17 @@
   display: block;
   font-size: var(--t-petit);
 }
+/* DEUX BOUTONS, ET ILS PASSENT A LA LIGNE PLUTOT QUE DE SE SERRER.
+   La carte fait un tiers de largeur sur desktop et la totalite sur
+   telephone : a l'etroit, deux boutons cote a cote rognent leurs
+   libelles jusqu'a « Telech... ». Ils s'empilent alors, et la zone de
+   clic reste entiere. */
+.dash2 .stock-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 8px;
+}
 
 /* ── 5. sorties, le ticket de caisse ── */
 

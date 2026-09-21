@@ -11,6 +11,7 @@ import {
 /** Le libellé de chaque bouton d'action, écrit une seule fois. */
 const LIBELLE_ACTION: Record<ActionNotification, string> = {
   "preparer-la-commande": "Préparer la commande",
+  "telecharger-la-liste": "Télécharger la liste",
 };
 
 interface PanneauNotificationsProps {

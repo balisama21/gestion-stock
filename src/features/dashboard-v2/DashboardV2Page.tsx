@@ -194,6 +194,14 @@ export interface DashboardV2PageProps {
    * formulaire de creation : voir l'ecart n. 3 de l'audit.
    */
   onNavigateTab?: (onglet: string) => void;
+  /**
+   * Ouvre le bon de commande — la liste à réapprovisionner, prête à
+   * imprimer ou à télécharger.
+   *
+   * Il vit à la racine de l'application parce que la cloche l'ouvre
+   * aussi : le tableau de bord ne fait que tirer sur la corde.
+   */
+  onTelechargerLaListe?: () => void;
   /** Faux quand la personne n'a pas le droit d'enregistrer une vente. */
   peutVendre?: boolean;
 }
@@ -220,6 +228,7 @@ export const DashboardV2Page: React.FC<DashboardV2PageProps> = ({
   onTerminerTache,
   onRafraichir,
   onNavigateTab,
+  onTelechargerLaListe,
   peutVendre = true,
 }) => {
   /**
@@ -454,6 +463,7 @@ export const DashboardV2Page: React.FC<DashboardV2PageProps> = ({
         valeurVisible={droits.champVisible("produits", "valeur_stock")}
         onProduit={(produit) => setPanneau({ cle: "produit", produit })}
         onCommander={() => setPanneau({ cle: "ruptures" })}
+        onTelecharger={onTelechargerLaListe}
       />
     ),
     sorties: (
