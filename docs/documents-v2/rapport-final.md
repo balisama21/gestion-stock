@@ -336,3 +336,17 @@ puis relancer une construction.
 
 **Depuis un téléphone, si l’écran de réglages est inatteignable** :
 ouvrir `https://tantana-suite.netlify.app/?documents_v2=0`.
+
+### Activation confirmee
+
+| Quand (UTC) | Quoi |
+| --- | --- |
+| 21/09 12:43 | `VITE_DOCUMENTS_V2=1` posee sur le projet Netlify |
+| 21/09 12:44 | reconstruction poussee (`8f02939`) |
+| 21/09 12:46 | deploiement `6ab12693` pret |
+| 21/09 12:47 | **drapeau leve, verifie dans le paquet livre** |
+
+La verification ne se contente pas de supposer : le module compile
+de `routes-CcgGGRaL.js`, telecharge depuis la production, contient
+`OUI.has(`1`)` — la variable a bien ete lue au build. Et la page
+chargee ne produit **aucune erreur de console**.
