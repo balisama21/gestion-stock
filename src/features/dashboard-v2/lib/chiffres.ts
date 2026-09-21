@@ -3,6 +3,11 @@ import { dateDuJour } from "../../../lib/dates";
 import type { Intervalle, Periode } from "../hooks/useDashboardPeriod";
 import { dansIntervalle, decalerJours, nombreDeJours } from "../hooks/useDashboardPeriod";
 import type { MouvementStock } from "../hooks/useDashboardData";
+import {
+  etatDeStock,
+  REGLAGES_PAR_DEFAUT,
+  type ReglagesAlertesStock,
+} from "../../../lib/prealerteStock";
 
 /**
  * TOUS LES CHIFFRES DU TABLEAU DE BORD, ET D'OÙ ILS VIENNENT
@@ -282,6 +287,14 @@ export interface LigneStock {
   /** Jours de couverture au rythme des trente derniers jours. NOUVEAU. */
   couverture: number | null;
   sousLeSeuil: boolean;
+  /**
+   * Au-dessus du seuil, mais dans la bande de préalerte.
+   *
+   * EXCLUSIF DE `sousLeSeuil` : un produit qui y est déjà n'« approche »
+   * plus de rien. Toujours faux quand la boutique n'a pas activé la
+   * préalerte, ce qui laisse l'étagère exactement telle qu'elle était.
+   */
+  enPrealerte: boolean;
   enRupture: boolean;
 }
 
@@ -290,6 +303,8 @@ export interface ChiffresStock {
   valeur: number;
   /** `stockActuel <= seuilAlerte` — la règle de la page Produits. */
   aRecommander: LigneStock[];
+  /** Ceux qui s'en approchent, quand la préalerte est active. */
+  enPrealerte: LigneStock[];
   enRupture: LigneStock[];
   /** Les plus proches du seuil, pour l'étagère. */
   etagere: LigneStock[];
@@ -325,6 +340,14 @@ export function chiffresStock(
   s: SourcesChiffres,
   p: Periode,
   aujourdhui = dateDuJour(),
+  /**
+   * Les réglages de préalerte de la boutique.
+   *
+   * Par défaut ceux du logiciel, préalerte ÉTEINTE : les appelants qui
+   * ne les passent pas obtiennent exactement l'étagère d'avant, et
+   * `pointsDAttention` n'a pas à s'en soucier.
+   */
+  reglages: ReglagesAlertesStock = REGLAGES_PAR_DEFAUT,
 ): ChiffresStock {
   const marchandises = s.products.filter((x) => x.typeProduit !== "service");
 
@@ -340,6 +363,10 @@ export function chiffresStock(
     // des commandes ont réservé de la marchandise, et changer de
     // colonne ici ferait diverger deux écrans qui doivent s'accorder.
     sousLeSeuil: x.stockActuel <= x.seuilAlerte,
+    // Le second niveau, quand la boutique l'a activé. `etatDeStock`
+    // rend « normal » dès que la préalerte est éteinte : aucun produit
+    // ne peut alors passer en orange par accident.
+    enPrealerte: etatDeStock(x.stockActuel, x.seuilAlerte, reglages) === "prealerte",
     enRupture: x.stockDisponible <= 0,
   });
 
@@ -383,6 +410,7 @@ export function chiffresStock(
   return {
     valeur: somme(s.products, (x) => x.stockActuel * x.prixAchat),
     aRecommander: lignes.filter((x) => x.sousLeSeuil && !x.enRupture),
+    enPrealerte: lignes.filter((x) => x.enPrealerte),
     enRupture: lignes.filter((x) => x.enRupture),
     etagere: [...lignes]
       .sort((a, b) => a.disponible / (a.seuil || 1) - b.disponible / (b.seuil || 1))
@@ -654,7 +682,19 @@ export function pointsDAttention(
   const devisSansReponse = s.quotes.filter(
     (q) => q.statut === "brouillon" || q.statut === "envoye",
   ).length;
-  const produitsARecommander = stock.aRecommander.length + stock.enRupture.length;
+  /*
+   * LE MÊME COMPTE QUE LA CARTE STOCK, parce que c'est le même mot.
+   *
+   * La pastille dit « N produits à recommander » et l'étiquette de la
+   * carte dit la même phrase : deux nombres différents sous le même
+   * libellé, sur le même écran, feraient douter des deux. C'est aussi
+   * le nombre de lignes du bon de commande téléchargé.
+   *
+   * `enPrealerte` est vide tant que la boutique n'a pas activé la
+   * fonction : le compte ne bouge alors pas d'une unité.
+   */
+  const produitsARecommander =
+    stock.aRecommander.length + stock.enRupture.length + stock.enPrealerte.length;
   return {
     tachesEnRetard,
     produitsARecommander,

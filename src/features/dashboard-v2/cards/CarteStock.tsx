@@ -35,7 +35,11 @@ export const CarteStock: React.FC<{
   /** Ouvre le bon de commande : la liste prête à envoyer au fournisseur. */
   onTelecharger?: () => void;
 }> = ({ stock, valeurVisible, onProduit, onCommander, onTelecharger }) => {
-  const aRecommander = stock.aRecommander.length + stock.enRupture.length;
+  // Le compte DOIT correspondre à la liste que les boutons produisent :
+  // « 3 à recommander » au-dessus d'un bon de commande de quatre lignes
+  // ferait douter des deux.
+  const sousLeSeuil = stock.aRecommander.length + stock.enRupture.length;
+  const aRecommander = sousLeSeuil + stock.enPrealerte.length;
 
   return (
     <Card span={4} id="carte-stock">
@@ -49,7 +53,10 @@ export const CarteStock: React.FC<{
         }
         action={
           aRecommander > 0 ? (
-            <Tag ton="crit">{aRecommander} à recommander</Tag>
+            // Le ton suit le pire des deux états : tant que rien n'est
+            // passé sous le seuil, une préalerte est une attention et
+            // non un problème.
+            <Tag ton={sousLeSeuil > 0 ? "crit" : "warn"}>{aRecommander} à recommander</Tag>
           ) : (
             <Tag ton="ok">Tout est au-dessus du seuil</Tag>
           )
@@ -73,18 +80,24 @@ export const CarteStock: React.FC<{
               <Ligne
                 key={p.id}
                 {...(onProduit ? { type: "button" as const, onClick: () => onProduit(p) } : {})}
-                className={`item${p.sousLeSeuil ? " low" : ""}`}
+                className={`item${p.sousLeSeuil ? " low" : p.enPrealerte ? " prealerte" : ""}`}
               >
                 <div className="nm">
                   <span>{p.nom}</span>
-                  {/* Le rail rouge ne suffit pas : un statut doit se lire
+                  {/* Le rail coloré ne suffit pas : un statut doit se lire
                       sans distinguer les couleurs. La fleche et le mot le
-                      disent, la couleur ne fait que le renforcer. */}
-                  {p.sousLeSeuil && (
+                      disent, la couleur ne fait que le renforcer.
+                      Les deux états s'excluent — un produit déjà sous son
+                      seuil n'« approche » plus de rien. */}
+                  {p.sousLeSeuil ? (
                     <small className="bas">
                       <span aria-hidden="true">↓</span> stock faible
                     </small>
-                  )}
+                  ) : p.enPrealerte ? (
+                    <small className="approche">
+                      <span aria-hidden="true">↘</span> approche du seuil
+                    </small>
+                  ) : null}
                 </div>
                 <span className="qty num">
                   {nombre(p.disponible)} / {nombre(p.seuil)}

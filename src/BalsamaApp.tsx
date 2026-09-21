@@ -1586,6 +1586,7 @@ function AppInner() {
                         }
                         onRafraichir={storeData.refresh}
                         onTelechargerLaListe={() => setBonDeCommandeOuvert(true)}
+                        reglagesAlertes={alertesStock.reglages}
                         onNavigateTab={(onglet) =>
                           setActiveTab(onglet as ActiveTab)
                         }

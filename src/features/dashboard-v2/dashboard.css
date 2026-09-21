@@ -75,6 +75,16 @@
   --accent-soft: var(--success-soft);
   --warn: #b06f12;
   --warn-soft: #fbf0dc;
+  /* L'ORANGE QUAND IL DEVIENT DU TEXTE.
+
+     `--warn` tel quel donne 4,09 pour 1 sur le blanc d'une carte : il
+     convient à une jauge, qui est un élément graphique et se contente
+     de 3 pour 1, mais pas à un mot en petit corps, qui en demande 4,5.
+
+     Assombri, il monte à 5,13 — soit exactement le poids du rouge
+     voisin (5,00), ce qui met les deux mentions de l'étagère au même
+     niveau de lisibilité. Mesuré, pas estimé. */
+  --warn-ink: #9a610f;
   --crit: #c0473a;
   --crit-soft: #fbe6e2;
   --info: #3a72a6;
@@ -146,6 +156,10 @@
      deux vérités sur la même couleur. */
   --warn: #e1a447;
   --warn-soft: #2e2615;
+  /* Sur le fond sombre d'une carte, l'orange du thème donne déjà 8
+     pour 1 : rien à corriger, et un second ton ne ferait que deux
+     oranges à tenir d'accord. */
+  --warn-ink: var(--warn);
   --crit: #e2715f;
   --crit-soft: #33201c;
   --info: #72a8db;
@@ -2050,19 +2064,28 @@
   background: var(--surface-2);
 }
 /* Le mot qui double la couleur du rail. Voir le point 7 : un statut
-   ne doit jamais reposer sur la seule teinte. */
-.dash2 .item .nm .bas {
-  color: var(--crit);
+   ne doit jamais reposer sur la seule teinte.
+   Deux niveaux quand la prealerte est active — « stock faible » sous le
+   seuil, « approche du seuil » juste au-dessus —, et ils ne different
+   pas que par la couleur : la fleche et le mot changent aussi. */
+.dash2 .item .nm .bas,
+.dash2 .item .nm .approche {
   font-size: var(--t-mini);
   font-weight: 600;
   white-space: nowrap;
   flex: none;
 }
+.dash2 .item .nm .bas {
+  color: var(--crit);
+}
+.dash2 .item .nm .approche {
+  color: var(--warn-ink);
+}
 .dash2 .item .nm {
   font-size: var(--t-corps);
   font-weight: 500;
   display: flex;
-  gap: 8px;
+  gap: 2px 8px;
   align-items: center;
   min-width: 0;
 }
@@ -2070,6 +2093,31 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+/* LE NOM DU PRODUIT PASSE AVANT LA MENTION — mais seulement sur la
+   ligne de préalerte.
+
+   La carte fait un tiers de largeur. « approche du seuil » est bien
+   plus long que « stock faible », et posé sur la même ligne il
+   poussait le nom entièrement hors de la case : on lisait « ↘ approche
+   du seuil 5 / 3 » sans savoir de quel produit il s'agissait. Constaté
+   sur un banc réglé à la largeur réelle de la carte, pas supposé.
+
+   La mention descend donc d'une ligne quand la place manque. La règle
+   est volontairement limitée à `.prealerte` : préalerte éteinte, il
+   n'y a aucune ligne de cette classe, et l'étagère reste au pixel près
+   celle d'avant.
+
+   Le même traitement rendrait service aux lignes rouges, qui tronquent
+   aujourd'hui « Savon de Marseille » en « Sav… » pour loger leur
+   mention. C'est un écran déjà validé : à changer sur demande, pas au
+   passage. */
+.dash2 .item.prealerte .nm {
+  flex-wrap: wrap;
+}
+.dash2 .item.prealerte .nm > span {
+  flex: 0 1 auto;
+  min-width: 6ch;
 }
 .dash2 .item .qty {
   font-size: var(--t-petit);
@@ -2103,6 +2151,16 @@
 }
 .dash2 .item.low .jauge i {
   background: var(--crit);
+}
+/* Le second niveau : encore au-dessus du seuil, mais plus pour
+   longtemps. Meme traitement que le rouge, un cran en dessous — c'est
+   une attention, pas un probleme. Les deux teintes viennent des
+   variables du theme et existent en clair comme en sombre. */
+.dash2 .item.prealerte .jauge {
+  background: var(--warn-soft);
+}
+.dash2 .item.prealerte .jauge i {
+  background: var(--warn);
 }
 .dash2 .stock-foot {
   display: flex;

@@ -50,6 +50,7 @@ import { VUES, VUE_PAR_CLE } from "./roles";
 import { CARTE_PAR_CLE, GROUPES, type CleCarte, type CleTuile } from "./registry";
 import { dateDuJour } from "../../lib/dates";
 import { useAuth } from "../../hooks/useAuth";
+import { REGLAGES_PAR_DEFAUT, type ReglagesAlertesStock } from "../../lib/prealerteStock";
 
 /**
  * LE TABLEAU DE BORD v2
@@ -202,6 +203,13 @@ export interface DashboardV2PageProps {
    * aussi : le tableau de bord ne fait que tirer sur la corde.
    */
   onTelechargerLaListe?: () => void;
+  /**
+   * Les réglages de préalerte de la boutique.
+   *
+   * Absents, l'étagère de stock n'a qu'un niveau — exactement ce
+   * qu'elle montrait avant que la préalerte existe.
+   */
+  reglagesAlertes?: ReglagesAlertesStock;
   /** Faux quand la personne n'a pas le droit d'enregistrer une vente. */
   peutVendre?: boolean;
 }
@@ -229,6 +237,7 @@ export const DashboardV2Page: React.FC<DashboardV2PageProps> = ({
   onRafraichir,
   onNavigateTab,
   onTelechargerLaListe,
+  reglagesAlertes = REGLAGES_PAR_DEFAUT,
   peutVendre = true,
 }) => {
   /**
@@ -288,7 +297,7 @@ export const DashboardV2Page: React.FC<DashboardV2PageProps> = ({
   const chiffres = useMemo(() => {
     const ventes = chiffresVentes(toutes, periode);
     const flux = chiffresFlux(toutes, periode, ventes);
-    const stock = chiffresStock(toutes, periode, aujourdhui);
+    const stock = chiffresStock(toutes, periode, aujourdhui, reglagesAlertes);
     return {
       ventes,
       flux,
@@ -300,9 +309,9 @@ export const DashboardV2Page: React.FC<DashboardV2PageProps> = ({
       fournisseurs: chiffresFournisseurs(toutes, periode, supplierPayments, aujourdhui),
       duJour: chiffresDuJour(toutes, aujourdhui),
       top: topProduits(toutes, periode),
-      attention: pointsDAttention(toutes, chiffresStock(toutes, periode, aujourdhui), aujourdhui),
+      attention: pointsDAttention(toutes, stock, aujourdhui),
     };
-  }, [toutes, periode, aujourdhui, supplierPayments]);
+  }, [toutes, periode, aujourdhui, supplierPayments, reglagesAlertes]);
 
   /** Tout le journal, dit en francais. */
   const lignesJournal = useMemo(() => lireJournal(donnees.journal), [donnees.journal]);
@@ -774,7 +783,14 @@ export const DashboardV2Page: React.FC<DashboardV2PageProps> = ({
                       singulier="produit à recommander"
                       pluriel="produits à recommander"
                       ton="warn"
-                      cible="carte-ruptures"
+                      /* « Ruptures à venir » ne montre que ce qui est
+                         déjà sous le seuil. Dès que la préalerte ajoute
+                         des produits au compte, la pastille mène à
+                         l'étagère, qui les montre tous les deux — et
+                         porte les boutons pour agir. */
+                      cible={
+                        chiffres.stock.enPrealerte.length > 0 ? "carte-stock" : "carte-ruptures"
+                      }
                       onAller={allerALaCarte}
                     />
                   )}
