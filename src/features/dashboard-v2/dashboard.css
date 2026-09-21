@@ -2176,16 +2176,31 @@
   display: block;
   font-size: var(--t-petit);
 }
-/* DEUX BOUTONS, ET ILS PASSENT A LA LIGNE PLUTOT QUE DE SE SERRER.
-   La carte fait un tiers de largeur sur desktop et la totalite sur
-   telephone : a l'etroit, deux boutons cote a cote rognent leurs
-   libelles jusqu'a « Telech... ». Ils s'empilent alors, et la zone de
-   clic reste entiere. */
+/* DEUX BOUTONS, SUR UNE SEULE LIGNE.
+
+   Empiles, ils faisaient deux gros paves verts l'un sur l'autre et
+   mangeaient le bas de la carte. Ils tiennent cote a cote meme a 360
+   pixels, a deux conditions : un corps de texte plus petit — ce sont
+   des actions de pied de carte, pas le titre de l'ecran — et un
+   remplissage horizontal reduit. La zone de clic garde sa hauteur.
+
+   ET ILS NE SE RESSEMBLENT PLUS. Deux boutons pleins de la meme
+   couleur se disputent le regard sans rien dire de leur difference.
+   « Preparer la commande » reste l'action principale ; « Telecharger
+   la liste » passe en contour, ce qui allege la carte et respecte la
+   regle du CTA unique par ecran. */
 .dash2 .stock-actions {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   justify-content: flex-end;
   gap: 8px;
+  min-width: 0;
+}
+.dash2 .stock-actions .btn {
+  font-size: var(--t-petit);
+  padding: 8px 10px;
+  white-space: nowrap;
+  flex: 0 1 auto;
 }
 
 /* ── 5. sorties, le ticket de caisse ── */

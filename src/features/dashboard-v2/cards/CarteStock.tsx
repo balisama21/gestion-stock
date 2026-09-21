@@ -131,7 +131,7 @@ export const CarteStock: React.FC<{
         {aRecommander > 0 && (
           <div className="stock-actions">
             {onTelecharger && (
-              <button className="btn" type="button" onClick={onTelecharger}>
+              <button className="btn ghost" type="button" onClick={onTelecharger}>
                 Télécharger la liste
               </button>
             )}
