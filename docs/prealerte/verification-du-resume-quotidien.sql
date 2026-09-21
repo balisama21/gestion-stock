@@ -15,8 +15,9 @@
 --        cloche comme pour l'e-mail.
 --   3-4  L'heure passée, elle sort, et la cloche la montre.
 --   5    Le réveil suivant ne la libère pas une seconde fois.
---   6-7  Le canal e-mail commande l'envoi, et lui seul. Éteint : aucune
---        requête. Allumé : la boutique entre dans la file.
+--   6-7  C'est l'ABONNEMENT d'une personne qui commande l'envoi, et
+--        lui seul. Aucun abonné : aucune requête. Un abonné : la
+--        boutique entre dans la file.
 --   8    Une fois `email_le` posée, elle en sort.
 --   9    UN RÉVEIL MANQUÉ SE RATTRAPE. On ne compare pas l'heure
 --        courante à l'heure choisie — un réveil sauté perdrait alors le
@@ -76,15 +77,19 @@ BEGIN
   INSERT INTO preuve VALUES (5, 'le reveil suivant ne relibere rien', '0 liberee', n || ' liberee');
 
   SELECT public.demander_les_resumes_par_email() INTO n;
-  INSERT INTO preuve VALUES (6, 'canal e-mail eteint : aucun envoi demande', '0 appel', n || ' appel');
+  INSERT INTO preuve VALUES (6, 'aucun abonne : aucun envoi demande', '0 appel', n || ' appel');
 
-  UPDATE public.reglages_alertes_stock SET canaux = ARRAY['email'] WHERE store_id = v_store;
+  -- L e-mail ne se regle plus sur la boutique mais sur la personne.
+  INSERT INTO public.abonnements_alertes_stock(store_id, user_id)
+  SELECT v_store, owner_id FROM public.stores WHERE id = v_store;
   SELECT count(DISTINCT a.store_id) INTO n
     FROM public.prealertes_a_annoncer a
     JOIN public.reglages_alertes_stock r ON r.store_id = a.store_id
    WHERE a.notifiee_le IS NOT NULL AND a.email_le IS NULL
-     AND r.prealerte_active AND 'email' = ANY (r.canaux);
-  INSERT INTO preuve VALUES (7, 'canal e-mail allume : une boutique a servir', '1 boutique', n || ' boutique');
+     AND r.prealerte_active
+     AND EXISTS (SELECT 1 FROM public.abonnements_alertes_stock b
+                  WHERE b.store_id = a.store_id AND 'email' = ANY (b.canaux));
+  INSERT INTO preuve VALUES (7, 'un abonne : une boutique a servir', '1 boutique', n || ' boutique');
 
   UPDATE public.prealertes_stock SET email_le = now() WHERE store_id = v_store;
   SELECT public.demander_les_resumes_par_email() INTO n;

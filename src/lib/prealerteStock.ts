@@ -47,12 +47,17 @@ export type ModePrealerte = "ecart" | "pourcentage";
 export type FrequencePrealerte = "mouvement" | "quotidien";
 
 /**
- * Les canaux EN PLUS de la notification dans l'application, qui est
- * toujours active et n'est donc pas un réglage.
+ * Par où la préalerte atteint quelqu'un, EN PLUS de la notification
+ * dans l'application — qui est toujours active et n'est donc pas un
+ * réglage.
+ *
+ * Le canal appartient à la PERSONNE et non à la boutique : recevoir un
+ * message dans sa boîte est une décision de celui qui le reçoit. Voir
+ * `abonnements_alertes_stock` et `useAbonnementAlertesStock`.
  *
  * « whatsapp » est déjà accepté par la base et par ce type : le jour où
- * on l'enverra, il n'y aura ni migration ni changement de forme, juste un
- * envoyeur à écrire.
+ * on l'enverra, il n'y aura ni migration ni changement de forme, juste
+ * un envoyeur à écrire.
  */
 export type CanalPrealerte = "email" | "whatsapp";
 
@@ -64,7 +69,6 @@ export interface ReglagesAlertesStock {
   frequence: FrequencePrealerte;
   /** Heure du résumé quotidien, en heure de Madagascar. */
   heureResume: number;
-  canaux: CanalPrealerte[];
 }
 
 /**
@@ -81,7 +85,6 @@ export const REGLAGES_PAR_DEFAUT: ReglagesAlertesStock = {
   pourcentage: 50,
   frequence: "quotidien",
   heureResume: 8,
-  canaux: [],
 };
 
 /**
@@ -223,9 +226,6 @@ export function lireReglages(ligne: LigneReglages | null | undefined): ReglagesA
     pourcentage: borner(ligne.pourcentage, BORNES.pourcentage),
     frequence: ligne.frequence === "mouvement" ? "mouvement" : "quotidien",
     heureResume: borner(ligne.heure_resume, BORNES.heureResume),
-    canaux: (ligne.canaux ?? []).filter(
-      (c): c is CanalPrealerte => c === "email" || c === "whatsapp",
-    ),
   };
 }
 
@@ -243,7 +243,6 @@ export function ecrireReglages(
     pourcentage: borne.pourcentage,
     frequence: borne.frequence,
     heure_resume: borne.heureResume,
-    canaux: borne.canaux,
   };
 }
 

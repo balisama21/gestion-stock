@@ -145,18 +145,6 @@ export const AlertesStockSection: React.FC<ReglagesAlertesStockProps> = ({
 
   const modifie = JSON.stringify(effectifs) !== JSON.stringify(reglages);
   const exemple = exempleDePrealerte(produits, effectifs);
-  const parEmail = brouillon.canaux.includes("email");
-
-  const basculerEmail = (actif: boolean) =>
-    setBrouillon((p) => ({
-      ...p,
-      // On filtre puis on rajoute : « whatsapp », le jour où il existera,
-      // ne doit pas disparaître parce qu'on a touché à l'e-mail.
-      canaux: actif
-        ? [...p.canaux.filter((c) => c !== "email"), "email"]
-        : p.canaux.filter((c) => c !== "email"),
-    }));
-
   const soumettre = async () => {
     setEnvoi(true);
     setErreur(null);
@@ -329,7 +317,7 @@ export const AlertesStockSection: React.FC<ReglagesAlertesStockProps> = ({
 
           <SettingsRow
             label="Dans l'application"
-            hint="La cloche en haut de l'écran, avec la liste des produits concernés."
+            hint="La cloche en haut de l'écran, avec la liste des produits concernés. Chacun la voit en ouvrant la sienne."
           >
             <div className="flex items-center gap-2 sm:justify-end">
               <Monitor className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden="true" />
@@ -337,21 +325,24 @@ export const AlertesStockSection: React.FC<ReglagesAlertesStockProps> = ({
             </div>
           </SettingsRow>
 
-          <SettingsRow
-            label="Par e-mail"
-            hint="Envoyé à l'adresse du propriétaire de la boutique, avec la liste des produits à réapprovisionner."
-            htmlFor="prealerte-email"
-          >
-            <div className="flex items-center gap-3 sm:justify-end">
-              <Mail className="h-4 w-4 shrink-0 text-muted-foreground sm:hidden" />
-              <Toggle
-                id="prealerte-email"
-                label="Préalerte par e-mail"
-                checked={parEmail}
-                onChange={basculerEmail}
-              />
+          {/* L'E-MAIL NE SE RÈGLE PAS ICI, ET C'EST VOULU.
+              Cette section décide du stock de la boutique ; recevoir un
+              message dans sa boîte est une décision personnelle, que
+              chacun prend pour lui — vous compris. On dit donc où elle
+              se prend, plutôt que de laisser chercher. */}
+          <SettingsBlock>
+            <div className="flex items-start gap-2.5 text-xs leading-relaxed text-muted-foreground">
+              <Mail className="mt-0.5 h-3.5 w-3.5 shrink-0" aria-hidden="true" />
+              <span>
+                L&apos;envoi par e-mail se règle personne par personne, dans{" "}
+                <strong className="font-semibold text-foreground">
+                  Paramètres → Notifications
+                </strong>
+                . Chacun de vos collaborateurs peut y demander le résumé pour sa propre adresse, et
+                personne ne le reçoit tant qu&apos;il ne l&apos;a pas demandé.
+              </span>
             </div>
-          </SettingsRow>
+          </SettingsBlock>
         </>
       )}
 

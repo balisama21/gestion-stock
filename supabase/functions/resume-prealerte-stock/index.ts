@@ -22,7 +22,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
  * L'appel porte la clé anon, qui est publique et voyage déjà dans le
  * paquet client. Ce n'est donc pas un secret, et c'est assumé : tout ce
  * qu'un appel non désiré peut provoquer, c'est l'envoi d'un e-mail qui
- * était de toute façon dû, à une adresse que l'appelant ne choisit pas.
+ * était de toute façon dû, à des adresses que l'appelant ne choisit pas.
  * Rien ne se crée, rien ne se lit en retour — la réponse ne contient
  * qu'un compte.
  *
@@ -87,24 +87,41 @@ serve(async (req: Request) => {
     if (erreurLignes) return json({ error: erreurLignes.message }, 500);
     if (!lignes || lignes.length === 0) return json({ envoye: 0, raison: "rien en attente" });
 
-    // 2. À qui écrire. L'adresse du PROPRIÉTAIRE, et non celle de la
-    //    boutique, qui n'est renseignée que par intermittence.
+    // 2. À qui écrire. CEUX QUI L'ONT DEMANDÉ, et eux seuls.
+    //
+    //    Ce n'était au début que le propriétaire. Mais un gérant, un
+    //    responsable des achats, un comptable sont souvent ceux qui
+    //    commandent — et recevoir un e-mail est une décision de celui
+    //    qui le reçoit, pas de son patron. Chacun s'inscrit donc pour
+    //    lui-même, et personne n'est inscrit au départ.
     const { data: boutique } = await supabase
       .from("stores")
-      .select("name, owner_id")
+      .select("name")
       .eq("id", store_id)
       .single();
 
     if (!boutique) return json({ error: "Boutique introuvable." }, 404);
 
-    const { data: proprietaire } = await supabase
-      .from("profiles")
-      .select("email, full_name")
-      .eq("id", boutique.owner_id)
-      .single();
+    const { data: abonnes } = await supabase
+      .from("abonnements_alertes_stock")
+      .select("user_id, canaux")
+      .eq("store_id", store_id)
+      .contains("canaux", ["email"]);
 
-    if (!proprietaire?.email) {
-      return json({ envoye: 0, raison: "le proprietaire n a pas d adresse" });
+    const identifiants = (abonnes ?? []).map((a) => a.user_id as string);
+    if (identifiants.length === 0) return json({ envoye: 0, raison: "aucun abonne" });
+
+    const { data: personnes } = await supabase
+      .from("profiles")
+      .select("email")
+      .in("id", identifiants);
+
+    const destinataires = (personnes ?? [])
+      .map((p) => (p.email as string | null)?.trim())
+      .filter((e): e is string => Boolean(e));
+
+    if (destinataires.length === 0) {
+      return json({ envoye: 0, raison: "aucun abonne n a d adresse" });
     }
 
     // 3. Le message. Une ligne par produit, au format exact demandé :
@@ -166,9 +183,9 @@ serve(async (req: Request) => {
     <div style="padding:20px 28px 28px;">
       ${bouton}
       <p style="margin:20px 0 0;color:#8a877f;font-size:12px;line-height:1.6;">
-        Vous recevez ce message parce que la préalerte de stock est active pour
-        ${echapper(boutique.name)}. Elle se règle dans Paramètres, section
-        « Alertes de stock ».
+        Vous recevez ce message parce que vous avez demandé le résumé de
+        préalerte pour ${echapper(boutique.name)}. Pour ne plus le recevoir :
+        Paramètres, section « Notifications ».
       </p>
     </div>
   </div>
@@ -183,7 +200,11 @@ serve(async (req: Request) => {
       },
       body: JSON.stringify({
         from: "Tantana Suite <noreply@balsama.app>",
-        to: [proprietaire.email],
+        // Un seul envoi pour toute l'équipe abonnée : c'est atomique,
+        // donc aucun risque qu'un destinataire reçoive deux fois le
+        // même résumé parce qu'un autre a échoué. Ils travaillent dans
+        // la même boutique et se connaissent déjà.
+        to: destinataires,
         subject: `${titre} — ${boutique.name}`,
         html,
       }),
@@ -213,7 +234,7 @@ serve(async (req: Request) => {
       return json({ envoye: l.length, avertissement: "marquage echoue" });
     }
 
-    return json({ envoye: l.length });
+    return json({ envoye: l.length, destinataires: destinataires.length });
   } catch (err: unknown) {
     const message = err instanceof Error ? err.message : "Erreur interne";
     return json({ error: message }, 500);

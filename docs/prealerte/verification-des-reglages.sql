@@ -28,11 +28,12 @@
 --   6    Une boutique verrouillée ne se règle pas, comme les douze
 --        tables refermées le 20/09. Le refus est ici une ERREUR 42501,
 --        parce qu'il porte sur une création.
---   7-9  Les CHECK refusent ce qu'un JSON aurait laissé passer : un
+--   7-10 Les CHECK refusent ce qu'un JSON aurait laissé passer : un
 --        mode inconnu, un écart nul qui poserait la préalerte sur le
---        seuil lui-même, un canal qui n'existe pas.
---   10   « whatsapp » est DÉJÀ accepté. Le jour où on l'enverra, il n'y
---        aura pas de migration — seulement un envoyeur à écrire.
+--        seuil lui-même, une heure impossible, une fréquence inconnue.
+--
+--        Le choix du CANAL n'est plus ici : il a déménagé sur la
+--        personne, le 21/09. Voir `verification-des-abonnements.sql`.
 
 BEGIN;
 
@@ -110,18 +111,17 @@ BEGIN
   END;
 
   BEGIN
-    INSERT INTO public.reglages_alertes_stock(store_id, canaux) VALUES (v_fermee, ARRAY['sms']);
-    INSERT INTO preuve VALUES (9, 'un canal inconnu', 'refuse', 'ACCEPTE');
+    INSERT INTO public.reglages_alertes_stock(store_id, heure_resume) VALUES (v_fermee, 99);
+    INSERT INTO preuve VALUES (9, 'une heure impossible', 'refuse', 'ACCEPTE');
   EXCEPTION WHEN check_violation THEN
-    INSERT INTO preuve VALUES (9, 'un canal inconnu', 'refuse', 'refuse');
+    INSERT INTO preuve VALUES (9, 'une heure impossible', 'refuse', 'refuse');
   END;
 
   BEGIN
-    INSERT INTO public.reglages_alertes_stock(store_id, canaux)
-    VALUES (v_fermee, ARRAY['email', 'whatsapp']);
-    INSERT INTO preuve VALUES (10, 'whatsapp est deja autorise', 'accepte', 'accepte');
+    INSERT INTO public.reglages_alertes_stock(store_id, frequence) VALUES (v_fermee, 'parfois');
+    INSERT INTO preuve VALUES (10, 'une frequence inconnue', 'refuse', 'ACCEPTE');
   EXCEPTION WHEN check_violation THEN
-    INSERT INTO preuve VALUES (10, 'whatsapp est deja autorise', 'accepte', 'REFUSE');
+    INSERT INTO preuve VALUES (10, 'une frequence inconnue', 'refuse', 'refuse');
   END;
 END
 $preuve$;

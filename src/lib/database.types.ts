@@ -26,6 +26,42 @@ export type Database = {
   }
   public: {
     Tables: {
+      abonnements_alertes_stock: {
+        Row: {
+          canaux: string[]
+          cree_le: string
+          store_id: string
+          user_id: string
+        }
+        Insert: {
+          canaux?: string[]
+          cree_le?: string
+          store_id: string
+          user_id: string
+        }
+        Update: {
+          canaux?: string[]
+          cree_le?: string
+          store_id?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "abonnements_alertes_stock_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "abonnements_alertes_stock_user_id_fkey"
+            columns: ["user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       access_codes: {
         Row: {
           activated_at: string | null
@@ -1876,7 +1912,6 @@ export type Database = {
       }
       reglages_alertes_stock: {
         Row: {
-          canaux: string[]
           ecart: number
           frequence: string
           heure_resume: number
@@ -1887,7 +1922,6 @@ export type Database = {
           store_id: string
         }
         Insert: {
-          canaux?: string[]
           ecart?: number
           frequence?: string
           heure_resume?: number
@@ -1898,7 +1932,6 @@ export type Database = {
           store_id: string
         }
         Update: {
-          canaux?: string[]
           ecart?: number
           frequence?: string
           heure_resume?: number
@@ -2828,6 +2861,13 @@ export type Database = {
       demander_les_resumes_par_email: { Args: never; Returns: number }
       est_dans_la_boutique: { Args: { p_store_id: string }; Returns: boolean }
       est_invite_a: { Args: { p_evenement_id: string }; Returns: boolean }
+      fonctions_de_prealerte_ouvertes: {
+        Args: never
+        Returns: {
+          droits: string
+          fonction: string
+        }[]
+      }
       fuseau_des_boutiques: { Args: never; Returns: string }
       generate_access_code: { Args: never; Returns: string }
       get_auth_role: { Args: never; Returns: string }

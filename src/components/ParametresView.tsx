@@ -942,7 +942,13 @@ export const ParametresView: React.FC<ParametresViewProps> = ({
         />
       )}
 
-      {activeTab === "notifications" && <NotificationsSection />}
+      {activeTab === "notifications" && (
+        <NotificationsSection
+          storeId={workspace.activeStore?.id ?? null}
+          userId={user?.id ?? null}
+          prealerteActive={alertesStock.reglages.prealerteActive}
+        />
+      )}
 
       {activeTab === "preferences" && (
         <>

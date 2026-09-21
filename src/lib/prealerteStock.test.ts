@@ -147,7 +147,7 @@ describe("lire ce que la base rend", () => {
     expect(lireReglages(null)).toEqual(REGLAGES_PAR_DEFAUT);
   });
 
-  it("borne les valeurs et écarte les canaux inconnus", () => {
+  it("borne les valeurs hors limites", () => {
     const lu = lireReglages({
       store_id: "s",
       prealerte_active: true,
@@ -156,14 +156,12 @@ describe("lire ce que la base rend", () => {
       pourcentage: 0,
       frequence: "mouvement",
       heure_resume: 40,
-      canaux: ["email", "sms"],
       mis_a_jour_le: "2026-09-20T00:00:00Z",
     });
 
     expect(lu.ecart).toBe(BORNES.ecart.max);
     expect(lu.pourcentage).toBe(BORNES.pourcentage.min);
     expect(lu.heureResume).toBe(BORNES.heureResume.max);
-    expect(lu.canaux).toEqual(["email"]);
   });
 
   it("un mode ou une fréquence inconnus retombent sur le défaut", () => {
@@ -175,12 +173,18 @@ describe("lire ce que la base rend", () => {
       pourcentage: 50,
       frequence: "autre",
       heure_resume: 8,
-      canaux: [],
       mis_a_jour_le: "2026-09-20T00:00:00Z",
     });
 
     expect(lu.mode).toBe("ecart");
     expect(lu.frequence).toBe("quotidien");
+  });
+
+  it("le canal d'envoi n'est plus un réglage de boutique", () => {
+    // Il a déménagé sur la personne : `abonnements_alertes_stock`.
+    // Le patron ne décide pas de ce qui arrive dans la boîte des
+    // autres, et le type n'en porte donc plus la trace.
+    expect(Object.keys(REGLAGES_PAR_DEFAUT)).not.toContain("canaux");
   });
 });
 

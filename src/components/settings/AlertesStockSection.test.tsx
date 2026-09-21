@@ -54,7 +54,16 @@ describe("les réglages de la préalerte de stock", () => {
     allumer();
     expect(screen.getByText("Mode de déclenchement")).toBeTruthy();
     expect(screen.getByText("Fréquence")).toBeTruthy();
-    expect(screen.getByText("Par e-mail")).toBeTruthy();
+  });
+
+  it("l'e-mail ne se règle PAS ici, et elle dit où", () => {
+    // Cette section décide du stock de la boutique. Recevoir un
+    // message dans sa boîte est une décision personnelle, que chacun
+    // prend pour lui — le propriétaire compris.
+    afficher();
+    allumer();
+    expect(screen.queryByRole("switch", { name: "Préalerte par e-mail" })).toBeNull();
+    expect(screen.getByText(/Paramètres → Notifications/)).toBeTruthy();
   });
 
   it("n'affiche que le champ du mode choisi", () => {
@@ -133,7 +142,6 @@ describe("les réglages de la préalerte de stock", () => {
     fireEvent.change(screen.getByLabelText("Pourcentage au-dessus du seuil"), {
       target: { value: "75" },
     });
-    fireEvent.click(screen.getByRole("switch", { name: "Préalerte par e-mail" }));
     fireEvent.click(screen.getByRole("button", { name: /Enregistrer/ }));
 
     await waitFor(() => expect(enregistrer).toHaveBeenCalledTimes(1));
@@ -142,7 +150,6 @@ describe("les réglages de la préalerte de stock", () => {
       mode: "pourcentage",
       pourcentage: 75,
       frequence: "quotidien",
-      canaux: ["email"],
     });
   });
 
