@@ -62,6 +62,10 @@ import {
 } from "../lib/paperFormats";
 import { dateDuJour } from "../lib/dates";
 import { useRechercheInitiale } from "../lib/cibleRecherche";
+import { FiletDeSecurite } from "../features/documents/FiletDeSecurite";
+import { SortieDocument } from "../features/documents/SortieDocument";
+import { documentDeVente } from "../features/documents/lib/buildDocument";
+import type { ReglagesDocuments } from "../features/documents/lib/reglages";
 
 type Client = Database["public"]["Tables"]["clients"]["Row"];
 
@@ -85,6 +89,15 @@ interface VentesViewProps {
   sellers: Seller[];
   locale: LocaleSetting;
   settings?: StoreSettings;
+  /**
+   * Les nouveaux documents, et les réglages de la boutique.
+   *
+   * Drapeau baissé, cet écran se comporte exactement comme avant :
+   * le reçu et la facture d'aujourd'hui, au caractère près. C'est la
+   * garantie qui permet de déployer sans rien risquer.
+   */
+  documentsV2?: boolean;
+  reglagesDocuments?: ReglagesDocuments;
   /**
    * Enregistre un panier : une ligne par produit, reliées par un ticket.
    * Un seul produit reste un panier d'une ligne — un seul chemin, donc
@@ -139,6 +152,8 @@ export const VentesView: React.FC<VentesViewProps> = ({
   sellers,
   locale,
   settings,
+  documentsV2 = false,
+  reglagesDocuments,
   onAddSaleTicket,
   panierInitial,
   onPanierRepris,
@@ -256,6 +271,37 @@ export const VentesView: React.FC<VentesViewProps> = ({
    * seconde mise en page : ce que l'utilisateur voit est exactement ce
    * qu'il télécharge.
    */
+  /*
+   * Le repli automatique. Si les nouveaux documents tombent — une
+   * donnée inattendue, un modèle mal réglé —, on retient la chute et
+   * l'ancien reçu reprend sa place, sans que personne n'ait rien à
+   * faire. C'est le complément de l'interrupteur des Paramètres :
+   * celui-là se coupe à la main, celui-ci se déclenche tout seul.
+   */
+  const [v2Tombee, setV2Tombee] = useState(false);
+  const utiliserV2 = documentsV2 && !v2Tombee && Boolean(reglagesDocuments);
+
+  const documentNouveau = useMemo(() => {
+    if (!utiliserV2 || !reglagesDocuments || ventesDuTicket.length === 0) return null;
+    return documentDeVente({
+      ventes: ventesDuTicket,
+      produits: products,
+      client: clients.find((c) => c.id === selectedReceiptSale?.clientId) ?? null,
+      boutique: settings,
+      reglages: reglagesDocuments,
+      locale,
+    });
+  }, [
+    utiliserV2,
+    reglagesDocuments,
+    ventesDuTicket,
+    products,
+    clients,
+    selectedReceiptSale,
+    settings,
+    locale,
+  ]);
+
   const documentRef = useRef<HTMLDivElement>(null);
   const [exportEnCours, setExportEnCours] = useState<null | "pdf" | "image">(null);
   const [exportErreur, setExportErreur] = useState<string | null>(null);
@@ -1440,8 +1486,24 @@ export const VentesView: React.FC<VentesViewProps> = ({
         </Modal>
       )}
 
+      {/* ── Le nouveau document, quand le drapeau est levé ──
+          L'ancienne modale reste juste en dessous, inchangée : c'est
+          elle qui reprend si le drapeau retombe ou si la v2 échoue. */}
+      {selectedReceiptSale && documentNouveau && (
+        <FiletDeSecurite secours={null} onErreur={() => setV2Tombee(true)}>
+          <SortieDocument
+            document={documentNouveau}
+            reglages={reglagesDocuments!}
+            onFermer={() => {
+              setSelectedReceiptSale(null);
+              setVentesRecu(null);
+            }}
+          />
+        </FiletDeSecurite>
+      )}
+
       {/* Receipt / Facture Preview & Printing Modal */}
-      {selectedReceiptSale && (
+      {selectedReceiptSale && !documentNouveau && (
         <Modal
           open
           onClose={() => {

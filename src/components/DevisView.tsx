@@ -20,6 +20,7 @@ import { DataList, type DataListItem } from "./shared/DataList";
 import { StatCol } from "./shared/StatBar";
 import { Modal } from "./shared/Modal";
 import { DocumentDevis } from "./devis/DocumentDevis";
+import type { ReglagesDocuments } from "../features/documents/lib/reglages";
 import {
   STATUTS_DEVIS,
   classeStatut,
@@ -36,6 +37,12 @@ import { useRechercheInitiale } from "../lib/cibleRecherche";
 type Client = Database["public"]["Tables"]["clients"]["Row"];
 
 interface DevisViewProps {
+  /**
+   * Les nouveaux documents, et les réglages de la boutique.
+   * Drapeau baissé, le devis imprimé est celui d'aujourd'hui.
+   */
+  documentsV2?: boolean;
+  reglagesDocuments?: ReglagesDocuments;
   quotes: Devis[];
   quoteItems: LigneDevis[];
   clients: Client[];
@@ -106,6 +113,8 @@ const LIGNE_VIDE: LigneSaisie = {
  * est figé — c'est la base qui le tient, pas cet écran.
  */
 export const DevisView: React.FC<DevisViewProps> = ({
+  documentsV2,
+  reglagesDocuments,
   quotes,
   quoteItems,
   clients,
@@ -676,6 +685,8 @@ export const DevisView: React.FC<DevisViewProps> = ({
       </Modal>
 
       <DocumentDevis
+        documentsV2={documentsV2}
+        reglagesDocuments={reglagesDocuments}
         devis={devisAImprimer}
         lignes={devisAImprimer ? (lignesDe[devisAImprimer.id] ?? []) : []}
         settings={settings}

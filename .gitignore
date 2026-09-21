@@ -37,3 +37,10 @@ dist-ssr
 supabase/.temp/
 # Local Netlify folder
 .netlify
+
+# Bancs d'essai temporaires — ils servent à regarder un écran pendant
+# qu'on le construit, et n'ont rien à faire en production. Ils sont
+# nommés ici plutôt que supprimés à la main : un « git add -A » en a
+# déjà emporté un dans un commit.
+/public/banc/
+/src/features/documents/banc-app.tsx

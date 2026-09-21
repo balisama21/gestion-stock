@@ -264,3 +264,67 @@ sortira. Sans aucune vente, l'aperçu le dit et s'efface.
   20 513 erreurs de retours chariot) · build OK · **308 tests** ·
   capture `parametres-documents.png`.
 - **Reste à faire** : rien pour cette phase.
+
+---
+
+## Phase 6 — Branchement Ventes / Devis / Commandes + drapeau — TERMINÉE
+
+- **Fait** : `documentDeDevis` et `documentDeCommande`, une fenêtre de
+  sortie partagée par les cinq documents, un filet qui rattrape une
+  erreur de la v2, et le branchement des trois écrans derrière le
+  drapeau.
+- **Fichiers créés** : `features/documents/SortieDocument.tsx`,
+  `features/documents/FiletDeSecurite.tsx`,
+  `features/documents/drapeau.test.ts` (13 tests).
+- **Fichiers modifiés** : `lib/buildDocument.ts` (+ devis, + commande),
+  `VentesView.tsx`, `CommandesView.tsx`, `DevisView.tsx`,
+  `devis/DocumentDevis.tsx`, `BalsamaApp.tsx`, `.gitignore`.
+
+### Comment le drapeau se lit, du plus fort au plus faible
+
+1. `?documents_v2=0` ou `1` dans l'adresse — vaut pour l'appareil, se
+   retient, et nettoie la barre. **C'est le secours de dernier
+   recours**, celui qui marche même si l'écran de réglages n'est plus
+   atteignable.
+2. `localStorage.documents_v2` — un navigateur, pour essayer.
+3. **`personnalisation.documents.actif`** — la boutique, en base.
+   C'est celui qui se coupe depuis un téléphone, sans redéployer, par
+   Paramètres → Documents.
+4. `VITE_DOCUMENTS_V2` — tout le monde, décidé au déploiement.
+
+Treize tests vérifient surtout **qui l'emporte sur qui** : un ordre
+faux, et l'on ne peut plus éteindre.
+
+### Décisions prises à ma place
+
+**Un filet de sécurité sous la v2.** *Raison* : le déploiement se fait
+sans validation humaine ; si un document tombe, l'écran ne doit pas
+devenir blanc devant quelqu'un qui facture. Le filet retient la chute,
+l'écran cesse de demander la v2, et l'ancien document reprend sa place
+tout seul. *Revenir en arrière* : retirer `<FiletDeSecurite>` des trois
+écrans.
+
+**L'ancienne modale de Ventes n'est pas déplacée d'une ligne.** *Raison* :
+la réécrire pour la réutiliser comme secours aurait touché trois cents
+lignes de JSX qui marchent. Elle est simplement rendue conditionnelle
+— `!documentNouveau` — et c'est elle qui revient quand la v2 est
+absente ou tombée. *Revenir en arrière* : retirer la condition.
+
+**Le bon de commande client est une nouveauté entière.** L'écran
+Commandes n'avait aucune impression. Drapeau baissé, le bouton
+n'apparaît pas ; il n'y a donc rien à casser.
+
+**Le choix de modèle sur un document précis ne s'enregistre pas.**
+*Raison* : c'est la consigne, et c'est juste — un vendeur ne redéfinit
+pas l'identité de la boutique en imprimant une facture.
+
+### La mesure qui compte
+
+Les neuf fichiers existants modifiés par la mission ont été comparés à
+leur version d'avant (`bb152b0`), retours chariot retirés des deux
+côtés : **309 erreurs eslint avant, 306 après**. La mission n'en
+ajoute aucune. Détail dans `bloques.md`.
+
+- **Vérifications** : tsc OK · lint OK sur les fichiers de la mission ·
+  build OK · **321 tests**.
+- **Reste à faire** : rien pour cette phase.

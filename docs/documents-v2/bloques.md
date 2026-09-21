@@ -38,6 +38,19 @@ propre sur les fichiers que cette mission crée ou modifie. Il l'est —
 zéro erreur, zéro avertissement une fois les fichiers temporaires
 retirés.
 
+### La mesure qui prouve que la mission n’en ajoute pas
+
+Les neuf fichiers existants que cette mission modifie ont été comparés
+à leur version du commit `bb152b0`, celui d’avant la mission, retours
+chariot retirés des deux côtés pour comparer ce qui est comparable :
+
+| | Erreurs eslint |
+| --- | --- |
+| Avant la mission | **309** |
+| Apres | **306** |
+
+Trois de moins. Les fichiers **créés** par la mission, eux, sont à zéro.
+
 **Pour y remédier un jour**, hors de cette mission : poser un
 `.gitattributes` avec `* text=auto eol=lf`, relancer
 `prettier --write .` en une fois, et commiter ce nettoyage seul.

@@ -26,6 +26,12 @@ import { formatCurrency, getProductLabel, getSaleLabel,
 import { PageHeader } from "./shared/PageHeader";
 import { StatCol } from "./shared/StatBar";
 import { Modal } from "./shared/Modal";
+import type { StoreSettings } from "../types";
+import { Printer } from "lucide-react";
+import { FiletDeSecurite } from "../features/documents/FiletDeSecurite";
+import { SortieDocument } from "../features/documents/SortieDocument";
+import { documentDeCommande } from "../features/documents/lib/buildDocument";
+import type { ReglagesDocuments } from "../features/documents/lib/reglages";
 
 /**
  * Adaptateur : le type Product ici vient directement de Supabase (snake_case),
@@ -66,6 +72,18 @@ type PaymentStatus = Database["public"]["Enums"]["payment_status"];
 
 interface CommandesViewProps {
   orders: Order[];
+  /**
+   * Les nouveaux documents, et les réglages de la boutique.
+   *
+   * Les commandes n'avaient AUCUNE impression jusqu'ici : le bon de
+   * commande client est une nouveauté entière. Drapeau baissé, le
+   * bouton n'apparaît simplement pas, et cet écran reste ce qu'il
+   * était.
+   */
+  documentsV2?: boolean;
+  reglagesDocuments?: ReglagesDocuments;
+  /** L identite de la boutique, pour l en-tete du bon. Lecture seule. */
+  settings?: StoreSettings;
   clients: Client[];
   products: Product[];
   isOwner: boolean;
@@ -141,6 +159,9 @@ const paymentConfig: Record<PaymentStatus, { label: string; color: string; bg: s
 
 export const CommandesView: React.FC<CommandesViewProps> = ({
   orders,
+  documentsV2 = false,
+  reglagesDocuments,
+  settings,
   clients,
   products,
   isOwner,
@@ -157,6 +178,29 @@ export const CommandesView: React.FC<CommandesViewProps> = ({
   const [filterStatus, setFilterStatus] = useState<OrderStatus | "all">("all");
   const [filterPayment, setFilterPayment] = useState<PaymentStatus | "all">("all");
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
+
+  /*
+   * LE BON DE COMMANDE CLIENT.
+   *
+   * Imprimer ce bon ne crée RIEN en base : il lit la commande telle
+   * qu'elle y est enregistrée, montants compris, et s'arrête là.
+   * Le repli automatique vaut ici comme ailleurs — si la v2 tombe, le
+   * bouton disparaît plutôt que de vider l'écran.
+   */
+  const [bonAImprimer, setBonAImprimer] = useState<Order | null>(null);
+  const [v2Tombee, setV2Tombee] = useState(false);
+  const bonImprimable = documentsV2 && !v2Tombee && Boolean(reglagesDocuments);
+
+  const documentDuBon =
+    bonImprimable && bonAImprimer && reglagesDocuments
+      ? documentDeCommande({
+          commande: bonAImprimer,
+          lignes: bonAImprimer.items ?? [],
+          client: bonAImprimer.client ?? null,
+          boutique: settings,
+          reglages: reglagesDocuments,
+        })
+      : null;
   const [showNewOrder, setShowNewOrder] = useState(false);
   const [showPaymentModal, setShowPaymentModal] = useState(false);
   const [paymentAmount, setPaymentAmount] = useState("");
@@ -557,6 +601,18 @@ export const CommandesView: React.FC<CommandesViewProps> = ({
                    <ChevronDown
                       className={`w-4 h-4 text-muted-foreground transition-transform ${isSelected ? "rotate-180" : ""}`}
                     />
+                    {bonImprimable && (
+                      <button
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setBonAImprimer(order);
+                        }}
+                        className="p-1.5 text-muted-foreground hover:text-foreground bg-muted rounded-lg transition-colors"
+                        title="Imprimer le bon de commande"
+                      >
+                        <Printer className="w-3.5 h-3.5" />
+                      </button>
+                    )}
                     {onDeleteOrder && (
                       <button
                         onClick={(e) => {
@@ -737,6 +793,20 @@ export const CommandesView: React.FC<CommandesViewProps> = ({
       )}
 
       {/* ── Encaissement d'une commande ── */}
+      {documentDuBon && (
+        <FiletDeSecurite secours={null} onErreur={() => setV2Tombee(true)}>
+          <SortieDocument
+            document={documentDuBon}
+            reglages={reglagesDocuments!}
+            onFermer={() => setBonAImprimer(null)}
+            /* Un bon de commande se remet ou s'envoie : il ne sort pas
+               d'une imprimante de comptoir. */
+            formats={["a4"]}
+            titre="Bon de commande"
+          />
+        </FiletDeSecurite>
+      )}
+
       {showPaymentModal && selectedOrder && (
         <Modal
           open

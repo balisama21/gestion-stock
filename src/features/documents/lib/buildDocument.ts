@@ -481,3 +481,210 @@ export function documentDeVente(source: SourceVente): Document {
     ),
   };
 }
+
+/* ═══════════════════════════════════════════════════════════════════
+   LE DEVIS ET LE BON DE COMMANDE CLIENT
+
+   Les mêmes règles que la vente, et les mêmes fonctions de mise en
+   forme. Ce qui change tient en trois choses : le titre, ce que la
+   ligne de date annonce, et ce que le document réclame — un devis ne
+   réclame rien, une commande réclame un solde.
+   ═══════════════════════════════════════════════════════════════════ */
+
+type Devis = Database["public"]["Tables"]["quotes"]["Row"];
+type LigneDevis = Database["public"]["Tables"]["quote_items"]["Row"];
+type Commande = Database["public"]["Tables"]["orders"]["Row"];
+type LigneCommande = Database["public"]["Tables"]["order_items"]["Row"];
+
+const MENTIONS_DEVIS =
+  "Offre valable jusqu'à la date indiquée. La commande est ferme dès acceptation écrite " +
+  "et versement de l'acompte convenu.";
+
+const MENTIONS_COMMANDE =
+  "Commande ferme dès signature. Livraison sous réserve de disponibilité. Le solde est " +
+  "réglé au plus tard à la livraison.";
+
+export interface SourceDevis {
+  devis: Devis;
+  lignes: LigneDevis[];
+  /** La fiche client, quand le devis y est rattaché. */
+  client?: Client | null;
+  boutique?: StoreSettings;
+  reglages: ReglagesDocuments;
+  locale?: LocaleSetting;
+}
+
+/**
+ * Un devis, mis en forme pour le papier.
+ *
+ * ── IL NE PARLE PAS D'ARGENT DÉJÀ VERSÉ ────────────────────────────
+ *
+ * `paye` et `reste` sont à `null`, et ce n'est pas un oubli : un
+ * devis est une proposition, pas une créance. Afficher « déjà payé :
+ * 0 » sur une offre laisserait croire qu'elle est due.
+ */
+export function documentDeDevis(source: SourceDevis): Document {
+  const { devis, lignes, client, boutique, reglages } = source;
+  const locale = source.locale ?? "FR";
+  const devise = util(boutique?.currencySymbol) ?? "Ar";
+
+  // Le total vient de la base ; à défaut, la somme des lignes déjà
+  // enregistrées — le même calcul que l'écran Devis.
+  const total =
+    devis.total ?? lignes.reduce((n, l) => n + (l.total ?? l.quantite * l.prix_unitaire), 0);
+
+  const numero = numeroteDocument(devis.numero, PREFIXES.devis);
+  const nomBoutique = util(boutique?.storeName);
+
+  const meta: LigneMeta[] = [
+    numero ? { libelle: "N°", valeur: numero } : null,
+    devis.date ? { libelle: "Date", valeur: dateCourte(devis.date, locale) } : null,
+    devis.valide_jusqu_au
+      ? { libelle: "Valable jusqu'au", valeur: dateCourte(devis.valide_jusqu_au, locale) }
+      : null,
+  ].filter((l): l is LigneMeta => l !== null);
+
+  return {
+    type: "devis",
+    titre: TITRES.devis,
+    numero,
+    meta,
+    emetteur: enTeteBoutique(boutique, reglages),
+    destinataire: destinataireDeVente(client, devis.client_nom, "Devis pour"),
+    lignes: lignes.map((l) => ({
+      id: l.id,
+      designation: util(l.designation) ?? "Article",
+      detail: null,
+      quantite: l.quantite,
+      unite: null,
+      prixUnitaire: l.prix_unitaire,
+      total: l.total ?? l.quantite * l.prix_unitaire,
+    })),
+    totaux: {
+      horsTaxe: null,
+      tva: null,
+      total,
+      paye: null,
+      reste: null,
+      modePaiement: null,
+      libelleTotal: "Montant proposé",
+      libellePaye: "",
+    },
+    // Pas de tampon : il n'y a rien à constater sur une proposition.
+    tampon: null,
+    montantEnLettres: reglages.options.montantEnLettres
+      ? montantEnLettres(total, deviseEnToutesLettres(devise))
+      : null,
+    mentions: reglages.options.conditions ? MENTIONS_DEVIS : null,
+    signatures: reglages.options.signature
+      ? {
+          gauche: "Bon pour accord · signature du client",
+          droite: nomBoutique ? `Pour ${nomBoutique}` : "Cachet et signature",
+        }
+      : null,
+    motDeFin: util(reglages.motDeFin),
+    piedDePage:
+      util(reglages.piedDePage) ?? joindre(nomBoutique, boutique?.address, boutique?.phone),
+    devise,
+    heure: null,
+    messageTicket: null,
+    codeBarres: util(devis.numero),
+    nomDeFichier: nomDeFichier("Devis", numero || (devis.numero ?? "document")),
+  };
+}
+
+export interface SourceCommande {
+  commande: Commande;
+  lignes: LigneCommande[];
+  client?: Client | null;
+  boutique?: StoreSettings;
+  reglages: ReglagesDocuments;
+  locale?: LocaleSetting;
+}
+
+/**
+ * Un bon de commande client, mis en forme pour le papier.
+ *
+ * ── LES MONTANTS SORTENT DE LA BASE, TOUS LES TROIS ────────────────
+ *
+ * `montant_total`, `montant_paye` et `reste_a_payer` sont lus tels
+ * quels. On ne recalcule pas le reste par soustraction : la base tient
+ * ces trois nombres à jour ensemble, et un document qui referait le
+ * calcul finirait un jour par contredire l'écran Commandes.
+ */
+export function documentDeCommande(source: SourceCommande): Document {
+  const { commande, lignes, client, boutique, reglages } = source;
+  const locale = source.locale ?? "FR";
+  const devise = util(boutique?.currencySymbol) ?? "Ar";
+
+  const total = commande.montant_total ?? 0;
+  const paye = commande.montant_paye ?? 0;
+  const reste = commande.reste_a_payer ?? 0;
+
+  const numero = numeroteDocument(commande.numero, PREFIXES.commande);
+  const nomBoutique = util(boutique?.storeName);
+
+  const meta: LigneMeta[] = [
+    numero ? { libelle: "N°", valeur: numero } : null,
+    commande.created_at
+      ? { libelle: "Date", valeur: dateCourte(commande.created_at.slice(0, 10), locale) }
+      : null,
+    commande.date_livraison
+      ? { libelle: "Livraison prévue", valeur: dateCourte(commande.date_livraison, locale) }
+      : null,
+  ].filter((l): l is LigneMeta => l !== null);
+
+  return {
+    type: "commande",
+    titre: TITRES.commande,
+    numero,
+    meta,
+    emetteur: enTeteBoutique(boutique, reglages),
+    destinataire: destinataireDeVente(client, null, "Commande de"),
+    lignes: lignes.map((l) => ({
+      id: l.id,
+      designation: util(l.designation) ?? "Article",
+      detail: null,
+      quantite: l.quantite,
+      unite: null,
+      prixUnitaire: l.prix_vente_unit,
+      total: l.total_vente,
+    })),
+    totaux: {
+      horsTaxe: null,
+      tva: null,
+      total,
+      paye,
+      reste,
+      modePaiement: null,
+      libelleTotal: reste > 0 ? "Total de la commande" : "Total réglé",
+      // Sur une commande, ce qui est versé est un ACOMPTE : le mot
+      // dit qu'il reste quelque chose, là où « déjà payé » laisse
+      // penser que l'affaire est close.
+      libellePaye: "Acompte versé",
+    },
+    tampon: !reglages.options.tamponPaiement
+      ? null
+      : reste > 0
+        ? { texte: "Acompte versé", ton: "du" }
+        : { texte: "Payé", ton: "ok" },
+    montantEnLettres: reglages.options.montantEnLettres
+      ? montantEnLettres(total, deviseEnToutesLettres(devise))
+      : null,
+    mentions: reglages.options.conditions ? MENTIONS_COMMANDE : null,
+    signatures: reglages.options.signature
+      ? {
+          gauche: "Bon pour accord · signature du client",
+          droite: nomBoutique ? `Pour ${nomBoutique}` : "Cachet et signature",
+        }
+      : null,
+    motDeFin: util(reglages.motDeFin),
+    piedDePage:
+      util(reglages.piedDePage) ?? joindre(nomBoutique, boutique?.address, boutique?.phone),
+    devise,
+    heure: null,
+    messageTicket: null,
+    codeBarres: util(commande.numero),
+    nomDeFichier: nomDeFichier("Commande", numero || (commande.numero ?? "document")),
+  };
+}
