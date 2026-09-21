@@ -1,7 +1,6 @@
 import React, { useCallback, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { Download, Image as ImageIcon, Printer } from "lucide-react";
 import { messageDErreurExport, reprendreApresDeploiement } from "../../lib/chunkRecovery";
-import type { LocaleSetting } from "../../types";
 import type { Document, LigneDocument } from "./lib/buildDocument";
 import { exporterFeuillesImage, exporterFeuillesPdf, exporterRouleauPdf } from "./lib/exporter";
 import { imprimerFeuille } from "./lib/imprimer";
@@ -143,7 +142,6 @@ interface DocumentPreviewProps {
   format?: FormatDocument;
   /** Force un modèle le temps d'une impression, sans toucher au réglage. */
   modele?: ModeleDocument;
-  locale?: LocaleSetting;
   /** Masque les boutons : l'aperçu en direct des réglages n'en a pas. */
   sansActions?: boolean;
 }
