@@ -1,0 +1,281 @@
+/* ═══════════════════════════════════════════════════════════════════
+   LES BLOCS COMMUNS, PUIS CE QUI DISTINGUE CHAQUE MODÈLE
+
+   Une seule couleur traverse le document : `--doc`, posée par le
+   composant depuis le réglage de la boutique, avec ses deux dérivées
+   `--doc-soft` et `--doc-ink`. Tout le reste est noir, gris et blanc.
+   C'est la règle de la maquette, et c'est aussi ce qui permet à une
+   boutique de changer d'identité sans qu'on retouche une ligne de CSS.
+
+   Les couleurs neutres sont écrites en dur et non en jetons de thème.
+   Une feuille de facture est du papier blanc, en mode clair comme en
+   mode sombre : un gris qui suivrait le thème deviendrait illisible
+   sur blanc dès que quelqu'un passe en sombre.
+   ═══════════════════════════════════════════════════════════════════ */
+
+.doc-feuille .doc-muted {
+  color: #6b7671;
+}
+
+/* ── L'identité de la boutique ───────────────────────────────────── */
+.doc-marque {
+  display: flex;
+  gap: 4mm;
+  align-items: center;
+  min-width: 0;
+}
+.doc-pastille {
+  width: 13mm;
+  height: 13mm;
+  border-radius: 3mm;
+  background: var(--doc);
+  color: #fff;
+  display: grid;
+  place-items: center;
+  font-weight: 700;
+  font-size: 14pt;
+  flex: none;
+}
+.doc-logo {
+  width: 13mm;
+  height: 13mm;
+  object-fit: contain;
+  object-position: left center;
+  flex: none;
+}
+.doc-nom {
+  font-size: 17pt;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1.05;
+}
+.doc-sous-titre {
+  font-size: 9pt;
+  color: #6b7671;
+}
+
+/* ── Le titre du document ────────────────────────────────────────── */
+.doc-titre {
+  font-size: 26pt;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  line-height: 1;
+}
+
+/* ── Les couples « libellé : valeur » de l'en-tête ───────────────── */
+.doc-meta {
+  font-family: var(--doc-mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 9.5pt;
+  line-height: 1.7;
+}
+.doc-meta b {
+  font-weight: 700;
+}
+
+/* ── Émetteur et destinataire ────────────────────────────────────── */
+.doc-blocs {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8mm;
+}
+.doc-bloc h4 {
+  font-size: 8.5pt;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: #6b7671;
+  font-weight: 600;
+  margin-bottom: 2mm;
+}
+.doc-bloc b {
+  font-size: 11pt;
+}
+.doc-bloc p {
+  font-size: 9.5pt;
+  color: #39413d;
+  line-height: 1.5;
+}
+.doc-fiscal {
+  font-family: var(--doc-mono);
+  font-size: 8.5pt;
+}
+
+/* ── Le tableau ──────────────────────────────────────────────────── */
+.doc-feuille table {
+  width: 100%;
+  border-collapse: collapse;
+}
+.doc-feuille th {
+  text-align: left;
+  font-weight: 600;
+}
+.doc-feuille td,
+.doc-feuille th {
+  vertical-align: top;
+}
+.doc-montant {
+  text-align: right;
+  white-space: nowrap;
+  font-family: var(--doc-mono);
+  font-variant-numeric: tabular-nums;
+}
+.doc-qte {
+  text-align: center;
+  white-space: nowrap;
+  font-family: var(--doc-mono);
+}
+.doc-detail {
+  font-size: 8.5pt;
+  color: #6b7671;
+}
+
+/* ── Les totaux ──────────────────────────────────────────────────── */
+.doc-totaux {
+  width: 78mm;
+  margin-left: auto;
+}
+.doc-totaux .l {
+  display: flex;
+  justify-content: space-between;
+  gap: 8mm;
+  padding: 1.6mm 0;
+  font-size: 10pt;
+}
+.doc-totaux .l.reste {
+  font-weight: 700;
+}
+.doc-totaux .l.reste span:last-child {
+  color: #c0473a;
+}
+
+/* ── Le montant en lettres ───────────────────────────────────────── */
+.doc-lettres {
+  font-size: 9pt;
+  color: #39413d;
+  font-style: italic;
+  border-top: 0.3mm solid #e6ebe8;
+  padding-top: 3mm;
+  margin-top: 3mm;
+}
+
+/* ── Le tampon ───────────────────────────────────────────────────── */
+.doc-tampon {
+  display: inline-block;
+  border: 1.5pt solid var(--doc);
+  color: var(--doc);
+  border-radius: 2mm;
+  padding: 1mm 3mm;
+  font-size: 9pt;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  /* Légèrement de travers, comme un tampon posé à la main. */
+  transform: rotate(-3deg);
+}
+.doc-tampon--du {
+  border-color: #c0473a;
+  color: #c0473a;
+}
+
+/* ── Mentions et signatures ──────────────────────────────────────── */
+.doc-mentions {
+  font-size: 8pt;
+  color: #6b7671;
+  line-height: 1.5;
+}
+.doc-signatures {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10mm;
+  align-items: end;
+}
+.doc-signatures .ligne {
+  border-top: 0.3mm solid #c9d2cd;
+  padding-top: 2mm;
+  font-size: 8.5pt;
+  color: #6b7671;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   MODÈLE 1 — CLASSIQUE
+   Logo à gauche, titre à droite, en-tête de tableau en aplat de
+   couleur, encadré plein pour le total. C'est le modèle par défaut :
+   celui qui ressemble le plus à ce qu'un commerçant attend d'une
+   facture.
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* SIX MILLIMÈTRES ET NON HUIT, et ce n est pas de la coquetterie.
+   Huit blocs séparés par 8 mm font 56 mm d air sur une feuille qui en
+   compte 297 : mesuré, cela coûtait une ligne et demie de tableau.
+   La respiration reste nette, la facture tient davantage d articles. */
+.m-classique .doc-pad {
+  display: flex;
+  flex-direction: column;
+  gap: 6mm;
+}
+.m-classique .tete {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 10mm;
+}
+.m-classique .repere {
+  text-align: right;
+  font-size: 9.5pt;
+}
+.m-classique table thead th {
+  background: var(--doc);
+  color: #fff;
+  padding: 3mm 4mm;
+  font-size: 9pt;
+  letter-spacing: 0.03em;
+}
+.m-classique table td {
+  padding: 3mm 4mm;
+  border-bottom: 0.3mm solid #e6ebe8;
+  font-size: 10pt;
+}
+.m-classique table tbody tr:first-child td {
+  border-top: 0.3mm solid #e6ebe8;
+}
+.m-classique .encadre {
+  background: var(--doc);
+  color: #fff;
+  border-radius: 2mm;
+  padding: 3.5mm 5mm;
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 5mm;
+  font-size: 12pt;
+  font-weight: 700;
+  margin-top: 2mm;
+}
+.m-classique .encadre .doc-num {
+  white-space: nowrap;
+}
+.m-classique .bas {
+  display: grid;
+  grid-template-columns: 1fr 78mm;
+  gap: 10mm;
+  align-items: start;
+}
+/* Le mot de fin est déjà poussé en bas par l espace extensible :
+   les dix millimètres de la maquette s ajoutaient à un vide, et
+   faisaient déborder d une page une facture de trois lignes. Mesuré
+   sur un vrai PDF — 303 mm pour une feuille de 297. */
+.m-classique .merci {
+  color: var(--doc);
+  font-weight: 600;
+  font-size: 12pt;
+  margin-top: 4mm;
+}
+.m-classique .pied {
+  border-top: 0.6mm solid #16181a;
+  margin-top: 4mm;
+  padding-top: 3mm;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8mm;
+  font-size: 9pt;
+}

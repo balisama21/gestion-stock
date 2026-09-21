@@ -65,7 +65,7 @@
    Marges à zéro d'un côté, marges en millimètres de l'autre, et le
    PDF comme l'impression tombent au même endroit. */
 .doc-pad {
-  padding: 16mm 15mm;
+  padding: 14mm 15mm;
 }
 .doc-grow {
   flex: 1;

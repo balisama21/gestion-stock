@@ -3,3 +3,4 @@
    qui n'imprime rien ne paie ni les polices ni ces règles. */
 @import "./fonts/polices.css";
 @import "./print.css";
+@import "./templates/modeles.css";
