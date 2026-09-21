@@ -625,3 +625,113 @@
   gap: 6mm;
   font-size: 8.5pt;
 }
+
+/* ═══════════════════════════════════════════════════════════════════
+   LE TICKET DE CAISSE
+
+   Une seule colonne, du texte à chasse fixe, et rien de superflu :
+   c'est un rouleau thermique, pas une feuille. Aucune couleur — une
+   imprimante de caisse n'imprime qu'en noir, et une teinte de gris
+   ressort en trame baveuse.
+   ═══════════════════════════════════════════════════════════════════ */
+
+.doc-ticket .c {
+  text-align: center;
+}
+
+.doc-ticket .entete .logo {
+  max-width: 30mm;
+  max-height: 14mm;
+  object-fit: contain;
+  margin: 0 auto 2mm;
+  display: block;
+  /* Le logo d'une boutique est souvent en couleur ; en thermique il
+     sortira en niveaux de gris. On le laisse : c'est le choix de la
+     boutique, et la plupart des logos restent lisibles. */
+}
+.doc-ticket .entete .nom {
+  font-family: var(--doc-sans);
+  font-weight: 700;
+  font-size: 13pt;
+  letter-spacing: 0.04em;
+  line-height: 1.2;
+}
+.doc-ticket .entete > div:not(.nom) {
+  font-size: 7.5pt;
+  line-height: 1.35;
+}
+
+/* Un filet pointillé plutôt qu'un trait plein : c'est le vocabulaire
+   du ticket de caisse, et il sort mieux en thermique. */
+.doc-ticket .sep {
+  border-top: 0.4mm dashed #b9c2be;
+  margin: 2.5mm 0;
+}
+
+.doc-ticket .l {
+  display: flex;
+  justify-content: space-between;
+  gap: 3mm;
+}
+/* Le montant ne se coupe jamais ; c'est la désignation qui cède. */
+.doc-ticket .l > span:last-child {
+  white-space: nowrap;
+}
+.doc-ticket .l > span:first-child {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.doc-ticket .art {
+  margin-bottom: 1.5mm;
+}
+.doc-ticket .art .n {
+  font-family: var(--doc-sans);
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+
+.doc-ticket .tot {
+  font-size: 12pt;
+  font-weight: 700;
+  margin-top: 1mm;
+}
+.doc-ticket .du {
+  font-weight: 700;
+}
+
+.doc-ticket .pied {
+  font-size: 7.5pt;
+  line-height: 1.4;
+}
+.doc-ticket .pied .mention {
+  margin-top: 1.5mm;
+  font-weight: 600;
+}
+
+.doc-ticket .codebarres {
+  text-align: center;
+  margin-top: 3.5mm;
+}
+.doc-ticket .codebarres svg {
+  display: block;
+  margin: 0 auto;
+}
+.doc-ticket .codebarres .num {
+  font-size: 7pt;
+  letter-spacing: 0.2em;
+  margin-top: 0.8mm;
+}
+
+/* Sur 58 mm, tout se resserre d'un cran : c'est deux centimètres de
+   moins, soit un quart de la largeur en moins. */
+.doc-ticket--58 .entete .nom {
+  font-size: 11pt;
+}
+.doc-ticket--58 .tot {
+  font-size: 10.5pt;
+}
+.doc-ticket--58 .entete > div:not(.nom),
+.doc-ticket--58 .pied {
+  font-size: 7pt;
+}

@@ -1,8 +1,9 @@
 import React, { useCallback, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { Download, Image as ImageIcon, Printer } from "lucide-react";
 import { messageDErreurExport, reprendreApresDeploiement } from "../../lib/chunkRecovery";
-import type { Document } from "./lib/buildDocument";
-import { exporterFeuillesImage, exporterFeuillesPdf } from "./lib/exporter";
+import type { LocaleSetting } from "../../types";
+import type { Document, LigneDocument } from "./lib/buildDocument";
+import { exporterFeuillesImage, exporterFeuillesPdf, exporterRouleauPdf } from "./lib/exporter";
 import { imprimerFeuille } from "./lib/imprimer";
 import {
   mentionDePage,
@@ -15,13 +16,14 @@ import { Bandeau } from "./templates/Bandeau";
 import { Classique } from "./templates/Classique";
 import { Compact } from "./templates/Compact";
 import { Epure } from "./templates/Epure";
+import { Ticket } from "./templates/Ticket";
 import type { ProprietesModele } from "./parts/squelette";
 import "./index.css";
 
 /**
  * L'APERÇU D'UN DOCUMENT, ET LES TROIS FAÇONS DE LE SORTIR
  *
- * ── LA FEUILLE NE SE REPLIE JAMAIS ─────────────────────────────────
+ * ── LE DOCUMENT NE SE REPLIE JAMAIS ────────────────────────────────
  *
  * Les documents de la v1 sont en `width: 100%` plafonnés par une
  * `max-width` : sur un téléphone ils se remettent en page à trois
@@ -29,11 +31,11 @@ import "./index.css";
  * affiché, le fichier sort avec une colonne par syllabe — « PRO /
  * DUI / T » en en-tête. Constaté sur un vrai fichier.
  *
- * Ici la feuille fait 210 mm, toujours. Ce qui s'adapte à l'écran,
- * c'est une mise à l'échelle par `transform`, qui réduit la taille
- * APPARENTE sans toucher à la mise en page. Vérifié : le PDF produit
- * depuis une fenêtre de 375 px et celui produit depuis 1000 px ne
- * diffèrent pas d'un octet, flux image compris.
+ * Ici la feuille fait 210 mm et le rouleau 80 ou 58, toujours. Ce qui
+ * s'adapte à l'écran, c'est une mise à l'échelle par `transform`, qui
+ * réduit la taille APPARENTE sans toucher à la mise en page. Vérifié :
+ * le PDF produit depuis une fenêtre de 375 px et celui produit depuis
+ * 1000 px ne diffèrent pas d'un octet, flux image compris.
  *
  * ── COMMENT LA PAGINATION SE DÉCIDE ────────────────────────────────
  *
@@ -48,11 +50,18 @@ import "./index.css";
  * Le SECOND rend les vraies feuilles, une par page. `useLayoutEffect`
  * enchaîne les deux avant que le navigateur ne peigne : l'utilisateur
  * ne voit jamais la feuille de mesure.
+ *
+ * Un rouleau, lui, ne se pagine pas : il se coupe au bout du contenu.
  */
 
-/** 210 mm et 297 mm, en pixels CSS à 96 points par pouce. */
-const LARGEUR_FEUILLE = Math.round((210 * 96) / 25.4);
-const HAUTEUR_FEUILLE = Math.round((297 * 96) / 25.4);
+/** Millimètres → pixels CSS, à 96 points par pouce. */
+const px = (mm: number) => Math.round((mm * 96) / 25.4);
+
+const HAUTEUR_FEUILLE = px(297);
+
+export type FormatDocument = "a4" | "t80" | "t58";
+
+const LARGEUR_MM: Record<FormatDocument, number> = { a4: 210, t80: 80, t58: 58 };
 
 const MODELES: Record<ModeleDocument, React.FC<ProprietesModele>> = {
   classique: Classique,
@@ -87,9 +96,9 @@ function relever(feuille: HTMLElement): MesuresDuDocument | null {
    * mais `offsetHeight` MENT quand le contenu déborde de son
    * conteneur — ce qui est précisément le cas de la feuille de
    * mesure, qui porte tout le document. Les marges ressortaient
-   * négatives, donc nulles, et le découpage croyait disposer de
-   * cent six pixels de plus qu'en réalité : la première page d'une
-   * facture de vingt-cinq lignes dépassait de deux lignes.
+   * négatives, donc nulles, et le découpage croyait disposer de cent
+   * six pixels de plus qu'en réalité : la première page d'une facture
+   * de vingt-cinq lignes dépassait de deux lignes.
    *
    * Lues sur le bloc rembourré, elles sont justes quel que soit le
    * contenu. Le Bandeau, dont l'en-tête déborde par le haut, y gagne
@@ -104,7 +113,7 @@ function relever(feuille: HTMLElement): MesuresDuDocument | null {
    * millimètre et les hauteurs de ligne en fractions de pixel : sans
    * cette marge, le modèle Épuré sortait à 1124 pixels pour une page
    * qui en fait 1123, et un pixel de trop suffit à faire imprimer une
-   * quatrième page blanche.
+   * page blanche de plus.
    */
   const GARDE = 2;
 
@@ -113,7 +122,7 @@ function relever(feuille: HTMLElement): MesuresDuDocument | null {
     tete: tete.offsetHeight,
     // Posée en dur par `.doc-tete-suite` : 18 mm, pour que le
     // découpage la connaisse avant que ces pages n'existent.
-    teteSuite: Math.round((18 * 96) / 25.4),
+    teteSuite: px(18),
     enTeteTableau: thead.offsetHeight,
     lignes: [...feuille.querySelectorAll<HTMLElement>("tbody tr")].map((l) => l.offsetHeight),
     /*
@@ -130,8 +139,11 @@ function relever(feuille: HTMLElement): MesuresDuDocument | null {
 interface DocumentPreviewProps {
   document: Document;
   reglages: ReglagesDocuments;
+  /** Feuille A4 ou rouleau de caisse. Par défaut, la feuille. */
+  format?: FormatDocument;
   /** Force un modèle le temps d'une impression, sans toucher au réglage. */
   modele?: ModeleDocument;
+  locale?: LocaleSetting;
   /** Masque les boutons : l'aperçu en direct des réglages n'en a pas. */
   sansActions?: boolean;
 }
@@ -139,57 +151,123 @@ interface DocumentPreviewProps {
 export const DocumentPreview: React.FC<DocumentPreviewProps> = ({
   document: doc,
   reglages,
+  format = "a4",
   modele,
   sansActions,
 }) => {
-  const Modele = MODELES[modele ?? reglages.modele] ?? Classique;
+  const rouleau = format !== "a4";
+  const largeurMm = LARGEUR_MM[format];
+  const largeurCible = px(largeurMm);
+  const nomModele = modele ?? reglages.modele;
+  const Modele = MODELES[nomModele] ?? Classique;
 
   const scene = useRef<HTMLDivElement>(null);
   const feuilles = useRef<(HTMLDivElement | null)[]>([]);
   const [echelle, setEchelle] = useState(1);
   const [hauteur, setHauteur] = useState<number | null>(null);
-  const [pages, setPages] = useState<Page[] | null>(null);
+  /*
+   * LE DÉCOUPAGE SE REMET À ZÉRO PENDANT LE RENDU, PAS DANS UN EFFET.
+   *
+   * Un effet s'exécute APRÈS le rendu. Entre le moment où le document
+   * change et celui où l'effet passe, le composant appliquait donc
+   * l'ANCIEN découpage au NOUVEAU document : sur une facture de vingt-
+   * cinq lignes remplacée par une d'une ligne, il cherchait encore les
+   * rangs 1 à 24, qui n'existent plus. `Cannot read properties of
+   * undefined (reading 'designation')` — l'aperçu entier disparaissait.
+   *
+   * Attrapé en Chromium sans interface, en passant d'un document à
+   * l'autre. En production, c'est ce qui se serait passé chaque fois
+   * qu'on ouvre une seconde vente sans fermer la première.
+   *
+   * La clé porte l'empreinte du document : tant qu'elles diffèrent, la
+   * mesure d'avant ne vaut plus rien.
+   */
+  const [mesure, setMesure] = useState<{ cle: string; pages: Page[] | null }>({
+    cle: "",
+    pages: null,
+  });
   const [exportEnCours, setExportEnCours] = useState<null | "pdf" | "image">(null);
   const [erreur, setErreur] = useState<string | null>(null);
 
-  // Une nouvelle mesure s'impose dès que le contenu ou le modèle change.
+  /** Tous les rangs de lignes : la répartition d'avant la mesure. */
+  const toutesLesLignes = useMemo(() => doc.lignes.map((_, i) => i), [doc.lignes]);
+
+  // Une nouvelle mesure s'impose dès que le contenu, le modèle ou le
+  // format change.
   const empreinte = useMemo(
-    () => `${Modele.name}|${doc.nomDeFichier}|${doc.lignes.length}|${doc.totaux.total}`,
-    [Modele, doc],
+    () => `${format}|${nomModele}|${doc.nomDeFichier}|${doc.lignes.length}|${doc.totaux.total}`,
+    [format, nomModele, doc],
   );
 
-  useLayoutEffect(() => {
-    setPages(null);
-  }, [empreinte]);
+  if (mesure.cle !== empreinte) setMesure({ cle: empreinte, pages: null });
+  const pages = mesure.cle === empreinte ? mesure.pages : null;
+  const poserLesPages = useCallback(
+    (p: Page[]) => setMesure({ cle: empreinte, pages: p }),
+    [empreinte],
+  );
+
+  /*
+   * Les nœuds réellement à l'écran, et eux seuls.
+   *
+   * Le tableau de références n'est PAS vidé quand le document change :
+   * les callbacks de `ref` s'exécutent avant les effets, et un effet
+   * qui le viderait effacerait les nœuds qu'on vient d'y poser — la
+   * mesure ne trouvait alors plus rien, et la feuille restait
+   * invisible pour toujours. Constaté en Chromium sans interface, où
+   * rien ne provoque le second rendu qui masquait le défaut.
+   *
+   * On tronque donc à la lecture plutôt que d'effacer à l'écriture.
+   */
+  const noeudsPoses = useCallback(
+    () =>
+      feuilles.current
+        .slice(0, rouleau ? 1 : (pages?.length ?? 1))
+        .filter((n): n is HTMLDivElement => n !== null),
+    [rouleau, pages],
+  );
 
   /** La place disponible, et l'échelle qui en découle. */
   const mettreALEchelle = useCallback(() => {
     const cadre = scene.current;
     if (!cadre) return;
     const dispo = cadre.clientWidth;
-    const e = dispo > 0 ? Math.min(1, dispo / LARGEUR_FEUILLE) : 1;
+    const e = dispo > 0 ? Math.min(1, dispo / largeurCible) : 1;
     setEchelle(e);
-    const total = feuilles.current
-      .filter((f): f is HTMLDivElement => f !== null)
-      .reduce((n, f) => n + f.offsetHeight, 0);
+    const noeuds = noeudsPoses();
+    const total = noeuds.reduce((n, f) => n + f.offsetHeight, 0);
     // Une transformation ne change pas la place occupée dans le flux :
     // sans cette hauteur, une feuille à 40 % laisserait sous elle le
     // vide de sa taille entière.
-    setHauteur(total > 0 ? total * e + (pages?.length ?? 1) * 16 * e : null);
-  }, [pages]);
+    setHauteur(total > 0 ? total * e + Math.max(0, noeuds.length - 1) * 16 * e : null);
+  }, [largeurCible, noeudsPoses]);
 
   useLayoutEffect(() => {
-    // Passe de mesure : une seule feuille porte tout le document.
-    if (pages === null) {
-      const feuille = feuilles.current[0];
-      if (feuille) {
-        const mesures = relever(feuille);
-        if (mesures) setPages(repartirLesPages(mesures));
-      }
+    // Un rouleau ne se pagine pas : il n'y a rien à mesurer.
+    if (rouleau || pages !== null) {
+      mettreALEchelle();
       return;
     }
-    mettreALEchelle();
-  }, [pages, mettreALEchelle]);
+
+    // Passe de mesure : une seule feuille porte tout le document.
+    const mesures = feuilles.current[0] ? relever(feuilles.current[0]) : null;
+    if (mesures) {
+      poserLesPages(repartirLesPages(mesures));
+      return;
+    }
+
+    /*
+     * La mesure n'a rien donné — polices pas encore prêtes, feuille
+     * pas encore mise en page. On réessaie à l'image suivante, puis
+     * on renonce et on pose tout sur une seule feuille : un document
+     * trop long vaut infiniment mieux qu'un écran vide devant
+     * quelqu'un qui voulait imprimer une facture.
+     */
+    const image = requestAnimationFrame(() => {
+      const seconde = feuilles.current[0] ? relever(feuilles.current[0]) : null;
+      poserLesPages(seconde ? repartirLesPages(seconde) : [toutesLesLignes]);
+    });
+    return () => cancelAnimationFrame(image);
+  }, [rouleau, pages, mettreALEchelle, poserLesPages, toutesLesLignes]);
 
   useLayoutEffect(() => {
     const cadre = scene.current;
@@ -200,13 +278,14 @@ export const DocumentPreview: React.FC<DocumentPreviewProps> = ({
   }, [mettreALEchelle]);
 
   const exporter = async (type: "pdf" | "image") => {
-    const noeuds = feuilles.current.filter((f): f is HTMLDivElement => f !== null);
+    const noeuds = noeudsPoses();
     if (noeuds.length === 0 || exportEnCours) return;
     setExportEnCours(type);
     setErreur(null);
     try {
-      if (type === "pdf") await exporterFeuillesPdf(noeuds, doc.nomDeFichier);
-      else await exporterFeuillesImage(noeuds, doc.nomDeFichier);
+      if (type === "image") await exporterFeuillesImage(noeuds, doc.nomDeFichier);
+      else if (rouleau) await exporterRouleauPdf(noeuds[0], largeurMm, doc.nomDeFichier);
+      else await exporterFeuillesPdf(noeuds, doc.nomDeFichier);
     } catch (err) {
       // Un morceau manquant signifie que l'onglet exécute une version
       // périmée : la page se recharge d'elle-même.
@@ -218,9 +297,12 @@ export const DocumentPreview: React.FC<DocumentPreviewProps> = ({
   };
 
   // Tant que la mesure n'a pas eu lieu : une feuille unique, tout dessus.
-  const repartition: Page[] = pages ?? [doc.lignes.map((_, i) => i)];
-  const enMesure = pages === null;
-  const classeModele = `m-${(modele ?? reglages.modele) as string}`;
+  const repartition: Page[] = pages ?? [toutesLesLignes];
+  const enMesure = !rouleau && pages === null;
+
+  const poser = (rang: number) => (n: HTMLDivElement | null) => {
+    feuilles.current[rang] = n;
+  };
 
   return (
     <div className="doc-racine" style={variablesDeCouleur(reglages.couleur) as React.CSSProperties}>
@@ -244,37 +326,52 @@ export const DocumentPreview: React.FC<DocumentPreviewProps> = ({
             visibility: enMesure ? "hidden" : undefined,
           }}
         >
-          {repartition.map((indices, rang) => (
+          {/*
+           * `printable-receipt` est l'accroche que la feuille de style
+           * d'impression de l'application connaît déjà : elle masque le
+           * reste de la modale et neutralise les conteneurs qui
+           * rogneraient le document. La reprendre évite de réécrire un
+           * travail qui a demandé plusieurs corrections.
+           */}
+          {rouleau ? (
             <div
-              /*
-               * `printable-receipt` est l'accroche que la feuille de
-               * style d'impression de l'application connaît déjà :
-               * elle masque le reste de la modale et neutralise les
-               * conteneurs qui rogneraient le document. La reprendre
-               * évite de réécrire un travail qui a demandé plusieurs
-               * corrections.
-               */
-              className={`doc-feuille printable-receipt ${classeModele}`}
-              key={rang}
-              ref={(n) => {
-                feuilles.current[rang] = n;
-              }}
+              className={`doc-ticket printable-receipt${format === "t58" ? " doc-ticket--58" : ""}`}
+              ref={poser(0)}
             >
-              <Modele
+              <Ticket
                 document={doc}
-                lignes={indices.map((i) => doc.lignes[i])}
-                premiere={rang === 0}
-                derniere={rang === repartition.length - 1}
-                pagination={mentionDePage(rang, repartition.length)}
+                reglages={{ ...reglages.ticket, largeur: format === "t58" ? 58 : 80 }}
+                date={doc.meta.find((m) => m.libelle === "Date")?.valeur ?? ""}
               />
             </div>
-          ))}
+          ) : (
+            repartition.map((indices, rang) => (
+              <div
+                className={`doc-feuille printable-receipt m-${nomModele}`}
+                key={rang}
+                ref={poser(rang)}
+              >
+                <Modele
+                  document={doc}
+                  /* Le filet de sécurité, en plus de la remise à zéro
+                     ci-dessus : un rang qui ne désigne plus rien est
+                     ignoré, jamais passé tel quel au modèle. */
+                  lignes={indices
+                    .map((i) => doc.lignes[i])
+                    .filter((l): l is LigneDocument => l !== undefined)}
+                  premiere={rang === 0}
+                  derniere={rang === repartition.length - 1}
+                  pagination={mentionDePage(rang, repartition.length)}
+                />
+              </div>
+            ))
+          )}
         </div>
       </div>
 
       {!sansActions && (
         <div className="no-print mt-4 flex flex-wrap items-center justify-end gap-2">
-          {repartition.length > 1 && (
+          {!rouleau && repartition.length > 1 && (
             <span className="mr-auto text-xs text-muted-foreground">
               {repartition.length} pages
             </span>
@@ -287,7 +384,11 @@ export const DocumentPreview: React.FC<DocumentPreviewProps> = ({
            * qui donne le meilleur résultat doit être celui qu'on
            * atteint sans réfléchir.
            */}
-          <button type="button" onClick={imprimerFeuille} className="app-btn-primary">
+          <button
+            type="button"
+            onClick={() => imprimerFeuille(rouleau ? largeurMm : undefined)}
+            className="app-btn-primary"
+          >
             <Printer className="h-4 w-4" />
             Imprimer
           </button>

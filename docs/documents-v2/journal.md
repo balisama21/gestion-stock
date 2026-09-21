@@ -126,3 +126,77 @@ Commit `5ac4042`. Rapport : `docs/documents-v2/phase-3.md`.
 ## Phase 6 — Branchement Ventes / Commandes / Devis + drapeau — À FAIRE
 
 ## Phase 7 — Vérifications, rapport final, mise en production — À FAIRE
+
+---
+
+## Phase 4 — Ticket 80 mm et 58 mm — TERMINÉE
+
+- **Fait** : le modèle Ticket, un vrai code-barres Code 128 dessiné en
+  SVG, l'heure de l'encaissement, la mention « Ticket non valable comme
+  facture », l'impression sur rouleau (`@page { size: 80mm auto }`) et
+  l'export PDF à la taille exacte du contenu.
+- **Fichiers créés** : `lib/codeBarres.ts` + test (18 tests),
+  `templates/Ticket.tsx`, `docs/documents-v2/captures/` (16 images).
+- **Fichiers modifiés** : `lib/buildDocument.ts` (heure, message de
+  ticket, valeur du code-barres), `lib/imprimer.ts` (taille de page
+  rouleau), `lib/exporter.ts` (`exporterRouleauPdf`),
+  `DocumentPreview.tsx` (format feuille ou rouleau),
+  `templates/modeles.css`, `print.css`.
+
+### Décisions prises à ma place
+
+**Le code-barres est un vrai Code 128, écrit à la main.** *Raison* :
+la maquette dessine un dégradé CSS répétitif — très ressemblant, et
+parfaitement muet ; une douchette n'en tire rien. `jsbarcode` ferait
+quarante kilooctets pour soixante lignes, et la norme est figée
+depuis 1981. *Revenir en arrière* : couper l'option
+`ticket.codeBarres` dans les réglages, ou remplacer
+`dessinerCode128` par la bibliothèque.
+
+**Il encode le numéro BRUT, pas le numéro préfixé.** *Raison* : une
+douchette doit rendre « V026 », qui se cherche dans la liste des
+ventes ; « REC-V026 » ne s'y trouve pas. *Revenir en arrière* :
+`codeBarres: util(premiere?.numero)` dans `documentDeVente`.
+
+**La mention « Ticket non valable comme facture » n'est pas
+réglable.** *Raison* : c'est elle qui protège la boutique du client
+qui repart en croyant tenir une facture. *Revenir en arrière* :
+la déplacer dans `ReglagesTicket`.
+
+**Module de 0,28 mm sur 80 mm, 0,22 mm sur 58 mm.** *Raison* : sur le
+rouleau étroit, 0,28 donnerait un symbole plus large que le papier —
+tronqué, il ne se lit pas du tout. *Revenir en arrière* :
+`MODULE_MM` dans `templates/Ticket.tsx`.
+
+### Trois défauts trouvés en vérifiant, dont deux graves
+
+**Le ticket de 80 mm en faisait 90.** Le sélecteur universel
+`.doc-ticket *` ne couvre pas l'élément lui-même : le rembourrage
+s'ajoutait à la largeur. Mesuré 340 pixels au lieu de 302. Sur une
+imprimante thermique, c'est un ticket tronqué à droite. Corrigé dans
+`print.css`.
+
+**La mesure ne se déclenchait pas de façon fiable.** Le tableau de
+références était vidé dans un effet, alors que les callbacks de `ref`
+s'exécutent AVANT les effets : la mesure ne trouvait plus rien, et la
+feuille restait invisible. Le défaut ne se voyait pas dans un
+navigateur ordinaire, où le redimensionnement provoque un second
+rendu qui le rattrapait ; il est apparu en Chromium sans interface.
+
+**Changer de document faisait planter l'aperçu.** Le découpage se
+remettait à zéro dans un effet, donc APRÈS le rendu : entre-temps, le
+composant appliquait l'ancien découpage au nouveau document et
+cherchait des rangs de lignes qui n'existent plus —
+`Cannot read properties of undefined (reading 'designation')`, aperçu
+entier disparu. **En production, cela se serait produit chaque fois
+qu'on ouvre une seconde vente sans fermer la première.** La remise à
+zéro se fait maintenant pendant le rendu, avec un filet de sécurité
+sur les rangs.
+
+- **Vérifications** : tsc OK · lint OK (1 avertissement, sur le banc
+  temporaire) · build OK · **293 tests** · 16 captures en Chromium sans
+  interface dans `docs/documents-v2/captures/`.
+  Mesuré : rouleaux à **79,9 mm** et **57,9 mm** exactement,
+  code-barres de 22,7 et 17,8 mm — largement dans le papier.
+- **Reste à faire** : rien pour cette phase. L'impression sur une
+  vraie imprimante thermique ne peut être vérifiée que par vous.

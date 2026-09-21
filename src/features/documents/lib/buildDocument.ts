@@ -1,7 +1,13 @@
 import type { LocaleSetting, Product, Sale, StoreSettings } from "../../../types";
 import type { Database } from "../../../lib/database.types";
 import { getSaleLabel } from "../../../utils/formulas";
-import { dateCourte, dateEcheance, initiales, LIBELLE_ECHEANCE } from "./format";
+import {
+  dateCourte,
+  dateEcheance,
+  heure as lireHeure,
+  initiales,
+  LIBELLE_ECHEANCE,
+} from "./format";
 import { deviseEnToutesLettres, montantEnLettres } from "./montantEnLettres";
 import { numeroteDocument, PREFIXES, type ReglagesDocuments } from "./reglages";
 
@@ -119,6 +125,25 @@ export interface Document {
   devise: string;
   /** « Facture_FAC-V026 » — sans caractère qu'un système refuserait. */
   nomDeFichier: string;
+
+  /* ── Ce que seul le ticket de caisse utilise ──────────────────── */
+
+  /**
+   * L'heure de l'encaissement, « 09:41 », ou `null`.
+   *
+   * Une facture porte un jour, un ticket porte un instant : c'est ce
+   * qui permet de retrouver une vente contestée dans le journal de la
+   * caisse.
+   */
+  heure: string | null;
+  /** Le mot de la fin du ticket, réglé à part de celui des feuilles. */
+  messageTicket: string | null;
+  /**
+   * Ce que le code-barres encode : le numéro BRUT de la base, sans le
+   * préfixe d'affichage. Une douchette doit rendre « V026 », qui se
+   * cherche dans la liste des ventes ; « REC-V026 » ne s'y trouve pas.
+   */
+  codeBarres: string | null;
 }
 
 /* ─────────────────────────────────────────────────────────────
@@ -445,6 +470,11 @@ export function documentDeVente(source: SourceVente): Document {
     piedDePage:
       util(reglages.piedDePage) ?? joindre(nomBoutique, boutique?.address, boutique?.phone),
     devise,
+    heure: lireHeure(premiere?.saisieLe) || null,
+    // Le message du ticket a son propre réglage ; à défaut, celui que
+    // la boutique a déjà écrit dans ses paramètres de reçu.
+    messageTicket: util(reglages.ticket.message) ?? util(boutique?.receiptFooter),
+    codeBarres: util(premiere?.numero),
     nomDeFichier: nomDeFichier(
       type === "recu" ? "Recu" : "Facture",
       numero || (premiere?.numero ?? "document"),

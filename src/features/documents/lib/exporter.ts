@@ -101,3 +101,29 @@ export async function exporterFeuillesImage(
     telecharger(blob, `${nomDeFichier}${suffixe}.png`);
   }
 }
+
+/**
+ * Enregistre un rouleau en PDF : une seule page, à la taille exacte
+ * du contenu.
+ *
+ * Un ticket n'a pas de hauteur prédéfinie. Le découper en pages A4
+ * gaspillerait du papier et couperait le total en deux ; lui donner
+ * une page à sa mesure, c'est ce que fait déjà l'imprimante
+ * thermique quand elle coupe au bout du ticket.
+ */
+export async function exporterRouleauPdf(
+  rouleau: HTMLElement,
+  largeurMm: number,
+  nomDeFichier: string,
+): Promise<void> {
+  const [{ jsPDF }, canvas] = await Promise.all([import("jspdf"), capturer(rouleau)]);
+
+  const hauteurMm = largeurMm * (canvas.height / canvas.width);
+  const doc = new jsPDF({
+    unit: "mm",
+    format: [largeurMm, hauteurMm],
+    orientation: "portrait",
+  });
+  doc.addImage(canvas.toDataURL("image/jpeg", 0.95), "JPEG", 0, 0, largeurMm, hauteurMm);
+  doc.save(`${nomDeFichier}.pdf`);
+}

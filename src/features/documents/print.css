@@ -61,6 +61,13 @@
   box-shadow: 0 10px 40px -18px rgba(10, 30, 20, 0.45);
 }
 
+/* Le sélecteur universel ne couvre PAS l élément lui-même : sans la
+   première règle, le rembourrage du ticket s ajoutait à sa largeur et
+   le rouleau de 80 mm en faisait 90. Mesuré : 340 pixels au lieu de
+   302. Sur une imprimante thermique, c est un ticket tronqué à
+   droite. */
+.doc-feuille,
+.doc-ticket,
 .doc-feuille *,
 .doc-ticket * {
   box-sizing: border-box;
