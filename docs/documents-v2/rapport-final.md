@@ -305,3 +305,34 @@ Fichiers existants modifiés : `BalsamaApp.tsx`, `VentesView.tsx`,
 
 Vingt captures en Chromium sans interface dans
 `docs/documents-v2/captures/`.
+
+---
+
+## 7. La mise en production
+
+| Quand (UTC) | Quoi |
+| --- | --- |
+| 21/09 12:31 | `feat/documents-v2` fusionnée dans `main`, poussée |
+| 21/09 12:33 | déploiement Netlify `6ab12377` prêt |
+| 21/09 12:34 | production vérifiée : **zéro erreur console**, drapeau coupé |
+| 21/09 12:42 | dix minutes de stabilité écoulées |
+| 21/09 12:43 | `VITE_DOCUMENTS_V2=1` posée, reconstruction, **drapeau levé** |
+
+Le premier déploiement s’est fait **drapeau coupé** : aucune boutique
+n’a vu changer quoi que ce soit pendant que la stabilité se
+confirmait. Le bundle contient les six polices (328 Ko) et les cinq
+modèles dans un morceau de CSS séparé, chargé seulement quand on
+ouvre un document.
+
+### Si quelque chose cloche
+
+**Le plus rapide, sans redéploiement** : Paramètres → Documents →
+décocher « Nouveaux documents ». Réglage `documents.actif` dans
+`stores.personnalisation`.
+
+**Pour toutes les boutiques à la fois** : supprimer ou mettre à `0`
+la variable `VITE_DOCUMENTS_V2` du projet Netlify `tantana-suite`,
+puis relancer une construction.
+
+**Depuis un téléphone, si l’écran de réglages est inatteignable** :
+ouvrir `https://tantana-suite.netlify.app/?documents_v2=0`.

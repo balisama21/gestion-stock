@@ -368,3 +368,19 @@ brancher le bouton « Préparer la commande » de la carte Stock.
 
 - **Vérifications** : tsc OK · lint OK sur les fichiers de la mission ·
   build OK · **321 tests** · 20 captures.
+
+---
+
+## Mise en production
+
+| Quand | Quoi |
+| --- | --- |
+| 21/09/2026 12:31 UTC | `feat/documents-v2` fusionnee dans `main`, poussee |
+| 21/09/2026 ~12:33 UTC | deploiement Netlify `6ab123776e9b2600089d0bba` pret |
+| 21/09/2026 12:34 UTC | production verifiee, **zero erreur console**, drapeau coupe |
+| 21/09/2026 12:42 UTC | dix minutes de stabilite ecoulees |
+
+Le drapeau a ete laisse coupe pendant le premier deploiement : aucune
+boutique n a vu changer quoi que ce soit. L activation generale se
+fait ensuite par la variable `VITE_DOCUMENTS_V2` du projet Netlify
+`tantana-suite`, qui demande une reconstruction.
