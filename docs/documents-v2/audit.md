@@ -13,13 +13,13 @@ Les lectures en base sont des `SELECT` sur le projet de production
 
 Tout passe par **`src/lib/documentExport.ts`**, un seul module :
 
-| Fonction | Rôle | Bibliothèque |
-| --- | --- | --- |
-| `capturer(el)` | photographie un nœud DOM en canevas, à 3× (~220 ppp sur A4) | `modern-screenshot` (`domToCanvas`), importée à la demande |
-| `exporterPdf(el, paper, nom)` | pose la capture dans une page au format choisi | `jspdf`, importée à la demande |
-| `exporterImage(el, nom, type)` | la même capture en PNG/JPG | — |
-| `imprimerDocument(paper)` | injecte une règle `@page` puis `window.print()` | navigateur |
-| `nomDeFichier(...)` | nom de fichier sans caractère interdit | — |
+| Fonction                       | Rôle                                                        | Bibliothèque                                               |
+| ------------------------------ | ----------------------------------------------------------- | ---------------------------------------------------------- |
+| `capturer(el)`                 | photographie un nœud DOM en canevas, à 3× (~220 ppp sur A4) | `modern-screenshot` (`domToCanvas`), importée à la demande |
+| `exporterPdf(el, paper, nom)`  | pose la capture dans une page au format choisi              | `jspdf`, importée à la demande                             |
+| `exporterImage(el, nom, type)` | la même capture en PNG/JPG                                  | —                                                          |
+| `imprimerDocument(paper)`      | injecte une règle `@page` puis `window.print()`             | navigateur                                                 |
+| `nomDeFichier(...)`            | nom de fichier sans caractère interdit                      | —                                                          |
 
 **Le PDF est une image, pas du texte.** C'est un choix documenté dans le
 fichier : la version précédente redessinait la facture en coordonnées
@@ -52,14 +52,14 @@ page nommée provoquait une page blanche en tête.
 
 ### Les points d'appel (9 documents + 1)
 
-| Fichier | Ligne | Document |
-| --- | --- | --- |
-| `src/components/VentesView.tsx` | 1530 / 1660 | reçu ticket / facture A4 |
-| `src/components/AchatsView.tsx` | 1506 / 1612 | reçu d'achat / bon A4 |
-| `src/components/DepensesView.tsx` | 557 / 643 | reçu de dépense / fiche A4 |
-| `src/components/VendeursView.tsx` | 954 / 1111 | état vendeur ticket / A4 |
-| `src/components/devis/DocumentDevis.tsx` | 137 | devis A4 |
-| `src/components/produits/BonDeCommande.tsx` | 246 | bon de commande fournisseur (corrigé le 21/09) |
+| Fichier                                     | Ligne       | Document                                       |
+| ------------------------------------------- | ----------- | ---------------------------------------------- |
+| `src/components/VentesView.tsx`             | 1530 / 1660 | reçu ticket / facture A4                       |
+| `src/components/AchatsView.tsx`             | 1506 / 1612 | reçu d'achat / bon A4                          |
+| `src/components/DepensesView.tsx`           | 557 / 643   | reçu de dépense / fiche A4                     |
+| `src/components/VendeursView.tsx`           | 954 / 1111  | état vendeur ticket / A4                       |
+| `src/components/devis/DocumentDevis.tsx`    | 137         | devis A4                                       |
+| `src/components/produits/BonDeCommande.tsx` | 246         | bon de commande fournisseur (corrigé le 21/09) |
 
 Tous suivent le même patron : un `useRef` sur le nœud, un `<select>` de
 `PAPER_FORMATS` dans l'en-tête de `Modal`, trois boutons en pied
@@ -94,13 +94,13 @@ sur un bloc `w-full`.
 
 Il existe. `src/lib/paperFormats.ts` définit cinq formats :
 
-| id | Papier | Marge | `previewWidth` | Disposition |
-| --- | --- | --- | --- | --- |
-| `a4` | 210 × 297 mm | 12 | 703 px | `invoice` |
-| `a5` | 148 × 210 mm | 10 | 484 px | `invoice` |
-| `letter` | 216 × 279 mm | 12 | 726 px | `invoice` |
-| `t80` | 80 mm × auto | 3 | 280 px | `ticket` |
-| `t58` | 58 mm × auto | 2 | 204 px | `ticket` |
+| id       | Papier       | Marge | `previewWidth` | Disposition |
+| -------- | ------------ | ----- | -------------- | ----------- |
+| `a4`     | 210 × 297 mm | 12    | 703 px         | `invoice`   |
+| `a5`     | 148 × 210 mm | 10    | 484 px         | `invoice`   |
+| `letter` | 216 × 279 mm | 12    | 726 px         | `invoice`   |
+| `t80`    | 80 mm × auto | 3     | 280 px         | `ticket`    |
+| `t58`    | 58 mm × auto | 2     | 204 px         | `ticket`    |
 
 La hauteur d'un rouleau est `null` : `exporterPdf` fabrique alors une
 page à la hauteur exacte du contenu. `paperFromLegacyFormat` traduit
@@ -165,13 +165,13 @@ la nouvelle section.
 
 Colonne `jsonb`, non nulle, défaut `{}`. Contenu réel en production :
 
-| Boutique | Contenu |
-| --- | --- |
+| Boutique                   | Contenu                                                                |
+| -------------------------- | ---------------------------------------------------------------------- |
 | **Ma Boutique** (la vôtre) | `{"modules": {}, "rappels": {"veilleHeure": 0, "memeJourMinutes": 5}}` |
-| TROPIC VISION Mangarivotra | `{}` |
-| Boutique | `{}` |
-| Boutique de Zomahefa | `{}` |
-| Ma boutique | `{}` |
+| TROPIC VISION Mangarivotra | `{}`                                                                   |
+| Boutique                   | `{}`                                                                   |
+| Boutique de Zomahefa       | `{}`                                                                   |
+| Ma boutique                | `{}`                                                                   |
 
 - **Lecture** : `lirePersonnalisation()` dans `src/lib/personnalisation.ts`,
   appelée une seule fois dans `BalsamaApp.tsx:318`, puis diffusée par
@@ -200,17 +200,17 @@ current_value)`. Atomique.
 Chaque table a son trigger `BEFORE INSERT` qui pose le numéro **si
 `numero IS NULL`** :
 
-| Table | Fonction | Format | Compteur |
-| --- | --- | --- | --- |
-| `sales` | `assign_sale_numero` | `V` + 3 chiffres → `V026` | `sale` |
-| `quotes` | `assign_quote_numero` | `DEV001` | `quote` |
-| `purchases` | `assign_purchase_numero` | `ACH004` | `purchase` |
-| `payments` | `assign_payment_numero` | `PAY045` | `payment` |
-| `products` | `assign_product_numero` | `P034` | `product` |
-| `expenses` | `assign_expense_numero` | `DEP005` | `expense` |
-| `deliveries` | `assign_delivery_numero` | `LIV001` | `delivery` |
-| `taches` | `assign_tache_numero` | `TAC001` | `tache` |
-| salaires | `tenir_le_paiement_de_salaire` | `SLD` / `AVS` | `solde_salaire` / `avance_salaire` |
+| Table        | Fonction                       | Format                    | Compteur                           |
+| ------------ | ------------------------------ | ------------------------- | ---------------------------------- |
+| `sales`      | `assign_sale_numero`           | `V` + 3 chiffres → `V026` | `sale`                             |
+| `quotes`     | `assign_quote_numero`          | `DEV001`                  | `quote`                            |
+| `purchases`  | `assign_purchase_numero`       | `ACH004`                  | `purchase`                         |
+| `payments`   | `assign_payment_numero`        | `PAY045`                  | `payment`                          |
+| `products`   | `assign_product_numero`        | `P034`                    | `product`                          |
+| `expenses`   | `assign_expense_numero`        | `DEP005`                  | `expense`                          |
+| `deliveries` | `assign_delivery_numero`       | `LIV001`                  | `delivery`                         |
+| `taches`     | `assign_tache_numero`          | `TAC001`                  | `tache`                            |
+| salaires     | `tenir_le_paiement_de_salaire` | `SLD` / `AVS`             | `solde_salaire` / `avance_salaire` |
 
 **Exception : `orders`.** Le trigger `orders_set_numero` appelle
 `set_order_numero`, qui **n'utilise pas le compteur** :
@@ -283,11 +283,11 @@ Les fiches clients sont déjà disponibles dans `VentesView` (prop
 
 Trois sources, selon le document :
 
-| Document | Déjà payé | Reste |
-| --- | --- | --- |
-| Vente | somme des `sales.montant_paye` du ticket | somme des `sales.solde_du` |
-| Commande | `orders.montant_paye` | `orders.reste_a_payer` |
-| Achat | `purchases.montant_paye` | `purchases.solde_du` |
+| Document | Déjà payé                                | Reste                      |
+| -------- | ---------------------------------------- | -------------------------- |
+| Vente    | somme des `sales.montant_paye` du ticket | somme des `sales.solde_du` |
+| Commande | `orders.montant_paye`                    | `orders.reste_a_payer`     |
+| Achat    | `purchases.montant_paye`                 | `purchases.solde_du`       |
 
 Le **mode de paiement** n'est pas sur la vente : il vit dans
 `payments.methode`, avec `payments.sale_id` ou `payments.order_id`. La
@@ -329,48 +329,48 @@ ouvrir son reçu. La visibilité des ventes est déjà filtrée en amont
 
 ## 10. Élément du document → source → état
 
-| Élément | Source | État |
-| --- | --- | --- |
-| Nom de la boutique | `stores.name` | ✅ |
-| Sous-titre | `stores.subtitle` | ✅ (à masquer si vide) |
-| Logo | `stores.logo_url` | ✅ |
-| Initiales de repli | — | ❌ à calculer depuis `name` |
-| Adresse / téléphone / e-mail | `stores.address/phone/email` | ✅ |
-| Ville, code postal | — | ❌ **absent** : l'adresse est un seul texte libre |
-| NIF | `stores.nif_stat` | ⚠️ **un seul champ pour NIF *et* STAT**, la maquette en montre deux |
-| Taux de TVA | `stores.tva_rate` | ✅ (20 % chez vous, 0 ailleurs) |
-| Symbole monétaire | `stores.currency_symbol` | ✅ (`Ar`) |
-| Message de bas de ticket | `stores.receipt_footer` | ✅ |
-| Numéro de facture | `sales.numero` | ✅ (préfixe à habiller) |
-| Numéro de devis | `quotes.numero` | ✅ |
-| Numéro de commande | `orders.numero` | ⚠️ format `CMD-00001`, mécanisme à part |
-| Date | `sales.date` / `orders.created_at` / `quotes.date` | ✅ |
-| Échéance de facture | — | ❌ **aucune colonne** → réglage de boutique, calculé à l'affichage |
-| Validité du devis | `quotes.valide_jusqu_au` | ✅ |
-| Livraison prévue (commande) | `orders.date_livraison` | ✅ |
-| Livraison souhaitée (fournisseur) | — | ❌ saisie à l'écran, non enregistrée |
-| Vendeur | `sales.vendeur` | ✅ |
-| Client (nom libre) | `sales.client_credit` | ✅ |
-| Client (fiche) | `sales.client_id` → `clients` | ⚠️ existe, **jamais imprimé** |
-| Lignes de vente | `sales` du même `ticket_id` | ✅ |
-| Lignes de commande | `order_items` | ✅ |
-| Lignes de devis | `quote_items` | ✅ |
-| Unité | `products.unite` | ✅ |
-| Référence produit | `products.numero` | ✅ |
-| Sous-total | somme des lignes | ✅ |
-| Remise | — | ❌ **aucune colonne de remise** sur `sales` ni `orders` |
-| TVA | `stores.tva_rate` | ✅ |
-| Total | `sales.total_vente` / `orders.montant_total` | ✅ |
-| Déjà payé / reste | `montant_paye` / `solde_du` / `reste_a_payer` | ✅ |
-| Acompte de commande | `orders.montant_paye` | ✅ |
-| Mode de paiement | `payments.methode` (dernier) | ✅ |
-| Montant en lettres | — | ❌ **à écrire**, rien n'existe |
-| Fournisseur (fiche) | `suppliers` | ✅ (`nom, entreprise, adresse, ville, telephone, numero_fiscal`) |
-| Fournisseur (texte libre) | `purchases.fournisseur` | ✅ |
-| Prix d'achat | `products.prixAchat` | ✅ |
-| Code-barres du ticket | `sales.numero` | ❌ à générer (CSS ou petite lib) |
-| Mentions légales | réglage | ❌ à créer dans `personnalisation.documents` |
-| Polices Onest / JetBrains Mono / Source Serif 4 | — | ❌ **aucune police locale** dans le projet |
+| Élément                                         | Source                                             | État                                                                |
+| ----------------------------------------------- | -------------------------------------------------- | ------------------------------------------------------------------- |
+| Nom de la boutique                              | `stores.name`                                      | ✅                                                                  |
+| Sous-titre                                      | `stores.subtitle`                                  | ✅ (à masquer si vide)                                              |
+| Logo                                            | `stores.logo_url`                                  | ✅                                                                  |
+| Initiales de repli                              | —                                                  | ❌ à calculer depuis `name`                                         |
+| Adresse / téléphone / e-mail                    | `stores.address/phone/email`                       | ✅                                                                  |
+| Ville, code postal                              | —                                                  | ❌ **absent** : l'adresse est un seul texte libre                   |
+| NIF                                             | `stores.nif_stat`                                  | ⚠️ **un seul champ pour NIF _et_ STAT**, la maquette en montre deux |
+| Taux de TVA                                     | `stores.tva_rate`                                  | ✅ (20 % chez vous, 0 ailleurs)                                     |
+| Symbole monétaire                               | `stores.currency_symbol`                           | ✅ (`Ar`)                                                           |
+| Message de bas de ticket                        | `stores.receipt_footer`                            | ✅                                                                  |
+| Numéro de facture                               | `sales.numero`                                     | ✅ (préfixe à habiller)                                             |
+| Numéro de devis                                 | `quotes.numero`                                    | ✅                                                                  |
+| Numéro de commande                              | `orders.numero`                                    | ⚠️ format `CMD-00001`, mécanisme à part                             |
+| Date                                            | `sales.date` / `orders.created_at` / `quotes.date` | ✅                                                                  |
+| Échéance de facture                             | —                                                  | ❌ **aucune colonne** → réglage de boutique, calculé à l'affichage  |
+| Validité du devis                               | `quotes.valide_jusqu_au`                           | ✅                                                                  |
+| Livraison prévue (commande)                     | `orders.date_livraison`                            | ✅                                                                  |
+| Livraison souhaitée (fournisseur)               | —                                                  | ❌ saisie à l'écran, non enregistrée                                |
+| Vendeur                                         | `sales.vendeur`                                    | ✅                                                                  |
+| Client (nom libre)                              | `sales.client_credit`                              | ✅                                                                  |
+| Client (fiche)                                  | `sales.client_id` → `clients`                      | ⚠️ existe, **jamais imprimé**                                       |
+| Lignes de vente                                 | `sales` du même `ticket_id`                        | ✅                                                                  |
+| Lignes de commande                              | `order_items`                                      | ✅                                                                  |
+| Lignes de devis                                 | `quote_items`                                      | ✅                                                                  |
+| Unité                                           | `products.unite`                                   | ✅                                                                  |
+| Référence produit                               | `products.numero`                                  | ✅                                                                  |
+| Sous-total                                      | somme des lignes                                   | ✅                                                                  |
+| Remise                                          | —                                                  | ❌ **aucune colonne de remise** sur `sales` ni `orders`             |
+| TVA                                             | `stores.tva_rate`                                  | ✅                                                                  |
+| Total                                           | `sales.total_vente` / `orders.montant_total`       | ✅                                                                  |
+| Déjà payé / reste                               | `montant_paye` / `solde_du` / `reste_a_payer`      | ✅                                                                  |
+| Acompte de commande                             | `orders.montant_paye`                              | ✅                                                                  |
+| Mode de paiement                                | `payments.methode` (dernier)                       | ✅                                                                  |
+| Montant en lettres                              | —                                                  | ❌ **à écrire**, rien n'existe                                      |
+| Fournisseur (fiche)                             | `suppliers`                                        | ✅ (`nom, entreprise, adresse, ville, telephone, numero_fiscal`)    |
+| Fournisseur (texte libre)                       | `purchases.fournisseur`                            | ✅                                                                  |
+| Prix d'achat                                    | `products.prixAchat`                               | ✅                                                                  |
+| Code-barres du ticket                           | `sales.numero`                                     | ❌ à générer (CSS ou petite lib)                                    |
+| Mentions légales                                | réglage                                            | ❌ à créer dans `personnalisation.documents`                        |
+| Polices Onest / JetBrains Mono / Source Serif 4 | —                                                  | ❌ **aucune police locale** dans le projet                          |
 
 ---
 
@@ -403,13 +403,13 @@ Sans aucun changement de schéma :
 
 ## 12. Risques repérés
 
-| # | Risque | Parade |
-| --- | --- | --- |
-| 1 | `lirePersonnalisation()` efface les clés inconnues → un enregistrement du vocabulaire effacerait `documents` | étendre la fonction **avant** d'écrire quoi que ce soit (phase 5, en premier) |
-| 2 | Le PDF par capture d'image reste en place | la feuille v2 est en `mm` et mise à l'échelle par `transform` : la capture sort à la bonne taille quel que soit l'écran. Je signale que l'impression navigateur (texte réel) reste préférable et sera proposée en premier bouton |
-| 3 | `set_order_numero` compte les lignes | signalé, non touché, proposition dans `sql-propose.sql` |
-| 4 | Les 9 aperçus existants gardent le défaut de largeur | hors périmètre de cette mission ; à traiter séparément |
-| 5 | Une boutique verrouillée refuse l'écriture en silence | `updateStore` traite déjà le cas et renvoie un message |
+| #   | Risque                                                                                                       | Parade                                                                                                                                                                                                                           |
+| --- | ------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | `lirePersonnalisation()` efface les clés inconnues → un enregistrement du vocabulaire effacerait `documents` | étendre la fonction **avant** d'écrire quoi que ce soit (phase 5, en premier)                                                                                                                                                    |
+| 2   | Le PDF par capture d'image reste en place                                                                    | la feuille v2 est en `mm` et mise à l'échelle par `transform` : la capture sort à la bonne taille quel que soit l'écran. Je signale que l'impression navigateur (texte réel) reste préférable et sera proposée en premier bouton |
+| 3   | `set_order_numero` compte les lignes                                                                         | signalé, non touché, proposition dans `sql-propose.sql`                                                                                                                                                                          |
+| 4   | Les 9 aperçus existants gardent le défaut de largeur                                                         | hors périmètre de cette mission ; à traiter séparément                                                                                                                                                                           |
+| 5   | Une boutique verrouillée refuse l'écriture en silence                                                        | `updateStore` traite déjà le cas et renvoie un message                                                                                                                                                                           |
 
 ---
 

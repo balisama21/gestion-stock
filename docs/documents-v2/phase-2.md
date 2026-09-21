@@ -58,13 +58,13 @@ client. Un test le vérifie.
 
 ### Ce que la fonction corrige au passage
 
-| | Avant | Maintenant |
-| --- | --- | --- |
-| Fiche client | jamais imprimée ; seul le nom libre sortait | entreprise, adresse, ville, téléphone |
-| Nom du produit | — | celui **figé sur la vente**, pas le nom actuel du catalogue : un produit renommé ne réécrit pas une facture déjà remise |
-| Mode de règlement | absent | « Espèces », lu sur le dernier paiement |
-| Échéance | inexistante | une **date** (04/10/2026), pas un délai à compter soi-même |
-| Numéro | `V026` | `FAC-V026` — le préfixe **habille** le numéro de la base, il ne le remplace pas, pour qu'il reste cherchable dans la liste des ventes |
+|                   | Avant                                       | Maintenant                                                                                                                            |
+| ----------------- | ------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------- |
+| Fiche client      | jamais imprimée ; seul le nom libre sortait | entreprise, adresse, ville, téléphone                                                                                                 |
+| Nom du produit    | —                                           | celui **figé sur la vente**, pas le nom actuel du catalogue : un produit renommé ne réécrit pas une facture déjà remise               |
+| Mode de règlement | absent                                      | « Espèces », lu sur le dernier paiement                                                                                               |
+| Échéance          | inexistante                                 | une **date** (04/10/2026), pas un délai à compter soi-même                                                                            |
+| Numéro            | `V026`                                      | `FAC-V026` — le préfixe **habille** le numéro de la base, il ne le remplace pas, pour qu'il reste cherchable dans la liste des ventes |
 
 ### Deux corrections trouvées en regardant l'écran
 
@@ -122,15 +122,15 @@ lignes, et trois lignes remplissent exactement une A4.**
 
 Mesures relevées sur le document réel, en millimètres sur 297 :
 
-| Bloc | Hauteur |
-| --- | --- |
-| En-tête (logo, titre, repères, tampon) | 44,7 |
-| Émetteur + destinataire | 37,8 |
-| Montant en lettres, mentions, totaux | 34,9 |
-| Signatures, mot de fin, pied | 20,9 |
-| Marges haut et bas | 32,0 |
-| **Espaces entre les huit blocs** | **56,0** |
-| Reste pour le tableau | ~52 |
+| Bloc                                   | Hauteur  |
+| -------------------------------------- | -------- |
+| En-tête (logo, titre, repères, tampon) | 44,7     |
+| Émetteur + destinataire                | 37,8     |
+| Montant en lettres, mentions, totaux   | 34,9     |
+| Signatures, mot de fin, pied           | 20,9     |
+| Marges haut et bas                     | 32,0     |
+| **Espaces entre les huit blocs**       | **56,0** |
+| Reste pour le tableau                  | ~52      |
 
 Les 56 mm d'air entre les blocs étaient le poste le plus lourd. Je
 les ai ramenés à 42 mm (`gap` de 8 à 6 mm) et les marges de 32 à

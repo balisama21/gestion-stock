@@ -14,17 +14,17 @@ passent** (147 avant, **+64**). `vite build` : sans erreur.
 
 `src/features/documents/fonts/` — **six fichiers, 336 Ko**.
 
-| Famille | Fichiers | Poids |
-| --- | --- | --- |
-| Onest | `onest-latin.woff2`, `onest-latin-ext.woff2` | 33,8 + 28,5 Ko |
-| JetBrains Mono | `jetbrains-mono-latin.woff2`, `-latin-ext.woff2` | 31,4 + 11,6 Ko |
+| Famille        | Fichiers                                         | Poids            |
+| -------------- | ------------------------------------------------ | ---------------- |
+| Onest          | `onest-latin.woff2`, `onest-latin-ext.woff2`     | 33,8 + 28,5 Ko   |
+| JetBrains Mono | `jetbrains-mono-latin.woff2`, `-latin-ext.woff2` | 31,4 + 11,6 Ko   |
 | Source Serif 4 | `source-serif-4-latin.woff2`, `-latin-ext.woff2` | 122,4 + 100,9 Ko |
 
 **Six et non vingt-deux.** Le premier rapatriement en avait produit
 vingt-deux — quatre poids × deux sous-ensembles par famille. Un
 contrôle d'empreinte md5 a montré que les quatre poids d'une même
 famille étaient **le même octet** : les trois familles sont des
-polices *variables*, un seul fichier porte toute la plage. D'où
+polices _variables_, un seul fichier porte toute la plage. D'où
 `font-weight: 100 900` dans les `@font-face` : une plage, pas une
 valeur. 1 065 Ko sont redevenus 336.
 
@@ -63,7 +63,7 @@ une mise à l'échelle par `transform`, qui ne remet rien en page.
 C'est la réponse directe au défaut constaté sur le bon de commande :
 les documents actuels sont en `width: 100%` plafonnés par une
 `max-width`, donc ils se replient sur un téléphone, et comme le PDF
-est une *photographie* du bloc affiché, le fichier sort avec les
+est une _photographie_ du bloc affiché, le fichier sort avec les
 colonnes écrasées. `transform` ne change pas la mise en page, seulement
 sa taille apparente.
 
@@ -113,7 +113,7 @@ facture imprimée, un total dont la devise s'est détachée fait douter du
 montant. Le test le dit explicitement au lieu de le laisser passer.
 
 Le séparateur de milliers, lui, reprend exactement la substitution de
-l'application : `Intl` en français produit U+202F, l'espace *fine*
+l'application : `Intl` en français produit U+202F, l'espace _fine_
 insécable, remplacée par U+00A0 parce que la fine ne survit pas à tous
 les encodages — c'est elle qui donnait « 6/500 Ar ».
 
@@ -149,17 +149,17 @@ un mille huit cents » ne se retouche pas.
 
 ### Les neuf cas demandés
 
-| Montant | Résultat |
-| --- | --- |
-| 1 | un |
-| 71 | soixante et onze |
-| 80 | quatre-vingt**s** |
-| 81 | quatre-vingt-un |
-| 100 | cent |
-| 200 | deux cent**s** |
-| 1 000 | mille |
-| 331 800 | trois cent trente et un mille huit cent**s** |
-| 1 500 000 | un million cinq cent mille |
+| Montant   | Résultat                                     |
+| --------- | -------------------------------------------- |
+| 1         | un                                           |
+| 71        | soixante et onze                             |
+| 80        | quatre-vingt**s**                            |
+| 81        | quatre-vingt-un                              |
+| 100       | cent                                         |
+| 200       | deux cent**s**                               |
+| 1 000     | mille                                        |
+| 331 800   | trois cent trente et un mille huit cent**s** |
+| 1 500 000 | un million cinq cent mille                   |
 
 Les neuf passent. Ils sont marqués « ⚑ » dans le fichier de test.
 
@@ -171,19 +171,19 @@ ratent. « cent » et « vingt » prennent un s quand ils sont multipliés
 nombre, tandis que « million » et « milliard » sont des **noms**.
 D'où :
 
-| | |
-| --- | --- |
-| 200 000 | deux cent mille — **sans** s |
+|             |                                      |
+| ----------- | ------------------------------------ |
+| 200 000     | deux cent mille — **sans** s         |
 | 200 000 000 | deux cent**s** millions — **avec** s |
-| 80 000 | quatre-vingt mille |
-| 80 000 000 | quatre-vingt**s** millions |
+| 80 000      | quatre-vingt mille                   |
+| 80 000 000  | quatre-vingt**s** millions           |
 
 C'est pour cela que le code transporte un drapeau `final` de tranche
 en tranche plutôt que de regarder seulement la dernière.
 
 Les autres cas couverts : 70/72/90/99 qui s'écrivent en additionnant ;
-le « et » qui n'existe qu'à *soixante et onze* et pas à
-*quatre-vingt-onze* (il n'y a pas de règle, c'est l'usage — le test
+le « et » qui n'existe qu'à _soixante et onze_ et pas à
+_quatre-vingt-onze_ (il n'y a pas de règle, c'est l'usage — le test
 est là pour que personne n'« harmonise ») ; « mille » invariable et
 jamais précédé de « un » ; les tranches vides
 (1 000 001 → « un million un », sans trou) ; l'arrondi, aligné sur

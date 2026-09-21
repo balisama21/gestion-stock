@@ -12,12 +12,12 @@ déploiement.
 
 `npx eslint src` rapporte **20 513 erreurs**. La répartition :
 
-| Nombre | Règle | Cause |
-| --- | --- | --- |
-| 16 565 | `prettier/prettier` — ``Delete `␍` `` | retours chariot |
-| 2 576 | `prettier/prettier` — ``Insert `;` `` | mise en forme |
-| 983 | `prettier/prettier` — ``Delete `··` `` | mise en forme |
-| ~400 | diverses règles de mise en forme | — |
+| Nombre | Règle                                  | Cause           |
+| ------ | -------------------------------------- | --------------- |
+| 16 565 | `prettier/prettier` — ``Delete `␍` ``  | retours chariot |
+| 2 576  | `prettier/prettier` — ``Insert `;` ``  | mise en forme   |
+| 983    | `prettier/prettier` — ``Delete `··` `` | mise en forme   |
+| ~400   | diverses règles de mise en forme       | —               |
 
 **Preuve que c'est antérieur** : `src/components/VentesView.tsx`, que
 cette mission n'a jamais ouvert en écriture, en porte **295 à lui
@@ -44,10 +44,10 @@ Les neuf fichiers existants que cette mission modifie ont été comparés
 à leur version du commit `bb152b0`, celui d’avant la mission, retours
 chariot retirés des deux côtés pour comparer ce qui est comparable :
 
-| | Erreurs eslint |
-| --- | --- |
-| Avant la mission | **309** |
-| Apres | **306** |
+|                  | Erreurs eslint |
+| ---------------- | -------------- |
+| Avant la mission | **309**        |
+| Apres            | **306**        |
 
 Trois de moins. Les fichiers **créés** par la mission, eux, sont à zéro.
 

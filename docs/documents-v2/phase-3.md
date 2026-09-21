@@ -96,11 +96,11 @@ millimètre, et l'Épuré sortait à 1124 pixels pour une page qui en fait
 
 ## 2. Les trois autres modèles
 
-| Modèle | Ce qui le distingue |
-| --- | --- |
+| Modèle      | Ce qui le distingue                                                                                                                                      |
+| ----------- | -------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Bandeau** | Bandeau de couleur pleine largeur, lignes alternées, barre de contact en pied. Le plus affirmé : il donne à la facture l'allure d'un document de marque. |
-| **Épuré** | Empattements, aucun aplat, filets fins. Pour les métiers où la couleur ferait tache. |
-| **Compact** | Dense, numéroté, faible hauteur de ligne. Pour les factures à beaucoup d'articles. |
+| **Épuré**   | Empattements, aucun aplat, filets fins. Pour les métiers où la couleur ferait tache.                                                                     |
+| **Compact** | Dense, numéroté, faible hauteur de ligne. Pour les factures à beaucoup d'articles.                                                                       |
 
 ### Les quatre partagent une ossature
 
@@ -142,12 +142,12 @@ lorsqu'aucun règlement n'est connu. La ligne porte maintenant un nom,
 
 Mesuré sur le vrai rendu, avec les vraies ventes de la boutique :
 
-| Modèle | 1 ligne | 3 lignes | 25 lignes |
-| --- | --- | --- | --- |
-| Classique | 1 page | 1 page | **3 pages** |
-| Bandeau | 1 page | 1 page | **3 pages** |
-| Épuré | 1 page | 1 page | **3 pages** |
-| Compact | 1 page | 1 page | **2 pages** — 24 lignes sur la première |
+| Modèle    | 1 ligne | 3 lignes | 25 lignes                               |
+| --------- | ------- | -------- | --------------------------------------- |
+| Classique | 1 page  | 1 page   | **3 pages**                             |
+| Bandeau   | 1 page  | 1 page   | **3 pages**                             |
+| Épuré     | 1 page  | 1 page   | **3 pages**                             |
+| Compact   | 1 page  | 1 page   | **2 pages** — 24 lignes sur la première |
 
 **Aucune page ne dépasse 1123 pixels**, dans aucun des douze cas. Les
 vingt-cinq lignes sont toutes présentes, dans l'ordre, dans les quatre

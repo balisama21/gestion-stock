@@ -65,22 +65,22 @@ Commit `f8f7540`. Rapport : `docs/documents-v2/phase-2.md`.
   `lib/imprimer.ts`, `lib/fixtures.ts`.
 - **Fichiers modifiés** : `print.css`, `index.css`.
 - **Décision prise à ma place** : la TVA est **comprise**, elle ne
-  s'ajoute pas. *Raison* : la maquette calcule `total = base + TVA`
+  s'ajoute pas. _Raison_ : la maquette calcule `total = base + TVA`
   sur des données fictives ; appliqué à la vente V024 de la
   production, ce calcul annoncerait 360 000 Ar pour une vente
   enregistrée à 300 000 — un montant jamais payé, qui contredirait la
-  page Ventes. *Revenir en arrière* : dans `totauxDeVente`
+  page Ventes. _Revenir en arrière_ : dans `totauxDeVente`
   (`lib/buildDocument.ts`), remplacer l'extraction par une addition ;
   un test la verrouille et échouera, ce qui est voulu.
 - **Décision** : l'option « Remise » est retirée des réglages.
-  *Raison* : aucune colonne ne porte de remise, la ligne ne
+  _Raison_ : aucune colonne ne porte de remise, la ligne ne
   s'afficherait jamais, et un interrupteur sans effet fait croire que
-  la fonction existe. *Revenir en arrière* : rajouter la clé dans
+  la fonction existe. _Revenir en arrière_ : rajouter la clé dans
   `OptionsDocuments` et la ligne dans `Totaux` — mais il faudra
   d'abord une vraie colonne, donc une migration.
 - **Décision** : « Imprimer » est le bouton principal, devant
-  « PDF ». *Raison* : l'impression produit du texte réel ; le PDF est
-  une photographie. *Revenir en arrière* : échanger les classes
+  « PDF ». _Raison_ : l'impression produit du texte réel ; le PDF est
+  une photographie. _Revenir en arrière_ : échanger les classes
   `app-btn-primary` / `app-btn-secondary` dans `DocumentPreview.tsx`.
 - **Vérifications** : tsc OK · lint OK · build OK · 257 tests · PDF
   produit depuis 375 px et depuis 1000 px **identiques octet pour
@@ -104,13 +104,13 @@ Commit `5ac4042`. Rapport : `docs/documents-v2/phase-3.md`.
 - **Décision prise à ma place** : la clôture respire moins que les
   grandes sections (4 mm fixes), l'intitulé « Conditions » de l'Épuré
   est retiré, et l'Épuré passe de 18 à 15 mm de marge et de 32 à
-  28 points de titre. *Raison* : l'Épuré mettait trois lignes sur deux
+  28 points de titre. _Raison_ : l'Épuré mettait trois lignes sur deux
   pages, il manquait cinq pixels ; ces espaces ne portaient rien.
-  *Revenir en arrière* : `.doc-cloture { gap }` et le bloc
+  _Revenir en arrière_ : `.doc-cloture { gap }` et le bloc
   `.m-epure .doc-pad` dans `templates/modeles.css`.
-- **Décision** : l'Épuré n'a pas de tampon de paiement. *Raison* : un
+- **Décision** : l'Épuré n'a pas de tampon de paiement. _Raison_ : un
   tampon de travers dans un document sobre est un corps étranger ;
-  l'information reste dans les totaux. *Revenir en arrière* : ajouter
+  l'information reste dans les totaux. _Revenir en arrière_ : ajouter
   `<TamponPaiement>` dans `templates/Epure.tsx`.
 - **Vérifications** : tsc OK · lint OK · build OK · 275 tests ·
   douze cas mesurés (4 modèles × 1, 3 et 25 lignes), aucune page ne
@@ -145,27 +145,27 @@ Commit `5ac4042`. Rapport : `docs/documents-v2/phase-3.md`.
 
 ### Décisions prises à ma place
 
-**Le code-barres est un vrai Code 128, écrit à la main.** *Raison* :
+**Le code-barres est un vrai Code 128, écrit à la main.** _Raison_ :
 la maquette dessine un dégradé CSS répétitif — très ressemblant, et
 parfaitement muet ; une douchette n'en tire rien. `jsbarcode` ferait
 quarante kilooctets pour soixante lignes, et la norme est figée
-depuis 1981. *Revenir en arrière* : couper l'option
+depuis 1981. _Revenir en arrière_ : couper l'option
 `ticket.codeBarres` dans les réglages, ou remplacer
 `dessinerCode128` par la bibliothèque.
 
-**Il encode le numéro BRUT, pas le numéro préfixé.** *Raison* : une
+**Il encode le numéro BRUT, pas le numéro préfixé.** _Raison_ : une
 douchette doit rendre « V026 », qui se cherche dans la liste des
-ventes ; « REC-V026 » ne s'y trouve pas. *Revenir en arrière* :
+ventes ; « REC-V026 » ne s'y trouve pas. _Revenir en arrière_ :
 `codeBarres: util(premiere?.numero)` dans `documentDeVente`.
 
 **La mention « Ticket non valable comme facture » n'est pas
-réglable.** *Raison* : c'est elle qui protège la boutique du client
-qui repart en croyant tenir une facture. *Revenir en arrière* :
+réglable.** _Raison_ : c'est elle qui protège la boutique du client
+qui repart en croyant tenir une facture. _Revenir en arrière_ :
 la déplacer dans `ReglagesTicket`.
 
-**Module de 0,28 mm sur 80 mm, 0,22 mm sur 58 mm.** *Raison* : sur le
+**Module de 0,28 mm sur 80 mm, 0,22 mm sur 58 mm.** _Raison_ : sur le
 rouleau étroit, 0,28 donnerait un symbole plus large que le papier —
-tronqué, il ne se lit pas du tout. *Revenir en arrière* :
+tronqué, il ne se lit pas du tout. _Revenir en arrière_ :
 `MODULE_MM` dans `templates/Ticket.tsx`.
 
 ### Trois défauts trouvés en vérifiant, dont deux graves
@@ -210,9 +210,9 @@ sur les rangs.
   vraie vente, et **l'interrupteur serveur** qui coupe les nouveaux
   documents sans redéployer.
 - **Fichiers créés** : `src/components/settings/DocumentsSection.tsx`
-  + test (9 tests), `src/lib/personnalisation.test.ts` (6 tests),
-  `docs/documents-v2/bloques.md`,
-  `docs/documents-v2/captures/parametres-documents.png`.
+  - test (9 tests), `src/lib/personnalisation.test.ts` (6 tests),
+    `docs/documents-v2/bloques.md`,
+    `docs/documents-v2/captures/parametres-documents.png`.
 - **Fichiers modifiés** : `src/lib/personnalisation.ts` (les clés
   inconnues sont enfin préservées), `src/components/ParametresView.tsx`,
   `src/components/settings/SettingsLayout.tsx`,
@@ -233,7 +233,7 @@ verrouillé par six tests dont un aller-retour complet.
 ### Décisions prises à ma place
 
 **Le drapeau serveur vit dans `stores.personnalisation.documents.actif`.**
-*Raison* : la consigne demande un réglage coupable à distance depuis un
+_Raison_ : la consigne demande un réglage coupable à distance depuis un
 téléphone, sans redéployer, dans une table existante et sans SQL. Une
 variable d'environnement Netlify demande un redéploiement ; il n'existe
 aucune autre table de configuration ; et je n'ai pas le droit d'écrire
@@ -241,23 +241,23 @@ en base moi-même. La colonne `personnalisation` existe, elle est en
 jsonb, deux sections s'en servent déjà, et l'écran de réglages est la
 seule écriture autorisée de toute la mission — c'est le seul endroit
 qui satisfait toutes les contraintes à la fois.
-*Revenir en arrière* : retirer la clé `actif`, le drapeau retombe sur
+_Revenir en arrière_ : retirer la clé `actif`, le drapeau retombe sur
 `VITE_DOCUMENTS_V2`.
 
-**Trois états et non deux** (`null`, `true`, `false`). *Raison* : sans
+**Trois états et non deux** (`null`, `true`, `false`). _Raison_ : sans
 le troisième, une boutique qui n'a jamais touché au réglage serait
 comptée comme l'ayant refusé, et l'activation générale n'atteindrait
-personne. *Revenir en arrière* : `lireReglagesDocuments`, clé `actif`.
+personne. _Revenir en arrière_ : `lireReglagesDocuments`, clé `actif`.
 
-**L'interrupteur est le premier réglage de l'écran.** *Raison* : c'est
+**L'interrupteur est le premier réglage de l'écran.** _Raison_ : c'est
 celui qu'on vient chercher en urgence ; il ne doit pas être au fond.
-*Revenir en arrière* : déplacer le bloc dans `DocumentsSection.tsx`.
+_Revenir en arrière_ : déplacer le bloc dans `DocumentsSection.tsx`.
 
 **L'aperçu montre la dernière vente réelle, jamais un exemple.**
-*Raison* : la consigne interdit les données de la maquette dans
+_Raison_ : la consigne interdit les données de la maquette dans
 l'application, et on règle mieux un document en le voyant tel qu'il
 sortira. Sans aucune vente, l'aperçu le dit et s'efface.
-*Revenir en arrière* : `DocumentsSection.tsx`, bloc « Aperçu ».
+_Revenir en arrière_ : `DocumentsSection.tsx`, bloc « Aperçu ».
 
 - **Vérifications** : tsc OK · lint OK **sur les fichiers de la
   mission** (voir `bloques.md` : le dépôt entier échouait déjà avant,
@@ -297,25 +297,25 @@ faux, et l'on ne peut plus éteindre.
 
 ### Décisions prises à ma place
 
-**Un filet de sécurité sous la v2.** *Raison* : le déploiement se fait
+**Un filet de sécurité sous la v2.** _Raison_ : le déploiement se fait
 sans validation humaine ; si un document tombe, l'écran ne doit pas
 devenir blanc devant quelqu'un qui facture. Le filet retient la chute,
 l'écran cesse de demander la v2, et l'ancien document reprend sa place
-tout seul. *Revenir en arrière* : retirer `<FiletDeSecurite>` des trois
+tout seul. _Revenir en arrière_ : retirer `<FiletDeSecurite>` des trois
 écrans.
 
-**L'ancienne modale de Ventes n'est pas déplacée d'une ligne.** *Raison* :
+**L'ancienne modale de Ventes n'est pas déplacée d'une ligne.** _Raison_ :
 la réécrire pour la réutiliser comme secours aurait touché trois cents
 lignes de JSX qui marchent. Elle est simplement rendue conditionnelle
 — `!documentNouveau` — et c'est elle qui revient quand la v2 est
-absente ou tombée. *Revenir en arrière* : retirer la condition.
+absente ou tombée. _Revenir en arrière_ : retirer la condition.
 
 **Le bon de commande client est une nouveauté entière.** L'écran
 Commandes n'avait aucune impression. Drapeau baissé, le bouton
 n'apparaît pas ; il n'y a donc rien à casser.
 
 **Le choix de modèle sur un document précis ne s'enregistre pas.**
-*Raison* : c'est la consigne, et c'est juste — un vendeur ne redéfinit
+_Raison_ : c'est la consigne, et c'est juste — un vendeur ne redéfinit
 pas l'identité de la boutique en imprimant une facture.
 
 ### La mesure qui compte
@@ -328,3 +328,43 @@ ajoute aucune. Détail dans `bloques.md`.
 - **Vérifications** : tsc OK · lint OK sur les fichiers de la mission ·
   build OK · **321 tests**.
 - **Reste à faire** : rien pour cette phase.
+
+---
+
+## Phase 7 — Vérifications, rapport final, mise en production — TERMINÉE
+
+- **Fait** : les quinze cases de la §10 passées une par une, quatre
+  vérifications menées dans un vrai navigateur, le rapport final, puis
+  le merge dans `main` et le déploiement.
+- **Fichiers créés** : `docs/documents-v2/rapport-final.md`,
+  quatre captures de vérification.
+- **Fichiers modifiés** : `docs/documents-v2/bloques.md`.
+
+### Ce qui a été mesuré, et non supposé
+
+| Vérification                                 | Résultat                                      |
+| -------------------------------------------- | --------------------------------------------- |
+| Écritures pendant l'affichage et l'export    | **0** requête POST/PUT/PATCH/DELETE           |
+| Polices hors du domaine, pour un document    | **0**                                         |
+| En-tête de tableau sur chaque page (3 pages) | présent sur les trois                         |
+| Hauteur des pages, 12 cas                    | **1123 px** partout, jamais plus              |
+| Ticket 80 mm                                 | **302 px**, 0 élément qui déborde             |
+| Ticket 58 mm                                 | **219 px**, 0 élément qui déborde             |
+| Boutique sans rien                           | 0 paragraphe vide, 0 « N/A »                  |
+| Diff de `VentesView`                         | **1 ligne retirée**, la condition d'ouverture |
+| eslint sur les fichiers modifiés             | 309 avant → **306 après**                     |
+
+### Décision prise à ma place
+
+**Le bon de commande fournisseur garde son implémentation actuelle.**
+_Raison_ : vous l'aviez validé le 21 septembre après trois
+allers-retours sur sa mise en page. Le refaire au modèle v2 aurait
+remplacé un document approuvé par un autre que vous n'auriez pas vu —
+ce que la première règle interdit. Il sort déjà en A4, sans données
+inventées, et n'écrit rien en base.
+_Revenir dessus_ : ajouter `documentDAchat` à côté de
+`documentDeCommande`, qui lui ressemble à quinze lignes près, et
+brancher le bouton « Préparer la commande » de la carte Stock.
+
+- **Vérifications** : tsc OK · lint OK sur les fichiers de la mission ·
+  build OK · **321 tests** · 20 captures.
