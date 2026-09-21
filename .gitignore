@@ -44,3 +44,5 @@ supabase/.temp/
 # déjà emporté un dans un commit.
 /public/banc/
 /src/features/documents/banc-app.tsx
+# Réglages locaux de l'outil de développement : propres à ce poste.
+/.claude/
