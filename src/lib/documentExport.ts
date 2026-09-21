@@ -73,7 +73,9 @@ const telechargerBlob = (blob: Blob, nom: string) => {
  * On attend enfin que les polices soient prêtes : capturer avant, c'est
  * photographier un texte encore rendu dans la police de repli.
  */
-async function capturer(element: HTMLElement): Promise<HTMLCanvasElement> {
+// Exportée pour les documents v2, qui paginent eux-mêmes et ont donc
+// besoin de photographier plusieurs feuilles, une par page.
+export async function capturer(element: HTMLElement): Promise<HTMLCanvasElement> {
   const { domToCanvas } = await import("modern-screenshot");
   if (document.fonts?.ready) await document.fonts.ready;
   return domToCanvas(element, {
@@ -178,14 +180,7 @@ export async function exporterPdf(
     const hauteur = hauteurImageMm * facteur;
     // Recentré horizontalement quand il a été réduit.
     const x = paper.marginMm + (largeurUtileMm - largeur) / 2;
-    doc.addImage(
-      canvas.toDataURL("image/jpeg", 0.95),
-      "JPEG",
-      x,
-      paper.marginMm,
-      largeur,
-      hauteur,
-    );
+    doc.addImage(canvas.toDataURL("image/jpeg", 0.95), "JPEG", x, paper.marginMm, largeur, hauteur);
     doc.save(`${fileName}.pdf`);
     return;
   }
@@ -236,9 +231,7 @@ export async function exporterPdf(
  */
 export function imprimerDocument(paper: PaperFormat): void {
   const taille =
-    paper.heightMm === null
-      ? `${paper.widthMm}mm auto`
-      : `${paper.widthMm}mm ${paper.heightMm}mm`;
+    paper.heightMm === null ? `${paper.widthMm}mm auto` : `${paper.widthMm}mm ${paper.heightMm}mm`;
 
   const style = document.createElement("style");
   style.id = "format-impression";

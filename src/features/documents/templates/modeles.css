@@ -279,3 +279,349 @@
   gap: 8mm;
   font-size: 9pt;
 }
+
+/* ═══════════════════════════════════════════════════════════════════
+   LE SQUELETTE COMMUN AUX QUATRE MODÈLES
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* Les trois groupes que la mesure sait retrouver. Le premier et le
+   dernier sont eux-mêmes des colonnes, pour que l'espacement reste le
+   même qu'avant leur regroupement : c'est un regroupement pour la
+   pagination, pas un changement de mise en page. */
+.doc-feuille .groupe-tete {
+  display: flex;
+  flex-direction: column;
+  gap: inherit;
+}
+
+/* La clôture respire MOINS que les grandes sections, et c est voulu.
+   Ses blocs — totaux, mentions, signature, pied — se lisent ensemble ;
+   les séparer autant que l en-tête et le tableau lui coûtait quatre
+   centimètres, soit deux lignes d articles de moins sur la page. */
+.doc-feuille .doc-cloture {
+  display: flex;
+  flex-direction: column;
+  gap: 4mm;
+}
+
+/* La clôture s'étire pour pousser le pied en bas de la feuille. */
+.doc-feuille .doc-cloture {
+  flex: 1;
+  min-height: 0;
+}
+
+/* ── L'en-tête des pages de suite ────────────────────────────────────
+   HAUTEUR FIXE, et c'est la clé du découpage : elle doit être connue
+   avant que ces pages n'existent. Voir `TeteSuite`. */
+.doc-tete-suite {
+  height: 18mm;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8mm;
+  border-bottom: 0.3mm solid #e6ebe8;
+  flex: none;
+}
+.doc-tete-suite .nom {
+  font-weight: 700;
+  font-size: 11pt;
+  letter-spacing: -0.01em;
+}
+.doc-tete-suite .ref {
+  font-size: 9pt;
+  color: #6b7671;
+  white-space: nowrap;
+}
+
+/* Un bloc qui ne doit pas imposer sa largeur minimale à ses voisins. */
+.doc-feuille .min0 {
+  min-width: 0;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   MODÈLE 2 — BANDEAU
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* Le bandeau colle aux bords : il ressort des marges de la feuille. */
+.m-bandeau .band {
+  background: var(--doc);
+  color: #fff;
+  padding: 12mm 15mm 10mm;
+  margin: -14mm -15mm 0;
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 10mm;
+}
+.m-bandeau .band .doc-titre {
+  font-size: 30pt;
+  letter-spacing: 0.02em;
+}
+.m-bandeau .band .doc-sous-titre,
+.m-bandeau .band .coordonnees,
+.m-bandeau .band .ref {
+  color: rgba(255, 255, 255, 0.78);
+}
+.m-bandeau .band .coordonnees {
+  margin-top: 4mm;
+  font-size: 9pt;
+}
+.m-bandeau .band .ref {
+  font-size: 9.5pt;
+  margin-top: 2mm;
+}
+/* La pastille d'initiales se détache sur la couleur plutôt que de s'y
+   confondre : un carré de la même teinte serait invisible. */
+.m-bandeau .band .doc-pastille {
+  background: rgba(255, 255, 255, 0.16);
+}
+.m-bandeau .band .repere {
+  text-align: right;
+  flex: none;
+}
+
+/* Le squelette : un bloc rembourré, trois groupes en colonne. */
+.m-bandeau .doc-pad {
+  display: flex;
+  flex-direction: column;
+  gap: 6mm;
+}
+
+.m-bandeau table thead th {
+  background: var(--doc-soft);
+  color: var(--doc-ink);
+  padding: 2.6mm 4mm;
+  font-size: 8.5pt;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.m-bandeau table td {
+  padding: 2.8mm 4mm;
+  font-size: 10pt;
+}
+/* Lignes alternées : sur un tableau sans filets, c'est la seule chose
+   qui empêche l'œil de sauter d'une ligne à l'autre. */
+.m-bandeau table tbody tr:nth-child(even) td {
+  background: #f7faf8;
+}
+.m-bandeau .bas {
+  display: grid;
+  grid-template-columns: 1fr 80mm;
+  gap: 10mm;
+  align-items: start;
+}
+.m-bandeau .encadre {
+  background: var(--doc-soft);
+  color: var(--doc-ink);
+  border-radius: 2mm;
+  padding: 3mm 5mm;
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 5mm;
+  font-weight: 700;
+  font-size: 12pt;
+  margin-top: 2mm;
+}
+/* La barre de pied répond au bandeau, d'un bout à l'autre de la
+   feuille : elle ressort donc des marges du bloc qui la contient. */
+.m-bandeau .barre-pied {
+  background: var(--doc);
+  color: #fff;
+  padding: 5mm 15mm;
+  margin: 0 -15mm -14mm;
+  display: flex;
+  justify-content: space-between;
+  gap: 6mm;
+  font-size: 8.5pt;
+  flex-wrap: wrap;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   MODÈLE 3 — ÉPURÉ
+   ═══════════════════════════════════════════════════════════════════ */
+
+.m-epure {
+  font-family: var(--doc-serif);
+}
+.m-epure .doc-pad {
+  padding: 15mm;
+  display: flex;
+  flex-direction: column;
+  gap: 5mm;
+}
+.m-epure .doc-titre {
+  font-size: 28pt;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+}
+/* Le nom de la boutique reste en sans-empattement : c'est une marque,
+   pas du texte courant. Les chiffres et les intitulés aussi — une
+   colonne de montants en romane se lit moins bien. */
+.m-epure .doc-nom,
+.m-epure .doc-bloc h4,
+.m-epure .doc-meta,
+.m-epure .doc-mentions,
+.m-epure .doc-totaux .l,
+.m-epure th,
+.m-epure .doc-num,
+.m-epure .doc-montant,
+.m-epure .doc-qte,
+.m-epure .doc-tete-suite {
+  font-family: var(--doc-sans);
+}
+.m-epure .doc-nom {
+  font-size: 13pt;
+}
+.m-epure .tete {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 10mm;
+}
+.m-epure .repere {
+  text-align: right;
+}
+.m-epure table thead th {
+  border-bottom: 0.6mm solid #16181a;
+  padding: 0 3mm 2.5mm;
+  font-size: 8.5pt;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: #39413d;
+}
+.m-epure table td {
+  padding: 2.5mm 3mm;
+  border-bottom: 0.3mm solid #e6ebe8;
+  font-size: 11pt;
+}
+.m-epure .doc-totaux {
+  width: 85mm;
+}
+.m-epure .doc-totaux .l {
+  font-size: 10.5pt;
+  padding: 1.8mm 0;
+}
+/* Le total se détache par un filet à la couleur du document — la
+   seule touche de couleur de ce modèle. */
+.m-epure .doc-totaux .l.grand {
+  border-top: 0.6mm solid var(--doc);
+  padding-top: 2.5mm;
+  margin-top: 1mm;
+}
+.m-epure .titret {
+  font-size: 8.5pt;
+  letter-spacing: 0.09em;
+  text-transform: uppercase;
+  color: #6b7671;
+  font-weight: 600;
+  font-family: var(--doc-sans);
+  margin-bottom: 1.5mm;
+}
+.m-epure .pied {
+  text-align: center;
+  font-size: 9pt;
+  color: #6b7671;
+  border-top: 0.3mm solid #e6ebe8;
+  padding-top: 4mm;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   MODÈLE 4 — COMPACT
+   ═══════════════════════════════════════════════════════════════════ */
+
+.m-compact {
+  font-size: 9.5pt;
+}
+.m-compact .doc-pad {
+  padding: 12mm;
+  display: flex;
+  flex-direction: column;
+  gap: 4mm;
+}
+.m-compact .doc-titre {
+  font-size: 20pt;
+}
+.m-compact .tete {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 6mm;
+  align-items: start;
+  border-bottom: 0.5mm solid var(--doc);
+  padding-bottom: 3mm;
+}
+.m-compact .tete .repere {
+  text-align: right;
+}
+.m-compact .coordonnees {
+  font-size: 8.5pt;
+  margin-top: 1.5mm;
+}
+.m-compact .doc-nom {
+  font-size: 14pt;
+}
+.m-compact .doc-pastille {
+  width: 10mm;
+  height: 10mm;
+  font-size: 11pt;
+  border-radius: 2mm;
+}
+.m-compact .doc-blocs {
+  gap: 5mm;
+}
+.m-compact .doc-bloc p {
+  font-size: 8.5pt;
+}
+.m-compact .doc-meta {
+  font-size: 8.5pt;
+  line-height: 1.5;
+}
+.m-compact table thead th {
+  background: #f1f4f2;
+  color: #16181a;
+  padding: 2mm 3mm;
+  font-size: 8pt;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  border-bottom: 0.3mm solid #dfe5e2;
+}
+.m-compact table td {
+  padding: 1.9mm 3mm;
+  border-bottom: 0.2mm solid #eef2f0;
+  font-size: 9pt;
+}
+.m-compact .bas {
+  display: grid;
+  grid-template-columns: 1fr 70mm;
+  gap: 8mm;
+  align-items: start;
+}
+.m-compact .doc-totaux {
+  width: 70mm;
+}
+.m-compact .doc-totaux .l {
+  padding: 1mm 0;
+  font-size: 9.5pt;
+}
+/* Le total prend l'aplat de couleur : sur un document dense, un
+   chiffre en gras ne se détacherait pas assez. */
+.m-compact .doc-totaux .l:last-child {
+  background: var(--doc);
+  color: #fff;
+  border-radius: 1.5mm;
+  padding: 2mm 3mm;
+  font-size: 11pt;
+  font-weight: 700;
+  margin-top: 1mm;
+}
+.m-compact .doc-totaux .l.grand .doc-muted {
+  color: #fff;
+}
+.m-compact .pied {
+  border-top: 0.3mm solid #e6ebe8;
+  padding-top: 2.5mm;
+  display: flex;
+  justify-content: space-between;
+  gap: 6mm;
+  font-size: 8.5pt;
+}

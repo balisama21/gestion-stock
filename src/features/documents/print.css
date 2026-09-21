@@ -31,6 +31,12 @@
 
 .doc-echelle {
   transform-origin: top center;
+  /* Les feuilles s empilent, séparées à l écran par un intervalle qui
+     dit où finit une page et où commence la suivante. */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
   /* Sans cela, la place laissée sous la feuille resterait celle de sa
      hauteur NON réduite : un grand vide sous un document à 40 %. La
      hauteur réelle est posée par le composant, qui connaît l'échelle. */
@@ -120,6 +126,10 @@
     transform: none !important;
     height: auto !important;
     width: auto !important;
+    /* Sur le papier, l intervalle entre les feuilles n a plus de sens :
+       c est le saut de page qui les sépare. */
+    display: block !important;
+    gap: 0 !important;
   }
 
   .doc-feuille,

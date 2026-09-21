@@ -76,7 +76,10 @@ export const BlocAdresse: React.FC<{ bloc: BlocTiers; titre?: string }> = ({ blo
 
 /* ── Les repères du document ─────────────────────────────────────── */
 
-export const Reperes: React.FC<{ meta: LigneMeta[] }> = ({ meta }) => (
+export const Reperes: React.FC<{ meta: LigneMeta[]; pagination?: string | null }> = ({
+  meta,
+  pagination,
+}) => (
   <div className="doc-meta">
     {meta.map((m) => (
       <div key={m.libelle}>
@@ -84,6 +87,17 @@ export const Reperes: React.FC<{ meta: LigneMeta[] }> = ({ meta }) => (
         {m.libelle === "N°" ? <b>{m.valeur}</b> : m.valeur}
       </div>
     ))}
+    {/*
+     * La mention de page vit ICI, dans un bloc déjà mesuré, et non
+     * dans une ligne à part qu'il faudrait réserver. La ligne est
+     * toujours présente — vide quand le document tient sur une page —
+     * pour que sa hauteur soit connue AVANT qu'on sache combien il y
+     * aura de pages. Une ligne qui apparaîtrait après coup ferait
+     * déborder la feuille qu'on venait de mesurer.
+     */}
+    <div className="doc-muted" aria-hidden={pagination ? undefined : true}>
+      {pagination ?? " "}
+    </div>
   </div>
 );
 
@@ -162,8 +176,12 @@ export const Totaux: React.FC<{
         <span className="doc-num">{montant(totaux.tva.montant, devise)}</span>
       </div>
     )}
+    {/* La ligne du total porte un nom, et non un rang : les modèles
+        qui la mettent en valeur visaient `:last-child`, qui est la
+        ligne « Déjà payé » dès qu un règlement est connu — le filet
+        de l Épuré soulignait donc l acompte au lieu du total. */}
     {!sansTotal && (
-      <div className="l" style={{ fontSize: "12pt", fontWeight: 700 }}>
+      <div className="l grand" style={{ fontSize: "12pt", fontWeight: 700 }}>
         <span>{totaux.libelleTotal}</span>
         <span className="doc-num">{montant(totaux.total, devise)}</span>
       </div>
