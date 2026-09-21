@@ -1,0 +1,226 @@
+/* ═══════════════════════════════════════════════════════════════════
+   LA FEUILLE, À L'ÉCRAN ET SUR LE PAPIER
+
+   Un principe, et tout en découle : le document est une FEUILLE, pas
+   un bloc élastique. Sa largeur est 210 mm, toujours, sur un écran de
+   vingt-sept pouces comme sur un téléphone de trois cent vingt
+   pixels. Ce qui s'adapte à l'écran, c'est l'ÉCHELLE — une mise à
+   l'échelle par `transform`, qui ne remet rien en page.
+
+   POURQUOI CELA COMPTE ICI PLUS QU'AILLEURS. Les documents actuels
+   sont en `width: 100%` plafonnés par une `max-width` : sur un
+   téléphone ils se replient, et comme le PDF est une PHOTOGRAPHIE du
+   bloc affiché, le fichier sort avec les colonnes écrasées — « PRO /
+   DUI / T » en en-tête, une colonne par syllabe. Constaté sur un vrai
+   fichier. Une feuille en millimètres mise à l'échelle par
+   `transform` n'a pas ce défaut : `transform` ne change pas la mise
+   en page, seulement sa taille apparente.
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* ── Le cadre d'aperçu ───────────────────────────────────────────────
+   Il mesure la place disponible ; c'est le composant qui en déduit
+   l'échelle. `overflow: hidden` et non `auto` : une feuille mise à
+   l'échelle tient toujours, et une barre de défilement horizontale
+   serait le signe d'un calcul faux, pas un secours. */
+.doc-scene {
+  display: flex;
+  justify-content: center;
+  overflow: hidden;
+  min-width: 0;
+}
+
+.doc-echelle {
+  transform-origin: top center;
+  /* Les feuilles s empilent, séparées à l écran par un intervalle qui
+     dit où finit une page et où commence la suivante. */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  /* Sans cela, la place laissée sous la feuille resterait celle de sa
+     hauteur NON réduite : un grand vide sous un document à 40 %. La
+     hauteur réelle est posée par le composant, qui connaît l'échelle. */
+  will-change: transform;
+}
+
+/* ── La feuille ──────────────────────────────────────────────────────
+   `min-height` et non `height` : une facture de trente lignes dépasse
+   une page, et c'est la pagination explicite (une feuille par page)
+   qui s'en occupe, pas un débordement silencieux. */
+.doc-feuille {
+  width: 210mm;
+  min-height: 297mm;
+  background: #fff;
+  color: #16181a;
+  font-family: var(--doc-sans);
+  font-size: 10.5pt;
+  line-height: 1.45;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  box-shadow: 0 10px 40px -18px rgba(10, 30, 20, 0.45);
+}
+
+/* Le sélecteur universel ne couvre PAS l élément lui-même : sans la
+   première règle, le rembourrage du ticket s ajoutait à sa largeur et
+   le rouleau de 80 mm en faisait 90. Mesuré : 340 pixels au lieu de
+   302. Sur une imprimante thermique, c est un ticket tronqué à
+   droite. */
+.doc-feuille,
+.doc-ticket,
+.doc-feuille *,
+.doc-ticket * {
+  box-sizing: border-box;
+}
+
+/* Les marges du document vivent DANS la feuille, jamais dans `@page` :
+   la capture qui produit le PDF ne voit que l'élément, pas la page.
+   Marges à zéro d'un côté, marges en millimètres de l'autre, et le
+   PDF comme l'impression tombent au même endroit. */
+.doc-pad {
+  padding: 14mm 15mm;
+}
+.doc-grow {
+  flex: 1;
+}
+
+/* ── Le ticket ───────────────────────────────────────────────────────
+   Pas de hauteur : un rouleau se coupe au bout du contenu. */
+.doc-ticket {
+  width: 80mm;
+  background: #fff;
+  color: #16181a;
+  font-family: var(--doc-mono);
+  font-size: 9pt;
+  line-height: 1.5;
+  padding: 6mm 5mm 8mm;
+  box-shadow: 0 10px 30px -16px rgba(10, 30, 20, 0.5);
+}
+.doc-ticket--58 {
+  width: 58mm;
+  font-size: 8pt;
+}
+
+/* ── Chiffres ────────────────────────────────────────────────────────
+   Chasse fixe ET chiffres tabulaires : sans les seconds, une colonne
+   de montants danse d'une ligne à l'autre parce que le « 1 » est plus
+   étroit que le « 8 ». */
+.doc-num {
+  font-family: var(--doc-mono);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   IMPRESSION
+   ═══════════════════════════════════════════════════════════════════ */
+@media print {
+  /* La page est une A4 sans marge : ce sont celles de la feuille qui
+     font foi. Un ticket la remplace au moment de l'impression, par une
+     règle injectée après celle-ci — voir `imprimerFeuille`. */
+  @page {
+    size: A4;
+    margin: 0;
+  }
+
+  /* L'aperçu ne doit ni rogner, ni centrer, ni réduire. À l'écran il
+     met la feuille à l'échelle pour la faire tenir ; sur le papier,
+     elle est déjà à sa taille. */
+  .doc-scene {
+    display: block !important;
+    overflow: visible !important;
+  }
+  .doc-echelle {
+    transform: none !important;
+    height: auto !important;
+    width: auto !important;
+    /* Sur le papier, l intervalle entre les feuilles n a plus de sens :
+       c est le saut de page qui les sépare. */
+    display: block !important;
+    gap: 0 !important;
+  }
+
+  .doc-feuille,
+  .doc-ticket {
+    box-shadow: none !important;
+    margin: 0 !important;
+  }
+
+  /* ── Pagination ────────────────────────────────────────────────────
+     UNE FEUILLE PAR PAGE, posées à la suite par le composant qui a
+     mesuré le contenu. C'est le seul moyen d'afficher un « Page 1/2 »
+     juste : les boîtes de marge de `@page`, qui savent compter, ne
+     sont pas reconnues par les navigateurs à moteur Chromium — donc
+     par la quasi-totalité du parc. Ici, chaque feuille connaît son
+     rang parce que c'est nous qui le lui avons écrit.
+
+     La dernière ne force pas de saut : sans cette exception, tout
+     document se terminerait par une page blanche. */
+  .doc-feuille {
+    break-after: page;
+    page-break-after: always;
+  }
+  .doc-feuille:last-child {
+    break-after: auto;
+    page-break-after: auto;
+  }
+
+  /* ── Ce qui ne se coupe jamais ──────────────────────────────────────
+     Une ligne d'article coupée en deux par un saut de page est
+     illisible, et un bloc de totaux seul en haut d'une page fait
+     douter du document entier. Le tableau, lui, DOIT pouvoir se
+     répartir : c'est la seule façon d'imprimer trente lignes. */
+  .doc-feuille tr,
+  .doc-feuille thead,
+  .doc-feuille tfoot,
+  .doc-feuille img,
+  .doc-insecable {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+
+  /* L'en-tête du tableau se répète en haut de chaque page. Sans lui,
+     la deuxième page d'une facture est une colonne de chiffres dont
+     personne ne sait ce qu'ils comptent. */
+  .doc-feuille thead {
+    display: table-header-group;
+  }
+  .doc-feuille tfoot {
+    display: table-footer-group;
+  }
+
+  /* Un titre ne reste pas seul en bas d'une page. */
+  .doc-feuille h1,
+  .doc-feuille h2,
+  .doc-feuille h3,
+  .doc-feuille h4 {
+    break-after: avoid;
+    page-break-after: avoid;
+  }
+
+  /* Rien ne force une hauteur : c'est le contenu qui décide. */
+  .doc-feuille *,
+  .doc-ticket * {
+    min-height: 0 !important;
+  }
+
+  /* Les aplats de couleur — bandeau, en-tête de tableau, encadré de
+     total — sont porteurs de sens, pas décoratifs : un bandeau blanc
+     rendrait le titre du document invisible. On demande donc au
+     navigateur de les imprimer, au lieu de les économiser. */
+  .doc-feuille,
+  .doc-feuille *,
+  .doc-ticket,
+  .doc-ticket * {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+}
+
+/* ── Le numéro de page ───────────────────────────────────────────────
+   Écrit par le composant, pas par le navigateur. Absent quand le
+   document tient sur une page : « Page 1/1 » n'apprend rien. */
+.doc-pagination {
+  font-size: 8pt;
+  color: #6b7671;
+  text-align: right;
+}

@@ -1,0 +1,117 @@
+/* ═══════════════════════════════════════════════════════════════════
+   LES POLICES DES DOCUMENTS, HÉBERGÉES DANS LE PROJET
+
+   Une boutique imprime souvent sans connexion : le rouleau de la
+   caisse n'attend pas que le réseau revienne. Dépendre de
+   fonts.googleapis.com voudrait dire qu'une facture sort un jour en
+   Onest et le lendemain en Arial, sans que personne ne comprenne
+   pourquoi — et la capture qui produit le PDF photographierait la
+   police de repli. Les six fichiers sont donc dans le dépôt, servis
+   par le même domaine que l'application.
+
+   SIX FICHIERS ET NON VINGT-DEUX. Les trois familles sont des polices
+   VARIABLES : un seul fichier porte toutes les graisses de 100 à 900.
+   Télécharger « Onest 400 » et « Onest 700 » rapatriait deux fois
+   exactement le même octet — vérifié par empreinte md5. D'où
+   `font-weight: 100 900` : une plage, pas une valeur.
+
+   DEUX SOUS-ENSEMBLES ET NON HUIT. On garde « latin » et
+   « latin-ext » : le français et le malgache s'écrivent tous deux en
+   alphabet latin. Le cyrillique, le grec, le vietnamien et les
+   symboles mathématiques que Google sert par défaut pèsent sans
+   jamais servir ici. `unicode-range` fait le reste : le navigateur ne
+   télécharge « latin-ext » que si un caractère l'exige.
+
+   LES PILES DE REPLI ne sont pas décoratives. Si un fichier manque
+   — cache vidé, déploiement à moitié propagé —, le document doit
+   rester lisible : une sans-empattement système remplace Onest, une
+   chasse fixe système remplace JetBrains Mono, une romane système
+   remplace Source Serif 4. La mise en page bouge un peu ; elle ne
+   s'effondre pas.
+
+   LICENCES. Les trois familles sont sous SIL Open Font License 1.1,
+   qui autorise explicitement la redistribution et l'hébergement.
+   Voir LICENCES.md dans ce dossier.
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* ── Onest — le texte ────────────────────────────────────────────── */
+@font-face {
+  font-family: "Onest Documents";
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url("./onest-latin.woff2") format("woff2");
+  unicode-range:
+    U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329,
+    U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: "Onest Documents";
+  font-style: normal;
+  font-weight: 100 900;
+  font-display: swap;
+  src: url("./onest-latin-ext.woff2") format("woff2");
+  unicode-range:
+    U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329,
+    U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F,
+    U+A720-A7FF;
+}
+
+/* ── JetBrains Mono — les chiffres ───────────────────────────────── */
+@font-face {
+  font-family: "JetBrains Mono Documents";
+  font-style: normal;
+  font-weight: 100 800;
+  font-display: swap;
+  src: url("./jetbrains-mono-latin.woff2") format("woff2");
+  unicode-range:
+    U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329,
+    U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: "JetBrains Mono Documents";
+  font-style: normal;
+  font-weight: 100 800;
+  font-display: swap;
+  src: url("./jetbrains-mono-latin-ext.woff2") format("woff2");
+  unicode-range:
+    U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329,
+    U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F,
+    U+A720-A7FF;
+}
+
+/* ── Source Serif 4 — le modèle Épuré, et lui seul ───────────────── */
+@font-face {
+  font-family: "Source Serif Documents";
+  font-style: normal;
+  font-weight: 200 900;
+  font-display: swap;
+  src: url("./source-serif-4-latin.woff2") format("woff2");
+  unicode-range:
+    U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329,
+    U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: "Source Serif Documents";
+  font-style: normal;
+  font-weight: 200 900;
+  font-display: swap;
+  src: url("./source-serif-4-latin-ext.woff2") format("woff2");
+  unicode-range:
+    U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329,
+    U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F,
+    U+A720-A7FF;
+}
+
+/* ── Les trois piles, nommées une fois pour toutes ───────────────────
+   Portées par `.doc-racine` et non par `:root` : une feuille de
+   document ne doit rien imposer au reste de l'application, qui garde
+   ses polices système. */
+.doc-racine {
+  --doc-sans:
+    "Onest Documents", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
+    "Helvetica Neue", Arial, sans-serif;
+  --doc-mono:
+    "JetBrains Mono Documents", ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+  --doc-serif: "Source Serif Documents", Georgia, "Iowan Old Style", "Times New Roman", serif;
+}

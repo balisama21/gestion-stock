@@ -38,6 +38,14 @@ export interface ReglagesRappels {
 export interface Personnalisation {
   modules?: Record<string, ReglageModule>;
   rappels?: ReglagesRappels;
+  /**
+   * Tout ce que ce module ne connaît pas encore.
+   *
+   * La colonne `personnalisation` est partagée : d'autres écrans y
+   * rangent leurs propres réglages, et ce fichier n'a pas à les
+   * connaître pour les respecter. Voir `lirePersonnalisation`.
+   */
+  [autreCle: string]: unknown;
 }
 
 /**
@@ -72,11 +80,28 @@ export const MODULES_PERSONNALISABLES: { cle: string; libelleParDefaut: string }
 
 const PAR_DEFAUT = new Map(MODULES_PERSONNALISABLES.map((m) => [m.cle, m.libelleParDefaut]));
 
-/** Ce que la colonne JSON contient, ramené à une forme sûre. */
+/**
+ * Ce que la colonne JSON contient, ramené à une forme sûre.
+ *
+ * ── ELLE RECOPIE CE QU'ELLE NE CONNAÎT PAS, ET C'EST ESSENTIEL ─────
+ *
+ * Cette fonction était le point de passage de TOUTE lecture de la
+ * colonne, et les écrans de réglages réenregistrent ce qu'elle leur
+ * a rendu. Tant qu'elle ne recopiait que `modules` et `rappels`,
+ * n'importe quelle clé ajoutée par un autre écran — les réglages de
+ * documents, par exemple — disparaissait au premier enregistrement
+ * du vocabulaire. Sans message, et sans possibilité de la retrouver.
+ *
+ * Le contenu inconnu est donc repris tel quel. Ce fichier n'a pas
+ * besoin de savoir ce que c'est pour ne pas le détruire.
+ */
 export const lirePersonnalisation = (brut: unknown): Personnalisation => {
   if (!brut || typeof brut !== "object" || Array.isArray(brut)) return {};
   const p = brut as Personnalisation;
   return {
+    // D'abord tout ce qui s'y trouve…
+    ...p,
+    // … puis les deux clés que ce module borne lui-même.
     modules: p.modules && typeof p.modules === "object" ? p.modules : {},
     // Recopiée telle quelle : les valeurs sont bornées à la lecture par
     // `delaisDeRappel`, qui sait seul ce qui est permis.

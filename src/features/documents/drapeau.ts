@@ -1,0 +1,135 @@
+import { useEffect, useState } from "react";
+
+/**
+ * LE DRAPEAU QUI DÉCIDE QUELS DOCUMENTS SORTENT DE L'IMPRIMANTE
+ *
+ * Le logiciel tourne chez un client qui facture tous les jours. Tant
+ * que ce drapeau est baissé, ce sont les reçus et factures actuels qui
+ * s'impriment, strictement inchangés.
+ *
+ * Calqué sur `features/dashboard-v2/drapeau.ts`, volontairement : la
+ * mécanique y a déjà servi, elle est comprise, et deux interrupteurs
+ * qui se ressemblent s'expliquent une seule fois.
+ *
+ * ── QUATRE INTERRUPTEURS, DU PLUS FORT AU PLUS FAIBLE ──────────────
+ *
+ *   1. ?documents_v2=0 ou 1     depuis un lien, sur n'importe quel
+ *                               appareil ; le choix reste ensuite
+ *   2. localStorage             ce navigateur-ci, pour essayer
+ *   3. personnalisation.documents.actif
+ *                               LA BOUTIQUE, en base — c'est celui
+ *                               qui se coupe depuis un téléphone,
+ *                               sans redéployer, par Paramètres →
+ *                               Documents
+ *   4. VITE_DOCUMENTS_V2        tout le monde, décidé au déploiement
+ *
+ * Le troisième est celui qui compte le jour où quelque chose cloche :
+ * le quatrième demande un nouveau déploiement, les deux premiers ne
+ * valent que pour un appareil. Le réglage de la boutique, lui, coupe
+ * pour tout le monde en trois secondes.
+ *
+ * Le paramètre d'adresse existe pour une raison précise : les deux
+ * autres supposent une console, celle du navigateur ou celle du
+ * serveur de build. Une facture se vérifie sur le téléphone du
+ * comptoir, où ni l'une ni l'autre n'est à portée.
+ *
+ * Le réglage de la boutique vit dans une colonne qui existe déjà :
+ * le jour où la v2 devient la seule version, il n'y
+ * aura ni colonne ni migration à défaire, juste une clé à oublier.
+ */
+
+/** Ce qui vaut « oui », pour ne pas piéger sur `"true"`. */
+const OUI = new Set(["1", "true", "oui", "on"]);
+
+/** Et ce qui éteint, pour revenir en arrière du même geste. */
+const NON = new Set(["0", "false", "non", "off"]);
+
+const CLE = "documents_v2";
+
+/** Figé à la compilation : il ne changera pas pendant que la page vit. */
+const PAR_ENV = OUI.has(String(import.meta.env.VITE_DOCUMENTS_V2 ?? "").toLowerCase());
+
+/** Ce que ce navigateur-ci en dit. Peut échouer : navigation privée. */
+function parNavigateur(): boolean {
+  try {
+    return OUI.has(String(window.localStorage.getItem(CLE) ?? "").toLowerCase());
+  } catch {
+    return false;
+  }
+}
+
+/**
+ * Ce que l'adresse demande, s'il y a quelque chose.
+ *
+ * Le choix est retenu puis le paramètre RETIRÉ de la barre d'adresse :
+ * sans cela il se perdrait à la première navigation, et on le
+ * partagerait sans le vouloir en envoyant un lien. `replaceState` ne
+ * recharge rien et n'ajoute pas d'entrée dans l'historique.
+ */
+function parAdresse(): boolean | null {
+  try {
+    const url = new URL(window.location.href);
+    const brut = url.searchParams.get(CLE);
+    if (brut === null) return null;
+
+    const valeur = brut.toLowerCase();
+    const demande = OUI.has(valeur) ? true : NON.has(valeur) ? false : null;
+    if (demande === null) return null;
+
+    try {
+      if (demande) window.localStorage.setItem(CLE, "1");
+      else window.localStorage.removeItem(CLE);
+    } catch {
+      /* Navigation privée : le choix ne vaut que pour cette page-ci. */
+    }
+
+    url.searchParams.delete(CLE);
+    window.history.replaceState(null, "", url.toString());
+    return demande;
+  } catch {
+    return null;
+  }
+}
+
+/**
+ * Capture le choix venu de l'adresse, le retient, et nettoie la barre.
+ *
+ * À appeler le plus tôt possible dans la coquille de l'application :
+ * sur un téléphone qui ouvre le lien sans session, le paramètre doit
+ * survivre à l'écran de connexion.
+ */
+export function useCaptureDuDrapeauDocuments(): void {
+  useEffect(() => {
+    parAdresse();
+  }, []);
+}
+
+/**
+ * Les documents v2 sont-ils demandés ?
+ *
+ * On part de ce que le serveur sait — la variable du build et le
+ * réglage de la boutique, tous deux connus au rendu serveur — et ce
+ * qui vient du navigateur arrive à la première image. Lire
+ * `localStorage` pendant le rendu ferait diverger le serveur et le
+ * navigateur sur la même page, et React jetterait tout l'affichage
+ * pour le refaire.
+ *
+ * L'adresse a le dernier mot sur tout le reste : c'est le secours
+ * quand même l'écran de réglages n'est plus atteignable.
+ */
+export function useDocumentsV2(reglageDeLaBoutique: boolean | null = null): boolean {
+  const [duNavigateur, setDuNavigateur] = useState<boolean | null>(null);
+  const [deLAdresse, setDeLAdresse] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    // `useCaptureDuDrapeau` a déjà transformé un éventuel paramètre
+    // d'adresse en choix retenu ; il ne reste qu'à le lire.
+    setDeLAdresse(parAdresse());
+    setDuNavigateur(parNavigateur() ? true : null);
+  }, []);
+
+  if (deLAdresse !== null) return deLAdresse;
+  if (duNavigateur !== null) return duNavigateur;
+  if (reglageDeLaBoutique !== null) return reglageDeLaBoutique;
+  return PAR_ENV;
+}

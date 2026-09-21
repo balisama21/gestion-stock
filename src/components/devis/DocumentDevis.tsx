@@ -14,12 +14,24 @@ import {
 import { messageDErreurExport, reprendreApresDeploiement } from "../../lib/chunkRecovery";
 import { getPaperFormat, PAPER_FORMATS, type PaperFormatId } from "../../lib/paperFormats";
 import { classeStatut, texteStatut, type Devis, type LigneDevis } from "../../lib/devis";
+import { FiletDeSecurite } from "../../features/documents/FiletDeSecurite";
+import { SortieDocument } from "../../features/documents/SortieDocument";
+import { documentDeDevis } from "../../features/documents/lib/buildDocument";
+import type { ReglagesDocuments } from "../../features/documents/lib/reglages";
 
 interface DocumentDevisProps {
   devis: Devis | null;
   lignes: LigneDevis[];
   settings?: StoreSettings;
   onClose: () => void;
+  /**
+   * Les nouveaux documents, et les réglages de la boutique.
+   *
+   * Drapeau baissé, ce composant rend exactement le devis
+   * d'aujourd'hui, sans un caractère de différence.
+   */
+  documentsV2?: boolean;
+  reglagesDocuments?: ReglagesDocuments;
 }
 
 /**
@@ -40,7 +52,18 @@ export const DocumentDevis: React.FC<DocumentDevisProps> = ({
   lignes,
   settings,
   onClose,
+  documentsV2 = false,
+  reglagesDocuments,
 }) => {
+  /*
+   * Le repli automatique : si la v2 tombe, l'ancien devis reprend sa
+   * place sans que personne n'ait rien à faire.
+   */
+  const [v2Tombee, setV2Tombee] = useState(false);
+  const documentNouveau =
+    documentsV2 && !v2Tombee && reglagesDocuments && devis
+      ? documentDeDevis({ devis, lignes, boutique: settings, reglages: reglagesDocuments })
+      : null;
   const [invoicePrefs] = useInvoicePrefs();
   const [paperId, setPaperId] = useState<PaperFormatId>("a4");
   const paper = getPaperFormat(paperId);
@@ -72,6 +95,22 @@ export const DocumentDevis: React.FC<DocumentDevisProps> = ({
   };
 
   if (!devis) return null;
+
+  if (documentNouveau) {
+    return (
+      <FiletDeSecurite secours={null} onErreur={() => setV2Tombee(true)}>
+        <SortieDocument
+          document={documentNouveau}
+          reglages={reglagesDocuments!}
+          onFermer={onClose}
+          /* Un devis se remet en main propre ou s'envoie : il ne sort
+             pas d'une imprimante de comptoir. */
+          formats={["a4"]}
+          titre="Devis"
+        />
+      </FiletDeSecurite>
+    );
+  }
 
   const total = lignes.reduce((n, l) => n + (l.total ?? l.quantite * l.prix_unitaire), 0);
 

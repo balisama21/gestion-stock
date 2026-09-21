@@ -47,6 +47,8 @@ import { useStoreMembers } from "./hooks/useStoreMembers";
 import { useReglagesAlertesStock } from "./hooks/useReglagesAlertesStock";
 import { usePrealertesStock } from "./hooks/usePrealertesStock";
 import { BonDeCommande } from "./components/produits/BonDeCommande";
+import { useCaptureDuDrapeauDocuments, useDocumentsV2 } from "./features/documents/drapeau";
+import { lireReglagesDocuments } from "./features/documents/lib/reglages";
 import { useNotificationPrefs } from "./lib/notificationPrefs";
 import {
   useCaptureDuDrapeau,
@@ -319,6 +321,24 @@ function AppInner() {
     () => lirePersonnalisation(workspace.activeStore?.personnalisation),
     [workspace.activeStore],
   );
+
+  /*
+   * LES DOCUMENTS v2, ET L'INTERRUPTEUR QUI LES COMMANDE.
+   *
+   * Les réglages sont lus une seule fois ici, comme la
+   * personnalisation dont ils font partie, et descendus aux trois
+   * écrans qui impriment.
+   *
+   * `actif` est l'interrupteur de la BOUTIQUE : il se coupe depuis
+   * Paramètres → Documents, donc depuis un téléphone, et il l'emporte
+   * sur ce que le déploiement a décidé. C'est le seul moyen de
+   * revenir aux anciennes factures sans redéployer.
+   */
+  const reglagesDocuments = useMemo(
+    () => lireReglagesDocuments(personnalisation.documents),
+    [personnalisation.documents],
+  );
+  const documentsV2 = useDocumentsV2(reglagesDocuments.actif);
 
   const handleSavePersonnalisation = async (p: Personnalisation) => {
     if (!workspace.activeStore) return;
@@ -1796,6 +1816,8 @@ function AppInner() {
                 )}
                 {vue === "devis" && (
                   <DevisView
+                    documentsV2={documentsV2}
+                    reglagesDocuments={reglagesDocuments}
                     quotes={storeData.quotes}
                     quoteItems={storeData.quoteItems}
                     clients={storeData.clients}
@@ -1837,6 +1859,8 @@ function AppInner() {
                 )}
                 {vue === "ventes" && (
                   <VentesView
+                    documentsV2={documentsV2}
+                    reglagesDocuments={reglagesDocuments}
                     productImages={storeData.productImages}
                     sales={visibleSales}
                     products={products}
@@ -1994,6 +2018,9 @@ function AppInner() {
                 )}
                 {vue === "commandes" && (
                   <CommandesView
+                    documentsV2={documentsV2}
+                    reglagesDocuments={reglagesDocuments}
+                    settings={storeSettings}
                     orders={visibleOrders}
                     clients={storeData.clients}
                     products={storeData.products}
@@ -2067,6 +2094,8 @@ function AppInner() {
                 )}
                 {vue === "settings" && (
                   <ParametresView
+                    sales={sales}
+                    products={products}
                     sectionInitiale={sectionParametres}
                     settings={storeSettings}
                     personnalisation={personnalisation}
@@ -2167,6 +2196,7 @@ export default function App() {
   // bord sur cet appareil. Lu ici, a l ouverture de la page, pour que le
   // choix survive a l ecran de connexion.
   useCaptureDuDrapeau();
+  useCaptureDuDrapeauDocuments();
   const [locked, setLocked] = useState(false);
 
   /**
