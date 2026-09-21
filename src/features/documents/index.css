@@ -1,0 +1,5 @@
+/* Tout ce qu'une feuille de document a besoin de connaître, en un
+   import. Chargé par `DocumentPreview`, et par lui seul : une boutique
+   qui n'imprime rien ne paie ni les polices ni ces règles. */
+@import "./fonts/polices.css";
+@import "./print.css";
