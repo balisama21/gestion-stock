@@ -1,4 +1,4 @@
-import React, { useCallback, useLayoutEffect, useMemo, useRef, useState } from "react";
+import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { Download, Image as ImageIcon, Printer } from "lucide-react";
 import { messageDErreurExport, reprendreApresDeploiement } from "../../lib/chunkRecovery";
 import type { Document, LigneDocument } from "./lib/buildDocument";
@@ -145,6 +145,16 @@ interface DocumentPreviewProps {
   modele?: ModeleDocument;
   /** Masque les boutons : l'aperçu en direct des réglages n'en a pas. */
   sansActions?: boolean;
+  /**
+   * Appelé quand les feuilles sont découpées et posées.
+   *
+   * Sert à l'export groupé, qui monte cet aperçu hors champ, attend que
+   * la pagination soit faite, photographie les feuilles, puis passe au
+   * document suivant. Sans ce signal, il faudrait deviner combien de
+   * temps la mise en page prend — et un document photographié trop tôt
+   * sort sur une seule feuille, tout écrasé.
+   */
+  onPret?: (feuilles: HTMLElement[]) => void;
 }
 
 export const DocumentPreview: React.FC<DocumentPreviewProps> = ({
@@ -153,6 +163,7 @@ export const DocumentPreview: React.FC<DocumentPreviewProps> = ({
   format = "a4",
   modele,
   sansActions,
+  onPret,
 }) => {
   const rouleau = format !== "a4";
   const largeurMm = LARGEUR_MM[format];
@@ -274,6 +285,15 @@ export const DocumentPreview: React.FC<DocumentPreviewProps> = ({
     });
     return () => cancelAnimationFrame(image);
   }, [rouleau, pages, mettreALEchelle, poserLesPages, toutesLesLignes]);
+
+  /* La pagination est faite : les feuilles existent, et le photographe
+     peut passer. Un rouleau n'a rien à découper, il est prêt d'emblée. */
+  useEffect(() => {
+    if (!onPret) return;
+    if (!rouleau && pages === null) return;
+    const noeuds = noeudsPoses();
+    if (noeuds.length > 0) onPret(noeuds);
+  }, [onPret, rouleau, pages, noeudsPoses]);
 
   useLayoutEffect(() => {
     const cadre = scene.current;

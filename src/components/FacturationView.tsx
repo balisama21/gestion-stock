@@ -1,7 +1,8 @@
 import React, { useMemo, useState } from "react";
 import { AlertTriangle, FileText, Plus, ReceiptText, RotateCw } from "lucide-react";
 import type { LocaleSetting, Payment, StoreSettings } from "../types";
-import { formatCurrency, formatDateLocale } from "../utils/formulas";
+import { formatDateLocale } from "../utils/formulas";
+import { montant as formaterMontant } from "../features/documents/lib/format";
 import { PageHeader } from "./shared/PageHeader";
 import { FilterBar, FilterField } from "./shared/FilterBar";
 import { DataList, type DataListItem } from "./shared/DataList";
@@ -237,8 +238,9 @@ export const FacturationView: React.FC<FacturationViewProps> = ({
     });
   }
 
-  const devise = settings.currencySymbol ?? "Ar";
-  const argent = (n: number) => `${formatCurrency(n)} ${devise}`;
+  /* `formatCurrency` colle « Ar » en dur ; celui des documents suit la
+     devise de la boutique. Les deux écrans doivent dire la même chose. */
+  const argent = (n: number) => formaterMontant(n, settings.currencySymbol);
 
   const lignes: DataListItem[] = visibles.map((d) => {
     const retard = d.statut === "retard" && d.echeance;

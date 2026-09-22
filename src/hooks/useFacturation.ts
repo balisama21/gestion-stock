@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { supabase } from "../lib/supabase";
 import { dateDuJour } from "../lib/dates";
-import type { Avoir } from "../components/facturation/documents";
+import type { Avoir, LigneAvoir } from "../components/facturation/documents";
 import { cleDocument, type EntiteDocument } from "../components/facturation/documents";
 
 /**
@@ -32,6 +32,7 @@ export interface Facturation {
   chargement: boolean;
   erreur: string | null;
   avoirs: Avoir[];
+  lignesAvoir: LigneAvoir[];
   /** Les clés des pièces qui sont parties chez quelqu'un. */
   envois: Set<string>;
   /** Les tickets dont la seule pièce émise est un reçu. */
@@ -69,6 +70,7 @@ export interface Facturation {
 
 export function useFacturation(storeId: string | null, actif: boolean): Facturation {
   const [avoirs, setAvoirs] = useState<Avoir[]>([]);
+  const [lignesAvoir, setLignesAvoir] = useState<LigneAvoir[]>([]);
   const [envois, setEnvois] = useState<Envoi[]>([]);
   const [emissions, setEmissions] = useState<Emission[]>([]);
   const [aujourdhui, setAujourdhui] = useState<string>(() => dateDuJour());
@@ -78,6 +80,7 @@ export function useFacturation(storeId: string | null, actif: boolean): Facturat
   const recharger = useCallback(async () => {
     if (!storeId) {
       setAvoirs([]);
+      setLignesAvoir([]);
       setEnvois([]);
       setEmissions([]);
       return;
@@ -85,8 +88,9 @@ export function useFacturation(storeId: string | null, actif: boolean): Facturat
     setChargement(true);
     setErreur(null);
     try {
-      const [avoirsRes, envoisRes, emissionsRes, dateRes] = await Promise.all([
+      const [avoirsRes, lignesRes, envoisRes, emissionsRes, dateRes] = await Promise.all([
         supabase.from("avoirs").select("*").eq("store_id", storeId).order("date", { ascending: false }),
+        supabase.from("avoir_items").select("*").eq("store_id", storeId).order("ordre"),
         supabase
           .from("document_envois")
           .select("entite, entite_id, type, canal, relance, envoye_le")
@@ -102,6 +106,7 @@ export function useFacturation(storeId: string | null, actif: boolean): Facturat
       if (premiere) setErreur(premiere.message);
 
       if (avoirsRes.data) setAvoirs(avoirsRes.data);
+      if (lignesRes.data) setLignesAvoir(lignesRes.data);
       if (envoisRes.data) setEnvois(envoisRes.data as Envoi[]);
       if (emissionsRes.data) setEmissions(emissionsRes.data as Emission[]);
       if (!dateRes.error && typeof dateRes.data === "string") setAujourdhui(dateRes.data);
@@ -199,6 +204,14 @@ export function useFacturation(storeId: string | null, actif: boolean): Facturat
       if (error) return { avoir: null, error: error.message };
       const avoir = cree as unknown as Avoir;
       setAvoirs((a) => [avoir, ...a]);
+      // `creer_avoir` rend la pièce, pas son détail : on relit les
+      // lignes, sans quoi l'avoir s'imprimerait avec son seul motif.
+      const { data: lignes } = await supabase
+        .from("avoir_items")
+        .select("*")
+        .eq("avoir_id", avoir.id)
+        .order("ordre");
+      if (lignes) setLignesAvoir((l) => [...l, ...lignes]);
       return { avoir, error: null };
     },
     [storeId],
@@ -208,6 +221,7 @@ export function useFacturation(storeId: string | null, actif: boolean): Facturat
     chargement,
     erreur,
     avoirs,
+    lignesAvoir,
     envois: clesEnvoyees,
     recus,
     relances,

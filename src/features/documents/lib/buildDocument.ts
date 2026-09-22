@@ -56,7 +56,15 @@ type Paiement = Database["public"]["Tables"]["payments"]["Row"];
  * réglages de la proforma plutôt que ceux du devis.
  */
 export type TypeDocument =
-  "facture" | "proforma" | "recu" | "devis" | "commande" | "achat" | "facture_achat" | "commission";
+  | "facture"
+  | "avoir"
+  | "proforma"
+  | "recu"
+  | "devis"
+  | "commande"
+  | "achat"
+  | "facture_achat"
+  | "commission";
 
 /** Un couple « libellé : valeur » de l'en-tête (N°, Date, Échéance…). */
 export interface LigneMeta {
@@ -1136,5 +1144,136 @@ export function documentDeFactureAchat(source: SourceFactureAchat): Document {
     messageTicket: null,
     codeBarres: util(facture.numero),
     nomDeFichier: nomDeFichier("Facture_achat", numero || (facture.numero ?? "document")),
+  };
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   L'AVOIR
+
+   La pièce qui annule ou corrige une facture déjà émise. Elle reprend
+   la mise en forme de la facture, à trois choses près qui tiennent à
+   sa nature :
+
+   — elle NOMME la facture d'origine, en haut, à côté de son propre
+     numéro. Sans ce lien, personne ne peut refaire l'addition ;
+   — elle ne porte NI échéance NI reste à payer. Un avoir n'appelle pas
+     de règlement : il constate qu'une somme n'est plus due ;
+   — elle ne porte pas de tampon « payé ». Il n'y a rien à constater.
+   ═══════════════════════════════════════════════════════════════════ */
+
+type Avoir = Database["public"]["Tables"]["avoirs"]["Row"];
+type LigneAvoir = Database["public"]["Tables"]["avoir_items"]["Row"];
+
+export interface SourceAvoir {
+  avoir: Avoir;
+  lignes: LigneAvoir[];
+  client?: Client | null;
+  boutique?: StoreSettings;
+  reglages: ReglagesDocuments;
+  locale?: LocaleSetting;
+}
+
+export function documentDAvoir(source: SourceAvoir): Document {
+  const { avoir, lignes, client, boutique, reglages } = source;
+  const locale = source.locale ?? "FR";
+  const devise = util(boutique?.currencySymbol) ?? "Ar";
+
+  const regle = resoudreType(reglages, "avoir");
+  const page = resoudreMiseEnPage(reglages, "avoir");
+  const numero = numeroDuDocument(avoir.numero, regle.prefixe, avoir.date);
+  const nomBoutique = util(boutique?.storeName);
+
+  const repere: Record<string, LigneMeta | null> = {
+    "infos.numero": numero ? { libelle: page.libelle("infos.numero", "N°"), valeur: numero } : null,
+    "infos.date": avoir.date
+      ? { libelle: page.libelle("infos.date", "Date"), valeur: dateCourte(avoir.date, locale) }
+      : null,
+    "infos.reference": util(avoir.facture_numero)
+      ? {
+          libelle: page.libelle("infos.reference", "Annule la facture"),
+          valeur: avoir.facture_numero as string,
+        }
+      : null,
+  };
+  const meta: LigneMeta[] = page
+    .ordre("infos")
+    .map((cle) => repere[cle] ?? null)
+    .filter((l): l is LigneMeta => l !== null);
+
+  /*
+   * Un avoir sans détail n'est pas une anomalie : on corrige souvent un
+   * montant, pas des articles. Le motif tient alors lieu de ligne
+   * unique, plutôt que de laisser un tableau vide sur le papier.
+   */
+  const lignesAvoir: LigneDocument[] =
+    lignes.length > 0
+      ? lignes.map((l) => ({
+          id: l.id,
+          designation: util(l.designation) ?? "Article",
+          detail: null,
+          quantite: l.quantite,
+          unite: null,
+          prixUnitaire: l.prix_unitaire,
+          total: l.total ?? l.quantite * l.prix_unitaire,
+        }))
+      : [
+          {
+            id: avoir.id,
+            designation: util(avoir.motif) ?? "Avoir sur facture",
+            detail: null,
+            quantite: 1,
+            unite: null,
+            prixUnitaire: avoir.montant,
+            total: avoir.montant,
+          },
+        ];
+
+  return {
+    type: "avoir",
+    titre: regle.titre,
+    numero,
+    meta,
+    emetteur: enTeteBoutique(boutique, reglages, page),
+    destinataire: destinataireDeVente(client, avoir.client_nom, "Avoir au profit de", page),
+    lignes: lignesAvoir,
+    colonnes: colonnesDuDocument(page, lignesAvoir),
+    totaux: {
+      horsTaxe: null,
+      tva: null,
+      total: avoir.montant,
+      // Ni payé ni reste : un avoir n'appelle aucun règlement.
+      paye: null,
+      reste: null,
+      modePaiement: null,
+      libelleTotal: page.libelle("totaux.total", "Montant de l'avoir"),
+      libellePaye: "",
+      libelleHorsTaxe: page.libelle("totaux.horsTaxe", "Total hors taxe"),
+      libelleTva: page.libelle("totaux.tva", "TVA"),
+      libelleReste: page.libelle("totaux.reste", "Reste à payer"),
+      commission: null,
+    },
+    tampon: null,
+    montantEnLettres: page.visible("totaux.montantEnLettres")
+      ? montantEnLettres(avoir.montant, deviseEnToutesLettres(devise))
+      : null,
+    mentions: page.visible("bas.conditions") ? util(regle.conditions) : null,
+    signatures: page.visible("bas.signature")
+      ? {
+          gauche: "",
+          droite: nomBoutique ? `Pour ${nomBoutique}` : "Cachet et signature",
+        }
+      : null,
+    motDeFin: page.visible("bas.motDeFin") ? util(regle.motDeFin) : null,
+    // On n'indique pas où payer sur une pièce qui annule une créance.
+    coordonneesPaiement: null,
+    piedDePage: !page.visible("bas.piedDePage")
+      ? null
+      : (util(regle.piedDePage) ?? joindre(nomBoutique, boutique?.address, boutique?.phone)),
+    paginer: page.visible("bas.pagination"),
+    devise,
+    heure: null,
+    messageTicket: null,
+    codeBarres: util(avoir.numero),
+    nomDeFichier: nomDeFichier("Avoir", numero || (avoir.numero ?? "document")),
   };
 }

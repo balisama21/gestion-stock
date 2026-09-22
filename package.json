@@ -55,6 +55,7 @@
     "framer-motion": "^13.2.0",
     "input-otp": "^1.4.2",
     "jspdf": "^4.2.1",
+    "jszip": "^3.10.2",
     "lucide-react": "^1.29.0",
     "modern-screenshot": "^4.7.0",
     "react": "^19.2.0",

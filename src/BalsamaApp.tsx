@@ -122,8 +122,8 @@ const LivraisonsView = lazy(() =>
 const DevisView = lazy(() =>
   import("./components/DevisView").then((m) => ({ default: m.DevisView })),
 );
-const FacturationView = lazy(() =>
-  import("./components/FacturationView").then((m) => ({ default: m.FacturationView })),
+const FacturationPage = lazy(() =>
+  import("./components/FacturationPage").then((m) => ({ default: m.FacturationPage })),
 );
 const VentesView = lazy(() =>
   import("./components/VentesView").then((m) => ({ default: m.VentesView })),
@@ -1289,7 +1289,16 @@ function AppInner() {
     clientCredit?: string | null;
     clientId?: string | null;
     montantPaye: number;
-    lignes: { productId: string; quantite: number; prixVenteUnit: number }[];
+    /** Especes, sauf mention contraire : c est la caisse du comptoir. */
+    methode?: string | null;
+    lignes: {
+      /** Vide pour une prestation : ni stock ni catalogue en jeu. */
+      productId: string;
+      quantite: number;
+      prixVenteUnit: number;
+      /** Le libelle d une prestation. Ignore quand la ligne a un produit. */
+      designation?: string;
+    }[];
   }) => {
     const res = await storeData.addSaleTicket({
       date: panier.date,
@@ -1297,11 +1306,12 @@ function AppInner() {
       client_credit: panier.clientCredit || null,
       client_id: panier.clientId || null,
       montant_paye_total: panier.montantPaye,
-      methode: "especes",
+      methode: panier.methode ?? "especes",
       lignes: panier.lignes.map((l) => ({
         product_id: l.productId,
         quantite: l.quantite,
         prix_vente_unit: l.prixVenteUnit,
+        designation: l.designation,
       })),
     });
 
@@ -1955,15 +1965,50 @@ function AppInner() {
                   />
                 )}
                 {vue === "facturation" && (
-                  <FacturationView
+                  <FacturationPage
                     documents={documentsFacturation}
                     payments={payments}
+                    clients={storeData.clients}
+                    fournisseurs={storeData.suppliers}
+                    produits={products}
+                    lignesFactureAchat={storeData.supplierInvoiceItems}
+                    vendeurs={computedSellers.map((v) => v.nom)}
                     settings={storeSettings}
                     locale={locale}
+                    reglagesDocuments={reglagesDocuments}
                     facturation={facturation}
                     moiNom={myName}
                     voitTout={facturationVoitTout}
-                    peutCreer={!facturationActions || facturationActions.includes("create")}
+                    droits={{
+                      creer: !facturationActions || facturationActions.includes("create"),
+                      envoyer: !facturationActions || facturationActions.includes("send"),
+                      encaisser: !facturationActions || facturationActions.includes("payment"),
+                      avoir: !facturationActions || facturationActions.includes("credit_note"),
+                    }}
+                    onAddSaleTicket={(data) =>
+                      handleAddSaleTicket({
+                        date: data.date,
+                        vendeur: data.vendeur,
+                        clientCredit: data.client_credit,
+                        clientId: data.client_id,
+                        montantPaye: data.montant_paye_total,
+                        methode: data.methode,
+                        lignes: data.lignes.map((l) => ({
+                          productId: l.product_id,
+                          quantite: l.quantite,
+                          prixVenteUnit: l.prix_vente_unit,
+                          designation: l.designation,
+                        })),
+                      })
+                    }
+                    onFixerCommission={storeData.fixerCommission}
+                    onAddPaymentToSale={(id, data) => storeData.addPaymentToSale(id, data)}
+                    onRefundSale={storeData.refundSale}
+                    onAjusterStock={storeData.ajusterStock}
+                    onAllerVers={(ecran) => setActiveTab(ecran)}
+                    onDevisConverti={(devisId, ticketId) =>
+                      storeData.setQuoteStatus(devisId, "accepte", ticketId)
+                    }
                   />
                 )}
                 {vue === "livraisons" && (

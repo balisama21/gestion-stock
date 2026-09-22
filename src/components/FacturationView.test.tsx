@@ -29,6 +29,7 @@ const facturation = (p: Partial<Facturation> = {}): Facturation => ({
   chargement: false,
   erreur: null,
   avoirs: [],
+  lignesAvoir: [],
   envois: new Set(),
   recus: new Set(),
   relances: new Map(),

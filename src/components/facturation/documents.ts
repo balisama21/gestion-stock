@@ -15,6 +15,7 @@ import {
 
 export type FactureAchat = Database["public"]["Tables"]["supplier_invoices"]["Row"];
 export type Avoir = Database["public"]["Tables"]["avoirs"]["Row"];
+export type LigneAvoir = Database["public"]["Tables"]["avoir_items"]["Row"];
 
 /**
  * UNE PIÈCE, UNE LIGNE.
