@@ -1,7 +1,7 @@
 import React from "react";
 import type { Document } from "../lib/buildDocument";
 import { dessinerCode128 } from "../lib/codeBarres";
-import { montant, nombre, quantite } from "../lib/format";
+import { montantOuTiret, nombre, nombreOuTiret, quantite } from "../lib/format";
 import type { LargeurTicket, ReglagesTicket } from "../lib/reglages";
 
 /**
@@ -119,10 +119,10 @@ export const Ticket: React.FC<{
                 vérifier sans reprendre sa calculette. */}
             <span>
               {reglages.detailLignes
-                ? `${l.quantite} × ${nombre(l.prixUnitaire)}`
+                ? `${l.quantite} × ${nombreOuTiret(l.prixUnitaire)}`
                 : quantite(l.quantite, l.unite)}
             </span>
-            <span>{nombre(l.total)}</span>
+            <span>{nombreOuTiret(l.total)}</span>
           </div>
         </div>
       ))}
@@ -138,7 +138,7 @@ export const Ticket: React.FC<{
     )}
     <div className="l tot">
       <span>TOTAL</span>
-      <span>{montant(d.totaux.total, d.devise)}</span>
+      <span>{montantOuTiret(d.totaux.total, d.devise)}</span>
     </div>
     {d.totaux.paye !== null && (
       <Ligne

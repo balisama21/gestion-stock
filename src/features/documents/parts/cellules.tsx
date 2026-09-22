@@ -1,6 +1,6 @@
 import React from "react";
 import type { CleColonne, LigneDocument } from "../lib/buildDocument";
-import { montant, nombre, quantite } from "../lib/format";
+import { montantOuTiret, nombre, quantite } from "../lib/format";
 
 /**
  * LE CONTENU D'UNE CELLULE, COLONNE PAR COLONNE
@@ -52,10 +52,12 @@ export function celluleDeLigne(
       return avecUnite ? nombre(l.quantite) : quantite(l.quantite, l.unite);
     case "unite":
       return l.unite ?? "";
+    /* Un tiret, jamais « 0 Ar », quand le prix est inconnu : sur un bon
+       de commande, zéro se lit « gratuit » chez le fournisseur. */
     case "prixUnitaire":
-      return montant(l.prixUnitaire, devise);
+      return montantOuTiret(l.prixUnitaire, devise);
     case "total":
-      return <b>{montant(l.total, devise)}</b>;
+      return <b>{montantOuTiret(l.total, devise)}</b>;
   }
 }
 

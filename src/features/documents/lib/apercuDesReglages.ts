@@ -1,6 +1,7 @@
 import type { Product, Sale, StoreSettings } from "../../../types";
 import type { Database } from "../../../lib/database.types";
 import {
+  documentDAchat,
   documentDeCommande,
   documentDeDevis,
   documentDeFactureAchat,
@@ -202,9 +203,6 @@ const PRESENTEE_COMME = (forme: string) =>
 export function apercuDesReglages(source: SourceApercu): Apercu | null {
   const { type, sales, produits, boutique, reglages } = source;
 
-  // Le bon de commande fournisseur ne passe pas par ce moteur.
-  if (type === "achat") return null;
-
   const ticket = dernierTicket(sales);
   if (!ticket) return null;
 
@@ -248,6 +246,45 @@ export function apercuDesReglages(source: SourceApercu): Apercu | null {
         lignes: lignesDeDevis(ticket),
       }),
       mention: PRESENTEE_COMME(type === "proforma" ? "une proforma" : "un devis"),
+    };
+  }
+
+  if (type === "achat") {
+    /*
+     * Le bon de commande part des PRIX D'ACHAT, non des prix de vente :
+     * c'est ce qu'on propose au fournisseur. Une fiche sans prix
+     * d'achat laisse sa ligne sans montant, ce qui est justement le cas
+     * que ce document sait écrire — « — » plutôt que « 0 Ar ».
+     */
+    const lignes = ticket.map((v) => {
+      const fiche = produits.find((p) => p.id === v.productId);
+      const prix = fiche && fiche.prixAchat > 0 ? fiche.prixAchat : null;
+      return {
+        id: v.id,
+        designation: v.designation,
+        reference: fiche?.numero ?? "",
+        quantite: v.quantite,
+        unite: fiche?.unite ?? null,
+        prixUnitaire: prix,
+        total: prix === null ? null : prix * v.quantite,
+        fournisseur: fiche?.fournisseur ?? "",
+      };
+    });
+    const chiffrees = lignes.filter((l) => l.total !== null);
+    const fournisseurs = new Set(lignes.map((l) => l.fournisseur));
+    const [seul] = [...fournisseurs];
+
+    return {
+      document: documentDAchat({
+        ...commun,
+        lignes,
+        total:
+          chiffrees.length === 0 ? null : chiffrees.reduce((n, l) => n + (l.total ?? 0), 0),
+        lignesSansPrix: lignes.length - chiffrees.length,
+        fournisseur: fournisseurs.size === 1 && seul ? seul : null,
+        date: ticket[0].date,
+      }),
+      mention: PRESENTEE_COMME("un bon de commande fournisseur"),
     };
   }
 

@@ -8,9 +8,18 @@ import type { StoreSettings } from "../../types";
 /**
  * LE DOCUMENT QUI PART CHEZ LE FOURNISSEUR.
  *
- * Le PDF est une photographie de ce bloc : ce qui est vérifié ici est
- * donc exactement ce qui sera imprimé. Ce que le test ne peut pas voir,
- * en revanche, c'est l'allure du résultat — seul un œil le dira.
+ * Le PDF est une photographie de la feuille : ce qui est vérifié ici
+ * est donc exactement ce qui sera imprimé. Ce que le test ne peut pas
+ * voir, en revanche, c'est l'allure du résultat — seul un œil le dira.
+ *
+ * ── POURQUOI CES BANCS SONT DEVENUS ASYNCHRONES ────────────────────
+ *
+ * Le document est passé sur le moteur commun, qui se met en page en
+ * DEUX temps : une feuille de mesure, posée hors champ et en
+ * `visibility: hidden`, puis les vraies feuilles. Tant que la mesure
+ * n'a pas rendu la main, le tableau existe mais reste invisible — donc
+ * sans rôle pour un lecteur d'écran, et introuvable par `getByRole`.
+ * `attendreLaFeuille` laisse ce second temps arriver.
  */
 
 const ACTIVE: ReglagesAlertesStock = { ...REGLAGES_PAR_DEFAUT, prealerteActive: true, ecart: 2 };
@@ -50,6 +59,9 @@ function afficher(produits = CATALOGUE, reglages = ACTIVE) {
   );
 }
 
+/** La feuille définitive, une fois la passe de mesure passée. */
+const attendreLaFeuille = () => screen.findByRole("table");
+
 /** La ligne du tableau qui parle de ce produit. */
 const ligneDe = (nom: string) => screen.getByText(nom).closest("tr") as HTMLElement;
 const cellulesDe = (nom: string) => within(ligneDe(nom)).getAllByRole("cell");
@@ -57,12 +69,13 @@ const cellulesDe = (nom: string) => within(ligneDe(nom)).getAllByRole("cell");
 describe("le bon de commande", () => {
   afterEach(cleanup);
 
-  it("porte le nom de la boutique et la date", () => {
+  it("porte le nom de la boutique et la date", async () => {
     afficher();
-    expect(screen.getByText("Épicerie Tiko")).toBeTruthy();
+    await attendreLaFeuille();
+    // En tête de la feuille, et repris au pied de page : c'est le
+    // papier qui doit se nommer, pas seulement l'écran.
+    expect(screen.getAllByText(/Épicerie Tiko/).length).toBeGreaterThan(0);
     expect(screen.getByText(/\d{2}\/\d{2}\/\d{4}/)).toBeTruthy();
-    // Deux fois : le titre de la fenêtre, et le document lui-même —
-    // c'est le papier qui doit se nommer, pas seulement l'écran.
     expect(screen.getAllByText("Bon de commande")).toHaveLength(2);
   });
 
@@ -74,35 +87,45 @@ describe("le bon de commande", () => {
     expect(screen.queryByText("Ciment")).toBeNull();
   });
 
-  it("dit combien commander", () => {
+  it("dit combien commander", async () => {
     afficher();
-    // Réf · Désignation · Qté · Prix unitaire · Montant.
+    await attendreLaFeuille();
+    // Désignation · Quantité · Prix unitaire · Total.
+    // La quantité porte son unité, comme sur tous les documents du
+    // moteur commun : « unité » à défaut de celle de la fiche.
     // Stock 5, seuil 3 : le niveau normal est 6, il manque 1.
-    expect(cellulesDe("Huile 1 L")[2].textContent).toBe("1");
+    expect(cellulesDe("Huile 1 L")[1].textContent).toBe("1 unité");
     // Stock 1, seuil 3 : il manque 5.
-    expect(cellulesDe("Savon")[2].textContent).toBe("5");
+    expect(cellulesDe("Savon")[1].textContent).toBe("5 unités");
   });
 
-  it("NE MONTRE PAS le stock restant ni le seuil", () => {
+  it("NE MONTRE PAS le stock restant ni le seuil", async () => {
     // Ce sont des affaires internes. Les montrer à un fournisseur
     // affaiblit la position de qui commande — et il n'en a que faire.
     afficher();
+    await attendreLaFeuille();
+    // Quatre colonnes, et non cinq : la référence a rejoint la
+    // désignation, comme sur une facture. C'est une colonne de moins à
+    // faire tenir sur un téléphone.
     const entetes = screen.getAllByRole("columnheader").map((c) => c.textContent);
-    expect(entetes).toEqual(["Réf.", "Désignation", "Qté", "Prix unitaire", "Montant"]);
+    expect(entetes).toEqual(["Désignation", "Quantité", "Prix unitaire", "Total"]);
   });
 
-  it("porte la référence de chaque produit", () => {
+  it("porte la référence de chaque produit", async () => {
     afficher();
-    expect(cellulesDe("Huile 1 L")[0].textContent).toBe("P001");
+    await attendreLaFeuille();
+    // Sous la désignation, et non dans une colonne à elle.
+    expect(cellulesDe("Huile 1 L")[0].textContent).toContain("réf. P001");
   });
 
-  it("marque d'un tiret ce qu'il ignore, plutôt que d'écrire zéro", () => {
+  it("marque d'un tiret ce qu'il ignore, plutôt que d'écrire zéro", async () => {
     // Un prix inventé sur un bon de commande devient une erreur qu'on
     // ne rattrape plus.
     afficher();
+    await attendreLaFeuille();
     const cellules = cellulesDe("Savon");
+    expect(cellules[2].textContent).toBe("—");
     expect(cellules[3].textContent).toBe("—");
-    expect(cellules[4].textContent).toBe("—");
   });
 
   it("annonce ce que son total ne compte pas", () => {

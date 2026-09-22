@@ -69,14 +69,12 @@ export const ReglagesParDocument: React.FC<Props> = ({
   const resolu = resoudreType(reglages, type);
 
   /*
-   * Le bon de commande fournisseur garde l'implémentation de la v1 :
-   * il lit le titre, le préfixe et le mot de fin, mais pas la mise en
-   * page. Lui proposer l'éditeur serait un interrupteur qui n'allume
-   * rien.
+   * TOUS les types passent par le moteur commun depuis que le bon de
+   * commande fournisseur l'a rejoint. Il n'y a donc plus de cas où
+   * l'éditeur de mise en page serait un interrupteur qui n'allume
+   * rien, et plus de condition à porter ici.
    */
-  const surLeMoteur = type !== "achat";
   const porteUnNumero = defauts.prefixe !== "";
-  const aUnModele = type !== "achat";
   const aUneEcheance = type === "facture";
   const aUneValidite = defauts.validiteJours !== undefined;
   const aUneCommission = defauts.commissionSeparee !== undefined;
@@ -254,8 +252,7 @@ export const ReglagesParDocument: React.FC<Props> = ({
             </SettingsRow>
           )}
 
-          {aUnModele && (
-            <>
+          <>
               <SettingsBlock>
                 <p className="mb-2 text-sm font-semibold text-foreground">Modèle</p>
                 <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
@@ -303,8 +300,7 @@ export const ReglagesParDocument: React.FC<Props> = ({
                   })}
                 </div>
               </SettingsBlock>
-            </>
-          )}
+          </>
 
           <SettingsRow label="Mot de fin" htmlFor="type-merci" stacked>
             <input
@@ -356,15 +352,11 @@ export const ReglagesParDocument: React.FC<Props> = ({
       <SettingsBlock className="border-t border-border pt-4">
         <p className="text-sm font-semibold text-foreground">Mise en page</p>
         <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">
-          {surLeMoteur
-            ? `Ce qui s'affiche sur ${defauts.libelle.toLowerCase()}, sous quel nom, dans quel ordre.`
-            : `${defauts.libelle} garde sa présentation d'origine : il ne passe pas encore par le moteur commun. Le titre, le préfixe et le mot de fin ci-dessus s'y appliquent bien ; la mise en page élément par élément, pas encore. Un éditeur sans effet vaut moins que cette phrase.`}
+          {`Ce qui s'affiche sur ${defauts.libelle.toLowerCase()}, sous quel nom, dans quel ordre.`}
         </p>
       </SettingsBlock>
 
-      {surLeMoteur && (
-        <EditeurMiseEnPage reglages={reglages} type={type} onChange={onChangePages} />
-      )}
+      <EditeurMiseEnPage reglages={reglages} type={type} onChange={onChangePages} />
     </>
   );
 };

@@ -1,5 +1,5 @@
 import React from "react";
-import { montant } from "../lib/format";
+import { montantOuTiret } from "../lib/format";
 import {
   BlocAdresse,
   CoordonneesPaiement,
@@ -96,7 +96,7 @@ export const Classique: React.FC<ProprietesModele> = ({
             <Totaux totaux={d.totaux} devise={d.devise} sansTotal />
             <div className="encadre">
               <span>{d.totaux.libelleTotal}</span>
-              <span className="doc-num">{montant(d.totaux.total, d.devise)}</span>
+              <span className="doc-num">{montantOuTiret(d.totaux.total, d.devise)}</span>
             </div>
           </div>
         </div>

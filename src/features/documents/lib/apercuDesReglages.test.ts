@@ -99,11 +99,24 @@ describe("la commission ne s'invente pas", () => {
   });
 });
 
-describe("ce qui n'a pas d'aperçu le dit", () => {
-  it("rend null pour le bon de commande fournisseur, qui garde sa mise en page", () => {
-    expect(voir("achat")).toBeNull();
+describe("le bon de commande fournisseur a son aperçu", () => {
+  it("il montre les prix d'ACHAT, et non les prix de vente", () => {
+    // C'est ce qu'on propose au fournisseur. Reprendre le prix de
+    // vente afficherait ce qu'on demande au client.
+    const a = voir("achat");
+    expect(a).not.toBeNull();
+    expect(a?.document.type).toBe("achat");
+    expect(a?.mention).toMatch(/bon de commande fournisseur/);
   });
 
+  it("il ne réclame rien : une commande n'est pas une créance", () => {
+    const a = voir("achat");
+    expect(a?.document.totaux.paye).toBeNull();
+    expect(a?.document.totaux.reste).toBeNull();
+  });
+});
+
+describe("ce qui n'a pas d'aperçu le dit", () => {
   it("rend null quand la boutique n'a encore rien vendu", () => {
     expect(voir("facture", R, [])).toBeNull();
   });

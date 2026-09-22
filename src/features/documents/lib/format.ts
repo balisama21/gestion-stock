@@ -54,6 +54,17 @@ export function montantOuTiret(valeur: number | null | undefined, devise?: strin
   return valeur === null || valeur === undefined ? "—" : montant(valeur, devise);
 }
 
+/**
+ * Un nombre, ou un tiret quand la valeur est inconnue.
+ *
+ * Le pendant de `montantOuTiret` là où la devise est déjà dite une
+ * fois pour toute la colonne — le ticket de caisse, qui l'annonce en
+ * tête plutôt que sur chaque ligne.
+ */
+export function nombreOuTiret(valeur: number | null | undefined): string {
+  return valeur === null || valeur === undefined ? "—" : nombre(valeur);
+}
+
 /* ─────────────────────────────────────────────────────────────
  * Dates
  * ───────────────────────────────────────────────────────────── */

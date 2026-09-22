@@ -10,7 +10,7 @@ import type {
   Tampon,
   TotauxDocument,
 } from "../lib/buildDocument";
-import { montant } from "../lib/format";
+import { montant, montantOuTiret } from "../lib/format";
 import { celluleDeLigne, CLASSE, COLONNE } from "./cellules";
 
 /**
@@ -209,7 +209,7 @@ export const Totaux: React.FC<{
     {!sansTotal && (
       <div className="l grand" style={{ fontSize: "12pt", fontWeight: 700 }}>
         <span>{totaux.libelleTotal}</span>
-        <span className="doc-num">{montant(totaux.total, devise)}</span>
+        <span className="doc-num">{montantOuTiret(totaux.total, devise)}</span>
       </div>
     )}
     {totaux.paye !== null && (

@@ -97,8 +97,17 @@ export interface LigneDocument {
   detail: string | null;
   quantite: number;
   unite: string | null;
-  prixUnitaire: number;
-  total: number;
+  /**
+   * `null` quand le prix est INCONNU, et non quand il vaut zéro.
+   *
+   * Le cas vient du bon de commande fournisseur, dont une ligne peut
+   * porter un produit dont la fiche n'indique aucun prix d'achat. Le
+   * document écrit alors « — » : un « 0 Ar » se lirait « gratuit »
+   * chez le fournisseur, et l'erreur ne se rattrape plus une fois le
+   * bon envoyé.
+   */
+  prixUnitaire: number | null;
+  total: number | null;
 }
 
 /** Les colonnes que le tableau porte vraiment, dans l'ordre choisi. */
@@ -124,8 +133,14 @@ export interface TotauxDocument {
    */
   horsTaxe: number | null;
   tva: { taux: number; montant: number } | null;
-  /** Le total tel qu'il est en base. Jamais recalculé. */
-  total: number;
+  /**
+   * Le total tel qu'il est en base. Jamais recalculé.
+   *
+   * `null` seulement quand il est INCONNU : un bon de commande dont
+   * aucune ligne n'est chiffrée n'a pas de total à annoncer, et « 0 »
+   * y serait faux.
+   */
+  total: number | null;
   /** `null` quand le document ne parle pas de paiement (devis, achat). */
   paye: number | null;
   reste: number | null;
@@ -487,8 +502,10 @@ const CELLULE_VIDE: Record<CleColonne, (l: LigneDocument) => boolean> = {
   designation: () => false,
   quantite: () => false,
   unite: (l) => l.unite === null,
-  prixUnitaire: () => false,
-  total: () => false,
+  // Une colonne de prix dont AUCUNE ligne n'est chiffrée ne porte que
+  // des tirets : elle s'efface, comme la colonne d'unité.
+  prixUnitaire: (l) => l.prixUnitaire === null,
+  total: (l) => l.total === null,
 };
 
 /**
@@ -655,7 +672,7 @@ export function documentDeVente(source: SourceVente): Document {
       : { texte: "Payé", ton: "ok" };
 
   const enLettres = page.visible("totaux.montantEnLettres")
-    ? montantEnLettres(totaux.total, deviseEnToutesLettres(devise))
+    ? montantEnLettres(totaux.total ?? 0, deviseEnToutesLettres(devise))
     : null;
   const lignes = lignesDeVente(ventes, produits, page);
 
@@ -1275,5 +1292,203 @@ export function documentDAvoir(source: SourceAvoir): Document {
     messageTicket: null,
     codeBarres: util(avoir.numero),
     nomDeFichier: nomDeFichier("Avoir", numero || (avoir.numero ?? "document")),
+  };
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   LE BON DE COMMANDE FOURNISSEUR
+
+   Le dernier document resté sur l'implémentation d'origine. Il passe
+   ici sur le moteur commun, et gagne du même coup ce que les autres
+   avaient déjà : la pagination qui ne coupe ni une ligne ni un total,
+   la mise à l'échelle qui garde la feuille à 210 mm sur un téléphone —
+   ses colonnes s'y écrasaient jusqu'à écrire « Q / T / É » en
+   vertical — et les réglages de la boutique.
+
+   ── TROIS CHOSES QUE LUI SEUL FAIT ─────────────────────────────────
+
+   Il s'adresse à un FOURNISSEUR et non à un client : le bloc d'en face
+   porte son nom quand toutes les lignes viennent de lui, et redescend
+   sous chaque désignation sinon.
+
+   Son prix peut être INCONNU. La fiche produit porte `prix_achat NOT
+   NULL DEFAULT 0` : rien n'y distingue « gratuit » de « pas saisi ».
+   Une ligne sans prix s'écrit « — », et le total dit combien de lignes
+   il laisse de côté. Un « 0 Ar » sur un bon de commande se lirait
+   comme un engagement, et l'erreur ne se rattrape plus une fois le bon
+   parti.
+
+   Il ne dit NI le stock restant NI le seuil d'alerte. Ce sont des
+   affaires internes : un fournisseur n'a pas à savoir combien il vous
+   reste, et le lui montrer affaiblit la position de qui commande. Les
+   deux colonnes restent dans le fichier tableur, qui ne sort pas de la
+   maison.
+   ═══════════════════════════════════════════════════════════════════ */
+
+/** Une ligne à commander, réduite à ce que le papier en montre. */
+export interface LigneACommander {
+  id: string;
+  designation: string;
+  /** La référence de la fiche. Vide quand elle n'en porte aucune. */
+  reference: string;
+  quantite: number;
+  unite: string | null;
+  /** Nul quand le prix n'est pas renseigné — zéro compris. */
+  prixUnitaire: number | null;
+  total: number | null;
+  /** Vide quand la fiche ne le dit pas. */
+  fournisseur: string;
+}
+
+export interface SourceAchat {
+  lignes: LigneACommander[];
+  /** Le total de ce qui est chiffré. Nul quand rien ne l'est. */
+  total: number | null;
+  /** Combien de lignes n'ont pas de prix, donc manquent au total. */
+  lignesSansPrix: number;
+  /** Le fournisseur, quand toutes les lignes portent le même. */
+  fournisseur: string | null;
+  /** Le jour où le bon est établi, en AAAA-MM-JJ. */
+  date: string;
+  boutique?: StoreSettings;
+  reglages: ReglagesDocuments;
+  locale?: LocaleSetting;
+}
+
+export function documentDAchat(source: SourceAchat): Document {
+  const { lignes, total, lignesSansPrix, fournisseur, date, boutique, reglages } = source;
+  const locale = source.locale ?? "FR";
+  const devise = util(boutique?.currencySymbol) ?? "Ar";
+
+  const regle = resoudreType(reglages, "achat");
+  const page = resoudreMiseEnPage(reglages, "achat");
+  const nomBoutique = util(boutique?.storeName);
+
+  /*
+   * Ce document ne porte aucun numéro aujourd'hui : il ne naît pas
+   * d'une ligne de base, il se compose à la volée depuis le catalogue.
+   * Lui en tirer un consommerait un compteur à chaque aperçu.
+   */
+  const repere: Record<string, LigneMeta | null> = {
+    "infos.date": date
+      ? { libelle: page.libelle("infos.date", "Date"), valeur: dateCourte(date, locale) }
+      : null,
+  };
+  const meta: LigneMeta[] = page
+    .ordre("infos")
+    .map((cle) => repere[cle] ?? null)
+    .filter((l): l is LigneMeta => l !== null);
+
+  /*
+   * La référence et le fournisseur se rangent sous la désignation.
+   *
+   * Le fournisseur n'y descend QUE s'il n'est pas déjà en tête : quand
+   * toutes les lignes viennent du même, le répéter cinquante fois est
+   * du bruit — c'est pourquoi il monte dans le bloc d'en face.
+   */
+  const lignesAchat: LigneDocument[] = lignes.map((l) => ({
+    id: l.id,
+    designation: util(l.designation) ?? "Article",
+    detail:
+      joindre(
+        l.reference ? `réf. ${l.reference}` : null,
+        fournisseur ? null : util(l.fournisseur),
+      ) || null,
+    quantite: l.quantite,
+    unite: l.unite,
+    prixUnitaire: l.prixUnitaire,
+    total: l.total,
+  }));
+
+  /*
+   * Pas d'intitulé sans nom.
+   *
+   * Quand les lignes viennent de plusieurs fournisseurs, le bloc ne
+   * dit rien du tout : un « Fournisseur » suivi du vide se lirait
+   * comme une donnée perdue, alors que le nom est descendu sous
+   * chaque ligne, là où il est juste.
+   */
+  const destinataire: BlocTiers = {
+    titre:
+      fournisseur && page.visible("tiers.titre")
+        ? page.libelle("tiers.titre", "Fournisseur")
+        : "",
+    nom: page.visible("tiers.nom") ? (util(fournisseur) ?? "") : "",
+    lignes: [],
+    nif: null,
+  };
+
+  /*
+   * Le total partiel s'annonce, il ne se déguise pas.
+   *
+   * Additionner ce qu'on sait et se taire sur le reste laisserait
+   * croire à un total complet. La mention dit ce qui manque, et le
+   * fournisseur sait alors quoi chiffrer.
+   */
+  const manquantes =
+    lignesSansPrix > 0
+      ? lignesSansPrix > 1
+        ? `${lignesSansPrix} lignes ne sont pas chiffrées dans ce total.`
+        : `1 ligne n'est pas chiffrée dans ce total.`
+      : null;
+
+  return {
+    type: "achat",
+    titre: regle.titre,
+    numero: "",
+    meta,
+    emetteur: enTeteBoutique(boutique, reglages, page),
+    destinataire,
+    lignes: lignesAchat,
+    colonnes: colonnesDuDocument(page, lignesAchat),
+    totaux: {
+      horsTaxe: null,
+      tva: null,
+      total,
+      // Un bon de commande ne parle pas de règlement : rien n'est dû
+      // tant que la marchandise n'est pas arrivée.
+      paye: null,
+      reste: null,
+      modePaiement: null,
+      libelleTotal: page.libelle("totaux.total", "Total"),
+      libellePaye: "",
+      libelleHorsTaxe: page.libelle("totaux.horsTaxe", "Total hors taxe"),
+      libelleTva: page.libelle("totaux.tva", "TVA"),
+      libelleReste: page.libelle("totaux.reste", "Reste à payer"),
+      commission: null,
+    },
+    // Rien à constater : la commande part, elle n'est pas honorée.
+    tampon: null,
+    // Un total partiel ne s'écrit pas en lettres : la somme en toutes
+    // lettres est une garantie, et elle ne garantirait ici qu'une part.
+    montantEnLettres:
+      page.visible("totaux.montantEnLettres") && total !== null && lignesSansPrix === 0
+        ? montantEnLettres(total, deviseEnToutesLettres(devise))
+        : null,
+    mentions: !page.visible("bas.conditions")
+      ? manquantes
+      : (joindre(util(regle.conditions), manquantes) || null),
+    /*
+     * Il engage celui qui commande : sa signature y a sa place.
+     *
+     * « Cachet et signature » plutôt que « Pour <boutique> », qui est
+     * la formule des autres documents : c'est celle que ce bon-ci
+     * portait déjà, et l'en-tête dit de qui il vient.
+     */
+    signatures: page.visible("bas.signature")
+      ? { gauche: "", droite: "Cachet et signature" }
+      : null,
+    motDeFin: page.visible("bas.motDeFin") ? util(regle.motDeFin) : null,
+    // On n'indique pas où NOUS payer sur une commande que nous passons.
+    coordonneesPaiement: null,
+    piedDePage: !page.visible("bas.piedDePage")
+      ? null
+      : (util(regle.piedDePage) ?? joindre(nomBoutique, boutique?.address, boutique?.phone)),
+    paginer: page.visible("bas.pagination"),
+    devise,
+    heure: null,
+    messageTicket: null,
+    codeBarres: null,
+    nomDeFichier: nomDeFichier("Bon_de_commande", nomBoutique ?? "boutique", date),
   };
 }

@@ -90,14 +90,19 @@ describe("une fois personnalisé", () => {
 });
 
 describe("ce qui est proposé dépend du document", () => {
-  it("n'offre ni préfixe ni modèle au bon de commande fournisseur, qui n'en a pas", () => {
+  it("n'offre pas de préfixe au bon de commande fournisseur, qui n'a pas de numéro", () => {
+    // Il ne naît d'aucune ligne de base : il se compose à la volée
+    // depuis le catalogue. Lui tirer un numéro consommerait un
+    // compteur à chaque aperçu.
     afficher({
       ...REGLAGES_DOCUMENTS_PAR_DEFAUT,
       types: { achat: { titre: "Bon de commande" } },
     });
     fireEvent.click(screen.getByRole("button", { name: /Bon de commande fournisseur/ }));
     expect(screen.queryByLabelText(/Préfixe de numérotation/)).toBeNull();
-    expect(screen.queryByText("Modèle")).toBeNull();
+    // Le modèle, lui, s'applique depuis qu'il est passé sur le moteur
+    // commun.
+    expect(screen.getByText("Modèle")).toBeTruthy();
   });
 
   it("n'offre l'échéance qu'à la facture, et la validité qu'au devis", () => {
@@ -114,13 +119,16 @@ describe("ce qui est proposé dépend du document", () => {
   });
 });
 
-describe("un éditeur qui n'allumerait rien n'est pas proposé", () => {
-  it("retire la mise en page au bon de commande fournisseur, qui garde la sienne", () => {
+describe("les neuf types ont leur éditeur", () => {
+  it("le bon de commande fournisseur a rejoint le moteur commun", () => {
+    // Il était le dernier à garder son implémentation d'origine : son
+    // éditeur de mise en page n'allumait rien, et n'était donc pas
+    // proposé. Ce n'est plus le cas.
     afficher();
     expect(screen.getByRole("button", { name: /Personnaliser la mise en page/ })).toBeTruthy();
 
     fireEvent.click(screen.getByRole("button", { name: /Bon de commande fournisseur/ }));
-    expect(screen.queryByRole("button", { name: /Personnaliser la mise en page/ })).toBeNull();
-    expect(screen.getByText(/ne passe pas encore par le moteur commun/)).toBeTruthy();
+    expect(screen.getByRole("button", { name: /Personnaliser la mise en page/ })).toBeTruthy();
+    expect(screen.queryByText(/ne passe pas encore par le moteur commun/)).toBeNull();
   });
 });
