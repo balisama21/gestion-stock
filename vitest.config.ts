@@ -31,5 +31,20 @@ export default defineConfig({
     include: ["src/**/*.test.{ts,tsx}"],
     globals: false,
     restoreMocks: true,
+    /*
+     * Cinq secondes ne suffisent pas aux bancs qui montent un ecran
+     * entier.
+     *
+     * Les tests de `FacturationPage` rendent la liste, la barre
+     * d indicateurs, les filtres et une modale a chaque cas. Seuls, ils
+     * passent en moins d une seconde ; lances en meme temps que les
+     * quarante autres fichiers sur une machine chargee, ils depassaient
+     * parfois le delai — un echec qui ne dit rien du code, et qui rend
+     * la suite peu fiable, donc vite ignoree.
+     *
+     * Le delai ne cache aucune attente : ce qui est teste reste
+     * synchrone ou resolu en quelques millisecondes.
+     */
+    testTimeout: 20_000,
   },
 });
