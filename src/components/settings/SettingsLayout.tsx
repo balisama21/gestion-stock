@@ -24,7 +24,6 @@ export type SettingsTab =
   | "boutique"
   | "facture"
   | "documents"
-  | "documents"
   | "equipe"
   | "paiement"
   | "notifications"

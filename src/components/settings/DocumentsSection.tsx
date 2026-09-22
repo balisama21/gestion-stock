@@ -1,11 +1,17 @@
 import React, { useMemo, useState } from "react";
-import { FileText, RotateCcw, Save } from "lucide-react";
+import { Building2, FileText, RotateCcw, Save, SlidersHorizontal } from "lucide-react";
 import { SettingsBlock, SettingsRow, SettingsSection, SettingsToggle } from "./primitives";
+import { IdentiteDocuments } from "./IdentiteDocuments";
+import { ReglagesParDocument } from "./ReglagesParDocument";
+import { COULEURS_DOCUMENT, LOGOS_DOCUMENT, MODELES_DOCUMENT } from "./choixDocuments";
 import type { Personnalisation } from "../../lib/personnalisation";
 import type { Product, Sale, StoreSettings } from "../../types";
 import { DocumentPreview, type FormatDocument } from "../../features/documents/DocumentPreview";
 import { documentDeVente } from "../../features/documents/lib/buildDocument";
 import { LIBELLE_ECHEANCE, type Echeance } from "../../features/documents/lib/format";
+import type { IdentiteBoutique } from "../../features/documents/lib/identite";
+import type { ReglagesParType } from "../../features/documents/lib/typesDocument";
+import type { MisesEnPage } from "../../features/documents/lib/miseEnPage";
 import {
   lireReglagesDocuments,
   REGLAGES_DOCUMENTS_PAR_DEFAUT,
@@ -52,27 +58,9 @@ interface DocumentsSectionProps {
   products: Product[];
 }
 
-const MODELES: { cle: ModeleDocument; nom: string; note: string }[] = [
-  { cle: "classique", nom: "Classique", note: "Le plus attendu" },
-  { cle: "bandeau", nom: "Bandeau", note: "Marqué, coloré" },
-  { cle: "epure", nom: "Épuré", note: "Sobre, à empattements" },
-  { cle: "compact", nom: "Compact", note: "Beaucoup d'articles" },
-];
-
-const COULEURS = [
-  { valeur: "#0E7C5A", nom: "Vert" },
-  { valeur: "#1F4E79", nom: "Bleu nuit" },
-  { valeur: "#3A72A6", nom: "Bleu clair" },
-  { valeur: "#7A4B2A", nom: "Brun" },
-  { valeur: "#8E2F3C", nom: "Bordeaux" },
-  { valeur: "#2B3038", nom: "Ardoise" },
-];
-
-const LOGOS: { cle: ChoixLogo; nom: string }[] = [
-  { cle: "auto", nom: "Logo, ou initiales à défaut" },
-  { cle: "initiales", nom: "Initiales seulement" },
-  { cle: "aucun", nom: "Rien du tout" },
-];
+const MODELES = MODELES_DOCUMENT;
+const COULEURS = COULEURS_DOCUMENT;
+const LOGOS = LOGOS_DOCUMENT;
 
 const OPTIONS: { cle: keyof ReglagesDocuments["options"]; nom: string; note: string }[] = [
   {
@@ -125,6 +113,9 @@ export const DocumentsSection: React.FC<DocumentsSectionProps> = ({
     setBrouillon((b) => ({ ...b, options: { ...b.options, [cle]: valeur } }));
   const changerTicket = (patch: Partial<ReglagesDocuments["ticket"]>) =>
     setBrouillon((b) => ({ ...b, ticket: { ...b.ticket, ...patch } }));
+  const changerIdentite = (identite: IdentiteBoutique) => setBrouillon((b) => ({ ...b, identite }));
+  const changerTypes = (types: ReglagesParType) => setBrouillon((b) => ({ ...b, types }));
+  const changerPages = (pages: MisesEnPage) => setBrouillon((b) => ({ ...b, pages }));
 
   const enregistrer = async () => {
     setEnCours(true);
@@ -170,6 +161,24 @@ export const DocumentsSection: React.FC<DocumentsSectionProps> = ({
 
   return (
     <div className="space-y-5">
+      {/* ── NIVEAU 1 ──────────────────────────────────────────────
+          Le socle : ce qui est saisi ici part sur TOUS les documents.
+          Il vient donc avant le choix du modèle, qui n'en est que la
+          mise en page. Le bouton « Enregistrer » de la section
+          suivante vaut pour tout l'écran, comme il vaut déjà pour les
+          réglages du ticket, plus bas. */}
+      <SettingsSection
+        title="Identité de la boutique"
+        icon={<Building2 className="h-4 w-4" />}
+        description="Le point commun de tous vos documents : contacts, site, réseaux, coordonnées de paiement. Saisi une fois, repris partout."
+      >
+        <IdentiteDocuments
+          identite={brouillon.identite}
+          onChange={changerIdentite}
+          settings={settings}
+        />
+      </SettingsSection>
+
       <SettingsSection
         title="Documents"
         icon={<FileText className="h-4 w-4" />}
@@ -292,7 +301,7 @@ export const DocumentsSection: React.FC<DocumentsSectionProps> = ({
         <SettingsRow
           label="Préfixe des factures"
           htmlFor="doc-prefixe"
-          hint="Il habille le numéro de la vente sans le remplacer : « FAC- » donne « FAC-V026 », qui reste cherchable dans la liste des ventes. Les autres documents suivent : DEV-, REC-, CMD-, BCF-."
+          hint="Il habille le numéro de la vente sans le remplacer : « FAC- » donne « FAC-V026 », qui reste cherchable dans la liste des ventes. Chaque autre document a le sien, dans « Réglages par document » ci-dessous."
         >
           <input
             id="doc-prefixe"
@@ -347,6 +356,21 @@ export const DocumentsSection: React.FC<DocumentsSectionProps> = ({
             placeholder="Nom · adresse · téléphone de la boutique"
           />
         </SettingsRow>
+      </SettingsSection>
+
+      {/* ── NIVEAU 2 ──────────────────────────────────────────────
+          Ce qui distingue une facture d'un devis. Placé après les
+          réglages de la boutique, dont il hérite. */}
+      <SettingsSection
+        title="Réglages par document"
+        icon={<SlidersHorizontal className="h-4 w-4" />}
+        description="Titre, numérotation, échéance, conditions : ce qui appartient à un type de document et pas aux autres. Tant qu'un document n'est pas personnalisé, il suit les réglages ci-dessus."
+      >
+        <ReglagesParDocument
+          reglages={brouillon}
+          onChange={changerTypes}
+          onChangePages={changerPages}
+        />
       </SettingsSection>
 
       <SettingsSection
