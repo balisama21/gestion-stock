@@ -164,21 +164,14 @@ function afficher(p: Partial<React.ComponentProps<typeof FacturationPage>> = {})
   };
 }
 
-/**
- * Ouvre « + Nouveau document » puis la nature demandée.
- *
- * Le bouton est rendu deux fois — en en-tête et ancré en bas d'écran —
- * et c'est une media query qui n'en laisse qu'un visible. jsdom
- * n'applique pas la feuille de style : les deux sont dans l'arbre, on
- * prend le premier.
- */
+/** Ouvre « + Nouveau document » puis la nature demandée. */
 function ouvrirLeMenu() {
-  fireEvent.click(screen.getAllByRole("button", { name: /Nouveau document/ })[0]);
+  fireEvent.click(screen.getByRole("button", { name: /Nouveau document/ }));
 }
 
 function ouvrirLeFormulaire(libelle: RegExp) {
   ouvrirLeMenu();
-  fireEvent.click(screen.getAllByRole("menuitem", { name: libelle })[0]);
+  fireEvent.click(screen.getByRole("menuitem", { name: libelle }));
 }
 
 afterEach(cleanup);
@@ -252,11 +245,11 @@ describe("établir une facture n'écrit qu'une vente", () => {
     afficher({ onAllerVers });
 
     ouvrirLeMenu();
-    fireEvent.click(screen.getAllByRole("menuitem", { name: /^Devis/ })[0]);
+    fireEvent.click(screen.getByRole("menuitem", { name: /^Devis/ }));
     expect(onAllerVers).toHaveBeenCalledWith("devis");
 
     ouvrirLeMenu();
-    fireEvent.click(screen.getAllByRole("menuitem", { name: /Facture d'achat/ })[0]);
+    fireEvent.click(screen.getByRole("menuitem", { name: /Facture d'achat/ }));
     expect(onAllerVers).toHaveBeenCalledWith("factures_achat");
   });
 });
@@ -456,7 +449,7 @@ describe("les droits", () => {
   it("sans le droit de créer, le menu ne propose que les écrans existants", () => {
     afficher({ droits: { creer: false, envoyer: true, encaisser: true, avoir: true } });
     ouvrirLeMenu();
-    const menu = screen.getAllByRole("menu")[0];
+    const menu = screen.getByRole("menu");
     expect(within(menu).queryByRole("menuitem", { name: /^Facture$/ })).toBeNull();
     expect(within(menu).getByRole("menuitem", { name: /^Devis/ })).toBeTruthy();
   });

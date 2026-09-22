@@ -100,12 +100,13 @@ export interface FacturationViewProps {
   /**
    * Le menu « + Nouveau document ».
    *
-   * Rendu DEUX fois — en en-tête sur grand écran, ancré en bas d'écran
-   * sur mobile — et un seul des deux est visible à la fois. Le
-   * paramètre dit lequel : celui du bas déplie vers le haut, sans quoi
-   * son menu sortirait de l'écran.
+   * Dans l'en-tête, à toutes les tailles, comme sur les autres écrans.
+   * Il a été un temps ancré en bas sur mobile — le cahier le
+   * demandait — et il y recouvrait la fin de la liste. Même calé, un
+   * bandeau fixe prend une bande d'écran à une page dont tout l'objet
+   * est de faire défiler des lignes.
    */
-  menuNouveau?: (versLeHaut: boolean) => React.ReactNode;
+  menuNouveau?: React.ReactNode;
   /** Les boutons d'export de la liste affichée. */
   exports?: (documents: DocumentCommercial[]) => React.ReactNode;
   onCreerPremiere?: () => void;
@@ -319,11 +320,7 @@ export const FacturationView: React.FC<FacturationViewProps> = ({
         title="Facturation"
         module="facturation"
         subtitle="Tous les documents commerciaux de la boutique, au même endroit."
-        // Sur mobile, le bouton n'est pas ici : il est ancré en bas
-        // d'écran, au-dessus de la barre de navigation (voir plus bas).
-        // Le mettre aux deux endroits ferait deux boutons identiques sur
-        // la même image.
-        actions={<div className="hidden lg:block">{menuNouveau?.(false)}</div>}
+        actions={menuNouveau}
       />
 
       {listeVide ? (
@@ -483,17 +480,6 @@ export const FacturationView: React.FC<FacturationViewProps> = ({
               onToutEffacer={() => setFiltres({ ...FILTRES_VIDES, onglet: filtres.onglet })}
             />
 
-            {/* « Le bouton "+ Nouveau document" reste accessible en bas
-                d'écran. » Ancré au-dessus de la barre de navigation, et
-                non par-dessus : une liste se parcourt au pouce, et un
-                bouton flottant posé sur le contenu cache justement la
-                ligne qu'on vient lire. */}
-            {menuNouveau && (
-              <div className="fixed inset-x-0 bottom-[68px] z-30 border-t border-border bg-card/95 px-4 py-2 backdrop-blur lg:hidden">
-                {menuNouveau(true)}
-              </div>
-            )}
-
             <div className="app-card">
               {visibles.length === 0 ? (
                 <div className="flex flex-col items-center gap-3 px-4 py-12 text-center">
@@ -510,6 +496,7 @@ export const FacturationView: React.FC<FacturationViewProps> = ({
                 <DataList items={lignes} />
               )}
             </div>
+
           </div>
         </>
       )}

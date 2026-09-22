@@ -220,11 +220,13 @@ phrase et un seul bouton quand il n'y a rien, « Aucun document ne
 correspond » avec le moyen d'effacer les filtres, un message simple et
 « Réessayer » quand le chargement échoue.
 
-**Mobile.** Le bouton « + Nouveau document » est ancré au-dessus de la
-barre de navigation, et non par-dessus la liste : un bouton flottant
-posé sur le contenu cache justement la ligne qu'on vient lire. Il
-déplie alors son menu vers le haut. Sur grand écran il reprend sa place
-dans l'en-tête, et un seul des deux est jamais visible.
+**Mobile.** Le bouton « + Nouveau document » est dans l'en-tête, à
+toutes les tailles, comme sur les autres écrans. Le cahier le voulait
+« accessible en bas d'écran » ; il y a été ancré, et il recouvrait la
+fin de la liste. Même calé — en réservant sous la liste la hauteur
+qu'il occupe —, un bandeau fixe prend une bande d'écran à une page dont
+tout l'objet est de faire défiler des lignes. Écart assumé, et signalé
+au §7.
 
 **Exports.** CSV et tableur de la liste AFFICHÉE — filtrée, triée, dans
 son ordre. Montants en nombres pour qu'une colonne s'additionne, devise
@@ -266,13 +268,22 @@ y sont visibles d'un coup. _Défaire_ : `DataList` n'a pas de fente pour
 un tel menu ; il faudrait lui en ajouter une, et elle servirait alors à
 tous les écrans.
 
-**6. Le tri se choisit dans les filtres, pas en cliquant sur des
+**6. Le bouton « + Nouveau document » reste dans l'en-tête.** Le cahier
+le veut « accessible en bas d'écran ». Il y a été ancré, au-dessus de la
+barre de navigation, et il recouvrait la dernière ligne de la liste —
+signalé à l'écran, capture à l'appui. Même calé, un bandeau fixe prend
+une bande d'écran à une page dont tout l'objet est de faire défiler des
+lignes. Il reprend donc sa place dans l'en-tête, comme sur les quinze
+autres écrans. _Défaire_ : un conteneur `fixed` sous la liste, et la
+même hauteur réservée en dessous.
+
+**7. Le tri se choisit dans les filtres, pas en cliquant sur des
 en-têtes de colonnes.** Il n'y a pas de colonnes : la liste est
 hiérarchisée pour tenir sur un téléphone sans défilement horizontal. Le
 sélecteur porte les six mêmes clés — date, numéro, client, échéance,
 montant, reste — avec le sens du tri à côté.
 
-**7. Le classeur des factures reçues n'apparaît pas en portée
+**8. Le classeur des factures reçues n'apparaît pas en portée
 restreinte.** Il n'a ni vendeur ni auteur qui vaille : une facture
 fournisseur arrive au nom du commerce. Mieux vaut ne pas le montrer du
 tout que d'en montrer une part arbitraire.
