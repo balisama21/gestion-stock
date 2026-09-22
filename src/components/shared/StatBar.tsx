@@ -96,6 +96,13 @@ interface StatColProps {
   tone?: string;
   hintTone?: string;
   onClick?: () => void;
+  /**
+   * Ce que le clic va faire, pour qui n'a que le libellé lu à voix
+   * haute. « En retard » seul ne dit pas qu'on peut appuyer dessus.
+   */
+  ariaLabel?: string;
+  /** Vrai quand ce filtre est celui qui est posé. */
+  actif?: boolean;
 }
 
 /**
@@ -106,12 +113,23 @@ interface StatColProps {
  * `tone` et `hintTone` sont acceptés mais ignorés : la couleur de fond
  * et la pastille d'icône ont disparu avec le passage au style sobre.
  */
-export const StatCol: React.FC<StatColProps> = ({ label, value, hint, icon, alert, onClick }) => {
+export const StatCol: React.FC<StatColProps> = ({
+  label,
+  value,
+  hint,
+  icon,
+  alert,
+  onClick,
+  ariaLabel,
+  actif,
+}) => {
   const Wrapper = onClick ? "button" : "div";
   return (
     <Wrapper
-      {...(onClick ? { onClick, type: "button" as const } : {})}
-      className="app-statbar-item"
+      {...(onClick
+        ? { onClick, type: "button" as const, "aria-label": ariaLabel, "aria-pressed": actif }
+        : {})}
+      className={`app-statbar-item ${actif ? "app-statbar-item-actif" : ""}`}
     >
       <span className="app-statbar-label">
         {icon && <span className="shrink-0 opacity-70">{icon}</span>}

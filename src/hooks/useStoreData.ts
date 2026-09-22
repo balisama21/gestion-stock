@@ -333,7 +333,14 @@ export interface StoreData {
     client_id?: string | null;
     montant_paye_total: number;
     methode?: string | null;
-    lignes: { product_id: string; quantite: number; prix_vente_unit: number }[];
+    lignes: {
+      /** Vide pour une prestation : la base n'y touche alors ni au stock ni au catalogue. */
+      product_id: string;
+      quantite: number;
+      prix_vente_unit: number;
+      /** Le libellé d'une prestation. Ignoré quand la ligne porte un produit. */
+      designation?: string;
+    }[];
   }) => Promise<{ ventes: AppSale[]; error: string | null }>;
 
   updateSale: (
@@ -978,7 +985,14 @@ export function useStoreData(storeId: string | null, userId: string | null): Sto
       client_id?: string | null;
       montant_paye_total: number;
       methode?: string | null;
-      lignes: { product_id: string; quantite: number; prix_vente_unit: number }[];
+      lignes: {
+      /** Vide pour une prestation : la base n'y touche alors ni au stock ni au catalogue. */
+      product_id: string;
+      quantite: number;
+      prix_vente_unit: number;
+      /** Le libellé d'une prestation. Ignoré quand la ligne porte un produit. */
+      designation?: string;
+    }[];
     }) => {
       if (!storeId || !userId) return { ventes: [], error: "Non autorisé" };
 

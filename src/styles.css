@@ -1544,6 +1544,21 @@ td {
       background: var(--muted);
     }
   }
+  /* L indicateur sur lequel la liste est filtree. Un filet vert sous la
+     colonne, comme l onglet courant : jamais un aplat de couleur. */
+  .app-statbar-item-actif {
+    @apply text-foreground;
+  }
+  .app-statbar-item-actif::after {
+    content: "";
+    position: absolute;
+    left: 1rem;
+    right: 1rem;
+    bottom: 0;
+    height: 2px;
+    border-radius: 9999px;
+    background: var(--primary);
+  }
 
   /* ── Listes denses ──
      Pas de bordure entre les lignes : un filet très clair suffit, et le

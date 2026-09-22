@@ -49,6 +49,9 @@ import { usePrealertesStock } from "./hooks/usePrealertesStock";
 import { BonDeCommande } from "./components/produits/BonDeCommande";
 import { useCaptureDuDrapeauDocuments, useDocumentsV2 } from "./features/documents/drapeau";
 import { lireReglagesDocuments } from "./features/documents/lib/reglages";
+import { useFacturation } from "./hooks/useFacturation";
+import { construireDocuments } from "./components/facturation/documents";
+import { compterLesRetards } from "./components/facturation/indicateurs";
 import { useNotificationPrefs } from "./lib/notificationPrefs";
 import { useCaptureDuDrapeau, useDashboardV2 } from "./features/dashboard-v2/drapeau";
 import {
@@ -118,6 +121,9 @@ const LivraisonsView = lazy(() =>
 );
 const DevisView = lazy(() =>
   import("./components/DevisView").then((m) => ({ default: m.DevisView })),
+);
+const FacturationView = lazy(() =>
+  import("./components/FacturationView").then((m) => ({ default: m.FacturationView })),
 );
 const VentesView = lazy(() =>
   import("./components/VentesView").then((m) => ({ default: m.VentesView })),
@@ -339,6 +345,23 @@ function AppInner() {
     [personnalisation.documents],
   );
   const documentsV2 = useDocumentsV2(reglagesDocuments.actif);
+
+  /* Les avoirs, les envois et les pieces deja emises. Charges a l
+     ouverture de la page seulement : trois requetes de plus au
+     demarrage ralentiraient toutes les boutiques, y compris celles
+     qui n ouvrent jamais cet ecran. */
+  /* La page est-elle seulement atteignable ? Le chargement suit cette
+     reponse et non l onglet ouvert : le badge des retards doit etre
+     juste des la premiere image, pas seulement apres une visite. */
+  const voitLaFacturation =
+    workspace.isOwner ||
+    workspace.memberPermissions === null ||
+    workspace.memberPermissions.includes("facturation");
+
+  const facturation = useFacturation(
+    workspace.activeStore?.id ?? null,
+    voitLaFacturation && !moduleMasque(personnalisation, "facturation"),
+  );
 
   const handleSavePersonnalisation = async (p: Personnalisation) => {
     if (!workspace.activeStore) return;
@@ -863,6 +886,71 @@ function AppInner() {
     : ["view", "create", "edit", "delete"].filter((a) =>
         hasModuleAction(workspace.memberPermissionsDetailed ?? {}, "devis", a),
       );
+
+  // ── Facturation : portee own/all, et les actions.
+  //
+  // La page ne donne acces a aucune donnee que Ventes, Devis et Achats
+  // ne laissaient deja passer : elle les range en pieces. Sa portee lui
+  // est propre malgre tout, pour qu un vendeur puisse suivre ses
+  // propres factures sans voir celles de l equipe. ──
+  const hasFacturationModule = voitLaFacturation;
+  const facturationScope = workspace.isOwner
+    ? "all"
+    : getModuleScope(workspace.memberPermissionsDetailed ?? {}, "facturation");
+  const facturationVoitTout = workspace.isOwner || facturationScope === "all";
+  const facturationActions = workspace.isOwner
+    ? null
+    : ["view", "create", "send", "payment", "credit_note", "export"].filter((a) =>
+        hasModuleAction(workspace.memberPermissionsDetailed ?? {}, "facturation", a),
+      );
+  const facturationSales = useMemo(() => {
+    if (!hasFacturationModule) return [];
+    if (facturationVoitTout) return sales;
+    return myName ? sales.filter((v) => v.vendeur === myName) : [];
+  }, [sales, hasFacturationModule, facturationVoitTout, myName]);
+  const facturationQuotes = useMemo(() => {
+    if (!hasFacturationModule) return [];
+    if (facturationVoitTout) return storeData.quotes;
+    return storeData.quotes.filter((q) => q.created_by === user?.id);
+  }, [storeData.quotes, hasFacturationModule, facturationVoitTout, user?.id]);
+
+  /* Les pieces, assemblees UNE fois : le badge du menu et la page
+     comptent alors exactement les memes documents. */
+  const documentsFacturation = useMemo(
+    () =>
+      hasFacturationModule
+        ? construireDocuments({
+            sales: facturationSales,
+            payments,
+            quotes: facturationQuotes,
+            quoteItems: storeData.quoteItems,
+            facturesAchat: storeData.supplierInvoices,
+            avoirs: facturation.avoirs,
+            envois: facturation.envois,
+            recus: facturation.recus,
+            reglages: reglagesDocuments,
+            aujourdhui: facturation.aujourdhui,
+          })
+        : [],
+    [
+      hasFacturationModule,
+      facturationSales,
+      payments,
+      facturationQuotes,
+      storeData.quoteItems,
+      storeData.supplierInvoices,
+      facturation.avoirs,
+      facturation.envois,
+      facturation.recus,
+      facturation.aujourdhui,
+      reglagesDocuments,
+    ],
+  );
+
+  const badgesNav = useMemo(
+    () => ({ facturation: compterLesRetards(documentsFacturation) }),
+    [documentsFacturation],
+  );
 
   // ── Livraisons : pas de champ sensible pour le personnel de la
   // boutique — c est le livreur qui est tenu a l ecart, et c est la
@@ -1530,6 +1618,7 @@ function AppInner() {
           setTheme={setTheme}
           sidebarCollapsed={sidebarCollapsed}
           onToggleSidebar={toggleSidebar}
+          badgesNav={badgesNav}
         />
 
         <main className="app-container flex-1 py-4 pb-[calc(6rem+env(safe-area-inset-bottom,0px))] md:py-6 lg:pb-6">
@@ -1863,6 +1952,18 @@ function AppInner() {
                     peutCreer={!devisActions || devisActions.includes("create")}
                     peutModifier={!devisActions || devisActions.includes("edit")}
                     peutSupprimer={!devisActions || devisActions.includes("delete")}
+                  />
+                )}
+                {vue === "facturation" && (
+                  <FacturationView
+                    documents={documentsFacturation}
+                    payments={payments}
+                    settings={storeSettings}
+                    locale={locale}
+                    facturation={facturation}
+                    moiNom={myName}
+                    voitTout={facturationVoitTout}
+                    peutCreer={!facturationActions || facturationActions.includes("create")}
                   />
                 )}
                 {vue === "livraisons" && (
