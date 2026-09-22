@@ -61,7 +61,8 @@ import {
   moduleMasque,
   type Personnalisation,
 } from "./lib/personnalisation";
-import { lireReglagesListes } from "./lib/listes";
+import { libelleEffectuePar, lireReglagesListes } from "./lib/listes";
+import { listerLesPersonnes } from "./lib/personnes";
 
 /**
  * Les écrans internes arrivent à la demande.
@@ -745,6 +746,65 @@ function AppInner() {
       alert("Erreur lors de la mise à jour de la boutique : " + res.error);
     }
   };
+
+  /**
+   * TOUTES LES PERSONNES QU'ON PEUT DÉSIGNER DANS CETTE BOUTIQUE.
+   *
+   * L'équipe, les fiches « hors équipe », et les noms écrits dans les
+   * ventes et les dépenses avant que les fiches n'existent. Ces derniers
+   * restent sélectionnables : les retirer du choix reviendrait à
+   * renommer le passé de quelqu'un.
+   */
+  const personnesDeLaBoutique = useMemo(() => {
+    const membres = storeMembers.map((m) => ({
+      id: m.user_id,
+      nom: m.full_name || m.email,
+      mention: null as string | null,
+    }));
+    // Le propriétaire n'est jamais dans `store_members` — cette table ne
+    // contient que les collaborateurs invités — et il doit pouvoir être
+    // désigné même s'il n'a invité personne.
+    if (workspace.isOwner && user?.id) {
+      membres.unshift({
+        id: user.id,
+        nom: (profile?.full_name || user.email || "Propriétaire").trim(),
+        mention: null,
+      });
+    }
+    return listerLesPersonnes({
+      membres,
+      externes: storeData.personnesExternes,
+      nomsHerites: Array.from(
+        new Set([...sales.map((v) => v.vendeur), ...expenses.map((e) => e.vendeur)]),
+      ).filter((n) => n.trim() !== ""),
+    });
+  }, [
+    storeMembers,
+    workspace.isOwner,
+    user,
+    profile,
+    storeData.personnesExternes,
+    sales,
+    expenses,
+  ]);
+
+  /**
+   * Créer une fiche « personne externe » depuis un formulaire.
+   *
+   * Un contact, jamais un compte : la base ne crée aucun accès, et cette
+   * fonction ne fait que ce qu'elle dit.
+   */
+  const creerPersonneExterne = useCallback(
+    async (data: { nom: string; telephone: string; role: string | null }) => {
+      const { personne, error } = await storeData.addPersonneExterne({
+        nom: data.nom,
+        telephone: data.telephone,
+        role: data.role,
+      });
+      return { personne: personne ? { id: personne.id, nom: personne.nom } : null, error };
+    },
+    [storeData],
+  );
 
   const computedSellers = useMemo(() => {
     const memberNames = storeMembers.map((m) => m.full_name || m.email);
@@ -1515,6 +1575,18 @@ function AppInner() {
     const res = await storeData.addExpense({
       date: newExp.date,
       vendeur: newExp.vendeur,
+      // ── Cinq colonnes qui n'arrivaient jamais en base ──
+      //
+      // Le formulaire envoyait déjà le poste, le prestataire et le
+      // justificatif ; cette fonction ne recopiait que six champs et
+      // laissait les autres au bord de la route, sans erreur et sans
+      // trace. C'est pour cela que `expenses.category_id` était vide
+      // partout alors que l'écran proposait de le remplir.
+      membre_id: newExp.membre_id ?? null,
+      personne_id: newExp.personne_id ?? null,
+      category_id: newExp.category_id ?? null,
+      provider_id: newExp.provider_id ?? null,
+      justificatif: newExp.justificatif ?? null,
       type: newExp.type,
       montant: newExp.montant,
       note: newExp.note,
@@ -2247,6 +2319,10 @@ function AppInner() {
                       .map((c) => ({ id: c.id, nom: c.nom, parent_id: c.parent_id }))}
                     prestataires={storeData.providers.map((p) => ({ id: p.id, nom: p.nom }))}
                     storeId={workspace.activeStore?.id ?? null}
+                    personnes={personnesDeLaBoutique}
+                    onCreerPersonne={peutCompleterLesListes ? creerPersonneExterne : undefined}
+                    onCreerPoste={peutCompleterLesListes ? creerPosteDeDepense : undefined}
+                    libelleEffectuePar={libelleEffectuePar(personnalisation)}
                     onAddExpense={handleAddExpense}
                     onEditExpense={depensesScope === "all" ? handleEditExpense : undefined}
                     onDeleteExpense={depensesScope === "all" ? handleDeleteExpense : undefined}
@@ -2386,6 +2462,9 @@ function AppInner() {
                     }}
                     categories={storeData.categories}
                     compteParValeur={compteParValeurDeListe}
+                    personnesExternes={storeData.personnesExternes}
+                    onAddPersonneExterne={storeData.addPersonneExterne}
+                    onUpdatePersonneExterne={storeData.updatePersonneExterne}
                     onAddCategorie={storeData.addCategorie}
                     onUpdateCategorie={storeData.updateCategorie}
                     onDeleteCategorie={storeData.deleteCategorie}

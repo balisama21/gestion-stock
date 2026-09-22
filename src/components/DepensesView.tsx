@@ -20,23 +20,18 @@ import {
 } from "lucide-react";
 import { formatCurrency, formatDateLocale } from "../utils/formulas";
 import { PageHeader } from "./shared/PageHeader";
+import { SelecteurListe } from "./shared/SelecteurListe";
+import { SelecteurPersonne } from "./shared/SelecteurPersonne";
+import { cleDeListe } from "../lib/listes";
+import type { Personne } from "../lib/personnes";
 import { FilterBar, FilterField } from "./shared/FilterBar";
 import { DataList } from "./shared/DataList";
 import { adresseDocument, envoyerFichier, reduireImage } from "../lib/stockageFichiers";
 import { StatCol } from "./shared/StatBar";
 import { Modal } from "./shared/Modal";
-import {
-  exporterPdf,
-  exporterImage,
-  imprimerDocument,
-  nomDeFichier,
-} from "../lib/documentExport";
+import { exporterPdf, exporterImage, imprimerDocument, nomDeFichier } from "../lib/documentExport";
 import { reprendreApresDeploiement, messageDErreurExport } from "../lib/chunkRecovery";
-import {
-  PAPER_FORMATS,
-  getPaperFormat,
-  type PaperFormatId,
-} from "../lib/paperFormats";
+import { PAPER_FORMATS, getPaperFormat, type PaperFormatId } from "../lib/paperFormats";
 import { dateDuJour } from "../lib/dates";
 import { useRechercheInitiale } from "../lib/cibleRecherche";
 
@@ -55,6 +50,21 @@ interface DepensesViewProps {
    * boutique.
    */
   postes: { id: string; nom: string; parent_id: string | null }[];
+  /** Ajouter un poste sans quitter la dépense. Absente, le sélecteur ne le propose pas. */
+  onCreerPoste?: (nom: string) => Promise<{ id: string | null; error: string | null }>;
+  /**
+   * Qui peut avoir effectué la dépense : l'équipe, les fiches externes,
+   * et les noms déjà saisis avant que les fiches n'existent.
+   */
+  personnes: Personne[];
+  /** Créer une fiche « personne externe » depuis le formulaire. */
+  onCreerPersonne?: (data: {
+    nom: string;
+    telephone: string;
+    role: string | null;
+  }) => Promise<{ personne: { id: string; nom: string } | null; error: string | null }>;
+  /** Le nom que la boutique donne au champ. « Effectué par » par défaut. */
+  libelleEffectuePar?: string;
   /** Les prestataires, pour dire à qui la dépense a été payée. */
   prestataires: { id: string; nom: string }[];
   /** La boutique active : les justificatifs sont rangés sous elle. */
@@ -62,6 +72,10 @@ interface DepensesViewProps {
   onAddExpense: (expense: {
     date: string;
     vendeur: string;
+    /** Le compte de la personne, quand c'en est un. */
+    membre_id?: string | null;
+    /** Sa fiche externe, quand c'en est une. */
+    personne_id?: string | null;
     type: "Achat de stock" | "Retrait d'argent" | "Autre dépense";
     montant: number;
     note: string;
@@ -78,6 +92,10 @@ export const DepensesView: React.FC<DepensesViewProps> = ({
   sellers,
   locale,
   settings,
+  personnes,
+  onCreerPersonne,
+  onCreerPoste,
+  libelleEffectuePar = "Effectué par",
   postes,
   prestataires,
   storeId,
@@ -112,6 +130,33 @@ export const DepensesView: React.FC<DepensesViewProps> = ({
   // Form State
   const [date, setDate] = useState(dateDuJour());
   const [vendeur, setVendeur] = useState(sellers[0]?.nom || "");
+  /**
+   * Les deux rattachements, à côté du nom.
+   *
+   * Le NOM reste ce qui s'affiche et ce sur quoi les soldes en poche se
+   * calculent : rien de ce qui existait ne change. Les identifiants ne
+   * font que relier la ligne à une fiche, quand il y en a une.
+   */
+  const [membreId, setMembreId] = useState<string | null>(null);
+  const [personneId, setPersonneId] = useState<string | null>(null);
+
+  /**
+   * Les personnes, avec ce que chacune détient encore en caisse.
+   *
+   * Ce chiffre était déjà là, dans l'ancienne liste déroulante, et il
+   * compte : une avance se prend sur ce qu'on détient, et voir « 0 Ar en
+   * poche » à côté d'un nom évite d'enregistrer un retrait impossible.
+   * Il n'existe que pour les personnes qui vendent — une fiche externe
+   * qui n'a jamais encaissé n'en a pas.
+   */
+  const personnesAvecSolde = useMemo(
+    () =>
+      personnes.map((p) => {
+        const s = sellers.find((v) => cleDeListe(v.nom) === cleDeListe(p.nom));
+        return s ? { ...p, mention: `${formatCurrency(s.soldeNetEnPoche)} en poche` } : p;
+      }),
+    [personnes, sellers],
+  );
   const [type, setType] = useState<"Achat de stock" | "Retrait d'argent" | "Autre dépense">(
     "Retrait d'argent",
   );
@@ -159,6 +204,8 @@ export const DepensesView: React.FC<DepensesViewProps> = ({
     onAddExpense({
       date,
       vendeur,
+      membre_id: membreId,
+      personne_id: personneId,
       type,
       montant: Number(montant),
       note: note.trim(),
@@ -276,7 +323,10 @@ export const DepensesView: React.FC<DepensesViewProps> = ({
               <Printer className="w-4 h-4" />
               Imprimer
             </button>
-            <button onClick={() => setIsModalOpen(true)} className="app-btn-primary w-full sm:w-auto">
+            <button
+              onClick={() => setIsModalOpen(true)}
+              className="app-btn-primary w-full sm:w-auto"
+            >
               <Plus className="w-4 h-4" />
               Nouvelle dépense
             </button>
@@ -410,9 +460,7 @@ export const DepensesView: React.FC<DepensesViewProps> = ({
               {
                 label: "Effet sur la trésorerie",
                 value: (
-                  <span className="t-danger">
-                    {formatCurrency(e.impactTresorerieGlobale)}
-                  </span>
+                  <span className="t-danger">{formatCurrency(e.impactTresorerieGlobale)}</span>
                 ),
               },
             ],
@@ -452,9 +500,7 @@ export const DepensesView: React.FC<DepensesViewProps> = ({
           size="3xl"
           icon={<Printer className="h-4 w-4" />}
           title="Journal des dépenses"
-          description={
-            selectedReportSeller === "all" ? "Tous les vendeurs" : selectedReportSeller
-          }
+          description={selectedReportSeller === "all" ? "Tous les vendeurs" : selectedReportSeller}
           bodyClassName="space-y-4"
           headerAside={
             <label className="flex items-center gap-2">
@@ -475,10 +521,7 @@ export const DepensesView: React.FC<DepensesViewProps> = ({
           }
           footer={
             <>
-              <button
-                onClick={() => imprimerDocument(paper)}
-                className="app-btn-secondary"
-              >
+              <button onClick={() => imprimerDocument(paper)} className="app-btn-secondary">
                 <Printer className="h-4 w-4" />
                 Imprimer
               </button>
@@ -503,279 +546,279 @@ export const DepensesView: React.FC<DepensesViewProps> = ({
             </>
           }
         >
-            {/* Portée du document — masquée à l'impression. */}
-            <div className="no-print grid grid-cols-1 gap-3 sm:grid-cols-2">
-              <div>
-                <label className="mb-1 block text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
-                  Vendeur
-                </label>
-                <select
-                  value={selectedReportSeller}
-                  onChange={(e) => setSelectedReportSeller(e.target.value)}
-                  className="app-field-sm"
-                >
-                  <option value="all">Tous les vendeurs</option>
-                  {sellers.map((s) => (
-                    <option key={s.id} value={s.nom}>
-                      {s.nom}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="mb-1 block text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
-                  Période
-                </label>
-                <select
-                  value={reportPeriod}
-                  onChange={(e) => setReportPeriod(e.target.value as any)}
-                  className="app-field-sm"
-                >
-                  <option value="today">Aujourd'hui ({todayStr})</option>
-                  <option value="month">Ce mois-ci ({currentMonthStr})</option>
-                  <option value="all">Tout l'historique</option>
-                </select>
-              </div>
+          {/* Portée du document — masquée à l'impression. */}
+          <div className="no-print grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <div>
+              <label className="mb-1 block text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+                Vendeur
+              </label>
+              <select
+                value={selectedReportSeller}
+                onChange={(e) => setSelectedReportSeller(e.target.value)}
+                className="app-field-sm"
+              >
+                <option value="all">Tous les vendeurs</option>
+                {sellers.map((s) => (
+                  <option key={s.id} value={s.nom}>
+                    {s.nom}
+                  </option>
+                ))}
+              </select>
             </div>
 
-            {/* ── Documents imprimables ──
+            <div>
+              <label className="mb-1 block text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+                Période
+              </label>
+              <select
+                value={reportPeriod}
+                onChange={(e) => setReportPeriod(e.target.value as any)}
+                className="app-field-sm"
+              >
+                <option value="today">Aujourd'hui ({todayStr})</option>
+                <option value="month">Ce mois-ci ({currentMonthStr})</option>
+                <option value="all">Tout l'historique</option>
+              </select>
+            </div>
+          </div>
+
+          {/* ── Documents imprimables ──
                 Même grammaire que la facture de vente : identité à
                 gauche, référence du document à droite, encart de portée
                 sur fond très léger, tableau à filets fins. */}
-            {exportErreur && (
-              <p className="no-print rounded-xl border border-danger-border bg-danger-soft px-3 py-2.5 text-sm t-danger">
-                {exportErreur}
-              </p>
-            )}
+          {exportErreur && (
+            <p className="no-print rounded-xl border border-danger-border bg-danger-soft px-3 py-2.5 text-sm t-danger">
+              {exportErreur}
+            </p>
+          )}
 
-            <div className="receipt-viewport flex items-start justify-start overflow-x-auto rounded-xl border border-border bg-background p-4">
-              {isTicket ? (
-                /* ── Ticket ── */
-                <div
-                  ref={documentRef}
-                  className={`printable-receipt mx-auto min-w-0 w-full rounded-lg border border-slate-200 bg-white p-4 font-mono leading-relaxed text-slate-900 shadow-sm ${paperId === "t58" ? "text-[10px]" : "text-[11px]"}`}
-                  style={{ maxWidth: paper.previewWidth }}
-                >
-                  <div className="space-y-0.5 text-center">
+          <div className="receipt-viewport flex items-start justify-start overflow-x-auto rounded-xl border border-border bg-background p-4">
+            {isTicket ? (
+              /* ── Ticket ── */
+              <div
+                ref={documentRef}
+                className={`printable-receipt mx-auto min-w-0 w-full rounded-lg border border-slate-200 bg-white p-4 font-mono leading-relaxed text-slate-900 shadow-sm ${paperId === "t58" ? "text-[10px]" : "text-[11px]"}`}
+                style={{ maxWidth: paper.previewWidth }}
+              >
+                <div className="space-y-0.5 text-center">
+                  {settings?.logoUrl && (
+                    <img
+                      src={settings.logoUrl}
+                      alt=""
+                      className="mx-auto mb-2 h-12 w-12 rounded object-contain"
+                    />
+                  )}
+                  <h2 className="text-[13px] font-bold uppercase tracking-wide text-slate-900">
+                    {settings?.storeName || APP_NAME}
+                  </h2>
+                  <p className="text-[10px] text-slate-500">
+                    Tél. {settings?.phone || "+261 34 12 345 67"}
+                  </p>
+                </div>
+
+                <div className="my-3 border-t border-dashed border-slate-300" />
+
+                <p className="text-center text-[11px] font-bold uppercase tracking-wide text-slate-900">
+                  Journal des dépenses
+                </p>
+
+                <div className="my-3 border-t border-dashed border-slate-300" />
+
+                <dl className="space-y-0.5 text-[10px]">
+                  <div className="flex justify-between gap-3">
+                    <dt className="text-slate-500">Période</dt>
+                    <dd className="min-w-0 text-right text-slate-900">{periodeLabel}</dd>
+                  </div>
+                  <div className="flex justify-between gap-3">
+                    <dt className="text-slate-500">Vendeur</dt>
+                    <dd className="min-w-0 text-right text-slate-900">
+                      {selectedReportSeller === "all" ? "Tous" : selectedReportSeller}
+                    </dd>
+                  </div>
+                  <div className="flex justify-between gap-3">
+                    <dt className="text-slate-500">Édité le</dt>
+                    <dd className="text-slate-900">{new Date().toLocaleDateString("fr-FR")}</dd>
+                  </div>
+                </dl>
+
+                <div className="my-3 border-t border-dashed border-slate-300" />
+
+                {reportExpenses.length === 0 ? (
+                  <p className="py-2 text-center text-[10px] italic text-slate-500">
+                    Aucune dépense pour cette sélection.
+                  </p>
+                ) : (
+                  <div className="space-y-2">
+                    {reportExpenses.map((e) => (
+                      <div key={e.id}>
+                        <p className="font-semibold text-slate-900">{e.type}</p>
+                        <div className="flex justify-between gap-3 text-[10px] text-slate-600">
+                          <span className="min-w-0">{e.vendeur}</span>
+                          <span className="font-semibold text-slate-900">
+                            {formatCurrency(e.montant)}
+                          </span>
+                        </div>
+                        <p className="text-[9px] text-slate-400">
+                          {[formatDateLocale(e.date, locale), e.note].filter(Boolean).join(" · ")}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                <div className="my-3 border-t border-dashed border-slate-300" />
+
+                <div className="space-y-1 text-[10px]">
+                  <div className="flex justify-between gap-3 border-b border-slate-900 pb-1 text-[13px] font-bold text-slate-900">
+                    <span>TOTAL</span>
+                    <span>{formatCurrency(reportTotalAmount)}</span>
+                  </div>
+                  <div className="flex justify-between gap-3 pt-1 text-slate-600">
+                    <span>Lignes</span>
+                    <span className="text-slate-900">{reportExpenses.length}</span>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              /* ── Journal A4 ── */
+              <div
+                ref={documentRef}
+                className={`printable-receipt mx-auto min-w-0 w-full rounded-lg border border-slate-200 bg-white font-sans text-xs text-slate-900 shadow-sm ${paperId === "a5" ? "p-6" : "p-8"}`}
+                style={{ maxWidth: paper.previewWidth }}
+              >
+                <header className="flex flex-wrap items-start justify-between gap-6 pb-6">
+                  <div className="min-w-0 space-y-2">
                     {settings?.logoUrl && (
                       <img
                         src={settings.logoUrl}
                         alt=""
-                        className="mx-auto mb-2 h-12 w-12 rounded object-contain"
+                        className="h-14 w-14 rounded object-contain"
                       />
                     )}
-                    <h2 className="text-[13px] font-bold uppercase tracking-wide text-slate-900">
-                      {settings?.storeName || APP_NAME}
-                    </h2>
-                    <p className="text-[10px] text-slate-500">
-                      Tél. {settings?.phone || "+261 34 12 345 67"}
-                    </p>
-                  </div>
-
-                  <div className="my-3 border-t border-dashed border-slate-300" />
-
-                  <p className="text-center text-[11px] font-bold uppercase tracking-wide text-slate-900">
-                    Journal des dépenses
-                  </p>
-
-                  <div className="my-3 border-t border-dashed border-slate-300" />
-
-                  <dl className="space-y-0.5 text-[10px]">
-                    <div className="flex justify-between gap-3">
-                      <dt className="text-slate-500">Période</dt>
-                      <dd className="min-w-0 text-right text-slate-900">{periodeLabel}</dd>
-                    </div>
-                    <div className="flex justify-between gap-3">
-                      <dt className="text-slate-500">Vendeur</dt>
-                      <dd className="min-w-0 text-right text-slate-900">
-                        {selectedReportSeller === "all" ? "Tous" : selectedReportSeller}
-                      </dd>
-                    </div>
-                    <div className="flex justify-between gap-3">
-                      <dt className="text-slate-500">Édité le</dt>
-                      <dd className="text-slate-900">{new Date().toLocaleDateString("fr-FR")}</dd>
-                    </div>
-                  </dl>
-
-                  <div className="my-3 border-t border-dashed border-slate-300" />
-
-                  {reportExpenses.length === 0 ? (
-                    <p className="py-2 text-center text-[10px] italic text-slate-500">
-                      Aucune dépense pour cette sélection.
-                    </p>
-                  ) : (
-                    <div className="space-y-2">
-                      {reportExpenses.map((e) => (
-                        <div key={e.id}>
-                          <p className="font-semibold text-slate-900">{e.type}</p>
-                          <div className="flex justify-between gap-3 text-[10px] text-slate-600">
-                            <span className="min-w-0">{e.vendeur}</span>
-                            <span className="font-semibold text-slate-900">
-                              {formatCurrency(e.montant)}
-                            </span>
-                          </div>
-                          <p className="text-[9px] text-slate-400">
-                            {[formatDateLocale(e.date, locale), e.note].filter(Boolean).join(" · ")}
-                          </p>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-
-                  <div className="my-3 border-t border-dashed border-slate-300" />
-
-                  <div className="space-y-1 text-[10px]">
-                    <div className="flex justify-between gap-3 border-b border-slate-900 pb-1 text-[13px] font-bold text-slate-900">
-                      <span>TOTAL</span>
-                      <span>{formatCurrency(reportTotalAmount)}</span>
-                    </div>
-                    <div className="flex justify-between gap-3 pt-1 text-slate-600">
-                      <span>Lignes</span>
-                      <span className="text-slate-900">{reportExpenses.length}</span>
-                    </div>
-                  </div>
-                </div>
-              ) : (
-                /* ── Journal A4 ── */
-                <div
-                  ref={documentRef}
-                  className={`printable-receipt mx-auto min-w-0 w-full rounded-lg border border-slate-200 bg-white font-sans text-xs text-slate-900 shadow-sm ${paperId === "a5" ? "p-6" : "p-8"}`}
-                  style={{ maxWidth: paper.previewWidth }}
-                >
-                  <header className="flex flex-wrap items-start justify-between gap-6 pb-6">
-                    <div className="min-w-0 space-y-2">
-                      {settings?.logoUrl && (
-                        <img
-                          src={settings.logoUrl}
-                          alt=""
-                          className="h-14 w-14 rounded object-contain"
-                        />
+                    <div className="space-y-0.5">
+                      <p className="text-base font-bold uppercase tracking-tight text-slate-900">
+                        {settings?.storeName || APP_NAME}
+                      </p>
+                      {settings?.address && (
+                        <p className="text-[11px] text-slate-500">{settings.address}</p>
                       )}
-                      <div className="space-y-0.5">
-                        <p className="text-base font-bold uppercase tracking-tight text-slate-900">
-                          {settings?.storeName || APP_NAME}
-                        </p>
-                        {settings?.address && (
-                          <p className="text-[11px] text-slate-500">{settings.address}</p>
-                        )}
-                        {settings?.phone && (
-                          <p className="text-[11px] text-slate-500">Tél. {settings.phone}</p>
-                        )}
+                      {settings?.phone && (
+                        <p className="text-[11px] text-slate-500">Tél. {settings.phone}</p>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="min-w-0 space-y-1 sm:text-right">
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-slate-400">
+                      Journal des dépenses
+                    </p>
+                    <p className="text-lg font-bold tracking-tight text-slate-900">
+                      {periodeLabel}
+                    </p>
+                    <dl className="space-y-0.5 pt-1 text-[11px] text-slate-500">
+                      <div className="flex gap-2 sm:justify-end">
+                        <dt>Édité le</dt>
+                        <dd className="font-medium text-slate-700">
+                          {new Date().toLocaleDateString("fr-FR")}
+                        </dd>
                       </div>
-                    </div>
+                      <div className="flex gap-2 sm:justify-end">
+                        <dt>Vendeur</dt>
+                        <dd className="font-medium text-slate-700">
+                          {selectedReportSeller === "all"
+                            ? "Tous les vendeurs"
+                            : selectedReportSeller}
+                        </dd>
+                      </div>
+                    </dl>
+                  </div>
+                </header>
 
-                    <div className="min-w-0 space-y-1 sm:text-right">
-                      <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-slate-400">
-                        Journal des dépenses
-                      </p>
-                      <p className="text-lg font-bold tracking-tight text-slate-900">
-                        {periodeLabel}
-                      </p>
-                      <dl className="space-y-0.5 pt-1 text-[11px] text-slate-500">
-                        <div className="flex gap-2 sm:justify-end">
-                          <dt>Édité le</dt>
-                          <dd className="font-medium text-slate-700">
-                            {new Date().toLocaleDateString("fr-FR")}
-                          </dd>
-                        </div>
-                        <div className="flex gap-2 sm:justify-end">
-                          <dt>Vendeur</dt>
-                          <dd className="font-medium text-slate-700">
-                            {selectedReportSeller === "all"
-                              ? "Tous les vendeurs"
-                              : selectedReportSeller}
-                          </dd>
-                        </div>
-                      </dl>
-                    </div>
-                  </header>
+                <section className="flex flex-wrap items-start justify-between gap-4 rounded-lg border border-slate-200 bg-slate-50 px-4 py-3">
+                  <div className="min-w-0">
+                    <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">
+                      Lignes
+                    </p>
+                    <p className="mt-0.5 font-mono text-sm font-semibold tabular-nums text-slate-900">
+                      {reportExpenses.length}
+                    </p>
+                  </div>
+                  <div className="min-w-0 sm:text-right">
+                    <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">
+                      Total de la période
+                    </p>
+                    <p className="mt-0.5 font-mono text-sm font-semibold tabular-nums text-slate-900">
+                      {formatCurrency(reportTotalAmount)}
+                    </p>
+                  </div>
+                </section>
 
-                  <section className="flex flex-wrap items-start justify-between gap-4 rounded-lg border border-slate-200 bg-slate-50 px-4 py-3">
-                    <div className="min-w-0">
-                      <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">
-                        Lignes
-                      </p>
-                      <p className="mt-0.5 font-mono text-sm font-semibold tabular-nums text-slate-900">
-                        {reportExpenses.length}
-                      </p>
-                    </div>
-                    <div className="min-w-0 sm:text-right">
-                      <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">
-                        Total de la période
-                      </p>
-                      <p className="mt-0.5 font-mono text-sm font-semibold tabular-nums text-slate-900">
-                        {formatCurrency(reportTotalAmount)}
-                      </p>
-                    </div>
-                  </section>
-
-                  <table className="w-full border-collapse text-left text-[11px]">
-                    <thead>
-                      <tr className="border-b border-slate-300 text-[10px] font-semibold uppercase tracking-wider text-slate-500">
-                        <th className="py-2 pr-3 font-semibold">Date</th>
-                        <th className="py-2 px-2 font-semibold">Vendeur</th>
-                        <th className="py-2 px-2 font-semibold">Type &amp; motif</th>
-                        <th className="py-2 pl-2 text-right font-semibold">Montant</th>
+                <table className="w-full border-collapse text-left text-[11px]">
+                  <thead>
+                    <tr className="border-b border-slate-300 text-[10px] font-semibold uppercase tracking-wider text-slate-500">
+                      <th className="py-2 pr-3 font-semibold">Date</th>
+                      <th className="py-2 px-2 font-semibold">Vendeur</th>
+                      <th className="py-2 px-2 font-semibold">Type &amp; motif</th>
+                      <th className="py-2 pl-2 text-right font-semibold">Montant</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {reportExpenses.length === 0 ? (
+                      <tr>
+                        <td colSpan={4} className="py-6 text-center italic text-slate-500">
+                          Aucune dépense enregistrée sur cette période.
+                        </td>
                       </tr>
-                    </thead>
-                    <tbody>
-                      {reportExpenses.length === 0 ? (
-                        <tr>
-                          <td colSpan={4} className="py-6 text-center italic text-slate-500">
-                            Aucune dépense enregistrée sur cette période.
+                    ) : (
+                      reportExpenses.map((e, i) => (
+                        <tr
+                          key={e.id}
+                          className={`border-b border-slate-100 ${i % 2 === 1 ? "bg-slate-50/70" : ""}`}
+                        >
+                          <td className="py-2.5 pr-3 font-mono tabular-nums text-slate-500">
+                            {formatDateLocale(e.date, locale)}
+                          </td>
+                          <td className="px-2 py-2.5 text-slate-700">{e.vendeur}</td>
+                          <td className="px-2 py-2.5">
+                            <span className="font-medium text-slate-900">{e.type}</span>
+                            {e.note && (
+                              <span className="mt-0.5 block text-[10px] text-slate-400">
+                                {e.note}
+                              </span>
+                            )}
+                          </td>
+                          <td className="py-2.5 pl-2 text-right font-mono font-medium tabular-nums text-slate-900">
+                            {formatCurrency(e.montant)}
                           </td>
                         </tr>
-                      ) : (
-                        reportExpenses.map((e, i) => (
-                          <tr
-                            key={e.id}
-                            className={`border-b border-slate-100 ${i % 2 === 1 ? "bg-slate-50/70" : ""}`}
-                          >
-                            <td className="py-2.5 pr-3 font-mono tabular-nums text-slate-500">
-                              {formatDateLocale(e.date, locale)}
-                            </td>
-                            <td className="px-2 py-2.5 text-slate-700">{e.vendeur}</td>
-                            <td className="px-2 py-2.5">
-                              <span className="font-medium text-slate-900">{e.type}</span>
-                              {e.note && (
-                                <span className="mt-0.5 block text-[10px] text-slate-400">
-                                  {e.note}
-                                </span>
-                              )}
-                            </td>
-                            <td className="py-2.5 pl-2 text-right font-mono font-medium tabular-nums text-slate-900">
-                              {formatCurrency(e.montant)}
-                            </td>
-                          </tr>
-                        ))
-                      )}
-                    </tbody>
-                  </table>
+                      ))
+                    )}
+                  </tbody>
+                </table>
 
-                  {reportExpenses.length > 0 && (
-                    <div className="flex justify-end">
-                      <dl className="w-full max-w-[16rem] space-y-1.5 text-[11px]">
-                        <div className="flex justify-between gap-4 text-slate-500">
-                          <dt>Lignes</dt>
-                          <dd className="font-mono tabular-nums text-slate-700">
-                            {reportExpenses.length}
-                          </dd>
-                        </div>
-                        <div className="flex justify-between gap-4 border-t-2 border-slate-900 pt-2">
-                          <dt className="text-[11px] font-bold uppercase tracking-wider text-slate-900">
-                            Total des dépenses
-                          </dt>
-                          <dd className="font-mono text-base font-bold tabular-nums text-slate-900">
-                            {formatCurrency(reportTotalAmount)}
-                          </dd>
-                        </div>
-                      </dl>
-                    </div>
-                  )}
-                </div>
-              )}
-            </div>
+                {reportExpenses.length > 0 && (
+                  <div className="flex justify-end">
+                    <dl className="w-full max-w-[16rem] space-y-1.5 text-[11px]">
+                      <div className="flex justify-between gap-4 text-slate-500">
+                        <dt>Lignes</dt>
+                        <dd className="font-mono tabular-nums text-slate-700">
+                          {reportExpenses.length}
+                        </dd>
+                      </div>
+                      <div className="flex justify-between gap-4 border-t-2 border-slate-900 pt-2">
+                        <dt className="text-[11px] font-bold uppercase tracking-wider text-slate-900">
+                          Total des dépenses
+                        </dt>
+                        <dd className="font-mono text-base font-bold tabular-nums text-slate-900">
+                          {formatCurrency(reportTotalAmount)}
+                        </dd>
+                      </div>
+                    </dl>
+                  </div>
+                )}
+              </div>
+            )}
+          </div>
         </Modal>
       )}
 
@@ -815,20 +858,18 @@ export const DepensesView: React.FC<DepensesViewProps> = ({
             />
           </div>
 
-          <div>
-            <label className="mb-1.5 block text-sm font-medium text-foreground">Vendeur</label>
-            <select
-              value={vendeur}
-              onChange={(e) => setVendeur(e.target.value)}
-              className="app-field"
-            >
-              {sellers.map((v) => (
-                <option key={v.id} value={v.nom}>
-                  {v.nom} — {formatCurrency(v.soldeNetEnPoche)} en poche
-                </option>
-              ))}
-            </select>
-          </div>
+          <SelecteurPersonne
+            label={libelleEffectuePar}
+            personnes={personnesAvecSolde}
+            valeur={vendeur}
+            requis
+            onChange={(choix) => {
+              setVendeur(choix.nom);
+              setMembreId(choix.membreId);
+              setPersonneId(choix.personneId);
+            }}
+            onCreer={onCreerPersonne}
+          />
 
           <div>
             <label className="mb-1.5 block text-sm font-medium text-foreground">Type</label>
@@ -846,29 +887,21 @@ export const DepensesView: React.FC<DepensesViewProps> = ({
           {/* Le poste dit à quoi l'argent a servi, le type dit la nature
               de la sortie. Le premier appartient à la boutique, le
               second au bilan. */}
-          <div>
-            <label htmlFor="dep-poste" className="mb-1.5 block text-sm font-medium text-foreground">
-              Poste de dépense
-            </label>
-            <select
-              id="dep-poste"
-              value={poste}
-              onChange={(e) => setPoste(e.target.value)}
-              className="app-field"
-            >
-              <option value="">Non classée</option>
-              {postes.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.nom}
-                </option>
-              ))}
-            </select>
-            {postes.length === 0 && (
-              <p className="mt-1 text-xs text-muted-foreground">
-                Aucun poste pour l&apos;instant. Créez les vôtres dans Paramètres → Catégories.
-              </p>
-            )}
-          </div>
+          <SelecteurListe
+            id="dep-poste"
+            label="Poste de dépense"
+            options={postes.map((p) => ({ id: p.id, nom: p.nom }))}
+            valeur={poste || null}
+            onChange={(id) => setPoste(id ?? "")}
+            onCreer={onCreerPoste}
+            libelleVide="Non classée"
+            placeholder="Loyer, transport, électricité…"
+            aide={
+              postes.length === 0
+                ? "Aucun poste encore. Tapez-en un pour le créer, ou passez par Paramètres → Listes."
+                : undefined
+            }
+          />
 
           {storeId && (
             <div>
@@ -925,9 +958,7 @@ export const DepensesView: React.FC<DepensesViewProps> = ({
           )}
 
           <div>
-            <label className="mb-1.5 block text-sm font-medium text-foreground">
-              Montant (Ar)
-            </label>
+            <label className="mb-1.5 block text-sm font-medium text-foreground">Montant (Ar)</label>
             <input
               type="number"
               required
@@ -1000,22 +1031,12 @@ export const DepensesView: React.FC<DepensesViewProps> = ({
               />
             </div>
 
-            <div>
-              <label className="mb-1.5 block text-sm font-medium text-foreground">Vendeur</label>
-              <select
-                value={editingExpense.vendeur}
-                onChange={(ev) =>
-                  setEditingExpense({ ...editingExpense, vendeur: ev.target.value })
-                }
-                className="app-field"
-              >
-                {sellers.map((v) => (
-                  <option key={v.id} value={v.nom}>
-                    {v.nom}
-                  </option>
-                ))}
-              </select>
-            </div>
+            <SelecteurPersonne
+              label={libelleEffectuePar}
+              personnes={personnes}
+              valeur={editingExpense.vendeur}
+              onChange={(choix) => setEditingExpense({ ...editingExpense, vendeur: choix.nom })}
+            />
 
             <div>
               <label className="mb-1.5 block text-sm font-medium text-foreground">Type</label>

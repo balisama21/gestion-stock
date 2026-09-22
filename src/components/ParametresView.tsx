@@ -24,6 +24,7 @@ import {
   type ReglagesAlertesStockProps,
 } from "./settings/AlertesStockSection";
 import { ListesSection } from "./settings/ListesSection";
+import { PersonnesExternesSection } from "./settings/PersonnesExternesSection";
 import { lirePersonnalisation, type Personnalisation } from "../lib/personnalisation";
 import type { ChampPerso } from "../lib/champsPersonnalises";
 import type { Database, Json } from "../lib/database.types";
@@ -57,6 +58,21 @@ interface ParametresViewProps {
    * mêmes.
    */
   alertesStock: ReglagesAlertesStockProps;
+  /** Les vendeurs et intervenants hors équipe : des contacts, pas des comptes. */
+  personnesExternes: Database["public"]["Tables"]["personnes_externes"]["Row"][];
+  onAddPersonneExterne: (
+    data: Omit<
+      Database["public"]["Tables"]["personnes_externes"]["Insert"],
+      "store_id" | "created_by"
+    >,
+  ) => Promise<{
+    personne: Database["public"]["Tables"]["personnes_externes"]["Row"] | null;
+    error: string | null;
+  }>;
+  onUpdatePersonneExterne: (
+    id: string,
+    data: Database["public"]["Tables"]["personnes_externes"]["Update"],
+  ) => Promise<{ error: string | null }>;
   /** Les listes personnalisables de la boutique, tous usages confondus. */
   categories: Database["public"]["Tables"]["categories"]["Row"][];
   /** Combien d'enregistrements portent chaque valeur de liste. */
@@ -132,6 +148,9 @@ export const ParametresView: React.FC<ParametresViewProps> = ({
   alertesStock,
   categories,
   compteParValeur,
+  personnesExternes,
+  onAddPersonneExterne,
+  onUpdatePersonneExterne,
   onAddCategorie,
   onUpdateCategorie,
   onDeleteCategorie,
@@ -1078,6 +1097,18 @@ export const ParametresView: React.FC<ParametresViewProps> = ({
       {/* La transmission ne s'affiche que pour la boutique dont on est
           soi-même propriétaire : un responsable, même avec tous les
           droits, n'a pas à voir une porte que la base lui fermerait. */}
+      {/* Les gens qui travaillent avec la boutique sans y avoir de
+          compte. Placés sous l'équipe, et pas dedans : la frontière
+          entre « a un accès » et « n'en a pas » est ce que cet écran
+          doit rendre évident. */}
+      {activeTab === "equipe" && (
+        <PersonnesExternesSection
+          personnes={personnesExternes}
+          onAdd={onAddPersonneExterne}
+          onUpdate={onUpdatePersonneExterne}
+        />
+      )}
+
       {activeTab === "equipe" && boutiqueTransmissible && (
         <TransfertBoutiqueSection
           nomBoutique={boutiqueTransmissible.name}

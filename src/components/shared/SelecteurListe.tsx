@@ -28,6 +28,15 @@ interface SelecteurListeProps {
    * que le champ ait à connaître les permissions.
    */
   onCreer?: (nom: string) => Promise<{ id: string | null; error: string | null }>;
+  /**
+   * Demander la création au lieu de la faire.
+   *
+   * Certaines fiches ne se créent pas d'un nom seul : une personne
+   * externe a besoin d'un téléphone. Le sélecteur se referme alors, et
+   * l'écran qui l'entoure ouvre son petit formulaire. Passée en même
+   * temps que `onCreer`, c'est celle-ci qui l'emporte.
+   */
+  onDemanderCreation?: (nom: string) => void;
   /** Le texte du choix vide. Absent, le champ ne peut pas être vidé. */
   libelleVide?: string;
   placeholder?: string;
@@ -77,6 +86,7 @@ export const SelecteurListe: React.FC<SelecteurListeProps> = ({
   valeur,
   onChange,
   onCreer,
+  onDemanderCreation,
   libelleVide,
   placeholder = "Rechercher…",
   aide,
@@ -114,7 +124,8 @@ export const SelecteurListe: React.FC<SelecteurListeProps> = ({
    * archivée, même absente du filtre courant.
    */
   const dejaLa = valeurEquivalente(options, recherche);
-  const peutCreer = Boolean(onCreer) && Boolean(cleDeListe(recherche)) && !dejaLa;
+  const peutCreer =
+    Boolean(onCreer || onDemanderCreation) && Boolean(cleDeListe(recherche)) && !dejaLa;
 
   /** Les lignes cliquables, dans l'ordre où les flèches les parcourent. */
   const lignes = useMemo(() => {
@@ -149,9 +160,14 @@ export const SelecteurListe: React.FC<SelecteurListeProps> = ({
   }, [survol, ouvert]);
 
   const creer = async () => {
-    if (!onCreer) return;
     const nom = recherche.trim();
     if (!nom) return;
+    if (onDemanderCreation) {
+      setOuvert(false);
+      onDemanderCreation(nom);
+      return;
+    }
+    if (!onCreer) return;
     setEnCours(true);
     setErreur(null);
     const { id: cree, error } = await onCreer(nom);
@@ -339,7 +355,7 @@ export const SelecteurListe: React.FC<SelecteurListeProps> = ({
 
             {lignes.length === 0 && (
               <li className="px-3 py-3 text-sm text-muted-foreground">
-                {onCreer
+                {onCreer || onDemanderCreation
                   ? "Tapez un nom pour l'ajouter."
                   : "Rien ne correspond. Cette liste se complète dans Paramètres → Listes."}
               </li>
