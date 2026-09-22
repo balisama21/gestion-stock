@@ -61,6 +61,7 @@ import {
   moduleMasque,
   type Personnalisation,
 } from "./lib/personnalisation";
+import { lireReglagesListes } from "./lib/listes";
 
 /**
  * Les écrans internes arrivent à la demande.
@@ -327,6 +328,71 @@ function AppInner() {
   const personnalisation = useMemo(
     () => lirePersonnalisation(workspace.activeStore?.personnalisation),
     [workspace.activeStore],
+  );
+
+  /**
+   * QUI PEUT COMPLÉTER UNE LISTE DEPUIS UN FORMULAIRE.
+   *
+   * La base tranche la même question, dans la politique d'insertion de
+   * `categories` et de `personnes_externes`. Ce calcul-ci ne fait que
+   * lui éviter de refuser : un « + Ajouter » qui échoue à chaque clic
+   * est pire qu'un « + Ajouter » absent.
+   *
+   * Le défaut est permissif — clé absente, tout le monde ajoute — parce
+   * que c'est exactement ce que faisait le logiciel avant ce réglage.
+   */
+  const peutCompleterLesListes = useMemo(() => {
+    if (workspace.isOwner) return true;
+    if (lireReglagesListes(personnalisation).ajoutDepuisFormulaire === "tous") return true;
+    return workspace.memberRole === "admin" || workspace.memberRole === "manager";
+  }, [workspace.isOwner, workspace.memberRole, personnalisation]);
+
+  /**
+   * Créer une fiche fournisseur sans quitter le formulaire en cours.
+   *
+   * Le nom seul suffit : le téléphone est proposé juste après, et le
+   * reste de la fiche attend l'écran Fournisseurs. Un achat ne doit pas
+   * s'interrompre pour quinze champs.
+   */
+  const creerFournisseurRapide = useCallback(
+    (data: { nom: string; telephone?: string | null }) =>
+      storeData.addSupplier({ nom: data.nom, telephone: data.telephone ?? null }),
+    [storeData],
+  );
+
+  const completerFournisseur = useCallback(
+    (id: string, data: { telephone: string }) => storeData.updateSupplier(id, data),
+    [storeData],
+  );
+
+  /**
+   * Créer une valeur de liste depuis un formulaire.
+   *
+   * Rend l'identifiant, parce que le sélecteur ajoute puis sélectionne
+   * dans la foulée : attendre le rechargement et retrouver la valeur par
+   * son nom échouerait dès qu'on en crée deux d'affilée.
+   */
+  const creerValeurDeListe = useCallback(
+    async (usage: string, nom: string) => {
+      const { categorie, error } = await storeData.addCategorie({ nom, usage });
+      return { id: categorie?.id ?? null, error };
+    },
+    [storeData],
+  );
+
+  const creerCategorieProduit = useCallback(
+    (nom: string) => creerValeurDeListe("produit", nom),
+    [creerValeurDeListe],
+  );
+
+  const creerTypeFournisseur = useCallback(
+    (nom: string) => creerValeurDeListe("type_fournisseur", nom),
+    [creerValeurDeListe],
+  );
+
+  const creerPosteDeDepense = useCallback(
+    (nom: string) => creerValeurDeListe("depense", nom),
+    [creerValeurDeListe],
   );
 
   /*
@@ -1825,6 +1891,9 @@ function AppInner() {
                     onDeleteProducts={storeData.deleteProducts}
                     categories={storeData.categories}
                     fournisseurs={storeData.suppliers}
+                    onAddFournisseur={peutCompleterLesListes ? creerFournisseurRapide : undefined}
+                    onUpdateFournisseur={completerFournisseur}
+                    onCreerCategorie={peutCompleterLesListes ? creerCategorieProduit : undefined}
                     productImages={storeData.productImages}
                     storeId={workspace.activeStore?.id ?? null}
                     onEditProductDetails={storeData.updateProductDetails}
@@ -1836,6 +1905,9 @@ function AppInner() {
                 )}
                 {vue === "achats" && (
                   <AchatsView
+                    onAddFournisseur={peutCompleterLesListes ? creerFournisseurRapide : undefined}
+                    onUpdateFournisseur={completerFournisseur}
+                    onCreerCategorie={peutCompleterLesListes ? creerCategorieProduit : undefined}
                     purchases={purchases}
                     products={products}
                     locale={locale}
@@ -2273,6 +2345,10 @@ function AppInner() {
                     onDeleteSupplier={storeData.deleteSupplier}
                     onAddSupplierPayment={storeData.addSupplierPayment}
                     champsPersonnalises={storeData.customFields}
+                    typesFournisseur={storeData.categories}
+                    onCreerTypeFournisseur={
+                      peutCompleterLesListes ? creerTypeFournisseur : undefined
+                    }
                     peutCreer={!fournisseursActions || fournisseursActions.includes("create")}
                     peutModifier={!fournisseursActions || fournisseursActions.includes("edit")}
                     peutSupprimer={!fournisseursActions || fournisseursActions.includes("delete")}

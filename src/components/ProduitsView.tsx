@@ -23,6 +23,7 @@ import { VignetteProduit, vignettesParProduit } from "./shared/VignetteProduit";
 import { StatCol } from "./shared/StatBar";
 import { Modal } from "./shared/Modal";
 import { DetailsProduit } from "./produits/DetailsProduit";
+import { SelecteurFournisseur } from "./shared/SelecteurFournisseur";
 import { DETAILS_VIDES, detailsVersBase, type ValeursDetails } from "../lib/detailsProduit";
 import { envoyerFichier, supprimerFichier } from "../lib/stockageFichiers";
 import type { Database } from "../lib/database.types";
@@ -106,7 +107,23 @@ interface ProduitsViewProps {
    * prix. Rien de ce qui suit n'y touche.
    */
   categories?: Database["public"]["Tables"]["categories"]["Row"][];
+  /**
+   * Créer une catégorie de produits depuis la fiche, sans la quitter.
+   *
+   * Absente, le sélecteur ne propose pas d'ajouter : c'est ainsi que
+   * s'applique le réglage « seuls les responsables complètent les
+   * listes », sans que ce formulaire ait à lire des permissions.
+   */
+  onCreerCategorie?: (nom: string) => Promise<{ id: string | null; error: string | null }>;
   fournisseurs?: Database["public"]["Tables"]["suppliers"]["Row"][];
+  onAddFournisseur?: (data: { nom: string; telephone?: string | null }) => Promise<{
+    supplier: Database["public"]["Tables"]["suppliers"]["Row"] | null;
+    error: string | null;
+  }>;
+  onUpdateFournisseur?: (
+    id: string,
+    data: { telephone: string },
+  ) => Promise<{ error: string | null }>;
   productImages?: Database["public"]["Tables"]["product_images"]["Row"][];
   storeId?: string | null;
   onEditProductDetails?: (id: string, data: any) => Promise<{ error: string | null }>;
@@ -140,7 +157,10 @@ export const ProduitsView: React.FC<ProduitsViewProps> = ({
   onEditProduct,
   onDeleteProducts,
   categories = [],
+  onCreerCategorie,
   fournisseurs = [],
+  onAddFournisseur,
+  onUpdateFournisseur,
   productImages = [],
   storeId = null,
   onEditProductDetails,
@@ -719,9 +739,7 @@ export const ProduitsView: React.FC<ProduitsViewProps> = ({
       >
         <form id="product-add-form" onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="mb-1.5 block text-sm font-medium text-foreground">
-              Désignation
-            </label>
+            <label className="mb-1.5 block text-sm font-medium text-foreground">Désignation</label>
             <input
               type="text"
               required
@@ -759,16 +777,19 @@ export const ProduitsView: React.FC<ProduitsViewProps> = ({
             </div>
           </div>
 
-          <div>
-            <label className="mb-1.5 block text-sm font-medium text-foreground">Fournisseur</label>
-            <input
-              type="text"
-              value={fournisseur}
-              onChange={(e) => setFournisseur(e.target.value)}
-              placeholder="ex : Grossiste Antanimena"
-              className="app-field"
-            />
-          </div>
+          <SelecteurFournisseur
+            fournisseurs={fournisseurs}
+            valeur={addDetails.supplier_id || null}
+            onChange={(id, nom) => {
+              // Les deux ensemble : l'identifiant pour le rattachement,
+              // le nom pour la colonne texte que la fonction de création
+              // écrit toujours. C'est le filet de la reprise.
+              setAddDetails((d) => ({ ...d, supplier_id: id ?? "" }));
+              setFournisseur(nom);
+            }}
+            onCreer={onAddFournisseur}
+            onCompleter={onUpdateFournisseur}
+          />
 
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
@@ -806,7 +827,7 @@ export const ProduitsView: React.FC<ProduitsViewProps> = ({
             valeurs={addDetails}
             onChange={setAddDetails}
             categories={categories}
-            fournisseurs={fournisseurs}
+            onCreerCategorie={onCreerCategorie}
             // Le produit n'existe pas encore, donc aucune image ne lui
             // est rattachee : celles qu'on choisit ici attendent dans
             // `addPhotos` et partent des sa creation.
@@ -978,17 +999,16 @@ export const ProduitsView: React.FC<ProduitsViewProps> = ({
               </div>
             </div>
 
-            <div>
-              <label className="mb-1.5 block text-sm font-medium text-foreground">
-                Fournisseur
-              </label>
-              <input
-                type="text"
-                value={editFournisseur}
-                onChange={(e) => setEditFournisseur(e.target.value)}
-                className="app-field"
-              />
-            </div>
+            <SelecteurFournisseur
+              fournisseurs={fournisseurs}
+              valeur={editDetails.supplier_id || null}
+              onChange={(id, nom) => {
+                setEditDetails((d) => ({ ...d, supplier_id: id ?? "" }));
+                setEditFournisseur(nom);
+              }}
+              onCreer={onAddFournisseur}
+              onCompleter={onUpdateFournisseur}
+            />
 
             <div>
               <label className="mb-1.5 block text-sm font-medium text-foreground">
@@ -1007,7 +1027,7 @@ export const ProduitsView: React.FC<ProduitsViewProps> = ({
               valeurs={editDetails}
               onChange={setEditDetails}
               categories={categories}
-              fournisseurs={fournisseurs}
+              onCreerCategorie={onCreerCategorie}
               images={productImages.filter((i) => i.product_id === editingProduct.id)}
               storeId={storeId}
               productId={editingProduct.id}

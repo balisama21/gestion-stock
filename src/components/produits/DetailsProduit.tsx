@@ -2,6 +2,7 @@ import React, { useRef, useState } from "react";
 import { Eraser, ImagePlus, Loader2, Star, Trash2 } from "lucide-react";
 import { adresseImageProduit, envoyerFichier, supprimerFichier } from "../../lib/stockageFichiers";
 import { BoutonScan } from "../shared/BoutonScan";
+import { SelecteurListe } from "../shared/SelecteurListe";
 import { DetourerPhoto } from "./DetourerPhoto";
 import type { Database } from "../../lib/database.types";
 import {
@@ -12,14 +13,20 @@ import {
 } from "../../lib/detailsProduit";
 
 type Categorie = Database["public"]["Tables"]["categories"]["Row"];
-type Fournisseur = Database["public"]["Tables"]["suppliers"]["Row"];
 type ImageProduit = Database["public"]["Tables"]["product_images"]["Row"];
 
 interface DetailsProduitProps {
   valeurs: ValeursDetails;
   onChange: (v: ValeursDetails) => void;
   categories: Categorie[];
-  fournisseurs: Fournisseur[];
+  /**
+   * Créer une catégorie sans quitter la fiche.
+   *
+   * Absente, le sélecteur ne propose pas d'ajouter — c'est ainsi que
+   * s'applique le réglage « seuls les responsables complètent les
+   * listes ».
+   */
+  onCreerCategorie?: (nom: string) => Promise<{ id: string | null; error: string | null }>;
   /** Les images déjà attachées à ce produit. */
   images: ImageProduit[];
   storeId: string | null;
@@ -67,7 +74,7 @@ export const DetailsProduit: React.FC<DetailsProduitProps> = ({
   valeurs,
   onChange,
   categories,
-  fournisseurs,
+  onCreerCategorie,
   images,
   storeId,
   productId,
@@ -285,52 +292,28 @@ export const DetailsProduit: React.FC<DetailsProduitProps> = ({
           </p>
         </div>
 
-        <div>
-          <label htmlFor="pd-cat" className="mb-1 block text-xs font-medium text-muted-foreground">
-            Catégorie
-          </label>
-          <select
-            id="pd-cat"
-            className="app-field"
-            value={valeurs.category_id}
-            onChange={(e) => modifier({ category_id: e.target.value })}
-          >
-            <option value="">Sans catégorie</option>
-            {options.map((o) => (
-              <option key={o.id} value={o.id}>
-                {o.libelle}
-              </option>
-            ))}
-          </select>
-          {options.length === 0 && (
-            <p className="mt-1 text-[11px] text-muted-foreground">
-              Aucune catégorie : créez-les dans Paramètres → Catégories.
-            </p>
-          )}
-        </div>
-        <div>
-          <label
-            htmlFor="pd-fournisseur"
-            className="mb-1 block text-xs font-medium text-muted-foreground"
-          >
-            Fournisseur
-          </label>
-          <select
-            id="pd-fournisseur"
-            className="app-field"
-            value={valeurs.supplier_id}
-            onChange={(e) => modifier({ supplier_id: e.target.value })}
-          >
-            <option value="">Aucun</option>
-            {fournisseurs
-              .filter((f) => f.statut !== "inactif")
-              .map((f) => (
-                <option key={f.id} value={f.id}>
-                  {f.nom}
-                </option>
-              ))}
-          </select>
-        </div>
+        <SelecteurListe
+          id="pd-cat"
+          label="Catégorie"
+          options={options.map((o) => ({ id: o.id, nom: o.libelle }))}
+          valeur={valeurs.category_id || null}
+          onChange={(id) => modifier({ category_id: id ?? "" })}
+          onCreer={onCreerCategorie}
+          libelleVide="Sans catégorie"
+          placeholder="Chercher ou ajouter une catégorie…"
+          aide={
+            options.length === 0
+              ? "Aucune catégorie encore. Tapez-en une pour la créer, ou passez par Paramètres → Listes."
+              : undefined
+          }
+        />
+
+        {/* ── LE FOURNISSEUR N'EST PLUS ICI ──
+            Il l'était en double : une liste déroulante dans cette fiche,
+            et un champ de saisie libre dans le formulaire au-dessus, qui
+            n'écrivaient pas la même colonne. Le champ du haut est
+            désormais branché sur l'annuaire et écrit les deux. Un seul
+            endroit pour une seule information. */}
 
         <div>
           <label htmlFor="pd-type" className="mb-1 block text-xs font-medium text-muted-foreground">

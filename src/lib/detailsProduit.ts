@@ -77,12 +77,20 @@ export const UNITES = ["pièce", "kg", "g", "litre", "ml", "mètre", "carton", "
 export const optionsCategories = (categories: Categorie[]): { id: string; libelle: string }[] => {
   const trier = (a: Categorie, b: Categorie) =>
     a.ordre - b.ordre || a.nom.localeCompare(b.nom, "fr");
-  return categories
+  // ── Le filtre sur `usage` n'est pas décoratif ──
+  //
+  // La table porte désormais TOUTES les listes de la boutique : les
+  // rayons, les postes de dépense, les types de fournisseur. Sans cette
+  // ligne, on proposerait « Loyer » et « Grossiste » pour ranger un
+  // produit. Les lignes écrites avant l'ajout de la colonne n'ont pas
+  // d'usage explicite — elles rangent des produits, comme avant.
+  const siennes = categories.filter((c) => (c.usage ?? "produit") === "produit");
+  return siennes
     .filter((c) => !c.parent_id && c.actif)
     .sort(trier)
     .flatMap((racine) => [
       { id: racine.id, libelle: racine.nom },
-      ...categories
+      ...siennes
         .filter((c) => c.parent_id === racine.id && c.actif)
         .sort(trier)
         .map((c) => ({ id: c.id, libelle: `${racine.nom} › ${c.nom}` })),

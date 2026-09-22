@@ -36,6 +36,8 @@ import type { Database } from "../lib/database.types";
 import { PageHeader } from "./shared/PageHeader";
 import { FilterBar, FilterField } from "./shared/FilterBar";
 import { DataList } from "./shared/DataList";
+import { SelecteurFournisseur } from "./shared/SelecteurFournisseur";
+import { cleDeListe } from "../lib/listes";
 import { VignetteProduit, vignettesParProduit } from "./shared/VignetteProduit";
 import { StatCol } from "./shared/StatBar";
 import { Modal } from "./shared/Modal";
@@ -59,6 +61,8 @@ interface AchatsViewProps {
     quantite: number;
     prixAchatUnit: number;
     fournisseur: string;
+    /** La fiche de l'annuaire à laquelle rattacher l'achat. */
+    supplier_id?: string | null;
     /** Ce qui sort de la caisse maintenant. Omis = réglé en totalité. */
     montantPaye?: number | null;
     dateEcheance?: string | null;
@@ -75,6 +79,14 @@ interface AchatsViewProps {
    * C'est exactement la même fiche que dans l'écran Produits.
    */
   categories?: Database["public"]["Tables"]["categories"]["Row"][];
+  /**
+   * Créer une catégorie de produits depuis la fiche, sans la quitter.
+   *
+   * Absente, le sélecteur ne propose pas d'ajouter : c'est ainsi que
+   * s'applique le réglage « seuls les responsables complètent les
+   * listes », sans que ce formulaire ait à lire des permissions.
+   */
+  onCreerCategorie?: (nom: string) => Promise<{ id: string | null; error: string | null }>;
   fournisseurs?: Database["public"]["Tables"]["suppliers"]["Row"][];
   storeId?: string | null;
   /**
@@ -113,8 +125,24 @@ interface AchatsViewProps {
       quantite: number;
       prixAchatUnit: number;
       fournisseur: string;
+      supplier_id?: string | null;
       montantRegle?: number | null;
     },
+  ) => Promise<{ error: string | null }>;
+  /**
+   * Créer une fiche fournisseur sans quitter l'achat.
+   *
+   * Absente, le sélecteur ne propose pas d'ajouter : c'est ainsi que
+   * s'applique le réglage « seuls les responsables complètent les
+   * listes », sans que ce formulaire ait à connaître les permissions.
+   */
+  onAddFournisseur?: (data: { nom: string; telephone?: string | null }) => Promise<{
+    supplier: Database["public"]["Tables"]["suppliers"]["Row"] | null;
+    error: string | null;
+  }>;
+  onUpdateFournisseur?: (
+    id: string,
+    data: { telephone: string },
   ) => Promise<{ error: string | null }>;
   reapprovisionner?: { designation: string; prixAchat: number; fournisseur: string } | null;
   /** Appelé une fois le formulaire ouvert, pour ne pas le rouvrir sans fin. */
@@ -154,7 +182,10 @@ export const AchatsView: React.FC<AchatsViewProps> = ({
   settings,
   onAddPurchase,
   categories = [],
+  onCreerCategorie,
   fournisseurs = [],
+  onAddFournisseur,
+  onUpdateFournisseur,
   storeId = null,
   onDeletePurchase,
   onUpdatePurchase,
@@ -185,6 +216,7 @@ export const AchatsView: React.FC<AchatsViewProps> = ({
   const [modQuantite, setModQuantite] = useState("");
   const [modPrix, setModPrix] = useState("");
   const [modFournisseur, setModFournisseur] = useState("");
+  const [modSupplierId, setModSupplierId] = useState<string | null>(null);
   const [modRegle, setModRegle] = useState("");
   const [modEnCours, setModEnCours] = useState(false);
   const [modErreur, setModErreur] = useState<string | null>(null);
@@ -257,6 +289,7 @@ export const AchatsView: React.FC<AchatsViewProps> = ({
     setModQuantite(String(p.quantite));
     setModPrix(String(p.prixAchatUnit));
     setModFournisseur(p.fournisseur);
+    setModSupplierId(p.supplierId);
     setModRegle(String(p.montantPaye));
     setModErreur(null);
     setAchatAModifier(p);
@@ -301,6 +334,15 @@ export const AchatsView: React.FC<AchatsViewProps> = ({
   const [quantite, setQuantite] = useState(10);
   const [prixAchatUnit, setPrixAchatUnit] = useState(1000);
   const [fournisseur, setFournisseur] = useState("");
+  /**
+   * La fiche de l'annuaire, à côté du nom.
+   *
+   * Les deux sont tenus ensemble : la base continue d'écrire le NOM
+   * dans `purchases.fournisseur`, et l'identifiant vient par-dessus.
+   * C'est le filet de la reprise — si un rattachement s'avérait faux,
+   * le nom d'origine est toujours là.
+   */
+  const [supplierId, setSupplierId] = useState<string | null>(null);
   // Comptant par défaut : c'est le cas de loin le plus fréquent, et
   // c'est ce que faisait le logiciel jusqu'ici. Le crédit se choisit.
   const [reglement, setReglement] = useState<"comptant" | "credit">("comptant");
@@ -321,6 +363,13 @@ export const AchatsView: React.FC<AchatsViewProps> = ({
     setDesignation(reapprovisionner.designation);
     setPrixAchatUnit(reapprovisionner.prixAchat);
     setFournisseur(reapprovisionner.fournisseur);
+    // Le tableau de bord ne transmet qu'un nom : on retrouve la fiche
+    // qui lui correspond, accents et majuscules mis a part. Sans
+    // correspondance, l'achat part sans rattachement — comme avant.
+    setSupplierId(
+      fournisseurs.find((f) => cleDeListe(f.nom) === cleDeListe(reapprovisionner.fournisseur))
+        ?.id ?? null,
+    );
     setDate(dateDuJour());
     setQuantite(0);
     setReglement("comptant");
@@ -330,7 +379,7 @@ export const AchatsView: React.FC<AchatsViewProps> = ({
     setDetailsProduit(DETAILS_VIDES);
     setIsModalOpen(true);
     onReapprovisionnementOuvert?.();
-  }, [reapprovisionner, onReapprovisionnementOuvert]);
+  }, [reapprovisionner, onReapprovisionnementOuvert, fournisseurs]);
 
   // Ce que la saisie du règlement a d'impossible, dit tout de suite plutôt
   // qu'au moment d'enregistrer : on ne verse pas une somme négative, et on
@@ -370,6 +419,9 @@ export const AchatsView: React.FC<AchatsViewProps> = ({
       setDesignation(prod.designation);
       setPrixAchatUnit(prod.prixAchat);
       if (prod.fournisseur) setFournisseur(prod.fournisseur);
+      // Le rattachement du produit avec son nom : les deux vont
+      // ensemble, sans quoi l'achat repartirait avec un nom sans fiche.
+      if (prod.supplierId) setSupplierId(prod.supplierId);
     }
   };
 
@@ -393,6 +445,7 @@ export const AchatsView: React.FC<AchatsViewProps> = ({
       quantite: Number(quantite),
       prixAchatUnit: Number(prixAchatUnit),
       fournisseur: fournisseur.trim(),
+      supplier_id: supplierId,
       montantPaye: regle,
       dateEcheance: reglement === "credit" && echeance ? echeance : null,
     });
@@ -433,6 +486,8 @@ export const AchatsView: React.FC<AchatsViewProps> = ({
     setDetailsProduit(DETAILS_VIDES);
     setPhotosProduit([]);
     setDesignation("");
+    setFournisseur("");
+    setSupplierId(null);
     setReglement("comptant");
     setMontantRegle(0);
     setEcheance("");
@@ -768,6 +823,7 @@ export const AchatsView: React.FC<AchatsViewProps> = ({
                     quantite: Math.trunc(Number(modQuantite) || 0),
                     prixAchatUnit: Number(modPrix) || 0,
                     fournisseur: modFournisseur.trim(),
+                    supplier_id: modSupplierId,
                     montantRegle: Number(modRegle) || 0,
                   });
                   setModEnCours(false);
@@ -888,20 +944,17 @@ export const AchatsView: React.FC<AchatsViewProps> = ({
             )}
 
             {showFournisseur && (
-              <div>
-                <label
-                  htmlFor="mod-fournisseur"
-                  className="mb-1.5 block text-sm font-medium text-foreground"
-                >
-                  Fournisseur
-                </label>
-                <input
-                  id="mod-fournisseur"
-                  value={modFournisseur}
-                  onChange={(e) => setModFournisseur(e.target.value)}
-                  className="app-field"
-                />
-              </div>
+              <SelecteurFournisseur
+                id="mod-fournisseur"
+                fournisseurs={fournisseurs}
+                valeur={modSupplierId}
+                onChange={(id, nom) => {
+                  setModSupplierId(id);
+                  setModFournisseur(nom);
+                }}
+                onCreer={onAddFournisseur}
+                onCompleter={onUpdateFournisseur}
+              />
             )}
 
             {/* Ce que la correction va déplacer, avant de l'enregistrer. */}
@@ -1243,18 +1296,16 @@ export const AchatsView: React.FC<AchatsViewProps> = ({
               </div>
             </div>
 
-            <div>
-              <label className="mb-1.5 block text-sm font-medium text-foreground">
-                Fournisseur
-              </label>
-              <input
-                type="text"
-                value={fournisseur}
-                onChange={(e) => setFournisseur(e.target.value)}
-                placeholder="ex : Grossiste Antanimena"
-                className="app-field"
-              />
-            </div>
+            <SelecteurFournisseur
+              fournisseurs={fournisseurs}
+              valeur={supplierId}
+              onChange={(id, nom) => {
+                setSupplierId(id);
+                setFournisseur(nom);
+              }}
+              onCreer={onAddFournisseur}
+              onCompleter={onUpdateFournisseur}
+            />
           </div>
 
           {/* Le règlement, en bas du formulaire : on choisit d'abord
@@ -1378,7 +1429,7 @@ export const AchatsView: React.FC<AchatsViewProps> = ({
                 valeurs={detailsProduit}
                 onChange={setDetailsProduit}
                 categories={categories}
-                fournisseurs={fournisseurs}
+                onCreerCategorie={onCreerCategorie}
                 images={[]}
                 storeId={storeId}
                 productId={null}

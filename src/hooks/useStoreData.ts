@@ -388,6 +388,8 @@ export interface StoreData {
     quantite: number;
     prix_achat_unit: number;
     fournisseur: string;
+    /** La fiche de l'annuaire, quand l'achat y est rattaché. */
+    supplier_id?: string | null;
     /** Ce qui sort de la caisse maintenant. Omis = réglé en totalité. */
     montant_paye?: number | null;
     date_echeance?: string | null;
@@ -408,6 +410,8 @@ export interface StoreData {
       quantite: number;
       prixAchatUnit: number;
       fournisseur: string;
+      /** La fiche de l'annuaire. `undefined` = laisser le rattachement tel quel. */
+      supplier_id?: string | null;
       montantRegle?: number | null;
     },
   ) => Promise<{ error: string | null }>;
@@ -1113,12 +1117,44 @@ export function useStoreData(storeId: string | null, userId: string | null): Sto
         p_date_echeance: data.date_echeance ?? null,
       });
 
-      if (!error) fetchAll();
-
       const productId =
         ecrit && typeof ecrit === "object" && "product_id" in ecrit
           ? ((ecrit as { product_id: string | null }).product_id ?? null)
           : null;
+      const purchaseId =
+        ecrit && typeof ecrit === "object" && "id" in ecrit
+          ? ((ecrit as { id: string | null }).id ?? null)
+          : null;
+
+      // ── Le rattachement a la fiche fournisseur, en second temps ──
+      //
+      // `add_purchase` est sur le chemin de l'argent : elle ecrit
+      // l'achat, bouge le stock, verse l'acompte et pose le mouvement,
+      // le tout dans une transaction. On ne touche pas a sa signature
+      // pour une colonne descriptive. La colonne texte `fournisseur`
+      // qu'elle ecrit reste le filet ; `supplier_id` vient par-dessus.
+      //
+      // Un echec ici ne fait donc pas echouer l'achat : il laisse
+      // simplement l'achat rattache par son nom, comme avant.
+      if (!error && data.supplier_id) {
+        if (purchaseId) {
+          await supabase
+            .from("purchases")
+            .update({ supplier_id: data.supplier_id })
+            .eq("id", purchaseId);
+        }
+        // Seulement quand l'achat vient de CREER le produit : sur un
+        // produit deja au catalogue, son fournisseur habituel n'a pas a
+        // changer parce qu'on l'a depanne ailleurs une fois.
+        if (!data.product_id && productId) {
+          await supabase
+            .from("products")
+            .update({ supplier_id: data.supplier_id })
+            .eq("id", productId);
+        }
+      }
+
+      if (!error) fetchAll();
 
       return { error: error?.message ?? null, productId };
     },
@@ -1154,6 +1190,7 @@ export function useStoreData(storeId: string | null, userId: string | null): Sto
         quantite: number;
         prixAchatUnit: number;
         fournisseur: string;
+        supplier_id?: string | null;
         montantRegle?: number | null;
       },
     ) => {
@@ -1165,6 +1202,13 @@ export function useStoreData(storeId: string | null, userId: string | null): Sto
         p_fournisseur: data.fournisseur,
         p_montant_regle: data.montantRegle ?? undefined,
       });
+
+      // Meme raison qu'a l'enregistrement : `modifier_achat` deplace du
+      // stock et de la tresorerie, le rattachement est descriptif et
+      // s'ecrit a cote. `undefined` veut dire « ne pas y toucher ».
+      if (!error && data.supplier_id !== undefined) {
+        await supabase.from("purchases").update({ supplier_id: data.supplier_id }).eq("id", id);
+      }
 
       if (!error) fetchAll();
 

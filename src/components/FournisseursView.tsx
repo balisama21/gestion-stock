@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useCallback, useMemo, useState } from "react";
 import {
   Building2,
   Save,
@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import { formatCurrency } from "../utils/formulas";
 import { PageHeader } from "./shared/PageHeader";
+import { SelecteurListe } from "./shared/SelecteurListe";
 import { ChampsPersoLecture, ChampsPersoSaisie } from "./shared/ChampsPersonnalises";
 import {
   champObligatoireManquant,
@@ -31,6 +32,7 @@ import {
 import type { Purchase, Product } from "../types";
 import type { Database } from "../lib/database.types";
 import { dateDuJour } from "../lib/dates";
+import { trierValeurs } from "../lib/listes";
 
 type Supplier = Database["public"]["Tables"]["suppliers"]["Row"];
 type SupplierInsert = Database["public"]["Tables"]["suppliers"]["Insert"];
@@ -58,6 +60,10 @@ interface FournisseursViewProps {
   }) => Promise<{ error: string | null }>;
   /** Les champs que la boutique a ajoutés elle-même à cette fiche. */
   champsPersonnalises: ChampPerso[];
+  /** La liste « types de fournisseur » de la boutique. */
+  typesFournisseur?: Database["public"]["Tables"]["categories"]["Row"][];
+  /** Ajouter un type sans quitter la fiche. Absente, le sélecteur ne le propose pas. */
+  onCreerTypeFournisseur?: (nom: string) => Promise<{ id: string | null; error: string | null }>;
   /** Autorisations de l'utilisateur sur ce module. */
   peutCreer?: boolean;
   peutModifier?: boolean;
@@ -74,7 +80,11 @@ const FORMULAIRE_VIDE = {
   ville: "",
   pays: "",
   numero_fiscal: "",
+  // Conservée, plus jamais saisie : c'est l'ancien type en texte libre,
+  // gardé comme filet derrière `type_id`. Le formulaire le recopie tel
+  // quel pour ne pas l'effacer en enregistrant autre chose.
   categorie: "",
+  type_id: "",
   conditions_paiement: "",
   delai_livraison_jours: "",
   statut: "actif",
@@ -95,6 +105,7 @@ const versBase = (f: typeof FORMULAIRE_VIDE) => {
     pays: vide(f.pays),
     numero_fiscal: vide(f.numero_fiscal),
     categorie: vide(f.categorie),
+    type_id: f.type_id === "" ? null : f.type_id,
     conditions_paiement: vide(f.conditions_paiement),
     delai_livraison_jours: delai === "" ? null : Number(delai),
     statut: f.statut,
@@ -113,6 +124,7 @@ const depuisFournisseur = (s: Supplier) => ({
   pays: s.pays ?? "",
   numero_fiscal: s.numero_fiscal ?? "",
   categorie: s.categorie ?? "",
+  type_id: s.type_id ?? "",
   conditions_paiement: s.conditions_paiement ?? "",
   delai_livraison_jours:
     s.delai_livraison_jours === null || s.delai_livraison_jours === undefined
@@ -191,6 +203,8 @@ export const FournisseursView: React.FC<FournisseursViewProps> = ({
   onDeleteSupplier,
   onAddSupplierPayment,
   champsPersonnalises,
+  typesFournisseur = [],
+  onCreerTypeFournisseur,
   peutCreer = true,
   peutModifier = true,
   peutSupprimer = true,
@@ -201,6 +215,35 @@ export const FournisseursView: React.FC<FournisseursViewProps> = ({
   const [enEdition, setEnEdition] = useState<Supplier | null>(null);
   const [selection, setSelection] = useState<Supplier | null>(null);
   const [formulaire, setFormulaire] = useState(FORMULAIRE_VIDE);
+
+  /**
+   * Les types proposés : les actifs, plus celui que la fiche ouverte
+   * porte encore s'il a été archivé depuis. Sans cette exception, ouvrir
+   * une vieille fiche et l'enregistrer lui ferait perdre son type sans
+   * que personne ne l'ait demandé.
+   */
+  const typesActifs = useMemo(
+    () =>
+      trierValeurs(
+        typesFournisseur.filter(
+          (t) =>
+            (t.usage ?? "produit") === "type_fournisseur" &&
+            (t.actif || t.id === formulaire.type_id),
+        ),
+      ),
+    [typesFournisseur, formulaire.type_id],
+  );
+
+  /**
+   * Le type d'une fiche, en clair : la liste d'abord, l'ancien texte
+   * ensuite. Les fiches saisies avant la reprise n'ont pas de `type_id`,
+   * et leur texte libre doit continuer de s'afficher.
+   */
+  const nomDuType = useCallback(
+    (f: Supplier): string | null =>
+      typesFournisseur.find((t) => t.id === f.type_id)?.nom ?? f.categorie ?? null,
+    [typesFournisseur],
+  );
   const [enregistrement, setEnregistrement] = useState(false);
   const [erreur, setErreur] = useState<string | null>(null);
   const [succes, setSucces] = useState<string | null>(null);
@@ -327,11 +370,11 @@ export const FournisseursView: React.FC<FournisseursViewProps> = ({
       if (filtre === "actifs" && (f.statut ?? "actif") !== "actif") return false;
       if (filtre === "inactifs" && (f.statut ?? "actif") !== "inactif") return false;
       if (!q) return true;
-      return [f.nom, f.entreprise, f.contact_principal, f.telephone, f.email, f.ville, f.categorie]
+      return [f.nom, f.entreprise, f.contact_principal, f.telephone, f.email, f.ville, nomDuType(f)]
         .filter(Boolean)
         .some((v) => (v as string).toLowerCase().includes(q));
     });
-  }, [suppliers, filtre, search]);
+  }, [suppliers, filtre, search, nomDuType]);
 
   /* ── Actions ─────────────────────────────────────────────── */
 
@@ -500,16 +543,16 @@ export const FournisseursView: React.FC<FournisseursViewProps> = ({
                   {...champ("entreprise")}
                 />
               </div>
-              <div>
-                {etiquette("fo-categorie", "Catégorie")}
-                <input
-                  id="fo-categorie"
-                  type="text"
-                  placeholder="Alimentaire, quincaillerie…"
-                  className="app-field"
-                  {...champ("categorie")}
-                />
-              </div>
+              <SelecteurListe
+                id="fo-type"
+                label="Type de fournisseur"
+                options={typesActifs.map((t) => ({ id: t.id, nom: t.nom, archive: !t.actif }))}
+                valeur={formulaire.type_id || null}
+                onChange={(id) => setFormulaire((f) => ({ ...f, type_id: id ?? "" }))}
+                onCreer={onCreerTypeFournisseur}
+                libelleVide="Sans type"
+                placeholder="Grossiste, fabricant, particulier…"
+              />
               <div>
                 {etiquette("fo-nif", "Numéro fiscal")}
                 <input id="fo-nif" type="text" className="app-field" {...champ("numero_fiscal")} />
@@ -701,7 +744,7 @@ export const FournisseursView: React.FC<FournisseursViewProps> = ({
                   const compte = comptes[fournisseur.id] ?? compteVide;
                   const choisi = selection?.id === fournisseur.id;
                   const secondaire = [
-                    fournisseur.categorie,
+                    nomDuType(fournisseur),
                     fournisseur.telephone,
                     fournisseur.ville,
                     compte.achats > 0
@@ -766,8 +809,8 @@ export const FournisseursView: React.FC<FournisseursViewProps> = ({
                 <div className="min-w-0">
                   <h3 className="truncate text-lg font-bold text-foreground">{selection.nom}</h3>
                   <div className="mt-1.5 flex flex-wrap items-center gap-2">
-                    {selection.categorie && (
-                      <span className="app-badge app-badge-info">{selection.categorie}</span>
+                    {nomDuType(selection) && (
+                      <span className="app-badge app-badge-info">{nomDuType(selection)}</span>
                     )}
                     <span
                       className={`app-badge ${
