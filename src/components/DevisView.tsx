@@ -21,6 +21,7 @@ import { StatCol } from "./shared/StatBar";
 import { Modal } from "./shared/Modal";
 import { DocumentDevis } from "./devis/DocumentDevis";
 import type { ReglagesDocuments } from "../features/documents/lib/reglages";
+import { resoudreType } from "../features/documents/lib/resolveur";
 import {
   STATUTS_DEVIS,
   classeStatut,
@@ -95,7 +96,53 @@ interface DevisViewProps {
 }
 
 const AUJOURDHUI = () => dateDuJour();
-const DANS_UN_MOIS = () => dateDansNJours(30);
+
+/**
+ * Jusqu'à quand l'offre tient, par défaut.
+ *
+ * Trente jours étaient écrits en dur ici. C'est désormais un réglage
+ * de boutique, par type de document — trente jours restant la valeur
+ * que le logiciel propose, pour ne rien changer à qui n'y touche pas.
+ * La date reste modifiable devis par devis : ce n'est qu'un point de
+ * départ.
+ */
+type TypePiece = "devis" | "proforma";
+
+/**
+ * Les deux pièces que cet écran produit.
+ *
+ * Une proforma n'est pas un autre document : c'est le même, sous un
+ * autre nom et avec un autre compteur. Elle vit donc dans la même
+ * liste, se modifie dans le même formulaire et se transforme en vente
+ * par le même chemin. Seuls les mots changent, et ils sont ici.
+ */
+const PIECES: Record<
+  TypePiece,
+  { nom: string; article: string; nouveau: string; destinataire: string }
+> = {
+  devis: {
+    nom: "Devis",
+    article: "le devis",
+    nouveau: "Nouveau devis",
+    destinataire: "À qui ce devis est adressé",
+  },
+  proforma: {
+    nom: "Facture proforma",
+    article: "la proforma",
+    nouveau: "Nouvelle proforma",
+    destinataire: "À qui cette proforma est adressée",
+  },
+};
+
+const validiteParDefaut = (reglages?: ReglagesDocuments, type: TypePiece = "devis") =>
+  dateDansNJours(reglages ? resoudreType(reglages, type).validiteJours : 30);
+
+const joursDeValidite = (reglages: ReglagesDocuments | undefined, type: TypePiece) =>
+  reglages ? resoudreType(reglages, type).validiteJours : 30;
+
+/** Ce que la pièce est. Une valeur inconnue en base se lit « devis ». */
+const typeDe = (devis: { type?: string | null }): TypePiece =>
+  devis.type === "proforma" ? "proforma" : "devis";
 
 const LIGNE_VIDE: LigneSaisie = {
   productId: "",
@@ -134,6 +181,7 @@ export const DevisView: React.FC<DevisViewProps> = ({
   // s'ouvre alors remplie dessus. Voir `src/lib/cibleRecherche.ts`.
   useRechercheInitiale("devis", setRecherche);
   const [filtreStatut, setFiltreStatut] = useState("Tous");
+  const [filtreType, setFiltreType] = useState<"Tous" | TypePiece>("Tous");
 
   const [formulaireOuvert, setFormulaireOuvert] = useState(false);
   const [enEdition, setEnEdition] = useState<Devis | null>(null);
@@ -145,7 +193,8 @@ export const DevisView: React.FC<DevisViewProps> = ({
   const [clientId, setClientId] = useState("");
   const [clientNom, setClientNom] = useState("");
   const [date, setDate] = useState(AUJOURDHUI);
-  const [validite, setValidite] = useState(DANS_UN_MOIS);
+  const [typePiece, setTypePiece] = useState<TypePiece>("devis");
+  const [validite, setValidite] = useState(() => validiteParDefaut(reglagesDocuments));
   const [note, setNote] = useState("");
   const [lignes, setLignes] = useState<LigneSaisie[]>([{ ...LIGNE_VIDE }]);
 
@@ -175,9 +224,10 @@ export const DevisView: React.FC<DevisViewProps> = ({
       const statut =
         filtreStatut === "Tous" ||
         (filtreStatut === "expire" ? estExpire(d) : d.statut === filtreStatut);
-      return correspond && statut;
+      const type = filtreType === "Tous" || typeDe(d) === filtreType;
+      return correspond && statut && type;
     });
-  }, [quotes, recherche, filtreStatut, lignesDe]);
+  }, [quotes, recherche, filtreStatut, filtreType, lignesDe]);
 
   const enAttente = quotes.filter(
     (d) => (d.statut === "brouillon" || d.statut === "envoye") && !estExpire(d),
@@ -185,12 +235,13 @@ export const DevisView: React.FC<DevisViewProps> = ({
   const montantEnAttente = enAttente.reduce((n, d) => n + d.total, 0);
 
   // ── Le formulaire ──
-  const ouvrirCreation = () => {
+  const ouvrirCreation = (type: TypePiece = "devis") => {
     setEnEdition(null);
+    setTypePiece(type);
     setClientId("");
     setClientNom("");
     setDate(AUJOURDHUI());
-    setValidite(DANS_UN_MOIS());
+    setValidite(validiteParDefaut(reglagesDocuments, type));
     setNote("");
     setLignes([{ ...LIGNE_VIDE }]);
     setErreur(null);
@@ -199,6 +250,7 @@ export const DevisView: React.FC<DevisViewProps> = ({
 
   const ouvrirEdition = (devis: Devis) => {
     setEnEdition(devis);
+    setTypePiece(typeDe(devis));
     setClientId(devis.client_id ?? "");
     setClientNom(devis.client_nom);
     setDate(devis.date);
@@ -233,6 +285,19 @@ export const DevisView: React.FC<DevisViewProps> = ({
     });
   };
 
+  /*
+   * Passer du devis à la proforma recalcule la date de validité, sauf
+   * si elle a été saisie à la main : les deux pièces n'ont pas
+   * forcément la même durée, et une date restée sur l'ancienne
+   * promettrait autre chose que ce que le réglage annonce.
+   */
+  const changerTypePiece = (type: TypePiece) => {
+    if (validite === validiteParDefaut(reglagesDocuments, typePiece)) {
+      setValidite(validiteParDefaut(reglagesDocuments, type));
+    }
+    setTypePiece(type);
+  };
+
   const choisirClient = (id: string) => {
     setClientId(id);
     const fiche = clients.find((c) => c.id === id);
@@ -260,6 +325,10 @@ export const DevisView: React.FC<DevisViewProps> = ({
       date,
       valide_jusqu_au: validite || null,
       note: note.trim() || null,
+      type: typePiece,
+      // La durée est FIGÉE sur la pièce : changer le réglage de la
+      // boutique demain ne doit pas réécrire ce qu'on a promis hier.
+      duree_validite_jours: joursDeValidite(reglagesDocuments, typePiece),
       lignes: propres.map((l) => ({
         product_id: l.productId || null,
         designation: l.designation.trim(),
@@ -279,8 +348,8 @@ export const DevisView: React.FC<DevisViewProps> = ({
     }
     setSucces(
       enEdition
-        ? `Devis ${enEdition.numero ?? ""} modifié.`
-        : `Devis ${res.quote?.numero ?? ""} créé.`,
+        ? `${PIECES[typePiece].nom} ${enEdition.numero ?? ""} modifié${typePiece === "proforma" ? "e" : ""}.`
+        : `${PIECES[typePiece].nom} ${res.quote?.numero ?? ""} créé${typePiece === "proforma" ? "e" : ""}.`,
     );
     setFormulaireOuvert(false);
   };
@@ -288,14 +357,21 @@ export const DevisView: React.FC<DevisViewProps> = ({
   const changerStatut = async (devis: Devis, statut: string) => {
     const res = await onSetStatus(devis.id, statut);
     if (res.error) setErreur(res.error);
-    else setSucces(`Devis ${devis.numero ?? ""} : ${texteStatut({ ...devis, statut })}.`);
+    else
+      setSucces(
+        `${PIECES[typeDe(devis)].nom} ${devis.numero ?? ""} : ${texteStatut({ ...devis, statut })}.`,
+      );
   };
 
   const supprimer = async (devis: Devis) => {
-    if (!window.confirm(`Supprimer le devis ${devis.numero ?? ""} ?`)) return;
+    const piece = PIECES[typeDe(devis)];
+    if (!window.confirm(`Supprimer ${piece.article} ${devis.numero ?? ""} ?`)) return;
     const res = await onDeleteQuote(devis.id);
     if (res.error) setErreur(res.error);
-    else setSucces(`Devis ${devis.numero ?? ""} supprimé.`);
+    else
+      setSucces(
+        `${piece.nom} ${devis.numero ?? ""} supprimé${typeDe(devis) === "proforma" ? "e" : ""}.`,
+      );
   };
 
   // ── La liste ──
@@ -306,6 +382,7 @@ export const DevisView: React.FC<DevisViewProps> = ({
       id: devis.id,
       primary: <span className="block truncate">{devis.client_nom || "Sans nom"}</span>,
       meta: [
+        typeDe(devis) === "proforma" ? "Proforma" : null,
         devis.numero,
         formatDateLocale(devis.date, "FR"),
         `${sesLignes.length} ligne${sesLignes.length > 1 ? "s" : ""}`,
@@ -316,7 +393,7 @@ export const DevisView: React.FC<DevisViewProps> = ({
       amount: formatCurrency(devis.total),
       badge: <span className={`app-badge ${classeStatut(devis)}`}>{texteStatut(devis)}</span>,
       detailTitle: devis.client_nom || "Sans nom",
-      detailSubtitle: `Devis ${devis.numero ?? ""}`,
+      detailSubtitle: `${PIECES[typeDe(devis)].nom} ${devis.numero ?? ""}`,
       detailBody: (
         <div className="app-list mb-2 rounded-xl border border-border">
           {sesLignes.map((l) => (
@@ -360,7 +437,7 @@ export const DevisView: React.FC<DevisViewProps> = ({
               className="app-btn-secondary"
             >
               <ShoppingCart className="h-4 w-4" />
-              Transformer en vente
+              {typeDe(devis) === "proforma" ? "Convertir en facture" : "Transformer en vente"}
             </button>
           )}
           {peutModifier && !fige && (
@@ -416,10 +493,24 @@ export const DevisView: React.FC<DevisViewProps> = ({
         }
         actions={
           peutCreer ? (
-            <button onClick={ouvrirCreation} className="app-btn-primary w-full sm:w-auto">
-              <Plus className="h-4 w-4" />
-              Nouveau devis
-            </button>
+            <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
+              <button
+                onClick={() => ouvrirCreation("devis")}
+                className="app-btn-primary w-full sm:w-auto"
+              >
+                <Plus className="h-4 w-4" />
+                Nouveau devis
+              </button>
+              {/* La proforma est le même papier sous un autre nom :
+                  elle part du même écran, sans onglet à elle. */}
+              <button
+                onClick={() => ouvrirCreation("proforma")}
+                className="app-btn-secondary w-full sm:w-auto"
+              >
+                <Plus className="h-4 w-4" />
+                Nouvelle proforma
+              </button>
+            </div>
           ) : undefined
         }
       />
@@ -446,9 +537,23 @@ export const DevisView: React.FC<DevisViewProps> = ({
         searchValue={recherche}
         onSearchChange={setRecherche}
         searchPlaceholder="Rechercher un devis, un client, un article"
-        activeFilterCount={filtreStatut === "Tous" ? 0 : 1}
-        onReset={() => setFiltreStatut("Tous")}
+        activeFilterCount={(filtreStatut === "Tous" ? 0 : 1) + (filtreType === "Tous" ? 0 : 1)}
+        onReset={() => {
+          setFiltreStatut("Tous");
+          setFiltreType("Tous");
+        }}
       >
+        <FilterField label="Pièce">
+          <select
+            value={filtreType}
+            onChange={(e) => setFiltreType(e.target.value as "Tous" | TypePiece)}
+            className="app-field"
+          >
+            <option value="Tous">Toutes</option>
+            <option value="devis">Devis</option>
+            <option value="proforma">Factures proforma</option>
+          </select>
+        </FilterField>
         <FilterField label="Statut">
           <select
             value={filtreStatut}
@@ -475,8 +580,16 @@ export const DevisView: React.FC<DevisViewProps> = ({
         onClose={() => setFormulaireOuvert(false)}
         size="2xl"
         icon={<FileText className="h-4 w-4" />}
-        title={enEdition ? `Modifier ${enEdition.numero ?? "le devis"}` : "Nouveau devis"}
-        description="Un devis ne touche ni au stock ni à la caisse : il propose un prix."
+        title={
+          enEdition
+            ? `Modifier ${enEdition.numero ?? PIECES[typePiece].article}`
+            : PIECES[typePiece].nouveau
+        }
+        description={
+          typePiece === "proforma"
+            ? "Une proforma annonce un prix ferme avant la vente. Elle ne touche ni au stock ni à la caisse tant qu'elle n'est pas convertie."
+            : "Un devis ne touche ni au stock ni à la caisse : il propose un prix."
+        }
         footer={
           <>
             <button
@@ -493,12 +606,45 @@ export const DevisView: React.FC<DevisViewProps> = ({
               className="app-btn-primary"
             >
               <Save className="h-4 w-4" />
-              {enregistrement ? "Enregistrement…" : "Enregistrer le devis"}
+              {enregistrement ? "Enregistrement…" : `Enregistrer ${PIECES[typePiece].article}`}
             </button>
           </>
         }
       >
         <div className="space-y-4">
+          {/* La nature de la pièce vient en premier : elle décide du
+              titre imprimé, du numéro et de la durée de validité. */}
+          <div>
+            <span className="mb-1.5 block text-sm font-medium text-foreground">
+              Nature de la pièce
+            </span>
+            <div className="grid grid-cols-2 gap-2">
+              {(Object.keys(PIECES) as TypePiece[]).map((t) => {
+                const choisi = typePiece === t;
+                return (
+                  <button
+                    key={t}
+                    type="button"
+                    aria-pressed={choisi}
+                    onClick={() => changerTypePiece(t)}
+                    className={`rounded-xl border px-3 py-2.5 text-left transition-colors ${
+                      choisi
+                        ? "border-success-border bg-success-soft"
+                        : "border-border bg-card hover:bg-muted"
+                    }`}
+                  >
+                    <span className="block text-sm font-medium text-foreground">
+                      {PIECES[t].nom}
+                    </span>
+                    <span className="block text-xs text-muted-foreground">
+                      {t === "devis" ? "Une proposition de prix" : "Un prix ferme, avant la vente"}
+                    </span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
               <label
@@ -525,9 +671,9 @@ export const DevisView: React.FC<DevisViewProps> = ({
                 type="text"
                 value={clientNom}
                 onChange={(e) => setClientNom(e.target.value)}
-                placeholder="À qui ce devis est adressé"
+                placeholder={PIECES[typePiece].destinataire}
                 className="app-field mt-2"
-                aria-label="Nom sur le devis"
+                aria-label={`Nom sur ${PIECES[typePiece].article}`}
               />
             </div>
 
@@ -588,10 +734,14 @@ export const DevisView: React.FC<DevisViewProps> = ({
                     </select>
                   </div>
                   <div>
-                    <label className="mb-1 block text-xs font-medium text-muted-foreground">
+                    <label
+                      htmlFor={`dev-ligne-${i}-designation`}
+                      className="mb-1 block text-xs font-medium text-muted-foreground"
+                    >
                       Désignation
                     </label>
                     <input
+                      id={`dev-ligne-${i}-designation`}
                       type="text"
                       value={ligne.designation}
                       onChange={(e) => changerLigne(i, { designation: e.target.value })}
@@ -603,10 +753,14 @@ export const DevisView: React.FC<DevisViewProps> = ({
 
                 <div className="mt-3 flex items-end gap-3">
                   <div className="w-24">
-                    <label className="mb-1 block text-xs font-medium text-muted-foreground">
+                    <label
+                      htmlFor={`dev-ligne-${i}-quantite`}
+                      className="mb-1 block text-xs font-medium text-muted-foreground"
+                    >
                       Quantité
                     </label>
                     <input
+                      id={`dev-ligne-${i}-quantite`}
                       type="number"
                       min={1}
                       value={ligne.quantite}
@@ -615,10 +769,14 @@ export const DevisView: React.FC<DevisViewProps> = ({
                     />
                   </div>
                   <div className="flex-1">
-                    <label className="mb-1 block text-xs font-medium text-muted-foreground">
+                    <label
+                      htmlFor={`dev-ligne-${i}-prix`}
+                      className="mb-1 block text-xs font-medium text-muted-foreground"
+                    >
                       Prix unitaire
                     </label>
                     <input
+                      id={`dev-ligne-${i}-prix`}
                       type="number"
                       min={0}
                       value={ligne.prixUnitaire}

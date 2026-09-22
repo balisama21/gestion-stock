@@ -18,6 +18,7 @@ import {
   XCircle,
   TrendingUp,
   Edit3,
+  Percent,
   Trash2,
   Image as ImageIcon,
   Printer,
@@ -47,12 +48,7 @@ import { VignetteProduit, vignettesParProduit } from "./shared/VignetteProduit";
 import { StatBar, StatCol } from "./shared/StatBar";
 import { Modal } from "./shared/Modal";
 import { useInvoicePrefs } from "../lib/invoicePrefs";
-import {
-  exporterPdf,
-  exporterImage,
-  imprimerDocument,
-  nomDeFichier,
-} from "../lib/documentExport";
+import { exporterPdf, exporterImage, imprimerDocument, nomDeFichier } from "../lib/documentExport";
 import { reprendreApresDeploiement, messageDErreurExport } from "../lib/chunkRecovery";
 import {
   PAPER_FORMATS,
@@ -126,6 +122,12 @@ interface VentesViewProps {
   /** Le ticket de la vente qui vient d'être enregistrée. */
   onVenteEnregistree?: (ticketId: string | null) => void;
   onEditSale?: (updatedSale: Sale) => void;
+  /**
+   * Fixer la part que la boutique garde sur une prestation.
+   *
+   * Absent quand la personne n'a pas le droit de modifier une vente.
+   */
+  onFixerCommission?: (saleId: string, montant: number) => Promise<{ error: string | null }>;
   onDeleteSale?: (saleId: string) => void;
   /**
    * true si l'utilisateur n'a pas la permission "Ventes" complète : la
@@ -159,6 +161,7 @@ export const VentesView: React.FC<VentesViewProps> = ({
   onPanierRepris,
   onVenteEnregistree,
   onEditSale,
+  onFixerCommission,
   onDeleteSale,
   restrictedToOwnSales,
   visibleFields,
@@ -181,6 +184,10 @@ export const VentesView: React.FC<VentesViewProps> = ({
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingSale, setEditingSale] = useState<Sale | null>(null);
+  /* La vente dont on règle la commission, et le montant en cours. */
+  const [venteCommission, setVenteCommission] = useState<Sale | null>(null);
+  const [montantCommission, setMontantCommission] = useState(0);
+  const [erreurCommission, setErreurCommission] = useState<string | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
 
@@ -312,7 +319,10 @@ export const VentesView: React.FC<VentesViewProps> = ({
     setExportEnCours(type);
     setExportErreur(null);
     try {
-      const nom = nomDeFichier(receiptMode === "facture" ? "Facture" : "Recu", selectedReceiptSale.numero);
+      const nom = nomDeFichier(
+        receiptMode === "facture" ? "Facture" : "Recu",
+        selectedReceiptSale.numero,
+      );
       if (type === "pdf") await exporterPdf(noeud, paper, nom);
       else await exporterImage(noeud, nom, "png");
     } catch (err) {
@@ -472,9 +482,7 @@ export const VentesView: React.FC<VentesViewProps> = ({
     }
     if (prod && quantite > prod.stockDisponible) return;
     setFormError(null);
-    setPanier((lignes) =>
-      lignes.map((l) => (l.productId === productId ? { ...l, quantite } : l)),
-    );
+    setPanier((lignes) => lignes.map((l) => (l.productId === productId ? { ...l, quantite } : l)));
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -664,9 +672,7 @@ export const VentesView: React.FC<VentesViewProps> = ({
           : []),
         { label: "Vendeur", value: s.vendeur },
         { label: "Client", value: s.clientCredit || "-", hideIfEmpty: true },
-        ...(showPaiement
-          ? [{ label: "Payé", value: formatCurrency(s.montantPaye) }]
-          : []),
+        ...(showPaiement ? [{ label: "Payé", value: formatCurrency(s.montantPaye) }] : []),
         ...(showSolde && s.soldeDu > 0
           ? [
               {
@@ -693,6 +699,22 @@ export const VentesView: React.FC<VentesViewProps> = ({
             <button onClick={() => setEditingSale(s)} className="app-btn-secondary">
               <Edit3 className="w-4 h-4" />
               Modifier
+            </button>
+          )}
+          {/* La commission ne change aucun montant : elle dit quelle
+              part du total déjà encaissé revient à la boutique, pour
+              que la facture puisse la détailler. */}
+          {onFixerCommission && (
+            <button
+              onClick={() => {
+                setErreurCommission(null);
+                setMontantCommission(s.commission ?? 0);
+                setVenteCommission(s);
+              }}
+              className="app-btn-secondary"
+            >
+              <Percent className="w-4 h-4" />
+              {s.commission > 0 ? "Commission" : "Ajouter une commission"}
             </button>
           )}
           {onDeleteSale && (
@@ -1188,8 +1210,7 @@ export const VentesView: React.FC<VentesViewProps> = ({
             </h4>
             {panier.length === 0 ? (
               <p className="rounded-xl border border-dashed border-border px-3 py-6 text-center text-sm text-muted-foreground">
-                Scannez un code-barres, ou choisissez un produit ci-dessus et
-                ajoutez-le.
+                Scannez un code-barres, ou choisissez un produit ci-dessus et ajoutez-le.
               </p>
             ) : (
               <div className="app-list rounded-xl border border-border">
@@ -1329,6 +1350,73 @@ export const VentesView: React.FC<VentesViewProps> = ({
       </Modal>
 
       {/* ── Modification d'une vente ── */}
+      {venteCommission && onFixerCommission && (
+        <Modal
+          open
+          onClose={() => setVenteCommission(null)}
+          size="sm"
+          icon={<Percent className="h-4 w-4" />}
+          title={`Commission · vente ${venteCommission.numero}`}
+          description="La part de ce total qui revient à la boutique. Le montant encaissé ne change pas : la facture le détaille, voilà tout."
+          footer={
+            <>
+              <button
+                type="button"
+                onClick={() => setVenteCommission(null)}
+                className="app-btn-secondary"
+              >
+                Annuler
+              </button>
+              <button
+                type="button"
+                onClick={async () => {
+                  const res = await onFixerCommission(
+                    venteCommission.id,
+                    Number(montantCommission),
+                  );
+                  if (res.error) setErreurCommission(res.error);
+                  else setVenteCommission(null);
+                }}
+                className="app-btn-primary"
+              >
+                Enregistrer
+              </button>
+            </>
+          }
+        >
+          <div className="space-y-3">
+            {erreurCommission && (
+              <p
+                role="alert"
+                className="rounded-xl border border-danger-border bg-danger-soft px-3.5 py-2.5 text-sm t-danger"
+              >
+                {erreurCommission}
+              </p>
+            )}
+            <div>
+              <label
+                htmlFor="vente-commission"
+                className="mb-1.5 block text-sm font-medium text-foreground"
+              >
+                Commission
+              </label>
+              <input
+                id="vente-commission"
+                type="number"
+                min={0}
+                value={montantCommission}
+                onChange={(e) => setMontantCommission(Number(e.target.value))}
+                className="app-field font-mono"
+              />
+              <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">
+                Sur un total de {formatCurrency(venteCommission.totalVente)}. À zéro, la facture
+                n&apos;en parle pas.
+              </p>
+            </div>
+          </div>
+        </Modal>
+      )}
+
       {editingSale && (
         <Modal
           open
@@ -1534,10 +1622,7 @@ export const VentesView: React.FC<VentesViewProps> = ({
           }
           footer={
             <>
-              <button
-                onClick={() => imprimerDocument(paper)}
-                className="app-btn-secondary"
-              >
+              <button onClick={() => imprimerDocument(paper)} className="app-btn-secondary">
                 <Printer className="h-4 w-4" />
                 Imprimer
               </button>
@@ -1559,10 +1644,10 @@ export const VentesView: React.FC<VentesViewProps> = ({
                 <Download className="h-4 w-4" />
                 {exportEnCours === "pdf" ? "Création..." : "PDF"}
               </button>
-              </>
+            </>
           }
         >
-            {/* ── Documents imprimables ──
+          {/* ── Documents imprimables ──
                 Couleurs figées en `slate` et non en jetons de thème : une
                 feuille de reçu est du papier blanc, en mode clair comme
                 en mode sombre. Le vert n'apparaît que sur le badge de
@@ -1570,301 +1655,294 @@ export const VentesView: React.FC<VentesViewProps> = ({
 
                 Le fond de l'aperçu est blanc, comme le papier : ce qui
                 s'affiche est exactement ce qui s'imprime. */}
-            {/* Le format choisi pilote la page nommée : la boîte
+          {/* Le format choisi pilote la page nommée : la boîte
                 d'impression s'ouvre déjà calée dessus, et « Enregistrer au
                 format PDF » produit donc un PDF exactement à ce format. */}
-            <p className="no-print text-xs text-muted-foreground">
-              {paper.hint} · Pour un PDF, choisissez « Enregistrer au format PDF » dans la boîte
-              d'impression : le fichier sortira exactement à ce format.
+          <p className="no-print text-xs text-muted-foreground">
+            {paper.hint} · Pour un PDF, choisissez « Enregistrer au format PDF » dans la boîte
+            d'impression : le fichier sortira exactement à ce format.
+          </p>
+
+          {exportErreur && (
+            <p className="no-print rounded-xl border border-danger-border bg-danger-soft px-3 py-2.5 text-sm t-danger">
+              {exportErreur}
             </p>
+          )}
 
-            {exportErreur && (
-              <p className="no-print rounded-xl border border-danger-border bg-danger-soft px-3 py-2.5 text-sm t-danger">
-                {exportErreur}
-              </p>
-            )}
+          <div className="receipt-viewport flex items-start justify-start overflow-x-auto rounded-xl border border-border bg-background p-4">
+            {receiptMode === "ticket" ? (
+              /* ── Reçu de caisse ── */
+              <div
+                ref={documentRef}
+                className={`printable-receipt mx-auto min-w-0 w-full rounded-lg border border-slate-200 bg-white p-4 font-mono leading-relaxed text-slate-900 shadow-sm ${paperId === "t58" ? "text-[10px]" : "text-[11px]"}`}
+                style={{ maxWidth: paper.previewWidth }}
+              >
+                {/* En-tête boutique */}
+                <div className="space-y-0.5 text-center">
+                  {invoicePrefs.showLogo && settings?.logoUrl && (
+                    <img
+                      src={settings.logoUrl}
+                      alt=""
+                      className="mx-auto mb-2 h-12 w-12 rounded object-contain"
+                    />
+                  )}
+                  <h2 className="text-[13px] font-bold uppercase tracking-wide text-slate-900">
+                    {settings?.storeName || APP_NAME}
+                  </h2>
+                  {invoicePrefs.showAddress && (
+                    <p className="text-[10px] text-slate-500">
+                      {settings?.address || "Lot IVG 124, Antananarivo 101"}
+                    </p>
+                  )}
+                  {invoicePrefs.showPhone && (
+                    <p className="text-[10px] text-slate-500">
+                      Tél. {settings?.phone || "+261 34 12 345 67"}
+                    </p>
+                  )}
+                  {invoicePrefs.showEmail && settings?.email && (
+                    <p className="text-[10px] text-slate-500">{settings.email}</p>
+                  )}
+                  {invoicePrefs.showNif && settings?.nifStat && (
+                    <p className="text-[9px] text-slate-400">{settings.nifStat}</p>
+                  )}
+                </div>
 
-            <div className="receipt-viewport flex items-start justify-start overflow-x-auto rounded-xl border border-border bg-background p-4">
-              {receiptMode === "ticket" ? (
-                /* ── Reçu de caisse ── */
-                <div
-                  ref={documentRef}
-                  className={`printable-receipt mx-auto min-w-0 w-full rounded-lg border border-slate-200 bg-white p-4 font-mono leading-relaxed text-slate-900 shadow-sm ${paperId === "t58" ? "text-[10px]" : "text-[11px]"}`}
-                  style={{ maxWidth: paper.previewWidth }}
-                >
-                  {/* En-tête boutique */}
-                  <div className="space-y-0.5 text-center">
-                    {invoicePrefs.showLogo && settings?.logoUrl && (
-                      <img
-                        src={settings.logoUrl}
-                        alt=""
-                        className="mx-auto mb-2 h-12 w-12 rounded object-contain"
-                      />
-                    )}
-                    <h2 className="text-[13px] font-bold uppercase tracking-wide text-slate-900">
-                      {settings?.storeName || APP_NAME}
-                    </h2>
-                    {invoicePrefs.showAddress && (
-                      <p className="text-[10px] text-slate-500">
-                        {settings?.address || "Lot IVG 124, Antananarivo 101"}
-                      </p>
-                    )}
-                    {invoicePrefs.showPhone && (
-                      <p className="text-[10px] text-slate-500">
-                        Tél. {settings?.phone || "+261 34 12 345 67"}
-                      </p>
-                    )}
-                    {invoicePrefs.showEmail && settings?.email && (
-                      <p className="text-[10px] text-slate-500">{settings.email}</p>
-                    )}
-                    {invoicePrefs.showNif && settings?.nifStat && (
-                      <p className="text-[9px] text-slate-400">{settings.nifStat}</p>
-                    )}
+                <div className="my-3 border-t border-dashed border-slate-300" />
+
+                {/* Références */}
+                <dl className="space-y-0.5 text-[10px]">
+                  <div className="flex justify-between gap-3">
+                    <dt className="text-slate-500">Reçu n°</dt>
+                    <dd className="font-bold text-slate-900">{selectedReceiptSale.numero}</dd>
                   </div>
-
-                  <div className="my-3 border-t border-dashed border-slate-300" />
-
-                  {/* Références */}
-                  <dl className="space-y-0.5 text-[10px]">
+                  <div className="flex justify-between gap-3">
+                    <dt className="text-slate-500">Date</dt>
+                    <dd className="text-slate-900">
+                      {formatDateLocale(selectedReceiptSale.date, locale)}
+                    </dd>
+                  </div>
+                  {invoicePrefs.showSeller && (
                     <div className="flex justify-between gap-3">
-                      <dt className="text-slate-500">Reçu n°</dt>
-                      <dd className="font-bold text-slate-900">{selectedReceiptSale.numero}</dd>
+                      <dt className="text-slate-500">Vendeur</dt>
+                      <dd className="text-slate-900">{selectedReceiptSale.vendeur}</dd>
                     </div>
-                    <div className="flex justify-between gap-3">
-                      <dt className="text-slate-500">Date</dt>
-                      <dd className="text-slate-900">
-                        {formatDateLocale(selectedReceiptSale.date, locale)}
-                      </dd>
-                    </div>
-                    {invoicePrefs.showSeller && (
-                      <div className="flex justify-between gap-3">
-                        <dt className="text-slate-500">Vendeur</dt>
-                        <dd className="text-slate-900">{selectedReceiptSale.vendeur}</dd>
-                      </div>
-                    )}
-                    <div className="flex justify-between gap-3">
-                      <dt className="text-slate-500">Client</dt>
-                      <dd className="min-w-0 text-right text-slate-900">
-                        {selectedReceiptSale.clientCredit || "Comptoir"}
-                      </dd>
-                    </div>
-                  </dl>
+                  )}
+                  <div className="flex justify-between gap-3">
+                    <dt className="text-slate-500">Client</dt>
+                    <dd className="min-w-0 text-right text-slate-900">
+                      {selectedReceiptSale.clientCredit || "Comptoir"}
+                    </dd>
+                  </div>
+                </dl>
 
-                  <div className="my-3 border-t border-dashed border-slate-300" />
+                <div className="my-3 border-t border-dashed border-slate-300" />
 
-                  {/* Articles.
+                {/* Articles.
                       Sur 80 mm, quatre colonnes serrées deviennent
                       illisibles. La désignation prend donc toute la
                       largeur, et la ligne de calcul se lit en dessous —
                       c'est la disposition des tickets de caisse. */}
-                  <div className="space-y-2">
-                    {lignesDocument.map((l) => (
-                      <div key={l.id}>
-                        <p className="font-semibold text-slate-900">{l.designation}</p>
-                        <div className="flex justify-between gap-3 text-[10px] text-slate-600">
-                          <span>
-                            {quantiteEnMots(l.quantite, l.unite)} ×{" "}
-                            {formatCurrency(l.prixUnitaire)}
-                          </span>
-                          <span className="font-semibold text-slate-900">
-                            {formatCurrency(l.total)}
-                          </span>
-                        </div>
-                        {l.reference && (
-                          <p className="text-[9px] text-slate-400">Réf. {l.reference}</p>
-                        )}
+                <div className="space-y-2">
+                  {lignesDocument.map((l) => (
+                    <div key={l.id}>
+                      <p className="font-semibold text-slate-900">{l.designation}</p>
+                      <div className="flex justify-between gap-3 text-[10px] text-slate-600">
+                        <span>
+                          {quantiteEnMots(l.quantite, l.unite)} × {formatCurrency(l.prixUnitaire)}
+                        </span>
+                        <span className="font-semibold text-slate-900">
+                          {formatCurrency(l.total)}
+                        </span>
                       </div>
-                    ))}
-                  </div>
-
-                  <div className="my-3 border-t border-dashed border-slate-300" />
-
-                  {/* Totaux */}
-                  <div className="space-y-1 text-[10px]">
-                    <div className="flex justify-between gap-3 border-b border-slate-900 pb-1 text-[13px] font-bold text-slate-900">
-                      <span>TOTAL</span>
-                      <span>{formatCurrency(totauxRecu.total)}</span>
+                      {l.reference && (
+                        <p className="text-[9px] text-slate-400">Réf. {l.reference}</p>
+                      )}
                     </div>
-                    <div className="flex justify-between gap-3 pt-1 text-slate-600">
-                      <span>Payé</span>
-                      <span className="text-slate-900">
-                        {formatCurrency(totauxRecu.paye)}
-                      </span>
+                  ))}
+                </div>
+
+                <div className="my-3 border-t border-dashed border-slate-300" />
+
+                {/* Totaux */}
+                <div className="space-y-1 text-[10px]">
+                  <div className="flex justify-between gap-3 border-b border-slate-900 pb-1 text-[13px] font-bold text-slate-900">
+                    <span>TOTAL</span>
+                    <span>{formatCurrency(totauxRecu.total)}</span>
+                  </div>
+                  <div className="flex justify-between gap-3 pt-1 text-slate-600">
+                    <span>Payé</span>
+                    <span className="text-slate-900">{formatCurrency(totauxRecu.paye)}</span>
+                  </div>
+                  {totauxRecu.du > 0 && (
+                    <div className="flex justify-between gap-3 font-semibold text-slate-900">
+                      <span>Reste à payer</span>
+                      <span>{formatCurrency(totauxRecu.du)}</span>
                     </div>
-                    {totauxRecu.du > 0 && (
-                      <div className="flex justify-between gap-3 font-semibold text-slate-900">
-                        <span>Reste à payer</span>
-                        <span>{formatCurrency(totauxRecu.du)}</span>
-                      </div>
-                    )}
-                  </div>
-
-                  <div className="mt-3 text-center">
-                    <span className={`app-badge ${badgeStatut} text-[9px]`}>
-                      {totauxRecu.statut}
-                    </span>
-                  </div>
-
-                  {invoicePrefs.showFooter && (
-                    <>
-                      <div className="my-3 border-t border-dashed border-slate-300" />
-                      <p className="text-center text-[9px] italic text-slate-500">
-                        {settings?.receiptFooter ||
-                          "Merci pour votre confiance ! Ni repris, ni échangé après 48h."}
-                      </p>
-                    </>
                   )}
                 </div>
-              ) : (
-                /* ── Facture A4 ── */
-                <div
-                  ref={documentRef}
-                  className={`printable-receipt mx-auto min-w-0 w-full rounded-lg border border-slate-200 bg-white font-sans text-xs text-slate-900 shadow-sm ${paperId === "a5" ? "p-6" : "p-8"}`}
-                  style={{ maxWidth: paper.previewWidth }}
-                >
-                  {/* En-tête : identité à gauche, référence du document à
+
+                <div className="mt-3 text-center">
+                  <span className={`app-badge ${badgeStatut} text-[9px]`}>{totauxRecu.statut}</span>
+                </div>
+
+                {invoicePrefs.showFooter && (
+                  <>
+                    <div className="my-3 border-t border-dashed border-slate-300" />
+                    <p className="text-center text-[9px] italic text-slate-500">
+                      {settings?.receiptFooter ||
+                        "Merci pour votre confiance ! Ni repris, ni échangé après 48h."}
+                    </p>
+                  </>
+                )}
+              </div>
+            ) : (
+              /* ── Facture A4 ── */
+              <div
+                ref={documentRef}
+                className={`printable-receipt mx-auto min-w-0 w-full rounded-lg border border-slate-200 bg-white font-sans text-xs text-slate-900 shadow-sm ${paperId === "a5" ? "p-6" : "p-8"}`}
+                style={{ maxWidth: paper.previewWidth }}
+              >
+                {/* En-tête : identité à gauche, référence du document à
                       droite. `flex-wrap` pour que le second bloc passe
                       dessous plutôt que de se serrer sur écran étroit. */}
-                  <header className="flex flex-wrap items-start justify-between gap-6 pb-6">
-                    <div className="min-w-0 space-y-2">
-                      {invoicePrefs.showLogo && settings?.logoUrl && (
-                        <img
-                          src={settings.logoUrl}
-                          alt=""
-                          className="h-14 w-14 rounded object-contain"
-                        />
+                <header className="flex flex-wrap items-start justify-between gap-6 pb-6">
+                  <div className="min-w-0 space-y-2">
+                    {invoicePrefs.showLogo && settings?.logoUrl && (
+                      <img
+                        src={settings.logoUrl}
+                        alt=""
+                        className="h-14 w-14 rounded object-contain"
+                      />
+                    )}
+                    <div className="space-y-0.5">
+                      <p className="text-base font-bold uppercase tracking-tight text-slate-900">
+                        {settings?.storeName || APP_NAME}
+                      </p>
+                      {settings?.subtitle && (
+                        <p className="text-[11px] text-slate-500">{settings.subtitle}</p>
                       )}
-                      <div className="space-y-0.5">
-                        <p className="text-base font-bold uppercase tracking-tight text-slate-900">
-                          {settings?.storeName || APP_NAME}
-                        </p>
-                        {settings?.subtitle && (
-                          <p className="text-[11px] text-slate-500">{settings.subtitle}</p>
-                        )}
-                        {invoicePrefs.showAddress && (
-                          <p className="text-[11px] text-slate-500">
-                            {settings?.address || "Lot IVG 124, Antananarivo 101"}
-                          </p>
-                        )}
+                      {invoicePrefs.showAddress && (
                         <p className="text-[11px] text-slate-500">
-                          {[
-                            invoicePrefs.showPhone
-                              ? `Tél. ${settings?.phone || "+261 34 12 345 67"}`
-                              : null,
-                            invoicePrefs.showEmail ? settings?.email : null,
-                          ]
-                            .filter(Boolean)
-                            .join(" · ")}
+                          {settings?.address || "Lot IVG 124, Antananarivo 101"}
                         </p>
-                        {invoicePrefs.showNif && settings?.nifStat && (
-                          <p className="text-[10px] text-slate-400">{settings.nifStat}</p>
-                        )}
-                      </div>
+                      )}
+                      <p className="text-[11px] text-slate-500">
+                        {[
+                          invoicePrefs.showPhone
+                            ? `Tél. ${settings?.phone || "+261 34 12 345 67"}`
+                            : null,
+                          invoicePrefs.showEmail ? settings?.email : null,
+                        ]
+                          .filter(Boolean)
+                          .join(" · ")}
+                      </p>
+                      {invoicePrefs.showNif && settings?.nifStat && (
+                        <p className="text-[10px] text-slate-400">{settings.nifStat}</p>
+                      )}
                     </div>
+                  </div>
 
-                    {/* Référence du document : le numéro domine, la date
+                  {/* Référence du document : le numéro domine, la date
                         et le vendeur restent discrets sous lui. */}
-                    <div className="min-w-0 space-y-1 sm:text-right">
-                      <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-slate-400">
-                        Facture
-                      </p>
-                      <p className="font-mono text-xl font-bold tracking-tight text-slate-900">
-                        {selectedReceiptSale.numero}
-                      </p>
-                      <dl className="space-y-0.5 pt-1 text-[11px] text-slate-500">
+                  <div className="min-w-0 space-y-1 sm:text-right">
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-slate-400">
+                      Facture
+                    </p>
+                    <p className="font-mono text-xl font-bold tracking-tight text-slate-900">
+                      {selectedReceiptSale.numero}
+                    </p>
+                    <dl className="space-y-0.5 pt-1 text-[11px] text-slate-500">
+                      <div className="flex gap-2 sm:justify-end">
+                        <dt>Émise le</dt>
+                        <dd className="font-medium text-slate-700">
+                          {formatDateLocale(selectedReceiptSale.date, locale)}
+                        </dd>
+                      </div>
+                      {invoicePrefs.showSeller && (
                         <div className="flex gap-2 sm:justify-end">
-                          <dt>Émise le</dt>
+                          <dt>Vendeur</dt>
                           <dd className="font-medium text-slate-700">
-                            {formatDateLocale(selectedReceiptSale.date, locale)}
+                            {selectedReceiptSale.vendeur}
                           </dd>
                         </div>
-                        {invoicePrefs.showSeller && (
-                          <div className="flex gap-2 sm:justify-end">
-                            <dt>Vendeur</dt>
-                            <dd className="font-medium text-slate-700">
-                              {selectedReceiptSale.vendeur}
-                            </dd>
-                          </div>
-                        )}
-                      </dl>
-                    </div>
-                  </header>
+                      )}
+                    </dl>
+                  </div>
+                </header>
 
-                  {/* Client et statut, sur un fond très léger qui les
+                {/* Client et statut, sur un fond très léger qui les
                       détache du reste sans peser à l'impression. */}
-                  <section className="flex flex-wrap items-start justify-between gap-4 rounded-lg border border-slate-200 bg-slate-50 px-4 py-3">
-                    <div className="min-w-0">
-                      <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">
-                        Facturé à
-                      </p>
-                      <p className="mt-0.5 text-sm font-semibold text-slate-900">
-                        {selectedReceiptSale.clientCredit || "Client comptoir"}
-                      </p>
-                    </div>
-                    <div className="min-w-0 sm:text-right">
-                      <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">
-                        Statut
-                      </p>
-                      <span className={`app-badge mt-1 ${badgeStatut}`}>
-                        {totauxRecu.statut}
-                      </span>
-                    </div>
-                  </section>
+                <section className="flex flex-wrap items-start justify-between gap-4 rounded-lg border border-slate-200 bg-slate-50 px-4 py-3">
+                  <div className="min-w-0">
+                    <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">
+                      Facturé à
+                    </p>
+                    <p className="mt-0.5 text-sm font-semibold text-slate-900">
+                      {selectedReceiptSale.clientCredit || "Client comptoir"}
+                    </p>
+                  </div>
+                  <div className="min-w-0 sm:text-right">
+                    <p className="text-[10px] font-semibold uppercase tracking-wider text-slate-400">
+                      Statut
+                    </p>
+                    <span className={`app-badge mt-1 ${badgeStatut}`}>{totauxRecu.statut}</span>
+                  </div>
+                </section>
 
-                  {/* Articles */}
-                  <table className="mt-6 w-full border-collapse text-left text-[11px]">
-                    <thead>
-                      <tr className="border-b border-slate-300 text-[10px] font-semibold uppercase tracking-wider text-slate-500">
-                        <th className="py-2 pr-3 font-semibold">Désignation</th>
-                        <th className="py-2 px-2 text-center font-semibold">Qté</th>
-                        <th className="py-2 px-2 text-right font-semibold">Prix unitaire</th>
-                        <th className="py-2 pl-2 text-right font-semibold">Total</th>
+                {/* Articles */}
+                <table className="mt-6 w-full border-collapse text-left text-[11px]">
+                  <thead>
+                    <tr className="border-b border-slate-300 text-[10px] font-semibold uppercase tracking-wider text-slate-500">
+                      <th className="py-2 pr-3 font-semibold">Désignation</th>
+                      <th className="py-2 px-2 text-center font-semibold">Qté</th>
+                      <th className="py-2 px-2 text-right font-semibold">Prix unitaire</th>
+                      <th className="py-2 pl-2 text-right font-semibold">Total</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {lignesDocument.map((l, i) => (
+                      <tr
+                        key={l.id}
+                        className={`border-b border-slate-100 ${i % 2 === 1 ? "bg-slate-50/70" : ""}`}
+                      >
+                        <td className="py-2.5 pr-3">
+                          <span className="font-medium text-slate-900">{l.designation}</span>
+                          {l.reference && (
+                            <span className="mt-0.5 block font-mono text-[10px] text-slate-400">
+                              {l.reference}
+                            </span>
+                          )}
+                        </td>
+                        <td className="px-2 py-2.5 text-center tabular-nums text-slate-700">
+                          {l.quantite}
+                        </td>
+                        <td className="px-2 py-2.5 text-right font-mono tabular-nums text-slate-700">
+                          {formatCurrency(l.prixUnitaire)}
+                        </td>
+                        <td className="py-2.5 pl-2 text-right font-mono font-medium tabular-nums text-slate-900">
+                          {formatCurrency(l.total)}
+                        </td>
                       </tr>
-                    </thead>
-                    <tbody>
-                      {lignesDocument.map((l, i) => (
-                        <tr
-                          key={l.id}
-                          className={`border-b border-slate-100 ${i % 2 === 1 ? "bg-slate-50/70" : ""}`}
-                        >
-                          <td className="py-2.5 pr-3">
-                            <span className="font-medium text-slate-900">{l.designation}</span>
-                            {l.reference && (
-                              <span className="mt-0.5 block font-mono text-[10px] text-slate-400">
-                                {l.reference}
-                              </span>
-                            )}
-                          </td>
-                          <td className="px-2 py-2.5 text-center tabular-nums text-slate-700">
-                            {l.quantite}
-                          </td>
-                          <td className="px-2 py-2.5 text-right font-mono tabular-nums text-slate-700">
-                            {formatCurrency(l.prixUnitaire)}
-                          </td>
-                          <td className="py-2.5 pl-2 text-right font-mono font-medium tabular-nums text-slate-900">
-                            {formatCurrency(l.total)}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                    ))}
+                  </tbody>
+                </table>
 
-                  {/* Totaux, alignés à droite sous le tableau. */}
-                  <div className="mt-5 flex justify-end">
-                    <dl className="w-full max-w-[16rem] space-y-1.5 text-[11px]">
-                      <div className="flex justify-between gap-4 text-slate-500">
-                        <dt>Total</dt>
-                        <dd className="font-mono tabular-nums text-slate-700">
-                          {formatCurrency(totauxRecu.total)}
-                        </dd>
-                      </div>
-                      <div className="flex justify-between gap-4 text-slate-500">
-                        <dt>Montant encaissé</dt>
-                        <dd className="font-mono tabular-nums text-slate-700">
-                          {formatCurrency(totauxRecu.paye)}
-                        </dd>
-                      </div>
-                      {/* « Net à payer » porte le solde restant dû, et non
+                {/* Totaux, alignés à droite sous le tableau. */}
+                <div className="mt-5 flex justify-end">
+                  <dl className="w-full max-w-[16rem] space-y-1.5 text-[11px]">
+                    <div className="flex justify-between gap-4 text-slate-500">
+                      <dt>Total</dt>
+                      <dd className="font-mono tabular-nums text-slate-700">
+                        {formatCurrency(totauxRecu.total)}
+                      </dd>
+                    </div>
+                    <div className="flex justify-between gap-4 text-slate-500">
+                      <dt>Montant encaissé</dt>
+                      <dd className="font-mono tabular-nums text-slate-700">
+                        {formatCurrency(totauxRecu.paye)}
+                      </dd>
+                    </div>
+                    {/* « Net à payer » porte le solde restant dû, et non
                           le total de la vente. C'est le sens de la mention
                           sur une facture : ce que le client doit encore
                           sortir. Elle répétait jusqu'ici le total, si bien
@@ -1873,29 +1951,29 @@ export const VentesView: React.FC<VentesViewProps> = ({
                           de quoi faire payer deux fois.
                           La ligne « Reste dû » disparaît : elle disait
                           désormais la même chose. */}
-                      <div className="flex justify-between gap-4 border-t-2 border-slate-900 pt-2">
-                        <dt className="text-[11px] font-bold uppercase tracking-wider text-slate-900">
-                          Net à payer
-                        </dt>
-                        <dd className="font-mono text-base font-bold tabular-nums text-slate-900">
-                          {formatCurrency(totauxRecu.du)}
-                        </dd>
-                      </div>
-                    </dl>
-                  </div>
-
-                  {invoicePrefs.showFooter && (
-                    <footer className="mt-8 border-t border-slate-200 pt-3 text-[10px] leading-relaxed text-slate-500">
-                      <p className="font-semibold text-slate-600">Conditions de vente</p>
-                      <p>
-                        {settings?.receiptFooter ||
-                          "Merci pour votre confiance ! Ni repris, ni échangé après 48h."}
-                      </p>
-                    </footer>
-                  )}
+                    <div className="flex justify-between gap-4 border-t-2 border-slate-900 pt-2">
+                      <dt className="text-[11px] font-bold uppercase tracking-wider text-slate-900">
+                        Net à payer
+                      </dt>
+                      <dd className="font-mono text-base font-bold tabular-nums text-slate-900">
+                        {formatCurrency(totauxRecu.du)}
+                      </dd>
+                    </div>
+                  </dl>
                 </div>
-              )}
-            </div>
+
+                {invoicePrefs.showFooter && (
+                  <footer className="mt-8 border-t border-slate-200 pt-3 text-[10px] leading-relaxed text-slate-500">
+                    <p className="font-semibold text-slate-600">Conditions de vente</p>
+                    <p>
+                      {settings?.receiptFooter ||
+                        "Merci pour votre confiance ! Ni repris, ni échangé après 48h."}
+                    </p>
+                  </footer>
+                )}
+              </div>
+            )}
+          </div>
         </Modal>
       )}
     </div>

@@ -26,6 +26,29 @@ type ReglementFournisseur = Database["public"]["Tables"]["supplier_payments"]["R
 type SaleRow = Database["public"]["Tables"]["sales"]["Row"];
 type Devis = Database["public"]["Tables"]["quotes"]["Row"];
 type LigneDevis = Database["public"]["Tables"]["quote_items"]["Row"];
+type FactureAchat = Database["public"]["Tables"]["supplier_invoices"]["Row"];
+type LigneFactureAchat = Database["public"]["Tables"]["supplier_invoice_items"]["Row"];
+
+/** Ce qu'une facture reçue porte, à la saisie comme à la correction. */
+export interface SaisieFactureAchat {
+  supplier_id?: string | null;
+  fournisseur: string;
+  numero_fournisseur?: string | null;
+  date: string;
+  date_echeance?: string | null;
+  total: number;
+  montant_paye?: number;
+  note?: string | null;
+  /** Le chemin dans le seau « documents », jamais une adresse signée. */
+  piece_jointe?: string | null;
+  lignes: {
+    product_id?: string | null;
+    designation: string;
+    quantite: number;
+    unite?: string | null;
+    prix_unitaire: number;
+  }[];
+}
 type LivraisonRow = Database["public"]["Tables"]["deliveries"]["Row"];
 type LivraisonInsert = Database["public"]["Tables"]["deliveries"]["Insert"];
 type LivraisonUpdate = Database["public"]["Tables"]["deliveries"]["Update"];
@@ -40,6 +63,7 @@ const versVente = (row: SaleRow): AppSale => ({
   quantite: row.quantite,
   prixVenteUnit: row.prix_vente_unit,
   totalVente: row.total_vente,
+  commission: row.commission ?? 0,
   prixAchatUnitRef: row.prix_achat_unit_ref,
   totalAchatRef: row.total_achat_ref,
   margeTotale: row.marge_totale,
@@ -268,6 +292,9 @@ export interface StoreData {
 
   /** Toutes les lignes de tous les devis, à répartir par `quote_id`. */
   quoteItems: LigneDevis[];
+  /** Les factures reçues des fournisseurs, et leur détail. */
+  supplierInvoices: FactureAchat[];
+  supplierInvoiceItems: LigneFactureAchat[];
   loading: boolean;
   error: string | null;
 
@@ -559,6 +586,10 @@ export interface StoreData {
     date: string;
     valide_jusqu_au?: string | null;
     note?: string | null;
+    /** « devis » ou « proforma ». Absent, c'est un devis. */
+    type?: string;
+    /** La durée promise, figée au moment où la pièce a été établie. */
+    duree_validite_jours?: number | null;
     lignes: {
       product_id?: string | null;
       designation: string;
@@ -575,6 +606,8 @@ export interface StoreData {
       date: string;
       valide_jusqu_au?: string | null;
       note?: string | null;
+      type?: string;
+      duree_validite_jours?: number | null;
       lignes: {
         product_id?: string | null;
         designation: string;
@@ -591,6 +624,25 @@ export interface StoreData {
   ) => Promise<{ error: string | null }>;
 
   deleteQuote: (id: string) => Promise<{ error: string | null }>;
+
+  addSupplierInvoice: (
+    data: SaisieFactureAchat,
+  ) => Promise<{ facture: FactureAchat | null; error: string | null }>;
+  updateSupplierInvoice: (
+    id: string,
+    data: SaisieFactureAchat,
+  ) => Promise<{ facture: FactureAchat | null; error: string | null }>;
+  deleteSupplierInvoice: (id: string) => Promise<{ error: string | null }>;
+
+  /**
+   * La part que la boutique garde sur une prestation.
+   *
+   * Elle est comprise dans le total : cette écriture ne touche ni la
+   * caisse, ni la marge, ni le stock. Elle ne fait que dire quelle
+   * PART du montant déjà encaissé revient à la boutique, pour que la
+   * facture puisse la détailler.
+   */
+  fixerCommission: (saleId: string, montant: number) => Promise<{ error: string | null }>;
 
   // Apports
   addApport: (
@@ -628,6 +680,8 @@ export function useStoreData(storeId: string | null, userId: string | null): Sto
   const [supplierPayments, setSupplierPayments] = useState<ReglementFournisseur[]>([]);
   const [quotes, setQuotes] = useState<Devis[]>([]);
   const [quoteItems, setQuoteItems] = useState<LigneDevis[]>([]);
+  const [supplierInvoices, setSupplierInvoices] = useState<FactureAchat[]>([]);
+  const [supplierInvoiceItems, setSupplierInvoiceItems] = useState<LigneFactureAchat[]>([]);
   const [deliveries, setDeliveries] = useState<LivraisonRow[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -654,6 +708,8 @@ export function useStoreData(storeId: string | null, userId: string | null): Sto
       setSupplierPayments([]);
       setQuotes([]);
       setQuoteItems([]);
+      setSupplierInvoices([]);
+      setSupplierInvoiceItems([]);
       setDeliveries([]);
       return;
     }
@@ -680,6 +736,8 @@ export function useStoreData(storeId: string | null, userId: string | null): Sto
         supplierPaymentsRes,
         quotesRes,
         quoteItemsRes,
+        facturesAchatRes,
+        lignesFactureAchatRes,
         deliveriesRes,
         remisesRes,
         salairesRes,
@@ -761,6 +819,16 @@ export function useStoreData(storeId: string | null, userId: string | null): Sto
           .eq("store_id", storeId)
           .order("ordre", { ascending: true }),
         supabase
+          .from("supplier_invoices")
+          .select("*")
+          .eq("store_id", storeId)
+          .order("date", { ascending: false }),
+        supabase
+          .from("supplier_invoice_items")
+          .select("*")
+          .eq("store_id", storeId)
+          .order("created_at", { ascending: true }),
+        supabase
           .from("deliveries")
           .select("*")
           .eq("store_id", storeId)
@@ -804,6 +872,8 @@ export function useStoreData(storeId: string | null, userId: string | null): Sto
       if (supplierPaymentsRes.data) setSupplierPayments(supplierPaymentsRes.data);
       if (quotesRes.data) setQuotes(quotesRes.data);
       if (quoteItemsRes.data) setQuoteItems(quoteItemsRes.data);
+      if (facturesAchatRes.data) setSupplierInvoices(facturesAchatRes.data);
+      if (lignesFactureAchatRes.data) setSupplierInvoiceItems(lignesFactureAchatRes.data);
       if (deliveriesRes.data) setDeliveries(deliveriesRes.data);
       if (remisesRes.data) setRemises(remisesRes.data);
       if (salairesRes.data) setSalaires(salairesRes.data);
@@ -1723,6 +1793,8 @@ export function useStoreData(storeId: string | null, userId: string | null): Sto
       date: string;
       valide_jusqu_au?: string | null;
       note?: string | null;
+      type?: string;
+      duree_validite_jours?: number | null;
       lignes: {
         product_id?: string | null;
         designation: string;
@@ -1739,6 +1811,8 @@ export function useStoreData(storeId: string | null, userId: string | null): Sto
         p_valide_jusqu_au: data.valide_jusqu_au ?? null,
         p_note: data.note ?? null,
         p_lignes: data.lignes,
+        p_type: data.type ?? "devis",
+        p_duree_validite_jours: data.duree_validite_jours ?? null,
       });
       if (error) return { quote: null, error: error.message };
       fetchAll();
@@ -1756,6 +1830,8 @@ export function useStoreData(storeId: string | null, userId: string | null): Sto
         date: string;
         valide_jusqu_au?: string | null;
         note?: string | null;
+        type?: string;
+        duree_validite_jours?: number | null;
         lignes: {
           product_id?: string | null;
           designation: string;
@@ -1772,6 +1848,8 @@ export function useStoreData(storeId: string | null, userId: string | null): Sto
         p_valide_jusqu_au: data.valide_jusqu_au ?? null,
         p_note: data.note ?? null,
         p_lignes: data.lignes,
+        p_type: data.type ?? null,
+        p_duree_validite_jours: data.duree_validite_jours ?? null,
       });
       if (error) return { quote: null, error: error.message };
       fetchAll();
@@ -1802,6 +1880,77 @@ export function useStoreData(storeId: string | null, userId: string | null): Sto
           ? "Ce devis ne peut pas être supprimé : il a été accepté, ou vous n'en êtes pas l'auteur."
           : null,
       };
+    },
+    [fetchAll],
+  );
+
+  /* ── Les factures reçues des fournisseurs ────────────────────────
+   *
+   * La facture et ses lignes s'écrivent ensemble, par une fonction de
+   * la base : deux appels laisseraient, à la première coupure, une
+   * facture sans son détail.
+   */
+  const argumentsFactureAchat = (data: SaisieFactureAchat) => ({
+    p_supplier_id: data.supplier_id ?? null,
+    p_fournisseur: data.fournisseur,
+    p_numero_fournisseur: data.numero_fournisseur ?? null,
+    p_date: data.date,
+    p_date_echeance: data.date_echeance ?? null,
+    p_total: data.total,
+    p_montant_paye: data.montant_paye ?? 0,
+    p_note: data.note ?? null,
+    p_piece_jointe: data.piece_jointe ?? null,
+    p_lignes: data.lignes,
+  });
+
+  const addSupplierInvoice = useCallback(
+    async (data: SaisieFactureAchat) => {
+      if (!storeId) return { facture: null, error: "Non autorisé" };
+      const { data: result, error } = await supabase.rpc("create_supplier_invoice", {
+        p_store_id: storeId,
+        ...argumentsFactureAchat(data),
+      });
+      if (error) return { facture: null, error: error.message };
+      fetchAll();
+      return { facture: result as unknown as FactureAchat, error: null };
+    },
+    [storeId, fetchAll],
+  );
+
+  const updateSupplierInvoice = useCallback(
+    async (id: string, data: SaisieFactureAchat) => {
+      const { data: result, error } = await supabase.rpc("update_supplier_invoice", {
+        p_id: id,
+        ...argumentsFactureAchat(data),
+      });
+      if (error) return { facture: null, error: error.message };
+      fetchAll();
+      return { facture: result as unknown as FactureAchat, error: null };
+    },
+    [fetchAll],
+  );
+
+  const deleteSupplierInvoice = useCallback(
+    async (id: string) => {
+      const { error } = await supabase.from("supplier_invoices").delete().eq("id", id);
+      if (!error) fetchAll();
+      return {
+        error: error
+          ? "Cette facture ne peut pas être supprimée : vous n'en êtes pas l'auteur."
+          : null,
+      };
+    },
+    [fetchAll],
+  );
+
+  const fixerCommission = useCallback(
+    async (saleId: string, montant: number) => {
+      const { error } = await supabase.rpc("fixer_commission_de_vente", {
+        p_sale_id: saleId,
+        p_montant: montant,
+      });
+      if (!error) fetchAll();
+      return { error: error?.message ?? null };
     },
     [fetchAll],
   );
@@ -1924,6 +2073,12 @@ export function useStoreData(storeId: string | null, userId: string | null): Sto
     updateQuote,
     setQuoteStatus,
     deleteQuote,
+    supplierInvoices,
+    supplierInvoiceItems,
+    addSupplierInvoice,
+    updateSupplierInvoice,
+    deleteSupplierInvoice,
+    fixerCommission,
     loading,
     error,
     addProduct,

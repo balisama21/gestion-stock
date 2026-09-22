@@ -50,10 +50,7 @@ import { BonDeCommande } from "./components/produits/BonDeCommande";
 import { useCaptureDuDrapeauDocuments, useDocumentsV2 } from "./features/documents/drapeau";
 import { lireReglagesDocuments } from "./features/documents/lib/reglages";
 import { useNotificationPrefs } from "./lib/notificationPrefs";
-import {
-  useCaptureDuDrapeau,
-  useDashboardV2,
-} from "./features/dashboard-v2/drapeau";
+import { useCaptureDuDrapeau, useDashboardV2 } from "./features/dashboard-v2/drapeau";
 import {
   contextePersonnalisation,
   lirePersonnalisation,
@@ -97,6 +94,9 @@ const ProduitsView = lazy(() =>
 );
 const AchatsView = lazy(() =>
   import("./components/AchatsView").then((m) => ({ default: m.AchatsView })),
+);
+const FacturesAchatView = lazy(() =>
+  import("./components/FacturesAchatView").then((m) => ({ default: m.FacturesAchatView })),
 );
 const EspaceLivreur = lazy(() =>
   import("./components/EspaceLivreur").then((m) => ({ default: m.EspaceLivreur })),
@@ -488,6 +488,7 @@ function AppInner() {
         designation: s.designation,
         quantite: s.quantite,
         prixVenteUnit: s.prix_vente_unit,
+        commission: s.commission ?? 0,
         totalVente: s.total_vente,
         prixAchatUnitRef: s.prix_achat_unit_ref,
         totalAchatRef: s.total_achat_ref,
@@ -1607,9 +1608,7 @@ function AppInner() {
                         onRafraichir={storeData.refresh}
                         onTelechargerLaListe={() => setBonDeCommandeOuvert(true)}
                         reglagesAlertes={alertesStock.reglages}
-                        onNavigateTab={(onglet) =>
-                          setActiveTab(onglet as ActiveTab)
-                        }
+                        onNavigateTab={(onglet) => setActiveTab(onglet as ActiveTab)}
                         peutVendre={peutEnregistrerUneVente}
                       />
                     ) : (
@@ -1751,6 +1750,39 @@ function AppInner() {
                     reapprovisionner={reapprovisionner}
                     onReapprovisionnementOuvert={() => setReapprovisionner(null)}
                     visibleFields={achatsVisibleFields}
+                    onOuvrirFacturesRecues={() => setActiveTab("factures_achat")}
+                  />
+                )}
+                {/* Le classeur des factures reçues. Il n'est pas dans
+                    la navigation : on y entre depuis les achats, là où
+                    l'on pense au fournisseur, et l'on en revient par
+                    la flèche de son en-tête. */}
+                {vue === "factures_achat" && (
+                  <FacturesAchatView
+                    factures={storeData.supplierInvoices}
+                    lignes={storeData.supplierInvoiceItems}
+                    fournisseurs={storeData.suppliers}
+                    products={products}
+                    settings={storeSettings}
+                    reglagesDocuments={reglagesDocuments}
+                    storeId={workspace.activeStore?.id ?? null}
+                    onAdd={storeData.addSupplierInvoice}
+                    onUpdate={storeData.updateSupplierInvoice}
+                    onDelete={
+                      workspace.isOwner ||
+                      hasModuleAction(workspace.memberPermissionsDetailed ?? {}, "achats", "delete")
+                        ? storeData.deleteSupplierInvoice
+                        : undefined
+                    }
+                    onRetour={() => setActiveTab("achats")}
+                    peutCreer={
+                      workspace.isOwner ||
+                      hasModuleAction(workspace.memberPermissionsDetailed ?? {}, "achats", "create")
+                    }
+                    peutModifier={
+                      workspace.isOwner ||
+                      hasModuleAction(workspace.memberPermissionsDetailed ?? {}, "achats", "edit")
+                    }
                   />
                 )}
                 {vue === "taches" && (
@@ -1873,6 +1905,7 @@ function AppInner() {
                     onPanierRepris={() => setPanierDepuisDevis(null)}
                     onVenteEnregistree={handleVenteEnregistree}
                     onEditSale={hasVentesAccess ? handleEditSale : undefined}
+                    onFixerCommission={hasVentesAccess ? storeData.fixerCommission : undefined}
                     onDeleteSale={hasVentesAccess ? handleDeleteSale : undefined}
                     restrictedToOwnSales={!hasVentesAccess}
                     visibleFields={ventesVisibleFields}
