@@ -28,7 +28,8 @@ Migrations appliquées, dans l'ordre :
 `20260922142000_personnes_externes`,
 `20260922143000_prix_automatique_et_confie_a`,
 `20260922144000_le_type_dune_depense_nest_pas_son_poste`,
-`20260922145000_listes_droits_dexecution`.
+`20260922145000_listes_droits_dexecution`,
+`20260922150000_listes_refermer_aussi_public`.
 
 ## Ce qui a été vérifié sur les données réelles
 
@@ -41,7 +42,13 @@ Directement en base de production, après les migrations :
   le déclencheur et pas seulement par l'écran ;
 - les trois index uniques sont valides après la fixation du
   `search_path` de `cle_de_liste` ;
-- les fiches d'essai créées pour ces vérifications ont été effacées.
+- créer une boutique installe bien ses 26 valeurs par défaut, et les
+  effacer avec elle ;
+- sous le rôle `authenticated`, la garde lue par les politiques RLS
+  reste appelable ; sous `anon`, `installer_les_listes_par_defaut` est
+  refusée ;
+- les fiches et la boutique d'essai créées pour ces vérifications ont
+  été effacées — la base est revenue à 20 boutiques et 520 valeurs.
 
 ## Les quatre écarts
 
@@ -147,6 +154,19 @@ Une première migration avait confondu les deux ; elle a été défaite par
 - **`scrollIntoView` n'était pas appelé prudemment** dans le sélecteur.
   Tout environnement qui ne le fournit pas — c'est le cas de celui des
   épreuves — faisait tomber le champ entier. L'appel est devenu optionnel.
+
+- **Le verrouillage des fonctions ne verrouillait rien.** La migration
+  `145000` révoquait l'exécution depuis `anon` et `authenticated`, comme
+  le fait le reste du projet — mais Postgres accorde aussi EXECUTE à
+  PUBLIC sur toute fonction, et cet héritage-là restait. Vérification
+  faite après coup, `has_function_privilege('anon', …)` rendait toujours
+  vrai. `20260922150000` révoque depuis PUBLIC, et la vérification passe
+  désormais : `anon` est refusé, `authenticated` garde ce qu'il lui faut
+  pour les politiques RLS.
+
+  Le même oubli existe sur les fonctions antérieures du projet — c'est
+  un chantier à part, sur une base en service, et il n'est pas mêlé à
+  celui-ci.
 
 ## L'état de la reprise, vérifié en base
 
