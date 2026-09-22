@@ -46,6 +46,15 @@ export const ExportPdfGroupe: React.FC<{
   const [fini, setFini] = useState(false);
   const fichiers = useRef<{ nom: string; blob: Blob }[]>([]);
   const enTraitement = useRef(false);
+  /*
+   * Les pièces déjà photographiées.
+   *
+   * `onPret` est une fonction neuve à chaque rendu : l'effet qui
+   * l'appelle se rejoue donc plus d'une fois pour un même document. Le
+   * verrou `enTraitement` couvre le temps de la photo, celui-ci couvre
+   * l'après — sans lui, une facture entrerait deux fois dans le ZIP.
+   */
+  const dejaFaites = useRef(new Set<string>());
 
   const aFaire = documents.filter((d) => d.entite !== "devis" || d.devis);
   const courant = aFaire[rang] ?? null;
@@ -88,7 +97,9 @@ export const ExportPdfGroupe: React.FC<{
   }, [rang, aFaire.length, fini, nomDeFichier, onFermer]);
 
   const photographier = async (feuilles: HTMLElement[]) => {
-    if (enTraitement.current || !piece) return;
+    if (enTraitement.current || !piece || !courant) return;
+    if (dejaFaites.current.has(courant.cle)) return;
+    dejaFaites.current.add(courant.cle);
     enTraitement.current = true;
     try {
       const { jsPDF } = await import("jspdf");
