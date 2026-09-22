@@ -267,6 +267,25 @@ describe("une facture émise ne se modifie pas et ne se supprime pas", () => {
   });
 });
 
+describe("la copie figée d'une pièce émise", () => {
+  it("est rangée à l'ouverture du document, avec l'identité du jour", async () => {
+    const f = facturation();
+    afficher({ facturation: f });
+    fireEvent.click(screen.getByText("FAC-V001"));
+    fireEvent.click(screen.getByRole("button", { name: /Voir, PDF, imprimer/ }));
+
+    await waitFor(() => expect(f.marquerEmis).toHaveBeenCalledTimes(1));
+    const [entite, id, type, copie] = (f.marquerEmis as ReturnType<typeof vi.fn>).mock.calls[0];
+    expect(entite).toBe("vente");
+    expect(id).toBe("T1");
+    expect(type).toBe("facture");
+    // Ce qui changerait si la boutique déménageait demain.
+    expect(copie).toHaveProperty("identite");
+    expect(copie).toHaveProperty("type.titre", "FACTURE");
+    expect(copie).toHaveProperty("type.prefixe", "FAC-");
+  });
+});
+
 describe("encaisser une facture", () => {
   it("le règlement se pose sur les lignes du ticket", async () => {
     const { onAddPaymentToSale } = afficher();

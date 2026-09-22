@@ -52,6 +52,7 @@ import { lireReglagesDocuments } from "./features/documents/lib/reglages";
 import { useFacturation } from "./hooks/useFacturation";
 import { construireDocuments } from "./components/facturation/documents";
 import { compterLesRetards } from "./components/facturation/indicateurs";
+import { offresDeLaPortee, ventesDeLaPortee } from "./components/facturation/portee";
 import { useNotificationPrefs } from "./lib/notificationPrefs";
 import { useCaptureDuDrapeau, useDashboardV2 } from "./features/dashboard-v2/drapeau";
 import {
@@ -903,16 +904,18 @@ function AppInner() {
     : ["view", "create", "send", "payment", "credit_note", "export"].filter((a) =>
         hasModuleAction(workspace.memberPermissionsDetailed ?? {}, "facturation", a),
       );
-  const facturationSales = useMemo(() => {
-    if (!hasFacturationModule) return [];
-    if (facturationVoitTout) return sales;
-    return myName ? sales.filter((v) => v.vendeur === myName) : [];
-  }, [sales, hasFacturationModule, facturationVoitTout, myName]);
-  const facturationQuotes = useMemo(() => {
-    if (!hasFacturationModule) return [];
-    if (facturationVoitTout) return storeData.quotes;
-    return storeData.quotes.filter((q) => q.created_by === user?.id);
-  }, [storeData.quotes, hasFacturationModule, facturationVoitTout, user?.id]);
+  const facturationSales = useMemo(
+    () =>
+      hasFacturationModule ? ventesDeLaPortee(sales, facturationVoitTout, myName) : [],
+    [sales, hasFacturationModule, facturationVoitTout, myName],
+  );
+  const facturationQuotes = useMemo(
+    () =>
+      hasFacturationModule
+        ? offresDeLaPortee(storeData.quotes, facturationVoitTout, user?.id ?? null)
+        : [],
+    [storeData.quotes, hasFacturationModule, facturationVoitTout, user?.id],
+  );
 
   /* Les pieces, assemblees UNE fois : le badge du menu et la page
      comptent alors exactement les memes documents. */

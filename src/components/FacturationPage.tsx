@@ -394,7 +394,9 @@ export const FacturationPage: React.FC<FacturationPageProps> = ({
             droits={droits}
             aujourdhui={facturation.aujourdhui}
             relances={facturation.relances.get(d.cle) ?? 0}
-            onEmis={(type) => void facturation.marquerEmis(d.entite, d.entiteId, type)}
+            onEmis={(type, snapshot) =>
+              void facturation.marquerEmis(d.entite, d.entiteId, type, snapshot)
+            }
             onEnvoye={(canal, relance) =>
               void facturation.marquerEnvoye(d.entite, d.entiteId, d.type, canal, relance)
             }

@@ -49,7 +49,21 @@ export interface Facturation {
    */
   aujourdhui: string;
   recharger: () => Promise<void>;
-  marquerEmis: (entite: EntiteDocument, id: string, type: string) => Promise<void>;
+  /**
+   * Ranger la copie figée d'une pièce qui vient de partir.
+   *
+   * `snapshot` porte l'identité, les réglages du type et la mise en
+   * page TELS QU'ILS ÉTAIENT : si la boutique change son logo ou son
+   * adresse demain, la pièce d'aujourd'hui se reconstruit à
+   * l'identique. Une seule par pièce — l'index unique le garantit, et
+   * une réimpression relit la première au lieu d'en écrire une autre.
+   */
+  marquerEmis: (
+    entite: EntiteDocument,
+    id: string,
+    type: string,
+    snapshot: unknown,
+  ) => Promise<void>;
   marquerEnvoye: (
     entite: EntiteDocument,
     id: string,
@@ -160,16 +174,24 @@ export function useFacturation(storeId: string | null, actif: boolean): Facturat
   }, [emissions]);
 
   const marquerEmis = useCallback(
-    async (entite: EntiteDocument, id: string, type: string) => {
+    async (entite: EntiteDocument, id: string, type: string, snapshot: unknown) => {
       if (!storeId) return;
-      // Une réimpression relit la copie figée au lieu d'en écrire une
-      // nouvelle : l'index unique le garantit, le conflit est ignoré.
-      const { error } = await supabase
-        .from("document_emissions")
-        .insert({ store_id: storeId, entite, entite_id: id, type, snapshot: {} });
+      // Déjà émise : on ne réécrit pas la copie figée, sans quoi une
+      // réimpression après un déménagement effacerait l'adresse qui
+      // figure sur le papier parti chez le client.
+      if (emissions.some((e) => e.entite === entite && e.entite_id === id && e.type === type)) {
+        return;
+      }
+      const { error } = await supabase.from("document_emissions").insert({
+        store_id: storeId,
+        entite,
+        entite_id: id,
+        type,
+        snapshot: (snapshot ?? {}) as never,
+      });
       if (!error) setEmissions((e) => [...e, { entite, entite_id: id, type }]);
     },
-    [storeId],
+    [storeId, emissions],
   );
 
   const marquerEnvoye = useCallback(

@@ -13,6 +13,8 @@ import {
 import { Modal } from "../shared/Modal";
 import { SortieDocument } from "../../features/documents/SortieDocument";
 import type { ReglagesDocuments } from "../../features/documents/lib/reglages";
+import { resoudreType } from "../../features/documents/lib/resolveur";
+import type { TypeDocumentV3 } from "../../features/documents/lib/typesDocument";
 import { montant as formaterMontant } from "../../features/documents/lib/format";
 import type { DocumentCommercial } from "./documents";
 import {
@@ -58,7 +60,7 @@ export interface ActionsDocumentProps {
   aujourdhui: string;
   /** Combien de relances sont déjà parties pour cette pièce. */
   relances: number;
-  onEmis: (type: string) => void;
+  onEmis: (type: string, snapshot: unknown) => void;
   onEnvoye: (canal: string, relance: boolean) => void;
   onEncaisser?: (doc: DocumentCommercial) => void;
   onConvertir?: (doc: DocumentCommercial) => void;
@@ -93,12 +95,26 @@ export const ActionsDocument: React.FC<ActionsDocumentProps> = ({
 
   const ouvrirEnvoi = (relance: boolean) => setEnvoi({ relance });
 
-  /* Ouvrir le document, c'est l'émettre : c'est à cet instant qu'il
-     part chez le client, sur papier ou en fichier. La copie figée est
-     posée une seule fois — une réimpression relit la première. */
+  /*
+   * Ouvrir le document, c'est l'émettre : c'est à cet instant qu'il part
+   * chez le client, sur papier ou en fichier.
+   *
+   * On range alors sa COPIE FIGÉE — l'identité de la boutique et les
+   * réglages du type, tels qu'ils sont aujourd'hui. Si la boutique
+   * déménage ou change son logo demain, la pièce d'aujourd'hui reste
+   * celle que le client a reçue. Une seule copie par pièce : une
+   * réimpression relit la première.
+   */
   const ouvrirLaPiece = (voulue: SortieVoulue) => {
     setSortie(voulue);
-    onEmis(voulue === "recu" ? "recu" : d.type);
+    const type = voulue === "recu" ? "recu" : d.type;
+    onEmis(type, {
+      version: 1,
+      emisLe: aujourdhui,
+      identite: reglages.identite,
+      type: resoudreType(reglages, type as TypeDocumentV3),
+      page: reglages.pages[type as TypeDocumentV3] ?? null,
+    });
   };
 
   return (
