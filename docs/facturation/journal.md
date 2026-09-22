@@ -256,7 +256,23 @@ rien l'alimente. Une pièce ouverte y range sa copie, une seule fois :
 une réimpression après un déménagement ne réécrit pas l'adresse qui
 figure sur le papier parti chez le client.
 
-**5. Le classeur des factures reçues n'apparaît pas en portée
+**5. Les actions d'une pièce sont dans sa fiche, pas dans un menu au
+bout de la ligne.** Le cahier dit « depuis le menu de chaque ligne ET
+depuis la fiche ». Une pastille à trois points sur chacune des trente
+lignes ajoute trente petits boutons à une page dont tout le reste est
+sobre, et il faut deux gestes pour atteindre l'action — ouvrir le menu,
+choisir. Ici, un clic sur la ligne ouvre sa fiche, et les sept actions
+y sont visibles d'un coup. _Défaire_ : `DataList` n'a pas de fente pour
+un tel menu ; il faudrait lui en ajouter une, et elle servirait alors à
+tous les écrans.
+
+**6. Le tri se choisit dans les filtres, pas en cliquant sur des
+en-têtes de colonnes.** Il n'y a pas de colonnes : la liste est
+hiérarchisée pour tenir sur un téléphone sans défilement horizontal. Le
+sélecteur porte les six mêmes clés — date, numéro, client, échéance,
+montant, reste — avec le sens du tri à côté.
+
+**7. Le classeur des factures reçues n'apparaît pas en portée
 restreinte.** Il n'a ni vendeur ni auteur qui vaille : une facture
 fournisseur arrive au nom du commerce. Mieux vaut ne pas le montrer du
 tout que d'en montrer une part arbitraire.
