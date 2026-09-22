@@ -611,6 +611,50 @@ export type Database = {
           },
         ]
       }
+      document_emissions: {
+        Row: {
+          emis_le: string
+          emis_par: string | null
+          entite: string
+          entite_id: string
+          id: string
+          numero: string | null
+          snapshot: Json
+          store_id: string
+          type: string
+        }
+        Insert: {
+          emis_le?: string
+          emis_par?: string | null
+          entite: string
+          entite_id: string
+          id?: string
+          numero?: string | null
+          snapshot: Json
+          store_id: string
+          type: string
+        }
+        Update: {
+          emis_le?: string
+          emis_par?: string | null
+          entite?: string
+          entite_id?: string
+          id?: string
+          numero?: string | null
+          snapshot?: Json
+          store_id?: string
+          type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "document_emissions_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       evenement_participants: {
         Row: {
           evenement_id: string
@@ -1710,12 +1754,14 @@ export type Database = {
           created_at: string
           created_by: string | null
           date: string
+          duree_validite_jours: number | null
           id: string
           note: string | null
           numero: string | null
           statut: string
           store_id: string
           total: number
+          type: string
           updated_at: string
           valide_jusqu_au: string | null
           vente_ticket_id: string | null
@@ -1726,12 +1772,14 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           date?: string
+          duree_validite_jours?: number | null
           id?: string
           note?: string | null
           numero?: string | null
           statut?: string
           store_id: string
           total?: number
+          type?: string
           updated_at?: string
           valide_jusqu_au?: string | null
           vente_ticket_id?: string | null
@@ -1742,12 +1790,14 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           date?: string
+          duree_validite_jours?: number | null
           id?: string
           note?: string | null
           numero?: string | null
           statut?: string
           store_id?: string
           total?: number
+          type?: string
           updated_at?: string
           valide_jusqu_au?: string | null
           vente_ticket_id?: string | null
@@ -2073,6 +2123,7 @@ export type Database = {
         Row: {
           client_credit: string | null
           client_id: string | null
+          commission: number
           created_at: string
           date: string
           designation: string
@@ -2099,6 +2150,7 @@ export type Database = {
         Insert: {
           client_credit?: string | null
           client_id?: string | null
+          commission?: number
           created_at?: string
           date?: string
           designation: string
@@ -2125,6 +2177,7 @@ export type Database = {
         Update: {
           client_credit?: string | null
           client_id?: string | null
+          commission?: number
           created_at?: string
           date?: string
           designation?: string
@@ -2406,6 +2459,136 @@ export type Database = {
             columns: ["owner_id"]
             isOneToOne: false
             referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      supplier_invoice_items: {
+        Row: {
+          created_at: string
+          designation: string
+          id: string
+          invoice_id: string
+          prix_unitaire: number
+          product_id: string | null
+          quantite: number
+          store_id: string
+          total: number | null
+          unite: string | null
+        }
+        Insert: {
+          created_at?: string
+          designation: string
+          id?: string
+          invoice_id: string
+          prix_unitaire?: number
+          product_id?: string | null
+          quantite?: number
+          store_id: string
+          total?: number | null
+          unite?: string | null
+        }
+        Update: {
+          created_at?: string
+          designation?: string
+          id?: string
+          invoice_id?: string
+          prix_unitaire?: number
+          product_id?: string | null
+          quantite?: number
+          store_id?: string
+          total?: number | null
+          unite?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "supplier_invoice_items_invoice_id_fkey"
+            columns: ["invoice_id"]
+            isOneToOne: false
+            referencedRelation: "supplier_invoices"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "supplier_invoice_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "supplier_invoice_items_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      supplier_invoices: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          date: string
+          date_echeance: string | null
+          fournisseur: string
+          id: string
+          montant_paye: number
+          note: string | null
+          numero: string | null
+          numero_fournisseur: string | null
+          piece_jointe: string | null
+          store_id: string
+          supplier_id: string | null
+          total: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          date?: string
+          date_echeance?: string | null
+          fournisseur?: string
+          id?: string
+          montant_paye?: number
+          note?: string | null
+          numero?: string | null
+          numero_fournisseur?: string | null
+          piece_jointe?: string | null
+          store_id: string
+          supplier_id?: string | null
+          total?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          date?: string
+          date_echeance?: string | null
+          fournisseur?: string
+          id?: string
+          montant_paye?: number
+          note?: string | null
+          numero?: string | null
+          numero_fournisseur?: string | null
+          piece_jointe?: string | null
+          store_id?: string
+          supplier_id?: string | null
+          total?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "supplier_invoices_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "supplier_invoices_supplier_id_fkey"
+            columns: ["supplier_id"]
+            isOneToOne: false
+            referencedRelation: "suppliers"
             referencedColumns: ["id"]
           },
         ]
@@ -2816,9 +2999,11 @@ export type Database = {
           p_client_id: string
           p_client_nom: string
           p_date: string
+          p_duree_validite_jours?: number
           p_lignes: Json
           p_note: string
           p_store_id: string
+          p_type?: string
           p_valide_jusqu_au: string
         }
         Returns: Json
@@ -2853,6 +3038,22 @@ export type Database = {
         }
         Returns: Json
       }
+      create_supplier_invoice: {
+        Args: {
+          p_date: string
+          p_date_echeance: string
+          p_fournisseur: string
+          p_lignes: Json
+          p_montant_paye: number
+          p_note: string
+          p_numero_fournisseur: string
+          p_piece_jointe: string
+          p_store_id: string
+          p_supplier_id: string
+          p_total: number
+        }
+        Returns: Json
+      }
       delete_order: { Args: { p_order_id: string }; Returns: undefined }
       delete_own_account: { Args: never; Returns: undefined }
       delete_products: { Args: { p_product_ids: string[] }; Returns: number }
@@ -2861,6 +3062,14 @@ export type Database = {
       demander_les_resumes_par_email: { Args: never; Returns: number }
       est_dans_la_boutique: { Args: { p_store_id: string }; Returns: boolean }
       est_invite_a: { Args: { p_evenement_id: string }; Returns: boolean }
+      fixer_commission_de_vente: {
+        Args: { p_montant: number; p_sale_id: string }
+        Returns: number
+      }
+      fixer_compteur_de_document: {
+        Args: { p_prochain: number; p_store_id: string; p_type: string }
+        Returns: number
+      }
       fonctions_de_prealerte_ouvertes: {
         Args: never
         Returns: {
@@ -2908,6 +3117,10 @@ export type Database = {
         Args: { p_store_id: string }
         Returns: boolean
       }
+      peut_regler_les_documents: {
+        Args: { p_store_id: string }
+        Returns: boolean
+      }
       peut_voir_evenement: {
         Args: { p_evenement_id: string }
         Returns: boolean
@@ -2923,6 +3136,10 @@ export type Database = {
           nom_table: string
           policy: string
         }[]
+      }
+      prochain_numero_de_document: {
+        Args: { p_store_id: string; p_type: string }
+        Returns: number
       }
       proprietaire_dune_boutique_ouverte: {
         Args: { p_store_id: string }
@@ -2996,9 +3213,11 @@ export type Database = {
           p_client_id: string
           p_client_nom: string
           p_date: string
+          p_duree_validite_jours?: number
           p_lignes: Json
           p_note: string
           p_quote_id: string
+          p_type?: string
           p_valide_jusqu_au: string
         }
         Returns: Json
@@ -3010,6 +3229,22 @@ export type Database = {
           p_new_quantite: number
           p_new_total_vente: number
           p_sale_id: string
+        }
+        Returns: Json
+      }
+      update_supplier_invoice: {
+        Args: {
+          p_date: string
+          p_date_echeance: string
+          p_fournisseur: string
+          p_id: string
+          p_lignes: Json
+          p_montant_paye: number
+          p_note: string
+          p_numero_fournisseur: string
+          p_piece_jointe: string
+          p_supplier_id: string
+          p_total: number
         }
         Returns: Json
       }

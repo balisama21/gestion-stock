@@ -11,6 +11,7 @@ import {
   type Page,
 } from "./lib/pagination";
 import { variablesDeCouleur, type ModeleDocument, type ReglagesDocuments } from "./lib/reglages";
+import { resoudreType } from "./lib/resolveur";
 import { Bandeau } from "./templates/Bandeau";
 import { Classique } from "./templates/Classique";
 import { Compact } from "./templates/Compact";
@@ -156,7 +157,14 @@ export const DocumentPreview: React.FC<DocumentPreviewProps> = ({
   const rouleau = format !== "a4";
   const largeurMm = LARGEUR_MM[format];
   const largeurCible = px(largeurMm);
-  const nomModele = modele ?? reglages.modele;
+  /*
+   * Le modèle et la couleur suivent le TYPE du document : une boutique
+   * peut vouloir ses devis en épuré et ses factures en classique. À
+   * défaut de réglage propre au type, ce sont ceux de la boutique —
+   * `resoudreType` s'en charge, et lui seul connaît l'ordre.
+   */
+  const regle = resoudreType(reglages, doc.type);
+  const nomModele = modele ?? regle.modele;
   const Modele = MODELES[nomModele] ?? Classique;
 
   const scene = useRef<HTMLDivElement>(null);
@@ -303,7 +311,7 @@ export const DocumentPreview: React.FC<DocumentPreviewProps> = ({
   };
 
   return (
-    <div className="doc-racine" style={variablesDeCouleur(reglages.couleur) as React.CSSProperties}>
+    <div className="doc-racine" style={variablesDeCouleur(regle.couleur) as React.CSSProperties}>
       {erreur && (
         <p
           role="alert"
@@ -359,7 +367,7 @@ export const DocumentPreview: React.FC<DocumentPreviewProps> = ({
                     .filter((l): l is LigneDocument => l !== undefined)}
                   premiere={rang === 0}
                   derniere={rang === repartition.length - 1}
-                  pagination={mentionDePage(rang, repartition.length)}
+                  pagination={doc.paginer ? mentionDePage(rang, repartition.length) : null}
                 />
               </div>
             ))

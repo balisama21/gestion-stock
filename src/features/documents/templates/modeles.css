@@ -183,6 +183,23 @@
   color: #6b7671;
   line-height: 1.5;
 }
+/* Où payer. Un encart discret : c'est une information de service,
+   pas un argument. Il n'apparaît que si la boutique l'a renseignée. */
+.doc-paiement {
+  margin-top: 4mm;
+  font-size: 8.5pt;
+  color: #39413d;
+  line-height: 1.5;
+}
+.doc-paiement h5 {
+  font-size: 7.5pt;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: #6b7671;
+  margin-bottom: 0.8mm;
+}
+
 .doc-signatures {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -462,6 +479,7 @@
 .m-epure .doc-bloc h4,
 .m-epure .doc-meta,
 .m-epure .doc-mentions,
+.m-epure .doc-paiement,
 .m-epure .doc-totaux .l,
 .m-epure th,
 .m-epure .doc-num,

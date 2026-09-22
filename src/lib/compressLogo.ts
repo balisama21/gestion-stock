@@ -21,6 +21,17 @@ const TAILLE_MAX = 256;
 /** Qualité de compression, entre 0 et 1. */
 const QUALITE = 0.85;
 
+/**
+ * Au-delà de ce poids, un SVG repasse par le canevas comme les autres.
+ *
+ * Un logo vectoriel pèse quelques kilooctets et reste net à toutes les
+ * tailles — sur une facture imprimée, la différence se voit. Le
+ * rastériser serait donc une perte. Mais un SVG peut aussi contenir une
+ * photographie encodée en base64 : celui-là n'a de vectoriel que
+ * l'extension, et il doit être réduit comme n'importe quelle image.
+ */
+const SVG_POIDS_MAX = 100 * 1024;
+
 export interface LogoCompresse {
   /** Image réduite, prête à être stockée. */
   dataUrl: string;
@@ -64,6 +75,13 @@ const chargerImage = (src: string): Promise<HTMLImageElement> =>
  */
 export async function compressLogo(file: File): Promise<LogoCompresse> {
   const original = await lireFichier(file);
+
+  // Un vrai vectoriel passe tel quel : le réduire à 256 pixels
+  // reviendrait à jeter ce qui en fait l'intérêt.
+  if (file.type === "image/svg+xml" && file.size <= SVG_POIDS_MAX) {
+    return { dataUrl: original, tailleOrigine: file.size, tailleFinale: poidsDataUrl(original) };
+  }
+
   const img = await chargerImage(original);
 
   const cote = Math.max(img.naturalWidth, img.naturalHeight);

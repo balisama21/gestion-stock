@@ -1,6 +1,7 @@
 import React from "react";
 import {
   BlocAdresse,
+  CoordonneesPaiement,
   Marque,
   Mentions,
   MontantEnLettres,
@@ -60,7 +61,7 @@ export const Epure: React.FC<ProprietesModele> = ({
     )}
 
     <div data-doc="tableau">
-      <TableauLignes lignes={lignes} devise={d.devise} />
+      <TableauLignes lignes={lignes} colonnes={d.colonnes} devise={d.devise} />
     </div>
 
     {derniere ? (
@@ -76,6 +77,7 @@ export const Epure: React.FC<ProprietesModele> = ({
             est, et sur ce modèle très aéré une ligne de titre coûtait
             une ligne d article sur la page. */}
         <Mentions texte={d.mentions} />
+        <CoordonneesPaiement lignes={d.coordonneesPaiement} />
 
         <Signature signatures={d.signatures} />
 

@@ -69,6 +69,14 @@ export interface Sale {
   // ce lien. Nul = vendue seule, ce qui est le cas de toutes les ventes
   // enregistrees avant cette etape.
   ticketId?: string | null;
+  /**
+   * La part que la boutique garde sur une prestation.
+   *
+   * Elle est COMPRISE dans `totalVente` : elle ne s'y ajoute pas, et
+   * ne change donc ni la caisse ni la marge. Zéro sur une vente
+   * ordinaire, c'est-à-dire presque partout.
+   */
+  commission: number;
   montantPaye: number;
   montantRembourse: number;
   soldeDu: number;
@@ -196,6 +204,7 @@ export type ActiveTab =
   | "capital"
   | "produits"
   | "achats"
+  | "factures_achat"
   | "agenda"
   | "vue_equipe"
   | "taches"

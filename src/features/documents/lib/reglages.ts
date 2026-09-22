@@ -1,4 +1,7 @@
 import type { Echeance } from "./format";
+import { IDENTITE_PAR_DEFAUT, lireIdentite, type IdentiteBoutique } from "./identite";
+import { lireMisesEnPage, type MisesEnPage } from "./miseEnPage";
+import { lireTypes, TYPES_DOCUMENT, type ReglagesParType } from "./typesDocument";
 
 /**
  * CE QUE LA BOUTIQUE A DÉCIDÉ POUR SES DOCUMENTS
@@ -60,6 +63,25 @@ export interface ReglagesTicket {
 
 export interface ReglagesDocuments {
   /**
+   * NIVEAU 1 — l'identité commune, reprise par tous les documents.
+   *
+   * Elle ne recopie pas les colonnes de `stores` : voir `identite.ts`.
+   * Vide par défaut, donc sans effet sur le rendu actuel.
+   */
+  identite: IdentiteBoutique;
+  /**
+   * NIVEAU 2 — ce que la boutique a changé sur UN type de document.
+   *
+   * Un type absent n'a pas été personnalisé : il suit la boutique et
+   * les défauts du logiciel. Voir `typesDocument.ts` et `resolveur.ts`.
+   */
+  types: ReglagesParType;
+  /**
+   * NIVEAU 3 — la mise en page d'un type : ce qui s'affiche, sous
+   * quel nom, dans quel ordre. Voir `miseEnPage.ts`.
+   */
+  pages: MisesEnPage;
+  /**
    * L'INTERRUPTEUR DE LA BOUTIQUE.
    *
    * `null` — la boutique suit ce que le déploiement a décidé.
@@ -89,6 +111,9 @@ export const REGLAGES_DOCUMENTS_PAR_DEFAUT: ReglagesDocuments = {
   // Par défaut la boutique ne tranche pas : c'est le déploiement qui
   // décide, et elle garde le pouvoir de dire non.
   actif: null,
+  identite: IDENTITE_PAR_DEFAUT,
+  types: {},
+  pages: {},
   modele: "classique",
   couleur: "#0E7C5A",
   logo: "auto",
@@ -113,11 +138,13 @@ export const REGLAGES_DOCUMENTS_PAR_DEFAUT: ReglagesDocuments = {
 };
 
 /**
- * Les préfixes des autres documents.
+ * Les préfixes des quatre autres documents.
  *
- * Seule la facture est réglable : les quatre autres suivent le même
- * principe, et laisser régler cinq préfixes indépendamment ferait
- * surtout cinq occasions de se contredire.
+ * @deprecated Ils sont devenus des réglages par type — voir
+ * `DEFAUTS_TYPE` dans `typesDocument.ts`, qui porte ces mêmes valeurs
+ * comme défauts du logiciel. Cette table n'est plus lue par les
+ * documents ; elle reste exportée le temps qu'aucun appel extérieur
+ * ne la cherche.
  */
 export const PREFIXES: Record<string, string> = {
   devis: "DEV-",
@@ -160,6 +187,9 @@ export function lireReglagesDocuments(brut: unknown): ReglagesDocuments {
   return {
     // Trois états, et non deux : `undefined` n'est pas `false`.
     actif: typeof r.actif === "boolean" ? r.actif : null,
+    identite: lireIdentite(r.identite),
+    types: lireTypes(r.types),
+    pages: lireMisesEnPage(r.pages, TYPES_DOCUMENT),
     modele: dans(r.modele, MODELES, d.modele),
     couleur: COULEUR_VALIDE.test(couleur) ? couleur : d.couleur,
     logo: dans(r.logo, LOGOS, d.logo),

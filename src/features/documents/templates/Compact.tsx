@@ -1,7 +1,9 @@
 import React from "react";
-import { montant, quantite } from "../lib/format";
+import type { CleColonne } from "../lib/buildDocument";
+import { celluleDeLigne } from "../parts/cellules";
 import {
   BlocAdresse,
+  CoordonneesPaiement,
   Marque,
   Mentions,
   MontantEnLettres,
@@ -34,6 +36,28 @@ import { Ressort, TeteSuite, type ProprietesModele } from "../parts/squelette";
  * sans quoi une colonne de trente nombres devient illisible — ce qui
  * ruinerait précisément ce pour quoi on a choisi ce modèle.
  */
+/** Les abréviations du Compact : la densité est sa raison d'être. */
+const COURT: Partial<Record<CleColonne, string>> = {
+  quantite: "Qté",
+  prixUnitaire: "P.U.",
+};
+
+const FORME: Record<CleColonne, { largeur?: string; align?: "center" | "right" }> = {
+  designation: {},
+  quantite: { largeur: "22mm", align: "center" },
+  unite: { largeur: "18mm", align: "center" },
+  prixUnitaire: { largeur: "26mm", align: "right" },
+  total: { largeur: "28mm", align: "right" },
+};
+
+const CLASSE: Record<CleColonne, string> = {
+  designation: "",
+  quantite: "doc-qte",
+  unite: "doc-qte",
+  prixUnitaire: "doc-montant",
+  total: "doc-montant",
+};
+
 export const Compact: React.FC<ProprietesModele> = ({
   document: d,
   lignes,
@@ -41,6 +65,7 @@ export const Compact: React.FC<ProprietesModele> = ({
   derniere,
   pagination,
 }) => {
+  const avecUnite = d.colonnes.some((c) => c.cle === "unite");
   // Le rang de chaque ligne dans le document entier, et non sur la page.
   const premierRang = d.lignes.findIndex((l) => l.id === lignes[0]?.id);
   const rangDe = (i: number) => (premierRang >= 0 ? premierRang + i : i) + 1;
@@ -86,25 +111,34 @@ export const Compact: React.FC<ProprietesModele> = ({
           <thead>
             <tr style={{ whiteSpace: "nowrap" }}>
               <th style={{ width: "10mm" }}>#</th>
-              <th>Désignation</th>
-              <th style={{ textAlign: "center", width: "22mm" }}>Qté</th>
-              <th style={{ textAlign: "right", width: "26mm" }}>P.U.</th>
-              <th style={{ textAlign: "right", width: "28mm" }}>Total</th>
+              {d.colonnes.map((c) => (
+                <th
+                  key={c.cle}
+                  style={{ textAlign: FORME[c.cle].align, width: FORME[c.cle].largeur }}
+                >
+                  {/* Les abréviations du Compact sont à lui : elles
+                      s'effacent dès que la boutique a choisi son mot. */}
+                  {c.personnalise ? c.libelle : (COURT[c.cle] ?? c.libelle)}
+                </th>
+              ))}
             </tr>
           </thead>
           <tbody>
             {lignes.map((l, i) => (
               <tr key={l.id}>
                 <td className="doc-num doc-muted">{rangDe(i)}</td>
-                <td>
-                  {l.designation}
-                  {l.detail && <span className="doc-muted"> · {l.detail}</span>}
-                </td>
-                <td className="doc-qte">{quantite(l.quantite, l.unite)}</td>
-                <td className="doc-montant">{montant(l.prixUnitaire, d.devise)}</td>
-                <td className="doc-montant">
-                  <b>{montant(l.total, d.devise)}</b>
-                </td>
+                {d.colonnes.map((c) => (
+                  <td key={c.cle} className={CLASSE[c.cle] || undefined}>
+                    {c.cle === "designation" ? (
+                      <>
+                        {l.designation}
+                        {l.detail && <span className="doc-muted"> · {l.detail}</span>}
+                      </>
+                    ) : (
+                      celluleDeLigne(c.cle, l, d.devise, avecUnite)
+                    )}
+                  </td>
+                ))}
               </tr>
             ))}
           </tbody>
@@ -117,6 +151,7 @@ export const Compact: React.FC<ProprietesModele> = ({
             <div>
               <MontantEnLettres texte={d.montantEnLettres} type={d.type} />
               <Mentions texte={d.mentions} />
+              <CoordonneesPaiement lignes={d.coordonneesPaiement} />
             </div>
             <Totaux totaux={d.totaux} devise={d.devise} />
           </div>

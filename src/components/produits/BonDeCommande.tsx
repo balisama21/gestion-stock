@@ -17,6 +17,9 @@ import {
   type ProduitARecommander,
 } from "../../lib/bonDeCommande";
 import type { ReglagesAlertesStock } from "../../lib/prealerteStock";
+import { usePersonnalisation } from "../../lib/personnalisation";
+import { lireReglagesDocuments } from "../../features/documents/lib/reglages";
+import { resoudreType } from "../../features/documents/lib/resolveur";
 
 /**
  * LE BON DE COMMANDE.
@@ -68,6 +71,19 @@ export const BonDeCommande: React.FC<BonDeCommandeProps> = ({
   settings,
 }) => {
   const [invoicePrefs] = useInvoicePrefs();
+  /*
+   * Le titre, la mention et le mot de fin de CE document viennent des
+   * réglages de la boutique, comme pour les autres. Ils y étaient
+   * écrits en dur : ce sont désormais les valeurs par défaut du type
+   * « bon de commande fournisseur ». Ce document garde son
+   * implémentation d'origine — il n'est pas encore passé sur le moteur
+   * commun — mais il n'a plus de texte figé.
+   */
+  const personnalisation = usePersonnalisation();
+  const regleAchat = useMemo(
+    () => resoudreType(lireReglagesDocuments(personnalisation.documents), "achat"),
+    [personnalisation.documents],
+  );
   const [paperId, setPaperId] = useState<PaperFormatId>("a4");
   const paper = getPaperFormat(paperId);
   const documentRef = useRef<HTMLDivElement>(null);
@@ -275,7 +291,7 @@ export const BonDeCommande: React.FC<BonDeCommandeProps> = ({
 
               <div className="shrink-0 text-right">
                 <p className="text-[13px] font-bold uppercase tracking-[0.18em] text-slate-900">
-                  Bon de commande
+                  {regleAchat.titre}
                 </p>
                 <p className="mt-1.5 text-[11px] text-slate-500">
                   Le{" "}
@@ -361,9 +377,16 @@ export const BonDeCommande: React.FC<BonDeCommandeProps> = ({
                 pour les reçus de VENTE, et « sans reprise après la
                 vente » n'a aucun sens adressé à un fournisseur. Restent
                 une mention courte sur les prix, et la place de signer. */}
+            {regleAchat.motDeFin.trim() && (
+              <p className="mt-8 text-[10.5px] text-slate-500">{regleAchat.motDeFin}</p>
+            )}
+
             <footer className="mt-10 flex items-end justify-between gap-8">
+              {/* La mention est réglable ; le décompte des lignes non
+                  chiffrées ne l'est pas — il constate l'état de CE
+                  document et se tairait à tort. */}
               <p className="max-w-[55%] text-[9.5px] leading-relaxed text-slate-400">
-                Prix indicatifs, d&apos;après le dernier achat connu.
+                {regleAchat.conditions}
                 {total.lignesSansPrix > 0 &&
                   (total.lignesSansPrix > 1
                     ? ` ${total.lignesSansPrix} lignes ne sont pas chiffrées.`

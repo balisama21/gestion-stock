@@ -92,6 +92,7 @@ const vente = (v: Partial<Sale> & Pick<Sale, "id" | "numero" | "date">) =>
     quantite: 1,
     prixVenteUnit: 0,
     totalVente: 0,
+    commission: 0,
     prixAchatUnitRef: 0,
     totalAchatRef: 0,
     margeTotale: 0,

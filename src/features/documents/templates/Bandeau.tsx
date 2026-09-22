@@ -2,6 +2,7 @@ import React from "react";
 import { montant } from "../lib/format";
 import {
   BlocAdresse,
+  CoordonneesPaiement,
   Marque,
   Mentions,
   MontantEnLettres,
@@ -83,7 +84,7 @@ export const Bandeau: React.FC<ProprietesModele> = ({
     )}
 
     <div data-doc="tableau">
-      <TableauLignes lignes={lignes} devise={d.devise} />
+      <TableauLignes lignes={lignes} colonnes={d.colonnes} devise={d.devise} />
     </div>
 
     {derniere ? (
@@ -96,6 +97,7 @@ export const Bandeau: React.FC<ProprietesModele> = ({
                 <Mentions texte={d.mentions} />
               </div>
             )}
+            <CoordonneesPaiement lignes={d.coordonneesPaiement} />
           </div>
           <div>
             <Totaux totaux={d.totaux} devise={d.devise} sansTotal />

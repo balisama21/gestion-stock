@@ -1,6 +1,7 @@
 import React from "react";
 import type {
   BlocTiers,
+  ColonneDocument,
   Document,
   EnTeteBoutique,
   LigneDocument,
@@ -9,7 +10,8 @@ import type {
   Tampon,
   TotauxDocument,
 } from "../lib/buildDocument";
-import { montant, quantite } from "../lib/format";
+import { montant } from "../lib/format";
+import { celluleDeLigne, CLASSE, COLONNE } from "./cellules";
 
 /**
  * LES MORCEAUX DONT LES QUATRE MODÈLES SONT FAITS
@@ -49,30 +51,36 @@ export const Marque: React.FC<{ emetteur: EnTeteBoutique; inverse?: boolean }> =
 
 /* ── Un bloc d'adresse — émetteur ou destinataire ────────────────── */
 
-export const BlocAdresse: React.FC<{ bloc: BlocTiers; titre?: string }> = ({ bloc, titre }) => (
-  <div className="doc-bloc">
-    <h4>{titre ?? bloc.titre}</h4>
-    <b>{bloc.nom}</b>
-    {/* Le paragraphe entier disparaît quand il n'y a rien à y mettre :
+export const BlocAdresse: React.FC<{ bloc: BlocTiers; titre?: string }> = ({ bloc, titre }) => {
+  // Masqués dans la mise en page, l'intitulé et le nom valent la
+  // chaîne vide. Une balise vide garderait sa hauteur : on ne la pose
+  // donc pas du tout.
+  const intitule = titre ?? bloc.titre;
+  return (
+    <div className="doc-bloc">
+      {intitule && <h4>{intitule}</h4>}
+      {bloc.nom && <b>{bloc.nom}</b>}
+      {/* Le paragraphe entier disparaît quand il n'y a rien à y mettre :
         un cadre vide sous un nom se lit comme une donnée perdue. */}
-    {(bloc.lignes.length > 0 || bloc.nif) && (
-      <p>
-        {bloc.lignes.map((l, i) => (
-          <React.Fragment key={i}>
-            {i > 0 && <br />}
-            {l}
-          </React.Fragment>
-        ))}
-        {bloc.nif && (
-          <>
-            {bloc.lignes.length > 0 && <br />}
-            <span className="doc-fiscal">NIF/STAT {bloc.nif}</span>
-          </>
-        )}
-      </p>
-    )}
-  </div>
-);
+      {(bloc.lignes.length > 0 || bloc.nif) && (
+        <p>
+          {bloc.lignes.map((l, i) => (
+            <React.Fragment key={i}>
+              {i > 0 && <br />}
+              {l}
+            </React.Fragment>
+          ))}
+          {bloc.nif && (
+            <>
+              {bloc.lignes.length > 0 && <br />}
+              <span className="doc-fiscal">NIF/STAT {bloc.nif}</span>
+            </>
+          )}
+        </p>
+      )}
+    </div>
+  );
+};
 
 /* ── Les repères du document ─────────────────────────────────────── */
 
@@ -110,43 +118,42 @@ export const TamponPaiement: React.FC<{ tampon: Tampon | null }> = ({ tampon }) 
 
 /* ── Le tableau des lignes ───────────────────────────────────────── */
 
-export const TableauLignes: React.FC<{ lignes: LigneDocument[]; devise: string }> = ({
-  lignes,
-  devise,
-}) => (
-  <table>
-    <thead>
-      {/* Un en-tête qui se casse en deux se lit mal, et c'est
-          exactement ce qui arrivait aux PDF produits d'un téléphone. */}
-      <tr style={{ whiteSpace: "nowrap" }}>
-        <th>Désignation</th>
-        <th style={{ textAlign: "center", width: "28mm" }}>Quantité</th>
-        <th style={{ textAlign: "right", width: "30mm" }}>Prix unitaire</th>
-        <th style={{ textAlign: "right", width: "32mm" }}>Total</th>
-      </tr>
-    </thead>
-    <tbody>
-      {lignes.map((l) => (
-        <tr key={l.id}>
-          <td>
-            <b>{l.designation}</b>
-            {l.detail && (
-              <>
-                <br />
-                <span className="doc-detail">{l.detail}</span>
-              </>
-            )}
-          </td>
-          <td className="doc-qte">{quantite(l.quantite, l.unite)}</td>
-          <td className="doc-montant">{montant(l.prixUnitaire, devise)}</td>
-          <td className="doc-montant">
-            <b>{montant(l.total, devise)}</b>
-          </td>
+export const TableauLignes: React.FC<{
+  lignes: LigneDocument[];
+  colonnes: ColonneDocument[];
+  devise: string;
+}> = ({ lignes, colonnes, devise }) => {
+  const avecUnite = colonnes.some((c) => c.cle === "unite");
+  return (
+    <table>
+      <thead>
+        {/* Un en-tête qui se casse en deux se lit mal, et c'est
+            exactement ce qui arrivait aux PDF produits d'un téléphone. */}
+        <tr style={{ whiteSpace: "nowrap" }}>
+          {colonnes.map((c) => (
+            <th
+              key={c.cle}
+              style={{ textAlign: COLONNE[c.cle].align, width: COLONNE[c.cle].largeur }}
+            >
+              {c.libelle}
+            </th>
+          ))}
         </tr>
-      ))}
-    </tbody>
-  </table>
-);
+      </thead>
+      <tbody>
+        {lignes.map((l) => (
+          <tr key={l.id}>
+            {colonnes.map((c) => (
+              <td key={c.cle} className={CLASSE[c.cle] || undefined}>
+                {celluleDeLigne(c.cle, l, devise, avecUnite)}
+              </td>
+            ))}
+          </tr>
+        ))}
+      </tbody>
+    </table>
+  );
+};
 
 /* ── Les totaux ──────────────────────────────────────────────────── */
 
@@ -166,13 +173,32 @@ export const Totaux: React.FC<{
         il répéterait le total mot pour mot. */}
     {totaux.horsTaxe !== null && (
       <div className="l">
-        <span className="doc-muted">Total hors taxe</span>
+        <span className="doc-muted">{totaux.libelleHorsTaxe}</span>
         <span className="doc-num">{montant(totaux.horsTaxe, devise)}</span>
       </div>
     )}
+    {/* La commission se lit AVANT le total : deux lignes qui
+        détaillent ce que le client paie, et dont la somme est
+        exactement le total annoncé dessous. */}
+    {totaux.commission && (
+      <>
+        {totaux.commission.prestation !== null && (
+          <div className="l">
+            <span className="doc-muted">{totaux.commission.libellePrestation}</span>
+            <span className="doc-num">{montant(totaux.commission.prestation, devise)}</span>
+          </div>
+        )}
+        <div className="l">
+          <span className="doc-muted">{totaux.commission.libelle}</span>
+          <span className="doc-num">{montant(totaux.commission.montant, devise)}</span>
+        </div>
+      </>
+    )}
     {totaux.tva && (
       <div className="l">
-        <span className="doc-muted">TVA {totaux.tva.taux} %</span>
+        <span className="doc-muted">
+          {totaux.libelleTva} {totaux.tva.taux} %
+        </span>
         <span className="doc-num">{montant(totaux.tva.montant, devise)}</span>
       </div>
     )}
@@ -201,7 +227,7 @@ export const Totaux: React.FC<{
         que lorsqu'il reste vraiment quelque chose. */}
     {totaux.reste !== null && totaux.reste > 0 && (
       <div className="l reste">
-        <span className="doc-muted">Reste à payer</span>
+        <span className="doc-muted">{totaux.libelleReste}</span>
         <span className="doc-num">{montant(totaux.reste, devise)}</span>
       </div>
     )}
@@ -225,6 +251,22 @@ export const MontantEnLettres: React.FC<{ texte: string | null; type: Document["
 
 export const Mentions: React.FC<{ texte: string | null }> = ({ texte }) =>
   texte ? <p className="doc-mentions">{texte}</p> : null;
+
+/**
+ * Où payer — Mobile Money, virement.
+ *
+ * Le titre ne vit pas sans ses lignes : rien de saisi, rien du tout,
+ * pas d'intitulé orphelin au-dessus d'un vide.
+ */
+export const CoordonneesPaiement: React.FC<{ lignes: string[] | null }> = ({ lignes }) =>
+  lignes && lignes.length > 0 ? (
+    <div className="doc-paiement">
+      <h5>Coordonnées de paiement</h5>
+      {lignes.map((l) => (
+        <div key={l}>{l}</div>
+      ))}
+    </div>
+  ) : null;
 
 export const Signature: React.FC<{ signatures: Signatures | null }> = ({ signatures }) =>
   signatures ? (

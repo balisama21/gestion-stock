@@ -4,6 +4,7 @@ import { Modal } from "../../components/shared/Modal";
 import type { Document } from "./lib/buildDocument";
 import { DocumentPreview, type FormatDocument } from "./DocumentPreview";
 import type { ModeleDocument, ReglagesDocuments } from "./lib/reglages";
+import { resoudreType } from "./lib/resolveur";
 
 /**
  * LA FENÊTRE QUI SORT UN DOCUMENT
@@ -51,7 +52,11 @@ export const SortieDocument: React.FC<SortieDocumentProps> = ({
   titre,
 }) => {
   const [format, setFormat] = useState<FormatDocument>(formats[0] ?? "a4");
-  const [modele, setModele] = useState<ModeleDocument>(reglages.modele);
+  // Le modèle de départ est celui du TYPE, qui suit la boutique à
+  // défaut du sien. Le changer ici ne vaut que pour ce tirage.
+  const [modele, setModele] = useState<ModeleDocument>(
+    () => resoudreType(reglages, doc.type).modele,
+  );
   const choix = FORMATS.filter((f) => formats.includes(f.cle));
 
   return (
