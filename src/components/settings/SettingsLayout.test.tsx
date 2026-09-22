@@ -48,7 +48,7 @@ const BOUTIQUE = [
   "Reçus et factures",
   "Documents",
   "Champs personnalisés",
-  "Catégories",
+  "Listes",
   "Vocabulaire et modules",
   "Rappels",
   "Alertes de stock",

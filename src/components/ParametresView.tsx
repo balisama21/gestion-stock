@@ -23,7 +23,7 @@ import {
   AlertesStockSection,
   type ReglagesAlertesStockProps,
 } from "./settings/AlertesStockSection";
-import { CategoriesSection } from "./settings/CategoriesSection";
+import { ListesSection } from "./settings/ListesSection";
 import { lirePersonnalisation, type Personnalisation } from "../lib/personnalisation";
 import type { ChampPerso } from "../lib/champsPersonnalises";
 import type { Database, Json } from "../lib/database.types";
@@ -57,13 +57,20 @@ interface ParametresViewProps {
    * mêmes.
    */
   alertesStock: ReglagesAlertesStockProps;
-  /** Les familles de produits, et combien de produits chacune range. */
+  /** Les listes personnalisables de la boutique, tous usages confondus. */
   categories: Database["public"]["Tables"]["categories"]["Row"][];
-  compteParCategorie: Record<string, number>;
+  /** Combien d'enregistrements portent chaque valeur de liste. */
+  compteParValeur: Record<string, number>;
   onAddCategorie: (data: {
     nom: string;
     parent_id?: string | null;
-  }) => Promise<{ error: string | null }>;
+    usage?: string;
+    ordre?: number;
+    taux_marge?: number | null;
+  }) => Promise<{
+    categorie: Database["public"]["Tables"]["categories"]["Row"] | null;
+    error: string | null;
+  }>;
   onUpdateCategorie: (id: string, data: any) => Promise<{ error: string | null }>;
   onDeleteCategorie: (id: string) => Promise<{ error: string | null }>;
   /**
@@ -124,7 +131,7 @@ export const ParametresView: React.FC<ParametresViewProps> = ({
   onSavePersonnalisation,
   alertesStock,
   categories,
-  compteParCategorie,
+  compteParValeur,
   onAddCategorie,
   onUpdateCategorie,
   onDeleteCategorie,
@@ -1001,25 +1008,14 @@ export const ParametresView: React.FC<ParametresViewProps> = ({
       )}
 
       {activeTab === "categories" && (
-        <div className="space-y-4">
-          <CategoriesSection
-            categories={categories}
-            compteParCategorie={compteParCategorie}
-            onAdd={onAddCategorie}
-            onUpdate={onUpdateCategorie}
-            onDelete={onDeleteCategorie}
-          />
-          {/* Meme section, meme mecanique : ranger un rayon et ranger
-              un poste de depense, c est le meme geste. */}
-          <CategoriesSection
-            categories={categories}
-            compteParCategorie={compteParCategorie}
-            onAdd={onAddCategorie}
-            onUpdate={onUpdateCategorie}
-            onDelete={onDeleteCategorie}
-            usage="depense"
-          />
-        </div>
+        <ListesSection
+          valeurs={categories}
+          compteParValeur={compteParValeur}
+          onAdd={onAddCategorie}
+          onUpdate={onUpdateCategorie}
+          personnalisation={lirePersonnalisation(personnalisation)}
+          onSavePersonnalisation={onSavePersonnalisation}
+        />
       )}
 
       {activeTab === "vocabulaire" && (

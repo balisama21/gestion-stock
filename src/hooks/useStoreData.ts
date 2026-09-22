@@ -21,6 +21,7 @@ type Provider = Database["public"]["Tables"]["providers"]["Row"];
 type ProviderService = Database["public"]["Tables"]["provider_services"]["Row"];
 type CustomField = Database["public"]["Tables"]["custom_field_definitions"]["Row"];
 type Categorie = Database["public"]["Tables"]["categories"]["Row"];
+type PersonneExterne = Database["public"]["Tables"]["personnes_externes"]["Row"];
 type ImageProduit = Database["public"]["Tables"]["product_images"]["Row"];
 type ReglementFournisseur = Database["public"]["Tables"]["supplier_payments"]["Row"];
 type SaleRow = Database["public"]["Tables"]["sales"]["Row"];
@@ -198,6 +199,8 @@ export interface StoreData {
   providerServices: ProviderService[];
   customFields: CustomField[];
   categories: Categorie[];
+  /** Les vendeurs et intervenants hors equipe. Des contacts, pas des comptes. */
+  personnesExternes: PersonneExterne[];
   productImages: ImageProduit[];
   supplierPayments: ReglementFournisseur[];
   /** Les devis de la boutique, du plus récent au plus ancien. */
@@ -528,13 +531,29 @@ export interface StoreData {
 
   deleteCustomField: (id: string) => Promise<{ error: string | null }>;
 
-  // CRUD Catégories
+  // CRUD Personnes externes
+  addPersonneExterne: (
+    data: Omit<
+      Database["public"]["Tables"]["personnes_externes"]["Insert"],
+      "store_id" | "created_by"
+    >,
+  ) => Promise<{ personne: PersonneExterne | null; error: string | null }>;
+
+  updatePersonneExterne: (
+    id: string,
+    data: Database["public"]["Tables"]["personnes_externes"]["Update"],
+  ) => Promise<{ error: string | null }>;
+
+  // CRUD Catégories — c'est-à-dire, depuis la brique 0, toutes les
+  // listes personnalisables de la boutique : `usage` dit laquelle.
   addCategorie: (data: {
     nom: string;
     parent_id?: string | null;
-    /** « produit » pour un rayon, « depense » pour un poste. */
+    /** « produit », « depense » ou « type_fournisseur ». */
     usage?: string;
-  }) => Promise<{ error: string | null }>;
+    ordre?: number;
+    taux_marge?: number | null;
+  }) => Promise<{ categorie: Categorie | null; error: string | null }>;
 
   updateCategorie: (
     id: string,
@@ -683,6 +702,7 @@ export function useStoreData(storeId: string | null, userId: string | null): Sto
   const [providerServices, setProviderServices] = useState<ProviderService[]>([]);
   const [customFields, setCustomFields] = useState<CustomField[]>([]);
   const [categories, setCategories] = useState<Categorie[]>([]);
+  const [personnesExternes, setPersonnesExternes] = useState<PersonneExterne[]>([]);
   const [productImages, setProductImages] = useState<ImageProduit[]>([]);
   const [supplierPayments, setSupplierPayments] = useState<ReglementFournisseur[]>([]);
   const [quotes, setQuotes] = useState<Devis[]>([]);
@@ -739,6 +759,7 @@ export function useStoreData(storeId: string | null, userId: string | null): Sto
         providerServicesRes,
         customFieldsRes,
         categoriesRes,
+        personnesExternesRes,
         productImagesRes,
         supplierPaymentsRes,
         quotesRes,
@@ -808,6 +829,8 @@ export function useStoreData(storeId: string | null, userId: string | null): Sto
 
         supabase.from("categories").select("*").eq("store_id", storeId).order("ordre"),
 
+        supabase.from("personnes_externes").select("*").eq("store_id", storeId).order("nom"),
+
         supabase.from("product_images").select("*").eq("store_id", storeId).order("ordre"),
 
         supabase
@@ -875,6 +898,7 @@ export function useStoreData(storeId: string | null, userId: string | null): Sto
       if (providerServicesRes.data) setProviderServices(providerServicesRes.data);
       if (customFieldsRes.data) setCustomFields(customFieldsRes.data);
       if (categoriesRes.data) setCategories(categoriesRes.data);
+      if (personnesExternesRes.data) setPersonnesExternes(personnesExternesRes.data);
       if (productImagesRes.data) setProductImages(productImagesRes.data);
       if (supplierPaymentsRes.data) setSupplierPayments(supplierPaymentsRes.data);
       if (quotesRes.data) setQuotes(quotesRes.data);
@@ -986,13 +1010,13 @@ export function useStoreData(storeId: string | null, userId: string | null): Sto
       montant_paye_total: number;
       methode?: string | null;
       lignes: {
-      /** Vide pour une prestation : la base n'y touche alors ni au stock ni au catalogue. */
-      product_id: string;
-      quantite: number;
-      prix_vente_unit: number;
-      /** Le libellé d'une prestation. Ignoré quand la ligne porte un produit. */
-      designation?: string;
-    }[];
+        /** Vide pour une prestation : la base n'y touche alors ni au stock ni au catalogue. */
+        product_id: string;
+        quantite: number;
+        prix_vente_unit: number;
+        /** Le libellé d'une prestation. Ignoré quand la ligne porte un produit. */
+        designation?: string;
+      }[];
     }) => {
       if (!storeId || !userId) return { ventes: [], error: "Non autorisé" };
 
@@ -1708,18 +1732,37 @@ export function useStoreData(storeId: string | null, userId: string | null): Sto
   );
 
   // CATÉGORIES
+  //
+  // La ligne créée est RENVOYÉE, et pas seulement l'erreur : le
+  // sélecteur de liste ajoute une valeur puis la sélectionne dans la
+  // foulée, sans quitter le formulaire. Sans son identifiant, il lui
+  // faudrait attendre le rechargement et retrouver la valeur par son
+  // nom — ce qui échoue à la première boutique qui en crée deux d'un
+  // coup.
   const addCategorie = useCallback(
-    async (data: { nom: string; parent_id?: string | null; usage?: string }) => {
-      if (!storeId || !userId) return { error: "Non autorisé" };
-      const { error } = await supabase.from("categories").insert({
-        nom: data.nom,
-        parent_id: data.parent_id ?? null,
-        usage: data.usage ?? "produit",
-        store_id: storeId,
-        created_by: userId,
-      });
+    async (data: {
+      nom: string;
+      parent_id?: string | null;
+      usage?: string;
+      ordre?: number;
+      taux_marge?: number | null;
+    }) => {
+      if (!storeId || !userId) return { categorie: null, error: "Non autorisé" };
+      const { data: creee, error } = await supabase
+        .from("categories")
+        .insert({
+          nom: data.nom,
+          parent_id: data.parent_id ?? null,
+          usage: data.usage ?? "produit",
+          ...(data.ordre === undefined ? {} : { ordre: data.ordre }),
+          ...(data.taux_marge === undefined ? {} : { taux_marge: data.taux_marge }),
+          store_id: storeId,
+          created_by: userId,
+        })
+        .select("*")
+        .single();
       if (!error) fetchAll();
-      return { error: traduireErreurCategorie(error) };
+      return { categorie: creee ?? null, error: traduireErreurCategorie(error) };
     },
     [storeId, userId, fetchAll],
   );
@@ -1738,6 +1781,52 @@ export function useStoreData(storeId: string | null, userId: string | null): Sto
       const { error } = await supabase.from("categories").delete().eq("id", id);
       if (!error) fetchAll();
       return { error: traduireErreurCategorie(error) };
+    },
+    [fetchAll],
+  );
+
+  // PERSONNES EXTERNES
+  //
+  // Un contact, jamais un compte. La fiche est créée depuis un
+  // formulaire de vente ou de dépense aussi bien que depuis son écran :
+  // elle renvoie donc la ligne, comme une valeur de liste.
+  const addPersonneExterne = useCallback(
+    async (
+      data: Omit<
+        Database["public"]["Tables"]["personnes_externes"]["Insert"],
+        "store_id" | "created_by"
+      >,
+    ) => {
+      if (!storeId || !userId) return { personne: null, error: "Non autorisé" };
+      const { data: creee, error } = await supabase
+        .from("personnes_externes")
+        .insert({ ...data, store_id: storeId, created_by: userId })
+        .select("*")
+        .single();
+      if (!error) fetchAll();
+      return {
+        personne: creee ?? null,
+        error: error
+          ? error.code === "23505"
+            ? "Une personne porte déjà ce nom dans cette boutique."
+            : error.message
+          : null,
+      };
+    },
+    [storeId, userId, fetchAll],
+  );
+
+  const updatePersonneExterne = useCallback(
+    async (id: string, data: Database["public"]["Tables"]["personnes_externes"]["Update"]) => {
+      const { error } = await supabase.from("personnes_externes").update(data).eq("id", id);
+      if (!error) fetchAll();
+      return {
+        error: error
+          ? error.code === "23505"
+            ? "Une personne porte déjà ce nom dans cette boutique."
+            : error.message
+          : null,
+      };
     },
     [fetchAll],
   );
@@ -2070,6 +2159,9 @@ export function useStoreData(storeId: string | null, userId: string | null): Sto
     apports,
     payments,
     suppliers,
+    personnesExternes,
+    addPersonneExterne,
+    updatePersonneExterne,
     providers,
     providerServices,
     customFields,

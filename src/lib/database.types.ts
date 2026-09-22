@@ -1,10 +1,4 @@
-export type Json =
-  | string
-  | number
-  | boolean
-  | null
-  | { [key: string]: Json | undefined }
-  | Json[]
+export type Json = string | number | boolean | null | { [key: string]: Json | undefined } | Json[];
 
 // Alias de confort réexportés pour compatibilité avec le code existant.
 // Écrits à la main : la génération automatique des types ne les produit
@@ -22,3566 +16,3631 @@ export type Database = {
   // Allows to automatically instantiate createClient with right options
   // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
   __InternalSupabase: {
-    PostgrestVersion: "14.5"
-  }
+    PostgrestVersion: "14.5";
+  };
   public: {
     Tables: {
       abonnements_alertes_stock: {
         Row: {
-          canaux: string[]
-          cree_le: string
-          store_id: string
-          user_id: string
-        }
+          canaux: string[];
+          cree_le: string;
+          store_id: string;
+          user_id: string;
+        };
         Insert: {
-          canaux?: string[]
-          cree_le?: string
-          store_id: string
-          user_id: string
-        }
+          canaux?: string[];
+          cree_le?: string;
+          store_id: string;
+          user_id: string;
+        };
         Update: {
-          canaux?: string[]
-          cree_le?: string
-          store_id?: string
-          user_id?: string
-        }
+          canaux?: string[];
+          cree_le?: string;
+          store_id?: string;
+          user_id?: string;
+        };
         Relationships: [
           {
-            foreignKeyName: "abonnements_alertes_stock_store_id_fkey"
-            columns: ["store_id"]
-            isOneToOne: false
-            referencedRelation: "stores"
-            referencedColumns: ["id"]
+            foreignKeyName: "abonnements_alertes_stock_store_id_fkey";
+            columns: ["store_id"];
+            isOneToOne: false;
+            referencedRelation: "stores";
+            referencedColumns: ["id"];
           },
           {
-            foreignKeyName: "abonnements_alertes_stock_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
+            foreignKeyName: "abonnements_alertes_stock_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
           },
-        ]
-      }
+        ];
+      };
       access_codes: {
         Row: {
-          activated_at: string | null
-          activation_type: Database["public"]["Enums"]["activation_type"]
-          amount_paid: number | null
-          code: string
-          created_at: string
-          duree_jours: number | null
-          expires_at: string | null
-          generated_by: string | null
-          id: string
-          payment_method: Database["public"]["Enums"]["payment_method"] | null
-          payment_reference: string | null
-          reason: string | null
-          status: Database["public"]["Enums"]["access_code_status"]
-          store_id: string | null
-          user_id: string | null
-        }
+          activated_at: string | null;
+          activation_type: Database["public"]["Enums"]["activation_type"];
+          amount_paid: number | null;
+          code: string;
+          created_at: string;
+          duree_jours: number | null;
+          expires_at: string | null;
+          generated_by: string | null;
+          id: string;
+          payment_method: Database["public"]["Enums"]["payment_method"] | null;
+          payment_reference: string | null;
+          reason: string | null;
+          status: Database["public"]["Enums"]["access_code_status"];
+          store_id: string | null;
+          user_id: string | null;
+        };
         Insert: {
-          activated_at?: string | null
-          activation_type?: Database["public"]["Enums"]["activation_type"]
-          amount_paid?: number | null
-          code: string
-          created_at?: string
-          duree_jours?: number | null
-          expires_at?: string | null
-          generated_by?: string | null
-          id?: string
-          payment_method?: Database["public"]["Enums"]["payment_method"] | null
-          payment_reference?: string | null
-          reason?: string | null
-          status?: Database["public"]["Enums"]["access_code_status"]
-          store_id?: string | null
-          user_id?: string | null
-        }
+          activated_at?: string | null;
+          activation_type?: Database["public"]["Enums"]["activation_type"];
+          amount_paid?: number | null;
+          code: string;
+          created_at?: string;
+          duree_jours?: number | null;
+          expires_at?: string | null;
+          generated_by?: string | null;
+          id?: string;
+          payment_method?: Database["public"]["Enums"]["payment_method"] | null;
+          payment_reference?: string | null;
+          reason?: string | null;
+          status?: Database["public"]["Enums"]["access_code_status"];
+          store_id?: string | null;
+          user_id?: string | null;
+        };
         Update: {
-          activated_at?: string | null
-          activation_type?: Database["public"]["Enums"]["activation_type"]
-          amount_paid?: number | null
-          code?: string
-          created_at?: string
-          duree_jours?: number | null
-          expires_at?: string | null
-          generated_by?: string | null
-          id?: string
-          payment_method?: Database["public"]["Enums"]["payment_method"] | null
-          payment_reference?: string | null
-          reason?: string | null
-          status?: Database["public"]["Enums"]["access_code_status"]
-          store_id?: string | null
-          user_id?: string | null
-        }
+          activated_at?: string | null;
+          activation_type?: Database["public"]["Enums"]["activation_type"];
+          amount_paid?: number | null;
+          code?: string;
+          created_at?: string;
+          duree_jours?: number | null;
+          expires_at?: string | null;
+          generated_by?: string | null;
+          id?: string;
+          payment_method?: Database["public"]["Enums"]["payment_method"] | null;
+          payment_reference?: string | null;
+          reason?: string | null;
+          status?: Database["public"]["Enums"]["access_code_status"];
+          store_id?: string | null;
+          user_id?: string | null;
+        };
         Relationships: [
           {
-            foreignKeyName: "access_codes_generated_by_fkey"
-            columns: ["generated_by"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
+            foreignKeyName: "access_codes_generated_by_fkey";
+            columns: ["generated_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
           },
           {
-            foreignKeyName: "access_codes_store_id_fkey"
-            columns: ["store_id"]
-            isOneToOne: false
-            referencedRelation: "stores"
-            referencedColumns: ["id"]
+            foreignKeyName: "access_codes_store_id_fkey";
+            columns: ["store_id"];
+            isOneToOne: false;
+            referencedRelation: "stores";
+            referencedColumns: ["id"];
           },
           {
-            foreignKeyName: "access_codes_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
+            foreignKeyName: "access_codes_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
           },
-        ]
-      }
+        ];
+      };
       activations_de_compte: {
         Row: {
-          abonnement_jusqu_au: string | null
-          active_le: string
-          mis_a_jour_le: string
-          user_id: string
-        }
+          abonnement_jusqu_au: string | null;
+          active_le: string;
+          mis_a_jour_le: string;
+          user_id: string;
+        };
         Insert: {
-          abonnement_jusqu_au?: string | null
-          active_le?: string
-          mis_a_jour_le?: string
-          user_id: string
-        }
+          abonnement_jusqu_au?: string | null;
+          active_le?: string;
+          mis_a_jour_le?: string;
+          user_id: string;
+        };
         Update: {
-          abonnement_jusqu_au?: string | null
-          active_le?: string
-          mis_a_jour_le?: string
-          user_id?: string
-        }
+          abonnement_jusqu_au?: string | null;
+          active_le?: string;
+          mis_a_jour_le?: string;
+          user_id?: string;
+        };
         Relationships: [
           {
-            foreignKeyName: "activations_de_compte_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: true
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
+            foreignKeyName: "activations_de_compte_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: true;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
           },
-        ]
-      }
+        ];
+      };
       admin_actions: {
         Row: {
-          action_type: string
-          created_at: string
-          details: Json
-          id: string
-          performed_by: string | null
-          target_user_id: string | null
-        }
+          action_type: string;
+          created_at: string;
+          details: Json;
+          id: string;
+          performed_by: string | null;
+          target_user_id: string | null;
+        };
         Insert: {
-          action_type: string
-          created_at?: string
-          details?: Json
-          id?: string
-          performed_by?: string | null
-          target_user_id?: string | null
-        }
+          action_type: string;
+          created_at?: string;
+          details?: Json;
+          id?: string;
+          performed_by?: string | null;
+          target_user_id?: string | null;
+        };
         Update: {
-          action_type?: string
-          created_at?: string
-          details?: Json
-          id?: string
-          performed_by?: string | null
-          target_user_id?: string | null
-        }
+          action_type?: string;
+          created_at?: string;
+          details?: Json;
+          id?: string;
+          performed_by?: string | null;
+          target_user_id?: string | null;
+        };
         Relationships: [
           {
-            foreignKeyName: "admin_actions_performed_by_fkey"
-            columns: ["performed_by"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
+            foreignKeyName: "admin_actions_performed_by_fkey";
+            columns: ["performed_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
           },
           {
-            foreignKeyName: "admin_actions_target_user_id_fkey"
-            columns: ["target_user_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
+            foreignKeyName: "admin_actions_target_user_id_fkey";
+            columns: ["target_user_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
           },
-        ]
-      }
+        ];
+      };
       avoir_items: {
         Row: {
-          avoir_id: string
-          created_at: string
-          designation: string
-          id: string
-          ordre: number
-          prix_unitaire: number
-          product_id: string | null
-          quantite: number
-          store_id: string
-          total: number | null
-        }
+          avoir_id: string;
+          created_at: string;
+          designation: string;
+          id: string;
+          ordre: number;
+          prix_unitaire: number;
+          product_id: string | null;
+          quantite: number;
+          store_id: string;
+          total: number | null;
+        };
         Insert: {
-          avoir_id: string
-          created_at?: string
-          designation: string
-          id?: string
-          ordre?: number
-          prix_unitaire?: number
-          product_id?: string | null
-          quantite?: number
-          store_id: string
-          total?: number | null
-        }
+          avoir_id: string;
+          created_at?: string;
+          designation: string;
+          id?: string;
+          ordre?: number;
+          prix_unitaire?: number;
+          product_id?: string | null;
+          quantite?: number;
+          store_id: string;
+          total?: number | null;
+        };
         Update: {
-          avoir_id?: string
-          created_at?: string
-          designation?: string
-          id?: string
-          ordre?: number
-          prix_unitaire?: number
-          product_id?: string | null
-          quantite?: number
-          store_id?: string
-          total?: number | null
-        }
+          avoir_id?: string;
+          created_at?: string;
+          designation?: string;
+          id?: string;
+          ordre?: number;
+          prix_unitaire?: number;
+          product_id?: string | null;
+          quantite?: number;
+          store_id?: string;
+          total?: number | null;
+        };
         Relationships: [
           {
-            foreignKeyName: "avoir_items_avoir_id_fkey"
-            columns: ["avoir_id"]
-            isOneToOne: false
-            referencedRelation: "avoirs"
-            referencedColumns: ["id"]
+            foreignKeyName: "avoir_items_avoir_id_fkey";
+            columns: ["avoir_id"];
+            isOneToOne: false;
+            referencedRelation: "avoirs";
+            referencedColumns: ["id"];
           },
           {
-            foreignKeyName: "avoir_items_product_id_fkey"
-            columns: ["product_id"]
-            isOneToOne: false
-            referencedRelation: "products"
-            referencedColumns: ["id"]
+            foreignKeyName: "avoir_items_product_id_fkey";
+            columns: ["product_id"];
+            isOneToOne: false;
+            referencedRelation: "products";
+            referencedColumns: ["id"];
           },
           {
-            foreignKeyName: "avoir_items_store_id_fkey"
-            columns: ["store_id"]
-            isOneToOne: false
-            referencedRelation: "stores"
-            referencedColumns: ["id"]
+            foreignKeyName: "avoir_items_store_id_fkey";
+            columns: ["store_id"];
+            isOneToOne: false;
+            referencedRelation: "stores";
+            referencedColumns: ["id"];
           },
-        ]
-      }
+        ];
+      };
       avoirs: {
         Row: {
-          client_id: string | null
-          client_nom: string
-          created_at: string
-          created_by: string | null
-          date: string
-          facture_numero: string | null
-          id: string
-          montant: number
-          motif: string
-          numero: string | null
-          store_id: string
-          ticket_id: string | null
-        }
+          client_id: string | null;
+          client_nom: string;
+          created_at: string;
+          created_by: string | null;
+          date: string;
+          facture_numero: string | null;
+          id: string;
+          montant: number;
+          motif: string;
+          numero: string | null;
+          store_id: string;
+          ticket_id: string | null;
+        };
         Insert: {
-          client_id?: string | null
-          client_nom?: string
-          created_at?: string
-          created_by?: string | null
-          date?: string
-          facture_numero?: string | null
-          id?: string
-          montant?: number
-          motif?: string
-          numero?: string | null
-          store_id: string
-          ticket_id?: string | null
-        }
+          client_id?: string | null;
+          client_nom?: string;
+          created_at?: string;
+          created_by?: string | null;
+          date?: string;
+          facture_numero?: string | null;
+          id?: string;
+          montant?: number;
+          motif?: string;
+          numero?: string | null;
+          store_id: string;
+          ticket_id?: string | null;
+        };
         Update: {
-          client_id?: string | null
-          client_nom?: string
-          created_at?: string
-          created_by?: string | null
-          date?: string
-          facture_numero?: string | null
-          id?: string
-          montant?: number
-          motif?: string
-          numero?: string | null
-          store_id?: string
-          ticket_id?: string | null
-        }
+          client_id?: string | null;
+          client_nom?: string;
+          created_at?: string;
+          created_by?: string | null;
+          date?: string;
+          facture_numero?: string | null;
+          id?: string;
+          montant?: number;
+          motif?: string;
+          numero?: string | null;
+          store_id?: string;
+          ticket_id?: string | null;
+        };
         Relationships: [
           {
-            foreignKeyName: "avoirs_client_id_fkey"
-            columns: ["client_id"]
-            isOneToOne: false
-            referencedRelation: "clients"
-            referencedColumns: ["id"]
+            foreignKeyName: "avoirs_client_id_fkey";
+            columns: ["client_id"];
+            isOneToOne: false;
+            referencedRelation: "clients";
+            referencedColumns: ["id"];
           },
           {
-            foreignKeyName: "avoirs_store_id_fkey"
-            columns: ["store_id"]
-            isOneToOne: false
-            referencedRelation: "stores"
-            referencedColumns: ["id"]
+            foreignKeyName: "avoirs_store_id_fkey";
+            columns: ["store_id"];
+            isOneToOne: false;
+            referencedRelation: "stores";
+            referencedColumns: ["id"];
           },
-        ]
-      }
+        ];
+      };
       capital_apports: {
         Row: {
-          created_at: string
-          date: string
-          id: string
-          montant: number
-          note: string | null
-          owner_id: string | null
-          source: string
-          store_id: string
-        }
+          created_at: string;
+          date: string;
+          id: string;
+          montant: number;
+          note: string | null;
+          owner_id: string | null;
+          source: string;
+          store_id: string;
+        };
         Insert: {
-          created_at?: string
-          date?: string
-          id?: string
-          montant?: number
-          note?: string | null
-          owner_id?: string | null
-          source?: string
-          store_id: string
-        }
+          created_at?: string;
+          date?: string;
+          id?: string;
+          montant?: number;
+          note?: string | null;
+          owner_id?: string | null;
+          source?: string;
+          store_id: string;
+        };
         Update: {
-          created_at?: string
-          date?: string
-          id?: string
-          montant?: number
-          note?: string | null
-          owner_id?: string | null
-          source?: string
-          store_id?: string
-        }
+          created_at?: string;
+          date?: string;
+          id?: string;
+          montant?: number;
+          note?: string | null;
+          owner_id?: string | null;
+          source?: string;
+          store_id?: string;
+        };
         Relationships: [
           {
-            foreignKeyName: "capital_apports_owner_id_fkey"
-            columns: ["owner_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
+            foreignKeyName: "capital_apports_owner_id_fkey";
+            columns: ["owner_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
           },
           {
-            foreignKeyName: "capital_apports_store_id_fkey"
-            columns: ["store_id"]
-            isOneToOne: false
-            referencedRelation: "stores"
-            referencedColumns: ["id"]
+            foreignKeyName: "capital_apports_store_id_fkey";
+            columns: ["store_id"];
+            isOneToOne: false;
+            referencedRelation: "stores";
+            referencedColumns: ["id"];
           },
-        ]
-      }
+        ];
+      };
       categories: {
         Row: {
-          actif: boolean
-          created_at: string
-          created_by: string | null
-          id: string
-          nom: string
-          ordre: number
-          parent_id: string | null
-          store_id: string
-          updated_at: string
-          usage: string
-        }
+          actif: boolean;
+          created_at: string;
+          created_by: string | null;
+          id: string;
+          nom: string;
+          ordre: number;
+          parent_id: string | null;
+          store_id: string;
+          taux_marge: number | null;
+          updated_at: string;
+          usage: string;
+        };
         Insert: {
-          actif?: boolean
-          created_at?: string
-          created_by?: string | null
-          id?: string
-          nom: string
-          ordre?: number
-          parent_id?: string | null
-          store_id: string
-          updated_at?: string
-          usage?: string
-        }
+          actif?: boolean;
+          created_at?: string;
+          created_by?: string | null;
+          id?: string;
+          nom: string;
+          ordre?: number;
+          parent_id?: string | null;
+          store_id: string;
+          taux_marge?: number | null;
+          updated_at?: string;
+          usage?: string;
+        };
         Update: {
-          actif?: boolean
-          created_at?: string
-          created_by?: string | null
-          id?: string
-          nom?: string
-          ordre?: number
-          parent_id?: string | null
-          store_id?: string
-          updated_at?: string
-          usage?: string
-        }
+          actif?: boolean;
+          created_at?: string;
+          created_by?: string | null;
+          id?: string;
+          nom?: string;
+          ordre?: number;
+          parent_id?: string | null;
+          store_id?: string;
+          taux_marge?: number | null;
+          updated_at?: string;
+          usage?: string;
+        };
         Relationships: [
           {
-            foreignKeyName: "categories_parent_id_fkey"
-            columns: ["parent_id"]
-            isOneToOne: false
-            referencedRelation: "categories"
-            referencedColumns: ["id"]
+            foreignKeyName: "categories_parent_id_fkey";
+            columns: ["parent_id"];
+            isOneToOne: false;
+            referencedRelation: "categories";
+            referencedColumns: ["id"];
           },
           {
-            foreignKeyName: "categories_store_id_fkey"
-            columns: ["store_id"]
-            isOneToOne: false
-            referencedRelation: "stores"
-            referencedColumns: ["id"]
+            foreignKeyName: "categories_store_id_fkey";
+            columns: ["store_id"];
+            isOneToOne: false;
+            referencedRelation: "stores";
+            referencedColumns: ["id"];
           },
-        ]
-      }
+        ];
+      };
       clients: {
         Row: {
-          adresse: string | null
-          champs_perso: Json
-          created_at: string
-          created_by: string | null
-          email: string | null
-          entreprise: string | null
-          id: string
-          nom: string
-          note: string | null
-          pays: string | null
-          prenom: string | null
-          statut: string
-          store_id: string
-          telephone: string | null
-          type_client: string | null
-          updated_at: string
-          ville: string | null
-        }
+          adresse: string | null;
+          champs_perso: Json;
+          created_at: string;
+          created_by: string | null;
+          email: string | null;
+          entreprise: string | null;
+          id: string;
+          nom: string;
+          note: string | null;
+          pays: string | null;
+          prenom: string | null;
+          statut: string;
+          store_id: string;
+          telephone: string | null;
+          type_client: string | null;
+          updated_at: string;
+          ville: string | null;
+        };
         Insert: {
-          adresse?: string | null
-          champs_perso?: Json
-          created_at?: string
-          created_by?: string | null
-          email?: string | null
-          entreprise?: string | null
-          id?: string
-          nom: string
-          note?: string | null
-          pays?: string | null
-          prenom?: string | null
-          statut?: string
-          store_id: string
-          telephone?: string | null
-          type_client?: string | null
-          updated_at?: string
-          ville?: string | null
-        }
+          adresse?: string | null;
+          champs_perso?: Json;
+          created_at?: string;
+          created_by?: string | null;
+          email?: string | null;
+          entreprise?: string | null;
+          id?: string;
+          nom: string;
+          note?: string | null;
+          pays?: string | null;
+          prenom?: string | null;
+          statut?: string;
+          store_id: string;
+          telephone?: string | null;
+          type_client?: string | null;
+          updated_at?: string;
+          ville?: string | null;
+        };
         Update: {
-          adresse?: string | null
-          champs_perso?: Json
-          created_at?: string
-          created_by?: string | null
-          email?: string | null
-          entreprise?: string | null
-          id?: string
-          nom?: string
-          note?: string | null
-          pays?: string | null
-          prenom?: string | null
-          statut?: string
-          store_id?: string
-          telephone?: string | null
-          type_client?: string | null
-          updated_at?: string
-          ville?: string | null
-        }
+          adresse?: string | null;
+          champs_perso?: Json;
+          created_at?: string;
+          created_by?: string | null;
+          email?: string | null;
+          entreprise?: string | null;
+          id?: string;
+          nom?: string;
+          note?: string | null;
+          pays?: string | null;
+          prenom?: string | null;
+          statut?: string;
+          store_id?: string;
+          telephone?: string | null;
+          type_client?: string | null;
+          updated_at?: string;
+          ville?: string | null;
+        };
         Relationships: [
           {
-            foreignKeyName: "clients_created_by_fkey"
-            columns: ["created_by"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
+            foreignKeyName: "clients_created_by_fkey";
+            columns: ["created_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
           },
           {
-            foreignKeyName: "clients_store_id_fkey"
-            columns: ["store_id"]
-            isOneToOne: false
-            referencedRelation: "stores"
-            referencedColumns: ["id"]
+            foreignKeyName: "clients_store_id_fkey";
+            columns: ["store_id"];
+            isOneToOne: false;
+            referencedRelation: "stores";
+            referencedColumns: ["id"];
           },
-        ]
-      }
+        ];
+      };
       collaborator_invitations: {
         Row: {
-          accepted_at: string | null
-          created_at: string
-          expires_at: string
-          id: string
-          invite_code: string | null
-          invited_by: string
-          invited_email: string
-          permissions: Json
-          role: string
-          status: Database["public"]["Enums"]["invitation_status"]
-          store_id: string
-          token: string
-        }
+          accepted_at: string | null;
+          created_at: string;
+          expires_at: string;
+          id: string;
+          invite_code: string | null;
+          invited_by: string;
+          invited_email: string;
+          permissions: Json;
+          role: string;
+          status: Database["public"]["Enums"]["invitation_status"];
+          store_id: string;
+          token: string;
+        };
         Insert: {
-          accepted_at?: string | null
-          created_at?: string
-          expires_at?: string
-          id?: string
-          invite_code?: string | null
-          invited_by: string
-          invited_email: string
-          permissions?: Json
-          role?: string
-          status?: Database["public"]["Enums"]["invitation_status"]
-          store_id: string
-          token?: string
-        }
+          accepted_at?: string | null;
+          created_at?: string;
+          expires_at?: string;
+          id?: string;
+          invite_code?: string | null;
+          invited_by: string;
+          invited_email: string;
+          permissions?: Json;
+          role?: string;
+          status?: Database["public"]["Enums"]["invitation_status"];
+          store_id: string;
+          token?: string;
+        };
         Update: {
-          accepted_at?: string | null
-          created_at?: string
-          expires_at?: string
-          id?: string
-          invite_code?: string | null
-          invited_by?: string
-          invited_email?: string
-          permissions?: Json
-          role?: string
-          status?: Database["public"]["Enums"]["invitation_status"]
-          store_id?: string
-          token?: string
-        }
+          accepted_at?: string | null;
+          created_at?: string;
+          expires_at?: string;
+          id?: string;
+          invite_code?: string | null;
+          invited_by?: string;
+          invited_email?: string;
+          permissions?: Json;
+          role?: string;
+          status?: Database["public"]["Enums"]["invitation_status"];
+          store_id?: string;
+          token?: string;
+        };
         Relationships: [
           {
-            foreignKeyName: "collaborator_invitations_invited_by_fkey"
-            columns: ["invited_by"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
+            foreignKeyName: "collaborator_invitations_invited_by_fkey";
+            columns: ["invited_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
           },
           {
-            foreignKeyName: "collaborator_invitations_store_id_fkey"
-            columns: ["store_id"]
-            isOneToOne: false
-            referencedRelation: "stores"
-            referencedColumns: ["id"]
+            foreignKeyName: "collaborator_invitations_store_id_fkey";
+            columns: ["store_id"];
+            isOneToOne: false;
+            referencedRelation: "stores";
+            referencedColumns: ["id"];
           },
-        ]
-      }
+        ];
+      };
       custom_field_definitions: {
         Row: {
-          actif: boolean
-          aide: string | null
-          cle: string
-          created_at: string
-          created_by: string | null
-          entite: string
-          id: string
-          libelle: string
-          obligatoire: boolean
-          options: string[] | null
-          ordre: number
-          store_id: string
-          type: string
-          updated_at: string
-        }
+          actif: boolean;
+          aide: string | null;
+          cle: string;
+          created_at: string;
+          created_by: string | null;
+          entite: string;
+          id: string;
+          libelle: string;
+          obligatoire: boolean;
+          options: string[] | null;
+          ordre: number;
+          store_id: string;
+          type: string;
+          updated_at: string;
+        };
         Insert: {
-          actif?: boolean
-          aide?: string | null
-          cle: string
-          created_at?: string
-          created_by?: string | null
-          entite: string
-          id?: string
-          libelle: string
-          obligatoire?: boolean
-          options?: string[] | null
-          ordre?: number
-          store_id: string
-          type?: string
-          updated_at?: string
-        }
+          actif?: boolean;
+          aide?: string | null;
+          cle: string;
+          created_at?: string;
+          created_by?: string | null;
+          entite: string;
+          id?: string;
+          libelle: string;
+          obligatoire?: boolean;
+          options?: string[] | null;
+          ordre?: number;
+          store_id: string;
+          type?: string;
+          updated_at?: string;
+        };
         Update: {
-          actif?: boolean
-          aide?: string | null
-          cle?: string
-          created_at?: string
-          created_by?: string | null
-          entite?: string
-          id?: string
-          libelle?: string
-          obligatoire?: boolean
-          options?: string[] | null
-          ordre?: number
-          store_id?: string
-          type?: string
-          updated_at?: string
-        }
+          actif?: boolean;
+          aide?: string | null;
+          cle?: string;
+          created_at?: string;
+          created_by?: string | null;
+          entite?: string;
+          id?: string;
+          libelle?: string;
+          obligatoire?: boolean;
+          options?: string[] | null;
+          ordre?: number;
+          store_id?: string;
+          type?: string;
+          updated_at?: string;
+        };
         Relationships: [
           {
-            foreignKeyName: "custom_field_definitions_store_id_fkey"
-            columns: ["store_id"]
-            isOneToOne: false
-            referencedRelation: "stores"
-            referencedColumns: ["id"]
+            foreignKeyName: "custom_field_definitions_store_id_fkey";
+            columns: ["store_id"];
+            isOneToOne: false;
+            referencedRelation: "stores";
+            referencedColumns: ["id"];
           },
-        ]
-      }
+        ];
+      };
       deliveries: {
         Row: {
-          adresse: string
-          argent_remis_a: string | null
-          argent_remis_le: string | null
-          client_id: string | null
-          contenu: Json
-          created_at: string
-          created_by: string | null
-          date_prevue: string | null
-          destinataire: string
-          id: string
-          livreur_id: string | null
-          montant_a_encaisser: number
-          montant_encaisse: number
-          motif_echec: string | null
-          note: string | null
-          numero: string | null
-          order_id: string | null
-          precisions: string | null
-          prise_en_charge_le: string | null
-          remise_le: string | null
-          sale_ticket_id: string | null
-          statut: string
-          store_id: string
-          telephone: string | null
-          updated_at: string
-        }
+          adresse: string;
+          argent_remis_a: string | null;
+          argent_remis_le: string | null;
+          client_id: string | null;
+          confie_a: string | null;
+          contenu: Json;
+          created_at: string;
+          created_by: string | null;
+          date_prevue: string | null;
+          destinataire: string;
+          id: string;
+          livreur_id: string | null;
+          montant_a_encaisser: number;
+          montant_encaisse: number;
+          motif_echec: string | null;
+          note: string | null;
+          numero: string | null;
+          order_id: string | null;
+          precisions: string | null;
+          prise_en_charge_le: string | null;
+          remise_le: string | null;
+          sale_ticket_id: string | null;
+          statut: string;
+          store_id: string;
+          telephone: string | null;
+          updated_at: string;
+        };
         Insert: {
-          adresse?: string
-          argent_remis_a?: string | null
-          argent_remis_le?: string | null
-          client_id?: string | null
-          contenu?: Json
-          created_at?: string
-          created_by?: string | null
-          date_prevue?: string | null
-          destinataire?: string
-          id?: string
-          livreur_id?: string | null
-          montant_a_encaisser?: number
-          montant_encaisse?: number
-          motif_echec?: string | null
-          note?: string | null
-          numero?: string | null
-          order_id?: string | null
-          precisions?: string | null
-          prise_en_charge_le?: string | null
-          remise_le?: string | null
-          sale_ticket_id?: string | null
-          statut?: string
-          store_id: string
-          telephone?: string | null
-          updated_at?: string
-        }
+          adresse?: string;
+          argent_remis_a?: string | null;
+          argent_remis_le?: string | null;
+          client_id?: string | null;
+          confie_a?: string | null;
+          contenu?: Json;
+          created_at?: string;
+          created_by?: string | null;
+          date_prevue?: string | null;
+          destinataire?: string;
+          id?: string;
+          livreur_id?: string | null;
+          montant_a_encaisser?: number;
+          montant_encaisse?: number;
+          motif_echec?: string | null;
+          note?: string | null;
+          numero?: string | null;
+          order_id?: string | null;
+          precisions?: string | null;
+          prise_en_charge_le?: string | null;
+          remise_le?: string | null;
+          sale_ticket_id?: string | null;
+          statut?: string;
+          store_id: string;
+          telephone?: string | null;
+          updated_at?: string;
+        };
         Update: {
-          adresse?: string
-          argent_remis_a?: string | null
-          argent_remis_le?: string | null
-          client_id?: string | null
-          contenu?: Json
-          created_at?: string
-          created_by?: string | null
-          date_prevue?: string | null
-          destinataire?: string
-          id?: string
-          livreur_id?: string | null
-          montant_a_encaisser?: number
-          montant_encaisse?: number
-          motif_echec?: string | null
-          note?: string | null
-          numero?: string | null
-          order_id?: string | null
-          precisions?: string | null
-          prise_en_charge_le?: string | null
-          remise_le?: string | null
-          sale_ticket_id?: string | null
-          statut?: string
-          store_id?: string
-          telephone?: string | null
-          updated_at?: string
-        }
+          adresse?: string;
+          argent_remis_a?: string | null;
+          argent_remis_le?: string | null;
+          client_id?: string | null;
+          confie_a?: string | null;
+          contenu?: Json;
+          created_at?: string;
+          created_by?: string | null;
+          date_prevue?: string | null;
+          destinataire?: string;
+          id?: string;
+          livreur_id?: string | null;
+          montant_a_encaisser?: number;
+          montant_encaisse?: number;
+          motif_echec?: string | null;
+          note?: string | null;
+          numero?: string | null;
+          order_id?: string | null;
+          precisions?: string | null;
+          prise_en_charge_le?: string | null;
+          remise_le?: string | null;
+          sale_ticket_id?: string | null;
+          statut?: string;
+          store_id?: string;
+          telephone?: string | null;
+          updated_at?: string;
+        };
         Relationships: [
           {
-            foreignKeyName: "deliveries_client_id_fkey"
-            columns: ["client_id"]
-            isOneToOne: false
-            referencedRelation: "clients"
-            referencedColumns: ["id"]
+            foreignKeyName: "deliveries_client_id_fkey";
+            columns: ["client_id"];
+            isOneToOne: false;
+            referencedRelation: "clients";
+            referencedColumns: ["id"];
           },
           {
-            foreignKeyName: "deliveries_order_id_store_id_fkey"
-            columns: ["order_id", "store_id"]
-            isOneToOne: false
-            referencedRelation: "orders"
-            referencedColumns: ["id", "store_id"]
+            foreignKeyName: "deliveries_order_id_store_id_fkey";
+            columns: ["order_id", "store_id"];
+            isOneToOne: false;
+            referencedRelation: "orders";
+            referencedColumns: ["id", "store_id"];
           },
           {
-            foreignKeyName: "deliveries_store_id_fkey"
-            columns: ["store_id"]
-            isOneToOne: false
-            referencedRelation: "stores"
-            referencedColumns: ["id"]
+            foreignKeyName: "deliveries_store_id_fkey";
+            columns: ["store_id"];
+            isOneToOne: false;
+            referencedRelation: "stores";
+            referencedColumns: ["id"];
           },
-        ]
-      }
+        ];
+      };
       document_emissions: {
         Row: {
-          emis_le: string
-          emis_par: string | null
-          entite: string
-          entite_id: string
-          id: string
-          numero: string | null
-          snapshot: Json
-          store_id: string
-          type: string
-        }
+          emis_le: string;
+          emis_par: string | null;
+          entite: string;
+          entite_id: string;
+          id: string;
+          numero: string | null;
+          snapshot: Json;
+          store_id: string;
+          type: string;
+        };
         Insert: {
-          emis_le?: string
-          emis_par?: string | null
-          entite: string
-          entite_id: string
-          id?: string
-          numero?: string | null
-          snapshot: Json
-          store_id: string
-          type: string
-        }
+          emis_le?: string;
+          emis_par?: string | null;
+          entite: string;
+          entite_id: string;
+          id?: string;
+          numero?: string | null;
+          snapshot: Json;
+          store_id: string;
+          type: string;
+        };
         Update: {
-          emis_le?: string
-          emis_par?: string | null
-          entite?: string
-          entite_id?: string
-          id?: string
-          numero?: string | null
-          snapshot?: Json
-          store_id?: string
-          type?: string
-        }
+          emis_le?: string;
+          emis_par?: string | null;
+          entite?: string;
+          entite_id?: string;
+          id?: string;
+          numero?: string | null;
+          snapshot?: Json;
+          store_id?: string;
+          type?: string;
+        };
         Relationships: [
           {
-            foreignKeyName: "document_emissions_store_id_fkey"
-            columns: ["store_id"]
-            isOneToOne: false
-            referencedRelation: "stores"
-            referencedColumns: ["id"]
+            foreignKeyName: "document_emissions_store_id_fkey";
+            columns: ["store_id"];
+            isOneToOne: false;
+            referencedRelation: "stores";
+            referencedColumns: ["id"];
           },
-        ]
-      }
+        ];
+      };
       document_envois: {
         Row: {
-          canal: string
-          entite: string
-          entite_id: string
-          envoye_le: string
-          envoye_par: string | null
-          id: string
-          relance: boolean
-          store_id: string
-          type: string
-        }
+          canal: string;
+          entite: string;
+          entite_id: string;
+          envoye_le: string;
+          envoye_par: string | null;
+          id: string;
+          relance: boolean;
+          store_id: string;
+          type: string;
+        };
         Insert: {
-          canal?: string
-          entite: string
-          entite_id: string
-          envoye_le?: string
-          envoye_par?: string | null
-          id?: string
-          relance?: boolean
-          store_id: string
-          type: string
-        }
+          canal?: string;
+          entite: string;
+          entite_id: string;
+          envoye_le?: string;
+          envoye_par?: string | null;
+          id?: string;
+          relance?: boolean;
+          store_id: string;
+          type: string;
+        };
         Update: {
-          canal?: string
-          entite?: string
-          entite_id?: string
-          envoye_le?: string
-          envoye_par?: string | null
-          id?: string
-          relance?: boolean
-          store_id?: string
-          type?: string
-        }
+          canal?: string;
+          entite?: string;
+          entite_id?: string;
+          envoye_le?: string;
+          envoye_par?: string | null;
+          id?: string;
+          relance?: boolean;
+          store_id?: string;
+          type?: string;
+        };
         Relationships: [
           {
-            foreignKeyName: "document_envois_store_id_fkey"
-            columns: ["store_id"]
-            isOneToOne: false
-            referencedRelation: "stores"
-            referencedColumns: ["id"]
+            foreignKeyName: "document_envois_store_id_fkey";
+            columns: ["store_id"];
+            isOneToOne: false;
+            referencedRelation: "stores";
+            referencedColumns: ["id"];
           },
-        ]
-      }
+        ];
+      };
       evenement_participants: {
         Row: {
-          evenement_id: string
-          membre_id: string
-        }
+          evenement_id: string;
+          membre_id: string;
+        };
         Insert: {
-          evenement_id: string
-          membre_id: string
-        }
+          evenement_id: string;
+          membre_id: string;
+        };
         Update: {
-          evenement_id?: string
-          membre_id?: string
-        }
+          evenement_id?: string;
+          membre_id?: string;
+        };
         Relationships: [
           {
-            foreignKeyName: "evenement_participants_evenement_id_fkey"
-            columns: ["evenement_id"]
-            isOneToOne: false
-            referencedRelation: "evenements"
-            referencedColumns: ["id"]
+            foreignKeyName: "evenement_participants_evenement_id_fkey";
+            columns: ["evenement_id"];
+            isOneToOne: false;
+            referencedRelation: "evenements";
+            referencedColumns: ["id"];
           },
-        ]
-      }
+        ];
+      };
       evenements: {
         Row: {
-          created_at: string
-          createur_id: string | null
-          debut: string
-          description: string | null
-          fin: string | null
-          id: string
-          journee_entiere: boolean
-          lieu: string | null
-          nature: string
-          store_id: string
-          titre: string
-          updated_at: string
-          visibilite: string
-        }
+          created_at: string;
+          createur_id: string | null;
+          debut: string;
+          description: string | null;
+          fin: string | null;
+          id: string;
+          journee_entiere: boolean;
+          lieu: string | null;
+          nature: string;
+          store_id: string;
+          titre: string;
+          updated_at: string;
+          visibilite: string;
+        };
         Insert: {
-          created_at?: string
-          createur_id?: string | null
-          debut: string
-          description?: string | null
-          fin?: string | null
-          id?: string
-          journee_entiere?: boolean
-          lieu?: string | null
-          nature?: string
-          store_id: string
-          titre: string
-          updated_at?: string
-          visibilite?: string
-        }
+          created_at?: string;
+          createur_id?: string | null;
+          debut: string;
+          description?: string | null;
+          fin?: string | null;
+          id?: string;
+          journee_entiere?: boolean;
+          lieu?: string | null;
+          nature?: string;
+          store_id: string;
+          titre: string;
+          updated_at?: string;
+          visibilite?: string;
+        };
         Update: {
-          created_at?: string
-          createur_id?: string | null
-          debut?: string
-          description?: string | null
-          fin?: string | null
-          id?: string
-          journee_entiere?: boolean
-          lieu?: string | null
-          nature?: string
-          store_id?: string
-          titre?: string
-          updated_at?: string
-          visibilite?: string
-        }
+          created_at?: string;
+          createur_id?: string | null;
+          debut?: string;
+          description?: string | null;
+          fin?: string | null;
+          id?: string;
+          journee_entiere?: boolean;
+          lieu?: string | null;
+          nature?: string;
+          store_id?: string;
+          titre?: string;
+          updated_at?: string;
+          visibilite?: string;
+        };
         Relationships: [
           {
-            foreignKeyName: "evenements_store_id_fkey"
-            columns: ["store_id"]
-            isOneToOne: false
-            referencedRelation: "stores"
-            referencedColumns: ["id"]
+            foreignKeyName: "evenements_store_id_fkey";
+            columns: ["store_id"];
+            isOneToOne: false;
+            referencedRelation: "stores";
+            referencedColumns: ["id"];
           },
-        ]
-      }
+        ];
+      };
       expenses: {
         Row: {
-          category_id: string | null
-          created_at: string
-          date: string
-          id: string
-          impact_tresorerie_globale: number
-          justificatif: string | null
-          montant: number
-          note: string | null
-          numero: string | null
-          owner_id: string | null
-          provider_id: string | null
-          store_id: string
-          type: string
-          vendeur: string
-        }
+          category_id: string | null;
+          created_at: string;
+          date: string;
+          id: string;
+          impact_tresorerie_globale: number;
+          justificatif: string | null;
+          membre_id: string | null;
+          montant: number;
+          note: string | null;
+          numero: string | null;
+          owner_id: string | null;
+          personne_id: string | null;
+          provider_id: string | null;
+          store_id: string;
+          type: string;
+          vendeur: string;
+        };
         Insert: {
-          category_id?: string | null
-          created_at?: string
-          date?: string
-          id?: string
-          impact_tresorerie_globale?: number
-          justificatif?: string | null
-          montant?: number
-          note?: string | null
-          numero?: string | null
-          owner_id?: string | null
-          provider_id?: string | null
-          store_id: string
-          type?: string
-          vendeur?: string
-        }
+          category_id?: string | null;
+          created_at?: string;
+          date?: string;
+          id?: string;
+          impact_tresorerie_globale?: number;
+          justificatif?: string | null;
+          membre_id?: string | null;
+          montant?: number;
+          note?: string | null;
+          numero?: string | null;
+          owner_id?: string | null;
+          personne_id?: string | null;
+          provider_id?: string | null;
+          store_id: string;
+          type?: string;
+          vendeur?: string;
+        };
         Update: {
-          category_id?: string | null
-          created_at?: string
-          date?: string
-          id?: string
-          impact_tresorerie_globale?: number
-          justificatif?: string | null
-          montant?: number
-          note?: string | null
-          numero?: string | null
-          owner_id?: string | null
-          provider_id?: string | null
-          store_id?: string
-          type?: string
-          vendeur?: string
-        }
+          category_id?: string | null;
+          created_at?: string;
+          date?: string;
+          id?: string;
+          impact_tresorerie_globale?: number;
+          justificatif?: string | null;
+          membre_id?: string | null;
+          montant?: number;
+          note?: string | null;
+          numero?: string | null;
+          owner_id?: string | null;
+          personne_id?: string | null;
+          provider_id?: string | null;
+          store_id?: string;
+          type?: string;
+          vendeur?: string;
+        };
         Relationships: [
           {
-            foreignKeyName: "expenses_category_id_fkey"
-            columns: ["category_id"]
-            isOneToOne: false
-            referencedRelation: "categories"
-            referencedColumns: ["id"]
+            foreignKeyName: "expenses_category_id_fkey";
+            columns: ["category_id"];
+            isOneToOne: false;
+            referencedRelation: "categories";
+            referencedColumns: ["id"];
           },
           {
-            foreignKeyName: "expenses_owner_id_fkey"
-            columns: ["owner_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
+            foreignKeyName: "expenses_owner_id_fkey";
+            columns: ["owner_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
           },
           {
-            foreignKeyName: "expenses_provider_id_fkey"
-            columns: ["provider_id"]
-            isOneToOne: false
-            referencedRelation: "providers"
-            referencedColumns: ["id"]
+            foreignKeyName: "expenses_provider_id_fkey";
+            columns: ["provider_id"];
+            isOneToOne: false;
+            referencedRelation: "providers";
+            referencedColumns: ["id"];
           },
           {
-            foreignKeyName: "expenses_store_id_fkey"
-            columns: ["store_id"]
-            isOneToOne: false
-            referencedRelation: "stores"
-            referencedColumns: ["id"]
+            foreignKeyName: "expenses_store_id_fkey";
+            columns: ["store_id"];
+            isOneToOne: false;
+            referencedRelation: "stores";
+            referencedColumns: ["id"];
           },
-        ]
-      }
+        ];
+      };
       journal_activite: {
         Row: {
-          acteur_id: string | null
-          action: string
-          changements: Json | null
-          cree_le: string
-          entite: string
-          entite_id: string | null
-          etiquette: string | null
-          id: number
-          montant: number | null
-          store_id: string
-        }
+          acteur_id: string | null;
+          action: string;
+          changements: Json | null;
+          cree_le: string;
+          entite: string;
+          entite_id: string | null;
+          etiquette: string | null;
+          id: number;
+          montant: number | null;
+          store_id: string;
+        };
         Insert: {
-          acteur_id?: string | null
-          action: string
-          changements?: Json | null
-          cree_le?: string
-          entite: string
-          entite_id?: string | null
-          etiquette?: string | null
-          id?: never
-          montant?: number | null
-          store_id: string
-        }
+          acteur_id?: string | null;
+          action: string;
+          changements?: Json | null;
+          cree_le?: string;
+          entite: string;
+          entite_id?: string | null;
+          etiquette?: string | null;
+          id?: never;
+          montant?: number | null;
+          store_id: string;
+        };
         Update: {
-          acteur_id?: string | null
-          action?: string
-          changements?: Json | null
-          cree_le?: string
-          entite?: string
-          entite_id?: string | null
-          etiquette?: string | null
-          id?: never
-          montant?: number | null
-          store_id?: string
-        }
+          acteur_id?: string | null;
+          action?: string;
+          changements?: Json | null;
+          cree_le?: string;
+          entite?: string;
+          entite_id?: string | null;
+          etiquette?: string | null;
+          id?: never;
+          montant?: number | null;
+          store_id?: string;
+        };
         Relationships: [
           {
-            foreignKeyName: "journal_activite_store_id_fkey"
-            columns: ["store_id"]
-            isOneToOne: false
-            referencedRelation: "stores"
-            referencedColumns: ["id"]
+            foreignKeyName: "journal_activite_store_id_fkey";
+            columns: ["store_id"];
+            isOneToOne: false;
+            referencedRelation: "stores";
+            referencedColumns: ["id"];
           },
-        ]
-      }
+        ];
+      };
       order_items: {
         Row: {
-          created_at: string
-          designation: string
-          id: string
-          marge_totale: number
-          order_id: string
-          prix_achat_unit: number
-          prix_vente_unit: number
-          product_id: string | null
-          quantite: number
-          total_achat_ref: number
-          total_vente: number
-        }
+          created_at: string;
+          designation: string;
+          id: string;
+          marge_totale: number;
+          order_id: string;
+          prix_achat_unit: number;
+          prix_vente_unit: number;
+          product_id: string | null;
+          quantite: number;
+          total_achat_ref: number;
+          total_vente: number;
+        };
         Insert: {
-          created_at?: string
-          designation: string
-          id?: string
-          marge_totale?: number
-          order_id: string
-          prix_achat_unit?: number
-          prix_vente_unit?: number
-          product_id?: string | null
-          quantite?: number
-          total_achat_ref?: number
-          total_vente?: number
-        }
+          created_at?: string;
+          designation: string;
+          id?: string;
+          marge_totale?: number;
+          order_id: string;
+          prix_achat_unit?: number;
+          prix_vente_unit?: number;
+          product_id?: string | null;
+          quantite?: number;
+          total_achat_ref?: number;
+          total_vente?: number;
+        };
         Update: {
-          created_at?: string
-          designation?: string
-          id?: string
-          marge_totale?: number
-          order_id?: string
-          prix_achat_unit?: number
-          prix_vente_unit?: number
-          product_id?: string | null
-          quantite?: number
-          total_achat_ref?: number
-          total_vente?: number
-        }
+          created_at?: string;
+          designation?: string;
+          id?: string;
+          marge_totale?: number;
+          order_id?: string;
+          prix_achat_unit?: number;
+          prix_vente_unit?: number;
+          product_id?: string | null;
+          quantite?: number;
+          total_achat_ref?: number;
+          total_vente?: number;
+        };
         Relationships: [
           {
-            foreignKeyName: "order_items_order_id_fkey"
-            columns: ["order_id"]
-            isOneToOne: false
-            referencedRelation: "orders"
-            referencedColumns: ["id"]
+            foreignKeyName: "order_items_order_id_fkey";
+            columns: ["order_id"];
+            isOneToOne: false;
+            referencedRelation: "orders";
+            referencedColumns: ["id"];
           },
           {
-            foreignKeyName: "order_items_product_id_fkey"
-            columns: ["product_id"]
-            isOneToOne: false
-            referencedRelation: "products"
-            referencedColumns: ["id"]
+            foreignKeyName: "order_items_product_id_fkey";
+            columns: ["product_id"];
+            isOneToOne: false;
+            referencedRelation: "products";
+            referencedColumns: ["id"];
           },
-        ]
-      }
+        ];
+      };
       orders: {
         Row: {
-          client_id: string | null
-          created_at: string
-          date_livraison: string | null
-          id: string
-          idempotency_key: string | null
-          montant_paye: number
-          montant_rembourse: number
-          montant_total: number
-          note: string | null
-          numero: string
-          owner_id: string | null
-          reste_a_payer: number | null
-          statut_commande: Database["public"]["Enums"]["order_status"]
-          statut_paiement: Database["public"]["Enums"]["payment_status"]
-          store_id: string
-          updated_at: string
-        }
+          client_id: string | null;
+          created_at: string;
+          date_livraison: string | null;
+          id: string;
+          idempotency_key: string | null;
+          montant_paye: number;
+          montant_rembourse: number;
+          montant_total: number;
+          note: string | null;
+          numero: string;
+          owner_id: string | null;
+          reste_a_payer: number | null;
+          statut_commande: Database["public"]["Enums"]["order_status"];
+          statut_paiement: Database["public"]["Enums"]["payment_status"];
+          store_id: string;
+          updated_at: string;
+        };
         Insert: {
-          client_id?: string | null
-          created_at?: string
-          date_livraison?: string | null
-          id?: string
-          idempotency_key?: string | null
-          montant_paye?: number
-          montant_rembourse?: number
-          montant_total?: number
-          note?: string | null
-          numero: string
-          owner_id?: string | null
-          reste_a_payer?: number | null
-          statut_commande?: Database["public"]["Enums"]["order_status"]
-          statut_paiement?: Database["public"]["Enums"]["payment_status"]
-          store_id: string
-          updated_at?: string
-        }
+          client_id?: string | null;
+          created_at?: string;
+          date_livraison?: string | null;
+          id?: string;
+          idempotency_key?: string | null;
+          montant_paye?: number;
+          montant_rembourse?: number;
+          montant_total?: number;
+          note?: string | null;
+          numero: string;
+          owner_id?: string | null;
+          reste_a_payer?: number | null;
+          statut_commande?: Database["public"]["Enums"]["order_status"];
+          statut_paiement?: Database["public"]["Enums"]["payment_status"];
+          store_id: string;
+          updated_at?: string;
+        };
         Update: {
-          client_id?: string | null
-          created_at?: string
-          date_livraison?: string | null
-          id?: string
-          idempotency_key?: string | null
-          montant_paye?: number
-          montant_rembourse?: number
-          montant_total?: number
-          note?: string | null
-          numero?: string
-          owner_id?: string | null
-          reste_a_payer?: number | null
-          statut_commande?: Database["public"]["Enums"]["order_status"]
-          statut_paiement?: Database["public"]["Enums"]["payment_status"]
-          store_id?: string
-          updated_at?: string
-        }
+          client_id?: string | null;
+          created_at?: string;
+          date_livraison?: string | null;
+          id?: string;
+          idempotency_key?: string | null;
+          montant_paye?: number;
+          montant_rembourse?: number;
+          montant_total?: number;
+          note?: string | null;
+          numero?: string;
+          owner_id?: string | null;
+          reste_a_payer?: number | null;
+          statut_commande?: Database["public"]["Enums"]["order_status"];
+          statut_paiement?: Database["public"]["Enums"]["payment_status"];
+          store_id?: string;
+          updated_at?: string;
+        };
         Relationships: [
           {
-            foreignKeyName: "orders_client_id_fkey"
-            columns: ["client_id"]
-            isOneToOne: false
-            referencedRelation: "clients"
-            referencedColumns: ["id"]
+            foreignKeyName: "orders_client_id_fkey";
+            columns: ["client_id"];
+            isOneToOne: false;
+            referencedRelation: "clients";
+            referencedColumns: ["id"];
           },
           {
-            foreignKeyName: "orders_owner_id_fkey"
-            columns: ["owner_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
+            foreignKeyName: "orders_owner_id_fkey";
+            columns: ["owner_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
           },
           {
-            foreignKeyName: "orders_store_id_fkey"
-            columns: ["store_id"]
-            isOneToOne: false
-            referencedRelation: "stores"
-            referencedColumns: ["id"]
+            foreignKeyName: "orders_store_id_fkey";
+            columns: ["store_id"];
+            isOneToOne: false;
+            referencedRelation: "stores";
+            referencedColumns: ["id"];
           },
-        ]
-      }
+        ];
+      };
       paiements_salaire: {
         Row: {
-          created_at: string
-          decide_le: string | null
-          decide_par: string | null
-          demande_le: string
-          demande_par: string | null
-          depuis_la_caisse_du_vendeur: boolean
-          employe: string
-          id: string
-          montant: number
-          motif: string | null
-          motif_refus: string | null
-          numero: string | null
-          periode: string
-          statut: string
-          store_id: string
-          type: string
-          user_id: string | null
-          verse_le: string | null
-        }
+          created_at: string;
+          decide_le: string | null;
+          decide_par: string | null;
+          demande_le: string;
+          demande_par: string | null;
+          depuis_la_caisse_du_vendeur: boolean;
+          employe: string;
+          id: string;
+          montant: number;
+          motif: string | null;
+          motif_refus: string | null;
+          numero: string | null;
+          periode: string;
+          statut: string;
+          store_id: string;
+          type: string;
+          user_id: string | null;
+          verse_le: string | null;
+        };
         Insert: {
-          created_at?: string
-          decide_le?: string | null
-          decide_par?: string | null
-          demande_le?: string
-          demande_par?: string | null
-          depuis_la_caisse_du_vendeur?: boolean
-          employe: string
-          id?: string
-          montant: number
-          motif?: string | null
-          motif_refus?: string | null
-          numero?: string | null
-          periode?: string
-          statut?: string
-          store_id: string
-          type?: string
-          user_id?: string | null
-          verse_le?: string | null
-        }
+          created_at?: string;
+          decide_le?: string | null;
+          decide_par?: string | null;
+          demande_le?: string;
+          demande_par?: string | null;
+          depuis_la_caisse_du_vendeur?: boolean;
+          employe: string;
+          id?: string;
+          montant: number;
+          motif?: string | null;
+          motif_refus?: string | null;
+          numero?: string | null;
+          periode?: string;
+          statut?: string;
+          store_id: string;
+          type?: string;
+          user_id?: string | null;
+          verse_le?: string | null;
+        };
         Update: {
-          created_at?: string
-          decide_le?: string | null
-          decide_par?: string | null
-          demande_le?: string
-          demande_par?: string | null
-          depuis_la_caisse_du_vendeur?: boolean
-          employe?: string
-          id?: string
-          montant?: number
-          motif?: string | null
-          motif_refus?: string | null
-          numero?: string | null
-          periode?: string
-          statut?: string
-          store_id?: string
-          type?: string
-          user_id?: string | null
-          verse_le?: string | null
-        }
+          created_at?: string;
+          decide_le?: string | null;
+          decide_par?: string | null;
+          demande_le?: string;
+          demande_par?: string | null;
+          depuis_la_caisse_du_vendeur?: boolean;
+          employe?: string;
+          id?: string;
+          montant?: number;
+          motif?: string | null;
+          motif_refus?: string | null;
+          numero?: string | null;
+          periode?: string;
+          statut?: string;
+          store_id?: string;
+          type?: string;
+          user_id?: string | null;
+          verse_le?: string | null;
+        };
         Relationships: [
           {
-            foreignKeyName: "paiements_salaire_decide_par_fkey"
-            columns: ["decide_par"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
+            foreignKeyName: "paiements_salaire_decide_par_fkey";
+            columns: ["decide_par"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
           },
           {
-            foreignKeyName: "paiements_salaire_demande_par_fkey"
-            columns: ["demande_par"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
+            foreignKeyName: "paiements_salaire_demande_par_fkey";
+            columns: ["demande_par"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
           },
           {
-            foreignKeyName: "paiements_salaire_store_id_fkey"
-            columns: ["store_id"]
-            isOneToOne: false
-            referencedRelation: "stores"
-            referencedColumns: ["id"]
+            foreignKeyName: "paiements_salaire_store_id_fkey";
+            columns: ["store_id"];
+            isOneToOne: false;
+            referencedRelation: "stores";
+            referencedColumns: ["id"];
           },
           {
-            foreignKeyName: "paiements_salaire_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
+            foreignKeyName: "paiements_salaire_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
           },
-        ]
-      }
+        ];
+      };
       password_recovery_requests: {
         Row: {
-          email: string
-          handled_at: string | null
-          handled_by: string | null
-          id: string
-          requested_at: string
-          status: string
-          user_id: string | null
-        }
+          email: string;
+          handled_at: string | null;
+          handled_by: string | null;
+          id: string;
+          requested_at: string;
+          status: string;
+          user_id: string | null;
+        };
         Insert: {
-          email: string
-          handled_at?: string | null
-          handled_by?: string | null
-          id?: string
-          requested_at?: string
-          status?: string
-          user_id?: string | null
-        }
+          email: string;
+          handled_at?: string | null;
+          handled_by?: string | null;
+          id?: string;
+          requested_at?: string;
+          status?: string;
+          user_id?: string | null;
+        };
         Update: {
-          email?: string
-          handled_at?: string | null
-          handled_by?: string | null
-          id?: string
-          requested_at?: string
-          status?: string
-          user_id?: string | null
-        }
-        Relationships: []
-      }
+          email?: string;
+          handled_at?: string | null;
+          handled_by?: string | null;
+          id?: string;
+          requested_at?: string;
+          status?: string;
+          user_id?: string | null;
+        };
+        Relationships: [];
+      };
       payments: {
         Row: {
-          created_at: string
-          id: string
-          idempotency_key: string | null
-          methode: string
-          montant: number
-          note: string | null
-          numero: string | null
-          order_id: string | null
-          recorded_by: string | null
-          reference: string | null
-          sale_id: string | null
-          store_id: string
-        }
+          created_at: string;
+          id: string;
+          idempotency_key: string | null;
+          methode: string;
+          montant: number;
+          note: string | null;
+          numero: string | null;
+          order_id: string | null;
+          recorded_by: string | null;
+          reference: string | null;
+          sale_id: string | null;
+          store_id: string;
+        };
         Insert: {
-          created_at?: string
-          id?: string
-          idempotency_key?: string | null
-          methode?: string
-          montant: number
-          note?: string | null
-          numero?: string | null
-          order_id?: string | null
-          recorded_by?: string | null
-          reference?: string | null
-          sale_id?: string | null
-          store_id: string
-        }
+          created_at?: string;
+          id?: string;
+          idempotency_key?: string | null;
+          methode?: string;
+          montant: number;
+          note?: string | null;
+          numero?: string | null;
+          order_id?: string | null;
+          recorded_by?: string | null;
+          reference?: string | null;
+          sale_id?: string | null;
+          store_id: string;
+        };
         Update: {
-          created_at?: string
-          id?: string
-          idempotency_key?: string | null
-          methode?: string
-          montant?: number
-          note?: string | null
-          numero?: string | null
-          order_id?: string | null
-          recorded_by?: string | null
-          reference?: string | null
-          sale_id?: string | null
-          store_id?: string
-        }
+          created_at?: string;
+          id?: string;
+          idempotency_key?: string | null;
+          methode?: string;
+          montant?: number;
+          note?: string | null;
+          numero?: string | null;
+          order_id?: string | null;
+          recorded_by?: string | null;
+          reference?: string | null;
+          sale_id?: string | null;
+          store_id?: string;
+        };
         Relationships: [
           {
-            foreignKeyName: "payments_order_id_fkey"
-            columns: ["order_id"]
-            isOneToOne: false
-            referencedRelation: "orders"
-            referencedColumns: ["id"]
+            foreignKeyName: "payments_order_id_fkey";
+            columns: ["order_id"];
+            isOneToOne: false;
+            referencedRelation: "orders";
+            referencedColumns: ["id"];
           },
           {
-            foreignKeyName: "payments_recorded_by_fkey"
-            columns: ["recorded_by"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
+            foreignKeyName: "payments_recorded_by_fkey";
+            columns: ["recorded_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
           },
           {
-            foreignKeyName: "payments_sale_id_fkey"
-            columns: ["sale_id"]
-            isOneToOne: false
-            referencedRelation: "sales"
-            referencedColumns: ["id"]
+            foreignKeyName: "payments_sale_id_fkey";
+            columns: ["sale_id"];
+            isOneToOne: false;
+            referencedRelation: "sales";
+            referencedColumns: ["id"];
           },
           {
-            foreignKeyName: "payments_store_id_fkey"
-            columns: ["store_id"]
-            isOneToOne: false
-            referencedRelation: "stores"
-            referencedColumns: ["id"]
+            foreignKeyName: "payments_store_id_fkey";
+            columns: ["store_id"];
+            isOneToOne: false;
+            referencedRelation: "stores";
+            referencedColumns: ["id"];
           },
-        ]
-      }
+        ];
+      };
+      personnes_externes: {
+        Row: {
+          actif: boolean;
+          created_at: string;
+          created_by: string | null;
+          email: string | null;
+          id: string;
+          nom: string;
+          notes: string | null;
+          role: string | null;
+          store_id: string;
+          taux_commission: number | null;
+          telephone: string | null;
+          updated_at: string;
+          user_id: string | null;
+        };
+        Insert: {
+          actif?: boolean;
+          created_at?: string;
+          created_by?: string | null;
+          email?: string | null;
+          id?: string;
+          nom: string;
+          notes?: string | null;
+          role?: string | null;
+          store_id: string;
+          taux_commission?: number | null;
+          telephone?: string | null;
+          updated_at?: string;
+          user_id?: string | null;
+        };
+        Update: {
+          actif?: boolean;
+          created_at?: string;
+          created_by?: string | null;
+          email?: string | null;
+          id?: string;
+          nom?: string;
+          notes?: string | null;
+          role?: string | null;
+          store_id?: string;
+          taux_commission?: number | null;
+          telephone?: string | null;
+          updated_at?: string;
+          user_id?: string | null;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "personnes_externes_store_id_fkey";
+            columns: ["store_id"];
+            isOneToOne: false;
+            referencedRelation: "stores";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "personnes_externes_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       prealertes_stock: {
         Row: {
-          email_le: string | null
-          franchie_le: string
-          niveau: number
-          notifiee_le: string | null
-          origine: string
-          product_id: string
-          store_id: string
-        }
+          email_le: string | null;
+          franchie_le: string;
+          niveau: number;
+          notifiee_le: string | null;
+          origine: string;
+          product_id: string;
+          store_id: string;
+        };
         Insert: {
-          email_le?: string | null
-          franchie_le?: string
-          niveau: number
-          notifiee_le?: string | null
-          origine: string
-          product_id: string
-          store_id: string
-        }
+          email_le?: string | null;
+          franchie_le?: string;
+          niveau: number;
+          notifiee_le?: string | null;
+          origine: string;
+          product_id: string;
+          store_id: string;
+        };
         Update: {
-          email_le?: string | null
-          franchie_le?: string
-          niveau?: number
-          notifiee_le?: string | null
-          origine?: string
-          product_id?: string
-          store_id?: string
-        }
+          email_le?: string | null;
+          franchie_le?: string;
+          niveau?: number;
+          notifiee_le?: string | null;
+          origine?: string;
+          product_id?: string;
+          store_id?: string;
+        };
         Relationships: [
           {
-            foreignKeyName: "prealertes_stock_product_id_fkey"
-            columns: ["product_id"]
-            isOneToOne: true
-            referencedRelation: "products"
-            referencedColumns: ["id"]
+            foreignKeyName: "prealertes_stock_product_id_fkey";
+            columns: ["product_id"];
+            isOneToOne: true;
+            referencedRelation: "products";
+            referencedColumns: ["id"];
           },
           {
-            foreignKeyName: "prealertes_stock_store_id_fkey"
-            columns: ["store_id"]
-            isOneToOne: false
-            referencedRelation: "stores"
-            referencedColumns: ["id"]
+            foreignKeyName: "prealertes_stock_store_id_fkey";
+            columns: ["store_id"];
+            isOneToOne: false;
+            referencedRelation: "stores";
+            referencedColumns: ["id"];
           },
-        ]
-      }
+        ];
+      };
       product_images: {
         Row: {
-          chemin: string
-          created_at: string
-          created_by: string | null
-          id: string
-          legende: string | null
-          ordre: number
-          product_id: string
-          store_id: string
-        }
+          chemin: string;
+          created_at: string;
+          created_by: string | null;
+          id: string;
+          legende: string | null;
+          ordre: number;
+          product_id: string;
+          store_id: string;
+        };
         Insert: {
-          chemin: string
-          created_at?: string
-          created_by?: string | null
-          id?: string
-          legende?: string | null
-          ordre?: number
-          product_id: string
-          store_id: string
-        }
+          chemin: string;
+          created_at?: string;
+          created_by?: string | null;
+          id?: string;
+          legende?: string | null;
+          ordre?: number;
+          product_id: string;
+          store_id: string;
+        };
         Update: {
-          chemin?: string
-          created_at?: string
-          created_by?: string | null
-          id?: string
-          legende?: string | null
-          ordre?: number
-          product_id?: string
-          store_id?: string
-        }
+          chemin?: string;
+          created_at?: string;
+          created_by?: string | null;
+          id?: string;
+          legende?: string | null;
+          ordre?: number;
+          product_id?: string;
+          store_id?: string;
+        };
         Relationships: [
           {
-            foreignKeyName: "product_images_product_id_store_id_fkey"
-            columns: ["product_id", "store_id"]
-            isOneToOne: false
-            referencedRelation: "products"
-            referencedColumns: ["id", "store_id"]
+            foreignKeyName: "product_images_product_id_store_id_fkey";
+            columns: ["product_id", "store_id"];
+            isOneToOne: false;
+            referencedRelation: "products";
+            referencedColumns: ["id", "store_id"];
           },
           {
-            foreignKeyName: "product_images_store_id_fkey"
-            columns: ["store_id"]
-            isOneToOne: false
-            referencedRelation: "stores"
-            referencedColumns: ["id"]
+            foreignKeyName: "product_images_store_id_fkey";
+            columns: ["store_id"];
+            isOneToOne: false;
+            referencedRelation: "stores";
+            referencedColumns: ["id"];
           },
-        ]
-      }
+        ];
+      };
       products: {
         Row: {
-          category_id: string | null
-          champs_perso: Json
-          code_barres: string | null
-          created_at: string
-          description: string | null
-          designation: string
-          display_name: string
-          fournisseur: string
-          id: string
-          idempotency_key: string | null
-          numero: string | null
-          owner_id: string | null
-          prix_achat: number
-          prix_vente_defaut: number
-          seuil_alerte: number
-          sku: string | null
-          statut: string
-          stock_actuel: number
-          stock_disponible: number | null
-          stock_initial: number
-          stock_max: number | null
-          stock_reserve: number
-          store_id: string
-          supplier_id: string | null
-          tva_rate: number | null
-          type_produit: string
-          unite: string | null
-          updated_at: string
-          variant_suffix: string
-        }
+          category_id: string | null;
+          champs_perso: Json;
+          code_barres: string | null;
+          created_at: string;
+          description: string | null;
+          designation: string;
+          display_name: string;
+          fournisseur: string;
+          id: string;
+          idempotency_key: string | null;
+          mode_prix: string;
+          numero: string | null;
+          owner_id: string | null;
+          prix_achat: number;
+          prix_vente_defaut: number;
+          seuil_alerte: number;
+          sku: string | null;
+          statut: string;
+          stock_actuel: number;
+          stock_disponible: number | null;
+          stock_initial: number;
+          stock_max: number | null;
+          stock_reserve: number;
+          store_id: string;
+          supplier_id: string | null;
+          taux_marge: number | null;
+          tva_rate: number | null;
+          type_produit: string;
+          unite: string | null;
+          updated_at: string;
+          variant_suffix: string;
+        };
         Insert: {
-          category_id?: string | null
-          champs_perso?: Json
-          code_barres?: string | null
-          created_at?: string
-          description?: string | null
-          designation: string
-          display_name: string
-          fournisseur?: string
-          id?: string
-          idempotency_key?: string | null
-          numero?: string | null
-          owner_id?: string | null
-          prix_achat?: number
-          prix_vente_defaut?: number
-          seuil_alerte?: number
-          sku?: string | null
-          statut?: string
-          stock_actuel?: number
-          stock_disponible?: number | null
-          stock_initial?: number
-          stock_max?: number | null
-          stock_reserve?: number
-          store_id: string
-          supplier_id?: string | null
-          tva_rate?: number | null
-          type_produit?: string
-          unite?: string | null
-          updated_at?: string
-          variant_suffix?: string
-        }
+          category_id?: string | null;
+          champs_perso?: Json;
+          code_barres?: string | null;
+          created_at?: string;
+          description?: string | null;
+          designation: string;
+          display_name: string;
+          fournisseur?: string;
+          id?: string;
+          idempotency_key?: string | null;
+          mode_prix?: string;
+          numero?: string | null;
+          owner_id?: string | null;
+          prix_achat?: number;
+          prix_vente_defaut?: number;
+          seuil_alerte?: number;
+          sku?: string | null;
+          statut?: string;
+          stock_actuel?: number;
+          stock_disponible?: number | null;
+          stock_initial?: number;
+          stock_max?: number | null;
+          stock_reserve?: number;
+          store_id: string;
+          supplier_id?: string | null;
+          taux_marge?: number | null;
+          tva_rate?: number | null;
+          type_produit?: string;
+          unite?: string | null;
+          updated_at?: string;
+          variant_suffix?: string;
+        };
         Update: {
-          category_id?: string | null
-          champs_perso?: Json
-          code_barres?: string | null
-          created_at?: string
-          description?: string | null
-          designation?: string
-          display_name?: string
-          fournisseur?: string
-          id?: string
-          idempotency_key?: string | null
-          numero?: string | null
-          owner_id?: string | null
-          prix_achat?: number
-          prix_vente_defaut?: number
-          seuil_alerte?: number
-          sku?: string | null
-          statut?: string
-          stock_actuel?: number
-          stock_disponible?: number | null
-          stock_initial?: number
-          stock_max?: number | null
-          stock_reserve?: number
-          store_id?: string
-          supplier_id?: string | null
-          tva_rate?: number | null
-          type_produit?: string
-          unite?: string | null
-          updated_at?: string
-          variant_suffix?: string
-        }
+          category_id?: string | null;
+          champs_perso?: Json;
+          code_barres?: string | null;
+          created_at?: string;
+          description?: string | null;
+          designation?: string;
+          display_name?: string;
+          fournisseur?: string;
+          id?: string;
+          idempotency_key?: string | null;
+          mode_prix?: string;
+          numero?: string | null;
+          owner_id?: string | null;
+          prix_achat?: number;
+          prix_vente_defaut?: number;
+          seuil_alerte?: number;
+          sku?: string | null;
+          statut?: string;
+          stock_actuel?: number;
+          stock_disponible?: number | null;
+          stock_initial?: number;
+          stock_max?: number | null;
+          stock_reserve?: number;
+          store_id?: string;
+          supplier_id?: string | null;
+          taux_marge?: number | null;
+          tva_rate?: number | null;
+          type_produit?: string;
+          unite?: string | null;
+          updated_at?: string;
+          variant_suffix?: string;
+        };
         Relationships: [
           {
-            foreignKeyName: "products_category_id_fkey"
-            columns: ["category_id"]
-            isOneToOne: false
-            referencedRelation: "categories"
-            referencedColumns: ["id"]
+            foreignKeyName: "products_category_id_fkey";
+            columns: ["category_id"];
+            isOneToOne: false;
+            referencedRelation: "categories";
+            referencedColumns: ["id"];
           },
           {
-            foreignKeyName: "products_owner_id_fkey"
-            columns: ["owner_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
+            foreignKeyName: "products_owner_id_fkey";
+            columns: ["owner_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
           },
           {
-            foreignKeyName: "products_store_id_fkey"
-            columns: ["store_id"]
-            isOneToOne: false
-            referencedRelation: "stores"
-            referencedColumns: ["id"]
+            foreignKeyName: "products_store_id_fkey";
+            columns: ["store_id"];
+            isOneToOne: false;
+            referencedRelation: "stores";
+            referencedColumns: ["id"];
           },
           {
-            foreignKeyName: "products_supplier_id_fkey"
-            columns: ["supplier_id"]
-            isOneToOne: false
-            referencedRelation: "suppliers"
-            referencedColumns: ["id"]
+            foreignKeyName: "products_supplier_id_fkey";
+            columns: ["supplier_id"];
+            isOneToOne: false;
+            referencedRelation: "suppliers";
+            referencedColumns: ["id"];
           },
-        ]
-      }
+        ];
+      };
       profiles: {
         Row: {
-          created_at: string
-          email: string
-          full_name: string | null
-          id: string
-          is_platform_admin: boolean
-          phone: string | null
-          pin_hash: string | null
-          role: Database["public"]["Enums"]["user_role"]
-          session_timeout_minutes: number
-          status: Database["public"]["Enums"]["account_status"]
-          store_id: string | null
-          updated_at: string
-        }
+          created_at: string;
+          email: string;
+          full_name: string | null;
+          id: string;
+          is_platform_admin: boolean;
+          phone: string | null;
+          pin_hash: string | null;
+          role: Database["public"]["Enums"]["user_role"];
+          session_timeout_minutes: number;
+          status: Database["public"]["Enums"]["account_status"];
+          store_id: string | null;
+          updated_at: string;
+        };
         Insert: {
-          created_at?: string
-          email: string
-          full_name?: string | null
-          id: string
-          is_platform_admin?: boolean
-          phone?: string | null
-          pin_hash?: string | null
-          role?: Database["public"]["Enums"]["user_role"]
-          session_timeout_minutes?: number
-          status?: Database["public"]["Enums"]["account_status"]
-          store_id?: string | null
-          updated_at?: string
-        }
+          created_at?: string;
+          email: string;
+          full_name?: string | null;
+          id: string;
+          is_platform_admin?: boolean;
+          phone?: string | null;
+          pin_hash?: string | null;
+          role?: Database["public"]["Enums"]["user_role"];
+          session_timeout_minutes?: number;
+          status?: Database["public"]["Enums"]["account_status"];
+          store_id?: string | null;
+          updated_at?: string;
+        };
         Update: {
-          created_at?: string
-          email?: string
-          full_name?: string | null
-          id?: string
-          is_platform_admin?: boolean
-          phone?: string | null
-          pin_hash?: string | null
-          role?: Database["public"]["Enums"]["user_role"]
-          session_timeout_minutes?: number
-          status?: Database["public"]["Enums"]["account_status"]
-          store_id?: string | null
-          updated_at?: string
-        }
+          created_at?: string;
+          email?: string;
+          full_name?: string | null;
+          id?: string;
+          is_platform_admin?: boolean;
+          phone?: string | null;
+          pin_hash?: string | null;
+          role?: Database["public"]["Enums"]["user_role"];
+          session_timeout_minutes?: number;
+          status?: Database["public"]["Enums"]["account_status"];
+          store_id?: string | null;
+          updated_at?: string;
+        };
         Relationships: [
           {
-            foreignKeyName: "fk_profiles_store"
-            columns: ["store_id"]
-            isOneToOne: false
-            referencedRelation: "stores"
-            referencedColumns: ["id"]
+            foreignKeyName: "fk_profiles_store";
+            columns: ["store_id"];
+            isOneToOne: false;
+            referencedRelation: "stores";
+            referencedColumns: ["id"];
           },
-        ]
-      }
+        ];
+      };
       provider_services: {
         Row: {
-          created_at: string
-          created_by: string | null
-          id: string
-          libelle: string
-          note: string | null
-          provider_id: string
-          store_id: string
-          tarif: number | null
-          unite: string | null
-          updated_at: string
-        }
+          created_at: string;
+          created_by: string | null;
+          id: string;
+          libelle: string;
+          note: string | null;
+          provider_id: string;
+          store_id: string;
+          tarif: number | null;
+          unite: string | null;
+          updated_at: string;
+        };
         Insert: {
-          created_at?: string
-          created_by?: string | null
-          id?: string
-          libelle: string
-          note?: string | null
-          provider_id: string
-          store_id: string
-          tarif?: number | null
-          unite?: string | null
-          updated_at?: string
-        }
+          created_at?: string;
+          created_by?: string | null;
+          id?: string;
+          libelle: string;
+          note?: string | null;
+          provider_id: string;
+          store_id: string;
+          tarif?: number | null;
+          unite?: string | null;
+          updated_at?: string;
+        };
         Update: {
-          created_at?: string
-          created_by?: string | null
-          id?: string
-          libelle?: string
-          note?: string | null
-          provider_id?: string
-          store_id?: string
-          tarif?: number | null
-          unite?: string | null
-          updated_at?: string
-        }
+          created_at?: string;
+          created_by?: string | null;
+          id?: string;
+          libelle?: string;
+          note?: string | null;
+          provider_id?: string;
+          store_id?: string;
+          tarif?: number | null;
+          unite?: string | null;
+          updated_at?: string;
+        };
         Relationships: [
           {
-            foreignKeyName: "provider_services_provider_id_store_id_fkey"
-            columns: ["provider_id", "store_id"]
-            isOneToOne: false
-            referencedRelation: "providers"
-            referencedColumns: ["id", "store_id"]
+            foreignKeyName: "provider_services_provider_id_store_id_fkey";
+            columns: ["provider_id", "store_id"];
+            isOneToOne: false;
+            referencedRelation: "providers";
+            referencedColumns: ["id", "store_id"];
           },
           {
-            foreignKeyName: "provider_services_store_id_fkey"
-            columns: ["store_id"]
-            isOneToOne: false
-            referencedRelation: "stores"
-            referencedColumns: ["id"]
+            foreignKeyName: "provider_services_store_id_fkey";
+            columns: ["store_id"];
+            isOneToOne: false;
+            referencedRelation: "stores";
+            referencedColumns: ["id"];
           },
-        ]
-      }
+        ];
+      };
       providers: {
         Row: {
-          adresse: string | null
-          champs_perso: Json
-          conditions: string | null
-          contact: string | null
-          created_at: string
-          created_by: string | null
-          email: string | null
-          entreprise: string | null
-          id: string
-          nom: string
-          note: string | null
-          pays: string | null
-          statut: string
-          store_id: string
-          tarif_base: number | null
-          tarif_unite: string | null
-          telephone: string | null
-          type_service: string | null
-          updated_at: string
-          ville: string | null
-        }
+          adresse: string | null;
+          champs_perso: Json;
+          conditions: string | null;
+          contact: string | null;
+          created_at: string;
+          created_by: string | null;
+          email: string | null;
+          entreprise: string | null;
+          id: string;
+          nom: string;
+          note: string | null;
+          pays: string | null;
+          statut: string;
+          store_id: string;
+          tarif_base: number | null;
+          tarif_unite: string | null;
+          telephone: string | null;
+          type_service: string | null;
+          updated_at: string;
+          ville: string | null;
+        };
         Insert: {
-          adresse?: string | null
-          champs_perso?: Json
-          conditions?: string | null
-          contact?: string | null
-          created_at?: string
-          created_by?: string | null
-          email?: string | null
-          entreprise?: string | null
-          id?: string
-          nom: string
-          note?: string | null
-          pays?: string | null
-          statut?: string
-          store_id: string
-          tarif_base?: number | null
-          tarif_unite?: string | null
-          telephone?: string | null
-          type_service?: string | null
-          updated_at?: string
-          ville?: string | null
-        }
+          adresse?: string | null;
+          champs_perso?: Json;
+          conditions?: string | null;
+          contact?: string | null;
+          created_at?: string;
+          created_by?: string | null;
+          email?: string | null;
+          entreprise?: string | null;
+          id?: string;
+          nom: string;
+          note?: string | null;
+          pays?: string | null;
+          statut?: string;
+          store_id: string;
+          tarif_base?: number | null;
+          tarif_unite?: string | null;
+          telephone?: string | null;
+          type_service?: string | null;
+          updated_at?: string;
+          ville?: string | null;
+        };
         Update: {
-          adresse?: string | null
-          champs_perso?: Json
-          conditions?: string | null
-          contact?: string | null
-          created_at?: string
-          created_by?: string | null
-          email?: string | null
-          entreprise?: string | null
-          id?: string
-          nom?: string
-          note?: string | null
-          pays?: string | null
-          statut?: string
-          store_id?: string
-          tarif_base?: number | null
-          tarif_unite?: string | null
-          telephone?: string | null
-          type_service?: string | null
-          updated_at?: string
-          ville?: string | null
-        }
+          adresse?: string | null;
+          champs_perso?: Json;
+          conditions?: string | null;
+          contact?: string | null;
+          created_at?: string;
+          created_by?: string | null;
+          email?: string | null;
+          entreprise?: string | null;
+          id?: string;
+          nom?: string;
+          note?: string | null;
+          pays?: string | null;
+          statut?: string;
+          store_id?: string;
+          tarif_base?: number | null;
+          tarif_unite?: string | null;
+          telephone?: string | null;
+          type_service?: string | null;
+          updated_at?: string;
+          ville?: string | null;
+        };
         Relationships: [
           {
-            foreignKeyName: "providers_store_id_fkey"
-            columns: ["store_id"]
-            isOneToOne: false
-            referencedRelation: "stores"
-            referencedColumns: ["id"]
+            foreignKeyName: "providers_store_id_fkey";
+            columns: ["store_id"];
+            isOneToOne: false;
+            referencedRelation: "stores";
+            referencedColumns: ["id"];
           },
-        ]
-      }
+        ];
+      };
       purchases: {
         Row: {
-          created_at: string
-          date: string
-          date_echeance: string | null
-          designation: string
-          fournisseur: string
-          id: string
-          idempotency_key: string | null
-          impact_tresorerie: number
-          montant_paye: number
-          numero: string | null
-          owner_id: string | null
-          prix_achat_unit: number
-          product_id: string | null
-          quantite: number
-          solde_du: number | null
-          statut_paiement: string | null
-          store_id: string
-          supplier_id: string | null
-          total_achat: number
-          totalachat: number | null
-        }
+          created_at: string;
+          date: string;
+          date_echeance: string | null;
+          designation: string;
+          fournisseur: string;
+          id: string;
+          idempotency_key: string | null;
+          impact_tresorerie: number;
+          montant_paye: number;
+          numero: string | null;
+          owner_id: string | null;
+          prix_achat_unit: number;
+          product_id: string | null;
+          quantite: number;
+          solde_du: number | null;
+          statut_paiement: string | null;
+          store_id: string;
+          supplier_id: string | null;
+          total_achat: number;
+          totalachat: number | null;
+        };
         Insert: {
-          created_at?: string
-          date?: string
-          date_echeance?: string | null
-          designation: string
-          fournisseur?: string
-          id?: string
-          idempotency_key?: string | null
-          impact_tresorerie?: number
-          montant_paye?: number
-          numero?: string | null
-          owner_id?: string | null
-          prix_achat_unit?: number
-          product_id?: string | null
-          quantite?: number
-          solde_du?: number | null
-          statut_paiement?: string | null
-          store_id: string
-          supplier_id?: string | null
-          total_achat?: number
-          totalachat?: number | null
-        }
+          created_at?: string;
+          date?: string;
+          date_echeance?: string | null;
+          designation: string;
+          fournisseur?: string;
+          id?: string;
+          idempotency_key?: string | null;
+          impact_tresorerie?: number;
+          montant_paye?: number;
+          numero?: string | null;
+          owner_id?: string | null;
+          prix_achat_unit?: number;
+          product_id?: string | null;
+          quantite?: number;
+          solde_du?: number | null;
+          statut_paiement?: string | null;
+          store_id: string;
+          supplier_id?: string | null;
+          total_achat?: number;
+          totalachat?: number | null;
+        };
         Update: {
-          created_at?: string
-          date?: string
-          date_echeance?: string | null
-          designation?: string
-          fournisseur?: string
-          id?: string
-          idempotency_key?: string | null
-          impact_tresorerie?: number
-          montant_paye?: number
-          numero?: string | null
-          owner_id?: string | null
-          prix_achat_unit?: number
-          product_id?: string | null
-          quantite?: number
-          solde_du?: number | null
-          statut_paiement?: string | null
-          store_id?: string
-          supplier_id?: string | null
-          total_achat?: number
-          totalachat?: number | null
-        }
+          created_at?: string;
+          date?: string;
+          date_echeance?: string | null;
+          designation?: string;
+          fournisseur?: string;
+          id?: string;
+          idempotency_key?: string | null;
+          impact_tresorerie?: number;
+          montant_paye?: number;
+          numero?: string | null;
+          owner_id?: string | null;
+          prix_achat_unit?: number;
+          product_id?: string | null;
+          quantite?: number;
+          solde_du?: number | null;
+          statut_paiement?: string | null;
+          store_id?: string;
+          supplier_id?: string | null;
+          total_achat?: number;
+          totalachat?: number | null;
+        };
         Relationships: [
           {
-            foreignKeyName: "purchases_owner_id_fkey"
-            columns: ["owner_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
+            foreignKeyName: "purchases_owner_id_fkey";
+            columns: ["owner_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
           },
           {
-            foreignKeyName: "purchases_product_id_fkey"
-            columns: ["product_id"]
-            isOneToOne: false
-            referencedRelation: "products"
-            referencedColumns: ["id"]
+            foreignKeyName: "purchases_product_id_fkey";
+            columns: ["product_id"];
+            isOneToOne: false;
+            referencedRelation: "products";
+            referencedColumns: ["id"];
           },
           {
-            foreignKeyName: "purchases_store_id_fkey"
-            columns: ["store_id"]
-            isOneToOne: false
-            referencedRelation: "stores"
-            referencedColumns: ["id"]
+            foreignKeyName: "purchases_store_id_fkey";
+            columns: ["store_id"];
+            isOneToOne: false;
+            referencedRelation: "stores";
+            referencedColumns: ["id"];
           },
           {
-            foreignKeyName: "purchases_supplier_id_fkey"
-            columns: ["supplier_id"]
-            isOneToOne: false
-            referencedRelation: "suppliers"
-            referencedColumns: ["id"]
+            foreignKeyName: "purchases_supplier_id_fkey";
+            columns: ["supplier_id"];
+            isOneToOne: false;
+            referencedRelation: "suppliers";
+            referencedColumns: ["id"];
           },
-        ]
-      }
+        ];
+      };
       quote_items: {
         Row: {
-          created_at: string
-          designation: string
-          id: string
-          ordre: number
-          prix_unitaire: number
-          product_id: string | null
-          quantite: number
-          quote_id: string
-          store_id: string
-          total: number | null
-        }
+          created_at: string;
+          designation: string;
+          id: string;
+          ordre: number;
+          prix_unitaire: number;
+          product_id: string | null;
+          quantite: number;
+          quote_id: string;
+          store_id: string;
+          total: number | null;
+        };
         Insert: {
-          created_at?: string
-          designation: string
-          id?: string
-          ordre?: number
-          prix_unitaire: number
-          product_id?: string | null
-          quantite: number
-          quote_id: string
-          store_id: string
-          total?: number | null
-        }
+          created_at?: string;
+          designation: string;
+          id?: string;
+          ordre?: number;
+          prix_unitaire: number;
+          product_id?: string | null;
+          quantite: number;
+          quote_id: string;
+          store_id: string;
+          total?: number | null;
+        };
         Update: {
-          created_at?: string
-          designation?: string
-          id?: string
-          ordre?: number
-          prix_unitaire?: number
-          product_id?: string | null
-          quantite?: number
-          quote_id?: string
-          store_id?: string
-          total?: number | null
-        }
+          created_at?: string;
+          designation?: string;
+          id?: string;
+          ordre?: number;
+          prix_unitaire?: number;
+          product_id?: string | null;
+          quantite?: number;
+          quote_id?: string;
+          store_id?: string;
+          total?: number | null;
+        };
         Relationships: [
           {
-            foreignKeyName: "quote_items_product_id_fkey"
-            columns: ["product_id"]
-            isOneToOne: false
-            referencedRelation: "products"
-            referencedColumns: ["id"]
+            foreignKeyName: "quote_items_product_id_fkey";
+            columns: ["product_id"];
+            isOneToOne: false;
+            referencedRelation: "products";
+            referencedColumns: ["id"];
           },
           {
-            foreignKeyName: "quote_items_quote_id_store_id_fkey"
-            columns: ["quote_id", "store_id"]
-            isOneToOne: false
-            referencedRelation: "quotes"
-            referencedColumns: ["id", "store_id"]
+            foreignKeyName: "quote_items_quote_id_store_id_fkey";
+            columns: ["quote_id", "store_id"];
+            isOneToOne: false;
+            referencedRelation: "quotes";
+            referencedColumns: ["id", "store_id"];
           },
-        ]
-      }
+        ];
+      };
       quotes: {
         Row: {
-          client_id: string | null
-          client_nom: string
-          created_at: string
-          created_by: string | null
-          date: string
-          duree_validite_jours: number | null
-          id: string
-          note: string | null
-          numero: string | null
-          statut: string
-          store_id: string
-          total: number
-          type: string
-          updated_at: string
-          valide_jusqu_au: string | null
-          vente_ticket_id: string | null
-        }
+          client_id: string | null;
+          client_nom: string;
+          created_at: string;
+          created_by: string | null;
+          date: string;
+          duree_validite_jours: number | null;
+          id: string;
+          note: string | null;
+          numero: string | null;
+          statut: string;
+          store_id: string;
+          total: number;
+          type: string;
+          updated_at: string;
+          valide_jusqu_au: string | null;
+          vente_ticket_id: string | null;
+        };
         Insert: {
-          client_id?: string | null
-          client_nom?: string
-          created_at?: string
-          created_by?: string | null
-          date?: string
-          duree_validite_jours?: number | null
-          id?: string
-          note?: string | null
-          numero?: string | null
-          statut?: string
-          store_id: string
-          total?: number
-          type?: string
-          updated_at?: string
-          valide_jusqu_au?: string | null
-          vente_ticket_id?: string | null
-        }
+          client_id?: string | null;
+          client_nom?: string;
+          created_at?: string;
+          created_by?: string | null;
+          date?: string;
+          duree_validite_jours?: number | null;
+          id?: string;
+          note?: string | null;
+          numero?: string | null;
+          statut?: string;
+          store_id: string;
+          total?: number;
+          type?: string;
+          updated_at?: string;
+          valide_jusqu_au?: string | null;
+          vente_ticket_id?: string | null;
+        };
         Update: {
-          client_id?: string | null
-          client_nom?: string
-          created_at?: string
-          created_by?: string | null
-          date?: string
-          duree_validite_jours?: number | null
-          id?: string
-          note?: string | null
-          numero?: string | null
-          statut?: string
-          store_id?: string
-          total?: number
-          type?: string
-          updated_at?: string
-          valide_jusqu_au?: string | null
-          vente_ticket_id?: string | null
-        }
+          client_id?: string | null;
+          client_nom?: string;
+          created_at?: string;
+          created_by?: string | null;
+          date?: string;
+          duree_validite_jours?: number | null;
+          id?: string;
+          note?: string | null;
+          numero?: string | null;
+          statut?: string;
+          store_id?: string;
+          total?: number;
+          type?: string;
+          updated_at?: string;
+          valide_jusqu_au?: string | null;
+          vente_ticket_id?: string | null;
+        };
         Relationships: [
           {
-            foreignKeyName: "quotes_client_id_fkey"
-            columns: ["client_id"]
-            isOneToOne: false
-            referencedRelation: "clients"
-            referencedColumns: ["id"]
+            foreignKeyName: "quotes_client_id_fkey";
+            columns: ["client_id"];
+            isOneToOne: false;
+            referencedRelation: "clients";
+            referencedColumns: ["id"];
           },
           {
-            foreignKeyName: "quotes_store_id_fkey"
-            columns: ["store_id"]
-            isOneToOne: false
-            referencedRelation: "stores"
-            referencedColumns: ["id"]
+            foreignKeyName: "quotes_store_id_fkey";
+            columns: ["store_id"];
+            isOneToOne: false;
+            referencedRelation: "stores";
+            referencedColumns: ["id"];
           },
-        ]
-      }
+        ];
+      };
       rappels: {
         Row: {
-          actif: boolean
-          created_at: string
-          createur_id: string | null
-          declenche_le: string | null
-          destinataire_id: string
-          evenement_id: string | null
-          heure: string | null
-          id: string
-          jour_mois: number | null
-          jour_semaine: number | null
-          recurrence: string
-          store_id: string
-          tache_id: string | null
-          titre: string
-          updated_at: string
-        }
+          actif: boolean;
+          created_at: string;
+          createur_id: string | null;
+          declenche_le: string | null;
+          destinataire_id: string;
+          evenement_id: string | null;
+          heure: string | null;
+          id: string;
+          jour_mois: number | null;
+          jour_semaine: number | null;
+          recurrence: string;
+          store_id: string;
+          tache_id: string | null;
+          titre: string;
+          updated_at: string;
+        };
         Insert: {
-          actif?: boolean
-          created_at?: string
-          createur_id?: string | null
-          declenche_le?: string | null
-          destinataire_id: string
-          evenement_id?: string | null
-          heure?: string | null
-          id?: string
-          jour_mois?: number | null
-          jour_semaine?: number | null
-          recurrence?: string
-          store_id: string
-          tache_id?: string | null
-          titre: string
-          updated_at?: string
-        }
+          actif?: boolean;
+          created_at?: string;
+          createur_id?: string | null;
+          declenche_le?: string | null;
+          destinataire_id: string;
+          evenement_id?: string | null;
+          heure?: string | null;
+          id?: string;
+          jour_mois?: number | null;
+          jour_semaine?: number | null;
+          recurrence?: string;
+          store_id: string;
+          tache_id?: string | null;
+          titre: string;
+          updated_at?: string;
+        };
         Update: {
-          actif?: boolean
-          created_at?: string
-          createur_id?: string | null
-          declenche_le?: string | null
-          destinataire_id?: string
-          evenement_id?: string | null
-          heure?: string | null
-          id?: string
-          jour_mois?: number | null
-          jour_semaine?: number | null
-          recurrence?: string
-          store_id?: string
-          tache_id?: string | null
-          titre?: string
-          updated_at?: string
-        }
+          actif?: boolean;
+          created_at?: string;
+          createur_id?: string | null;
+          declenche_le?: string | null;
+          destinataire_id?: string;
+          evenement_id?: string | null;
+          heure?: string | null;
+          id?: string;
+          jour_mois?: number | null;
+          jour_semaine?: number | null;
+          recurrence?: string;
+          store_id?: string;
+          tache_id?: string | null;
+          titre?: string;
+          updated_at?: string;
+        };
         Relationships: [
           {
-            foreignKeyName: "rappels_evenement_id_fkey"
-            columns: ["evenement_id"]
-            isOneToOne: false
-            referencedRelation: "evenements"
-            referencedColumns: ["id"]
+            foreignKeyName: "rappels_evenement_id_fkey";
+            columns: ["evenement_id"];
+            isOneToOne: false;
+            referencedRelation: "evenements";
+            referencedColumns: ["id"];
           },
           {
-            foreignKeyName: "rappels_store_id_fkey"
-            columns: ["store_id"]
-            isOneToOne: false
-            referencedRelation: "stores"
-            referencedColumns: ["id"]
+            foreignKeyName: "rappels_store_id_fkey";
+            columns: ["store_id"];
+            isOneToOne: false;
+            referencedRelation: "stores";
+            referencedColumns: ["id"];
           },
           {
-            foreignKeyName: "rappels_tache_id_fkey"
-            columns: ["tache_id"]
-            isOneToOne: false
-            referencedRelation: "taches"
-            referencedColumns: ["id"]
+            foreignKeyName: "rappels_tache_id_fkey";
+            columns: ["tache_id"];
+            isOneToOne: false;
+            referencedRelation: "taches";
+            referencedColumns: ["id"];
           },
-        ]
-      }
+        ];
+      };
       refunds: {
         Row: {
-          created_at: string
-          id: string
-          idempotency_key: string
-          montant: number
-          order_id: string | null
-          reason: string | null
-          recorded_by: string | null
-          sale_id: string | null
-          store_id: string
-        }
+          created_at: string;
+          id: string;
+          idempotency_key: string;
+          montant: number;
+          order_id: string | null;
+          reason: string | null;
+          recorded_by: string | null;
+          sale_id: string | null;
+          store_id: string;
+        };
         Insert: {
-          created_at?: string
-          id?: string
-          idempotency_key?: string
-          montant: number
-          order_id?: string | null
-          reason?: string | null
-          recorded_by?: string | null
-          sale_id?: string | null
-          store_id: string
-        }
+          created_at?: string;
+          id?: string;
+          idempotency_key?: string;
+          montant: number;
+          order_id?: string | null;
+          reason?: string | null;
+          recorded_by?: string | null;
+          sale_id?: string | null;
+          store_id: string;
+        };
         Update: {
-          created_at?: string
-          id?: string
-          idempotency_key?: string
-          montant?: number
-          order_id?: string | null
-          reason?: string | null
-          recorded_by?: string | null
-          sale_id?: string | null
-          store_id?: string
-        }
+          created_at?: string;
+          id?: string;
+          idempotency_key?: string;
+          montant?: number;
+          order_id?: string | null;
+          reason?: string | null;
+          recorded_by?: string | null;
+          sale_id?: string | null;
+          store_id?: string;
+        };
         Relationships: [
           {
-            foreignKeyName: "refunds_order_id_fkey"
-            columns: ["order_id"]
-            isOneToOne: false
-            referencedRelation: "orders"
-            referencedColumns: ["id"]
+            foreignKeyName: "refunds_order_id_fkey";
+            columns: ["order_id"];
+            isOneToOne: false;
+            referencedRelation: "orders";
+            referencedColumns: ["id"];
           },
           {
-            foreignKeyName: "refunds_recorded_by_fkey"
-            columns: ["recorded_by"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
+            foreignKeyName: "refunds_recorded_by_fkey";
+            columns: ["recorded_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
           },
           {
-            foreignKeyName: "refunds_sale_id_fkey"
-            columns: ["sale_id"]
-            isOneToOne: false
-            referencedRelation: "sales"
-            referencedColumns: ["id"]
+            foreignKeyName: "refunds_sale_id_fkey";
+            columns: ["sale_id"];
+            isOneToOne: false;
+            referencedRelation: "sales";
+            referencedColumns: ["id"];
           },
           {
-            foreignKeyName: "refunds_store_id_fkey"
-            columns: ["store_id"]
-            isOneToOne: false
-            referencedRelation: "stores"
-            referencedColumns: ["id"]
+            foreignKeyName: "refunds_store_id_fkey";
+            columns: ["store_id"];
+            isOneToOne: false;
+            referencedRelation: "stores";
+            referencedColumns: ["id"];
           },
-        ]
-      }
+        ];
+      };
       reglages_alertes_stock: {
         Row: {
-          ecart: number
-          frequence: string
-          heure_resume: number
-          mis_a_jour_le: string
-          mode: string
-          pourcentage: number
-          prealerte_active: boolean
-          store_id: string
-        }
+          ecart: number;
+          frequence: string;
+          heure_resume: number;
+          mis_a_jour_le: string;
+          mode: string;
+          pourcentage: number;
+          prealerte_active: boolean;
+          store_id: string;
+        };
         Insert: {
-          ecart?: number
-          frequence?: string
-          heure_resume?: number
-          mis_a_jour_le?: string
-          mode?: string
-          pourcentage?: number
-          prealerte_active?: boolean
-          store_id: string
-        }
+          ecart?: number;
+          frequence?: string;
+          heure_resume?: number;
+          mis_a_jour_le?: string;
+          mode?: string;
+          pourcentage?: number;
+          prealerte_active?: boolean;
+          store_id: string;
+        };
         Update: {
-          ecart?: number
-          frequence?: string
-          heure_resume?: number
-          mis_a_jour_le?: string
-          mode?: string
-          pourcentage?: number
-          prealerte_active?: boolean
-          store_id?: string
-        }
+          ecart?: number;
+          frequence?: string;
+          heure_resume?: number;
+          mis_a_jour_le?: string;
+          mode?: string;
+          pourcentage?: number;
+          prealerte_active?: boolean;
+          store_id?: string;
+        };
         Relationships: [
           {
-            foreignKeyName: "reglages_alertes_stock_store_id_fkey"
-            columns: ["store_id"]
-            isOneToOne: true
-            referencedRelation: "stores"
-            referencedColumns: ["id"]
+            foreignKeyName: "reglages_alertes_stock_store_id_fkey";
+            columns: ["store_id"];
+            isOneToOne: true;
+            referencedRelation: "stores";
+            referencedColumns: ["id"];
           },
-        ]
-      }
+        ];
+      };
       remises_vendeur: {
         Row: {
-          created_at: string
-          date: string
-          id: string
-          montant: number
-          note: string | null
-          numero: string | null
-          recu_par: string | null
-          store_id: string
-          vendeur: string
-        }
+          created_at: string;
+          date: string;
+          id: string;
+          montant: number;
+          note: string | null;
+          numero: string | null;
+          recu_par: string | null;
+          store_id: string;
+          vendeur: string;
+        };
         Insert: {
-          created_at?: string
-          date?: string
-          id?: string
-          montant: number
-          note?: string | null
-          numero?: string | null
-          recu_par?: string | null
-          store_id: string
-          vendeur: string
-        }
+          created_at?: string;
+          date?: string;
+          id?: string;
+          montant: number;
+          note?: string | null;
+          numero?: string | null;
+          recu_par?: string | null;
+          store_id: string;
+          vendeur: string;
+        };
         Update: {
-          created_at?: string
-          date?: string
-          id?: string
-          montant?: number
-          note?: string | null
-          numero?: string | null
-          recu_par?: string | null
-          store_id?: string
-          vendeur?: string
-        }
+          created_at?: string;
+          date?: string;
+          id?: string;
+          montant?: number;
+          note?: string | null;
+          numero?: string | null;
+          recu_par?: string | null;
+          store_id?: string;
+          vendeur?: string;
+        };
         Relationships: [
           {
-            foreignKeyName: "remises_vendeur_recu_par_fkey"
-            columns: ["recu_par"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
+            foreignKeyName: "remises_vendeur_recu_par_fkey";
+            columns: ["recu_par"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
           },
           {
-            foreignKeyName: "remises_vendeur_store_id_fkey"
-            columns: ["store_id"]
-            isOneToOne: false
-            referencedRelation: "stores"
-            referencedColumns: ["id"]
+            foreignKeyName: "remises_vendeur_store_id_fkey";
+            columns: ["store_id"];
+            isOneToOne: false;
+            referencedRelation: "stores";
+            referencedColumns: ["id"];
           },
-        ]
-      }
+        ];
+      };
       salaires: {
         Row: {
-          created_at: string
-          cree_par: string | null
-          debut_le: string
-          employe: string
-          fin_le: string | null
-          id: string
-          montant: number
-          note: string | null
-          periodicite: string
-          poste: string | null
-          store_id: string
-          user_id: string | null
-        }
+          created_at: string;
+          cree_par: string | null;
+          debut_le: string;
+          employe: string;
+          fin_le: string | null;
+          id: string;
+          montant: number;
+          note: string | null;
+          periodicite: string;
+          poste: string | null;
+          store_id: string;
+          user_id: string | null;
+        };
         Insert: {
-          created_at?: string
-          cree_par?: string | null
-          debut_le?: string
-          employe: string
-          fin_le?: string | null
-          id?: string
-          montant: number
-          note?: string | null
-          periodicite?: string
-          poste?: string | null
-          store_id: string
-          user_id?: string | null
-        }
+          created_at?: string;
+          cree_par?: string | null;
+          debut_le?: string;
+          employe: string;
+          fin_le?: string | null;
+          id?: string;
+          montant: number;
+          note?: string | null;
+          periodicite?: string;
+          poste?: string | null;
+          store_id: string;
+          user_id?: string | null;
+        };
         Update: {
-          created_at?: string
-          cree_par?: string | null
-          debut_le?: string
-          employe?: string
-          fin_le?: string | null
-          id?: string
-          montant?: number
-          note?: string | null
-          periodicite?: string
-          poste?: string | null
-          store_id?: string
-          user_id?: string | null
-        }
+          created_at?: string;
+          cree_par?: string | null;
+          debut_le?: string;
+          employe?: string;
+          fin_le?: string | null;
+          id?: string;
+          montant?: number;
+          note?: string | null;
+          periodicite?: string;
+          poste?: string | null;
+          store_id?: string;
+          user_id?: string | null;
+        };
         Relationships: [
           {
-            foreignKeyName: "salaires_cree_par_fkey"
-            columns: ["cree_par"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
+            foreignKeyName: "salaires_cree_par_fkey";
+            columns: ["cree_par"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
           },
           {
-            foreignKeyName: "salaires_store_id_fkey"
-            columns: ["store_id"]
-            isOneToOne: false
-            referencedRelation: "stores"
-            referencedColumns: ["id"]
+            foreignKeyName: "salaires_store_id_fkey";
+            columns: ["store_id"];
+            isOneToOne: false;
+            referencedRelation: "stores";
+            referencedColumns: ["id"];
           },
           {
-            foreignKeyName: "salaires_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
+            foreignKeyName: "salaires_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
           },
-        ]
-      }
+        ];
+      };
       sales: {
         Row: {
-          client_credit: string | null
-          client_id: string | null
-          commission: number
-          created_at: string
-          date: string
-          designation: string
-          id: string
-          idempotency_key: string | null
-          marge_totale: number
-          montant_paye: number
-          montant_rembourse: number
-          numero: string | null
-          owner_id: string | null
-          prix_achat_unit_ref: number
-          prix_vente_unit: number
-          product_id: string | null
-          quantite: number
-          solde_du: number
-          statut_credit: string
-          store_id: string
-          ticket_id: string | null
-          total_achat_ref: number
-          total_vente: number
-          updated_at: string
-          vendeur: string
-        }
+          client_credit: string | null;
+          client_id: string | null;
+          commission: number;
+          created_at: string;
+          date: string;
+          designation: string;
+          id: string;
+          idempotency_key: string | null;
+          marge_totale: number;
+          montant_paye: number;
+          montant_rembourse: number;
+          numero: string | null;
+          owner_id: string | null;
+          prix_achat_unit_ref: number;
+          prix_vente_unit: number;
+          product_id: string | null;
+          quantite: number;
+          solde_du: number;
+          statut_credit: string;
+          store_id: string;
+          ticket_id: string | null;
+          total_achat_ref: number;
+          total_vente: number;
+          updated_at: string;
+          vendeur: string;
+        };
         Insert: {
-          client_credit?: string | null
-          client_id?: string | null
-          commission?: number
-          created_at?: string
-          date?: string
-          designation: string
-          id?: string
-          idempotency_key?: string | null
-          marge_totale?: number
-          montant_paye?: number
-          montant_rembourse?: number
-          numero?: string | null
-          owner_id?: string | null
-          prix_achat_unit_ref?: number
-          prix_vente_unit?: number
-          product_id?: string | null
-          quantite?: number
-          solde_du?: number
-          statut_credit?: string
-          store_id: string
-          ticket_id?: string | null
-          total_achat_ref?: number
-          total_vente?: number
-          updated_at?: string
-          vendeur?: string
-        }
+          client_credit?: string | null;
+          client_id?: string | null;
+          commission?: number;
+          created_at?: string;
+          date?: string;
+          designation: string;
+          id?: string;
+          idempotency_key?: string | null;
+          marge_totale?: number;
+          montant_paye?: number;
+          montant_rembourse?: number;
+          numero?: string | null;
+          owner_id?: string | null;
+          prix_achat_unit_ref?: number;
+          prix_vente_unit?: number;
+          product_id?: string | null;
+          quantite?: number;
+          solde_du?: number;
+          statut_credit?: string;
+          store_id: string;
+          ticket_id?: string | null;
+          total_achat_ref?: number;
+          total_vente?: number;
+          updated_at?: string;
+          vendeur?: string;
+        };
         Update: {
-          client_credit?: string | null
-          client_id?: string | null
-          commission?: number
-          created_at?: string
-          date?: string
-          designation?: string
-          id?: string
-          idempotency_key?: string | null
-          marge_totale?: number
-          montant_paye?: number
-          montant_rembourse?: number
-          numero?: string | null
-          owner_id?: string | null
-          prix_achat_unit_ref?: number
-          prix_vente_unit?: number
-          product_id?: string | null
-          quantite?: number
-          solde_du?: number
-          statut_credit?: string
-          store_id?: string
-          ticket_id?: string | null
-          total_achat_ref?: number
-          total_vente?: number
-          updated_at?: string
-          vendeur?: string
-        }
+          client_credit?: string | null;
+          client_id?: string | null;
+          commission?: number;
+          created_at?: string;
+          date?: string;
+          designation?: string;
+          id?: string;
+          idempotency_key?: string | null;
+          marge_totale?: number;
+          montant_paye?: number;
+          montant_rembourse?: number;
+          numero?: string | null;
+          owner_id?: string | null;
+          prix_achat_unit_ref?: number;
+          prix_vente_unit?: number;
+          product_id?: string | null;
+          quantite?: number;
+          solde_du?: number;
+          statut_credit?: string;
+          store_id?: string;
+          ticket_id?: string | null;
+          total_achat_ref?: number;
+          total_vente?: number;
+          updated_at?: string;
+          vendeur?: string;
+        };
         Relationships: [
           {
-            foreignKeyName: "sales_client_id_fkey"
-            columns: ["client_id"]
-            isOneToOne: false
-            referencedRelation: "clients"
-            referencedColumns: ["id"]
+            foreignKeyName: "sales_client_id_fkey";
+            columns: ["client_id"];
+            isOneToOne: false;
+            referencedRelation: "clients";
+            referencedColumns: ["id"];
           },
           {
-            foreignKeyName: "sales_owner_id_fkey"
-            columns: ["owner_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
+            foreignKeyName: "sales_owner_id_fkey";
+            columns: ["owner_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
           },
           {
-            foreignKeyName: "sales_product_id_fkey"
-            columns: ["product_id"]
-            isOneToOne: false
-            referencedRelation: "products"
-            referencedColumns: ["id"]
+            foreignKeyName: "sales_product_id_fkey";
+            columns: ["product_id"];
+            isOneToOne: false;
+            referencedRelation: "products";
+            referencedColumns: ["id"];
           },
           {
-            foreignKeyName: "sales_store_id_fkey"
-            columns: ["store_id"]
-            isOneToOne: false
-            referencedRelation: "stores"
-            referencedColumns: ["id"]
+            foreignKeyName: "sales_store_id_fkey";
+            columns: ["store_id"];
+            isOneToOne: false;
+            referencedRelation: "stores";
+            referencedColumns: ["id"];
           },
-        ]
-      }
+        ];
+      };
       stock_movements: {
         Row: {
-          created_at: string
-          created_by: string | null
-          id: string
-          idempotency_key: string
-          note: string | null
-          product_id: string | null
-          reference_id: string | null
-          reference_type: string | null
-          stock_actuel_delta: number
-          stock_reserve_delta: number
-          store_id: string
-          type_mouvement: string
-        }
+          created_at: string;
+          created_by: string | null;
+          id: string;
+          idempotency_key: string;
+          note: string | null;
+          product_id: string | null;
+          reference_id: string | null;
+          reference_type: string | null;
+          stock_actuel_delta: number;
+          stock_reserve_delta: number;
+          store_id: string;
+          type_mouvement: string;
+        };
         Insert: {
-          created_at?: string
-          created_by?: string | null
-          id?: string
-          idempotency_key?: string
-          note?: string | null
-          product_id?: string | null
-          reference_id?: string | null
-          reference_type?: string | null
-          stock_actuel_delta?: number
-          stock_reserve_delta?: number
-          store_id: string
-          type_mouvement: string
-        }
+          created_at?: string;
+          created_by?: string | null;
+          id?: string;
+          idempotency_key?: string;
+          note?: string | null;
+          product_id?: string | null;
+          reference_id?: string | null;
+          reference_type?: string | null;
+          stock_actuel_delta?: number;
+          stock_reserve_delta?: number;
+          store_id: string;
+          type_mouvement: string;
+        };
         Update: {
-          created_at?: string
-          created_by?: string | null
-          id?: string
-          idempotency_key?: string
-          note?: string | null
-          product_id?: string | null
-          reference_id?: string | null
-          reference_type?: string | null
-          stock_actuel_delta?: number
-          stock_reserve_delta?: number
-          store_id?: string
-          type_mouvement?: string
-        }
+          created_at?: string;
+          created_by?: string | null;
+          id?: string;
+          idempotency_key?: string;
+          note?: string | null;
+          product_id?: string | null;
+          reference_id?: string | null;
+          reference_type?: string | null;
+          stock_actuel_delta?: number;
+          stock_reserve_delta?: number;
+          store_id?: string;
+          type_mouvement?: string;
+        };
         Relationships: [
           {
-            foreignKeyName: "stock_movements_created_by_fkey"
-            columns: ["created_by"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
+            foreignKeyName: "stock_movements_created_by_fkey";
+            columns: ["created_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
           },
           {
-            foreignKeyName: "stock_movements_product_id_fkey"
-            columns: ["product_id"]
-            isOneToOne: false
-            referencedRelation: "products"
-            referencedColumns: ["id"]
+            foreignKeyName: "stock_movements_product_id_fkey";
+            columns: ["product_id"];
+            isOneToOne: false;
+            referencedRelation: "products";
+            referencedColumns: ["id"];
           },
           {
-            foreignKeyName: "stock_movements_store_id_fkey"
-            columns: ["store_id"]
-            isOneToOne: false
-            referencedRelation: "stores"
-            referencedColumns: ["id"]
+            foreignKeyName: "stock_movements_store_id_fkey";
+            columns: ["store_id"];
+            isOneToOne: false;
+            referencedRelation: "stores";
+            referencedColumns: ["id"];
           },
-        ]
-      }
+        ];
+      };
       store_counters: {
         Row: {
-          counter_type: string
-          current_value: number
-          store_id: string
-        }
+          counter_type: string;
+          current_value: number;
+          store_id: string;
+        };
         Insert: {
-          counter_type: string
-          current_value?: number
-          store_id: string
-        }
+          counter_type: string;
+          current_value?: number;
+          store_id: string;
+        };
         Update: {
-          counter_type?: string
-          current_value?: number
-          store_id?: string
-        }
+          counter_type?: string;
+          current_value?: number;
+          store_id?: string;
+        };
         Relationships: [
           {
-            foreignKeyName: "store_counters_store_id_fkey"
-            columns: ["store_id"]
-            isOneToOne: false
-            referencedRelation: "stores"
-            referencedColumns: ["id"]
+            foreignKeyName: "store_counters_store_id_fkey";
+            columns: ["store_id"];
+            isOneToOne: false;
+            referencedRelation: "stores";
+            referencedColumns: ["id"];
           },
-        ]
-      }
+        ];
+      };
       store_members: {
         Row: {
-          id: string
-          invited_by: string | null
-          joined_at: string
-          permissions: Json
-          role: string
-          store_id: string
-          user_id: string
-        }
+          id: string;
+          invited_by: string | null;
+          joined_at: string;
+          permissions: Json;
+          role: string;
+          store_id: string;
+          user_id: string;
+        };
         Insert: {
-          id?: string
-          invited_by?: string | null
-          joined_at?: string
-          permissions?: Json
-          role?: string
-          store_id: string
-          user_id: string
-        }
+          id?: string;
+          invited_by?: string | null;
+          joined_at?: string;
+          permissions?: Json;
+          role?: string;
+          store_id: string;
+          user_id: string;
+        };
         Update: {
-          id?: string
-          invited_by?: string | null
-          joined_at?: string
-          permissions?: Json
-          role?: string
-          store_id?: string
-          user_id?: string
-        }
+          id?: string;
+          invited_by?: string | null;
+          joined_at?: string;
+          permissions?: Json;
+          role?: string;
+          store_id?: string;
+          user_id?: string;
+        };
         Relationships: [
           {
-            foreignKeyName: "store_members_invited_by_fkey"
-            columns: ["invited_by"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
+            foreignKeyName: "store_members_invited_by_fkey";
+            columns: ["invited_by"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
           },
           {
-            foreignKeyName: "store_members_store_id_fkey"
-            columns: ["store_id"]
-            isOneToOne: false
-            referencedRelation: "stores"
-            referencedColumns: ["id"]
+            foreignKeyName: "store_members_store_id_fkey";
+            columns: ["store_id"];
+            isOneToOne: false;
+            referencedRelation: "stores";
+            referencedColumns: ["id"];
           },
           {
-            foreignKeyName: "store_members_user_id_fkey"
-            columns: ["user_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
+            foreignKeyName: "store_members_user_id_fkey";
+            columns: ["user_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
           },
-        ]
-      }
+        ];
+      };
       stores: {
         Row: {
-          abonnement_jusqu_au: string | null
-          activated_at: string | null
-          activation_status: string
-          address: string | null
-          capital_initial: number
-          created_at: string
-          currency_symbol: string
-          email: string | null
-          enable_pin_security: boolean
-          id: string
-          logo_url: string | null
-          name: string
-          nif_stat: string | null
-          owner_id: string
-          personnalisation: Json
-          phone: string | null
-          receipt_footer: string | null
-          seuil_alerte_tresorerie: number
-          subtitle: string | null
-          suppliers: string[] | null
-          trial_ends_at: string
-          tva_rate: number
-          updated_at: string
-        }
+          abonnement_jusqu_au: string | null;
+          activated_at: string | null;
+          activation_status: string;
+          address: string | null;
+          capital_initial: number;
+          created_at: string;
+          currency_symbol: string;
+          email: string | null;
+          enable_pin_security: boolean;
+          id: string;
+          logo_url: string | null;
+          name: string;
+          nif_stat: string | null;
+          owner_id: string;
+          personnalisation: Json;
+          phone: string | null;
+          receipt_footer: string | null;
+          seuil_alerte_tresorerie: number;
+          subtitle: string | null;
+          suppliers: string[] | null;
+          trial_ends_at: string;
+          tva_rate: number;
+          updated_at: string;
+        };
         Insert: {
-          abonnement_jusqu_au?: string | null
-          activated_at?: string | null
-          activation_status?: string
-          address?: string | null
-          capital_initial?: number
-          created_at?: string
-          currency_symbol?: string
-          email?: string | null
-          enable_pin_security?: boolean
-          id?: string
-          logo_url?: string | null
-          name: string
-          nif_stat?: string | null
-          owner_id: string
-          personnalisation?: Json
-          phone?: string | null
-          receipt_footer?: string | null
-          seuil_alerte_tresorerie?: number
-          subtitle?: string | null
-          suppliers?: string[] | null
-          trial_ends_at?: string
-          tva_rate?: number
-          updated_at?: string
-        }
+          abonnement_jusqu_au?: string | null;
+          activated_at?: string | null;
+          activation_status?: string;
+          address?: string | null;
+          capital_initial?: number;
+          created_at?: string;
+          currency_symbol?: string;
+          email?: string | null;
+          enable_pin_security?: boolean;
+          id?: string;
+          logo_url?: string | null;
+          name: string;
+          nif_stat?: string | null;
+          owner_id: string;
+          personnalisation?: Json;
+          phone?: string | null;
+          receipt_footer?: string | null;
+          seuil_alerte_tresorerie?: number;
+          subtitle?: string | null;
+          suppliers?: string[] | null;
+          trial_ends_at?: string;
+          tva_rate?: number;
+          updated_at?: string;
+        };
         Update: {
-          abonnement_jusqu_au?: string | null
-          activated_at?: string | null
-          activation_status?: string
-          address?: string | null
-          capital_initial?: number
-          created_at?: string
-          currency_symbol?: string
-          email?: string | null
-          enable_pin_security?: boolean
-          id?: string
-          logo_url?: string | null
-          name?: string
-          nif_stat?: string | null
-          owner_id?: string
-          personnalisation?: Json
-          phone?: string | null
-          receipt_footer?: string | null
-          seuil_alerte_tresorerie?: number
-          subtitle?: string | null
-          suppliers?: string[] | null
-          trial_ends_at?: string
-          tva_rate?: number
-          updated_at?: string
-        }
+          abonnement_jusqu_au?: string | null;
+          activated_at?: string | null;
+          activation_status?: string;
+          address?: string | null;
+          capital_initial?: number;
+          created_at?: string;
+          currency_symbol?: string;
+          email?: string | null;
+          enable_pin_security?: boolean;
+          id?: string;
+          logo_url?: string | null;
+          name?: string;
+          nif_stat?: string | null;
+          owner_id?: string;
+          personnalisation?: Json;
+          phone?: string | null;
+          receipt_footer?: string | null;
+          seuil_alerte_tresorerie?: number;
+          subtitle?: string | null;
+          suppliers?: string[] | null;
+          trial_ends_at?: string;
+          tva_rate?: number;
+          updated_at?: string;
+        };
         Relationships: [
           {
-            foreignKeyName: "stores_owner_id_fkey"
-            columns: ["owner_id"]
-            isOneToOne: false
-            referencedRelation: "profiles"
-            referencedColumns: ["id"]
+            foreignKeyName: "stores_owner_id_fkey";
+            columns: ["owner_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
           },
-        ]
-      }
+        ];
+      };
       supplier_invoice_items: {
         Row: {
-          created_at: string
-          designation: string
-          id: string
-          invoice_id: string
-          prix_unitaire: number
-          product_id: string | null
-          quantite: number
-          store_id: string
-          total: number | null
-          unite: string | null
-        }
+          created_at: string;
+          designation: string;
+          id: string;
+          invoice_id: string;
+          prix_unitaire: number;
+          product_id: string | null;
+          quantite: number;
+          store_id: string;
+          total: number | null;
+          unite: string | null;
+        };
         Insert: {
-          created_at?: string
-          designation: string
-          id?: string
-          invoice_id: string
-          prix_unitaire?: number
-          product_id?: string | null
-          quantite?: number
-          store_id: string
-          total?: number | null
-          unite?: string | null
-        }
+          created_at?: string;
+          designation: string;
+          id?: string;
+          invoice_id: string;
+          prix_unitaire?: number;
+          product_id?: string | null;
+          quantite?: number;
+          store_id: string;
+          total?: number | null;
+          unite?: string | null;
+        };
         Update: {
-          created_at?: string
-          designation?: string
-          id?: string
-          invoice_id?: string
-          prix_unitaire?: number
-          product_id?: string | null
-          quantite?: number
-          store_id?: string
-          total?: number | null
-          unite?: string | null
-        }
+          created_at?: string;
+          designation?: string;
+          id?: string;
+          invoice_id?: string;
+          prix_unitaire?: number;
+          product_id?: string | null;
+          quantite?: number;
+          store_id?: string;
+          total?: number | null;
+          unite?: string | null;
+        };
         Relationships: [
           {
-            foreignKeyName: "supplier_invoice_items_invoice_id_fkey"
-            columns: ["invoice_id"]
-            isOneToOne: false
-            referencedRelation: "supplier_invoices"
-            referencedColumns: ["id"]
+            foreignKeyName: "supplier_invoice_items_invoice_id_fkey";
+            columns: ["invoice_id"];
+            isOneToOne: false;
+            referencedRelation: "supplier_invoices";
+            referencedColumns: ["id"];
           },
           {
-            foreignKeyName: "supplier_invoice_items_product_id_fkey"
-            columns: ["product_id"]
-            isOneToOne: false
-            referencedRelation: "products"
-            referencedColumns: ["id"]
+            foreignKeyName: "supplier_invoice_items_product_id_fkey";
+            columns: ["product_id"];
+            isOneToOne: false;
+            referencedRelation: "products";
+            referencedColumns: ["id"];
           },
           {
-            foreignKeyName: "supplier_invoice_items_store_id_fkey"
-            columns: ["store_id"]
-            isOneToOne: false
-            referencedRelation: "stores"
-            referencedColumns: ["id"]
+            foreignKeyName: "supplier_invoice_items_store_id_fkey";
+            columns: ["store_id"];
+            isOneToOne: false;
+            referencedRelation: "stores";
+            referencedColumns: ["id"];
           },
-        ]
-      }
+        ];
+      };
       supplier_invoices: {
         Row: {
-          created_at: string
-          created_by: string | null
-          date: string
-          date_echeance: string | null
-          fournisseur: string
-          id: string
-          montant_paye: number
-          note: string | null
-          numero: string | null
-          numero_fournisseur: string | null
-          piece_jointe: string | null
-          store_id: string
-          supplier_id: string | null
-          total: number
-          updated_at: string
-        }
+          created_at: string;
+          created_by: string | null;
+          date: string;
+          date_echeance: string | null;
+          fournisseur: string;
+          id: string;
+          montant_paye: number;
+          note: string | null;
+          numero: string | null;
+          numero_fournisseur: string | null;
+          piece_jointe: string | null;
+          store_id: string;
+          supplier_id: string | null;
+          total: number;
+          updated_at: string;
+        };
         Insert: {
-          created_at?: string
-          created_by?: string | null
-          date?: string
-          date_echeance?: string | null
-          fournisseur?: string
-          id?: string
-          montant_paye?: number
-          note?: string | null
-          numero?: string | null
-          numero_fournisseur?: string | null
-          piece_jointe?: string | null
-          store_id: string
-          supplier_id?: string | null
-          total?: number
-          updated_at?: string
-        }
+          created_at?: string;
+          created_by?: string | null;
+          date?: string;
+          date_echeance?: string | null;
+          fournisseur?: string;
+          id?: string;
+          montant_paye?: number;
+          note?: string | null;
+          numero?: string | null;
+          numero_fournisseur?: string | null;
+          piece_jointe?: string | null;
+          store_id: string;
+          supplier_id?: string | null;
+          total?: number;
+          updated_at?: string;
+        };
         Update: {
-          created_at?: string
-          created_by?: string | null
-          date?: string
-          date_echeance?: string | null
-          fournisseur?: string
-          id?: string
-          montant_paye?: number
-          note?: string | null
-          numero?: string | null
-          numero_fournisseur?: string | null
-          piece_jointe?: string | null
-          store_id?: string
-          supplier_id?: string | null
-          total?: number
-          updated_at?: string
-        }
+          created_at?: string;
+          created_by?: string | null;
+          date?: string;
+          date_echeance?: string | null;
+          fournisseur?: string;
+          id?: string;
+          montant_paye?: number;
+          note?: string | null;
+          numero?: string | null;
+          numero_fournisseur?: string | null;
+          piece_jointe?: string | null;
+          store_id?: string;
+          supplier_id?: string | null;
+          total?: number;
+          updated_at?: string;
+        };
         Relationships: [
           {
-            foreignKeyName: "supplier_invoices_store_id_fkey"
-            columns: ["store_id"]
-            isOneToOne: false
-            referencedRelation: "stores"
-            referencedColumns: ["id"]
+            foreignKeyName: "supplier_invoices_store_id_fkey";
+            columns: ["store_id"];
+            isOneToOne: false;
+            referencedRelation: "stores";
+            referencedColumns: ["id"];
           },
           {
-            foreignKeyName: "supplier_invoices_supplier_id_fkey"
-            columns: ["supplier_id"]
-            isOneToOne: false
-            referencedRelation: "suppliers"
-            referencedColumns: ["id"]
+            foreignKeyName: "supplier_invoices_supplier_id_fkey";
+            columns: ["supplier_id"];
+            isOneToOne: false;
+            referencedRelation: "suppliers";
+            referencedColumns: ["id"];
           },
-        ]
-      }
+        ];
+      };
       supplier_payments: {
         Row: {
-          created_at: string
-          date: string
-          id: string
-          methode: string
-          montant: number
-          note: string | null
-          purchase_id: string
-          recorded_by: string | null
-          reference: string | null
-          store_id: string
-        }
+          created_at: string;
+          date: string;
+          id: string;
+          methode: string;
+          montant: number;
+          note: string | null;
+          purchase_id: string;
+          recorded_by: string | null;
+          reference: string | null;
+          store_id: string;
+        };
         Insert: {
-          created_at?: string
-          date?: string
-          id?: string
-          methode?: string
-          montant: number
-          note?: string | null
-          purchase_id: string
-          recorded_by?: string | null
-          reference?: string | null
-          store_id: string
-        }
+          created_at?: string;
+          date?: string;
+          id?: string;
+          methode?: string;
+          montant: number;
+          note?: string | null;
+          purchase_id: string;
+          recorded_by?: string | null;
+          reference?: string | null;
+          store_id: string;
+        };
         Update: {
-          created_at?: string
-          date?: string
-          id?: string
-          methode?: string
-          montant?: number
-          note?: string | null
-          purchase_id?: string
-          recorded_by?: string | null
-          reference?: string | null
-          store_id?: string
-        }
+          created_at?: string;
+          date?: string;
+          id?: string;
+          methode?: string;
+          montant?: number;
+          note?: string | null;
+          purchase_id?: string;
+          recorded_by?: string | null;
+          reference?: string | null;
+          store_id?: string;
+        };
         Relationships: [
           {
-            foreignKeyName: "supplier_payments_purchase_id_store_id_fkey"
-            columns: ["purchase_id", "store_id"]
-            isOneToOne: false
-            referencedRelation: "purchases"
-            referencedColumns: ["id", "store_id"]
+            foreignKeyName: "supplier_payments_purchase_id_store_id_fkey";
+            columns: ["purchase_id", "store_id"];
+            isOneToOne: false;
+            referencedRelation: "purchases";
+            referencedColumns: ["id", "store_id"];
           },
           {
-            foreignKeyName: "supplier_payments_store_id_fkey"
-            columns: ["store_id"]
-            isOneToOne: false
-            referencedRelation: "stores"
-            referencedColumns: ["id"]
+            foreignKeyName: "supplier_payments_store_id_fkey";
+            columns: ["store_id"];
+            isOneToOne: false;
+            referencedRelation: "stores";
+            referencedColumns: ["id"];
           },
-        ]
-      }
+        ];
+      };
       suppliers: {
         Row: {
-          adresse: string | null
-          categorie: string | null
-          champs_perso: Json
-          conditions_paiement: string | null
-          contact_principal: string | null
-          created_at: string
-          created_by: string | null
-          delai_livraison_jours: number | null
-          email: string | null
-          entreprise: string | null
-          id: string
-          nom: string
-          note: string | null
-          numero_fiscal: string | null
-          pays: string | null
-          produits_fournis: string[] | null
-          statut: string
-          store_id: string
-          telephone: string | null
-          updated_at: string
-          ville: string | null
-        }
+          adresse: string | null;
+          categorie: string | null;
+          champs_perso: Json;
+          conditions_paiement: string | null;
+          contact_principal: string | null;
+          created_at: string;
+          created_by: string | null;
+          delai_livraison_jours: number | null;
+          email: string | null;
+          entreprise: string | null;
+          id: string;
+          nom: string;
+          note: string | null;
+          numero_fiscal: string | null;
+          pays: string | null;
+          produits_fournis: string[] | null;
+          statut: string;
+          store_id: string;
+          telephone: string | null;
+          type_id: string | null;
+          updated_at: string;
+          ville: string | null;
+        };
         Insert: {
-          adresse?: string | null
-          categorie?: string | null
-          champs_perso?: Json
-          conditions_paiement?: string | null
-          contact_principal?: string | null
-          created_at?: string
-          created_by?: string | null
-          delai_livraison_jours?: number | null
-          email?: string | null
-          entreprise?: string | null
-          id?: string
-          nom: string
-          note?: string | null
-          numero_fiscal?: string | null
-          pays?: string | null
-          produits_fournis?: string[] | null
-          statut?: string
-          store_id: string
-          telephone?: string | null
-          updated_at?: string
-          ville?: string | null
-        }
+          adresse?: string | null;
+          categorie?: string | null;
+          champs_perso?: Json;
+          conditions_paiement?: string | null;
+          contact_principal?: string | null;
+          created_at?: string;
+          created_by?: string | null;
+          delai_livraison_jours?: number | null;
+          email?: string | null;
+          entreprise?: string | null;
+          id?: string;
+          nom: string;
+          note?: string | null;
+          numero_fiscal?: string | null;
+          pays?: string | null;
+          produits_fournis?: string[] | null;
+          statut?: string;
+          store_id: string;
+          telephone?: string | null;
+          type_id?: string | null;
+          updated_at?: string;
+          ville?: string | null;
+        };
         Update: {
-          adresse?: string | null
-          categorie?: string | null
-          champs_perso?: Json
-          conditions_paiement?: string | null
-          contact_principal?: string | null
-          created_at?: string
-          created_by?: string | null
-          delai_livraison_jours?: number | null
-          email?: string | null
-          entreprise?: string | null
-          id?: string
-          nom?: string
-          note?: string | null
-          numero_fiscal?: string | null
-          pays?: string | null
-          produits_fournis?: string[] | null
-          statut?: string
-          store_id?: string
-          telephone?: string | null
-          updated_at?: string
-          ville?: string | null
-        }
+          adresse?: string | null;
+          categorie?: string | null;
+          champs_perso?: Json;
+          conditions_paiement?: string | null;
+          contact_principal?: string | null;
+          created_at?: string;
+          created_by?: string | null;
+          delai_livraison_jours?: number | null;
+          email?: string | null;
+          entreprise?: string | null;
+          id?: string;
+          nom?: string;
+          note?: string | null;
+          numero_fiscal?: string | null;
+          pays?: string | null;
+          produits_fournis?: string[] | null;
+          statut?: string;
+          store_id?: string;
+          telephone?: string | null;
+          type_id?: string | null;
+          updated_at?: string;
+          ville?: string | null;
+        };
         Relationships: [
           {
-            foreignKeyName: "suppliers_store_id_fkey"
-            columns: ["store_id"]
-            isOneToOne: false
-            referencedRelation: "stores"
-            referencedColumns: ["id"]
+            foreignKeyName: "suppliers_store_id_fkey";
+            columns: ["store_id"];
+            isOneToOne: false;
+            referencedRelation: "stores";
+            referencedColumns: ["id"];
           },
-        ]
-      }
+        ];
+      };
       taches: {
         Row: {
-          assignee_id: string | null
-          created_at: string
-          createur_id: string | null
-          description: string | null
-          echeance: string | null
-          id: string
-          numero: string | null
-          priorite: string
-          statut: string
-          store_id: string
-          termine_le: string | null
-          titre: string
-          updated_at: string
-        }
+          assignee_id: string | null;
+          created_at: string;
+          createur_id: string | null;
+          description: string | null;
+          echeance: string | null;
+          id: string;
+          numero: string | null;
+          priorite: string;
+          statut: string;
+          store_id: string;
+          termine_le: string | null;
+          titre: string;
+          updated_at: string;
+        };
         Insert: {
-          assignee_id?: string | null
-          created_at?: string
-          createur_id?: string | null
-          description?: string | null
-          echeance?: string | null
-          id?: string
-          numero?: string | null
-          priorite?: string
-          statut?: string
-          store_id: string
-          termine_le?: string | null
-          titre: string
-          updated_at?: string
-        }
+          assignee_id?: string | null;
+          created_at?: string;
+          createur_id?: string | null;
+          description?: string | null;
+          echeance?: string | null;
+          id?: string;
+          numero?: string | null;
+          priorite?: string;
+          statut?: string;
+          store_id: string;
+          termine_le?: string | null;
+          titre: string;
+          updated_at?: string;
+        };
         Update: {
-          assignee_id?: string | null
-          created_at?: string
-          createur_id?: string | null
-          description?: string | null
-          echeance?: string | null
-          id?: string
-          numero?: string | null
-          priorite?: string
-          statut?: string
-          store_id?: string
-          termine_le?: string | null
-          titre?: string
-          updated_at?: string
-        }
+          assignee_id?: string | null;
+          created_at?: string;
+          createur_id?: string | null;
+          description?: string | null;
+          echeance?: string | null;
+          id?: string;
+          numero?: string | null;
+          priorite?: string;
+          statut?: string;
+          store_id?: string;
+          termine_le?: string | null;
+          titre?: string;
+          updated_at?: string;
+        };
         Relationships: [
           {
-            foreignKeyName: "taches_store_id_fkey"
-            columns: ["store_id"]
-            isOneToOne: false
-            referencedRelation: "stores"
-            referencedColumns: ["id"]
+            foreignKeyName: "taches_store_id_fkey";
+            columns: ["store_id"];
+            isOneToOne: false;
+            referencedRelation: "stores";
+            referencedColumns: ["id"];
           },
-        ]
-      }
-    }
+        ];
+      };
+    };
     Views: {
       prealertes_a_annoncer: {
         Row: {
-          email_le: string | null
-          franchie_le: string | null
-          niveau: number | null
-          notifiee_le: string | null
-          numero: string | null
-          product_id: string | null
-          produit: string | null
-          seuil_alerte: number | null
-          stock_actuel: number | null
-          store_id: string | null
-          unite: string | null
-        }
+          email_le: string | null;
+          franchie_le: string | null;
+          niveau: number | null;
+          notifiee_le: string | null;
+          numero: string | null;
+          product_id: string | null;
+          produit: string | null;
+          seuil_alerte: number | null;
+          stock_actuel: number | null;
+          store_id: string | null;
+          unite: string | null;
+        };
         Relationships: [
           {
-            foreignKeyName: "prealertes_stock_product_id_fkey"
-            columns: ["product_id"]
-            isOneToOne: true
-            referencedRelation: "products"
-            referencedColumns: ["id"]
+            foreignKeyName: "prealertes_stock_product_id_fkey";
+            columns: ["product_id"];
+            isOneToOne: true;
+            referencedRelation: "products";
+            referencedColumns: ["id"];
           },
           {
-            foreignKeyName: "prealertes_stock_store_id_fkey"
-            columns: ["store_id"]
-            isOneToOne: false
-            referencedRelation: "stores"
-            referencedColumns: ["id"]
+            foreignKeyName: "prealertes_stock_store_id_fkey";
+            columns: ["store_id"];
+            isOneToOne: false;
+            referencedRelation: "stores";
+            referencedColumns: ["id"];
           },
-        ]
-      }
-    }
+        ];
+      };
+    };
     Functions: {
-      _legacy_array_to_permissions: { Args: { p_keys: Json }; Returns: Json }
+      _legacy_array_to_permissions: { Args: { p_keys: Json }; Returns: Json };
       _module_metadata: {
-        Args: never
+        Args: never;
         Returns: {
-          actions: string[]
-          fields: string[]
-          has_scope: boolean
-          key: string
-        }[]
-      }
-      accept_invitation: { Args: { p_token: string }; Returns: Json }
-      accept_invitation_by_code: { Args: { p_code: string }; Returns: Json }
+          actions: string[];
+          fields: string[];
+          has_scope: boolean;
+          key: string;
+        }[];
+      };
+      accept_invitation: { Args: { p_token: string }; Returns: Json };
+      accept_invitation_by_code: { Args: { p_code: string }; Returns: Json };
       activate_store_with_code: {
-        Args: { p_code: string; p_store_id: string }
+        Args: { p_code: string; p_store_id: string };
         Returns: {
-          abonnement_jusqu_au: string | null
-          activated_at: string | null
-          activation_status: string
-          address: string | null
-          capital_initial: number
-          created_at: string
-          currency_symbol: string
-          email: string | null
-          enable_pin_security: boolean
-          id: string
-          logo_url: string | null
-          name: string
-          nif_stat: string | null
-          owner_id: string
-          personnalisation: Json
-          phone: string | null
-          receipt_footer: string | null
-          seuil_alerte_tresorerie: number
-          subtitle: string | null
-          suppliers: string[] | null
-          trial_ends_at: string
-          tva_rate: number
-          updated_at: string
-        }
+          abonnement_jusqu_au: string | null;
+          activated_at: string | null;
+          activation_status: string;
+          address: string | null;
+          capital_initial: number;
+          created_at: string;
+          currency_symbol: string;
+          email: string | null;
+          enable_pin_security: boolean;
+          id: string;
+          logo_url: string | null;
+          name: string;
+          nif_stat: string | null;
+          owner_id: string;
+          personnalisation: Json;
+          phone: string | null;
+          receipt_footer: string | null;
+          seuil_alerte_tresorerie: number;
+          subtitle: string | null;
+          suppliers: string[] | null;
+          trial_ends_at: string;
+          tva_rate: number;
+          updated_at: string;
+        };
         SetofOptions: {
-          from: "*"
-          to: "stores"
-          isOneToOne: true
-          isSetofReturn: false
-        }
-      }
+          from: "*";
+          to: "stores";
+          isOneToOne: true;
+          isSetofReturn: false;
+        };
+      };
       activer_le_compte: {
-        Args: { p_duree_jours: number; p_user_id: string }
+        Args: { p_duree_jours: number; p_user_id: string };
         Returns: {
-          abonnement_jusqu_au: string | null
-          active_le: string
-          mis_a_jour_le: string
-          user_id: string
-        }
+          abonnement_jusqu_au: string | null;
+          active_le: string;
+          mis_a_jour_le: string;
+          user_id: string;
+        };
         SetofOptions: {
-          from: "*"
-          to: "activations_de_compte"
-          isOneToOne: true
-          isSetofReturn: false
-        }
-      }
+          from: "*";
+          to: "activations_de_compte";
+          isOneToOne: true;
+          isSetofReturn: false;
+        };
+      };
       add_payment: {
         Args: {
-          p_idempotency_key: string
-          p_methode: string
-          p_montant: number
-          p_note: string
-          p_order_id: string
-          p_reference: string
-          p_sale_id: string
-          p_store_id: string
-        }
-        Returns: Json
-      }
+          p_idempotency_key: string;
+          p_methode: string;
+          p_montant: number;
+          p_note: string;
+          p_order_id: string;
+          p_reference: string;
+          p_sale_id: string;
+          p_store_id: string;
+        };
+        Returns: Json;
+      };
       add_purchase: {
         Args: {
-          p_date: string
-          p_date_echeance?: string
-          p_fournisseur: string
-          p_idempotency_key: string
-          p_montant_paye?: number
-          p_new_designation: string
-          p_new_display_name: string
-          p_new_prix_vente_defaut: number
-          p_new_seuil_alerte: number
-          p_new_variant_suffix: string
-          p_prix_achat_unit: number
-          p_product_id: string
-          p_quantite: number
-          p_store_id: string
-        }
-        Returns: Json
-      }
+          p_date: string;
+          p_date_echeance?: string;
+          p_fournisseur: string;
+          p_idempotency_key: string;
+          p_montant_paye?: number;
+          p_new_designation: string;
+          p_new_display_name: string;
+          p_new_prix_vente_defaut: number;
+          p_new_seuil_alerte: number;
+          p_new_variant_suffix: string;
+          p_prix_achat_unit: number;
+          p_product_id: string;
+          p_quantite: number;
+          p_store_id: string;
+        };
+        Returns: Json;
+      };
       ajuster_stock: {
-        Args: { p_delta: number; p_note?: string; p_product_id: string }
-        Returns: Json
-      }
+        Args: { p_delta: number; p_note?: string; p_product_id: string };
+        Returns: Json;
+      };
       avancer_livraison: {
         Args: {
-          p_delivery_id: string
-          p_montant_encaisse?: number
-          p_motif_echec?: string
-          p_statut: string
-        }
-        Returns: Json
-      }
-      boutique_ouverte_a: { Args: { p_store_id: string }; Returns: boolean }
+          p_delivery_id: string;
+          p_montant_encaisse?: number;
+          p_motif_echec?: string;
+          p_statut: string;
+        };
+        Returns: Json;
+      };
+      boutique_ouverte_a: { Args: { p_store_id: string }; Returns: boolean };
       can_modify_in_store: {
-        Args: { p_owner_id: string; p_store_id: string }
-        Returns: boolean
-      }
-      compte_est_active: { Args: { p_user_id: string }; Returns: boolean }
+        Args: { p_owner_id: string; p_store_id: string };
+        Returns: boolean;
+      };
+      compte_est_active: { Args: { p_user_id: string }; Returns: boolean };
       copy_store: {
-        Args: { p_new_name: string; p_source_store_id: string }
+        Args: { p_new_name: string; p_source_store_id: string };
         Returns: {
-          abonnement_jusqu_au: string | null
-          activated_at: string | null
-          activation_status: string
-          address: string | null
-          capital_initial: number
-          created_at: string
-          currency_symbol: string
-          email: string | null
-          enable_pin_security: boolean
-          id: string
-          logo_url: string | null
-          name: string
-          nif_stat: string | null
-          owner_id: string
-          personnalisation: Json
-          phone: string | null
-          receipt_footer: string | null
-          seuil_alerte_tresorerie: number
-          subtitle: string | null
-          suppliers: string[] | null
-          trial_ends_at: string
-          tva_rate: number
-          updated_at: string
-        }
+          abonnement_jusqu_au: string | null;
+          activated_at: string | null;
+          activation_status: string;
+          address: string | null;
+          capital_initial: number;
+          created_at: string;
+          currency_symbol: string;
+          email: string | null;
+          enable_pin_security: boolean;
+          id: string;
+          logo_url: string | null;
+          name: string;
+          nif_stat: string | null;
+          owner_id: string;
+          personnalisation: Json;
+          phone: string | null;
+          receipt_footer: string | null;
+          seuil_alerte_tresorerie: number;
+          subtitle: string | null;
+          suppliers: string[] | null;
+          trial_ends_at: string;
+          tva_rate: number;
+          updated_at: string;
+        };
         SetofOptions: {
-          from: "*"
-          to: "stores"
-          isOneToOne: true
-          isSetofReturn: false
-        }
-      }
+          from: "*";
+          to: "stores";
+          isOneToOne: true;
+          isSetofReturn: false;
+        };
+      };
       create_invitation: {
-        Args: { p_email: string; p_role: string; p_store_id: string }
-        Returns: Json
-      }
+        Args: { p_email: string; p_role: string; p_store_id: string };
+        Returns: Json;
+      };
       create_order_with_items: {
         Args: {
-          p_client_id: string
-          p_date_livraison: string
-          p_idempotency_key: string
-          p_items: Json
-          p_note: string
-          p_store_id: string
-        }
-        Returns: Json
-      }
+          p_client_id: string;
+          p_date_livraison: string;
+          p_idempotency_key: string;
+          p_items: Json;
+          p_note: string;
+          p_store_id: string;
+        };
+        Returns: Json;
+      };
       create_product: {
         Args: {
-          p_designation: string
-          p_display_name: string
-          p_fournisseur: string
-          p_idempotency_key: string
-          p_prix_achat: number
-          p_prix_vente_defaut: number
-          p_seuil_alerte: number
-          p_stock_initial: number
-          p_store_id: string
-          p_variant_suffix: string
-        }
-        Returns: Json
-      }
+          p_designation: string;
+          p_display_name: string;
+          p_fournisseur: string;
+          p_idempotency_key: string;
+          p_prix_achat: number;
+          p_prix_vente_defaut: number;
+          p_seuil_alerte: number;
+          p_stock_initial: number;
+          p_store_id: string;
+          p_variant_suffix: string;
+        };
+        Returns: Json;
+      };
       create_quote: {
         Args: {
-          p_client_id: string
-          p_client_nom: string
-          p_date: string
-          p_duree_validite_jours?: number
-          p_lignes: Json
-          p_note: string
-          p_store_id: string
-          p_type?: string
-          p_valide_jusqu_au: string
-        }
-        Returns: Json
-      }
+          p_client_id: string;
+          p_client_nom: string;
+          p_date: string;
+          p_duree_validite_jours?: number;
+          p_lignes: Json;
+          p_note: string;
+          p_store_id: string;
+          p_type?: string;
+          p_valide_jusqu_au: string;
+        };
+        Returns: Json;
+      };
       create_sale: {
         Args: {
-          p_client_credit: string
-          p_client_id: string
-          p_date: string
-          p_idempotency_key: string
-          p_methode: string
-          p_montant_paye_initial: number
-          p_prix_vente_unit: number
-          p_product_id: string
-          p_quantite: number
-          p_store_id: string
-          p_vendeur: string
-        }
-        Returns: Json
-      }
+          p_client_credit: string;
+          p_client_id: string;
+          p_date: string;
+          p_idempotency_key: string;
+          p_methode: string;
+          p_montant_paye_initial: number;
+          p_prix_vente_unit: number;
+          p_product_id: string;
+          p_quantite: number;
+          p_store_id: string;
+          p_vendeur: string;
+        };
+        Returns: Json;
+      };
       create_sale_ticket: {
         Args: {
-          p_client_credit: string
-          p_client_id: string
-          p_date: string
-          p_idempotency_key: string
-          p_lignes: Json
-          p_methode: string
-          p_montant_paye_total: number
-          p_store_id: string
-          p_vendeur: string
-        }
-        Returns: Json
-      }
+          p_client_credit: string;
+          p_client_id: string;
+          p_date: string;
+          p_idempotency_key: string;
+          p_lignes: Json;
+          p_methode: string;
+          p_montant_paye_total: number;
+          p_store_id: string;
+          p_vendeur: string;
+        };
+        Returns: Json;
+      };
       create_supplier_invoice: {
         Args: {
-          p_date: string
-          p_date_echeance: string
-          p_fournisseur: string
-          p_lignes: Json
-          p_montant_paye: number
-          p_note: string
-          p_numero_fournisseur: string
-          p_piece_jointe: string
-          p_store_id: string
-          p_supplier_id: string
-          p_total: number
-        }
-        Returns: Json
-      }
+          p_date: string;
+          p_date_echeance: string;
+          p_fournisseur: string;
+          p_lignes: Json;
+          p_montant_paye: number;
+          p_note: string;
+          p_numero_fournisseur: string;
+          p_piece_jointe: string;
+          p_store_id: string;
+          p_supplier_id: string;
+          p_total: number;
+        };
+        Returns: Json;
+      };
       creer_avoir: {
         Args: {
-          p_client_id: string
-          p_client_nom: string
-          p_facture_numero: string
-          p_lignes: Json
-          p_montant: number
-          p_motif: string
-          p_store_id: string
-          p_ticket_id: string
-        }
-        Returns: Json
-      }
-      date_de_la_boutique: { Args: never; Returns: string }
-      delete_order: { Args: { p_order_id: string }; Returns: undefined }
-      delete_own_account: { Args: never; Returns: undefined }
-      delete_products: { Args: { p_product_ids: string[] }; Returns: number }
-      delete_purchase: { Args: { p_purchase_id: string }; Returns: undefined }
-      delete_sale: { Args: { p_sale_id: string }; Returns: undefined }
-      demander_les_resumes_par_email: { Args: never; Returns: number }
-      est_dans_la_boutique: { Args: { p_store_id: string }; Returns: boolean }
-      est_invite_a: { Args: { p_evenement_id: string }; Returns: boolean }
+          p_client_id: string;
+          p_client_nom: string;
+          p_facture_numero: string;
+          p_lignes: Json;
+          p_montant: number;
+          p_motif: string;
+          p_store_id: string;
+          p_ticket_id: string;
+        };
+        Returns: Json;
+      };
+      date_de_la_boutique: { Args: never; Returns: string };
+      delete_order: { Args: { p_order_id: string }; Returns: undefined };
+      delete_own_account: { Args: never; Returns: undefined };
+      delete_products: { Args: { p_product_ids: string[] }; Returns: number };
+      delete_purchase: { Args: { p_purchase_id: string }; Returns: undefined };
+      delete_sale: { Args: { p_sale_id: string }; Returns: undefined };
+      demander_les_resumes_par_email: { Args: never; Returns: number };
+      est_dans_la_boutique: { Args: { p_store_id: string }; Returns: boolean };
+      est_invite_a: { Args: { p_evenement_id: string }; Returns: boolean };
       fixer_commission_de_vente: {
-        Args: { p_montant: number; p_sale_id: string }
-        Returns: number
-      }
+        Args: { p_montant: number; p_sale_id: string };
+        Returns: number;
+      };
       fixer_compteur_de_document: {
-        Args: { p_prochain: number; p_store_id: string; p_type: string }
-        Returns: number
-      }
+        Args: { p_prochain: number; p_store_id: string; p_type: string };
+        Returns: number;
+      };
       fonctions_de_prealerte_ouvertes: {
-        Args: never
+        Args: never;
         Returns: {
-          droits: string
-          fonction: string
-        }[]
-      }
-      fuseau_des_boutiques: { Args: never; Returns: string }
-      generate_access_code: { Args: never; Returns: string }
-      get_auth_role: { Args: never; Returns: string }
-      is_platform_admin: { Args: never; Returns: boolean }
-      is_store_member: { Args: { p_store_id: string }; Returns: boolean }
-      is_store_owner: { Args: { p_store_id: string }; Returns: boolean }
-      liberer_les_prealertes: { Args: never; Returns: number }
+          droits: string;
+          fonction: string;
+        }[];
+      };
+      fuseau_des_boutiques: { Args: never; Returns: string };
+      generate_access_code: { Args: never; Returns: string };
+      get_auth_role: { Args: never; Returns: string };
+      is_platform_admin: { Args: never; Returns: boolean };
+      is_store_member: { Args: { p_store_id: string }; Returns: boolean };
+      is_store_owner: { Args: { p_store_id: string }; Returns: boolean };
+      liberer_les_prealertes: { Args: never; Returns: number };
       modifier_achat: {
         Args: {
-          p_date: string
-          p_fournisseur: string
-          p_montant_regle?: number
-          p_prix_achat_unit: number
-          p_purchase_id: string
-          p_quantite: number
-        }
-        Returns: Json
-      }
+          p_date: string;
+          p_fournisseur: string;
+          p_montant_regle?: number;
+          p_prix_achat_unit: number;
+          p_purchase_id: string;
+          p_quantite: number;
+        };
+        Returns: Json;
+      };
       next_store_counter: {
-        Args: { p_counter_type: string; p_store_id: string }
-        Returns: number
-      }
+        Args: { p_counter_type: string; p_store_id: string };
+        Returns: number;
+      };
       niveau_de_prealerte: {
         Args: {
-          p_ecart: number
-          p_mode: string
-          p_pourcentage: number
-          p_seuil: number
-        }
-        Returns: number
-      }
-      niveau_surveille: { Args: { p_product_id: string }; Returns: number }
+          p_ecart: number;
+          p_mode: string;
+          p_pourcentage: number;
+          p_seuil: number;
+        };
+        Returns: number;
+      };
+      niveau_surveille: { Args: { p_product_id: string }; Returns: number };
       peut_encaisser_une_remise: {
-        Args: { p_store_id: string }
-        Returns: boolean
-      }
+        Args: { p_store_id: string };
+        Returns: boolean;
+      };
       peut_gerer_les_salaires: {
-        Args: { p_store_id: string }
-        Returns: boolean
-      }
+        Args: { p_store_id: string };
+        Returns: boolean;
+      };
       peut_regler_les_documents: {
-        Args: { p_store_id: string }
-        Returns: boolean
-      }
+        Args: { p_store_id: string };
+        Returns: boolean;
+      };
       peut_voir_evenement: {
-        Args: { p_evenement_id: string }
-        Returns: boolean
-      }
+        Args: { p_evenement_id: string };
+        Returns: boolean;
+      };
       peut_voir_tous_les_salaires: {
-        Args: { p_store_id: string }
-        Returns: boolean
-      }
+        Args: { p_store_id: string };
+        Returns: boolean;
+      };
       policies_sans_verrou: {
-        Args: never
+        Args: never;
         Returns: {
-          commande: string
-          nom_table: string
-          policy: string
-        }[]
-      }
+          commande: string;
+          nom_table: string;
+          policy: string;
+        }[];
+      };
       prochain_numero_de_document: {
-        Args: { p_store_id: string; p_type: string }
-        Returns: number
-      }
+        Args: { p_store_id: string; p_type: string };
+        Returns: number;
+      };
       proprietaire_dune_boutique_ouverte: {
-        Args: { p_store_id: string }
-        Returns: boolean
-      }
+        Args: { p_store_id: string };
+        Returns: boolean;
+      };
       redeem_access_code: {
-        Args: { p_code: string; p_store_name?: string }
-        Returns: Json
-      }
+        Args: { p_code: string; p_store_name?: string };
+        Returns: Json;
+      };
       refund_order: {
-        Args: { p_montant: number; p_order_id: string; p_reason: string }
-        Returns: Json
-      }
+        Args: { p_montant: number; p_order_id: string; p_reason: string };
+        Returns: Json;
+      };
       refund_sale: {
         Args: {
-          p_idempotency_key?: string
-          p_montant: number
-          p_reason: string
-          p_sale_id: string
-        }
-        Returns: Json
-      }
+          p_idempotency_key?: string;
+          p_montant: number;
+          p_reason: string;
+          p_sale_id: string;
+        };
+        Returns: Json;
+      };
       remettre_argent_livraisons: {
-        Args: { p_delivery_ids: string[] }
-        Returns: Json
-      }
+        Args: { p_delivery_ids: string[] };
+        Returns: Json;
+      };
       resynchroniser_prealertes: {
-        Args: { p_store_id: string }
-        Returns: undefined
-      }
+        Args: { p_store_id: string };
+        Returns: undefined;
+      };
       set_order_status: {
         Args: {
-          p_new_status: Database["public"]["Enums"]["order_status"]
-          p_order_id: string
-        }
-        Returns: Json
-      }
+          p_new_status: Database["public"]["Enums"]["order_status"];
+          p_order_id: string;
+        };
+        Returns: Json;
+      };
       set_quote_status: {
         Args: {
-          p_quote_id: string
-          p_statut: string
-          p_vente_ticket_id?: string
-        }
-        Returns: Json
-      }
-      storage_boutique_du_chemin: { Args: { chemin: string }; Returns: string }
-      store_allows_write: { Args: { p_store_id: string }; Returns: boolean }
-      store_is_locked: { Args: { p_store_id: string }; Returns: boolean }
-      traiter_les_prealertes: { Args: never; Returns: string }
+          p_quote_id: string;
+          p_statut: string;
+          p_vente_ticket_id?: string;
+        };
+        Returns: Json;
+      };
+      storage_boutique_du_chemin: { Args: { chemin: string }; Returns: string };
+      store_allows_write: { Args: { p_store_id: string }; Returns: boolean };
+      store_is_locked: { Args: { p_store_id: string }; Returns: boolean };
+      traiter_les_prealertes: { Args: never; Returns: string };
       transferer_boutique: {
         Args: {
-          p_nouveau_proprietaire: string
-          p_permissions_ancien?: Json
-          p_store_id: string
-        }
-        Returns: Json
-      }
+          p_nouveau_proprietaire: string;
+          p_permissions_ancien?: Json;
+          p_store_id: string;
+        };
+        Returns: Json;
+      };
       update_product: {
         Args: {
-          p_designation: string
-          p_fournisseur: string
-          p_prix_achat: number
-          p_prix_vente_defaut: number
-          p_product_id: string
-          p_seuil_alerte: number
-        }
-        Returns: undefined
-      }
+          p_designation: string;
+          p_fournisseur: string;
+          p_prix_achat: number;
+          p_prix_vente_defaut: number;
+          p_product_id: string;
+          p_seuil_alerte: number;
+        };
+        Returns: undefined;
+      };
       update_quote: {
         Args: {
-          p_client_id: string
-          p_client_nom: string
-          p_date: string
-          p_duree_validite_jours?: number
-          p_lignes: Json
-          p_note: string
-          p_quote_id: string
-          p_type?: string
-          p_valide_jusqu_au: string
-        }
-        Returns: Json
-      }
+          p_client_id: string;
+          p_client_nom: string;
+          p_date: string;
+          p_duree_validite_jours?: number;
+          p_lignes: Json;
+          p_note: string;
+          p_quote_id: string;
+          p_type?: string;
+          p_valide_jusqu_au: string;
+        };
+        Returns: Json;
+      };
       update_sale_quantity: {
         Args: {
-          p_client_credit: string
-          p_client_id: string
-          p_new_quantite: number
-          p_new_total_vente: number
-          p_sale_id: string
-        }
-        Returns: Json
-      }
+          p_client_credit: string;
+          p_client_id: string;
+          p_new_quantite: number;
+          p_new_total_vente: number;
+          p_sale_id: string;
+        };
+        Returns: Json;
+      };
       update_supplier_invoice: {
         Args: {
-          p_date: string
-          p_date_echeance: string
-          p_fournisseur: string
-          p_id: string
-          p_lignes: Json
-          p_montant_paye: number
-          p_note: string
-          p_numero_fournisseur: string
-          p_piece_jointe: string
-          p_supplier_id: string
-          p_total: number
-        }
-        Returns: Json
-      }
+          p_date: string;
+          p_date_echeance: string;
+          p_fournisseur: string;
+          p_id: string;
+          p_lignes: Json;
+          p_montant_paye: number;
+          p_note: string;
+          p_numero_fournisseur: string;
+          p_piece_jointe: string;
+          p_supplier_id: string;
+          p_total: number;
+        };
+        Returns: Json;
+      };
       voit_toute_l_organisation: {
-        Args: { p_module: string; p_store_id: string }
-        Returns: boolean
-      }
-    }
+        Args: { p_module: string; p_store_id: string };
+        Returns: boolean;
+      };
+    };
     Enums: {
-      access_code_status:
-        | "pending"
-        | "generated"
-        | "sent"
-        | "used"
-        | "expired"
-        | "disabled"
-      account_status: "pending" | "activated" | "suspended"
-      activation_type: "paid" | "manual"
-      invitation_status: "pending" | "accepted" | "cancelled" | "expired"
-      order_status: "en_attente" | "en_cours" | "livre" | "annule"
-      payment_method: "mobile_money" | "manual" | "free"
-      payment_status: "impaye" | "partiel" | "paye"
-      user_role: "founder" | "seller" | "collaborator" | "pending"
-    }
+      access_code_status: "pending" | "generated" | "sent" | "used" | "expired" | "disabled";
+      account_status: "pending" | "activated" | "suspended";
+      activation_type: "paid" | "manual";
+      invitation_status: "pending" | "accepted" | "cancelled" | "expired";
+      order_status: "en_attente" | "en_cours" | "livre" | "annule";
+      payment_method: "mobile_money" | "manual" | "free";
+      payment_status: "impaye" | "partiel" | "paye";
+      user_role: "founder" | "seller" | "collaborator" | "pending";
+    };
     CompositeTypes: {
-      [_ in never]: never
-    }
-  }
-}
+      [_ in never]: never;
+    };
+  };
+};
 
-type DatabaseWithoutInternals = Omit<Database, "__InternalSupabase">
+type DatabaseWithoutInternals = Omit<Database, "__InternalSupabase">;
 
-type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, "public">]
+type DefaultSchema = DatabaseWithoutInternals[Extract<keyof Database, "public">];
 
 export type Tables<
   DefaultSchemaTableNameOrOptions extends
     | keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
     | { schema: keyof DatabaseWithoutInternals },
   TableName extends (DefaultSchemaTableNameOrOptions extends {
-    schema: keyof DatabaseWithoutInternals
+    schema: keyof DatabaseWithoutInternals;
   }
     ? keyof (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
         DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])
     : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
-  schema: keyof DatabaseWithoutInternals
+  schema: keyof DatabaseWithoutInternals;
 }
   ? (DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"] &
       DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Views"])[TableName] extends {
-      Row: infer R
+      Row: infer R;
     }
     ? R
     : never
-  : DefaultSchemaTableNameOrOptions extends keyof (DefaultSchema["Tables"] &
-        DefaultSchema["Views"])
-    ? (DefaultSchema["Tables"] &
-        DefaultSchema["Views"])[DefaultSchemaTableNameOrOptions] extends {
-        Row: infer R
+  : DefaultSchemaTableNameOrOptions extends keyof (DefaultSchema["Tables"] & DefaultSchema["Views"])
+    ? (DefaultSchema["Tables"] & DefaultSchema["Views"])[DefaultSchemaTableNameOrOptions] extends {
+        Row: infer R;
       }
       ? R
       : never
-    : never
+    : never;
 
 export type TablesInsert<
   DefaultSchemaTableNameOrOptions extends
-    | keyof DefaultSchema["Tables"]
-    | { schema: keyof DatabaseWithoutInternals },
+    keyof DefaultSchema["Tables"] | { schema: keyof DatabaseWithoutInternals },
   TableName extends (DefaultSchemaTableNameOrOptions extends {
-    schema: keyof DatabaseWithoutInternals
+    schema: keyof DatabaseWithoutInternals;
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
     : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
-  schema: keyof DatabaseWithoutInternals
+  schema: keyof DatabaseWithoutInternals;
 }
   ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
-      Insert: infer I
+      Insert: infer I;
     }
     ? I
     : never
   : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
     ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
-        Insert: infer I
+        Insert: infer I;
       }
       ? I
       : never
-    : never
+    : never;
 
 export type TablesUpdate<
   DefaultSchemaTableNameOrOptions extends
-    | keyof DefaultSchema["Tables"]
-    | { schema: keyof DatabaseWithoutInternals },
+    keyof DefaultSchema["Tables"] | { schema: keyof DatabaseWithoutInternals },
   TableName extends (DefaultSchemaTableNameOrOptions extends {
-    schema: keyof DatabaseWithoutInternals
+    schema: keyof DatabaseWithoutInternals;
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"]
     : never) = never,
 > = DefaultSchemaTableNameOrOptions extends {
-  schema: keyof DatabaseWithoutInternals
+  schema: keyof DatabaseWithoutInternals;
 }
   ? DatabaseWithoutInternals[DefaultSchemaTableNameOrOptions["schema"]]["Tables"][TableName] extends {
-      Update: infer U
+      Update: infer U;
     }
     ? U
     : never
   : DefaultSchemaTableNameOrOptions extends keyof DefaultSchema["Tables"]
     ? DefaultSchema["Tables"][DefaultSchemaTableNameOrOptions] extends {
-        Update: infer U
+        Update: infer U;
       }
       ? U
       : never
-    : never
+    : never;
 
 export type Enums<
   DefaultSchemaEnumNameOrOptions extends
-    | keyof DefaultSchema["Enums"]
-    | { schema: keyof DatabaseWithoutInternals },
+    keyof DefaultSchema["Enums"] | { schema: keyof DatabaseWithoutInternals },
   EnumName extends (DefaultSchemaEnumNameOrOptions extends {
-    schema: keyof DatabaseWithoutInternals
+    schema: keyof DatabaseWithoutInternals;
   }
     ? keyof DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"]
     : never) = never,
 > = DefaultSchemaEnumNameOrOptions extends {
-  schema: keyof DatabaseWithoutInternals
+  schema: keyof DatabaseWithoutInternals;
 }
   ? DatabaseWithoutInternals[DefaultSchemaEnumNameOrOptions["schema"]]["Enums"][EnumName]
   : DefaultSchemaEnumNameOrOptions extends keyof DefaultSchema["Enums"]
     ? DefaultSchema["Enums"][DefaultSchemaEnumNameOrOptions]
-    : never
+    : never;
 
 export type CompositeTypes<
   PublicCompositeTypeNameOrOptions extends
-    | keyof DefaultSchema["CompositeTypes"]
-    | { schema: keyof DatabaseWithoutInternals },
+    keyof DefaultSchema["CompositeTypes"] | { schema: keyof DatabaseWithoutInternals },
   CompositeTypeName extends (PublicCompositeTypeNameOrOptions extends {
-    schema: keyof DatabaseWithoutInternals
+    schema: keyof DatabaseWithoutInternals;
   }
     ? keyof DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"]
     : never) = never,
 > = PublicCompositeTypeNameOrOptions extends {
-  schema: keyof DatabaseWithoutInternals
+  schema: keyof DatabaseWithoutInternals;
 }
   ? DatabaseWithoutInternals[PublicCompositeTypeNameOrOptions["schema"]]["CompositeTypes"][CompositeTypeName]
   : PublicCompositeTypeNameOrOptions extends keyof DefaultSchema["CompositeTypes"]
     ? DefaultSchema["CompositeTypes"][PublicCompositeTypeNameOrOptions]
-    : never
+    : never;
 
 export const Constants = {
   public: {
     Enums: {
-      access_code_status: [
-        "pending",
-        "generated",
-        "sent",
-        "used",
-        "expired",
-        "disabled",
-      ],
+      access_code_status: ["pending", "generated", "sent", "used", "expired", "disabled"],
       account_status: ["pending", "activated", "suspended"],
       activation_type: ["paid", "manual"],
       invitation_status: ["pending", "accepted", "cancelled", "expired"],
@@ -3591,4 +3650,4 @@ export const Constants = {
       user_role: ["founder", "seller", "collaborator", "pending"],
     },
   },
-} as const
+} as const;

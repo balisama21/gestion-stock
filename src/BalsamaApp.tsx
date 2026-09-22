@@ -385,6 +385,27 @@ function AppInner() {
   }, [storeData.products]);
 
   /**
+   * Ce que chaque valeur de liste range, toutes listes confondues.
+   *
+   * L'écran des listes a besoin de ce nombre pour une seule raison, et
+   * elle est importante : on n'archive pas une valeur utilisée sans
+   * savoir combien d'enregistrements la portent. Les trois usages sont
+   * comptés ensemble parce que les identifiants sont uniques — un
+   * poste de dépense et une catégorie de produit ne peuvent pas se
+   * marcher dessus.
+   */
+  const compteParValeurDeListe = useMemo(() => {
+    const table: Record<string, number> = { ...compteParCategorie };
+    for (const e of storeData.expenses) {
+      if (e.category_id) table[e.category_id] = (table[e.category_id] ?? 0) + 1;
+    }
+    for (const f of storeData.suppliers) {
+      if (f.type_id) table[f.type_id] = (table[f.type_id] ?? 0) + 1;
+    }
+    return table;
+  }, [compteParCategorie, storeData.expenses, storeData.suppliers]);
+
+  /**
    * Un onglet retiré ne doit pas rester ouvert.
    *
    * Le propriétaire peut retirer un module alors qu'il en regarde
@@ -905,8 +926,7 @@ function AppInner() {
         hasModuleAction(workspace.memberPermissionsDetailed ?? {}, "facturation", a),
       );
   const facturationSales = useMemo(
-    () =>
-      hasFacturationModule ? ventesDeLaPortee(sales, facturationVoitTout, myName) : [],
+    () => (hasFacturationModule ? ventesDeLaPortee(sales, facturationVoitTout, myName) : []),
     [sales, hasFacturationModule, facturationVoitTout, myName],
   );
   const facturationQuotes = useMemo(
@@ -2289,7 +2309,7 @@ function AppInner() {
                       produits: produitsPourExemplePrealerte,
                     }}
                     categories={storeData.categories}
-                    compteParCategorie={compteParCategorie}
+                    compteParValeur={compteParValeurDeListe}
                     onAddCategorie={storeData.addCategorie}
                     onUpdateCategorie={storeData.updateCategorie}
                     onDeleteCategorie={storeData.deleteCategorie}
