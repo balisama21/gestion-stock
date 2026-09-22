@@ -42,6 +42,8 @@ import {
 } from "../utils/formulas";
 import { VariantBadge } from "./shared/VariantBadge";
 import { PageHeader, HeaderMetric } from "./shared/PageHeader";
+import { SelecteurPersonne } from "./shared/SelecteurPersonne";
+import type { Personne } from "../lib/personnes";
 import { FilterBar, FilterField } from "./shared/FilterBar";
 import { DataList, type DataListItem } from "./shared/DataList";
 import { VignetteProduit, vignettesParProduit } from "./shared/VignetteProduit";
@@ -83,6 +85,17 @@ interface VentesViewProps {
   /** Les fiches clients de la boutique, pour rattacher la vente à l'une d'elles. */
   clients: Client[];
   sellers: Seller[];
+  /**
+   * Qui peut être désigné comme vendeur : l'équipe, les fiches « hors
+   * équipe », et les noms déjà écrits dans d'anciennes ventes.
+   */
+  personnes: Personne[];
+  /** Créer une fiche « hors équipe » sans quitter la vente. */
+  onCreerPersonne?: (data: {
+    nom: string;
+    telephone: string;
+    role: string | null;
+  }) => Promise<{ personne: { id: string; nom: string } | null; error: string | null }>;
   locale: LocaleSetting;
   settings?: StoreSettings;
   /**
@@ -152,6 +165,8 @@ export const VentesView: React.FC<VentesViewProps> = ({
   productImages = [],
   clients,
   sellers,
+  personnes,
+  onCreerPersonne,
   locale,
   settings,
   documentsV2 = false,
@@ -1061,20 +1076,22 @@ export const VentesView: React.FC<VentesViewProps> = ({
               />
             </div>
 
-            <div>
-              <label className="mb-1.5 block text-sm font-medium text-foreground">Vendeur</label>
-              <select
-                value={vendeur}
-                onChange={(e) => setVendeur(e.target.value)}
-                className="app-field"
-              >
-                {sellers.map((v) => (
-                  <option key={v.id} value={v.nom}>
-                    {v.nom}
-                  </option>
-                ))}
-              </select>
-            </div>
+            {/* ── SEUL LE NOM S'ÉCRIT, ET C'EST VOLONTAIRE ──
+                La vente est enregistrée par `create_sale_ticket`, qui
+                écrit `sales.vendeur` en texte. Cette mission n'a pas le
+                droit d'y toucher : une fonction sur le chemin de
+                l'argent ne se modifie pas pour un confort de saisie. Le
+                sélecteur propose donc les fiches — équipe et hors
+                équipe — et recopie le nom choisi, exactement comme la
+                liste déroulante d'avant. */}
+            <SelecteurPersonne
+              label="Vendeur"
+              personnes={personnes}
+              valeur={vendeur}
+              requis
+              onChange={(choix) => setVendeur(choix.nom)}
+              onCreer={onCreerPersonne}
+            />
           </div>
 
           <div>

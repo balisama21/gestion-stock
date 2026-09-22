@@ -20,6 +20,7 @@ import {
   Download,
   Trash2,
   Pencil,
+  X,
 } from "lucide-react";
 import {
   formatCurrency,
@@ -38,6 +39,14 @@ import { FilterBar, FilterField } from "./shared/FilterBar";
 import { DataList } from "./shared/DataList";
 import { SelecteurFournisseur } from "./shared/SelecteurFournisseur";
 import { cleDeListe } from "../lib/listes";
+import {
+  PRIX_AUTO_DEFAUT,
+  calculerLaMarge,
+  formaterTaux,
+  prixDepuisAchat,
+  tauxApplicable,
+  type ReglagesPrixAuto,
+} from "../lib/prixAuto";
 import { VignetteProduit, vignettesParProduit } from "./shared/VignetteProduit";
 import { StatCol } from "./shared/StatBar";
 import { Modal } from "./shared/Modal";
@@ -87,6 +96,27 @@ interface AchatsViewProps {
    * listes », sans que ce formulaire ait à lire des permissions.
    */
   onCreerCategorie?: (nom: string) => Promise<{ id: string | null; error: string | null }>;
+  /** Le calcul du prix de vente, réglé par la boutique. Absent = désactivé. */
+  prixAuto?: ReglagesPrixAuto;
+  /**
+   * Reporter le prix d'achat de cet achat sur la fiche du produit.
+   *
+   * JAMAIS automatique. `add_purchase` n'a jamais touché au prix d'achat
+   * d'un produit déjà au catalogue, et le changer en douce déplacerait
+   * la marge de toutes les ventes à venir. C'est donc une case à cocher,
+   * décochée, et l'écran montre le prix de vente qui en résulterait
+   * avant qu'on l'enregistre.
+   */
+  onReporterPrixAchat?: (
+    id: string,
+    data: {
+      designation: string;
+      prixAchat: number;
+      prixVenteDefaut: number;
+      fournisseur: string;
+      seuilAlerte: number;
+    },
+  ) => Promise<{ error: string | null }>;
   fournisseurs?: Database["public"]["Tables"]["suppliers"]["Row"][];
   storeId?: string | null;
   /**
@@ -183,6 +213,8 @@ export const AchatsView: React.FC<AchatsViewProps> = ({
   onAddPurchase,
   categories = [],
   onCreerCategorie,
+  prixAuto = PRIX_AUTO_DEFAUT,
+  onReporterPrixAchat,
   fournisseurs = [],
   onAddFournisseur,
   onUpdateFournisseur,
@@ -343,6 +375,19 @@ export const AchatsView: React.FC<AchatsViewProps> = ({
    * le nom d'origine est toujours là.
    */
   const [supplierId, setSupplierId] = useState<string | null>(null);
+  /**
+   * Reporter ce prix d'achat sur la fiche du produit.
+   *
+   * Décoché par défaut, et ce défaut est un engagement : jusqu'ici, un
+   * achat à un prix différent ne touchait JAMAIS au prix d'achat de
+   * référence du produit, donc jamais à la marge calculée sur les ventes
+   * suivantes. Cocher est un geste, pas un effet de bord.
+   */
+  const [reporterPrix, setReporterPrix] = useState(false);
+  /** Les prix de vente que le dernier achat a fait bouger, à montrer une fois. */
+  const [prixReportes, setPrixReportes] = useState<
+    { nom: string; avant: number; apres: number }[] | null
+  >(null);
   // Comptant par défaut : c'est le cas de loin le plus fréquent, et
   // c'est ce que faisait le logiciel jusqu'ici. Le crédit se choisit.
   const [reglement, setReglement] = useState<"comptant" | "credit">("comptant");
@@ -410,6 +455,52 @@ export const AchatsView: React.FC<AchatsViewProps> = ({
       p.fournisseur.toLowerCase() === fournisseur.trim().toLowerCase(),
   );
   const creeUnProduit = !produitCorrespondant && designation.trim() !== "";
+
+  /**
+   * Le produit que cet achat recharge, quand la désignation en désigne un.
+   *
+   * `produitCorrespondant` ne suffit pas : il exige aussi le même prix
+   * d'achat, et c'est justement le cas où les prix DIFFÈRENT qui nous
+   * intéresse ici.
+   */
+  const produitVise = useMemo(
+    () =>
+      products.find(
+        (p) => cleDeListe(p.designation) === cleDeListe(designation) && designation.trim() !== "",
+      ) ?? null,
+    [products, designation],
+  );
+
+  /**
+   * L'écart entre le prix saisi et celui de la fiche, et ce qu'il
+   * coûterait de le reporter.
+   *
+   * Rien n'est écrit tant que la case n'est pas cochée : ce bloc est là
+   * pour que la décision se prenne en voyant le prix de vente qui en
+   * découle, pas après coup dans le rayon.
+   */
+  const ecartDePrix = useMemo(() => {
+    if (!produitVise) return null;
+    const nouvelAchat = Number(prixAchatUnit);
+    if (!Number.isFinite(nouvelAchat) || nouvelAchat <= 0) return null;
+    if (Math.abs(produitVise.prixAchat - nouvelAchat) < 0.01) return null;
+
+    const enAuto = prixAuto.actif && produitVise.modePrix === "auto";
+    const { taux } = tauxApplicable(
+      produitVise.tauxMarge,
+      categories.find((c) => c.id === produitVise.categoryId)?.taux_marge ?? null,
+      prixAuto.taux,
+    );
+    return {
+      id: produitVise.id,
+      nom: produitVise.displayName,
+      ancienAchat: produitVise.prixAchat,
+      nouvelAchat,
+      ancienVente: produitVise.prixVenteDefaut,
+      nouveauVente: enAuto ? prixDepuisAchat(nouvelAchat, taux, prixAuto.arrondi) : null,
+      taux,
+    };
+  }, [produitVise, prixAchatUnit, prixAuto, categories]);
 
   // Auto-fill form when selecting an existing product
   const handleSelectExistingProduct = (prodId: string) => {
@@ -482,7 +573,37 @@ export const AchatsView: React.FC<AchatsViewProps> = ({
       }
     }
 
+    // Le report du prix d'achat, si et seulement si la case a été
+    // cochée. En dernier : l'achat, lui, est déjà passé, et un échec ici
+    // ne doit pas donner à croire qu'il a échoué.
+    if (reporterPrix && ecartDePrix && onReporterPrixAchat) {
+      const report = await onReporterPrixAchat(ecartDePrix.id, {
+        designation: produitVise!.designation,
+        prixAchat: ecartDePrix.nouvelAchat,
+        prixVenteDefaut: ecartDePrix.nouveauVente ?? ecartDePrix.ancienVente,
+        fournisseur: produitVise!.fournisseur,
+        seuilAlerte: produitVise!.seuilAlerte,
+      });
+      if (report.error) {
+        setSaving(false);
+        setErreurAchat(`${report.error} L'achat, lui, a bien été enregistré.`);
+        return;
+      }
+      setPrixReportes(
+        ecartDePrix.nouveauVente !== null && ecartDePrix.nouveauVente !== ecartDePrix.ancienVente
+          ? [
+              {
+                nom: ecartDePrix.nom,
+                avant: ecartDePrix.ancienVente,
+                apres: ecartDePrix.nouveauVente,
+              },
+            ]
+          : [],
+      );
+    }
+
     setSaving(false);
+    setReporterPrix(false);
     setDetailsProduit(DETAILS_VIDES);
     setPhotosProduit([]);
     setDesignation("");
@@ -592,6 +713,47 @@ export const AchatsView: React.FC<AchatsViewProps> = ({
 
   return (
     <div className="space-y-6">
+      {/* ── Ce que le dernier achat a changé en rayon ──
+          Le cahier des charges demande que le commerçant VOIE la liste
+          des prix modifiés. Un prix de vente qui bouge sans que personne
+          ne le sache est la façon la plus sûre de perdre confiance dans
+          le calcul automatique. */}
+      {prixReportes !== null && (
+        <div className="app-card p-4">
+          <div className="flex items-start justify-between gap-3">
+            <div className="min-w-0">
+              <p className="text-sm font-semibold text-foreground">
+                {prixReportes.length === 0
+                  ? "Prix d'achat mis à jour"
+                  : `${prixReportes.length} prix de vente recalculé${prixReportes.length > 1 ? "s" : ""}`}
+              </p>
+              {prixReportes.length === 0 ? (
+                <p className="mt-1 text-xs text-muted-foreground">
+                  Le prix de vente, lui, n&apos;a pas bougé.
+                </p>
+              ) : (
+                <ul className="mt-2 space-y-1">
+                  {prixReportes.map((p) => (
+                    <li key={p.nom} className="text-sm text-muted-foreground">
+                      <span className="text-foreground">{p.nom}</span> : {formatCurrency(p.avant)} →{" "}
+                      {formatCurrency(p.apres)}
+                    </li>
+                  ))}
+                </ul>
+              )}
+            </div>
+            <button
+              type="button"
+              onClick={() => setPrixReportes(null)}
+              className="app-btn-icon h-8 w-8 shrink-0"
+              aria-label="Fermer"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <PageHeader
         icon={<ShoppingCart className="w-5 h-5 t-danger" />}
@@ -1295,6 +1457,43 @@ export const AchatsView: React.FC<AchatsViewProps> = ({
                 />
               </div>
             </div>
+
+            {ecartDePrix && (
+              <div className="rounded-xl border border-border p-3 sm:col-span-2">
+                <p className="text-sm font-medium text-foreground">
+                  Ce prix d&apos;achat diffère de celui enregistré sur la fiche
+                </p>
+                <p className="mt-1 text-xs text-muted-foreground">
+                  La fiche de « {ecartDePrix.nom} » porte {formatCurrency(ecartDePrix.ancienAchat)}{" "}
+                  ; vous saisissez {formatCurrency(ecartDePrix.nouvelAchat)}. Sans rien faire,
+                  l&apos;achat est enregistré tel quel et la fiche ne bouge pas — c&apos;est ce qui
+                  se passait jusqu&apos;ici.
+                </p>
+                <label className="mt-3 flex cursor-pointer items-start gap-2">
+                  <input
+                    type="checkbox"
+                    checked={reporterPrix}
+                    onChange={(e) => setReporterPrix(e.target.checked)}
+                    className="mt-1"
+                  />
+                  <span className="min-w-0 text-sm text-foreground">
+                    Mettre la fiche à jour avec ce prix d&apos;achat
+                    {ecartDePrix.nouveauVente !== null && (
+                      <span className="mt-0.5 block text-xs text-muted-foreground">
+                        Son prix de vente passerait de {formatCurrency(ecartDePrix.ancienVente)} à{" "}
+                        {formatCurrency(ecartDePrix.nouveauVente)} —{" "}
+                        {formaterTaux(ecartDePrix.taux)} sur le prix d&apos;achat.
+                      </span>
+                    )}
+                    {ecartDePrix.nouveauVente === null && (
+                      <span className="mt-0.5 block text-xs text-muted-foreground">
+                        Son prix de vente ne bougera pas : il est fixé à la main.
+                      </span>
+                    )}
+                  </span>
+                </label>
+              </div>
+            )}
 
             <SelecteurFournisseur
               fournisseurs={fournisseurs}

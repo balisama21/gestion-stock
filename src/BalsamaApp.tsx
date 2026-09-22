@@ -63,6 +63,7 @@ import {
 } from "./lib/personnalisation";
 import { libelleEffectuePar, lireReglagesListes } from "./lib/listes";
 import { listerLesPersonnes } from "./lib/personnes";
+import { lirePrixAuto } from "./lib/prixAuto";
 
 /**
  * Les écrans internes arrivent à la demande.
@@ -342,6 +343,9 @@ function AppInner() {
    * Le défaut est permissif — clé absente, tout le monde ajoute — parce
    * que c'est exactement ce que faisait le logiciel avant ce réglage.
    */
+  /** Le calcul du prix de vente, réglé par la boutique. */
+  const prixAuto = useMemo(() => lirePrixAuto(personnalisation), [personnalisation]);
+
   const peutCompleterLesListes = useMemo(() => {
     if (workspace.isOwner) return true;
     if (lireReglagesListes(personnalisation).ajoutDepuisFormulaire === "tous") return true;
@@ -545,6 +549,8 @@ function AppInner() {
         stockMax: p.stock_max,
         typeProduit: p.type_produit,
         statut: p.statut,
+        modePrix: p.mode_prix,
+        tauxMarge: p.taux_marge,
       })),
     [storeData.products],
   );
@@ -1966,6 +1972,7 @@ function AppInner() {
                     onAddFournisseur={peutCompleterLesListes ? creerFournisseurRapide : undefined}
                     onUpdateFournisseur={completerFournisseur}
                     onCreerCategorie={peutCompleterLesListes ? creerCategorieProduit : undefined}
+                    prixAuto={prixAuto}
                     productImages={storeData.productImages}
                     storeId={workspace.activeStore?.id ?? null}
                     onEditProductDetails={storeData.updateProductDetails}
@@ -1980,6 +1987,8 @@ function AppInner() {
                     onAddFournisseur={peutCompleterLesListes ? creerFournisseurRapide : undefined}
                     onUpdateFournisseur={completerFournisseur}
                     onCreerCategorie={peutCompleterLesListes ? creerCategorieProduit : undefined}
+                    prixAuto={prixAuto}
+                    onReporterPrixAchat={storeData.updateProduct}
                     purchases={purchases}
                     products={products}
                     locale={locale}
@@ -2204,6 +2213,8 @@ function AppInner() {
                 )}
                 {vue === "ventes" && (
                   <VentesView
+                    personnes={personnesDeLaBoutique}
+                    onCreerPersonne={peutCompleterLesListes ? creerPersonneExterne : undefined}
                     documentsV2={documentsV2}
                     reglagesDocuments={reglagesDocuments}
                     productImages={storeData.productImages}

@@ -49,6 +49,7 @@ const BOUTIQUE = [
   "Documents",
   "Champs personnalisés",
   "Listes",
+  "Prix de vente",
   "Vocabulaire et modules",
   "Rappels",
   "Alertes de stock",

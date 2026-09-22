@@ -26,6 +26,13 @@ export interface Product {
   stockMax: number | null;
   typeProduit: string;
   statut: string;
+  /**
+   * « auto » : le prix de vente suit le prix d'achat. « manuel » : il est
+   * figé, et aucun achat ne le recalculera.
+   */
+  modePrix: string;
+  /** Le taux propre a ce produit. Null = herite de sa categorie, puis de la boutique. */
+  tauxMarge: number | null;
 }
 
 export interface Purchase {

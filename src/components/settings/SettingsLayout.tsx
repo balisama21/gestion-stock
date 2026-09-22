@@ -13,6 +13,7 @@ import {
   Settings as SettingsIcon,
   ListPlus,
   Languages,
+  Calculator,
   ListChecks,
   PackageSearch,
   LogOut,
@@ -32,7 +33,8 @@ export type SettingsTab =
   | "vocabulaire"
   | "rappels"
   | "alertes-stock"
-  | "categories";
+  | "categories"
+  | "prix";
 
 interface TabDef {
   id: SettingsTab;
@@ -128,6 +130,13 @@ const GROUPS: GroupDef[] = [
         label: "Listes",
         hint: "Catégories, postes, types",
         icon: <ListChecks className="w-4 h-4" />,
+        ownerOnly: true,
+      },
+      {
+        id: "prix",
+        label: "Prix de vente",
+        hint: "Calcul depuis l'achat",
+        icon: <Calculator className="w-4 h-4" />,
         ownerOnly: true,
       },
       {

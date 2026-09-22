@@ -25,6 +25,7 @@ import {
 } from "./settings/AlertesStockSection";
 import { ListesSection } from "./settings/ListesSection";
 import { PersonnesExternesSection } from "./settings/PersonnesExternesSection";
+import { PrixSection } from "./settings/PrixSection";
 import { lirePersonnalisation, type Personnalisation } from "../lib/personnalisation";
 import type { ChampPerso } from "../lib/champsPersonnalises";
 import type { Database, Json } from "../lib/database.types";
@@ -1034,6 +1035,13 @@ export const ParametresView: React.FC<ParametresViewProps> = ({
           onUpdate={onUpdateCategorie}
           personnalisation={lirePersonnalisation(personnalisation)}
           onSavePersonnalisation={onSavePersonnalisation}
+        />
+      )}
+
+      {activeTab === "prix" && (
+        <PrixSection
+          personnalisation={lirePersonnalisation(personnalisation)}
+          onSave={onSavePersonnalisation}
         />
       )}
 

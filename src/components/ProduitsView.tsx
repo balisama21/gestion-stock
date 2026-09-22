@@ -23,6 +23,8 @@ import { VignetteProduit, vignettesParProduit } from "./shared/VignetteProduit";
 import { StatCol } from "./shared/StatBar";
 import { Modal } from "./shared/Modal";
 import { DetailsProduit } from "./produits/DetailsProduit";
+import { ChampPrixDeVente } from "./produits/ChampPrixDeVente";
+import { PRIX_AUTO_DEFAUT, type ReglagesPrixAuto } from "../lib/prixAuto";
 import { SelecteurFournisseur } from "./shared/SelecteurFournisseur";
 import { DETAILS_VIDES, detailsVersBase, type ValeursDetails } from "../lib/detailsProduit";
 import { envoyerFichier, supprimerFichier } from "../lib/stockageFichiers";
@@ -115,6 +117,8 @@ interface ProduitsViewProps {
    * listes », sans que ce formulaire ait à lire des permissions.
    */
   onCreerCategorie?: (nom: string) => Promise<{ id: string | null; error: string | null }>;
+  /** Le calcul du prix de vente, réglé par la boutique. Absent = désactivé. */
+  prixAuto?: ReglagesPrixAuto;
   fournisseurs?: Database["public"]["Tables"]["suppliers"]["Row"][];
   onAddFournisseur?: (data: { nom: string; telephone?: string | null }) => Promise<{
     supplier: Database["public"]["Tables"]["suppliers"]["Row"] | null;
@@ -158,6 +162,7 @@ export const ProduitsView: React.FC<ProduitsViewProps> = ({
   onDeleteProducts,
   categories = [],
   onCreerCategorie,
+  prixAuto = PRIX_AUTO_DEFAUT,
   fournisseurs = [],
   onAddFournisseur,
   onUpdateFournisseur,
@@ -202,6 +207,16 @@ export const ProduitsView: React.FC<ProduitsViewProps> = ({
   const [designation, setDesignation] = useState("");
   const [prixAchat, setPrixAchat] = useState(1000);
   const [prixVenteDefaut, setPrixVenteDefaut] = useState(1500);
+  /**
+   * Comment ce produit tient son prix.
+   *
+   * Un produit créé ici part en « manuel » : le prix par défaut de ce
+   * formulaire est un nombre écrit à la main, et prétendre qu'il est
+   * calculé serait faux. Toucher aux boutons de taux le fait basculer
+   * en automatique, ce qui est le bon sens du geste.
+   */
+  const [modePrix, setModePrix] = useState<"auto" | "manuel">("manuel");
+  const [tauxProduit, setTauxProduit] = useState<number | null>(null);
   const [fournisseur, setFournisseur] = useState("");
   const [stockInitial, setStockInitial] = useState(20);
   const [seuilAlerte, setSeuilAlerte] = useState(5);
@@ -219,8 +234,20 @@ export const ProduitsView: React.FC<ProduitsViewProps> = ({
   const [addPhotos, setAddPhotos] = useState<File[]>([]);
   const [addErreur, setAddErreur] = useState<string | null>(null);
 
+  /**
+   * Le taux que porte une catégorie, quand elle en porte un.
+   *
+   * Sert au niveau intermédiaire de l'héritage produit > catégorie >
+   * boutique. Une catégorie sans taux rend `null`, ce qui veut dire
+   * « demande à la boutique » et jamais « zéro pour cent ».
+   */
+  const tauxDeLaCategorie = (categoryId: string): number | null =>
+    categoryId ? (categories.find((c) => c.id === categoryId)?.taux_marge ?? null) : null;
+
   // Modale Modifier
   const [editingProduct, setEditingProduct] = useState<Product | null>(null);
+  const [editModePrix, setEditModePrix] = useState<"auto" | "manuel">("manuel");
+  const [editTauxProduit, setEditTauxProduit] = useState<number | null>(null);
   const [editDesignation, setEditDesignation] = useState("");
   const [editPrixAchat, setEditPrixAchat] = useState(0);
   const [editPrixVenteDefaut, setEditPrixVenteDefaut] = useState(0);
@@ -350,9 +377,16 @@ export const ProduitsView: React.FC<ProduitsViewProps> = ({
     // Rien n'est envoyé si la fiche n'a pas été touchée : un produit
     // créé au comptoir en trois champs ne doit pas déclencher une
     // écriture de plus pour n'y inscrire que des valeurs par défaut.
-    const ficheRemplie = JSON.stringify(addDetails) !== JSON.stringify(DETAILS_VIDES);
+    // Le mode et le taux voyagent avec la fiche : ce sont des colonnes
+    // descriptives, écrites hors du chemin verrouillé comme le reste.
+    const prixARegler = prixAuto.actif && (modePrix === "auto" || tauxProduit !== null);
+    const ficheRemplie =
+      JSON.stringify(addDetails) !== JSON.stringify(DETAILS_VIDES) || prixARegler;
     if (ficheRemplie && onEditProductDetails && result.id) {
-      const details = await onEditProductDetails(result.id, detailsVersBase(addDetails));
+      const details = await onEditProductDetails(result.id, {
+        ...detailsVersBase(addDetails),
+        ...(prixAuto.actif ? { mode_prix: modePrix, taux_marge: tauxProduit } : {}),
+      });
       if (details.error) {
         setSaving(false);
         // Le produit existe : le dire, sinon l'utilisateur croirait
@@ -399,6 +433,8 @@ export const ProduitsView: React.FC<ProduitsViewProps> = ({
     setEditPrixAchat(p.prixAchat);
     setEditPrixVenteDefaut(p.prixVenteDefaut);
     setEditFournisseur(p.fournisseur);
+    setEditModePrix(p.modePrix === "auto" ? "auto" : "manuel");
+    setEditTauxProduit(p.tauxMarge);
     setEditSeuilAlerte(p.seuilAlerte);
     setEditStockSens("ajouter");
     setEditStockQte("");
@@ -458,7 +494,10 @@ export const ProduitsView: React.FC<ProduitsViewProps> = ({
     }
 
     if (onEditProductDetails) {
-      const details = await onEditProductDetails(editingProduct.id, detailsVersBase(editDetails));
+      const details = await onEditProductDetails(editingProduct.id, {
+        ...detailsVersBase(editDetails),
+        ...(prixAuto.actif ? { mode_prix: editModePrix, taux_marge: editTauxProduit } : {}),
+      });
       if (details.error) {
         setEditSaving(false);
         // Le premier enregistrement a bien eu lieu : le dire, sinon
@@ -763,18 +802,18 @@ export const ProduitsView: React.FC<ProduitsViewProps> = ({
                 className="app-field font-mono"
               />
             </div>
-            <div>
-              <label className="mb-1.5 block text-sm font-medium text-foreground">
-                Prix de vente (Ar)
-              </label>
-              <input
-                type="number"
-                required
-                value={prixVenteDefaut}
-                onChange={(e) => setPrixVenteDefaut(Number(e.target.value))}
-                className="app-field font-mono"
-              />
-            </div>
+            <ChampPrixDeVente
+              id="prod-add-prix-vente"
+              prixAchat={Number(prixAchat)}
+              prixVente={Number(prixVenteDefaut)}
+              onPrixVente={setPrixVenteDefaut}
+              mode={modePrix}
+              onMode={setModePrix}
+              tauxProduit={tauxProduit}
+              onTauxProduit={setTauxProduit}
+              tauxCategorie={tauxDeLaCategorie(addDetails.category_id)}
+              reglages={prixAuto}
+            />
           </div>
 
           <SelecteurFournisseur
@@ -985,18 +1024,18 @@ export const ProduitsView: React.FC<ProduitsViewProps> = ({
                   className="app-field font-mono"
                 />
               </div>
-              <div>
-                <label className="mb-1.5 block text-sm font-medium text-foreground">
-                  Prix de vente (Ar)
-                </label>
-                <input
-                  type="number"
-                  required
-                  value={editPrixVenteDefaut}
-                  onChange={(e) => setEditPrixVenteDefaut(Number(e.target.value))}
-                  className="app-field font-mono"
-                />
-              </div>
+              <ChampPrixDeVente
+                id="prod-edit-prix-vente"
+                prixAchat={Number(editPrixAchat)}
+                prixVente={Number(editPrixVenteDefaut)}
+                onPrixVente={setEditPrixVenteDefaut}
+                mode={editModePrix}
+                onMode={setEditModePrix}
+                tauxProduit={editTauxProduit}
+                onTauxProduit={setEditTauxProduit}
+                tauxCategorie={tauxDeLaCategorie(editDetails.category_id)}
+                reglages={prixAuto}
+              />
             </div>
 
             <SelecteurFournisseur

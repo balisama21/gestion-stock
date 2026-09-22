@@ -76,6 +76,8 @@ const produit = (id: string, numero: string, designation: string, unite: string 
     stockMax: null,
     typeProduit: "bien",
     statut: "actif",
+    modePrix: "manuel",
+    tauxMarge: null,
   }) satisfies Product;
 
 export const PRODUITS: Product[] = [

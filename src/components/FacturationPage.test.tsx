@@ -52,6 +52,8 @@ const PRODUIT: Product = {
   stockMax: null,
   typeProduit: "produit",
   statut: "actif",
+  modePrix: "manuel",
+  tauxMarge: null,
 };
 
 const VENTE: Sale = {
