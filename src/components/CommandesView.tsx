@@ -20,9 +20,7 @@ import {
   History,
   Trash2,
 } from "lucide-react";
-import { formatCurrency, getProductLabel, getSaleLabel,
-  quantiteEnMots,
-} from "../utils/formulas";
+import { formatCurrency, getProductLabel, getSaleLabel, quantiteEnMots } from "../utils/formulas";
 import { PageHeader } from "./shared/PageHeader";
 import { StatCol } from "./shared/StatBar";
 import { Modal } from "./shared/Modal";
@@ -38,7 +36,10 @@ import type { ReglagesDocuments } from "../features/documents/lib/reglages";
  * alors que getProductLabel attend le format camelCase du front. On convertit
  * à la volée sans toucher au reste du code.
  */
-function getProdLabel(prod: { designation: string; prix_achat: number }, allProducts: Product[]): string {
+function getProdLabel(
+  prod: { designation: string; prix_achat: number },
+  allProducts: Product[],
+): string {
   return getProductLabel(
     { designation: prod.designation, prixAchat: prod.prix_achat },
     allProducts.map((p) => ({ designation: p.designation, prixAchat: p.prix_achat })),
@@ -60,6 +61,7 @@ function getOrderItemLabel(
 }
 import type { Database } from "../lib/database.types";
 import { useRechercheInitiale } from "../lib/cibleRecherche";
+import { AideLigneLibre, LIBELLE_LIGNE_LIBRE } from "./shared/LigneLibre";
 
 type Order = Database["public"]["Tables"]["orders"]["Row"] & {
   client?: Database["public"]["Tables"]["clients"]["Row"] | null;
@@ -103,7 +105,10 @@ interface CommandesViewProps {
   ) => Promise<{ error: string | null }>;
   onAddPayment: (
     orderId: string,
-    data: Omit<Database["public"]["Tables"]["payments"]["Insert"], "order_id" | "sale_id" | "store_id" | "recorded_by">,
+    data: Omit<
+      Database["public"]["Tables"]["payments"]["Insert"],
+      "order_id" | "sale_id" | "store_id" | "recorded_by"
+    >,
   ) => Promise<{ error: string | null }>;
   // PHASE 1 : remboursement traçable (ne supprime jamais le paiement d'origine).
   onRefundOrder: (
@@ -116,7 +121,10 @@ interface CommandesViewProps {
   onDeleteOrder?: (orderId: string) => Promise<{ error: string | null }>;
 }
 
-const statusConfig: Record<OrderStatus, { label: string; icon: React.ReactNode; color: string; bg: string }> = {
+const statusConfig: Record<
+  OrderStatus,
+  { label: string; icon: React.ReactNode; color: string; bg: string }
+> = {
   en_attente: {
     label: "En attente",
     icon: <Clock className="w-3.5 h-3.5" />,
@@ -338,9 +346,12 @@ export const CommandesView: React.FC<CommandesViewProps> = ({
     for (const [productId, needed] of neededByProduct) {
       const prod = products.find((p) => p.id === productId);
       if (!prod) continue;
-      const disponible = prod.stock_disponible ?? Math.max(prod.stock_actuel - (prod.stock_reserve ?? 0), 0);
+      const disponible =
+        prod.stock_disponible ?? Math.max(prod.stock_actuel - (prod.stock_reserve ?? 0), 0);
       if (disponible <= 0) {
-        errors.push(`${getProdLabel(prod, products)} : aucun stock disponible (tout le stock est réservé ou épuisé).`);
+        errors.push(
+          `${getProdLabel(prod, products)} : aucun stock disponible (tout le stock est réservé ou épuisé).`,
+        );
       } else if (needed > disponible) {
         errors.push(
           `${getProdLabel(prod, products)} : stock disponible insuffisant. Disponible ${disponible}, demandé ${needed}.`,
@@ -433,7 +444,10 @@ export const CommandesView: React.FC<CommandesViewProps> = ({
         title={`Commandes (${orders.length})`}
         subtitle="Suivez vos commandes clients et leurs paiements."
         actions={
-          <button onClick={() => setShowNewOrder(true)} className="app-btn-primary w-full sm:w-auto">
+          <button
+            onClick={() => setShowNewOrder(true)}
+            className="app-btn-primary w-full sm:w-auto"
+          >
             <Plus className="w-4 h-4" />
             Nouvelle commande
           </button>
@@ -598,7 +612,7 @@ export const CommandesView: React.FC<CommandesViewProps> = ({
                         </div>
                       )}
                     </div>
-                   <ChevronDown
+                    <ChevronDown
                       className={`w-4 h-4 text-muted-foreground transition-transform ${isSelected ? "rotate-180" : ""}`}
                     />
                     {bonImprimable && (
@@ -651,7 +665,10 @@ export const CommandesView: React.FC<CommandesViewProps> = ({
                             >
                               <span className="text-foreground font-medium">
                                 {getOrderItemLabel(item, products)} ·{" "}
-                                {quantiteEnMots(item.quantite, products.find((x) => x.id === item.product_id)?.unite)}
+                                {quantiteEnMots(
+                                  item.quantite,
+                                  products.find((x) => x.id === item.product_id)?.unite,
+                                )}
                               </span>
                               <span className="font-mono text-foreground">
                                 {formatCurrency(item.total_vente)}
@@ -1031,12 +1048,17 @@ export const CommandesView: React.FC<CommandesViewProps> = ({
                   <div key={idx} className="rounded-xl border border-border bg-muted/40 p-3">
                     <div className="flex items-start gap-2">
                       <div className="grid min-w-0 flex-1 grid-cols-1 gap-2 sm:grid-cols-2">
+                        <span className="flex items-center gap-1.5 text-[11px] font-medium text-muted-foreground sm:col-span-2">
+                          <label htmlFor={`cmd-ligne-${idx}-produit`}>Produit</label>
+                          <AideLigneLibre />
+                        </span>
                         <select
+                          id={`cmd-ligne-${idx}-produit`}
                           value={item.product_id}
                           onChange={(e) => updateItem(idx, "product_id", e.target.value)}
                           className="app-field-sm sm:col-span-2"
                         >
-                          <option value="">Produit libre</option>
+                          <option value="">{LIBELLE_LIGNE_LIBRE}</option>
                           {products.map((p) => (
                             <option key={p.id} value={p.id}>
                               {getProdLabel(p, products)} —{" "}

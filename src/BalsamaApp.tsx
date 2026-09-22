@@ -2191,6 +2191,7 @@ function AppInner() {
                   <LivraisonsView
                     deliveries={storeData.deliveries}
                     membres={storeMembers}
+                    personnesExternes={storeData.personnesExternes.filter((p) => p.actif)}
                     // Le type genere attend `Json`, qui exige une signature
                     // d index ; une interface nommee n en a pas, meme quand sa
                     // forme est un JSON parfaitement valide. La conversion est

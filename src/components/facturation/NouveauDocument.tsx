@@ -6,6 +6,7 @@ import type { Product } from "../../types";
 import type { Database } from "../../lib/database.types";
 import { montant as formaterMontant } from "../../features/documents/lib/format";
 import { MODES_DE_PAIEMENT } from "./paiement";
+import { AideLigneLibre, LIBELLE_LIGNE_LIBRE } from "../shared/LigneLibre";
 
 type Client = Database["public"]["Tables"]["clients"]["Row"];
 
@@ -44,12 +45,7 @@ type Client = Database["public"]["Tables"]["clients"]["Row"];
  */
 
 export type NatureNouveau =
-  | "facture"
-  | "commission"
-  | "recu"
-  | "proforma"
-  | "devis"
-  | "facture_achat";
+  "facture" | "commission" | "recu" | "proforma" | "devis" | "facture_achat";
 
 const CHOIX: { cle: NatureNouveau; libelle: string; detail: string }[] = [
   { cle: "facture", libelle: "Facture", detail: "Produits du catalogue ou prestation" },
@@ -289,7 +285,8 @@ export const FormulaireNouveauDocument: React.FC<{
               onChange={(e) => {
                 setClientId(e.target.value);
                 const c = clients.find((x) => x.id === e.target.value);
-                if (c) setClientNom([c.prenom, c.nom].filter(Boolean).join(" ") || c.entreprise || "");
+                if (c)
+                  setClientNom([c.prenom, c.nom].filter(Boolean).join(" ") || c.entreprise || "");
               }}
               className="app-field"
             >
@@ -354,13 +351,14 @@ export const FormulaireNouveauDocument: React.FC<{
                     >
                       Produit
                     </label>
+                    <AideLigneLibre />
                     <select
                       id={`nd-produit-${i}`}
                       value={ligne.productId}
                       onChange={(e) => choisirProduit(i, e.target.value)}
                       className="app-field"
                     >
-                      <option value="">Prestation — hors catalogue</option>
+                      <option value="">{LIBELLE_LIGNE_LIBRE}</option>
                       {produits.map((p) => (
                         <option key={p.id} value={p.id}>
                           {p.displayName} · {p.stockDisponible} en stock

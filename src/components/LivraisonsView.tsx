@@ -4,6 +4,8 @@ import { formatCurrency, formatDateLocale, quantiteEnMots } from "../utils/formu
 import { PageHeader, HeaderMetric } from "./shared/PageHeader";
 import { FilterBar, FilterField } from "./shared/FilterBar";
 import { DataList, type DataListItem } from "./shared/DataList";
+import { ChampAvecSuggestions } from "./shared/ChampAvecSuggestions";
+import { cleDeListe } from "../lib/listes";
 import { StatCol } from "./shared/StatBar";
 import { Modal } from "./shared/Modal";
 import {
@@ -37,6 +39,14 @@ interface ChargeLivraison {
   montant_a_encaisser: number;
   contenu: ArticleLivre[];
   livreur_id?: string | null;
+  /**
+   * Le nom de qui porte la course, quand ce n'est pas un membre.
+   *
+   * Vient À CÔTÉ de `livreur_id`, jamais à sa place : choisir quelqu'un
+   * de l'équipe continue d'écrire l'identifiant, sans quoi l'espace
+   * livreur n'afficherait plus rien.
+   */
+  confie_a?: string | null;
   note?: string | null;
 }
 
@@ -44,6 +54,8 @@ interface LivraisonsViewProps {
   deliveries: Livraison[];
   /** L'équipe de la boutique : on y cherche les livreurs. */
   membres: Membre[];
+  /** Les fiches « hors équipe », proposées en suggestion et jamais imposées. */
+  personnesExternes?: { id: string; nom: string }[];
   onAddDelivery: (data: ChargeLivraison) => Promise<{ error: string | null }>;
   onUpdateDelivery: (
     id: string,
@@ -73,6 +85,7 @@ const ARTICLE_VIDE: ArticleLivre = { designation: "", quantite: 1 };
 export const LivraisonsView: React.FC<LivraisonsViewProps> = ({
   deliveries,
   membres,
+  personnesExternes = [],
   onAddDelivery,
   onUpdateDelivery,
   onDeleteDelivery,
@@ -99,7 +112,8 @@ export const LivraisonsView: React.FC<LivraisonsViewProps> = ({
   const [precisions, setPrecisions] = useState("");
   const [datePrevue, setDatePrevue] = useState(AUJOURDHUI);
   const [montant, setMontant] = useState(0);
-  const [livreurId, setLivreurId] = useState("");
+  /** Ce qui est tapé dans « Confiée à » : un nom, membre ou non. */
+  const [confieA, setConfieA] = useState("");
   const [note, setNote] = useState("");
   const [articles, setArticles] = useState<ArticleLivre[]>([{ ...ARTICLE_VIDE }]);
 
@@ -108,6 +122,42 @@ export const LivraisonsView: React.FC<LivraisonsViewProps> = ({
     if (!id) return null;
     const m = membres.find((x) => x.user_id === id);
     return m ? (m.full_name ?? m.email) : "Livreur retiré de l'équipe";
+  };
+
+  /** À qui la course est confiée, en clair : l'équipe d'abord, le nom libre ensuite. */
+  const aQui = (l: Livraison): string | null => nomDuLivreur(l.livreur_id) ?? l.confie_a ?? null;
+
+  /**
+   * Ce qu'on propose sans l'imposer.
+   *
+   * Les livreurs de l'équipe, les fiches « hors équipe », et les noms
+   * déjà tapés dans cette boutique. Le champ reste libre : une course se
+   * confie aussi au voisin, et ce n'est pas au logiciel de décider qui
+   * mérite une fiche.
+   */
+  const suggestionsConfieA = useMemo(
+    () => [
+      ...livreurs.map((m) => m.full_name ?? m.email),
+      ...personnesExternes.map((p) => p.nom),
+      ...deliveries.map((l) => l.confie_a ?? "").filter(Boolean),
+    ],
+    [livreurs, personnesExternes, deliveries],
+  );
+
+  /**
+   * Un nom saisi, ramené aux deux colonnes de la base.
+   *
+   * Le nom d'un membre de l'équipe écrit son identifiant — c'est lui qui
+   * fait apparaître la course dans l'espace livreur. Tout autre nom
+   * n'écrit que le texte.
+   */
+  const versLesDeuxColonnes = (nom: string) => {
+    const propre = nom.trim();
+    if (!propre) return { livreur_id: null, confie_a: null };
+    const membre = livreurs.find((m) => cleDeListe(m.full_name ?? m.email) === cleDeListe(propre));
+    return membre
+      ? { livreur_id: membre.user_id, confie_a: null }
+      : { livreur_id: null, confie_a: propre };
   };
 
   const filtrees = useMemo(() => {
@@ -167,7 +217,7 @@ export const LivraisonsView: React.FC<LivraisonsViewProps> = ({
     setPrecisions("");
     setDatePrevue(AUJOURDHUI());
     setMontant(0);
-    setLivreurId("");
+    setConfieA("");
     setNote("");
     setArticles([{ ...ARTICLE_VIDE }]);
     setErreur(null);
@@ -182,7 +232,7 @@ export const LivraisonsView: React.FC<LivraisonsViewProps> = ({
     setPrecisions(l.precisions ?? "");
     setDatePrevue(l.date_prevue ?? AUJOURDHUI());
     setMontant(l.montant_a_encaisser);
-    setLivreurId(l.livreur_id ?? "");
+    setConfieA(aQui(l) ?? "");
     setNote(l.note ?? "");
     const contenu = lireContenu(l.contenu);
     setArticles(contenu.length > 0 ? contenu : [{ ...ARTICLE_VIDE }]);
@@ -215,7 +265,7 @@ export const LivraisonsView: React.FC<LivraisonsViewProps> = ({
       date_prevue: datePrevue || null,
       montant_a_encaisser: Number(montant),
       contenu: articles.filter((a) => a.designation.trim() && a.quantite > 0),
-      livreur_id: livreurId || null,
+      ...versLesDeuxColonnes(confieA),
       note: note.trim() || null,
     };
 
@@ -234,13 +284,15 @@ export const LivraisonsView: React.FC<LivraisonsViewProps> = ({
     setFormulaireOuvert(false);
   };
 
-  const assigner = async (l: Livraison, id: string) => {
-    const res = await onUpdateDelivery(l.id, { livreur_id: id || null });
+  const assigner = async (l: Livraison, nom: string) => {
+    const colonnes = versLesDeuxColonnes(nom);
+    const res = await onUpdateDelivery(l.id, colonnes);
     if (res.error) setErreur(res.error);
     else {
+      const propre = nom.trim();
       setSucces(
-        id
-          ? `${l.numero ?? "Course"} confiée à ${nomDuLivreur(id)}.`
+        propre
+          ? `${l.numero ?? "Course"} confiée à ${propre}.`
           : `${l.numero ?? "Course"} n'est plus assignée.`,
       );
     }
@@ -262,7 +314,7 @@ export const LivraisonsView: React.FC<LivraisonsViewProps> = ({
 
   const item = (l: Livraison): DataListItem => {
     const contenu = lireContenu(l.contenu);
-    const livreur = nomDuLivreur(l.livreur_id);
+    const livreur = aQui(l);
     return {
       id: l.id,
       primary: <span className="block truncate">{l.destinataire || "Sans destinataire"}</span>,
@@ -322,30 +374,15 @@ export const LivraisonsView: React.FC<LivraisonsViewProps> = ({
 
           {peutModifier && estEnCours(l) && (
             <div>
-              <label
-                htmlFor={`liv-assign-${l.id}`}
-                className="mb-1.5 block text-sm font-medium text-foreground"
-              >
-                Confiée à
-              </label>
-              <select
+              <ChampAvecSuggestions
                 id={`liv-assign-${l.id}`}
-                value={l.livreur_id ?? ""}
-                onChange={(e) => assigner(l, e.target.value)}
-                className="app-field"
-              >
-                <option value="">Personne pour l&apos;instant</option>
-                {livreurs.map((m) => (
-                  <option key={m.user_id} value={m.user_id}>
-                    {m.full_name ?? m.email}
-                  </option>
-                ))}
-              </select>
-              {livreurs.length === 0 && (
-                <p className="mt-1 text-xs text-muted-foreground">
-                  Aucun livreur dans l&apos;équipe. Invitez-en un depuis Paramètres → Équipe.
-                </p>
-              )}
+                label="Confiée à"
+                valeur={aQui(l) ?? ""}
+                onChange={(v) => void assigner(l, v)}
+                suggestions={suggestionsConfieA}
+                placeholder="Personne pour l'instant"
+                aide="Un livreur de l'équipe, ou n'importe quel nom : le champ est libre."
+              />
             </div>
           )}
         </div>
@@ -356,7 +393,7 @@ export const LivraisonsView: React.FC<LivraisonsViewProps> = ({
           label: "Prévue le",
           value: l.date_prevue ? formatDateLocale(l.date_prevue, "FR") : "—",
         },
-        { label: "Confiée à", value: livreur ?? "personne", hideIfEmpty: true },
+        { label: "Confiée à", value: aQui(l) ?? "personne", hideIfEmpty: true },
         {
           label: "À encaisser",
           value: l.montant_a_encaisser > 0 ? formatCurrency(l.montant_a_encaisser) : "rien",
@@ -701,25 +738,15 @@ export const LivraisonsView: React.FC<LivraisonsViewProps> = ({
               </p>
             </div>
             <div>
-              <label
-                htmlFor="liv-livreur"
-                className="mb-1.5 block text-sm font-medium text-foreground"
-              >
-                Confiée à
-              </label>
-              <select
+              <ChampAvecSuggestions
                 id="liv-livreur"
-                value={livreurId}
-                onChange={(e) => setLivreurId(e.target.value)}
-                className="app-field"
-              >
-                <option value="">Personne pour l&apos;instant</option>
-                {livreurs.map((m) => (
-                  <option key={m.user_id} value={m.user_id}>
-                    {m.full_name ?? m.email}
-                  </option>
-                ))}
-              </select>
+                label="Confiée à"
+                valeur={confieA}
+                onChange={setConfieA}
+                suggestions={suggestionsConfieA}
+                placeholder="Personne pour l'instant"
+                aide="Un livreur de l'équipe, ou n'importe quel nom : le champ est libre."
+              />
             </div>
           </div>
 

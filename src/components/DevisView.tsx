@@ -34,6 +34,7 @@ import {
 } from "../lib/devis";
 import { dateDuJour, dateDansNJours } from "../lib/dates";
 import { useRechercheInitiale } from "../lib/cibleRecherche";
+import { AideLigneLibre, LIBELLE_LIGNE_LIBRE } from "./shared/LigneLibre";
 
 type Client = Database["public"]["Tables"]["clients"]["Row"];
 
@@ -717,15 +718,17 @@ export const DevisView: React.FC<DevisViewProps> = ({
               <div key={i} className="rounded-xl border border-border p-3">
                 <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                   <div>
-                    <label className="mb-1 block text-xs font-medium text-muted-foreground">
-                      Produit du catalogue
-                    </label>
+                    <span className="mb-1 flex items-center gap-1.5 text-xs font-medium text-muted-foreground">
+                      <label htmlFor={`dev-ligne-${i}-produit`}>Produit du catalogue</label>
+                      <AideLigneLibre />
+                    </span>
                     <select
+                      id={`dev-ligne-${i}-produit`}
                       value={ligne.productId}
                       onChange={(e) => choisirProduit(i, e.target.value)}
                       className="app-field"
                     >
-                      <option value="">Ligne libre</option>
+                      <option value="">{LIBELLE_LIGNE_LIBRE}</option>
                       {products.map((p) => (
                         <option key={p.id} value={p.id}>
                           {getProductLabel(p, products)}

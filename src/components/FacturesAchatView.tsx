@@ -24,6 +24,7 @@ import type { ReglagesDocuments } from "../features/documents/lib/reglages";
 import { adresseDocument, envoyerFichier, reduireImage } from "../lib/stockageFichiers";
 import { dateDuJour } from "../lib/dates";
 import type { SaisieFactureAchat } from "../hooks/useStoreData";
+import { AideLigneLibre, LIBELLE_LIGNE_LIBRE } from "./shared/LigneLibre";
 
 type FactureAchat = Database["public"]["Tables"]["supplier_invoices"]["Row"];
 type LigneFactureAchat = Database["public"]["Tables"]["supplier_invoice_items"]["Row"];
@@ -598,13 +599,14 @@ export const FacturesAchatView: React.FC<Props> = ({
                       >
                         Produit du catalogue
                       </label>
+                      <AideLigneLibre />
                       <select
                         id={`fa-ligne-${i}-produit`}
                         value={ligne.productId}
                         onChange={(e) => choisirProduit(i, e.target.value)}
                         className="app-field"
                       >
-                        <option value="">Hors catalogue</option>
+                        <option value="">{LIBELLE_LIGNE_LIBRE}</option>
                         {products.map((p) => (
                           <option key={p.id} value={p.id}>
                             {getProductLabel(p, products)}
