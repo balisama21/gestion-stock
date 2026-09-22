@@ -27,7 +27,21 @@ Migrations appliquées, dans l'ordre :
 `20260922141000_listes_fournisseurs`,
 `20260922142000_personnes_externes`,
 `20260922143000_prix_automatique_et_confie_a`,
-`20260922144000_le_type_dune_depense_nest_pas_son_poste`.
+`20260922144000_le_type_dune_depense_nest_pas_son_poste`,
+`20260922145000_listes_droits_dexecution`.
+
+## Ce qui a été vérifié sur les données réelles
+
+Directement en base de production, après les migrations :
+
+- l'anti-doublon refuse « GROSSISTE » quand « Grossiste » existe, sur
+  les listes **comme** sur les personnes externes ;
+- archiver une valeur libère son nom : la même peut être recréée ;
+- une catégorie de produits est refusée comme type de fournisseur, par
+  le déclencheur et pas seulement par l'écran ;
+- les trois index uniques sont valides après la fixation du
+  `search_path` de `cle_de_liste` ;
+- les fiches d'essai créées pour ces vérifications ont été effacées.
 
 ## Les quatre écarts
 
