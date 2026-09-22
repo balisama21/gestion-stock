@@ -105,7 +105,28 @@ du cahier, et c'est lui qui a reçu le sélecteur.
 Une première migration avait confondu les deux ; elle a été défaite par
 `20260922144000`.
 
-## Deux corrections faites en passant
+## Ce que les épreuves couvrent
+
+702 épreuves passent, dont 66 écrites pour cette mission :
+
+- `listes.test.ts` — la clé de comparaison, l'anti-doublon, les
+  réglages, la lecture d'un CSV à une et à deux colonnes ;
+- `personnes.test.ts` — l'ordre des trois origines, et le fait qu'une
+  personne qui a une fiche ET un passé n'apparaisse qu'une fois ;
+- `prixAuto.test.ts` — l'héritage à trois niveaux, le zéro qui est une
+  décision, l'arrondi, la marge, le recalcul ;
+- `SelecteurListe.test.tsx` — la recherche sans accent, le « + Ajouter »
+  qui disparaît sur un doublon, la création, le refus de la base montré
+  plutôt qu'avalé, les flèches, Entrée et Échap ;
+- `ChampPrixDeVente.test.tsx` — éteint il ne change rien, taper passe en
+  manuel, un prix d'achat qui bouge entraîne le prix de vente, un
+  produit manuel n'est jamais recalculé, la vente à perte s'annonce ;
+- `ListesSection.test.tsx` — aucun bouton de suppression, l'archivage,
+  le renommage refusé sur un doublon, le réordonnancement, et surtout :
+  changer un réglage n'écrase pas les réglages voisins de la même
+  colonne JSON.
+
+## Quatre corrections faites en passant
 
 - **`handleAddExpense` perdait cinq colonnes.** Le formulaire de dépense
   envoyait le poste, le prestataire et le justificatif ; la fonction n'en
@@ -116,6 +137,16 @@ Une première migration avait confondu les deux ; elle a été défaite par
 - **`optionsCategories` ne filtrait pas sur `usage`.** Sans correction,
   la table portant désormais toutes les listes, le sélecteur de catégorie
   d'un produit aurait proposé « Loyer » et « Grossiste ».
+
+- **`handleEditExpense` n'écrivait que le montant et la note.** Corriger
+  la date, le poste ou « Effectué par » d'une dépense ne laissait aucune
+  trace. Pire : l'impact sur la trésorerie n'était pas recalculé, donc
+  ramener une dépense de 50 000 à 5 000 laissait la caisse amputée de
+  50 000. Les huit champs modifiables sont désormais écrits.
+
+- **`scrollIntoView` n'était pas appelé prudemment** dans le sélecteur.
+  Tout environnement qui ne le fournit pas — c'est le cas de celui des
+  épreuves — faisait tomber le champ entier. L'appel est devenu optionnel.
 
 ## L'état de la reprise, vérifié en base
 

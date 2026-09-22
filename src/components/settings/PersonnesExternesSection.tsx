@@ -25,25 +25,12 @@ interface PersonnesExternesSectionProps {
 const VIDE = { nom: "", telephone: "", email: "", role: "", taux_commission: "", notes: "" };
 
 /**
- * LES GENS QUI TRAVAILLENT AVEC LA BOUTIQUE SANS Y AVOIR DE COMPTE.
+ * Les gens qui travaillent avec la boutique sans y avoir de compte :
+ * une revendeuse, un chauffeur, une couturière payée à la pièce.
  *
- * Une revendeuse au marché, un chauffeur, une couturière payée à la
- * pièce. Jusqu'ici leur nom était simplement recopié dans une vente ou
- * une dépense : aucun téléphone, aucun taux de commission, rien à quoi
- * se raccrocher pour les rappeler ou vérifier ce qu'on leur doit.
- *
- * ── CE QU'UNE FICHE NE DONNE PAS ──
- *
- * Aucun accès. Pas de compte, pas de mot de passe, pas de ligne dans
- * l'équipe. Inviter quelqu'un se fait juste au-dessus, et c'est un
- * geste différent — celui-là ouvre une porte.
- *
- * ── LE RÔLE EST UN CHAMP LIBRE ──
- *
- * Et il le restera. Une liste fermée de métiers ne contient jamais
- * celui qu'on cherche : l'application appelle « vendeur » toute personne
- * qui travaille dans la boutique parce que c'est le premier métier
- * qu'elle a servi, pas parce que c'est le seul.
+ * Une fiche ne donne AUCUN accès — inviter quelqu'un se fait juste
+ * au-dessus, et c'est un geste différent. Le rôle est un champ libre :
+ * aucune liste fermée ne contient le métier qu'on cherche.
  */
 export const PersonnesExternesSection: React.FC<PersonnesExternesSectionProps> = ({
   personnes,
@@ -193,11 +180,7 @@ export const PersonnesExternesSection: React.FC<PersonnesExternesSectionProps> =
                     .join(" · ")}
                 </span>
 
-                {/* ── LE PONT VERS UN COMPTE ──
-                    Quelqu'un qu'on payait à la pièce finit par être
-                    embauché. Relier sa fiche à son nouveau compte ne
-                    déplace RIEN : ses ventes et ses dépenses restent
-                    attachées à son nom, exactement où elles sont. Le lien
+                {/* Relier une fiche à un compte ne déplace rien : le lien
                     dit seulement que ces deux-là sont la même personne. */}
                 {membres.length > 0 && (
                   <label className="mt-1.5 block">

@@ -10,12 +10,8 @@ interface SelecteurFournisseurProps {
   /** L'identifiant retenu, ou null tant qu'aucune fiche n'est choisie. */
   valeur: string | null;
   /**
-   * Le choix, rendu sous ses deux formes.
-   *
    * L'identifiant pour le rattachement, le nom pour la colonne texte que
-   * les fonctions de la base écrivent toujours. Les deux partent
-   * ensemble : c'est ce qui permet de reprendre la migration à zéro si
-   * un rattachement s'avérait faux.
+   * les fonctions de la base écrivent toujours. Les deux vont ensemble.
    */
   onChange: (id: string | null, nom: string) => void;
   /** Crée la fiche et la renvoie. Absente, le champ ne propose pas d'ajouter. */
@@ -32,21 +28,9 @@ interface SelecteurFournisseurProps {
 }
 
 /**
- * LE FOURNISSEUR D'UN ACHAT
- *
- * C'était une saisie libre, et c'est ainsi qu'on s'est retrouvé avec
- * « Chine » écrit trente-trois fois sans qu'aucune fiche ne lui
- * corresponde. Le champ est désormais branché sur l'annuaire de la
- * boutique.
- *
- * ── LA FICHE RAPIDE ──
- *
- * Créer un fournisseur au milieu d'un achat ne doit pas ouvrir un
- * formulaire de quinze champs. On donne le nom, et l'achat continue.
- * Le téléphone est proposé juste après, sur une ligne qui apparaît sous
- * le champ : c'est le seul renseignement qu'on regrette vraiment de ne
- * pas avoir quand il faut rappeler. Tout le reste attend l'écran
- * Fournisseurs.
+ * Le champ fournisseur, branché sur l'annuaire. Créer une fiche au
+ * milieu d'un achat ne demande que le nom ; le téléphone est proposé
+ * juste après, sans bloquer, et le reste attend l'écran Fournisseurs.
  */
 export const SelecteurFournisseur: React.FC<SelecteurFournisseurProps> = ({
   fournisseurs,
@@ -87,8 +71,6 @@ export const SelecteurFournisseur: React.FC<SelecteurFournisseurProps> = ({
     const { supplier, error } = await onCreer({ nom });
     if (error || !supplier) return { id: null, error: error ?? "Fiche non créée." };
     onChange(supplier.id, supplier.nom);
-    // Le téléphone est demandé APRÈS, et sans bloquer : l'achat en cours
-    // n'attend pas qu'on retrouve un numéro.
     setACompleter(supplier);
     setTelephone("");
     return { id: supplier.id, error: null };

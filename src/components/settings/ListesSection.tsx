@@ -51,25 +51,11 @@ interface ListesSectionProps {
 }
 
 /**
- * LES LISTES DE LA BOUTIQUE, EN UN SEUL ENDROIT
+ * Trois listes, un seul écran : ce sont trois fois le même objet.
  *
- * Catégories de produits, postes de dépense, types de fournisseur : trois
- * listes, un seul écran, parce que ce sont trois fois le même objet. Les
- * ajouter, les renommer, les remettre dans l'ordre, les archiver : les
- * quatre mêmes gestes.
- *
- * ── ON N'EFFACE PAS, ON ARCHIVE ──
- *
- * Supprimer une valeur que des enregistrements portent laisserait des
- * achats sans fournisseur et des dépenses sans poste. Archiver la retire
- * des sélecteurs et la laisse lisible partout où elle a servi. C'est
- * pour cela qu'il n'y a pas de corbeille sur cet écran.
- *
- * ── RENOMMER SE PROPAGE, PARCE QUE C'EST UN IDENTIFIANT QUI EST STOCKÉ ──
- *
- * Les enregistrements ne portent pas le mot mais son identifiant :
- * corriger « Grossite » en « Grossiste » corrige d'un coup les quarante
- * achats qui le portaient. Rien à reprendre à la main.
+ * Pas de corbeille, on archive — supprimer une valeur utilisée
+ * laisserait des achats sans fournisseur. Renommer se propage, puisque
+ * c'est un identifiant qui est stocké et non le mot.
  */
 export const ListesSection: React.FC<ListesSectionProps> = ({
   valeurs,
@@ -102,7 +88,7 @@ export const ListesSection: React.FC<ListesSectionProps> = ({
   const racines = actives.filter((v) => !v.parent_id);
   const enfantsDe = (id: string) => actives.filter((v) => v.parent_id === id);
 
-  /** Les racines suivies de leurs enfants : l'ordre où l'écran les montre. */
+  /** Les racines suivies de leurs enfants. */
   const affichees = racines.flatMap((r) => [r, ...enfantsDe(r.id)]);
 
   const doublon = valeurEquivalente(siennes, nom);
@@ -117,8 +103,7 @@ export const ListesSection: React.FC<ListesSectionProps> = ({
     }
     setEnCours(true);
     setErreur(null);
-    // Placée en fin de liste : l'ordre est une décision, et la dernière
-    // valeur ajoutée n'a aucune raison de passer devant les autres.
+    // En fin de liste : l'ordre est une décision.
     const dernier = siennes.reduce((m, v) => Math.max(m, v.ordre), 0);
     const { error } = await onAdd({
       nom: propre,
@@ -172,13 +157,8 @@ export const ListesSection: React.FC<ListesSectionProps> = ({
   };
 
   /**
-   * Déplacer une valeur d'un cran, ou la poser là où on l'a lâchée.
-   *
-   * Les `ordre` sont réécrits en entier sur la liste concernée, par pas
-   * de dix. Réécrire tout coûte quelques requêtes de plus qu'un échange
-   * de deux nombres, mais c'est le seul moyen de rattraper une liste
-   * dont les ordres sont tous à zéro — ce qui est le cas de toutes les
-   * listes reprises de l'ancien écran.
+   * Les `ordre` sont réécrits en entier, par pas de dix : c'est le seul
+   * moyen de rattraper une liste dont les ordres sont tous à zéro.
    */
   const reordonner = async (source: string, cible: string) => {
     if (source === cible) return;
@@ -250,13 +230,8 @@ export const ListesSection: React.FC<ListesSectionProps> = ({
   const [libelleEnregistre, setLibelleEnregistre] = useState(false);
 
   /**
-   * Les réglages voisins sont RECOPIÉS, jamais reconstruits.
-   *
-   * `personnalisation` est une colonne partagée : le vocabulaire, les
-   * délais de rappel et les réglages de documents y vivent aussi.
-   * Reconstruire l'objet à partir de rien les effacerait au premier
-   * enregistrement fait ici — c'est arrivé une fois, cela ne se
-   * reproduit pas.
+   * `personnalisation` est une colonne partagée : les réglages voisins
+   * sont recopiés, jamais reconstruits.
    */
   const objetOuVide = (v: unknown): Record<string, unknown> =>
     v && typeof v === "object" && !Array.isArray(v) ? { ...(v as Record<string, unknown>) } : {};
@@ -271,8 +246,7 @@ export const ListesSection: React.FC<ListesSectionProps> = ({
   const enregistrerLibelle = async () => {
     const propre = libelle.trim();
     const libelles = objetOuVide(personnalisation.libelles);
-    // Un libellé vide ou égal au défaut ne s'enregistre pas : une clé
-    // absente laisse le champ suivre le logiciel, une clé figée non.
+    // Clé absente : le champ suit le logiciel plutôt qu'un choix figé.
     if (propre && propre !== LIBELLE_EFFECTUE_PAR) libelles.effectuePar = propre;
     else delete libelles.effectuePar;
     await onSavePersonnalisation({ ...personnalisation, libelles });
@@ -377,8 +351,7 @@ export const ListesSection: React.FC<ListesSectionProps> = ({
         description="Vos catégories, vos postes de dépense, vos types de fournisseur. Vos mots, pas les nôtres."
         icon={<ListChecks className="w-4 h-4" />}
       >
-        {/* Quelle liste on règle. Un onglet par liste plutôt que trois
-            blocs empilés : on vient en régler une, pas les relire toutes. */}
+        {/* Un onglet par liste : on vient en régler une, pas les relire toutes. */}
         <div className="flex flex-wrap gap-2">
           {LISTES.map((l) => (
             <button
@@ -523,8 +496,7 @@ export const ListesSection: React.FC<ListesSectionProps> = ({
               >
                 Rangée sous
               </label>
-              {/* Seules les racines sont proposées : la base refuse une
-                  sous-valeur de sous-valeur, autant ne pas l'offrir. */}
+              {/* La base refuse une sous-valeur de sous-valeur. */}
               <select
                 id="liste-parent"
                 className="app-field"

@@ -3,28 +3,16 @@ import { cleDeListe } from "./listes";
 
 export type PersonneExterne = Database["public"]["Tables"]["personnes_externes"]["Row"];
 
-/**
- * D'où vient la personne qu'on désigne.
- *
- * — `membre` : elle a un compte dans cette boutique.
- * — `externe` : elle a une fiche, mais aucun accès à l'application.
- * — `heritee` : un nom écrit dans une vente ou une dépense avant que
- *   les fiches n'existent, et qu'aucune fiche ne réclame. On le garde
- *   sélectionnable parce que le supprimer du choix reviendrait à
- *   renommer le passé de quelqu'un.
- */
+/** `heritee` : un nom écrit avant que les fiches n'existent. */
 export type NaturePersonne = "membre" | "externe" | "heritee";
 
 export interface Personne {
-  /** L'identifiant d'option du sélecteur. Jamais écrit en base. */
+  /** Identifiant d'option du sélecteur, jamais écrit en base. */
   cle: string;
   nom: string;
   nature: NaturePersonne;
-  /** Le compte, quand c'en est un. */
   membreId: string | null;
-  /** La fiche externe, quand c'en est une. */
   personneId: string | null;
-  /** Un téléphone, un rôle : ce qui distingue deux homonymes. */
   mention: string | null;
 }
 
@@ -54,13 +42,9 @@ interface SourcesDePersonnes {
 }
 
 /**
- * TOUTES LES PERSONNES QU'ON PEUT DÉSIGNER, EN UNE SEULE LISTE.
- *
- * L'ordre compte : l'équipe d'abord, parce que c'est elle qu'on
- * désigne quatre-vingt-dix-neuf fois sur cent. Les fiches externes
- * ensuite. Les noms hérités en dernier, et seulement ceux qu'aucune
- * fiche ne réclame déjà — sans ce filtre, « Lanto » apparaîtrait deux
- * fois, une fois comme fiche et une fois comme souvenir.
+ * L'équipe d'abord, les fiches ensuite, les noms hérités en dernier —
+ * et seulement ceux qu'aucune fiche ne réclame déjà, sinon « Lanto »
+ * apparaîtrait deux fois.
  */
 export const listerLesPersonnes = ({
   membres,
@@ -114,7 +98,7 @@ export const listerLesPersonnes = ({
   return liste;
 };
 
-/** Retrouver une personne à partir du nom écrit sur un enregistrement. */
+/** Retrouver une personne depuis le nom écrit sur une ligne. */
 export const personneParNom = (personnes: Personne[], nom: string): Personne | undefined => {
   const cle = cleDeListe(nom);
   if (!cle) return undefined;

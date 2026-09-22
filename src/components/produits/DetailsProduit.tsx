@@ -19,13 +19,7 @@ interface DetailsProduitProps {
   valeurs: ValeursDetails;
   onChange: (v: ValeursDetails) => void;
   categories: Categorie[];
-  /**
-   * Créer une catégorie sans quitter la fiche.
-   *
-   * Absente, le sélecteur ne propose pas d'ajouter — c'est ainsi que
-   * s'applique le réglage « seuls les responsables complètent les
-   * listes ».
-   */
+  /** Absente, le sélecteur ne propose pas d'ajouter. */
   onCreerCategorie?: (nom: string) => Promise<{ id: string | null; error: string | null }>;
   /** Les images déjà attachées à ce produit. */
   images: ImageProduit[];
@@ -308,12 +302,8 @@ export const DetailsProduit: React.FC<DetailsProduitProps> = ({
           }
         />
 
-        {/* ── LE FOURNISSEUR N'EST PLUS ICI ──
-            Il l'était en double : une liste déroulante dans cette fiche,
-            et un champ de saisie libre dans le formulaire au-dessus, qui
-            n'écrivaient pas la même colonne. Le champ du haut est
-            désormais branché sur l'annuaire et écrit les deux. Un seul
-            endroit pour une seule information. */}
+        {/* Le fournisseur n'est plus ici : il l'était en double, et le
+            champ du haut écrit désormais les deux colonnes. */}
 
         <div>
           <label htmlFor="pd-type" className="mb-1 block text-xs font-medium text-muted-foreground">

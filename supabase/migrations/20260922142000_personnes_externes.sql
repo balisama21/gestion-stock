@@ -1,18 +1,12 @@
--- ═══════════════════════════════════════════════════════════════════
 -- Les personnes externes : un contact, pas un compte.
 --
--- Jusqu'ici, quelqu'un qui vend ou qui dépense sans être membre de la
--- boutique n'existait que sous la forme d'un nom recopié dans
--- `sales.vendeur` ou `expenses.vendeur`. Aucun téléphone, aucun rôle,
--- aucune commission : rien à quoi se raccrocher pour le rappeler.
+-- Quelqu'un qui vend ou depense sans etre membre n'existait que sous la
+-- forme d'un nom recopie. Cette table lui donne une fiche, et AUCUN
+-- acces. `user_id` sert au jour ou elle rejoint l'equipe : son travail
+-- reste attache a son nom.
 --
--- Cette table lui donne une fiche. Elle ne donne AUCUN accès : pas de
--- compte, pas de mot de passe, pas de ligne dans `store_members`.
---
--- Le lien `user_id` sert au jour où la personne rejoint vraiment
--- l'équipe : la fiche est alors rattachée à son compte, et tout ce
--- qu'elle a déjà fait reste attaché à son nom.
--- ═══════════════════════════════════════════════════════════════════
+-- Le champ « Vendeur » d'une depense devient « Effectue par » et
+-- accepte un membre comme une personne exterieure.
 
 CREATE TABLE IF NOT EXISTS public.personnes_externes (
   id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -85,14 +79,8 @@ CREATE POLICY personnes_externes_delete ON public.personnes_externes
   FOR DELETE TO public
   USING (public.can_modify_in_store(created_by, store_id));
 
--- ═══════════ LES NOMS DÉJÀ ÉCRITS DEVIENNENT DES FICHES ═══════════
---
--- Un nom par fiche, sans AUCUNE fusion : « Mamy » et « Mamy
--- Herinatenaina » restent deux fiches distinctes. Rapprocher deux
--- graphies n'est pas une décision de migration — c'est au commerçant de
--- dire si c'est la même personne, et il pourra le faire à l'écran.
---
--- Les membres de l'équipe sont exclus : ils ont déjà un compte.
+-- Un nom par fiche, sans AUCUNE fusion : rapprocher deux graphies n'est
+-- pas une decision de migration. Les membres de l equipe sont exclus.
 INSERT INTO public.personnes_externes (store_id, created_by, nom, notes)
 SELECT DISTINCT ON (t.store_id, public.cle_de_liste(t.nom))
        t.store_id,
@@ -123,14 +111,9 @@ SELECT DISTINCT ON (t.store_id, public.cle_de_liste(t.nom))
        )
  ORDER BY t.store_id, public.cle_de_liste(t.nom), btrim(t.nom);
 
--- ═════════════ « EFFECTUÉ PAR », DANS UNE DÉPENSE ═════════════
---
--- Le champ s'appelait « Vendeur ». Il désigne en réalité qui a fait la
--- dépense — un vendeur, un livreur, le comptable, ou quelqu'un
--- d'extérieur envoyé acheter du carburant.
---
--- La colonne texte `vendeur` reste la vérité affichée et n'est jamais
--- réécrite : les deux identifiants viennent à côté, facultatifs.
+-- Le champ s'appelait « Vendeur » ; il designe qui a fait la depense.
+-- La colonne texte reste la verite affichee, les identifiants viennent
+-- a cote, facultatifs.
 ALTER TABLE public.expenses
   ADD COLUMN IF NOT EXISTS membre_id uuid REFERENCES public.profiles (id) ON DELETE SET NULL,
   ADD COLUMN IF NOT EXISTS personne_id uuid REFERENCES public.personnes_externes (id) ON DELETE SET NULL;
@@ -145,11 +128,6 @@ COMMENT ON COLUMN public.expenses.vendeur IS
 CREATE INDEX IF NOT EXISTS idx_expenses_personne ON public.expenses (personne_id);
 
 -- Rattachement des dépenses déjà enregistrées, par nom exact.
---
--- Le journal d'activité est mis en sommeil le temps de la reprise : ces
--- écritures ne sont le geste de personne, et les laisser passer aurait
--- affiché « quelqu'un a modifié cette dépense » à des gens qui n'ont
--- rien touché.
 ALTER TABLE public.expenses DISABLE TRIGGER trg_journal_expenses;
 
 UPDATE public.expenses e
@@ -171,7 +149,7 @@ UPDATE public.expenses e
    AND btrim(coalesce(e.vendeur, '')) <> ''
    AND public.cle_de_liste(coalesce(p.full_name, p.email)) = public.cle_de_liste(e.vendeur);
 
--- ═════════════ LE POSTE DE DÉPENSE REJOINT LA LISTE ═════════════
+-- Le poste de depense rejoint la liste.
 --
 -- `expenses.type` était un texte libre, et `expenses.category_id`
 -- attendait depuis le début qu'on le remplisse.

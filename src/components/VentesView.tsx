@@ -85,10 +85,7 @@ interface VentesViewProps {
   /** Les fiches clients de la boutique, pour rattacher la vente à l'une d'elles. */
   clients: Client[];
   sellers: Seller[];
-  /**
-   * Qui peut être désigné comme vendeur : l'équipe, les fiches « hors
-   * équipe », et les noms déjà écrits dans d'anciennes ventes.
-   */
+  /** L'équipe, les fiches « hors équipe », et les noms déjà écrits. */
   personnes: Personne[];
   /** Créer une fiche « hors équipe » sans quitter la vente. */
   onCreerPersonne?: (data: {
@@ -1076,14 +1073,9 @@ export const VentesView: React.FC<VentesViewProps> = ({
               />
             </div>
 
-            {/* ── SEUL LE NOM S'ÉCRIT, ET C'EST VOLONTAIRE ──
-                La vente est enregistrée par `create_sale_ticket`, qui
-                écrit `sales.vendeur` en texte. Cette mission n'a pas le
-                droit d'y toucher : une fonction sur le chemin de
-                l'argent ne se modifie pas pour un confort de saisie. Le
-                sélecteur propose donc les fiches — équipe et hors
-                équipe — et recopie le nom choisi, exactement comme la
-                liste déroulante d'avant. */}
+            {/* Seul le NOM s'écrit : la vente passe par
+                `create_sale_ticket`, qu'on ne modifie pas pour un
+                confort de saisie. */}
             <SelecteurPersonne
               label="Vendeur"
               personnes={personnes}

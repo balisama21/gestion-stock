@@ -1,28 +1,16 @@
--- ═══════════════════════════════════════════════════════════════════
 -- La brique commune : la « liste personnalisable ».
 --
--- Le cahier des charges laissait le choix entre une table générique et
--- des tables séparées. Ni l'un ni l'autre : la table générique existe
--- déjà, elle s'appelle `categories` et elle s'ignore. Elle porte
--- store_id, nom, parent_id, ordre, actif, created_by, et une colonne
--- `usage` qui vaut 'produit' ou 'depense'. C'est la brique 0, écrite
--- pour deux listes au lieu de toutes.
+-- La table generique existait deja : `categories` porte store_id, nom,
+-- parent_id, ordre, actif, created_by et un `usage` borne a deux
+-- valeurs. En creer une a cote aurait oblige a demenager deux cles
+-- etrangeres deja en service, ou a laisser deux mecanismes de liste
+-- dans le logiciel. L'elargir ne coute qu'un CHECK remplace.
 --
--- Créer une table à côté aurait obligé soit à déménager
--- `products.category_id` et `expenses.category_id`, deux clés étrangères
--- déjà en service chez le client, soit à laisser deux mécanismes de
--- liste dans le logiciel. Élargir celle-ci ne coûte qu'un CHECK
--- remplacé : aucune donnée déplacée, aucune clé touchée.
---
--- Le nom de la table ne change pas. Le renommer casserait le code qui
--- tourne en ce moment même, pour un gain de vocabulaire.
--- ═══════════════════════════════════════════════════════════════════
+-- Le nom de la table ne change pas : le renommer casserait le code qui
+-- tourne en ce moment meme, pour un gain de vocabulaire.
 
--- ── La clé de comparaison : « Grossiste » et « grossiste » sont un ──
---
--- IMMUTABLE, parce qu'elle sert dans un index unique. Écrite à la main
--- plutôt qu'avec l'extension `unaccent`, qui n'est pas installée sur ce
--- projet et dont la fonction est STABLE, donc refusée par un index.
+-- IMMUTABLE : elle sert dans un index unique. Ecrite a la main plutot
+-- qu'avec `unaccent`, qui n'est pas installe et n'est pas IMMUTABLE.
 CREATE OR REPLACE FUNCTION public.cle_de_liste(p_texte text)
 RETURNS text
 LANGUAGE sql
@@ -40,7 +28,7 @@ $function$;
 COMMENT ON FUNCTION public.cle_de_liste(text) IS
   'Minuscules, accents retires, espaces reduits. Sert a l anti-doublon et a la recherche des listes.';
 
--- ── Les usages : trois aujourd hui, davantage demain sans migration ──
+-- Trois usages aujourd hui, davantage demain sans migration de donnees.
 ALTER TABLE public.categories DROP CONSTRAINT IF EXISTS categories_usage_connu;
 ALTER TABLE public.categories ADD CONSTRAINT categories_usage_connu
   CHECK (usage IN ('produit', 'depense', 'type_fournisseur'));
@@ -51,7 +39,7 @@ COMMENT ON TABLE public.categories IS
 COMMENT ON COLUMN public.categories.actif IS
   'Faux = archivee. Disparait des selecteurs, reste lisible sur les anciens enregistrements.';
 
--- ── Le taux de marge par defaut d une categorie (point 1 du cahier) ──
+-- Le taux de marge par defaut d une categorie.
 ALTER TABLE public.categories ADD COLUMN IF NOT EXISTS taux_marge numeric;
 ALTER TABLE public.categories DROP CONSTRAINT IF EXISTS categories_taux_marge_borne;
 ALTER TABLE public.categories ADD CONSTRAINT categories_taux_marge_borne
@@ -60,7 +48,7 @@ ALTER TABLE public.categories ADD CONSTRAINT categories_taux_marge_borne
 COMMENT ON COLUMN public.categories.taux_marge IS
   'Taux applique sur le prix d achat, en pourcentage. NULL = herite du reglage de la boutique.';
 
--- ── L anti-doublon, tenu par la base et pas seulement par l ecran ──
+-- L anti-doublon, tenu par la base et pas seulement par l ecran.
 --
 -- Rien n empechait jusqu ici « Grossiste » et « grossiste » de coexister.
 -- La table est vide en production : l index se cree sans reprise.
@@ -70,14 +58,9 @@ CREATE UNIQUE INDEX IF NOT EXISTS ux_categories_boutique_usage_cle
 CREATE INDEX IF NOT EXISTS idx_categories_boutique_usage_actif
   ON public.categories (store_id, usage, actif, ordre);
 
--- ═══════════════════ QUI PEUT AJOUTER UNE VALEUR ═══════════════════
---
--- Reglage par boutique, lu dans `stores.personnalisation`. Clé absente
--- = « tout le monde », c est-a-dire exactement ce qui se passe
--- aujourd hui : aucune boutique ne change de comportement.
---
--- Verifie ICI, cote serveur. L ecran le respecte aussi, mais l ecran
--- n est pas une garde.
+-- Reglage par boutique, lu dans `stores.personnalisation`. Cle absente
+-- = tout le monde, c'est-a-dire comme aujourd'hui. Verifie ICI, cote
+-- serveur : l'ecran le respecte aussi, mais l'ecran n'est pas une garde.
 CREATE OR REPLACE FUNCTION public.peut_ajouter_une_valeur_de_liste(p_store_id uuid)
 RETURNS boolean
 LANGUAGE sql
@@ -112,7 +95,7 @@ CREATE POLICY categories_insert ON public.categories
     AND (SELECT auth.uid()) = created_by
   );
 
--- ═════════════ LES VALEURS PAR DÉFAUT D UNE NOUVELLE BOUTIQUE ═════════
+-- Les valeurs par defaut d une nouvelle boutique.
 --
 -- Génériques, jamais celles d un client en particulier. Chaque boutique
 -- les renomme, les archive et en ajoute a sa guise.
@@ -178,7 +161,7 @@ CREATE TRIGGER trg_listes_par_defaut
   AFTER INSERT ON public.stores
   FOR EACH ROW EXECUTE FUNCTION public.listes_par_defaut_a_la_creation();
 
--- ── Les boutiques déjà là ──
+-- Les boutiques deja la partent du meme socle.
 --
 -- Elles partent du même socle que les nouvelles. C est additif : aucune
 -- ligne existante n est touchée, et ce qui ne sert pas s archive.

@@ -1,23 +1,15 @@
--- ═══════════════════════════════════════════════════════════════════
--- Les fournisseurs : un annuaire, pas une liste.
+-- Les fournisseurs : un annuaire, pas une liste. Seul leur TYPE devient
+-- une valeur de liste.
 --
--- Une fiche fournisseur porte un téléphone, une adresse, des conditions
--- de paiement. Elle reste donc dans `suppliers`. Seul son TYPE devient
--- une valeur de liste (`categories` d'usage `type_fournisseur`).
+-- Les textes libres deja ecrits sont rattaches a une fiche, une par nom
+-- distinct et par boutique. La colonne texte est CONSERVEE a cote de
+-- l'identifiant : si un rattachement est faux, la valeur d'origine est
+-- toujours la.
 --
--- Et le champ « fournisseur » d'un achat cesse d'être une saisie libre :
--- les textes déjà écrits sont rattachés à une fiche, une par nom
--- distinct et par boutique. La colonne texte est CONSERVÉE à côté de
--- l'identifiant — c'est le filet : si un rattachement est faux, la
--- valeur d'origine est toujours là, et un UPDATE … SET supplier_id =
--- NULL remet tout comme avant.
---
--- Aucune fusion hasardeuse : le rattachement se fait sur l'égalité
--- stricte de `cle_de_liste(nom)`. « Chine » ne rejoint « Chine » que
--- dans la même boutique, et ne rejoint jamais « Chine Import ».
--- ═══════════════════════════════════════════════════════════════════
+-- Aucune fusion hasardeuse : le rattachement se fait sur l'egalite
+-- stricte de `cle_de_liste(nom)`, dans la meme boutique.
 
--- ── Le type d un fournisseur ──
+-- Le type d un fournisseur.
 ALTER TABLE public.suppliers
   ADD COLUMN IF NOT EXISTS type_id uuid REFERENCES public.categories (id) ON DELETE SET NULL;
 
@@ -30,7 +22,7 @@ COMMENT ON COLUMN public.suppliers.categorie IS
 CREATE INDEX IF NOT EXISTS idx_suppliers_type ON public.suppliers (type_id);
 
 -- Le type appartient a la meme boutique, et c est bien un type de
--- fournisseur — pas une categorie de produit rangee par erreur.
+-- fournisseur, pas une categorie de produit rangee par erreur.
 CREATE OR REPLACE FUNCTION public.fournisseur_type_coherent()
 RETURNS trigger
 LANGUAGE plpgsql
@@ -57,20 +49,15 @@ CREATE TRIGGER trg_fournisseur_type_coherent
   BEFORE INSERT OR UPDATE OF type_id ON public.suppliers
   FOR EACH ROW EXECUTE FUNCTION public.fournisseur_type_coherent();
 
--- ── Anti-doublon sur l annuaire lui-meme ──
---
--- Les trois fiches en production portent trois noms distincts : l index
--- se cree sans reprise. Il ne porte que sur les fiches actives, pour
--- qu archiver puis recreer reste possible.
+-- Anti-doublon sur l annuaire. Les trois fiches en production portent
+-- trois noms distincts : l index se cree sans reprise. Limite aux
+-- fiches actives, pour qu archiver puis recreer reste possible.
 CREATE UNIQUE INDEX IF NOT EXISTS ux_suppliers_boutique_nom
   ON public.suppliers (store_id, public.cle_de_liste(nom))
   WHERE statut = 'actif';
 
--- ═════════ LES TEXTES LIBRES DEVIENNENT DES FICHES ═════════
---
 -- Une fiche par nom distinct et par boutique, prise dans les achats et
--- dans les produits. Les noms vides sont ignores : « pas de
--- fournisseur » n est pas un fournisseur.
+-- dans les produits. Les noms vides sont ignores.
 INSERT INTO public.suppliers (store_id, created_by, nom, note)
 SELECT DISTINCT ON (t.store_id, public.cle_de_liste(t.nom))
        t.store_id,
@@ -92,7 +79,7 @@ SELECT DISTINCT ON (t.store_id, public.cle_de_liste(t.nom))
        )
  ORDER BY t.store_id, public.cle_de_liste(t.nom), btrim(t.nom);
 
--- ── Rattachement des achats et des produits ──
+-- Rattachement des achats et des produits.
 UPDATE public.purchases p
    SET supplier_id = s.id
   FROM public.suppliers s
@@ -109,7 +96,7 @@ UPDATE public.products pr
    AND btrim(coalesce(pr.fournisseur, '')) <> ''
    AND public.cle_de_liste(s.nom) = public.cle_de_liste(pr.fournisseur);
 
--- ── Le type en texte libre rejoint la liste ──
+-- Le type en texte libre rejoint la liste.
 --
 -- Aucune fiche n en porte aujourd hui ; le code est ecrit pour les
 -- boutiques qui en auraient saisi avant que la migration ne passe.

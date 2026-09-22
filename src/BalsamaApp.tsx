@@ -333,15 +333,9 @@ function AppInner() {
   );
 
   /**
-   * QUI PEUT COMPLÉTER UNE LISTE DEPUIS UN FORMULAIRE.
-   *
-   * La base tranche la même question, dans la politique d'insertion de
-   * `categories` et de `personnes_externes`. Ce calcul-ci ne fait que
-   * lui éviter de refuser : un « + Ajouter » qui échoue à chaque clic
-   * est pire qu'un « + Ajouter » absent.
-   *
-   * Le défaut est permissif — clé absente, tout le monde ajoute — parce
-   * que c'est exactement ce que faisait le logiciel avant ce réglage.
+   * La base tranche la même question dans ses politiques d'insertion ;
+   * ce calcul lui évite seulement de refuser, car un « + Ajouter » qui
+   * échoue à chaque clic est pire qu'un « + Ajouter » absent.
    */
   /** Le calcul du prix de vente, réglé par la boutique. */
   const prixAuto = useMemo(() => lirePrixAuto(personnalisation), [personnalisation]);
@@ -352,13 +346,7 @@ function AppInner() {
     return workspace.memberRole === "admin" || workspace.memberRole === "manager";
   }, [workspace.isOwner, workspace.memberRole, personnalisation]);
 
-  /**
-   * Créer une fiche fournisseur sans quitter le formulaire en cours.
-   *
-   * Le nom seul suffit : le téléphone est proposé juste après, et le
-   * reste de la fiche attend l'écran Fournisseurs. Un achat ne doit pas
-   * s'interrompre pour quinze champs.
-   */
+  /** Le nom seul suffit : un achat ne s'interrompt pas pour quinze champs. */
   const creerFournisseurRapide = useCallback(
     (data: { nom: string; telephone?: string | null }) =>
       storeData.addSupplier({ nom: data.nom, telephone: data.telephone ?? null }),
@@ -370,13 +358,7 @@ function AppInner() {
     [storeData],
   );
 
-  /**
-   * Créer une valeur de liste depuis un formulaire.
-   *
-   * Rend l'identifiant, parce que le sélecteur ajoute puis sélectionne
-   * dans la foulée : attendre le rechargement et retrouver la valeur par
-   * son nom échouerait dès qu'on en crée deux d'affilée.
-   */
+  /** Rend l'identifiant : le sélecteur ajoute puis sélectionne dans la foulée. */
   const creerValeurDeListe = useCallback(
     async (usage: string, nom: string) => {
       const { categorie, error } = await storeData.addCategorie({ nom, usage });
@@ -456,14 +438,9 @@ function AppInner() {
   }, [storeData.products]);
 
   /**
-   * Ce que chaque valeur de liste range, toutes listes confondues.
-   *
-   * L'écran des listes a besoin de ce nombre pour une seule raison, et
-   * elle est importante : on n'archive pas une valeur utilisée sans
-   * savoir combien d'enregistrements la portent. Les trois usages sont
-   * comptés ensemble parce que les identifiants sont uniques — un
-   * poste de dépense et une catégorie de produit ne peuvent pas se
-   * marcher dessus.
+   * On n'archive pas une valeur sans savoir combien d'enregistrements la
+   * portent. Les trois usages sont comptés ensemble : les identifiants
+   * sont uniques.
    */
   const compteParValeurDeListe = useMemo(() => {
     const table: Record<string, number> = { ...compteParCategorie };
@@ -677,6 +654,8 @@ function AppInner() {
         impactTresorerieGlobale: e.impact_tresorerie_globale,
         categoryId: e.category_id,
         providerId: e.provider_id,
+        membreId: e.membre_id,
+        personneId: e.personne_id,
         justificatif: e.justificatif,
       })),
     [storeData.expenses],
@@ -754,11 +733,8 @@ function AppInner() {
   };
 
   /**
-   * TOUTES LES PERSONNES QU'ON PEUT DÉSIGNER DANS CETTE BOUTIQUE.
-   *
-   * L'équipe, les fiches « hors équipe », et les noms écrits dans les
-   * ventes et les dépenses avant que les fiches n'existent. Ces derniers
-   * restent sélectionnables : les retirer du choix reviendrait à
+   * L'équipe, les fiches « hors équipe », et les noms écrits avant que
+   * les fiches n'existent — retirer ces derniers du choix reviendrait à
    * renommer le passé de quelqu'un.
    */
   const personnesDeLaBoutique = useMemo(() => {
@@ -767,9 +743,7 @@ function AppInner() {
       nom: m.full_name || m.email,
       mention: null as string | null,
     }));
-    // Le propriétaire n'est jamais dans `store_members` — cette table ne
-    // contient que les collaborateurs invités — et il doit pouvoir être
-    // désigné même s'il n'a invité personne.
+    // `store_members` ne contient que les collaborateurs invités.
     if (workspace.isOwner && user?.id) {
       membres.unshift({
         id: user.id,
@@ -794,12 +768,7 @@ function AppInner() {
     expenses,
   ]);
 
-  /**
-   * Créer une fiche « personne externe » depuis un formulaire.
-   *
-   * Un contact, jamais un compte : la base ne crée aucun accès, et cette
-   * fonction ne fait que ce qu'elle dit.
-   */
+  /** Un contact, jamais un compte : aucun accès n'est créé. */
   const creerPersonneExterne = useCallback(
     async (data: { nom: string; telephone: string; role: string | null }) => {
       const { personne, error } = await storeData.addPersonneExterne({
@@ -1581,13 +1550,8 @@ function AppInner() {
     const res = await storeData.addExpense({
       date: newExp.date,
       vendeur: newExp.vendeur,
-      // ── Cinq colonnes qui n'arrivaient jamais en base ──
-      //
-      // Le formulaire envoyait déjà le poste, le prestataire et le
-      // justificatif ; cette fonction ne recopiait que six champs et
-      // laissait les autres au bord de la route, sans erreur et sans
-      // trace. C'est pour cela que `expenses.category_id` était vide
-      // partout alors que l'écran proposait de le remplir.
+      // Le poste, le prestataire et le justificatif étaient envoyés par
+      // le formulaire et perdus ici, sans erreur et sans trace.
       membre_id: newExp.membre_id ?? null,
       personne_id: newExp.personne_id ?? null,
       category_id: newExp.category_id ?? null,
@@ -1606,9 +1570,22 @@ function AppInner() {
   };
 
   const handleEditExpense = async (updatedExpense: Expense) => {
+    // Tout ce que la modale peut changer est ecrit. Elle n'enregistrait
+    // que le montant et la note : la date, le poste et « Effectue par »
+    // etaient saisis puis perdus, sans message.
     await storeData.updateExpense(updatedExpense.id, {
+      date: updatedExpense.date,
+      vendeur: updatedExpense.vendeur,
+      type: updatedExpense.type,
       montant: updatedExpense.montant,
       note: updatedExpense.note,
+      category_id: updatedExpense.categoryId ?? null,
+      provider_id: updatedExpense.providerId ?? null,
+      membre_id: updatedExpense.membreId ?? null,
+      personne_id: updatedExpense.personneId ?? null,
+      // La tresorerie suit le montant : sans cette ligne, corriger une
+      // depense de 50 000 a 5 000 laissait la caisse amputee de 50 000.
+      impact_tresorerie_globale: -updatedExpense.montant,
     });
   };
 

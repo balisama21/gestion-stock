@@ -127,6 +127,9 @@ export interface Expense {
   // qui est le cas de toutes celles enregistrees avant.
   categoryId?: string | null;
   providerId?: string | null;
+  /** Le compte, ou la fiche hors equipe, de qui a effectue la depense. */
+  membreId?: string | null;
+  personneId?: string | null;
   /** Le chemin de la photo du recu dans le seau documents. */
   justificatif?: string | null;
 }

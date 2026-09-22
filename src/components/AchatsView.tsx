@@ -88,24 +88,13 @@ interface AchatsViewProps {
    * C'est exactement la même fiche que dans l'écran Produits.
    */
   categories?: Database["public"]["Tables"]["categories"]["Row"][];
-  /**
-   * Créer une catégorie de produits depuis la fiche, sans la quitter.
-   *
-   * Absente, le sélecteur ne propose pas d'ajouter : c'est ainsi que
-   * s'applique le réglage « seuls les responsables complètent les
-   * listes », sans que ce formulaire ait à lire des permissions.
-   */
+  /** Absente, le sélecteur ne propose pas d'ajouter. */
   onCreerCategorie?: (nom: string) => Promise<{ id: string | null; error: string | null }>;
   /** Le calcul du prix de vente, réglé par la boutique. Absent = désactivé. */
   prixAuto?: ReglagesPrixAuto;
   /**
-   * Reporter le prix d'achat de cet achat sur la fiche du produit.
-   *
-   * JAMAIS automatique. `add_purchase` n'a jamais touché au prix d'achat
-   * d'un produit déjà au catalogue, et le changer en douce déplacerait
-   * la marge de toutes les ventes à venir. C'est donc une case à cocher,
-   * décochée, et l'écran montre le prix de vente qui en résulterait
-   * avant qu'on l'enregistre.
+   * Reporter le prix d'achat sur la fiche du produit. Jamais
+   * automatique : cela déplacerait la marge de toutes les ventes à venir.
    */
   onReporterPrixAchat?: (
     id: string,
@@ -159,13 +148,7 @@ interface AchatsViewProps {
       montantRegle?: number | null;
     },
   ) => Promise<{ error: string | null }>;
-  /**
-   * Créer une fiche fournisseur sans quitter l'achat.
-   *
-   * Absente, le sélecteur ne propose pas d'ajouter : c'est ainsi que
-   * s'applique le réglage « seuls les responsables complètent les
-   * listes », sans que ce formulaire ait à connaître les permissions.
-   */
+  /** Absente, le sélecteur ne propose pas d'ajouter. */
   onAddFournisseur?: (data: { nom: string; telephone?: string | null }) => Promise<{
     supplier: Database["public"]["Tables"]["suppliers"]["Row"] | null;
     error: string | null;
@@ -366,22 +349,11 @@ export const AchatsView: React.FC<AchatsViewProps> = ({
   const [quantite, setQuantite] = useState(10);
   const [prixAchatUnit, setPrixAchatUnit] = useState(1000);
   const [fournisseur, setFournisseur] = useState("");
-  /**
-   * La fiche de l'annuaire, à côté du nom.
-   *
-   * Les deux sont tenus ensemble : la base continue d'écrire le NOM
-   * dans `purchases.fournisseur`, et l'identifiant vient par-dessus.
-   * C'est le filet de la reprise — si un rattachement s'avérait faux,
-   * le nom d'origine est toujours là.
-   */
+  /** La base écrit toujours le NOM ; l'identifiant vient par-dessus. */
   const [supplierId, setSupplierId] = useState<string | null>(null);
   /**
-   * Reporter ce prix d'achat sur la fiche du produit.
-   *
-   * Décoché par défaut, et ce défaut est un engagement : jusqu'ici, un
-   * achat à un prix différent ne touchait JAMAIS au prix d'achat de
-   * référence du produit, donc jamais à la marge calculée sur les ventes
-   * suivantes. Cocher est un geste, pas un effet de bord.
+   * Décoché par défaut : jusqu'ici un achat à un prix différent ne
+   * touchait jamais au prix de référence du produit.
    */
   const [reporterPrix, setReporterPrix] = useState(false);
   /** Les prix de vente que le dernier achat a fait bouger, à montrer une fois. */
@@ -408,9 +380,7 @@ export const AchatsView: React.FC<AchatsViewProps> = ({
     setDesignation(reapprovisionner.designation);
     setPrixAchatUnit(reapprovisionner.prixAchat);
     setFournisseur(reapprovisionner.fournisseur);
-    // Le tableau de bord ne transmet qu'un nom : on retrouve la fiche
-    // qui lui correspond, accents et majuscules mis a part. Sans
-    // correspondance, l'achat part sans rattachement — comme avant.
+    // Le tableau de bord ne transmet qu'un nom : on retrouve sa fiche.
     setSupplierId(
       fournisseurs.find((f) => cleDeListe(f.nom) === cleDeListe(reapprovisionner.fournisseur))
         ?.id ?? null,
@@ -457,11 +427,8 @@ export const AchatsView: React.FC<AchatsViewProps> = ({
   const creeUnProduit = !produitCorrespondant && designation.trim() !== "";
 
   /**
-   * Le produit que cet achat recharge, quand la désignation en désigne un.
-   *
-   * `produitCorrespondant` ne suffit pas : il exige aussi le même prix
-   * d'achat, et c'est justement le cas où les prix DIFFÈRENT qui nous
-   * intéresse ici.
+   * `produitCorrespondant` ne suffit pas : il exige le même prix
+   * d'achat, et c'est le cas où ils diffèrent qui nous intéresse.
    */
   const produitVise = useMemo(
     () =>
@@ -471,14 +438,7 @@ export const AchatsView: React.FC<AchatsViewProps> = ({
     [products, designation],
   );
 
-  /**
-   * L'écart entre le prix saisi et celui de la fiche, et ce qu'il
-   * coûterait de le reporter.
-   *
-   * Rien n'est écrit tant que la case n'est pas cochée : ce bloc est là
-   * pour que la décision se prenne en voyant le prix de vente qui en
-   * découle, pas après coup dans le rayon.
-   */
+  /** Pour que la décision se prenne en voyant le prix qui en découle. */
   const ecartDePrix = useMemo(() => {
     if (!produitVise) return null;
     const nouvelAchat = Number(prixAchatUnit);
@@ -510,8 +470,7 @@ export const AchatsView: React.FC<AchatsViewProps> = ({
       setDesignation(prod.designation);
       setPrixAchatUnit(prod.prixAchat);
       if (prod.fournisseur) setFournisseur(prod.fournisseur);
-      // Le rattachement du produit avec son nom : les deux vont
-      // ensemble, sans quoi l'achat repartirait avec un nom sans fiche.
+      // Le rattachement va avec le nom.
       if (prod.supplierId) setSupplierId(prod.supplierId);
     }
   };
@@ -573,9 +532,8 @@ export const AchatsView: React.FC<AchatsViewProps> = ({
       }
     }
 
-    // Le report du prix d'achat, si et seulement si la case a été
-    // cochée. En dernier : l'achat, lui, est déjà passé, et un échec ici
-    // ne doit pas donner à croire qu'il a échoué.
+    // En dernier : l'achat est déjà passé, un échec ici ne doit pas
+    // donner à croire le contraire.
     if (reporterPrix && ecartDePrix && onReporterPrixAchat) {
       const report = await onReporterPrixAchat(ecartDePrix.id, {
         designation: produitVise!.designation,
@@ -713,11 +671,8 @@ export const AchatsView: React.FC<AchatsViewProps> = ({
 
   return (
     <div className="space-y-6">
-      {/* ── Ce que le dernier achat a changé en rayon ──
-          Le cahier des charges demande que le commerçant VOIE la liste
-          des prix modifiés. Un prix de vente qui bouge sans que personne
-          ne le sache est la façon la plus sûre de perdre confiance dans
-          le calcul automatique. */}
+      {/* Un prix de vente qui bouge sans qu'on le sache est la façon la
+          plus sûre de perdre confiance dans le calcul automatique. */}
       {prixReportes !== null && (
         <div className="app-card p-4">
           <div className="flex items-start justify-between gap-3">

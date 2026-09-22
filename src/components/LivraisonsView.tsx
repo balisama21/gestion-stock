@@ -40,11 +40,8 @@ interface ChargeLivraison {
   contenu: ArticleLivre[];
   livreur_id?: string | null;
   /**
-   * Le nom de qui porte la course, quand ce n'est pas un membre.
-   *
-   * Vient À CÔTÉ de `livreur_id`, jamais à sa place : choisir quelqu'un
-   * de l'équipe continue d'écrire l'identifiant, sans quoi l'espace
-   * livreur n'afficherait plus rien.
+   * Vient à côté de `livreur_id`, jamais à sa place : choisir un membre
+   * écrit toujours l'identifiant, sinon l'espace livreur se vide.
    */
   confie_a?: string | null;
   note?: string | null;
@@ -124,17 +121,10 @@ export const LivraisonsView: React.FC<LivraisonsViewProps> = ({
     return m ? (m.full_name ?? m.email) : "Livreur retiré de l'équipe";
   };
 
-  /** À qui la course est confiée, en clair : l'équipe d'abord, le nom libre ensuite. */
+  /** À qui la course est confiée : l'équipe d'abord, le nom libre ensuite. */
   const aQui = (l: Livraison): string | null => nomDuLivreur(l.livreur_id) ?? l.confie_a ?? null;
 
-  /**
-   * Ce qu'on propose sans l'imposer.
-   *
-   * Les livreurs de l'équipe, les fiches « hors équipe », et les noms
-   * déjà tapés dans cette boutique. Le champ reste libre : une course se
-   * confie aussi au voisin, et ce n'est pas au logiciel de décider qui
-   * mérite une fiche.
-   */
+  /** Proposé sans être imposé : le champ reste libre. */
   const suggestionsConfieA = useMemo(
     () => [
       ...livreurs.map((m) => m.full_name ?? m.email),
@@ -145,11 +135,8 @@ export const LivraisonsView: React.FC<LivraisonsViewProps> = ({
   );
 
   /**
-   * Un nom saisi, ramené aux deux colonnes de la base.
-   *
-   * Le nom d'un membre de l'équipe écrit son identifiant — c'est lui qui
-   * fait apparaître la course dans l'espace livreur. Tout autre nom
-   * n'écrit que le texte.
+   * Le nom d'un membre écrit son identifiant — c'est lui qui fait
+   * apparaître la course dans l'espace livreur. Tout autre nom, le texte.
    */
   const versLesDeuxColonnes = (nom: string) => {
     const propre = nom.trim();

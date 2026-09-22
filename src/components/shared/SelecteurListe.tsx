@@ -20,21 +20,11 @@ interface SelecteurListeProps {
   options: OptionDeSelecteur[];
   valeur: string | null;
   onChange: (id: string | null) => void;
-  /**
-   * Créer la valeur cherchée et la sélectionner, sans quitter le formulaire.
-   *
-   * Absente, le sélecteur ne propose pas d'ajouter : c'est ce qui
-   * applique le réglage « seuls les responsables peuvent ajouter » sans
-   * que le champ ait à connaître les permissions.
-   */
+  /** Absente, le sélecteur ne propose pas d'ajouter. */
   onCreer?: (nom: string) => Promise<{ id: string | null; error: string | null }>;
   /**
-   * Demander la création au lieu de la faire.
-   *
-   * Certaines fiches ne se créent pas d'un nom seul : une personne
-   * externe a besoin d'un téléphone. Le sélecteur se referme alors, et
-   * l'écran qui l'entoure ouvre son petit formulaire. Passée en même
-   * temps que `onCreer`, c'est celle-ci qui l'emporte.
+   * Demander la création au lieu de la faire : une personne externe a
+   * besoin d'un téléphone, donc d'un formulaire. L'emporte sur `onCreer`.
    */
   onDemanderCreation?: (nom: string) => void;
   /** Le texte du choix vide. Absent, le champ ne peut pas être vidé. */
@@ -50,35 +40,12 @@ interface SelecteurListeProps {
 }
 
 /**
- * LE SÉLECTEUR DE LISTE PERSONNALISABLE
+ * Le sélecteur unique de toutes les listes : catégories, postes, types,
+ * fournisseurs, personnes. Recherche insensible aux accents et à la
+ * casse, entièrement au clavier (flèches, Entrée, Échap).
  *
- * Un seul composant pour toutes les listes de la boutique : catégories,
- * postes de dépense, types de fournisseur, fournisseurs, personnes.
- * Elles ont toutes le même geste — chercher, choisir, et créer si ça
- * n'existe pas encore — et il n'y a aucune raison qu'elles aient chacune
- * leur champ.
- *
- * ── CE QUE LA RECHERCHE PARDONNE ──
- *
- * Les accents et la casse. `cleDeListe` est la jumelle exacte de la
- * fonction du même nom en base, celle qui porte l'index d'anti-doublon :
- * ce que l'écran considère comme identique, la base aussi. Sans cette
- * égalité, on proposerait de créer une valeur que la base refuserait, et
- * l'erreur serait incompréhensible.
- *
- * ── POURQUOI « + AJOUTER » DISPARAÎT PARFOIS ──
- *
- * Taper « grossiste » quand « Grossiste » existe ne propose pas d'en
- * créer un second : la valeur existante remonte en tête, et c'est elle
- * qu'on choisit. C'est l'anti-doublon vu du côté de la personne qui
- * tape — elle n'a rien à comprendre, elle a simplement ce qu'elle
- * cherchait.
- *
- * ── AU CLAVIER, ENTIÈREMENT ──
- *
- * Flèches pour parcourir, Entrée pour choisir ou pour créer ce qui est
- * écrit, Échap pour refermer sans rien changer. Le champ de recherche
- * prend le focus à l'ouverture, ce qui permet de taper immédiatement.
+ * « + Ajouter » disparaît quand la valeur existe déjà sous une autre
+ * graphie : c'est l'anti-doublon vu du côté de qui tape.
  */
 export const SelecteurListe: React.FC<SelecteurListeProps> = ({
   label,
@@ -116,18 +83,13 @@ export const SelecteurListe: React.FC<SelecteurListeProps> = ({
     return options.filter((o) => correspond(o.nom, recherche));
   }, [options, recherche]);
 
-  /**
-   * Proposer la création, ou ne pas la proposer.
-   *
-   * Trois conditions : pouvoir créer, avoir tapé quelque chose, et que
-   * ce quelque chose ne corresponde à AUCUNE valeur existante — même
-   * archivée, même absente du filtre courant.
-   */
+  // Pas de création si la valeur existe déjà, même archivée, même hors
+  // du filtre courant.
   const dejaLa = valeurEquivalente(options, recherche);
   const peutCreer =
     Boolean(onCreer || onDemanderCreation) && Boolean(cleDeListe(recherche)) && !dejaLa;
 
-  /** Les lignes cliquables, dans l'ordre où les flèches les parcourent. */
+  /** Les lignes, dans l'ordre où les flèches les parcourent. */
   const lignes = useMemo(() => {
     const l: { type: "vide" | "option" | "creer"; option?: OptionDeSelecteur }[] = [];
     if (libelleVide && !recherche.trim()) l.push({ type: "vide" });
@@ -141,8 +103,7 @@ export const SelecteurListe: React.FC<SelecteurListeProps> = ({
     setRecherche("");
     setErreur(null);
     setSurvol(0);
-    // Le focus est posé au tour suivant : le champ n'est pas encore dans
-    // le document au moment où l'état bascule.
+    // Au tour suivant : le champ n'est pas encore dans le document.
     const t = window.setTimeout(() => champRecherche.current?.focus(), 0);
     return () => window.clearTimeout(t);
   }, [ouvert]);
@@ -151,12 +112,13 @@ export const SelecteurListe: React.FC<SelecteurListeProps> = ({
     setSurvol((s) => (s >= lignes.length ? Math.max(0, lignes.length - 1) : s));
   }, [lignes.length]);
 
-  // La ligne parcourue au clavier doit rester visible : sans cela, les
-  // flèches descendent hors de la fenêtre et l'on ne voit plus rien.
+  // Sans cela, les flèches descendent hors de la fenêtre.
   useEffect(() => {
     if (!ouvert) return;
     const el = liste.current?.children[survol] as HTMLElement | undefined;
-    el?.scrollIntoView({ block: "nearest" });
+    // Appel optionnel : jsdom ne le fournit pas, et un environnement
+    // sans `scrollIntoView` ne doit pas faire tomber le champ.
+    el?.scrollIntoView?.({ block: "nearest" });
   }, [survol, ouvert]);
 
   const creer = async () => {

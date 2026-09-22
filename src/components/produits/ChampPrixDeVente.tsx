@@ -14,7 +14,7 @@ interface ChampPrixDeVenteProps {
   prixAchat: number;
   prixVente: number;
   onPrixVente: (valeur: number) => void;
-  /** « auto » : le prix suit le prix d'achat. « manuel » : il est figé. */
+  /** « auto » : le prix suit l'achat. « manuel » : il est figé. */
   mode: string;
   onMode: (mode: "auto" | "manuel") => void;
   /** Le taux propre à ce produit, s'il en a un. */
@@ -27,22 +27,12 @@ interface ChampPrixDeVenteProps {
 }
 
 /**
- * LE PRIX DE VENTE, ET D'OÙ IL VIENT.
+ * Fonction désactivée, le champ n'est qu'un nombre à taper, comme avant.
  *
- * ── CE QUE LE CHAMP FAIT QUAND LA FONCTION EST DÉSACTIVÉE ──
- *
- * Rien de plus qu'avant : un nombre à taper. Pas de boutons, pas de
- * mode, pas de taux. C'est la promesse faite à toute boutique qui ne
- * demande rien.
- *
- * ── LE BASCULEMENT EN MANUEL N'EST PAS UNE OPTION À COCHER ──
- *
- * Taper un prix à la main SUFFIT à passer le produit en manuel. C'est
- * le geste qui décide, pas une case : quelqu'un qui corrige un prix
- * veut que sa correction tienne, et découvrir le lendemain qu'un achat
- * l'a effacée serait la pire des surprises. Le retour en automatique,
- * lui, est explicite — un bouton, et le prix se recalcule sous les
- * yeux.
+ * Taper un prix suffit à passer le produit en manuel : c'est le geste
+ * qui décide, pas une case à cocher. Une correction doit tenir, et
+ * découvrir le lendemain qu'un achat l'a effacée serait la pire des
+ * surprises. Le retour en automatique, lui, est explicite.
  */
 export const ChampPrixDeVente: React.FC<ChampPrixDeVenteProps> = ({
   prixAchat,
@@ -65,16 +55,9 @@ export const ChampPrixDeVente: React.FC<ChampPrixDeVenteProps> = ({
   const enAuto = reglages.actif && mode === "auto";
 
   /**
-   * LE PRIX SUIT L'ACHAT, ET SEULEMENT QUAND L'ACHAT BOUGE.
-   *
-   * L'effet ne se déclenche que sur un changement du PRIX D'ACHAT, et
-   * jamais sur le prix de vente : sans ce garde-fou, poser le prix
-   * calculé relancerait l'effet, qui le reposerait, sans fin.
-   *
-   * C'est ici que vit la promesse « le prix de vente suit le prix
-   * d'achat » : on corrige un prix d'achat dans la fiche, et le prix de
-   * vente se met à jour sous les yeux, avant d'enregistrer quoi que ce
-   * soit.
+   * Le prix suit l'achat, et seulement quand l'achat bouge : sans la
+   * garde sur `dernierAchat`, poser le prix calculé relancerait l'effet
+   * sans fin.
    */
   const dernierAchat = useRef(prixAchat);
   useEffect(() => {
@@ -82,14 +65,12 @@ export const ChampPrixDeVente: React.FC<ChampPrixDeVenteProps> = ({
     dernierAchat.current = prixAchat;
     if (!enAuto || prixAchat <= 0) return;
     onPrixVente(prixDepuisAchat(prixAchat, applique.taux, reglages.arrondi));
-    // `onPrixVente` est recréée à chaque rendu par les écrans qui
-    // l'appellent ; la mettre en dépendance relancerait l'effet en
-    // boucle. La garde sur `dernierAchat` est ce qui tient lieu de
-    // dépendance réelle.
+    // `onPrixVente` est recréée à chaque rendu : la mettre en
+    // dépendance relancerait l'effet en boucle.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [prixAchat, enAuto, applique.taux, reglages.arrondi]);
 
-  /** Poser un taux : le prix suit immédiatement, et le produit repasse en auto. */
+  /** Poser un taux repasse le produit en automatique. */
   const appliquerTaux = (taux: number) => {
     onTauxProduit(taux === reglages.taux ? null : taux);
     onMode("auto");
@@ -188,7 +169,6 @@ export const ChampPrixDeVente: React.FC<ChampPrixDeVenteProps> = ({
         </div>
       )}
 
-      {/* ── La marge, toujours affichée quand les deux prix existent ── */}
       {prixAchat > 0 && prixVente > 0 && (
         <p className="mt-2 text-xs text-muted-foreground">
           Marge :{" "}

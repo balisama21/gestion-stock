@@ -11,12 +11,8 @@ interface SelecteurPersonneProps {
   valeur: string;
   onChange: (choix: { nom: string; membreId: string | null; personneId: string | null }) => void;
   /**
-   * Créer une fiche « personne externe ». Absente, le sélecteur ne
-   * propose pas d'ajouter.
-   *
-   * Le téléphone est demandé en même temps que le nom, et non après :
-   * une personne hors équipe qu'on ne peut pas rappeler n'est pas un
-   * contact, c'est une ligne de plus dans une liste.
+   * Créer une fiche « hors équipe ». Le téléphone est demandé avec le
+   * nom : un contact qu'on ne peut pas rappeler n'en est pas un.
    */
   onCreer?: (data: {
     nom: string;
@@ -30,23 +26,12 @@ interface SelecteurPersonneProps {
 }
 
 /**
- * QUI A FAIT QUOI — MEMBRE DE L'ÉQUIPE OU NON.
+ * Qui a fait quoi, membre de l'équipe ou non. Les trois origines sont
+ * distinguées à l'œil : « Lanto » de l'équipe et « Lanto » le voisin ne
+ * se paient pas de la même façon.
  *
- * Le champ « Vendeur » d'une dépense ne désignait déjà plus un vendeur :
- * c'est qui a sorti l'argent. Un livreur, le comptable, ou quelqu'un
- * qu'on a envoyé acheter du carburant et qui n'a pas de compte.
- *
- * Les trois origines sont distinguées à l'œil — Équipe, Hors équipe,
- * Déjà saisis — parce que deux personnes peuvent porter le même prénom
- * et que « Lanto » de l'équipe et « Lanto » le voisin ne se paient pas
- * de la même façon.
- *
- * ── CE QUI S'ÉCRIT ──
- *
- * Le NOM, comme avant, dans la colonne texte. Les identifiants viennent
- * à côté, facultatifs. C'est ce qui permet à cet écran de ne rien
- * casser : une boutique dont personne n'a de fiche continue de
- * fonctionner exactement comme hier.
+ * C'est le NOM qui s'écrit, comme avant ; les identifiants viennent à
+ * côté, facultatifs. Une boutique sans aucune fiche marche comme hier.
  */
 export const SelecteurPersonne: React.FC<SelecteurPersonneProps> = ({
   label,
@@ -183,9 +168,7 @@ export const SelecteurPersonne: React.FC<SelecteurPersonneProps> = ({
               <span className="mb-1 block text-xs font-medium text-muted-foreground">
                 Rôle — facultatif
               </span>
-              {/* Un champ libre, pas une liste : « couturière »,
-                  « chauffeur », « revendeuse au marché » sont des métiers
-                  qu'aucune liste prévue d'avance ne contient. */}
+              {/* Champ libre : aucune liste ne contient « revendeuse au marché ». */}
               <input
                 type="text"
                 value={role}

@@ -218,10 +218,8 @@ export const FournisseursView: React.FC<FournisseursViewProps> = ({
   const [formulaire, setFormulaire] = useState(FORMULAIRE_VIDE);
 
   /**
-   * Les types proposés : les actifs, plus celui que la fiche ouverte
-   * porte encore s'il a été archivé depuis. Sans cette exception, ouvrir
-   * une vieille fiche et l'enregistrer lui ferait perdre son type sans
-   * que personne ne l'ait demandé.
+   * Les actifs, plus celui que la fiche ouverte porte encore s'il a été
+   * archivé : sinon l'enregistrer lui ferait perdre son type.
    */
   const typesActifs = useMemo(
     () =>
@@ -235,11 +233,7 @@ export const FournisseursView: React.FC<FournisseursViewProps> = ({
     [typesFournisseur, formulaire.type_id],
   );
 
-  /**
-   * Le type d'une fiche, en clair : la liste d'abord, l'ancien texte
-   * ensuite. Les fiches saisies avant la reprise n'ont pas de `type_id`,
-   * et leur texte libre doit continuer de s'afficher.
-   */
+  /** La liste d'abord, l'ancien texte libre ensuite. */
   const nomDuType = useCallback(
     (f: Supplier): string | null =>
       typesFournisseur.find((t) => t.id === f.type_id)?.nom ?? f.categorie ?? null,
@@ -464,16 +458,9 @@ export const FournisseursView: React.FC<FournisseursViewProps> = ({
   const fichierImport = useRef<HTMLInputElement>(null);
 
   /**
-   * Un nom par ligne, le téléphone en deuxième colonne si on l'a.
-   *
-   * Volontairement pauvre : c'est la forme que prend un annuaire recopié
-   * depuis un carnet ou exporté d'un téléphone. Exiger un en-tête et
-   * douze colonnes ferait échouer le premier essai de tout le monde, et
-   * le reste de la fiche se complète très bien à la main ensuite.
-   *
-   * Les fournisseurs déjà connus sont reconnus et ignorés, accents et
-   * majuscules compris : réimporter le même fichier ne crée pas de
-   * doublons.
+   * Un nom par ligne, le téléphone en deuxième colonne si on l'a : la
+   * forme que prend un annuaire recopié d'un carnet. Les fournisseurs
+   * déjà connus sont ignorés, donc réimporter ne crée pas de doublons.
    */
   const importer = async (f: File) => {
     const lignes = lireLignesCsv(await f.text());
@@ -532,9 +519,7 @@ export const FournisseursView: React.FC<FournisseursViewProps> = ({
         actions={
           peutCreer ? (
             <>
-              {/* L'import avant le bouton principal : c'est le geste du
-                  premier jour, quand l'annuaire est encore vide et qu'on
-                  a déjà sa liste ailleurs. */}
+              {/* L'import est le geste du premier jour. */}
               <input
                 ref={fichierImport}
                 type="file"

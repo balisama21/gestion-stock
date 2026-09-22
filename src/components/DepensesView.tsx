@@ -131,23 +131,15 @@ export const DepensesView: React.FC<DepensesViewProps> = ({
   const [date, setDate] = useState(dateDuJour());
   const [vendeur, setVendeur] = useState(sellers[0]?.nom || "");
   /**
-   * Les deux rattachements, à côté du nom.
-   *
    * Le NOM reste ce qui s'affiche et ce sur quoi les soldes en poche se
-   * calculent : rien de ce qui existait ne change. Les identifiants ne
-   * font que relier la ligne à une fiche, quand il y en a une.
+   * calculent ; les identifiants ne font que relier la ligne à une fiche.
    */
   const [membreId, setMembreId] = useState<string | null>(null);
   const [personneId, setPersonneId] = useState<string | null>(null);
 
   /**
-   * Les personnes, avec ce que chacune détient encore en caisse.
-   *
-   * Ce chiffre était déjà là, dans l'ancienne liste déroulante, et il
-   * compte : une avance se prend sur ce qu'on détient, et voir « 0 Ar en
-   * poche » à côté d'un nom évite d'enregistrer un retrait impossible.
-   * Il n'existe que pour les personnes qui vendent — une fiche externe
-   * qui n'a jamais encaissé n'en a pas.
+   * Ce que chacune détient encore en caisse : une avance se prend sur ce
+   * qu'on détient, et « 0 Ar en poche » évite un retrait impossible.
    */
   const personnesAvecSolde = useMemo(
     () =>
@@ -1035,7 +1027,14 @@ export const DepensesView: React.FC<DepensesViewProps> = ({
               label={libelleEffectuePar}
               personnes={personnes}
               valeur={editingExpense.vendeur}
-              onChange={(choix) => setEditingExpense({ ...editingExpense, vendeur: choix.nom })}
+              onChange={(choix) =>
+                setEditingExpense({
+                  ...editingExpense,
+                  vendeur: choix.nom,
+                  membreId: choix.membreId,
+                  personneId: choix.personneId,
+                })
+              }
             />
 
             <div>
@@ -1068,6 +1067,18 @@ export const DepensesView: React.FC<DepensesViewProps> = ({
                 className="app-field font-mono"
               />
             </div>
+
+            {/* On classe souvent apres coup, une fois le recu retrouve. */}
+            <SelecteurListe
+              id="dep-edit-poste"
+              label="Poste de dépense"
+              options={postes.map((x) => ({ id: x.id, nom: x.nom }))}
+              valeur={editingExpense.categoryId ?? null}
+              onChange={(id) => setEditingExpense({ ...editingExpense, categoryId: id })}
+              onCreer={onCreerPoste}
+              libelleVide="Non classée"
+              placeholder="Loyer, transport, électricité…"
+            />
 
             <div>
               <label className="mb-1.5 block text-sm font-medium text-foreground">Motif</label>

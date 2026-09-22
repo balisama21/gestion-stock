@@ -18,25 +18,15 @@ interface PrixSectionProps {
   onSave: (p: Personnalisation) => Promise<void> | void;
 }
 
-/** Un exemple parlant, pour que le réglage se voie avant d'être subi. */
+/** Pour que le réglage se voie avant d'être subi. */
 const ACHAT_EXEMPLE = 12_500;
 
 /**
- * LE PRIX DE VENTE CALCULÉ DEPUIS LE PRIX D'ACHAT.
+ * L'interrupteur est à l'arrêt : une boutique qui ne vient jamais ici
+ * saisit ses prix comme avant, rien ne bouge en rayon.
  *
- * ── POURQUOI L'INTERRUPTEUR EST EN HAUT, ET À L'ARRÊT ──
- *
- * Une boutique qui ne vient jamais ici saisit ses prix comme elle l'a
- * toujours fait. Rien ne se recalcule, rien ne bouge en rayon. C'est la
- * règle générale : une amélioration ne s'impose pas, elle se propose.
- *
- * ── LE MOT « TAUX », ET POURQUOI IL EST ÉCRIT PARTOUT ──
- *
- * Le taux s'applique au PRIX D'ACHAT. Acheté 1 000, « +10 % » donne
- * 1 100 — et non 1 111, qui serait le prix à pratiquer pour une marge
- * de 10 % sur la vente. Les deux calculs sont légitimes et diffèrent
- * d'un dixième sur chaque article : l'écran écrit donc toujours sur
- * quoi le pourcentage porte, et montre le résultat en Ariary à côté.
+ * Le taux porte sur le prix d'ACHAT — 1 000 « +10 % » donne 1 100, pas
+ * 1 111 — donc l'écran écrit toujours sur quoi le pourcentage porte.
  */
 export const PrixSection: React.FC<PrixSectionProps> = ({ personnalisation, onSave }) => {
   const reglages = lirePrixAuto(personnalisation);
@@ -46,8 +36,7 @@ export const PrixSection: React.FC<PrixSectionProps> = ({ personnalisation, onSa
   const [enregistre, setEnregistre] = useState(false);
 
   const ecrire = async (patch: Record<string, unknown>) => {
-    // Les réglages voisins sont recopiés : cette colonne est partagée
-    // avec le vocabulaire, les rappels et les documents.
+    // Colonne partagée : les réglages voisins sont recopiés.
     const base = (personnalisation as { prixAuto?: Record<string, unknown> }).prixAuto ?? {};
     await onSave({
       ...personnalisation,

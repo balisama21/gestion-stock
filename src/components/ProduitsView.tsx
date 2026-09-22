@@ -109,13 +109,7 @@ interface ProduitsViewProps {
    * prix. Rien de ce qui suit n'y touche.
    */
   categories?: Database["public"]["Tables"]["categories"]["Row"][];
-  /**
-   * Créer une catégorie de produits depuis la fiche, sans la quitter.
-   *
-   * Absente, le sélecteur ne propose pas d'ajouter : c'est ainsi que
-   * s'applique le réglage « seuls les responsables complètent les
-   * listes », sans que ce formulaire ait à lire des permissions.
-   */
+  /** Absente, le sélecteur ne propose pas d'ajouter. */
   onCreerCategorie?: (nom: string) => Promise<{ id: string | null; error: string | null }>;
   /** Le calcul du prix de vente, réglé par la boutique. Absent = désactivé. */
   prixAuto?: ReglagesPrixAuto;
@@ -208,12 +202,8 @@ export const ProduitsView: React.FC<ProduitsViewProps> = ({
   const [prixAchat, setPrixAchat] = useState(1000);
   const [prixVenteDefaut, setPrixVenteDefaut] = useState(1500);
   /**
-   * Comment ce produit tient son prix.
-   *
-   * Un produit créé ici part en « manuel » : le prix par défaut de ce
-   * formulaire est un nombre écrit à la main, et prétendre qu'il est
-   * calculé serait faux. Toucher aux boutons de taux le fait basculer
-   * en automatique, ce qui est le bon sens du geste.
+   * Un produit créé ici part en « manuel » : son prix par défaut est un
+   * nombre écrit à la main. Toucher un bouton de taux le passe en auto.
    */
   const [modePrix, setModePrix] = useState<"auto" | "manuel">("manuel");
   const [tauxProduit, setTauxProduit] = useState<number | null>(null);
@@ -234,13 +224,7 @@ export const ProduitsView: React.FC<ProduitsViewProps> = ({
   const [addPhotos, setAddPhotos] = useState<File[]>([]);
   const [addErreur, setAddErreur] = useState<string | null>(null);
 
-  /**
-   * Le taux que porte une catégorie, quand elle en porte un.
-   *
-   * Sert au niveau intermédiaire de l'héritage produit > catégorie >
-   * boutique. Une catégorie sans taux rend `null`, ce qui veut dire
-   * « demande à la boutique » et jamais « zéro pour cent ».
-   */
+  /** Le niveau intermédiaire de l'héritage produit > catégorie > boutique. */
   const tauxDeLaCategorie = (categoryId: string): number | null =>
     categoryId ? (categories.find((c) => c.id === categoryId)?.taux_marge ?? null) : null;
 
@@ -377,8 +361,7 @@ export const ProduitsView: React.FC<ProduitsViewProps> = ({
     // Rien n'est envoyé si la fiche n'a pas été touchée : un produit
     // créé au comptoir en trois champs ne doit pas déclencher une
     // écriture de plus pour n'y inscrire que des valeurs par défaut.
-    // Le mode et le taux voyagent avec la fiche : ce sont des colonnes
-    // descriptives, écrites hors du chemin verrouillé comme le reste.
+    // Mode et taux sont descriptifs : écrits hors du chemin verrouillé.
     const prixARegler = prixAuto.actif && (modePrix === "auto" || tauxProduit !== null);
     const ficheRemplie =
       JSON.stringify(addDetails) !== JSON.stringify(DETAILS_VIDES) || prixARegler;
@@ -820,9 +803,8 @@ export const ProduitsView: React.FC<ProduitsViewProps> = ({
             fournisseurs={fournisseurs}
             valeur={addDetails.supplier_id || null}
             onChange={(id, nom) => {
-              // Les deux ensemble : l'identifiant pour le rattachement,
-              // le nom pour la colonne texte que la fonction de création
-              // écrit toujours. C'est le filet de la reprise.
+              // L'identifiant pour le rattachement, le nom pour la
+              // colonne texte que la fonction de création écrit toujours.
               setAddDetails((d) => ({ ...d, supplier_id: id ?? "" }));
               setFournisseur(nom);
             }}

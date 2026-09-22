@@ -1126,16 +1126,9 @@ export function useStoreData(storeId: string | null, userId: string | null): Sto
           ? ((ecrit as { id: string | null }).id ?? null)
           : null;
 
-      // ── Le rattachement a la fiche fournisseur, en second temps ──
-      //
-      // `add_purchase` est sur le chemin de l'argent : elle ecrit
-      // l'achat, bouge le stock, verse l'acompte et pose le mouvement,
-      // le tout dans une transaction. On ne touche pas a sa signature
-      // pour une colonne descriptive. La colonne texte `fournisseur`
-      // qu'elle ecrit reste le filet ; `supplier_id` vient par-dessus.
-      //
-      // Un echec ici ne fait donc pas echouer l'achat : il laisse
-      // simplement l'achat rattache par son nom, comme avant.
+      // `add_purchase` est sur le chemin de l'argent : on ne touche pas
+      // a sa signature pour une colonne descriptive. Un echec ici laisse
+      // l'achat rattache par son nom, comme avant.
       if (!error && data.supplier_id) {
         if (purchaseId) {
           await supabase
@@ -1143,9 +1136,8 @@ export function useStoreData(storeId: string | null, userId: string | null): Sto
             .update({ supplier_id: data.supplier_id })
             .eq("id", purchaseId);
         }
-        // Seulement quand l'achat vient de CREER le produit : sur un
-        // produit deja au catalogue, son fournisseur habituel n'a pas a
-        // changer parce qu'on l'a depanne ailleurs une fois.
+        // Seulement si l'achat vient de creer le produit : un depannage
+        // ponctuel ne change pas son fournisseur habituel.
         if (!data.product_id && productId) {
           await supabase
             .from("products")
@@ -1203,9 +1195,8 @@ export function useStoreData(storeId: string | null, userId: string | null): Sto
         p_montant_regle: data.montantRegle ?? undefined,
       });
 
-      // Meme raison qu'a l'enregistrement : `modifier_achat` deplace du
-      // stock et de la tresorerie, le rattachement est descriptif et
-      // s'ecrit a cote. `undefined` veut dire « ne pas y toucher ».
+      // `modifier_achat` deplace stock et tresorerie ; le rattachement
+      // est descriptif. `undefined` = ne pas y toucher.
       if (!error && data.supplier_id !== undefined) {
         await supabase.from("purchases").update({ supplier_id: data.supplier_id }).eq("id", id);
       }
@@ -1775,14 +1766,8 @@ export function useStoreData(storeId: string | null, userId: string | null): Sto
     [fetchAll],
   );
 
-  // CATÉGORIES
-  //
-  // La ligne créée est RENVOYÉE, et pas seulement l'erreur : le
-  // sélecteur de liste ajoute une valeur puis la sélectionne dans la
-  // foulée, sans quitter le formulaire. Sans son identifiant, il lui
-  // faudrait attendre le rechargement et retrouver la valeur par son
-  // nom — ce qui échoue à la première boutique qui en crée deux d'un
-  // coup.
+  // CATÉGORIES — la ligne créée est renvoyée : le sélecteur l'ajoute
+  // puis la sélectionne, sans attendre le rechargement.
   const addCategorie = useCallback(
     async (data: {
       nom: string;
@@ -1829,11 +1814,7 @@ export function useStoreData(storeId: string | null, userId: string | null): Sto
     [fetchAll],
   );
 
-  // PERSONNES EXTERNES
-  //
-  // Un contact, jamais un compte. La fiche est créée depuis un
-  // formulaire de vente ou de dépense aussi bien que depuis son écran :
-  // elle renvoie donc la ligne, comme une valeur de liste.
+  // PERSONNES EXTERNES — un contact, jamais un compte.
   const addPersonneExterne = useCallback(
     async (
       data: Omit<

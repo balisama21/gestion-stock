@@ -3,33 +3,16 @@ import { HelpCircle } from "lucide-react";
 import { useClicExterieur } from "../../hooks/useClicExterieur";
 
 interface InfobulleProps {
-  /** Ce que le point d'interrogation explique. Une ou deux phrases. */
+  /** Une ou deux phrases. */
   children: React.ReactNode;
   /** Dit à voix haute par le lecteur d'écran : « Aide sur … ». */
   sujet: string;
 }
 
 /**
- * LE POINT D'INTERROGATION QUI RÉPOND VRAIMENT.
- *
- * ── POURQUOI CE N'EST PAS UN `title=""` ──
- *
- * L'attribut `title` du navigateur ne s'ouvre qu'au survol de la souris,
- * après une seconde d'attente, et n'existe pas du tout au doigt. Sur un
- * téléphone — c'est-à-dire là où ce logiciel est le plus utilisé — il ne
- * dit donc rien à personne.
- *
- * ── CE QUI LA REND ACCESSIBLE ──
- *
- * C'est un vrai bouton : il se reçoit à la tabulation, s'ouvre à Entrée
- * comme au clic, et se ferme à Échap. Le texte est relié au bouton par
- * `aria-describedby`, si bien qu'un lecteur d'écran le lit sans avoir à
- * entrer dedans.
- *
- * Le bouton ne porte ni cadre ni fond : un point d'interrogation se
- * reconnaît seul, et une rangée de petites boîtes grises au-dessus d'un
- * formulaire fait du bruit pour rien. Sa zone de clic, elle, reste
- * entière — c'est elle qui compte pour le doigt.
+ * Un vrai bouton plutôt qu'un attribut `title`, qui ne dit rien au
+ * doigt : tabulation, Entrée, Échap, et `aria-describedby` pour le
+ * lecteur d'écran. Ni cadre ni fond — un « ? » se reconnaît seul.
  */
 export const Infobulle: React.FC<InfobulleProps> = ({ children, sujet }) => {
   const zone = useRef<HTMLSpanElement>(null);
