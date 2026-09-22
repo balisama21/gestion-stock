@@ -220,6 +220,12 @@ phrase et un seul bouton quand il n'y a rien, « Aucun document ne
 correspond » avec le moyen d'effacer les filtres, un message simple et
 « Réessayer » quand le chargement échoue.
 
+**Mobile.** Le bouton « + Nouveau document » est ancré au-dessus de la
+barre de navigation, et non par-dessus la liste : un bouton flottant
+posé sur le contenu cache justement la ligne qu'on vient lire. Il
+déplie alors son menu vers le haut. Sur grand écran il reprend sa place
+dans l'en-tête, et un seul des deux est jamais visible.
+
 **Exports.** CSV et tableur de la liste AFFICHÉE — filtrée, triée, dans
 son ordre. Montants en nombres pour qu'une colonne s'additionne, devise
 dite une fois dans l'en-tête. Et les PDF groupés en ZIP.

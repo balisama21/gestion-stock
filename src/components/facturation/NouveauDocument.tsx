@@ -102,7 +102,14 @@ export const MenuNouveauDocument: React.FC<{
   onChoisir: (nature: NatureNouveau) => void;
   /** Les natures que cette personne n'a pas le droit d'établir. */
   interdites?: NatureNouveau[];
-}> = ({ onChoisir, interdites = [] }) => {
+  /**
+   * Déplier vers le haut.
+   *
+   * Sur mobile, ce bouton est ancré au-dessus de la barre de
+   * navigation : un menu qui descendrait sortirait de l'écran.
+   */
+  versLeHaut?: boolean;
+}> = ({ onChoisir, interdites = [], versLeHaut = false }) => {
   const [ouvert, setOuvert] = useState(false);
   const boite = useRef<HTMLDivElement>(null);
   useClicExterieur(boite, ouvert, () => setOuvert(false));
@@ -126,7 +133,9 @@ export const MenuNouveauDocument: React.FC<{
       {ouvert && (
         <div
           role="menu"
-          className="absolute right-0 z-40 mt-1 w-72 overflow-hidden rounded-xl border border-border bg-card py-1 shadow-lg"
+          className={`absolute right-0 z-40 w-72 max-w-[calc(100vw-2rem)] overflow-hidden rounded-xl border border-border bg-card py-1 shadow-lg ${
+            versLeHaut ? "bottom-full mb-1" : "mt-1"
+          }`}
         >
           {choix.map((c) => (
             <button

@@ -367,9 +367,13 @@ export const FacturationPage: React.FC<FacturationPageProps> = ({
         voitTout={voitTout}
         peutCreer={droits.creer}
         onCreerPremiere={() => setCreation({ nature: "facture" })}
-        menuNouveau={
-          <MenuNouveauDocument onChoisir={choisirNature} interdites={naturesInterdites} />
-        }
+        menuNouveau={(versLeHaut) => (
+          <MenuNouveauDocument
+            onChoisir={choisirNature}
+            interdites={naturesInterdites}
+            versLeHaut={versLeHaut}
+          />
+        )}
         exports={(visibles) => (
           <BoutonsExport
             combien={visibles.length}

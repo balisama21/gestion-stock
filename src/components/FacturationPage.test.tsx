@@ -162,10 +162,21 @@ function afficher(p: Partial<React.ComponentProps<typeof FacturationPage>> = {})
   };
 }
 
-/** Ouvre « + Nouveau document » puis la nature demandée. */
+/**
+ * Ouvre « + Nouveau document » puis la nature demandée.
+ *
+ * Le bouton est rendu deux fois — en en-tête et ancré en bas d'écran —
+ * et c'est une media query qui n'en laisse qu'un visible. jsdom
+ * n'applique pas la feuille de style : les deux sont dans l'arbre, on
+ * prend le premier.
+ */
+function ouvrirLeMenu() {
+  fireEvent.click(screen.getAllByRole("button", { name: /Nouveau document/ })[0]);
+}
+
 function ouvrirLeFormulaire(libelle: RegExp) {
-  fireEvent.click(screen.getByRole("button", { name: /Nouveau document/ }));
-  fireEvent.click(screen.getByRole("menuitem", { name: libelle }));
+  ouvrirLeMenu();
+  fireEvent.click(screen.getAllByRole("menuitem", { name: libelle })[0]);
 }
 
 afterEach(cleanup);
@@ -238,12 +249,12 @@ describe("établir une facture n'écrit qu'une vente", () => {
     const onAllerVers = vi.fn();
     afficher({ onAllerVers });
 
-    fireEvent.click(screen.getByRole("button", { name: /Nouveau document/ }));
-    fireEvent.click(screen.getByRole("menuitem", { name: /^Devis/ }));
+    ouvrirLeMenu();
+    fireEvent.click(screen.getAllByRole("menuitem", { name: /^Devis/ })[0]);
     expect(onAllerVers).toHaveBeenCalledWith("devis");
 
-    fireEvent.click(screen.getByRole("button", { name: /Nouveau document/ }));
-    fireEvent.click(screen.getByRole("menuitem", { name: /Facture d'achat/ }));
+    ouvrirLeMenu();
+    fireEvent.click(screen.getAllByRole("menuitem", { name: /Facture d'achat/ })[0]);
     expect(onAllerVers).toHaveBeenCalledWith("factures_achat");
   });
 });
@@ -442,8 +453,8 @@ describe("les droits", () => {
 
   it("sans le droit de créer, le menu ne propose que les écrans existants", () => {
     afficher({ droits: { creer: false, envoyer: true, encaisser: true, avoir: true } });
-    fireEvent.click(screen.getByRole("button", { name: /Nouveau document/ }));
-    const menu = screen.getByRole("menu");
+    ouvrirLeMenu();
+    const menu = screen.getAllByRole("menu")[0];
     expect(within(menu).queryByRole("menuitem", { name: /^Facture$/ })).toBeNull();
     expect(within(menu).getByRole("menuitem", { name: /^Devis/ })).toBeTruthy();
   });

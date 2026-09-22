@@ -97,8 +97,15 @@ export interface FacturationViewProps {
   peutCreer: boolean;
   /** Le panneau d'actions d'une pièce, fourni par l'écran parent. */
   actionsDuDocument?: (doc: DocumentCommercial) => React.ReactNode;
-  /** Le menu « + Nouveau document ». */
-  menuNouveau?: React.ReactNode;
+  /**
+   * Le menu « + Nouveau document ».
+   *
+   * Rendu DEUX fois — en en-tête sur grand écran, ancré en bas d'écran
+   * sur mobile — et un seul des deux est visible à la fois. Le
+   * paramètre dit lequel : celui du bas déplie vers le haut, sans quoi
+   * son menu sortirait de l'écran.
+   */
+  menuNouveau?: (versLeHaut: boolean) => React.ReactNode;
   /** Les boutons d'export de la liste affichée. */
   exports?: (documents: DocumentCommercial[]) => React.ReactNode;
   onCreerPremiere?: () => void;
@@ -312,7 +319,11 @@ export const FacturationView: React.FC<FacturationViewProps> = ({
         title="Facturation"
         module="facturation"
         subtitle="Tous les documents commerciaux de la boutique, au même endroit."
-        actions={menuNouveau}
+        // Sur mobile, le bouton n'est pas ici : il est ancré en bas
+        // d'écran, au-dessus de la barre de navigation (voir plus bas).
+        // Le mettre aux deux endroits ferait deux boutons identiques sur
+        // la même image.
+        actions={<div className="hidden lg:block">{menuNouveau?.(false)}</div>}
       />
 
       {listeVide ? (
@@ -471,6 +482,17 @@ export const FacturationView: React.FC<FacturationViewProps> = ({
               puces={puces}
               onToutEffacer={() => setFiltres({ ...FILTRES_VIDES, onglet: filtres.onglet })}
             />
+
+            {/* « Le bouton "+ Nouveau document" reste accessible en bas
+                d'écran. » Ancré au-dessus de la barre de navigation, et
+                non par-dessus : une liste se parcourt au pouce, et un
+                bouton flottant posé sur le contenu cache justement la
+                ligne qu'on vient lire. */}
+            {menuNouveau && (
+              <div className="fixed inset-x-0 bottom-[68px] z-30 border-t border-border bg-card/95 px-4 py-2 backdrop-blur lg:hidden">
+                {menuNouveau(true)}
+              </div>
+            )}
 
             <div className="app-card">
               {visibles.length === 0 ? (
