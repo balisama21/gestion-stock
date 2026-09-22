@@ -1,4 +1,4 @@
-import React, { useCallback, useMemo, useState } from "react";
+import React, { useCallback, useMemo, useRef, useState } from "react";
 import {
   Building2,
   Save,
@@ -16,6 +16,7 @@ import {
   ShoppingCart,
   Trash2,
   Truck,
+  Upload,
   Wallet,
   X,
 } from "lucide-react";
@@ -32,7 +33,7 @@ import {
 import type { Purchase, Product } from "../types";
 import type { Database } from "../lib/database.types";
 import { dateDuJour } from "../lib/dates";
-import { trierValeurs } from "../lib/listes";
+import { cleDeListe, lireLignesCsv, trierValeurs } from "../lib/listes";
 
 type Supplier = Database["public"]["Tables"]["suppliers"]["Row"];
 type SupplierInsert = Database["public"]["Tables"]["suppliers"]["Insert"];
@@ -458,6 +459,53 @@ export const FournisseursView: React.FC<FournisseursViewProps> = ({
     setSelection(null);
   };
 
+  /* ── L'import d'un annuaire déjà constitué ── */
+
+  const fichierImport = useRef<HTMLInputElement>(null);
+
+  /**
+   * Un nom par ligne, le téléphone en deuxième colonne si on l'a.
+   *
+   * Volontairement pauvre : c'est la forme que prend un annuaire recopié
+   * depuis un carnet ou exporté d'un téléphone. Exiger un en-tête et
+   * douze colonnes ferait échouer le premier essai de tout le monde, et
+   * le reste de la fiche se complète très bien à la main ensuite.
+   *
+   * Les fournisseurs déjà connus sont reconnus et ignorés, accents et
+   * majuscules compris : réimporter le même fichier ne crée pas de
+   * doublons.
+   */
+  const importer = async (f: File) => {
+    const lignes = lireLignesCsv(await f.text());
+    if (lignes.length === 0) {
+      setErreur("Aucun nom lisible dans ce fichier.");
+      return;
+    }
+    setEnregistrement(true);
+    setErreur(null);
+    let ajoutes = 0;
+    let ignores = 0;
+    for (const l of lignes) {
+      const existe = suppliers.some(
+        (x) => cleDeListe(x.nom) === cleDeListe(l.nom) && (x.statut ?? "actif") === "actif",
+      );
+      if (existe) {
+        ignores += 1;
+        continue;
+      }
+      const { error } = await onAddSupplier({ nom: l.nom, telephone: l.second });
+      if (error) ignores += 1;
+      else ajoutes += 1;
+    }
+    setEnregistrement(false);
+    annoncer(
+      `${ajoutes} fournisseur${ajoutes > 1 ? "s" : ""} ajouté${ajoutes > 1 ? "s" : ""}` +
+        (ignores > 0
+          ? `, ${ignores} déjà connu${ignores > 1 ? "s" : ""} ou refusé${ignores > 1 ? "s" : ""}.`
+          : "."),
+    );
+  };
+
   const achatsDuFournisseur = selection ? (achatsParFournisseur[selection.id] ?? []) : [];
   const produitsDuFournisseur = selection ? (produitsParFournisseur[selection.id] ?? []) : [];
   const compteSelection = selection ? (comptes[selection.id] ?? compteVide) : compteVide;
@@ -483,10 +531,35 @@ export const FournisseursView: React.FC<FournisseursViewProps> = ({
         subtitle="Qui vous livre, à quelles conditions, et ce que vous leur avez acheté."
         actions={
           peutCreer ? (
-            <button onClick={ouvrirCreation} className="app-btn-primary w-full sm:w-auto">
-              <Plus className="w-4 h-4" />
-              Nouveau fournisseur
-            </button>
+            <>
+              {/* L'import avant le bouton principal : c'est le geste du
+                  premier jour, quand l'annuaire est encore vide et qu'on
+                  a déjà sa liste ailleurs. */}
+              <input
+                ref={fichierImport}
+                type="file"
+                accept=".csv,.txt,text/csv,text/plain"
+                className="hidden"
+                onChange={(e) => {
+                  const f = e.target.files?.[0];
+                  if (f) void importer(f);
+                  e.target.value = "";
+                }}
+              />
+              <button
+                type="button"
+                onClick={() => fichierImport.current?.click()}
+                disabled={enregistrement}
+                className="app-btn-secondary w-full sm:w-auto"
+              >
+                <Upload className="w-4 h-4" />
+                Importer
+              </button>
+              <button onClick={ouvrirCreation} className="app-btn-primary w-full sm:w-auto">
+                <Plus className="w-4 h-4" />
+                Nouveau fournisseur
+              </button>
+            </>
           ) : undefined
         }
       />

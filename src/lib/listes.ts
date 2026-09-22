@@ -169,17 +169,27 @@ export const libelleEffectuePar = (p: Personnalisation): string => {
  * Les doublons internes au fichier sont retirés ici, avant même de
  * regarder ce que la boutique possède déjà.
  */
-export const lireNomsCsv = (contenu: string): string[] => {
+export const lireNomsCsv = (contenu: string): string[] => lireLignesCsv(contenu).map((l) => l.nom);
+
+/**
+ * Les lignes d'un fichier, nom et second champ.
+ *
+ * Le second champ sert à l'annuaire des fournisseurs : un nom, un
+ * téléphone. Il reste facultatif — un fichier d'une seule colonne
+ * s'importe aussi bien, et c'est le cas le plus courant.
+ */
+export const lireLignesCsv = (contenu: string): { nom: string; second: string | null }[] => {
   const vus = new Set<string>();
-  const noms: string[] = [];
+  const lignes: { nom: string; second: string | null }[] = [];
   for (const ligne of contenu.split(/\r?\n/)) {
-    const premiere = ligne.split(/[;,\t]/)[0] ?? "";
-    const nom = premiere.replace(/^"(.*)"$/, "$1").trim();
+    const colonnes = ligne.split(/[;,\t]/);
+    const nom = (colonnes[0] ?? "").replace(/^"(.*)"$/, "$1").trim();
     if (!nom) continue;
     const cle = cleDeListe(nom);
     if (vus.has(cle)) continue;
     vus.add(cle);
-    noms.push(nom);
+    const second = (colonnes[1] ?? "").replace(/^"(.*)"$/, "$1").trim();
+    lignes.push({ nom, second: second || null });
   }
-  return noms;
+  return lignes;
 };

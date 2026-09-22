@@ -1114,6 +1114,10 @@ export const ParametresView: React.FC<ParametresViewProps> = ({
           personnes={personnesExternes}
           onAdd={onAddPersonneExterne}
           onUpdate={onUpdatePersonneExterne}
+          membres={realMembers.map((m) => ({
+            id: m.user_id,
+            nom: m.full_name || m.email,
+          }))}
         />
       )}
 

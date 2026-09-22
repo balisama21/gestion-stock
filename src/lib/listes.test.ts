@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   cleDeListe,
   correspond,
+  lireLignesCsv,
   libelleEffectuePar,
   lireNomsCsv,
   lireReglagesListes,
@@ -173,5 +174,21 @@ describe("la lecture d'un fichier de noms", () => {
 
   it("accepte les fins de ligne Windows", () => {
     expect(lireNomsCsv("Doypacks\r\nSachets")).toEqual(["Doypacks", "Sachets"]);
+  });
+});
+
+describe("la lecture d'un annuaire a deux colonnes", () => {
+  it("prend le nom et le telephone", () => {
+    expect(lireLignesCsv("Grossiste M;0341234567")).toEqual([
+      { nom: "Grossiste M", second: "0341234567" },
+    ]);
+  });
+
+  it("accepte une seule colonne, qui est le cas le plus courant", () => {
+    expect(lireLignesCsv("Grossiste M")).toEqual([{ nom: "Grossiste M", second: null }]);
+  });
+
+  it("ignore une deuxieme colonne vide plutot que d'ecrire une chaine vide", () => {
+    expect(lireLignesCsv("Grossiste M;")).toEqual([{ nom: "Grossiste M", second: null }]);
   });
 });

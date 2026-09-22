@@ -18,6 +18,8 @@ interface PersonnesExternesSectionProps {
     id: string,
     data: Database["public"]["Tables"]["personnes_externes"]["Update"],
   ) => Promise<{ error: string | null }>;
+  /** Les comptes de la boutique, pour relier une fiche à celui qui vient de la rejoindre. */
+  membres?: { id: string; nom: string }[];
 }
 
 const VIDE = { nom: "", telephone: "", email: "", role: "", taux_commission: "", notes: "" };
@@ -47,6 +49,7 @@ export const PersonnesExternesSection: React.FC<PersonnesExternesSectionProps> =
   personnes,
   onAdd,
   onUpdate,
+  membres = [],
 }) => {
   const [formulaire, setFormulaire] = useState(VIDE);
   const [enEdition, setEnEdition] = useState<string | null>(null);
@@ -63,6 +66,8 @@ export const PersonnesExternesSection: React.FC<PersonnesExternesSectionProps> =
     () => personnes.filter((p) => !p.actif).sort((a, b) => a.nom.localeCompare(b.nom, "fr")),
     [personnes],
   );
+
+  const nomDuCompte = (id: string) => membres.find((m) => m.id === id)?.nom ?? null;
 
   /** Celles que la reprise a créées sans téléphone : à compléter. */
   const aCompleter = actives.filter((p) => !p.telephone);
@@ -180,11 +185,39 @@ export const PersonnesExternesSection: React.FC<PersonnesExternesSectionProps> =
                     p.role,
                     p.telephone,
                     p.taux_commission != null ? `${p.taux_commission} % de commission` : null,
-                    p.user_id ? "a rejoint l'équipe" : null,
+                    p.user_id
+                      ? `a rejoint l'équipe${nomDuCompte(p.user_id) ? ` — ${nomDuCompte(p.user_id)}` : ""}`
+                      : null,
                   ]
                     .filter(Boolean)
                     .join(" · ")}
                 </span>
+
+                {/* ── LE PONT VERS UN COMPTE ──
+                    Quelqu'un qu'on payait à la pièce finit par être
+                    embauché. Relier sa fiche à son nouveau compte ne
+                    déplace RIEN : ses ventes et ses dépenses restent
+                    attachées à son nom, exactement où elles sont. Le lien
+                    dit seulement que ces deux-là sont la même personne. */}
+                {membres.length > 0 && (
+                  <label className="mt-1.5 block">
+                    <span className="mb-1 block text-[11px] text-muted-foreground">
+                      Compte de cette personne, si elle a rejoint l&apos;équipe
+                    </span>
+                    <select
+                      value={p.user_id ?? ""}
+                      onChange={(e) => void onUpdate(p.id, { user_id: e.target.value || null })}
+                      className="app-field-sm"
+                    >
+                      <option value="">Aucun — c&apos;est un contact</option>
+                      {membres.map((m) => (
+                        <option key={m.id} value={m.id}>
+                          {m.nom}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                )}
               </span>
               <span className="flex shrink-0 items-center gap-1.5">
                 <button
