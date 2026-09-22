@@ -1,0 +1,45 @@
+-- ════════════════════════════════════════════════════════════════════
+-- DOCUMENTS V3 — LES CHANGEMENTS SQL : PROPOSÉS, VALIDÉS, APPLIQUÉS
+--
+-- Ce fichier était la liste d'attente. Elle est vide : les cinq
+-- points ont été validés le 21/09/2026 et appliqués au projet de
+-- production `jasyacrnpimgwapcjkpr`. Le SQL lui-même, avec ses
+-- raisons, vit désormais dans `supabase/migrations/` — un fichier par
+-- migration, sous le numéro que porte la base.
+--
+--   20260921195109  documents_v3_reglages_reserves
+--   20260921195136  documents_v3_numerotation
+--   20260921195157  documents_v3_proforma
+--   20260921195422  documents_v3_facture_achat_tables
+--   20260921195505  documents_v3_facture_achat_droits
+--   20260921195526  documents_v3_snapshot
+--   20260921195627  documents_v3_droits_dexecution
+--
+-- TOUT EST ADDITIF. Aucune colonne existante n'a changé de nom ni de
+-- type, aucune donnée n'a été réécrite, et la version du code qui
+-- tourne encore chez le client continue de lire la base comme avant :
+-- les deux colonnes ajoutées à `quotes` ont une valeur par défaut, et
+-- les trois tables nouvelles ne sont lues par personne tant que les
+-- écrans qui s'en servent n'existent pas.
+--
+-- CE QUI A ÉTÉ VÉRIFIÉ AVANT DE POSER LES INDEX UNIQUES : zéro
+-- doublon de `(store_id, numero)` sur les 61 ventes, 1 devis, 14
+-- achats et 0 commande en base.
+--
+-- CE QUI A ÉTÉ VÉRIFIÉ APRÈS, sur la base réelle et en transaction
+-- annulée, de sorte que rien n'en reste :
+--
+--   • un VENDEUR qui tente d'écrire `personnalisation.documents` est
+--     refusé ; le propriétaire passe ;
+--   • `prochain_numero_de_document` rend 1 puis 2, sans jamais
+--     répéter une valeur ;
+--   • un vendeur ne peut pas fixer un compteur ;
+--   • un compteur refuse de reculer, même pour le propriétaire.
+--
+-- CE QUI RESTE EN DEHORS, ET POURQUOI. Soixante-quinze fonctions
+-- antérieures portent l'avertissement « exécutable par anon » que
+-- Supabase pose par défaut sur tout le schéma `public`. Les sept
+-- fonctions nouvelles sont fermées ; le nettoyage des autres est un
+-- chantier à lui seul sur une base en service, et il ne se mêle pas à
+-- celui-ci.
+-- ════════════════════════════════════════════════════════════════════
