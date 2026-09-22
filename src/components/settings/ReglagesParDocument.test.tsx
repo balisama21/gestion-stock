@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { ReglagesParDocument } from "./ReglagesParDocument";
@@ -5,7 +6,7 @@ import {
   REGLAGES_DOCUMENTS_PAR_DEFAUT,
   type ReglagesDocuments,
 } from "../../features/documents/lib/reglages";
-import type { ReglagesParType } from "../../features/documents/lib/typesDocument";
+import type { ReglagesParType, TypeDocumentV3 } from "../../features/documents/lib/typesDocument";
 
 /**
  * L'ÉCRAN DU NIVEAU 2.
@@ -17,9 +18,25 @@ import type { ReglagesParType } from "../../features/documents/lib/typesDocument
  * exister.
  */
 
+/**
+ * Le type réglé est désormais tenu par l'écran parent, pour que
+ * l'aperçu montre le même document. Ce banc joue ce rôle.
+ */
 function afficher(reglages: ReglagesDocuments = REGLAGES_DOCUMENTS_PAR_DEFAUT) {
   const onChange = vi.fn();
-  render(<ReglagesParDocument reglages={reglages} onChange={onChange} onChangePages={vi.fn()} />);
+  const Banc = () => {
+    const [type, setType] = useState<TypeDocumentV3>("facture");
+    return (
+      <ReglagesParDocument
+        reglages={reglages}
+        onChange={onChange}
+        onChangePages={vi.fn()}
+        type={type}
+        onType={setType}
+      />
+    );
+  };
+  render(<Banc />);
   return onChange;
 }
 
@@ -94,5 +111,16 @@ describe("ce qui est proposé dépend du document", () => {
     fireEvent.click(screen.getByRole("button", { name: /Devis/ }));
     expect(screen.getByLabelText(/Durée de validité/)).toBeTruthy();
     expect(screen.queryByLabelText(/Échéance/)).toBeNull();
+  });
+});
+
+describe("un éditeur qui n'allumerait rien n'est pas proposé", () => {
+  it("retire la mise en page au bon de commande fournisseur, qui garde la sienne", () => {
+    afficher();
+    expect(screen.getByRole("button", { name: /Personnaliser la mise en page/ })).toBeTruthy();
+
+    fireEvent.click(screen.getByRole("button", { name: /Bon de commande fournisseur/ }));
+    expect(screen.queryByRole("button", { name: /Personnaliser la mise en page/ })).toBeNull();
+    expect(screen.getByText(/ne passe pas encore par le moteur commun/)).toBeTruthy();
   });
 });

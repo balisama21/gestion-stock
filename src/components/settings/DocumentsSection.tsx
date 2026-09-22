@@ -7,10 +7,10 @@ import { COULEURS_DOCUMENT, LOGOS_DOCUMENT, MODELES_DOCUMENT } from "./choixDocu
 import type { Personnalisation } from "../../lib/personnalisation";
 import type { Product, Sale, StoreSettings } from "../../types";
 import { DocumentPreview, type FormatDocument } from "../../features/documents/DocumentPreview";
-import { documentDeVente } from "../../features/documents/lib/buildDocument";
+import { apercuDesReglages } from "../../features/documents/lib/apercuDesReglages";
 import { LIBELLE_ECHEANCE, type Echeance } from "../../features/documents/lib/format";
 import type { IdentiteBoutique } from "../../features/documents/lib/identite";
-import type { ReglagesParType } from "../../features/documents/lib/typesDocument";
+import type { ReglagesParType, TypeDocumentV3 } from "../../features/documents/lib/typesDocument";
 import type { MisesEnPage } from "../../features/documents/lib/miseEnPage";
 import {
   lireReglagesDocuments,
@@ -40,13 +40,17 @@ import {
  * vocabulaire et les rappels des autres écrans sont préservés, ce
  * qu'un test de `lirePersonnalisation` verrouille.
  *
- * ── L'APERÇU MONTRE UNE VRAIE VENTE ────────────────────────────────
+ * ── L'APERÇU MONTRE UNE VRAIE VENTE, ET LE BON DOCUMENT ────────────
  *
  * La dernière de la boutique, en lecture seule. Pas de client
  * inventé, pas de montant d'exemple : on règle un document en le
  * voyant tel qu'il sortira vraiment. Quand la boutique n'a encore
  * rien vendu, l'aperçu le dit et s'efface plutôt que de montrer une
  * facture qui n'existe pas.
+ *
+ * Il suit le type qu'on RÈGLE, et il est posé dans la section où on
+ * le règle. Une seule feuille en bas de page, toujours une facture,
+ * laissait croire que rien ne bougeait quand on réglait un devis.
  */
 
 interface DocumentsSectionProps {
@@ -102,6 +106,12 @@ export const DocumentsSection: React.FC<DocumentsSectionProps> = ({
   );
   const [brouillon, setBrouillon] = useState<ReglagesDocuments>(enregistres);
   const [apercu, setApercu] = useState<FormatDocument>("a4");
+  /*
+   * Le document réglé est tenu ICI et non dans la section qui le
+   * choisit : l'aperçu doit montrer celui qu'on est en train de
+   * régler, et c'est cet écran qui le construit.
+   */
+  const [typeRegle, setTypeRegle] = useState<TypeDocumentV3>("facture");
   const [enCours, setEnCours] = useState(false);
   const [fait, setFait] = useState(false);
 
@@ -139,25 +149,70 @@ export const DocumentsSection: React.FC<DocumentsSectionProps> = ({
   };
 
   /**
-   * La dernière vente de la boutique, prête à être mise en page.
+   * Le document réglé, prêt à être mis en page.
    *
-   * Les lignes d'un même ticket sont regroupées comme le fait la page
-   * Ventes. Sans aucune vente, pas d'aperçu : mieux vaut le dire que
-   * montrer une facture inventée.
+   * Il suit le type choisi juste au-dessus : régler un devis et voir
+   * une facture ne renseignait sur rien. Sans aucune vente, pas
+   * d'aperçu : mieux vaut le dire que montrer une pièce inventée.
    */
-  const document = useMemo(() => {
-    const derniere = sales[0];
-    if (!derniere) return null;
-    const ventes = derniere.ticketId
-      ? sales.filter((v) => v.ticketId === derniere.ticketId)
-      : [derniere];
-    return documentDeVente({
-      ventes,
-      produits: products,
-      boutique: settings,
-      reglages: brouillon,
-    });
-  }, [sales, products, settings, brouillon]);
+  const vu = useMemo(
+    () =>
+      apercuDesReglages({
+        type: typeRegle,
+        sales,
+        produits: products,
+        boutique: settings,
+        reglages: brouillon,
+      }),
+    [typeRegle, sales, products, settings, brouillon],
+  );
+
+  /** Un rouleau n'a de sens que sur ce qui s'imprime en caisse. */
+  const format: FormatDocument =
+    typeRegle === "facture" || typeRegle === "recu" || typeRegle === "commission" ? apercu : "a4";
+
+  const blocApercu = (
+    <SettingsBlock>
+      <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+        <p className="text-sm font-semibold text-foreground">Aperçu</p>
+        {(typeRegle === "facture" || typeRegle === "recu" || typeRegle === "commission") && (
+          <div className="flex flex-wrap gap-2">
+            {APERCUS.map((a) => (
+              <button
+                key={a.cle}
+                type="button"
+                aria-pressed={apercu === a.cle}
+                onClick={() => setApercu(a.cle)}
+                className={apercu === a.cle ? "app-btn-primary" : "app-btn-secondary"}
+              >
+                {a.nom}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+      {vu ? (
+        <>
+          <DocumentPreview
+            document={vu.document}
+            reglages={brouillon}
+            format={format}
+            sansActions
+          />
+          <p className="mt-3 text-xs leading-relaxed text-muted-foreground">
+            {vu.mention} Rien n&apos;est enregistré tant que vous n&apos;avez pas cliqué sur
+            Enregistrer.
+          </p>
+        </>
+      ) : (
+        <p className="py-6 text-center text-sm text-muted-foreground">
+          {typeRegle === "achat"
+            ? "Ce document garde sa présentation d'origine : son aperçu se trouve là où on l'imprime, dans le catalogue produits."
+            : "L'aperçu montre une vraie vente de la boutique. Enregistrez-en une et elle apparaîtra ici."}
+        </p>
+      )}
+    </SettingsBlock>
+  );
 
   return (
     <div className="space-y-5">
@@ -370,6 +425,9 @@ export const DocumentsSection: React.FC<DocumentsSectionProps> = ({
           reglages={brouillon}
           onChange={changerTypes}
           onChangePages={changerPages}
+          type={typeRegle}
+          onType={setTypeRegle}
+          apercu={blocApercu}
         />
       </SettingsSection>
 
@@ -431,38 +489,6 @@ export const DocumentsSection: React.FC<DocumentsSectionProps> = ({
             placeholder={settings?.receiptFooter || "Merci et à bientôt !"}
           />
         </SettingsRow>
-      </SettingsSection>
-
-      <SettingsSection
-        title="Aperçu"
-        icon={<FileText className="h-4 w-4" />}
-        description="Votre dernière vente, mise en page avec les réglages ci-dessus. Rien n'est enregistré tant que vous n'avez pas cliqué sur Enregistrer."
-        aside={
-          <div className="flex flex-wrap gap-2">
-            {APERCUS.map((a) => (
-              <button
-                key={a.cle}
-                type="button"
-                aria-pressed={apercu === a.cle}
-                onClick={() => setApercu(a.cle)}
-                className={apercu === a.cle ? "app-btn-primary" : "app-btn-secondary"}
-              >
-                {a.nom}
-              </button>
-            ))}
-          </div>
-        }
-      >
-        <SettingsBlock>
-          {document ? (
-            <DocumentPreview document={document} reglages={brouillon} format={apercu} sansActions />
-          ) : (
-            <p className="py-6 text-center text-sm text-muted-foreground">
-              L&apos;aperçu montre une vraie vente de la boutique. Enregistrez-en une et elle
-              apparaîtra ici.
-            </p>
-          )}
-        </SettingsBlock>
       </SettingsSection>
     </div>
   );

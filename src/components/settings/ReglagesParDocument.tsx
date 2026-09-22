@@ -1,4 +1,4 @@
-import React, { useState } from "react";
+import React from "react";
 import { RotateCcw, SlidersHorizontal } from "lucide-react";
 import { SettingsBlock, SettingsRow, SettingsToggle } from "./primitives";
 import { COULEURS_DOCUMENT, MODELES_DOCUMENT } from "./choixDocuments";
@@ -39,19 +39,42 @@ interface Props {
   reglages: ReglagesDocuments;
   onChange: (types: ReglagesParType) => void;
   onChangePages: (pages: MisesEnPage) => void;
+  /**
+   * Le document réglé, et de quoi en changer.
+   *
+   * Tenu par l'écran parent et non ici : l'aperçu doit montrer le même
+   * document que celui qu'on règle, et c'est le parent qui le
+   * construit.
+   */
+  type: TypeDocumentV3;
+  onType: (type: TypeDocumentV3) => void;
+  /** L'aperçu du document réglé, posé sous le choix du type. */
+  apercu?: React.ReactNode;
 }
 
 /** Un numéro d'exemple, pour voir ce que le préfixe donne vraiment. */
 const EXEMPLE = "V026";
 
-export const ReglagesParDocument: React.FC<Props> = ({ reglages, onChange, onChangePages }) => {
-  const [type, setType] = useState<TypeDocumentV3>("facture");
-
+export const ReglagesParDocument: React.FC<Props> = ({
+  reglages,
+  onChange,
+  onChangePages,
+  type,
+  onType,
+  apercu,
+}) => {
   const defauts = DEFAUTS_TYPE[type];
   const propre = reglages.types[type];
   const personnalise = propre !== undefined;
   const resolu = resoudreType(reglages, type);
 
+  /*
+   * Le bon de commande fournisseur garde l'implémentation de la v1 :
+   * il lit le titre, le préfixe et le mot de fin, mais pas la mise en
+   * page. Lui proposer l'éditeur serait un interrupteur qui n'allume
+   * rien.
+   */
+  const surLeMoteur = type !== "achat";
   const porteUnNumero = defauts.prefixe !== "";
   const aUnModele = type !== "achat";
   const aUneEcheance = type === "facture";
@@ -82,7 +105,7 @@ export const ReglagesParDocument: React.FC<Props> = ({ reglages, onChange, onCha
                 key={t}
                 type="button"
                 aria-pressed={choisi}
-                onClick={() => setType(t)}
+                onClick={() => onType(t)}
                 className={`rounded-xl border px-3 py-2.5 text-left transition-colors ${
                   choisi
                     ? "border-success-border bg-success-soft"
@@ -100,6 +123,11 @@ export const ReglagesParDocument: React.FC<Props> = ({ reglages, onChange, onCha
           })}
         </div>
       </SettingsBlock>
+
+      {/* L'aperçu vient AVANT les réglages, pas après : on regarde le
+          document, puis on tend la main vers le bouton qui le change.
+          Placé en bas, il obligeait à remonter pour voir l'effet. */}
+      {apercu}
 
       {!personnalise ? (
         <SettingsBlock>
@@ -328,11 +356,15 @@ export const ReglagesParDocument: React.FC<Props> = ({ reglages, onChange, onCha
       <SettingsBlock className="border-t border-border pt-4">
         <p className="text-sm font-semibold text-foreground">Mise en page</p>
         <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">
-          Ce qui s&apos;affiche sur {defauts.libelle.toLowerCase()}, sous quel nom, dans quel ordre.
+          {surLeMoteur
+            ? `Ce qui s'affiche sur ${defauts.libelle.toLowerCase()}, sous quel nom, dans quel ordre.`
+            : `${defauts.libelle} garde sa présentation d'origine : il ne passe pas encore par le moteur commun. Le titre, le préfixe et le mot de fin ci-dessus s'y appliquent bien ; la mise en page élément par élément, pas encore. Un éditeur sans effet vaut moins que cette phrase.`}
         </p>
       </SettingsBlock>
 
-      <EditeurMiseEnPage reglages={reglages} type={type} onChange={onChangePages} />
+      {surLeMoteur && (
+        <EditeurMiseEnPage reglages={reglages} type={type} onChange={onChangePages} />
+      )}
     </>
   );
 };

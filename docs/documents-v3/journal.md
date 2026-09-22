@@ -374,3 +374,43 @@ titre, ni leur préfixe. Les huit types disponibles y sont maintenant.
 **Tests.** 442 → 452. Nouveau : `lib/commission.test.ts` (10), dont le
 premier vérifie qu'une vente sans commission ne change rien, et le
 plus important que `prestation + commission === total`.
+
+## Après la mise en ligne — l'aperçu ne montrait qu'une facture
+
+Signalé à l'écran : « l'aperçu direct dans la modification de facture
+dans paramètres documents ne marche pas encore ». Reproduit sur un banc
+qui rend l'écran réel avec une vraie vente.
+
+**Ce qui se passait.** L'aperçu fonctionnait — le titre, les libellés
+et les éléments masqués s'y répercutaient bien — mais il était posé
+tout en bas de la page, APRÈS les réglages du ticket, et il montrait
+toujours une FACTURE. On pouvait donc régler le devis, la proforma ou
+la facture reçue sans jamais rien voir bouger : la feuille affichée
+n'était pas celle qu'on réglait.
+
+**Ce qui a été fait.** L'aperçu suit désormais le document choisi dans
+« Document à régler », et il est posé juste sous ce choix, au-dessus
+des champs qu'on manipule. Le type réglé est tenu par l'écran parent,
+qui construit le document : c'est la seule façon pour que les deux
+parlent de la même pièce.
+
+**D'où viennent les chiffres.** Toujours de la dernière vente réelle de
+la boutique, jamais d'un exemple. Pour les documents qui ne naissent
+pas d'une vente — devis, proforma, bon de commande, facture reçue — ses
+lignes sont REPRÉSENTÉES sous cette forme, et une phrase sous le
+document le dit. C'est un changement de forme, jamais de chiffre :
+un test vérifie que le total est le même sous les six formes.
+
+**La commission ne s'invente pas.** Tant qu'aucune vente n'en porte, son
+aperçu montre une facture ordinaire et l'annonce. En attribuer une
+d'office afficherait une part que la boutique n'a jamais encaissée.
+
+**Un éditeur qui n'allumait rien.** Le bon de commande fournisseur garde
+l'implémentation de la v1 : il lit le titre, le préfixe et le mot de
+fin, mais pas la mise en page. On lui proposait pourtant l'éditeur
+complet, dont aucun réglage n'aurait eu d'effet. Il est retiré pour ce
+seul type, avec la phrase qui explique pourquoi.
+
+**Tests.** 452 → 469. Nouveau : `lib/apercuDesReglages.test.ts` (16),
+mis en défaut volontairement avant d'être gardé — en faisant ignorer le
+type au constructeur, 14 des 16 tombent.
