@@ -2,10 +2,13 @@ import React from "react";
 import { PanelLeftClose, PanelLeftOpen } from "lucide-react";
 import type { ActiveTab } from "../types";
 import type { NavGroup } from "./navigation";
+import { BadgeNav } from "./shared/BadgeNav";
 
 interface SidebarProps {
   groups: NavGroup[];
   activeTab: ActiveTab;
+  /** Ce qui réclame l'attention, par onglet. Zéro ou absent = rien. */
+  badges?: Partial<Record<ActiveTab, number>>;
   onTabClick: (id: ActiveTab) => void;
   collapsed: boolean;
   onToggleCollapsed: () => void;
@@ -29,6 +32,7 @@ interface SidebarProps {
 export const Sidebar: React.FC<SidebarProps> = ({
   groups,
   activeTab,
+  badges,
   onTabClick,
   collapsed,
   onToggleCollapsed,
@@ -64,6 +68,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
           <div className="space-y-1">
             {group.items.map((item) => {
               const isActive = activeTab === item.id;
+              const badge = badges?.[item.id] ?? 0;
               return (
                 <button
                   key={item.id}
@@ -85,8 +90,16 @@ export const Sidebar: React.FC<SidebarProps> = ({
                   {isActive && (
                     <span className="absolute -left-2 top-1/2 h-5 w-0.5 -translate-y-1/2 rounded-full bg-primary" />
                   )}
-                  <span className={isActive ? "text-primary" : "opacity-80"}>{item.icon}</span>
+                  <span className={`relative ${isActive ? "text-primary" : "opacity-80"}`}>
+                    {item.icon}
+                    {collapsed && badge > 0 && (
+                      <span className="absolute -right-1.5 -top-1.5 h-2 w-2 rounded-full bg-red-500" />
+                    )}
+                  </span>
                   {!collapsed && <span className="truncate">{item.label}</span>}
+                  {!collapsed && badge > 0 && (
+                    <BadgeNav compte={badge} libelle={`${item.label} en retard`} />
+                  )}
                 </button>
               );
             })}

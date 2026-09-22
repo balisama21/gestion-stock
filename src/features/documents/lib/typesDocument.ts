@@ -34,6 +34,7 @@ import type { ModeleDocument } from "./reglages";
 
 export type TypeDocumentV3 =
   | "facture"
+  | "avoir"
   | "proforma"
   | "devis"
   | "recu"
@@ -121,12 +122,27 @@ const CONDITIONS_COMMANDE =
 
 const CONDITIONS_ACHAT = "Prix indicatifs, d'après le dernier achat connu.";
 
+/**
+ * Un avoir dit ce qu'il annule, et sur quelle pièce. C'est ce lien qui
+ * en fait une pièce comptable plutôt qu'une note : sans le numéro de la
+ * facture d'origine, personne ne peut refaire l'addition.
+ */
+const CONDITIONS_AVOIR =
+  "Le présent avoir annule ou corrige la facture dont le numéro figure ci-dessus. " +
+  "Il ne vaut pas remboursement : le règlement, s'il a lieu, fait l'objet d'une opération distincte.";
+
 export const DEFAUTS_TYPE: Record<TypeDocumentV3, DefautsType> = {
   facture: {
     libelle: "Facture",
     titre: "FACTURE",
     prefixe: "FAC-",
     conditions: CONDITIONS_VENTE,
+  },
+  avoir: {
+    libelle: "Avoir",
+    titre: "AVOIR",
+    prefixe: "AV-",
+    conditions: CONDITIONS_AVOIR,
   },
   proforma: {
     libelle: "Facture proforma",
@@ -192,6 +208,7 @@ export const DEFAUTS_TYPE: Record<TypeDocumentV3, DefautsType> = {
  */
 export const TYPES_DISPONIBLES: TypeDocumentV3[] = [
   "facture",
+  "avoir",
   "commission",
   "proforma",
   "devis",

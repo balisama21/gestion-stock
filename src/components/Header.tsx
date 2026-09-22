@@ -92,6 +92,8 @@ interface HeaderProps {
    */
   sidebarCollapsed: boolean;
   onToggleSidebar: () => void;
+  /** Ce qui réclame l'attention, par onglet du menu. */
+  badgesNav?: Partial<Record<ActiveTab, number>>;
 }
 
 /**
@@ -137,6 +139,7 @@ export const Header: React.FC<HeaderProps> = ({
   setTheme,
   sidebarCollapsed,
   onToggleSidebar,
+  badgesNav,
 }) => {
   const sombre = theme === "dark";
 
@@ -487,6 +490,7 @@ export const Header: React.FC<HeaderProps> = ({
       <Sidebar
         groups={navGroups}
         activeTab={activeTab}
+        badges={badgesNav}
         onTabClick={handleTabClick}
         collapsed={sidebarCollapsed}
         onToggleCollapsed={onToggleSidebar}
@@ -595,6 +599,7 @@ export const Header: React.FC<HeaderProps> = ({
         <MenuPlus
           groups={navGroups}
           activeTab={activeTab}
+          badges={badgesNav}
           onTabClick={handleTabClick}
           onFermer={() => setMobileMenuOpen(false)}
         />

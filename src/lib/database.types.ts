@@ -209,6 +209,127 @@ export type Database = {
           },
         ]
       }
+      avoir_items: {
+        Row: {
+          avoir_id: string
+          created_at: string
+          designation: string
+          id: string
+          ordre: number
+          prix_unitaire: number
+          product_id: string | null
+          quantite: number
+          store_id: string
+          total: number | null
+        }
+        Insert: {
+          avoir_id: string
+          created_at?: string
+          designation: string
+          id?: string
+          ordre?: number
+          prix_unitaire?: number
+          product_id?: string | null
+          quantite?: number
+          store_id: string
+          total?: number | null
+        }
+        Update: {
+          avoir_id?: string
+          created_at?: string
+          designation?: string
+          id?: string
+          ordre?: number
+          prix_unitaire?: number
+          product_id?: string | null
+          quantite?: number
+          store_id?: string
+          total?: number | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "avoir_items_avoir_id_fkey"
+            columns: ["avoir_id"]
+            isOneToOne: false
+            referencedRelation: "avoirs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "avoir_items_product_id_fkey"
+            columns: ["product_id"]
+            isOneToOne: false
+            referencedRelation: "products"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "avoir_items_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      avoirs: {
+        Row: {
+          client_id: string | null
+          client_nom: string
+          created_at: string
+          created_by: string | null
+          date: string
+          facture_numero: string | null
+          id: string
+          montant: number
+          motif: string
+          numero: string | null
+          store_id: string
+          ticket_id: string | null
+        }
+        Insert: {
+          client_id?: string | null
+          client_nom?: string
+          created_at?: string
+          created_by?: string | null
+          date?: string
+          facture_numero?: string | null
+          id?: string
+          montant?: number
+          motif?: string
+          numero?: string | null
+          store_id: string
+          ticket_id?: string | null
+        }
+        Update: {
+          client_id?: string | null
+          client_nom?: string
+          created_at?: string
+          created_by?: string | null
+          date?: string
+          facture_numero?: string | null
+          id?: string
+          montant?: number
+          motif?: string
+          numero?: string | null
+          store_id?: string
+          ticket_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "avoirs_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "avoirs_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       capital_apports: {
         Row: {
           created_at: string
@@ -648,6 +769,50 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "document_emissions_store_id_fkey"
+            columns: ["store_id"]
+            isOneToOne: false
+            referencedRelation: "stores"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      document_envois: {
+        Row: {
+          canal: string
+          entite: string
+          entite_id: string
+          envoye_le: string
+          envoye_par: string | null
+          id: string
+          relance: boolean
+          store_id: string
+          type: string
+        }
+        Insert: {
+          canal?: string
+          entite: string
+          entite_id: string
+          envoye_le?: string
+          envoye_par?: string | null
+          id?: string
+          relance?: boolean
+          store_id: string
+          type: string
+        }
+        Update: {
+          canal?: string
+          entite?: string
+          entite_id?: string
+          envoye_le?: string
+          envoye_par?: string | null
+          id?: string
+          relance?: boolean
+          store_id?: string
+          type?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "document_envois_store_id_fkey"
             columns: ["store_id"]
             isOneToOne: false
             referencedRelation: "stores"
@@ -3054,6 +3219,20 @@ export type Database = {
         }
         Returns: Json
       }
+      creer_avoir: {
+        Args: {
+          p_client_id: string
+          p_client_nom: string
+          p_facture_numero: string
+          p_lignes: Json
+          p_montant: number
+          p_motif: string
+          p_store_id: string
+          p_ticket_id: string
+        }
+        Returns: Json
+      }
+      date_de_la_boutique: { Args: never; Returns: string }
       delete_order: { Args: { p_order_id: string }; Returns: undefined }
       delete_own_account: { Args: never; Returns: undefined }
       delete_products: { Args: { p_product_ids: string[] }; Returns: number }

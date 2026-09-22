@@ -296,6 +296,30 @@ export const MODULE_DEFINITIONS: ModuleDef[] = [
     ],
   },
   {
+    /**
+     * Facturation. La portée est la pièce maîtresse : un vendeur ne voit
+     * que les documents nés de son propre travail, un comptable voit
+     * tout. Le module ne donne accès à aucune donnée que Ventes, Devis
+     * et Achats ne laissaient déjà passer — il les range en pièces.
+     */
+    key: "facturation",
+    label: "Facturation",
+    hasScope: true,
+    actions: [
+      { key: "view", label: "Voir les documents" },
+      { key: "create", label: "Établir un document" },
+      { key: "send", label: "Envoyer et relancer" },
+      { key: "payment", label: "Enregistrer un paiement" },
+      { key: "credit_note", label: "Établir un avoir" },
+      { key: "export", label: "Exporter" },
+    ],
+    fields: [
+      { key: "montant", label: "Montants" },
+      { key: "reste", label: "Reste à payer" },
+      { key: "achats", label: "Factures d'achat fournisseur" },
+    ],
+  },
+  {
     key: "paiements",
     label: "Paiements à recevoir",
     hasScope: true,
@@ -647,6 +671,11 @@ const MANAGER_TEMPLATE: PermissionsMap = Object.fromEntries([
     actions: ["create", "edit", "cancel"],
     fields: getModuleDef("ventes")!.fields.map((f) => f.key),
   }),
+  module("facturation", true, {
+    scope: "all",
+    actions: ["view", "create", "send", "payment", "credit_note", "export"],
+    fields: getModuleDef("facturation")!.fields.map((f) => f.key),
+  }),
   module("paiements", true, {
     scope: "all",
     actions: ["add", "edit"],
@@ -712,6 +741,11 @@ const COMPTABLE_TEMPLATE: PermissionsMap = Object.fromEntries([
     actions: [],
     fields: getModuleDef("ventes")!.fields.map((f) => f.key),
   }),
+  module("facturation", true, {
+    scope: "all",
+    actions: ["view", "send", "payment", "export"],
+    fields: getModuleDef("facturation")!.fields.map((f) => f.key),
+  }),
   module("paiements", true, {
     scope: "all",
     actions: ["add", "edit", "cancel"],
@@ -774,6 +808,11 @@ const VENDEUR_TEMPLATE: PermissionsMap = Object.fromEntries([
     fields: ["client", "produits", "montant", "statut"],
   }),
   module("ventes", true, { scope: "own", actions: ["create"], fields: ["montant", "paiement"] }),
+  module("facturation", true, {
+    scope: "own",
+    actions: ["view", "create", "send", "payment"],
+    fields: ["montant", "reste"],
+  }),
   module("paiements", true, { scope: "own", actions: ["add"], fields: ["soldes"] }),
   module("achats", false),
   module("fournisseurs", false),
@@ -811,6 +850,7 @@ const GESTIONNAIRE_STOCK_TEMPLATE: PermissionsMap = Object.fromEntries([
     fields: ["produits", "statut", "livraison"],
   }),
   module("ventes", false),
+  module("facturation", false),
   module("paiements", false),
   module("achats", true, {
     actions: ["view", "create", "edit"],

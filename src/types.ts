@@ -212,6 +212,7 @@ export type ActiveTab =
   | "devis"
   | "livraisons"
   | "ventes"
+  | "facturation"
   | "vendeurs"
   | "salaires"
   | "depenses"

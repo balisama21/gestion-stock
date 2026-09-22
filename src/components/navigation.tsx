@@ -19,6 +19,7 @@ import {
   ListChecks,
   CalendarRange,
   History,
+  ReceiptText,
 } from "lucide-react";
 import type { ActiveTab } from "../types";
 import { libelleModule, moduleMasque, type Personnalisation } from "../lib/personnalisation";
@@ -80,6 +81,7 @@ export const NAV_GROUPS: NavGroup[] = [
     title: "Ventes & clients",
     items: [
       { id: "ventes", label: "Ventes", icon: <DollarSign className="w-4 h-4" /> },
+      { id: "facturation", label: "Facturation", icon: <ReceiptText className="w-4 h-4" /> },
       { id: "clients", label: "Clients", icon: <UserIcon className="w-4 h-4" /> },
       { id: "paiements", label: "Paiements à recevoir", icon: <CreditCard className="w-4 h-4" /> },
       { id: "devis", label: "Devis", icon: <FileText className="w-4 h-4" /> },
@@ -125,7 +127,7 @@ export const NAV_GROUPS: NavGroup[] = [
  */
 const UNIVERS: ActiveTab[][] = [
   ["vue_equipe", "taches", "agenda", "rappels"],
-  ["ventes", "devis", "commandes", "livraisons"],
+  ["ventes", "facturation", "devis", "commandes", "livraisons"],
   ["produits", "achats", "fournisseurs", "prestataires"],
   ["clients", "paiements"],
   ["capital", "depenses", "rapports"],

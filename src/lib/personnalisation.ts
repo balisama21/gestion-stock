@@ -66,6 +66,7 @@ export const MODULES_PERSONNALISABLES: { cle: string; libelleParDefaut: string }
   { cle: "devis", libelleParDefaut: "Devis" },
   { cle: "livraisons", libelleParDefaut: "Livraisons" },
   { cle: "ventes", libelleParDefaut: "Ventes" },
+  { cle: "facturation", libelleParDefaut: "Facturation" },
   { cle: "clients", libelleParDefaut: "Clients" },
   { cle: "paiements", libelleParDefaut: "Paiements à recevoir" },
   { cle: "produits", libelleParDefaut: "Produits" },

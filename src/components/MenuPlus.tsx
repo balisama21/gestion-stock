@@ -1,10 +1,12 @@
 import React from "react";
 import type { ActiveTab } from "../types";
 import type { NavGroup } from "./navigation";
+import { BadgeNav } from "./shared/BadgeNav";
 
 interface MenuPlusProps {
   groups: NavGroup[];
   activeTab: ActiveTab;
+  badges?: Partial<Record<ActiveTab, number>>;
   onTabClick: (id: ActiveTab) => void;
   onFermer: () => void;
 }
@@ -25,7 +27,13 @@ interface MenuPlusProps {
  * et un texte plus contrasté, jamais un aplat de couleur. Quinze entrées
  * dont une surlignée en plein feraient une page bariolée.
  */
-export const MenuPlus: React.FC<MenuPlusProps> = ({ groups, activeTab, onTabClick, onFermer }) => (
+export const MenuPlus: React.FC<MenuPlusProps> = ({
+  groups,
+  activeTab,
+  badges,
+  onTabClick,
+  onFermer,
+}) => (
   <>
     <div
       className="lg:hidden fixed inset-0 z-40 bg-background/70 backdrop-blur-sm"
@@ -41,6 +49,7 @@ export const MenuPlus: React.FC<MenuPlusProps> = ({ groups, activeTab, onTabClic
             </div>
             {group.items.map((tab) => {
               const isActive = activeTab === tab.id;
+              const badge = badges?.[tab.id] ?? 0;
               return (
                 <button
                   key={tab.id}
@@ -55,6 +64,7 @@ export const MenuPlus: React.FC<MenuPlusProps> = ({ groups, activeTab, onTabClic
                   )}
                   <span className={isActive ? "text-primary" : "opacity-80"}>{tab.icon}</span>
                   <span className="truncate">{tab.label}</span>
+                  {badge > 0 && <BadgeNav compte={badge} libelle={`${tab.label} en retard`} />}
                 </button>
               );
             })}
