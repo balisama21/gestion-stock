@@ -86,7 +86,7 @@ const Preview: React.FC<{ settings: StoreSettings; prefs: InvoicePrefs }> = ({
           illisibles — et cet apercu ne servirait a rien s'il montrait
           autre chose que ce qui sortira de l'imprimante. */}
       <div>
-        <p className="font-semibold">Kapa mena</p>
+        <p className="font-semibold">Cahier mena</p>
         <div className="flex justify-between gap-3 text-slate-600">
           <span>
             {quantiteEnMots(3)} × {(sousTotal / 3).toLocaleString("fr-FR")} {devise}

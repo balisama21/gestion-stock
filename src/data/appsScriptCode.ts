@@ -195,7 +195,7 @@ function detecterNouveauProduitAchat() {
 }
 
 /**
- * Formate les désignations avec indices (kapa₁₀₀₀ vs kapa[Fournisseur B])
+ * Formate les désignations avec indices (cahier₁₀₀₀ vs cahier[Fournisseur B])
  */
 function mettreAJourStylingVariantes(sheetProduits) {
   const data = sheetProduits.getDataRange().getValues();

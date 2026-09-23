@@ -3,9 +3,9 @@ export type LocaleSetting = "FR" | "US";
 export interface Product {
   id: string; // UUID interne (relations, clé primaire)
   numero: string; // ID court d'affichage, e.g. P001, P002
-  designation: string; // Base name e.g. "kapa"
+  designation: string; // Base name e.g. "cahier"
   variantSuffix: string; // Subscript price e.g. "₁₀₀₀" or "[Fournisseur A]"
-  displayName: string; // e.g. "kapa₁₀₀₀"
+  displayName: string; // e.g. "cahier₁₀₀₀"
   prixAchat: number;
   prixVenteDefaut: number; // Default selling price
   fournisseur: string;

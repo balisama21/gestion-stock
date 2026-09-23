@@ -110,7 +110,7 @@ export function convertFormulaLocale(formula: string, locale: LocaleSetting): st
 
 /**
  * Retire un éventuel indice en chiffres subscript présent en fin de chaîne
- * (« Kapa₂₀₀₀ » → « Kapa »).
+ * (« Cahier₂₀₀₀ » → « Cahier »).
  *
  * Ce n'est pas une précaution théorique : en base, `sales.designation` vaut
  * littéralement « kiraro₅₀₀₀ » ou « VERA₁₀₀₀ ». L'indice a été gravé dans le

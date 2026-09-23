@@ -767,7 +767,7 @@ export const ProduitsView: React.FC<ProduitsViewProps> = ({
               required
               value={designation}
               onChange={(e) => setDesignation(e.target.value)}
-              placeholder="ex : kapa"
+              placeholder="ex : cahier"
               className="app-field"
             />
           </div>
