@@ -1120,6 +1120,8 @@ const BLOC_DE: Partial<Record<CleCarte, string>> = {
   resultat: "finance",
   paiements: "finance",
   fournisseurs: "finance",
+  vendeurs: "equipe",
+  commandes: "equipe",
 };
 
 /** Cartes qui prennent toute la largeur de leur bloc. */
