@@ -1,3 +1,4 @@
+import { conversionActive, deviseAffichee, versAffichage } from "../../../lib/affichageDevise";
 /**
  * LE MONTANT ÉCRIT EN TOUTES LETTRES
  *
@@ -208,6 +209,13 @@ export function nombreEnLettres(valeur: number): string | null {
  * tronquée.
  */
 export function montantEnLettres(valeur: number, devise = "ariary"): string | null {
+  if (conversionActive()) {
+    // Des centimes ne s'écrivent pas en toutes lettres ici : mieux vaut rien qu'un montant faux.
+    const a = deviseAffichee();
+    if (a.decimales > 0) return null;
+    valeur = Math.round(versAffichage(valeur));
+    devise = (a.nom ?? a.code).toLowerCase();
+  }
   const mots = nombreEnLettres(valeur);
   if (mots === null) return null;
 

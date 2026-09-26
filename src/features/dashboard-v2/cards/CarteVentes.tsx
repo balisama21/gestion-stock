@@ -1,7 +1,8 @@
 import React, { useMemo, useState } from "react";
 import { Card, CardHeader } from "../components/Card";
 import { Trend } from "../components/Trend";
-import { dateLocale, jourEtMois, montant, nombre } from "../lib/format";
+import { dateLocale, jourEtMois, montant, nombre, montantMasque } from "../lib/format";
+import { versAffichage } from "../../../lib/affichageDevise";
 import type { ChiffresVentes } from "../lib/chiffres";
 import type { Periode } from "../hooks/useDashboardPeriod";
 import { decalerJours } from "../hooks/useDashboardPeriod";
@@ -41,7 +42,8 @@ function palier(max: number): number {
 }
 
 /** « 120 k », « 1,2 M » — les graduations, dites court. */
-function court(v: number): string {
+function court(brut: number): string {
+  const v = versAffichage(brut);
   if (v === 0) return "0";
   if (v >= 1_000_000) return `${(v / 1_000_000).toFixed(1).replace(".", ",")} M`;
   if (v >= 1000) return `${Math.round(v / 1000)} k`;
@@ -129,7 +131,7 @@ export const CarteVentes: React.FC<{
       />
 
       <div className="kpi-row">
-        <span className="v num">{montantVisible ? montant(ventes.total) : "••• Ar"}</span>
+        <span className="v num">{montantVisible ? montant(ventes.total) : montantMasque()}</span>
         <Trend data={{ valeur: ventes.total, reference: ventes.totalPrecedent }} />
         <span className="c">
           vs {periode.libellePrecedent} ({montantVisible ? montant(ventes.totalPrecedent) : "•••"})

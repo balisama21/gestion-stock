@@ -10,6 +10,7 @@ import {
 } from "../../lib/prixAuto";
 import { formatCurrency } from "../../utils/formulas";
 import { Equivalents } from "../../lib/contexteDevises";
+import { symboleDeSaisie } from "../../lib/affichageDevise";
 
 interface ChampPrixDeVenteProps {
   prixAchat: number;
@@ -86,7 +87,7 @@ export const ChampPrixDeVente: React.FC<ChampPrixDeVenteProps> = ({
   return (
     <div>
       <label htmlFor={id} className="mb-1.5 block text-sm font-medium text-foreground">
-        Prix de vente (Ar)
+        Prix de vente ({symboleDeSaisie()})
       </label>
       <input
         id={id}
@@ -102,7 +103,7 @@ export const ChampPrixDeVente: React.FC<ChampPrixDeVenteProps> = ({
         }}
         className="app-field font-mono"
       />
-      <Equivalents montant={prixVente} className="mt-1" />
+      <Equivalents montant={prixVente} className="mt-1" saisie />
 
       {reglages.actif && (
         <div className="mt-2 space-y-2">

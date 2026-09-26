@@ -29,6 +29,12 @@ export const PARAMETRES = {
     type: "liste",
     defaut: [] as string[],
   },
+  devise_affichage: {
+    libelle: "Afficher les montants en",
+    aide: "Tous les montants de l’application et des documents sont convertis au taux du jour. Ils restent enregistrés dans la devise de tenue des comptes.",
+    type: "texte",
+    defaut: "",
+  },
   devises_documents: {
     libelle: "Sur les documents",
     aide: "Par type de document, les devises dont l'équivalent s'imprime sous chaque prix et sous le total.",

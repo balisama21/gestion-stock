@@ -1,4 +1,5 @@
 import type { LocaleSetting } from "../../../types";
+import { conversionActive, deviseAffichee, versAffichage } from "../../../lib/affichageDevise";
 
 /**
  * MONTANTS, DATES ET QUANTITÉS, TELS QU'ILS S'IMPRIMENT
@@ -39,9 +40,23 @@ export function nombre(valeur: number): string {
  * toutes les boutiques aujourd'hui mais n'a aucune raison de le rester.
  */
 export function montant(valeur: number, devise: string | null | undefined = "Ar"): string {
+  // Une devise d'affichage choisie remplace celle de la boutique, montant converti.
+  if (conversionActive()) return `${argent(valeur)}\u00a0${deviseAffichee().symbole}`;
   const symbole = (devise ?? "").trim() || "Ar";
   return `${nombre(valeur)}\u00a0${symbole}`;
 }
+
+/** Un montant sans symbole, dans la devise d'affichage (ticket, tableau de bord). */
+export function argent(valeur: number): string {
+  if (!Number.isFinite(valeur)) return "\u2014";
+  const dec = conversionActive() ? deviseAffichee().decimales : 0;
+  return new Intl.NumberFormat("fr-FR", { minimumFractionDigits: dec, maximumFractionDigits: dec })
+    .format(versAffichage(valeur))
+    .replace(/\u202f/g, "\u00a0");
+}
+
+export const argentOuTiret = (valeur: number | null | undefined): string =>
+  valeur === null || valeur === undefined ? "\u2014" : argent(valeur);
 
 /**
  * Un montant, ou un tiret quand la valeur est inconnue.

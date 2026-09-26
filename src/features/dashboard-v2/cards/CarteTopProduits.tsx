@@ -1,7 +1,7 @@
 import React from "react";
 import { Card, CardHeader } from "../components/Card";
 import { EtatVide } from "../components/States";
-import { montant, pourcent } from "../lib/format";
+import { montant, pourcent, montantMasque } from "../lib/format";
 import { quantiteEnMots } from "../../../utils/formulas";
 import type { ProduitVendu } from "../lib/chiffres";
 import type { Periode } from "../hooks/useDashboardPeriod";
@@ -75,7 +75,7 @@ export const CarteTopProduits: React.FC<{
             >
               <span className="rk num">{i + 1}</span>
               <span className="nm">{p.nom}</span>
-              <span className="num am">{visible ? montant(p.montant) : "••• Ar"}</span>
+              <span className="num am">{visible ? montant(p.montant) : montantMasque()}</span>
               <span className="bar">
                 <i style={{ width: `${tete > 0 ? (p.montant / tete) * 100 : 0}%` }} />
               </span>
@@ -91,7 +91,7 @@ export const CarteTopProduits: React.FC<{
         <div className="stock-foot">
           <div>
             <small>Autres produits</small>
-            <b className="num">{visible ? montant(autres) : "••• Ar"}</b>
+            <b className="num">{visible ? montant(autres) : montantMasque()}</b>
           </div>
           {onToutes && (
             <button className="link" type="button" onClick={onToutes}>

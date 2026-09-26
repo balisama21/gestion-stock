@@ -1,7 +1,7 @@
 import React from "react";
 import { Card, CardHeader } from "../components/Card";
 import { EtatVide } from "../components/States";
-import { montant, nombre } from "../lib/format";
+import { montant, nombre, montantMasque } from "../lib/format";
 import type { ChiffresClients } from "../lib/chiffres";
 import { teinteDe } from "../../../lib/teintes";
 
@@ -77,7 +77,7 @@ export const CarteClients: React.FC<{
                 <div className="info">
                   <b>{c.nom}</b>
                   <small>
-                    Doit {visible ? montant(c.du) : "••• Ar"} · depuis{" "}
+                    Doit {visible ? montant(c.du) : montantMasque()} · depuis{" "}
                     {c.depuis <= 1 ? "1 jour" : `${nombre(c.depuis)} jours`}
                   </small>
                 </div>

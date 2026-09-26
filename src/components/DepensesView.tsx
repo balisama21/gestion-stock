@@ -34,6 +34,7 @@ import { reprendreApresDeploiement, messageDErreurExport } from "../lib/chunkRec
 import { PAPER_FORMATS, getPaperFormat, type PaperFormatId } from "../lib/paperFormats";
 import { dateDuJour } from "../lib/dates";
 import { useRechercheInitiale } from "../lib/cibleRecherche";
+import { symboleDeSaisie } from "../lib/affichageDevise";
 
 interface DepensesViewProps {
   expenses: Expense[];
@@ -950,7 +951,9 @@ export const DepensesView: React.FC<DepensesViewProps> = ({
           )}
 
           <div>
-            <label className="mb-1.5 block text-sm font-medium text-foreground">Montant (Ar)</label>
+            <label className="mb-1.5 block text-sm font-medium text-foreground">
+              Montant ({symboleDeSaisie()})
+            </label>
             <input
               type="number"
               required
@@ -1054,7 +1057,7 @@ export const DepensesView: React.FC<DepensesViewProps> = ({
 
             <div>
               <label className="mb-1.5 block text-sm font-medium text-foreground">
-                Montant (Ar)
+                Montant ({symboleDeSaisie()})
               </label>
               <input
                 type="number"

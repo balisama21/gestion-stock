@@ -1,4 +1,6 @@
 import { formatCurrency } from "../../../utils/formulas";
+import { argent as argentConverti } from "../../documents/lib/format";
+import { deviseAffichee } from "../../../lib/affichageDevise";
 
 /**
  * MISE EN FORME DES NOMBRES ET DES DATES DU TABLEAU DE BORD
@@ -49,6 +51,9 @@ export function montantEnDeux(valeur: number | string): {
 }
 
 /** « 344 800 », sans l'unité — pour les colonnes qui la portent déjà. */
+/** Un montant sans symbole, dans la devise d'affichage. */
+export const argent = (n: number): string => argentConverti(Math.round(n));
+
 export function nombre(n: number): string {
   return new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 0 })
     .format(Math.round(n))
@@ -158,3 +163,6 @@ export function intervalleCourt(debut: string, fin: string): string {
 
   return `${gauche} – ${droite}`;
 }
+
+/** Un montant masqué par les droits, avec le symbole de la devise affichée. */
+export const montantMasque = (): string => `••• ${deviseAffichee().symbole}`;

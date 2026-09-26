@@ -33,7 +33,7 @@ import { lireParametre } from "./lib/parametres";
 import { useDevises } from "./hooks/useDevises";
 import { ficheDevise } from "./lib/devises";
 import { FournisseurDevises, type DeviseAffichee } from "./lib/contexteDevises";
-import { definirDevisePrincipale } from "./utils/formulas";
+import { definirDevises } from "./lib/affichageDevise";
 import { useEvenements } from "./hooks/useEvenements";
 import { useRappels } from "./hooks/useRappels";
 import { echeancesMetier } from "./lib/evenements";
@@ -223,13 +223,16 @@ function AppInner() {
     estLivreur ? null : (workspace.activeStore?.id ?? null),
     user?.id ?? null,
   );
-  // Les montants de l'application portent le symbole de la devise principale.
-  definirDevisePrincipale(
-    devisesBoutique.fichePrincipale?.symbole ?? "Ar",
-    devisesBoutique.fichePrincipale?.decimales ?? 0,
-  );
   const valeurDevises = useMemo(() => {
+    const fp = devisesBoutique.fichePrincipale;
+    const tenue: DeviseAffichee = {
+      code: devisesBoutique.principale,
+      symbole: fp?.symbole ?? "Ar",
+      decimales: fp?.decimales ?? 0,
+      taux: 1,
+    };
     const versAffichee = (code: string): DeviseAffichee | null => {
+      if (code === tenue.code) return tenue;
       const d = devisesBoutique.devises.find((x) => x.code === code && x.actif && !x.principale);
       const f = ficheDevise(devisesBoutique.catalogue, code);
       return d && f
@@ -237,14 +240,46 @@ function AppInner() {
         : null;
     };
     const liste = (codes: string[]) =>
-      codes.map(versAffichee).filter((x): x is DeviseAffichee => x !== null);
+      codes
+        .filter((c, i, t) => t.indexOf(c) === i)
+        .map(versAffichee)
+        .filter((x): x is DeviseAffichee => x !== null);
+    const codeAffichage = lireParametre(parametresBoutique.valeurs, "devise_affichage");
+    const affichage = codeAffichage ? versAffichee(codeAffichage) : null;
+    const conversion = affichage && affichage.code !== tenue.code ? affichage : null;
+    const codeVu = conversion?.code ?? tenue.code;
+    // Sous un montant affiché : les autres devises, dont celle de tenue si l'on convertit.
+    const autour = (codes: string[]) =>
+      liste([...codes, ...(conversion ? [tenue.code] : [])].filter((c) => c !== codeVu));
+    // Sous un champ de saisie, qui reste en devise de tenue : celle d'affichage d'abord.
+    const sousSaisie = (codes: string[]) =>
+      liste([...(conversion ? [conversion.code] : []), ...codes].filter((c) => c !== tenue.code));
     const ecran = lireParametre(parametresBoutique.valeurs, "devises_affichees");
     const documents = lireParametre(parametresBoutique.valeurs, "devises_documents");
     return {
-      affichees: liste(ecran),
-      pourDocument: (type: string) => liste(documents[type] ?? []),
+      tenue,
+      conversion,
+      nomConversion: conversion
+        ? (ficheDevise(devisesBoutique.catalogue, conversion.code)?.nom ?? conversion.code)
+        : "",
+      affichees: autour(ecran),
+      saisie: sousSaisie(ecran),
+      pourDocument: (type: string) => autour(documents[type] ?? []),
     };
-  }, [devisesBoutique.devises, devisesBoutique.catalogue, parametresBoutique.valeurs]);
+  }, [
+    devisesBoutique.devises,
+    devisesBoutique.catalogue,
+    devisesBoutique.principale,
+    devisesBoutique.fichePrincipale,
+    parametresBoutique.valeurs,
+  ]);
+  // Posé pendant le rendu : les écrans enfants formatent leurs montants dans la foulée.
+  definirDevises(
+    valeurDevises.tenue,
+    valeurDevises.conversion
+      ? { ...valeurDevises.conversion, nom: valeurDevises.nomConversion }
+      : null,
+  );
   const notesDeFrais = useNotesDeFrais(
     estLivreur ? null : (workspace.activeStore?.id ?? null),
     user?.id ?? null,
@@ -1419,7 +1454,7 @@ function AppInner() {
       triggerActivityAlert(
         "Acheteur",
         "achat",
-        `Nouvel achat : ${prodDisplayName} (Total: ${totalAchat} Ar)`,
+        `Nouvel achat : ${prodDisplayName} (Total: ${formatCurrency(totalAchat)})`,
       );
     }
     return res;
@@ -1607,7 +1642,7 @@ function AppInner() {
       alert("Erreur lors de l'ajout de la dépense : " + res.error);
       return;
     }
-    triggerActivityAlert(newExp.vendeur, "depense", `Dépense : ${newExp.montant} Ar`);
+    triggerActivityAlert(newExp.vendeur, "depense", `Dépense : ${formatCurrency(newExp.montant)}`);
   };
 
   const handleEditExpense = async (updatedExpense: Expense) => {

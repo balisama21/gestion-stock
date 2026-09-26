@@ -15,6 +15,8 @@ export function useDevises(storeId: string | null, userId: string | null) {
   const [devises, setDevises] = useState<DeviseBoutique[]>([]);
   const [historique, setHistorique] = useState<HistoriqueTaux[]>([]);
   const [chargement, setChargement] = useState(true);
+  /** Vrai dès que la boutique a des montants : sa devise de tenue ne change plus. */
+  const [verrouillee, setVerrouillee] = useState(false);
 
   const charger = useCallback(async () => {
     if (!storeId) {
@@ -22,7 +24,7 @@ export function useDevises(storeId: string | null, userId: string | null) {
       setChargement(false);
       return;
     }
-    const [cat, dev, hist] = await Promise.all([
+    const [cat, dev, hist, verrou] = await Promise.all([
       supabase.from("devises").select("*").order("region").order("code"),
       supabase.from("devises_boutique").select("*").eq("store_id", storeId).order("code"),
       supabase
@@ -31,7 +33,9 @@ export function useDevises(storeId: string | null, userId: string | null) {
         .eq("store_id", storeId)
         .order("created_at", { ascending: false })
         .limit(100),
+      supabase.rpc("boutique_a_des_montants", { p_store_id: storeId }),
     ]);
+    setVerrouillee(Boolean(verrou.data));
     setCatalogue((cat.data ?? []).filter((d) => !d.store_id || d.store_id === storeId));
     setDevises(dev.data ?? []);
     setHistorique(hist.data ?? []);
@@ -168,6 +172,7 @@ export function useDevises(storeId: string | null, userId: string | null) {
     principale,
     fichePrincipale: ficheDevise(catalogue, principale),
     chargement,
+    verrouillee,
     definirPrincipale,
     ajouter,
     modifier,

@@ -31,7 +31,7 @@ export const ReglagesMetierSection: React.FC<Props> = ({
   return (
     <>
       <CommissionBloc parametres={parametres} onSave={onSaveParametre} />
-      <DevisesBloc d={devises} />
+      <DevisesBloc d={devises} parametres={parametres} onSave={onSaveParametre} />
       <AffichageBloc d={devises} parametres={parametres} onSave={onSaveParametre} />
     </>
   );
@@ -112,7 +112,16 @@ const CommissionBloc: React.FC<{
   );
 };
 
-const DevisesBloc: React.FC<{ d: DevisesBoutique }> = ({ d }) => {
+const DevisesBloc: React.FC<{
+  d: DevisesBoutique;
+  parametres: ValeursParametres;
+  onSave: Props["onSaveParametre"];
+}> = ({ d, parametres, onSave }) => {
+  const affichage = lireParametre(parametres, "devise_affichage") || d.principale;
+  const choixAffichage = [
+    d.principale,
+    ...d.devises.filter((x) => x.actif && !x.principale).map((x) => x.code),
+  ];
   const [changerOuvert, setChangerOuvert] = useState(false);
   const [retour, setRetour] = useState<Retour>(null);
   const [actualisation, setActualisation] = useState(false);
@@ -186,8 +195,12 @@ const DevisesBloc: React.FC<{ d: DevisesBoutique }> = ({ d }) => {
       }
     >
       <SettingsRow
-        label="Devise principale"
-        hint="Tous vos montants sont enregistrés dans cette devise. Pour voir vos prix dans une autre monnaie, ne la changez pas : ajoutez la devise ci-dessous."
+        label="Devise de tenue des comptes"
+        hint={
+          d.verrouillee
+            ? "Vos montants sont enregistrés dans cette devise. Elle ne change plus une fois la boutique en service : pour voir vos chiffres dans une autre monnaie, utilisez « Afficher les montants en »."
+            : "La devise dans laquelle vos montants seront enregistrés. Choisissez-la avant votre première saisie : elle se verrouille ensuite."
+        }
         htmlFor="devise-principale"
       >
         {!changerOuvert ? (
@@ -195,13 +208,17 @@ const DevisesBloc: React.FC<{ d: DevisesBoutique }> = ({ d }) => {
             <span className="text-sm font-medium text-foreground">
               {d.principale} — {d.fichePrincipale?.nom ?? ""} ({symbolePrincipal})
             </span>
-            <button
-              type="button"
-              onClick={() => setChangerOuvert(true)}
-              className="text-xs font-medium text-muted-foreground hover:text-foreground hover:underline"
-            >
-              Changer
-            </button>
+            {d.verrouillee ? (
+              <span className="text-xs text-muted-foreground">Verrouillée</span>
+            ) : (
+              <button
+                type="button"
+                onClick={() => setChangerOuvert(true)}
+                className="text-xs font-medium text-muted-foreground hover:text-foreground hover:underline"
+              >
+                Changer
+              </button>
+            )}
           </div>
         ) : (
           <select
@@ -222,11 +239,47 @@ const DevisesBloc: React.FC<{ d: DevisesBoutique }> = ({ d }) => {
         )}
         {changerOuvert && (
           <p className="mt-1.5 text-xs t-warning">
-            Changer la devise principale change le symbole de tous vos montants et documents, sans
-            les convertir.{" "}
+            À choisir avant la première saisie : ensuite, elle ne pourra plus changer.{" "}
             <button type="button" onClick={() => setChangerOuvert(false)} className="underline">
               Annuler
             </button>
+          </p>
+        )}
+      </SettingsRow>
+
+      <SettingsRow
+        label={PARAMETRES.devise_affichage.libelle}
+        hint={PARAMETRES.devise_affichage.aide}
+        htmlFor="devise-affichage"
+      >
+        <select
+          id="devise-affichage"
+          value={choixAffichage.includes(affichage) ? affichage : d.principale}
+          onChange={async (e) => {
+            const code = e.target.value;
+            const r = await onSave("devise_affichage", code === d.principale ? "" : code);
+            annoncer(
+              r,
+              code === d.principale
+                ? "Montants affichés dans la devise de tenue."
+                : `Montants affichés en ${code}, au taux du jour.`,
+            );
+          }}
+          className="app-field"
+        >
+          {choixAffichage.map((code) => {
+            const f = ficheDevise(d.catalogue, code);
+            return (
+              <option key={code} value={code}>
+                {code} — {f?.nom ?? code}
+                {code === d.principale ? " (tenue des comptes)" : ""}
+              </option>
+            );
+          })}
+        </select>
+        {choixAffichage.length === 1 && (
+          <p className="mt-1.5 text-xs text-muted-foreground">
+            Ajoutez une devise ci-dessous (EUR, KMF…) pour pouvoir afficher vos montants avec.
           </p>
         )}
       </SettingsRow>

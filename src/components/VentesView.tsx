@@ -65,6 +65,7 @@ import { SortieDocument } from "../features/documents/SortieDocument";
 import { documentDeVente } from "../features/documents/lib/buildDocument";
 import { Equivalents, texteEquivalents, useDevisesAffichees } from "../lib/contexteDevises";
 import type { ReglagesDocuments } from "../features/documents/lib/reglages";
+import { symboleDeSaisie } from "../lib/affichageDevise";
 
 type Client = Database["public"]["Tables"]["clients"]["Row"];
 
@@ -1156,8 +1157,8 @@ export const VentesView: React.FC<VentesViewProps> = ({
             >
               {products.map((p) => (
                 <option key={p.id} value={p.id}>
-                  [{p.numero}] {getProductLabel(p, products)} (réf {p.prixVenteDefaut} Ar |
-                  disponible {p.stockDisponible}
+                  [{p.numero}] {getProductLabel(p, products)} (réf{" "}
+                  {formatCurrency(p.prixVenteDefaut)} | disponible {p.stockDisponible}
                   {p.stockReserve > 0 ? ` / ${p.stockActuel} total` : ""})
                 </option>
               ))}
@@ -1201,9 +1202,10 @@ export const VentesView: React.FC<VentesViewProps> = ({
                 }}
                 className="app-field font-mono"
               />
-              <Equivalents montant={prixVenteUnit} className="mt-1" />
+              <Equivalents montant={prixVenteUnit} className="mt-1" saisie />
               <p className="mt-1 text-xs text-muted-foreground">
-                Prérempli au prix de référence ({currentProduct?.prixVenteDefaut} Ar).
+                Prérempli au prix de référence (
+                {formatCurrency(currentProduct?.prixVenteDefaut ?? 0)}).
               </p>
             </div>
           </div>
@@ -1553,7 +1555,7 @@ export const VentesView: React.FC<VentesViewProps> = ({
 
               <div>
                 <label className="mb-1.5 block text-sm font-medium text-foreground">
-                  Prix de vente unitaire (Ar)
+                  Prix de vente unitaire ({symboleDeSaisie()})
                 </label>
                 <input
                   type="number"

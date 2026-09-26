@@ -1,7 +1,7 @@
 import React from "react";
 import type { Document } from "../lib/buildDocument";
 import { dessinerCode128 } from "../lib/codeBarres";
-import { montantOuTiret, nombre, nombreOuTiret, quantite } from "../lib/format";
+import { argent, argentOuTiret, montantOuTiret, quantite } from "../lib/format";
 import type { LargeurTicket, ReglagesTicket } from "../lib/reglages";
 import { useEquivalentsDuDocument } from "../lib/equivalents";
 import { convertir } from "../../../lib/contexteDevises";
@@ -149,10 +149,10 @@ export const Ticket: React.FC<{
                 vérifier sans reprendre sa calculette. */}
             <span>
               {reglages.detailLignes
-                ? `${l.quantite} × ${nombreOuTiret(l.prixUnitaire)}`
+                ? `${l.quantite} × ${argentOuTiret(l.prixUnitaire)}`
                 : quantite(l.quantite, l.unite)}
             </span>
-            <span>{nombreOuTiret(l.total)}</span>
+            <span>{argentOuTiret(l.total)}</span>
           </div>
           <EquivalentsArticle montant={l.total} />
         </div>
@@ -162,10 +162,10 @@ export const Ticket: React.FC<{
     <Separateur />
 
     {d.totaux.horsTaxe !== null && (
-      <Ligne gauche="Total hors taxe" droite={nombre(d.totaux.horsTaxe)} />
+      <Ligne gauche="Total hors taxe" droite={argent(d.totaux.horsTaxe)} />
     )}
     {d.totaux.tva && (
-      <Ligne gauche={`TVA ${d.totaux.tva.taux} %`} droite={nombre(d.totaux.tva.montant)} />
+      <Ligne gauche={`TVA ${d.totaux.tva.taux} %`} droite={argent(d.totaux.tva.montant)} />
     )}
     <div className="l tot">
       <span>TOTAL</span>
@@ -175,14 +175,14 @@ export const Ticket: React.FC<{
     {d.totaux.paye !== null && (
       <Ligne
         gauche={d.totaux.modePaiement ?? d.totaux.libellePaye}
-        droite={nombre(d.totaux.paye)}
+        droite={argent(d.totaux.paye)}
       />
     )}
     {/* « Rendu 0 » n'apprend rien ; « Reste à payer », si. */}
     {d.totaux.reste !== null && d.totaux.reste > 0 && (
       <div className="l du">
         <span>Reste à payer</span>
-        <span>{nombre(d.totaux.reste)}</span>
+        <span>{argent(d.totaux.reste)}</span>
       </div>
     )}
 

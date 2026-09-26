@@ -286,12 +286,16 @@ const fr: Dictionnaire = {
     ],
     questions: [
       {
-        q: "Je veux voir mes prix en euros : dois-je changer la devise principale ?",
-        r: "Non. Gardez l'ariary en principale et ajoutez l'euro comme autre devise : les équivalents s'affichent sous vos prix.",
+        q: "Je veux voir tous mes montants en euros",
+        r: "Ajoutez l'euro dans « Devises », puis choisissez-le dans « Afficher les montants en » : tout l'écran et les documents sont convertis au taux du jour. Vos montants restent enregistrés en ariary, et vous revenez à l'ariary d'un clic.",
       },
       {
-        q: "Changer de devise principale convertit-il mes montants ?",
-        r: "Non. Seuls les taux des autres devises sont recalculés ; les montants déjà enregistrés restent tels quels.",
+        q: "Pourquoi la devise de tenue des comptes est « Verrouillée » ?",
+        r: "Dès que la boutique a des ventes, des achats ou des produits, ses montants sont enregistrés dans cette devise. En changer ne ferait que changer le symbole de chiffres restés en ariary : on passe donc par la devise d'affichage.",
+      },
+      {
+        q: "Dans quelle devise je saisis un prix ?",
+        r: "Toujours dans la devise de tenue des comptes, indiquée à côté du champ. L'équivalent dans la devise d'affichage apparaît juste dessous.",
       },
     ],
   },

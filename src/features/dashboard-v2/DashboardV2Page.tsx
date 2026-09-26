@@ -1,9 +1,18 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import "./dashboard.css";
 import { useDashboardPeriod } from "./hooks/useDashboardPeriod";
-import { useDashboardPermissions, MONTANT_MASQUE } from "./hooks/useDashboardPermissions";
+import { useDashboardPermissions } from "./hooks/useDashboardPermissions";
 import { useDashboardData } from "./hooks/useDashboardData";
-import { dateCourte, dateLongue, heure, montant, nombre, pluriel, pourcent } from "./lib/format";
+import {
+  dateCourte,
+  dateLongue,
+  heure,
+  montant,
+  nombre,
+  pluriel,
+  pourcent,
+  montantMasque,
+} from "./lib/format";
 import { MenuOption, MenuPill } from "./components/Pill";
 import { Card, CardHeader } from "./components/Card";
 import { CarteSquelette, EtatErreur } from "./components/States";
@@ -418,7 +427,7 @@ export const DashboardV2Page: React.FC<DashboardV2PageProps> = ({
 
   /** Un montant que cette personne n'a pas le droit de voir. */
   const sous = (module: string, champ: string, valeur: number) =>
-    droits.champVisible(module, champ) ? montant(valeur) : MONTANT_MASQUE;
+    droits.champVisible(module, champ) ? montant(valeur) : montantMasque();
 
   /**
    * Chaque carte construite, rangée par sa clé.

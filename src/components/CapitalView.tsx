@@ -16,6 +16,7 @@ import { StatCol } from "./shared/StatBar";
 import { DataList } from "./shared/DataList";
 import { Modal } from "./shared/Modal";
 import { dateDuJour } from "../lib/dates";
+import { symboleDeSaisie } from "../lib/affichageDevise";
 
 interface CapitalViewProps {
   capital: CapitalSummary;
@@ -301,7 +302,7 @@ export const CapitalView: React.FC<CapitalViewProps> = ({
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
           <div>
             <label className="mb-1.5 block text-sm font-medium text-foreground">
-              Capital initial (Ar)
+              Capital initial ({symboleDeSaisie()})
             </label>
             <input
               type="number"
@@ -320,7 +321,7 @@ export const CapitalView: React.FC<CapitalViewProps> = ({
 
           <div>
             <label className="mb-1.5 block text-sm font-medium text-foreground">
-              Seuil d'alerte (Ar)
+              Seuil d'alerte ({symboleDeSaisie()})
             </label>
             <input
               type="number"
@@ -419,7 +420,7 @@ export const CapitalView: React.FC<CapitalViewProps> = ({
         <form id="apport-form" onSubmit={handleSubmitApport} className="space-y-4">
           <div>
             <label className="mb-1.5 block text-sm font-medium text-foreground">
-              Montant de l'apport (Ar)
+              Montant de l'apport ({symboleDeSaisie()})
             </label>
             <input
               type="number"

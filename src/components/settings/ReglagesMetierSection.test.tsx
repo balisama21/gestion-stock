@@ -62,6 +62,7 @@ const devises = {
   principale: "MGA",
   fichePrincipale: { symbole: "Ar", decimales: 0 },
   chargement: false,
+  verrouillee: true,
   definirPrincipale: vi.fn(),
   ajouter: vi.fn(),
   modifier,
@@ -138,5 +139,24 @@ describe("prix dans les autres devises", () => {
     await waitFor(() =>
       expect(enregistrer).toHaveBeenCalledWith("devises_documents", { proforma: ["EUR"] }),
     );
+  });
+});
+
+describe("devise de tenue et devise d'affichage", () => {
+  afterEach(cleanup);
+
+  it("la devise de tenue est verrouillée quand la boutique a des montants", () => {
+    afficher();
+    expect(screen.getByText("Verrouillée")).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Changer" })).toBeNull();
+  });
+
+  it("choisir l'euro pour l'affichage enregistre le paramètre, et revenir à la tenue l'efface", async () => {
+    const enregistrer = afficher();
+    const choix = screen.getByLabelText("Afficher les montants en");
+    fireEvent.change(choix, { target: { value: "EUR" } });
+    await waitFor(() => expect(enregistrer).toHaveBeenCalledWith("devise_affichage", "EUR"));
+    fireEvent.change(choix, { target: { value: "MGA" } });
+    await waitFor(() => expect(enregistrer).toHaveBeenCalledWith("devise_affichage", ""));
   });
 });

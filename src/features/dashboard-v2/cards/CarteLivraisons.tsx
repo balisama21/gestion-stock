@@ -1,7 +1,7 @@
 import React from "react";
 import { Card, CardHeader } from "../components/Card";
 import { EtatVide } from "../components/States";
-import { dateLocale, montant } from "../lib/format";
+import { dateLocale, montant, montantMasque } from "../lib/format";
 import { dateDuJour } from "../../../lib/dates";
 
 /**
@@ -69,7 +69,7 @@ export const CarteLivraisons: React.FC<{
       </div>
       {(l.montant_a_encaisser ?? 0) > 0 && (
         <span className="num" style={{ fontSize: 13, fontWeight: 600 }}>
-          {visible ? montant(l.montant_a_encaisser ?? 0) : "••• Ar"}
+          {visible ? montant(l.montant_a_encaisser ?? 0) : montantMasque()}
         </span>
       )}
     </div>

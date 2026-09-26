@@ -31,6 +31,7 @@ import { envoyerFichier, supprimerFichier } from "../lib/stockageFichiers";
 import type { Database } from "../lib/database.types";
 import { useFiltreInitial, useRechercheInitiale } from "../lib/cibleRecherche";
 import { estARecommander, type ReglagesAlertesStock } from "../lib/prealerteStock";
+import { symboleDeSaisie } from "../lib/affichageDevise";
 
 /**
  * LE QUATRIÈME FILTRE N'EXISTE QUE SI LA PRÉALERTE EST ACTIVE.
@@ -775,7 +776,7 @@ export const ProduitsView: React.FC<ProduitsViewProps> = ({
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
               <label className="mb-1.5 block text-sm font-medium text-foreground">
-                Prix d'achat (Ar)
+                Prix d'achat ({symboleDeSaisie()})
               </label>
               <input
                 type="number"
@@ -996,7 +997,7 @@ export const ProduitsView: React.FC<ProduitsViewProps> = ({
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div>
                 <label className="mb-1.5 block text-sm font-medium text-foreground">
-                  Prix d'achat (Ar)
+                  Prix d'achat ({symboleDeSaisie()})
                 </label>
                 <input
                   type="number"

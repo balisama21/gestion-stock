@@ -2,7 +2,7 @@ import React from "react";
 import { Card } from "../components/Card";
 import { BoutonRepli } from "../components/BoutonRepli";
 import { useRepli } from "../lib/repli";
-import { montant, montantEnDeux, nombre } from "../lib/format";
+import { argent, montant, montantEnDeux, nombre, montantMasque } from "../lib/format";
 import type { CapitalSummary } from "../../../types";
 import type { ChiffresFlux } from "../lib/chiffres";
 
@@ -62,7 +62,7 @@ export const CarteTresorerie: React.FC<{
 
   const { replie, basculer } = useRepli(CLE_DETAIL, false);
 
-  const { chiffres, unite } = montantEnDeux(montantVisible ? solde : "••• Ar");
+  const { chiffres, unite } = montantEnDeux(montantVisible ? solde : montantMasque());
 
   const sousLeSeuil = capital.seuilAlerteTresorerie > 0 && solde < capital.seuilAlerteTresorerie;
 
@@ -162,14 +162,14 @@ export const CarteTresorerie: React.FC<{
         <div className="flowleg">
           <span>
             <i className="dot" style={{ background: "var(--flux-entrees)" }} />
-            Entrées {periode} <b>+{nombre(entrees)}</b>
+            Entrées {periode} <b>+{argent(entrees)}</b>
           </span>
           <span>
             <i className="dot" style={{ background: "var(--flux-sorties)" }} />
             Sorties {periode}{" "}
             <b>
               {"−"}
-              {nombre(sorties)}
+              {argent(sorties)}
             </b>
           </span>
         </div>

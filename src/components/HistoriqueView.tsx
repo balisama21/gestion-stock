@@ -117,7 +117,7 @@ export const HistoriqueView: React.FC<HistoriqueViewProps> = ({
         ref: s.numero,
         date: s.date,
         type: "VENTE" as const,
-        description: `Vente : ${getSaleLabel(s, products)} (${s.quantite} pcs à ${s.prixVenteUnit} Ar)`,
+        description: `Vente : ${getSaleLabel(s, products)} (${s.quantite} pcs à ${formatCurrency(s.prixVenteUnit)})`,
         actor: s.vendeur,
         montant: s.montantPaye,
         decaisse: true,

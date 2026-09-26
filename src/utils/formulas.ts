@@ -1,4 +1,5 @@
 import { LocaleSetting } from "../types";
+import { deviseAffichee, versAffichage } from "../lib/affichageDevise";
 
 /**
  * Converts a string number or digits into Unicode subscript representation
@@ -39,31 +40,24 @@ export function formatDateLocale(dateStr: string, locale: LocaleSetting): string
   }
 }
 
-let symboleCourant = "Ar";
-let decimalesCourantes = 0;
-
-/** Posé par l'application à l'ouverture d'une boutique : sa devise principale. */
-export function definirDevisePrincipale(symbole: string, decimales: number): void {
-  symboleCourant = symbole || "Ar";
-  decimalesCourantes = decimales;
-}
-
 /**
  * Format currency string (default Ariary Ar)
  */
 export function formatCurrency(amount: number): string {
+  // Montant enregistré dans la devise de tenue, affiché dans celle choisie.
+  const { symbole: symboleCourant, decimales: decimalesCourantes } = deviseAffichee();
   return (
     new Intl.NumberFormat("fr-FR", {
       minimumFractionDigits: decimalesCourantes,
       maximumFractionDigits: decimalesCourantes,
     })
-      .format(amount)
-      //  , l’espace fine insécable que la locale française place
+      .format(versAffichage(amount))
+      // \u202f, l’espace fine insécable que la locale française place
       // entre les milliers, est un caractère exotique : il ne survit ni à
       // un encodage sur un octet ni à tous les éditeurs de texte. On lui
       // substitue l’espace insécable ordinaire, qui s’affiche pareil et
       // empêche toujours « 6 » et « 500 » de se retrouver sur deux lignes.
-      .replace(/ /g, " ") +
+      .replace(/\u202f/g, "\u00a0") +
     " " +
     symboleCourant
   );

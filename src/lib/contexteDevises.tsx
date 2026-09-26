@@ -10,8 +10,10 @@ export interface DeviseAffichee {
 }
 
 export interface ValeurContexteDevises {
-  /** Les équivalents affichés à l'écran (caisse, produits, achats). */
+  /** Les équivalents sous un montant déjà affiché (converti s'il y a lieu). */
   affichees: DeviseAffichee[];
+  /** Les équivalents sous un champ de saisie, qui reste en devise de tenue. */
+  saisie?: DeviseAffichee[];
   /** Les équivalents imprimés sur un type de document. */
   pourDocument: (type: string) => DeviseAffichee[];
 }
@@ -22,6 +24,11 @@ export const FournisseurDevises = Contexte.Provider;
 
 export function useDevisesAffichees(): DeviseAffichee[] {
   return useContext(Contexte)?.affichees ?? [];
+}
+
+export function useDevisesDeSaisie(): DeviseAffichee[] {
+  const c = useContext(Contexte);
+  return c?.saisie ?? c?.affichees ?? [];
 }
 
 export function useDevisesDuDocument(type: string): DeviseAffichee[] {
@@ -47,11 +54,15 @@ export function texteEquivalents(montant: number, liste: DeviseAffichee[]): stri
 }
 
 /** Petite ligne grise sous un montant : ses équivalents dans les devises choisies. */
-export const Equivalents: React.FC<{ montant: number; className?: string }> = ({
-  montant,
-  className = "",
-}) => {
-  const texte = texteEquivalents(montant, useDevisesAffichees());
+export const Equivalents: React.FC<{
+  montant: number;
+  className?: string;
+  /** Sous un champ de saisie : le montant tapé est en devise de tenue. */
+  saisie?: boolean;
+}> = ({ montant, className = "", saisie = false }) => {
+  const affichees = useDevisesAffichees();
+  const deSaisie = useDevisesDeSaisie();
+  const texte = texteEquivalents(montant, saisie ? deSaisie : affichees);
   if (!texte) return null;
   return (
     <span className={`block font-mono text-xs tabular-nums text-muted-foreground ${className}`}>

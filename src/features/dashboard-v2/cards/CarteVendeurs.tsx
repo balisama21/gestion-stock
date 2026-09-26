@@ -1,7 +1,7 @@
 import React from "react";
 import { Card, CardHeader } from "../components/Card";
 import { EtatVide } from "../components/States";
-import { montant, nombre } from "../lib/format";
+import { argent, montant, nombre, montantMasque } from "../lib/format";
 import type { Seller } from "../../../types";
 import { teinteDe } from "../../../lib/teintes";
 
@@ -74,7 +74,7 @@ export const CarteVendeurs: React.FC<{
                   <b>{v.nom}</b>
                   <small>
                     {montantsVisibles
-                      ? `Ventes ${nombre(v.totalVentesMontant)} · Dép. ${nombre(v.totalDepenses)}`
+                      ? `Ventes ${argent(v.totalVentesMontant)} · Dép. ${argent(v.totalDepenses)}`
                       : "Solde net en poche"}
                   </small>
                   <div className="bar">
@@ -82,7 +82,7 @@ export const CarteVendeurs: React.FC<{
                   </div>
                 </div>
                 <div className="amt num">
-                  {montantsVisibles ? montant(v.soldeNetEnPoche) : "••• Ar"}
+                  {montantsVisibles ? montant(v.soldeNetEnPoche) : montantMasque()}
                 </div>
               </div>
             );

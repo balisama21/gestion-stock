@@ -39,6 +39,7 @@ import {
   type PaperFormatId,
 } from "../lib/paperFormats";
 import { dateDuJour } from "../lib/dates";
+import { symboleDeSaisie } from "../lib/affichageDevise";
 
 interface VendeursViewProps {
   sellers: Seller[];
@@ -1311,7 +1312,7 @@ export const VendeursView: React.FC<VendeursViewProps> = ({
           <form id="remise-form" onSubmit={enregistrerRemise} className="space-y-4">
             <div>
               <label className="mb-1.5 block text-sm font-medium text-foreground">
-                Montant remis (Ar)
+                Montant remis ({symboleDeSaisie()})
               </label>
               <input
                 type="number"

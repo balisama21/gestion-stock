@@ -1,7 +1,7 @@
 import React from "react";
 import { Card, CardHeader } from "../components/Card";
 import { Trend } from "../components/Trend";
-import { montant, montantEnDeux, nombre } from "../lib/format";
+import { argent, montant, montantEnDeux, nombre, montantMasque } from "../lib/format";
 import type { ChiffresResultat } from "../lib/chiffres";
 import type { Periode } from "../hooks/useDashboardPeriod";
 
@@ -27,7 +27,7 @@ export const CarteResultat: React.FC<{
   onDetail?: () => void;
 }> = ({ resultat, periode, visible, onDetail }) => {
   const { marge, depenses, benefice, beneficePrecedent, achatsNonDeduits } = resultat;
-  const sous = (v: number) => (visible ? montant(v) : "••• Ar");
+  const sous = (v: number) => (visible ? montant(v) : montantMasque());
 
   const haut = Math.max(Math.abs(benefice), Math.abs(beneficePrecedent), 1);
   const part = (v: number) => Math.max(2, (Math.abs(v) / haut) * 100);
@@ -83,12 +83,12 @@ export const CarteResultat: React.FC<{
         <div className="bar">
           <i style={{ width: `${part(benefice)}%`, background: "var(--accent)" }} />
         </div>
-        <span className="num">{visible ? nombre(benefice) : "•••"}</span>
+        <span className="num">{visible ? argent(benefice) : "•••"}</span>
         <span>Avant</span>
         <div className="bar">
           <i style={{ width: `${part(beneficePrecedent)}%`, background: "var(--muted)" }} />
         </div>
-        <span className="num">{visible ? nombre(beneficePrecedent) : "•••"}</span>
+        <span className="num">{visible ? argent(beneficePrecedent) : "•••"}</span>
       </div>
 
       <p style={{ margin: 0, color: "var(--muted)", fontSize: 12.5 }}>

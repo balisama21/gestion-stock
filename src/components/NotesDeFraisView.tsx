@@ -7,7 +7,7 @@ import { SelecteurPersonne } from "./shared/SelecteurPersonne";
 import { SelecteurListe } from "./shared/SelecteurListe";
 import type { Personne } from "../lib/personnes";
 import type { LocaleSetting } from "../types";
-import { formatDateLocale } from "../utils/formulas";
+import { formatCurrency, formatDateLocale } from "../utils/formulas";
 import {
   ficheDevise,
   formaterMontant,
@@ -55,8 +55,8 @@ export const NotesDeFraisView: React.FC<Props> = (p) => {
   const [edition, setEdition] = useState<NoteDeFrais | "nouvelle" | null>(null);
   const [detail, setDetail] = useState<NoteDeFrais | null>(null);
 
-  const fichePrincipale = ficheDevise(p.catalogue, p.principale);
-  const fmt = (n: number) => formaterMontant(n, fichePrincipale);
+  // Enregistrés en devise de tenue, affichés dans la devise choisie par la boutique.
+  const fmt = (n: number) => formatCurrency(n);
   const nomPoste = (id: string | null) => p.postes.find((x) => x.id === id)?.nom;
 
   const somme = (s: Statut) =>

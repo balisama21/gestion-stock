@@ -1,6 +1,6 @@
 import React from "react";
 import { Card, CardHeader } from "../components/Card";
-import { montant, pluriel } from "../lib/format";
+import { montant, pluriel, montantMasque } from "../lib/format";
 import type { ChiffresPaiements } from "../lib/chiffres";
 import type { Periode } from "../hooks/useDashboardPeriod";
 
@@ -31,7 +31,7 @@ export const CartePaiements: React.FC<{
     paiements;
   const total = encaisse + aRecevoir + enRetard;
   const part = (v: number) => (total > 0 ? (v / total) * 100 : 0);
-  const sous = (v: number) => (visible ? montant(v) : "••• Ar");
+  const sous = (v: number) => (visible ? montant(v) : montantMasque());
 
   const hautSemaine = Math.max(...parSemaine.map((s) => s.montant), 1);
 

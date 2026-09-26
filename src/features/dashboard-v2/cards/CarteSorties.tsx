@@ -1,6 +1,6 @@
 import React from "react";
 import { Card } from "../components/Card";
-import { montant, pourcent } from "../lib/format";
+import { montant, pourcent, montantMasque } from "../lib/format";
 import type { ChiffresFlux } from "../lib/chiffres";
 import type { Periode } from "../hooks/useDashboardPeriod";
 
@@ -35,7 +35,7 @@ export const CarteSorties: React.FC<{
         <div className="row">
           <span>Achats</span>
           <span className="lead" />
-          <span className="num">{achatsVisibles ? montant(flux.achats) : "••• Ar"}</span>
+          <span className="num">{achatsVisibles ? montant(flux.achats) : montantMasque()}</span>
         </div>
         <div className="row">
           <span>Dépenses</span>

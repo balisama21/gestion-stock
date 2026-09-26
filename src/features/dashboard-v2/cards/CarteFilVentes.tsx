@@ -3,7 +3,7 @@ import { Card, CardHeader } from "../components/Card";
 import { BoutonRepli } from "../components/BoutonRepli";
 import { EtatVide } from "../components/States";
 import { LIGNES_EN_APERCU, useRepli } from "../lib/repli";
-import { dateLocale, jourMoisChiffres, montant } from "../lib/format";
+import { dateLocale, jourMoisChiffres, montant, montantMasque } from "../lib/format";
 import { dateDuJour } from "../../../lib/dates";
 import { getSaleLabel, quantiteEnMots } from "../../../utils/formulas";
 import { VignetteProduit, vignettesParProduit } from "../../../components/shared/VignetteProduit";
@@ -163,7 +163,7 @@ export const CarteFilVentes: React.FC<{
                         </small>
                       </div>
                       <div className="amt num">
-                        {montantsVisibles ? montant(v.totalVente) : "••• Ar"}
+                        {montantsVisibles ? montant(v.totalVente) : montantMasque()}
                       </div>
                       <span className={`paid ${badge.classe}`}>{badge.texte}</span>
                     </div>
