@@ -5,6 +5,7 @@ import type { Document } from "./lib/buildDocument";
 import { DocumentPreview, type FormatDocument } from "./DocumentPreview";
 import type { ModeleDocument, ReglagesDocuments } from "./lib/reglages";
 import { resoudreType } from "./lib/resolveur";
+import { dispositionDuType } from "./lib/disposition";
 
 /**
  * LA FENÊTRE QUI SORT UN DOCUMENT
@@ -54,9 +55,15 @@ export const SortieDocument: React.FC<SortieDocumentProps> = ({
   const [format, setFormat] = useState<FormatDocument>(formats[0] ?? "a4");
   // Le modèle de départ est celui du TYPE, qui suit la boutique à
   // défaut du sien. Le changer ici ne vaut que pour ce tirage.
-  const [modele, setModele] = useState<ModeleDocument>(
-    () => resoudreType(reglages, doc.type).modele,
+  // « libre:<id> » pour une disposition libre, sinon le nom du modèle.
+  const [modele, setModele] = useState<string>(() => {
+    const libre = dispositionDuType(reglages.libre, doc.type);
+    return libre ? `libre:${libre.id}` : resoudreType(reglages, doc.type).modele;
+  });
+  const dispositions = Object.values(reglages.libre.dispositions).filter(
+    (d) => d.type === doc.type,
   );
+  const dispositionId = modele.startsWith("libre:") ? modele.slice(6) : null;
   const choix = FORMATS.filter((f) => formats.includes(f.cle));
 
   return (
@@ -93,7 +100,7 @@ export const SortieDocument: React.FC<SortieDocumentProps> = ({
               <span className="sr-only">Modèle, pour ce document seulement</span>
               <select
                 value={modele}
-                onChange={(e) => setModele(e.target.value as ModeleDocument)}
+                onChange={(e) => setModele(e.target.value)}
                 className="app-field-sm w-auto"
                 title="Change le modèle pour ce document seulement. Le réglage de la boutique n'est pas modifié."
               >
@@ -102,13 +109,24 @@ export const SortieDocument: React.FC<SortieDocumentProps> = ({
                     {m.nom}
                   </option>
                 ))}
+                {dispositions.map((d) => (
+                  <option key={d.id} value={`libre:${d.id}`}>
+                    {d.nom}
+                  </option>
+                ))}
               </select>
             </label>
           )}
         </div>
       }
     >
-      <DocumentPreview document={doc} reglages={reglages} format={format} modele={modele} />
+      <DocumentPreview
+        document={doc}
+        reglages={reglages}
+        format={format}
+        modele={dispositionId ? undefined : (modele as ModeleDocument)}
+        dispositionId={dispositionId}
+      />
     </Modal>
   );
 };

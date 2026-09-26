@@ -17,6 +17,9 @@ import { Classique } from "./templates/Classique";
 import { Compact } from "./templates/Compact";
 import { Epure } from "./templates/Epure";
 import { Ticket } from "./templates/Ticket";
+import { Libre } from "./templates/Libre";
+import { blocsResolus, colonneResolue, dispositionDuType } from "./lib/disposition";
+import { feuilleLibre, paginerLibre, zonesLibres, type MesuresLibres } from "./lib/paginationLibre";
 import type { ProprietesModele } from "./parts/squelette";
 import { ContexteEquivalents } from "./lib/equivalents";
 import { useDevisesDuDocument } from "../../lib/contexteDevises";
@@ -138,6 +141,19 @@ function relever(feuille: HTMLElement): MesuresDuDocument | null {
   };
 }
 
+/** Mode libre : l'en-tête et les lignes du tableau, en mm, relevés sur la feuille de mesure. */
+function releverLibre(feuille: HTMLElement): MesuresLibres | null {
+  const tableau = feuille.querySelector<HTMLElement>('[data-bloc="tableau"]');
+  const thead = tableau?.querySelector<HTMLElement>("thead");
+  if (!tableau || !thead || thead.offsetHeight === 0) return null;
+  const mm = (n: number) => (n * 25.4) / 96;
+  return {
+    // Même garde que le mode simple : un pixel de trop fait déborder une ligne.
+    enTete: mm(thead.offsetHeight + 2),
+    lignes: [...tableau.querySelectorAll<HTMLElement>("tbody tr")].map((l) => mm(l.offsetHeight)),
+  };
+}
+
 interface DocumentPreviewProps {
   document: Document;
   reglages: ReglagesDocuments;
@@ -145,6 +161,11 @@ interface DocumentPreviewProps {
   format?: FormatDocument;
   /** Force un modèle le temps d'une impression, sans toucher au réglage. */
   modele?: ModeleDocument;
+  /**
+   * La disposition libre à utiliser. Absent : celle du type, sauf si un
+   * modèle est imposé. `null` : le mode simple, quoi que dise le réglage.
+   */
+  dispositionId?: string | null;
   /** Masque les boutons : l'aperçu en direct des réglages n'en a pas. */
   sansActions?: boolean;
   /**
@@ -164,6 +185,7 @@ export const DocumentPreview: React.FC<DocumentPreviewProps> = ({
   reglages,
   format = "a4",
   modele,
+  dispositionId,
   sansActions,
   onPret,
 }) => {
@@ -179,7 +201,22 @@ export const DocumentPreview: React.FC<DocumentPreviewProps> = ({
   const regle = resoudreType(reglages, doc.type);
   // Le rouleau a son propre réglage : on ne veut pas forcément les mêmes devises qu'en A4.
   const equivalents = useDevisesDuDocument(rouleau ? "ticket" : doc.type);
-  const nomModele = modele ?? regle.modele;
+  const libre =
+    rouleau || dispositionId === null
+      ? null
+      : dispositionId !== undefined
+        ? (reglages.libre.dispositions[dispositionId] ?? null)
+        : modele
+          ? null
+          : dispositionDuType(reglages.libre, doc.type);
+  const blocs = useMemo(() => (libre ? blocsResolus(libre) : null), [libre]);
+  const zones = useMemo(
+    () => (libre && blocs ? zonesLibres(blocs, libre.base) : null),
+    [libre, blocs],
+  );
+  const dispoTicket = rouleau ? dispositionDuType(reglages.libre, "ticket") : null;
+  const colonne = dispoTicket ? colonneResolue(dispoTicket) : undefined;
+  const nomModele = libre?.base ?? modele ?? regle.modele;
   const Modele = MODELES[nomModele] ?? Classique;
 
   const scene = useRef<HTMLDivElement>(null);
@@ -217,8 +254,8 @@ export const DocumentPreview: React.FC<DocumentPreviewProps> = ({
   // format change.
   const empreinte = useMemo(
     () =>
-      `${format}|${nomModele}|${doc.nomDeFichier}|${doc.lignes.length}|${doc.totaux.total}|${equivalents.map((e) => e.code).join(",")}`,
-    [format, nomModele, doc, equivalents],
+      `${format}|${nomModele}|${doc.nomDeFichier}|${doc.lignes.length}|${doc.totaux.total}|${equivalents.map((e) => e.code).join(",")}|${libre ? JSON.stringify(libre) : ""}`,
+    [format, nomModele, doc, equivalents, libre],
   );
 
   if (mesure.cle !== empreinte) setMesure({ cle: empreinte, pages: null });
@@ -270,6 +307,12 @@ export const DocumentPreview: React.FC<DocumentPreviewProps> = ({
       return;
     }
 
+    if (zones) {
+      const mesuresLibres = feuilles.current[0] ? releverLibre(feuilles.current[0]) : null;
+      poserLesPages(mesuresLibres ? paginerLibre(mesuresLibres, zones) : [toutesLesLignes]);
+      return;
+    }
+
     // Passe de mesure : une seule feuille porte tout le document.
     const mesures = feuilles.current[0] ? relever(feuilles.current[0]) : null;
     if (mesures) {
@@ -289,7 +332,7 @@ export const DocumentPreview: React.FC<DocumentPreviewProps> = ({
       poserLesPages(seconde ? repartirLesPages(seconde) : [toutesLesLignes]);
     });
     return () => cancelAnimationFrame(image);
-  }, [rouleau, pages, mettreALEchelle, poserLesPages, toutesLesLignes]);
+  }, [rouleau, pages, mettreALEchelle, poserLesPages, toutesLesLignes, zones]);
 
   /* La pagination est faite : les feuilles existent, et le photographe
      peut passer. Un rouleau n'a rien à découper, il est prêt d'emblée. */
@@ -374,8 +417,32 @@ export const DocumentPreview: React.FC<DocumentPreviewProps> = ({
                   document={doc}
                   reglages={{ ...reglages.ticket, largeur: format === "t58" ? 58 : 80 }}
                   date={doc.meta.find((m) => m.libelle === "Date")?.valeur ?? ""}
+                  colonne={colonne}
                 />
               </div>
+            ) : libre && blocs && zones ? (
+              repartition.map((indices, rang) => {
+                const f = feuilleLibre(rang, repartition.length, zones);
+                return (
+                  <div
+                    className={`doc-feuille doc-feuille--libre printable-receipt m-${libre.base}`}
+                    key={rang}
+                    ref={poser(rang)}
+                  >
+                    <Libre
+                      document={doc}
+                      base={libre.base}
+                      blocs={blocs}
+                      lignes={indices
+                        .map((i) => doc.lignes[i])
+                        .filter((l): l is LigneDocument => l !== undefined)}
+                      cles={f.cles}
+                      cadreTableau={f.cadre}
+                      pagination={doc.paginer ? mentionDePage(rang, repartition.length) : null}
+                    />
+                  </div>
+                );
+              })
             ) : (
               repartition.map((indices, rang) => (
                 <div

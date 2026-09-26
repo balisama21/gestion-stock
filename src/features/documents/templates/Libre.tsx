@@ -115,6 +115,8 @@ interface ProprietesLibre {
   /** Les blocs à poser sur cette feuille. Par défaut : tous ceux qui ne sont pas masqués. */
   cles?: CleBloc[];
   pagination: string | null;
+  /** Le cadre du tableau sur cette page, quand le document en compte plusieurs. */
+  cadreTableau?: { y: number; h: number };
 }
 
 /** Une feuille en mode libre : chaque bloc à sa place, au millimètre. */
@@ -125,10 +127,12 @@ export const Libre: React.FC<ProprietesLibre> = ({
   lignes,
   cles,
   pagination,
+  cadreTableau,
 }) => (
   <div className="doc-libre">
     {(cles ?? BLOCS.map((b) => b.cle).filter((c) => !blocs[c].masque)).map((cle) => {
-      const b = blocs[cle];
+      if (cle === "tableau" && cadreTableau && lignes.length === 0) return null;
+      const b = cle === "tableau" && cadreTableau ? { ...blocs[cle], ...cadreTableau } : blocs[cle];
       const contenu = contenuDuBloc(cle, d, base, lignes, pagination);
       if (contenu === null) return null;
       const avant = BLOCS.find((x) => x.cle === cle)?.verrouille === true;

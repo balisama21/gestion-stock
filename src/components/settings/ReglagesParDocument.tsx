@@ -6,7 +6,6 @@ import { EditeurMiseEnPage } from "./EditeurMiseEnPage";
 import { ChoixDisposition } from "./ChoixDisposition";
 import type { Document } from "../../features/documents/lib/buildDocument";
 import type { ReglagesLibres } from "../../features/documents/lib/disposition";
-import { useEditeurLibreVisible } from "../../features/documents/drapeauLibre";
 import type { MisesEnPage } from "../../features/documents/lib/miseEnPage";
 import { LIBELLE_ECHEANCE, type Echeance } from "../../features/documents/lib/format";
 import type { ModeleDocument, ReglagesDocuments } from "../../features/documents/lib/reglages";
@@ -74,7 +73,6 @@ export const ReglagesParDocument: React.FC<Props> = ({
   onChangeLibre,
   onEnregistrerLibre,
 }) => {
-  const libreVisible = useEditeurLibreVisible();
   const defauts = DEFAUTS_TYPE[type];
   const propre = reglages.types[type];
   const personnalise = propre !== undefined;
@@ -139,7 +137,7 @@ export const ReglagesParDocument: React.FC<Props> = ({
           Placé en bas, il obligeait à remonter pour voir l'effet. */}
       {apercu}
 
-      {libreVisible && onChangeLibre && onEnregistrerLibre && (
+      {onChangeLibre && onEnregistrerLibre && (
         <ChoixDisposition
           reglages={reglages}
           type={type}
@@ -275,53 +273,53 @@ export const ReglagesParDocument: React.FC<Props> = ({
           )}
 
           <>
-              <SettingsBlock>
-                <p className="mb-2 text-sm font-semibold text-foreground">Modèle</p>
-                <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
-                  {MODELES_DOCUMENT.map((m) => {
-                    const choisi = (propre.modele ?? resolu.modele) === m.cle;
-                    return (
-                      <button
-                        key={m.cle}
-                        type="button"
-                        aria-pressed={choisi}
-                        onClick={() => changer({ modele: m.cle as ModeleDocument })}
-                        className={`rounded-xl border px-3 py-2.5 text-left transition-colors ${
-                          choisi
-                            ? "border-success-border bg-success-soft"
-                            : "border-border bg-card hover:bg-muted"
-                        }`}
-                      >
-                        <span className="block text-sm font-medium text-foreground">{m.nom}</span>
-                        <span className="block text-xs text-muted-foreground">{m.note}</span>
-                      </button>
-                    );
-                  })}
-                </div>
-              </SettingsBlock>
+            <SettingsBlock>
+              <p className="mb-2 text-sm font-semibold text-foreground">Modèle</p>
+              <div className="grid grid-cols-2 gap-2 sm:grid-cols-4">
+                {MODELES_DOCUMENT.map((m) => {
+                  const choisi = (propre.modele ?? resolu.modele) === m.cle;
+                  return (
+                    <button
+                      key={m.cle}
+                      type="button"
+                      aria-pressed={choisi}
+                      onClick={() => changer({ modele: m.cle as ModeleDocument })}
+                      className={`rounded-xl border px-3 py-2.5 text-left transition-colors ${
+                        choisi
+                          ? "border-success-border bg-success-soft"
+                          : "border-border bg-card hover:bg-muted"
+                      }`}
+                    >
+                      <span className="block text-sm font-medium text-foreground">{m.nom}</span>
+                      <span className="block text-xs text-muted-foreground">{m.note}</span>
+                    </button>
+                  );
+                })}
+              </div>
+            </SettingsBlock>
 
-              <SettingsBlock>
-                <p className="mb-3 text-sm font-semibold text-foreground">Couleur</p>
-                <div className="flex flex-wrap gap-2.5">
-                  {COULEURS_DOCUMENT.map((c) => {
-                    const choisie = (propre.couleur ?? resolu.couleur) === c.valeur;
-                    return (
-                      <button
-                        key={c.valeur}
-                        type="button"
-                        aria-pressed={choisie}
-                        aria-label={c.nom}
-                        title={c.nom}
-                        onClick={() => changer({ couleur: c.valeur })}
-                        style={{ background: c.valeur }}
-                        className={`h-9 w-9 rounded-full border-2 ${
-                          choisie ? "border-foreground" : "border-transparent"
-                        }`}
-                      />
-                    );
-                  })}
-                </div>
-              </SettingsBlock>
+            <SettingsBlock>
+              <p className="mb-3 text-sm font-semibold text-foreground">Couleur</p>
+              <div className="flex flex-wrap gap-2.5">
+                {COULEURS_DOCUMENT.map((c) => {
+                  const choisie = (propre.couleur ?? resolu.couleur) === c.valeur;
+                  return (
+                    <button
+                      key={c.valeur}
+                      type="button"
+                      aria-pressed={choisie}
+                      aria-label={c.nom}
+                      title={c.nom}
+                      onClick={() => changer({ couleur: c.valeur })}
+                      style={{ background: c.valeur }}
+                      className={`h-9 w-9 rounded-full border-2 ${
+                        choisie ? "border-foreground" : "border-transparent"
+                      }`}
+                    />
+                  );
+                })}
+              </div>
+            </SettingsBlock>
           </>
 
           <SettingsRow label="Mot de fin" htmlFor="type-merci" stacked>

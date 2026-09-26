@@ -207,6 +207,7 @@ export const ChoixDisposition: React.FC<Props> = ({
           disposition={editee}
           document={doc}
           couleur={resoudreType(reglages, type).couleur}
+          reglages={reglages}
           enCours={enCours}
           onFermer={(d) => {
             onChange(avec(d));

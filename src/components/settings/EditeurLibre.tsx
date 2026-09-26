@@ -10,13 +10,16 @@ import {
   ArrowUp,
   Eye,
   EyeOff,
+  FileText,
   Lock,
+  Move,
   RotateCcw,
   Save,
 } from "lucide-react";
 import { SettingsToggle } from "./primitives";
 import type { Document } from "../../features/documents/lib/buildDocument";
-import { variablesDeCouleur } from "../../features/documents/lib/reglages";
+import { variablesDeCouleur, type ReglagesDocuments } from "../../features/documents/lib/reglages";
+import { DocumentPreview } from "../../features/documents/DocumentPreview";
 import {
   aimanterDeplacement,
   aimanterRedimension,
@@ -53,6 +56,8 @@ interface Props {
   /** Le document d'aperçu. Sans lui, les blocs s'affichent par leur nom. */
   document: Document | null;
   couleur: string;
+  /** Les réglages de la boutique : l'aperçu montre les pages telles qu'elles sortiront. */
+  reglages?: ReglagesDocuments;
   enCours: boolean;
   onFermer: (d: Disposition) => void;
   onEnregistrer: (d: Disposition) => void;
@@ -95,11 +100,13 @@ export const EditeurLibre: React.FC<Props> = ({
   disposition,
   document: doc,
   couleur,
+  reglages,
   enCours,
   onFermer,
   onEnregistrer,
 }) => {
   const [d, setD] = useState(disposition);
+  const [apercu, setApercu] = useState(false);
   const [choisi, setChoisi] = useState<CleBloc | null>(null);
   const [echelle, setEchelle] = useState(1);
   const [debords, setDebords] = useState<string>("");
@@ -263,6 +270,18 @@ export const EditeurLibre: React.FC<Props> = ({
           className="app-field min-w-0 flex-1 sm:max-w-xs"
         />
         <div className="ml-auto flex flex-wrap items-center gap-2">
+          {reglages && doc && (
+            <button
+              type="button"
+              onClick={() => setApercu((a) => !a)}
+              aria-pressed={apercu}
+              className="app-btn-secondary"
+              title="Les pages telles qu'elles s'imprimeront, pagination comprise"
+            >
+              {apercu ? <Move className="h-4 w-4" /> : <FileText className="h-4 w-4" />}
+              {apercu ? "Retour à la feuille" : "Aperçu"}
+            </button>
+          )}
           <button
             type="button"
             onClick={() => setD((p) => reinitialiserDisposition(p))}
@@ -286,7 +305,25 @@ export const EditeurLibre: React.FC<Props> = ({
 
       <div className="flex min-h-0 flex-1 flex-col overflow-y-auto lg:flex-row lg:overflow-hidden">
         <div className="min-w-0 flex-1 bg-muted/40 p-3 sm:p-5 lg:overflow-y-auto">
-          <div ref={scene} className="mx-auto w-full" style={{ maxWidth: LARGEUR_PX }}>
+          {apercu && reglages && doc && (
+            <DocumentPreview
+              document={doc}
+              reglages={{
+                ...reglages,
+                libre: {
+                  ...reglages.libre,
+                  dispositions: { ...reglages.libre.dispositions, [d.id]: d },
+                },
+              }}
+              dispositionId={d.id}
+              sansActions
+            />
+          )}
+          <div
+            ref={scene}
+            className={`mx-auto w-full${apercu ? " hidden" : ""}`}
+            style={{ maxWidth: LARGEUR_PX }}
+          >
             <div
               className="relative"
               style={{ width: LARGEUR_PX * echelle, height: HAUTEUR_PX * echelle }}
