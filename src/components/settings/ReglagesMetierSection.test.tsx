@@ -4,80 +4,77 @@ import { ReglagesMetierSection } from "./ReglagesMetierSection";
 
 const modifier = vi.fn(async () => ({ error: null }));
 
-vi.mock("../../hooks/useDevises", () => ({
-  useDevises: () => ({
-    catalogue: [
-      {
-        id: "d1",
-        code: "MGA",
-        nom: "Ariary malgache",
-        symbole: "Ar",
-        decimales: 0,
-        store_id: null,
-        region: "Afrique",
-      },
-      {
-        id: "d2",
-        code: "EUR",
-        nom: "Euro",
-        symbole: "€",
-        decimales: 2,
-        store_id: null,
-        region: "Europe",
-      },
-      {
-        id: "d3",
-        code: "USD",
-        nom: "Dollar américain",
-        symbole: "$",
-        decimales: 2,
-        store_id: null,
-        region: "Amérique du Nord",
-      },
-    ],
-    devises: [
-      {
-        id: "b1",
-        code: "MGA",
-        principale: true,
-        actif: true,
-        taux: 1,
-        mode_taux: "manuel",
-        taux_source: "principale",
-        taux_maj_le: "2026-09-26T08:00:00Z",
-        derniere_erreur: null,
-      },
-      {
-        id: "b2",
-        code: "EUR",
-        principale: false,
-        actif: true,
-        taux: 5013.3,
-        mode_taux: "auto",
-        taux_source: "auto",
-        taux_maj_le: "2026-09-26T08:00:00Z",
-        derniere_erreur: null,
-      },
-    ],
-    historique: [],
-    principale: "MGA",
-    fichePrincipale: { symbole: "Ar", decimales: 0 },
-    chargement: false,
-    definirPrincipale: vi.fn(),
-    ajouter: vi.fn(),
-    modifier,
-    retirer: vi.fn(),
-    creerDevise: vi.fn(),
-    supprimerDevise: vi.fn(),
-    actualiser: vi.fn(async () => ({ error: null })),
-  }),
-}));
+const devises = {
+  catalogue: [
+    {
+      id: "d1",
+      code: "MGA",
+      nom: "Ariary malgache",
+      symbole: "Ar",
+      decimales: 0,
+      store_id: null,
+      region: "Afrique",
+    },
+    {
+      id: "d2",
+      code: "EUR",
+      nom: "Euro",
+      symbole: "€",
+      decimales: 2,
+      store_id: null,
+      region: "Europe",
+    },
+    {
+      id: "d3",
+      code: "USD",
+      nom: "Dollar américain",
+      symbole: "$",
+      decimales: 2,
+      store_id: null,
+      region: "Amérique du Nord",
+    },
+  ],
+  devises: [
+    {
+      id: "b1",
+      code: "MGA",
+      principale: true,
+      actif: true,
+      taux: 1,
+      mode_taux: "manuel",
+      taux_source: "principale",
+      taux_maj_le: "2026-09-26T08:00:00Z",
+      derniere_erreur: null,
+    },
+    {
+      id: "b2",
+      code: "EUR",
+      principale: false,
+      actif: true,
+      taux: 5013.3,
+      mode_taux: "auto",
+      taux_source: "auto",
+      taux_maj_le: "2026-09-26T08:00:00Z",
+      derniere_erreur: null,
+    },
+  ],
+  historique: [],
+  principale: "MGA",
+  fichePrincipale: { symbole: "Ar", decimales: 0 },
+  chargement: false,
+  definirPrincipale: vi.fn(),
+  ajouter: vi.fn(),
+  modifier,
+  retirer: vi.fn(),
+  creerDevise: vi.fn(),
+  supprimerDevise: vi.fn(),
+  actualiser: vi.fn(async () => ({ error: null })),
+} as unknown as React.ComponentProps<typeof ReglagesMetierSection>["devises"];
 
 const afficher = (enregistrer = vi.fn(async () => ({ error: null as string | null }))) => {
   render(
     <ReglagesMetierSection
-      storeId="s"
-      userId="u"
+      devises={devises}
       parametres={{ commission_taux: 5 }}
       onSaveParametre={enregistrer}
     />,
@@ -117,5 +114,29 @@ describe("réglages métier", () => {
     const choix = screen.getByLabelText("Devise à ajouter");
     expect(choix.textContent).toContain("USD");
     expect(choix.textContent).not.toContain("EUR —");
+  });
+});
+
+describe("prix dans les autres devises", () => {
+  afterEach(cleanup);
+
+  it("choisir EUR pour l'écran enregistre la liste", async () => {
+    const enregistrer = afficher();
+    fireEvent.click(
+      screen.getByRole("group", { name: "Devises affichées à l'écran" }).querySelector("button")!,
+    );
+    await waitFor(() => expect(enregistrer).toHaveBeenCalledWith("devises_affichees", ["EUR"]));
+  });
+
+  it("chaque type de document a son propre choix", async () => {
+    const enregistrer = afficher();
+    fireEvent.click(
+      screen
+        .getByRole("group", { name: "Devises imprimées sur : Facture proforma" })
+        .querySelector("button")!,
+    );
+    await waitFor(() =>
+      expect(enregistrer).toHaveBeenCalledWith("devises_documents", { proforma: ["EUR"] }),
+    );
   });
 });

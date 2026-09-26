@@ -40,6 +40,7 @@ import { InstallationSection } from "./settings/InstallationSection";
 import { Trash2 } from "lucide-react";
 import { ReglagesMetierSection } from "./settings/ReglagesMetierSection";
 import type { ValeursParametres } from "../lib/parametres";
+import type { DevisesBoutique } from "../hooks/useDevises";
 
 interface ParametresViewProps {
   settings: StoreSettings;
@@ -135,6 +136,7 @@ interface ParametresViewProps {
   sectionInitiale?: SettingsTab;
   /** Paramètres métier clé/valeur de la boutique. */
   parametres: ValeursParametres;
+  devises: DevisesBoutique;
   onSaveParametre: (cle: string, valeur: Json) => Promise<{ error: string | null }>;
 }
 
@@ -173,6 +175,7 @@ export const ParametresView: React.FC<ParametresViewProps> = ({
   currentUserId,
   sectionInitiale,
   parametres,
+  devises,
   onSaveParametre,
 }) => {
   // L ecran est demonte des qu on quitte l onglet Parametres : l etat
@@ -948,8 +951,7 @@ export const ParametresView: React.FC<ParametresViewProps> = ({
     <SettingsLayout activeTab={activeTab} onTabChange={setActiveTab} isOwner={workspace.isOwner}>
       {activeTab === "metier" && (
         <ReglagesMetierSection
-          storeId={workspace.activeStore?.id ?? null}
-          userId={user?.id ?? null}
+          devises={devises}
           parametres={parametres}
           onSaveParametre={onSaveParametre}
         />

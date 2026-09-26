@@ -1,14 +1,13 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { ChevronDown, Coins, Loader2, Percent, Plus, RefreshCw, X } from "lucide-react";
+import { ChevronDown, Coins, Eye, Loader2, Percent, Plus, RefreshCw, X } from "lucide-react";
 import { SettingsBlock, SettingsFeedback, SettingsRow, SettingsSection } from "./primitives";
-import { useDevises } from "../../hooks/useDevises";
+import type { DevisesBoutique } from "../../hooks/useDevises";
 import { lireParametre, PARAMETRES, type ValeursParametres } from "../../lib/parametres";
 import type { Json } from "../../lib/database.types";
 import { ficheDevise, formaterTaux, LIBELLE_SOURCE, type DeviseBoutique } from "../../lib/devises";
 
 interface Props {
-  storeId: string | null;
-  userId: string | null;
+  devises: DevisesBoutique;
   parametres: ValeursParametres;
   onSaveParametre: (cle: string, valeur: Json) => Promise<{ error: string | null }>;
 }
@@ -25,15 +24,15 @@ const dateCourte = (iso: string) =>
 
 /** Les réglages métier courants, réunis sur un seul écran. */
 export const ReglagesMetierSection: React.FC<Props> = ({
-  storeId,
-  userId,
+  devises,
   parametres,
   onSaveParametre,
 }) => {
   return (
     <>
       <CommissionBloc parametres={parametres} onSave={onSaveParametre} />
-      <DevisesBloc storeId={storeId} userId={userId} />
+      <DevisesBloc d={devises} />
+      <AffichageBloc d={devises} parametres={parametres} onSave={onSaveParametre} />
     </>
   );
 };
@@ -113,11 +112,8 @@ const CommissionBloc: React.FC<{
   );
 };
 
-const DevisesBloc: React.FC<{ storeId: string | null; userId: string | null }> = ({
-  storeId,
-  userId,
-}) => {
-  const d = useDevises(storeId, userId);
+const DevisesBloc: React.FC<{ d: DevisesBoutique }> = ({ d }) => {
+  const [changerOuvert, setChangerOuvert] = useState(false);
   const [retour, setRetour] = useState<Retour>(null);
   const [actualisation, setActualisation] = useState(false);
   const [historiqueOuvert, setHistoriqueOuvert] = useState(false);
@@ -155,7 +151,9 @@ const DevisesBloc: React.FC<{ storeId: string | null; userId: string | null }> =
       )
     )
       return;
-    annoncer(await d.definirPrincipale(code), `${nom} est maintenant la devise principale.`);
+    const res = await d.definirPrincipale(code);
+    annoncer(res, `${nom} est maintenant la devise principale.`);
+    if (!res.error) setChangerOuvert(false);
   };
 
   if (d.chargement) {
@@ -171,7 +169,7 @@ const DevisesBloc: React.FC<{ storeId: string | null; userId: string | null }> =
   return (
     <SettingsSection
       title="Devises"
-      description="La devise principale sert à tous vos montants. Les autres servent à saisir une dépense payée dans une autre monnaie."
+      description="La devise principale est celle de votre caisse. Ajoutez ici les autres devises dans lesquelles vous voulez voir vos prix (KMF, euro…)."
       icon={<Coins className="w-4 h-4" />}
       aside={
         secondaires.some((x) => x.mode_taux === "auto" && x.actif) ? (
@@ -189,24 +187,48 @@ const DevisesBloc: React.FC<{ storeId: string | null; userId: string | null }> =
     >
       <SettingsRow
         label="Devise principale"
-        hint="Celle de votre caisse. En changer ne convertit pas les montants déjà enregistrés."
+        hint="Tous vos montants sont enregistrés dans cette devise. Pour voir vos prix dans une autre monnaie, ne la changez pas : ajoutez la devise ci-dessous."
         htmlFor="devise-principale"
       >
-        <select
-          id="devise-principale"
-          value={d.principale}
-          onChange={(e) => changerPrincipale(e.target.value)}
-          className="app-field"
-        >
-          {!d.catalogue.some((c) => c.code === d.principale) && (
-            <option value={d.principale}>{d.principale}</option>
-          )}
-          {dedoublonner(d.catalogue).map((c) => (
-            <option key={c.id} value={c.code}>
-              {c.code} — {c.nom} ({c.symbole})
-            </option>
-          ))}
-        </select>
+        {!changerOuvert ? (
+          <div className="flex items-center justify-between gap-3">
+            <span className="text-sm font-medium text-foreground">
+              {d.principale} — {d.fichePrincipale?.nom ?? ""} ({symbolePrincipal})
+            </span>
+            <button
+              type="button"
+              onClick={() => setChangerOuvert(true)}
+              className="text-xs font-medium text-muted-foreground hover:text-foreground hover:underline"
+            >
+              Changer
+            </button>
+          </div>
+        ) : (
+          <select
+            id="devise-principale"
+            value={d.principale}
+            onChange={(e) => changerPrincipale(e.target.value)}
+            className="app-field"
+          >
+            {!d.catalogue.some((c) => c.code === d.principale) && (
+              <option value={d.principale}>{d.principale}</option>
+            )}
+            {dedoublonner(d.catalogue).map((c) => (
+              <option key={c.id} value={c.code}>
+                {c.code} — {c.nom} ({c.symbole})
+              </option>
+            ))}
+          </select>
+        )}
+        {changerOuvert && (
+          <p className="mt-1.5 text-xs t-warning">
+            Changer la devise principale change le symbole de tous vos montants et documents, sans
+            les convertir.{" "}
+            <button type="button" onClick={() => setChangerOuvert(false)} className="underline">
+              Annuler
+            </button>
+          </p>
+        )}
       </SettingsRow>
 
       {secondaires.length > 0 && (
@@ -341,8 +363,15 @@ const LigneDevise: React.FC<{
           {ligne.code} <span className="font-normal text-muted-foreground">· {nom}</span>
         </p>
         <p className="app-list-secondary">
-          1 {ligne.code} = {formaterTaux(Number(ligne.taux))} {symbolePrincipal} ·{" "}
-          {LIBELLE_SOURCE[ligne.taux_source] ?? ligne.taux_source} · {dateCourte(ligne.taux_maj_le)}
+          1 {ligne.code} = {formaterTaux(Number(ligne.taux))} {symbolePrincipal}
+          {Number(ligne.taux) < 1 && (
+            <>
+              {" "}
+              (1 {symbolePrincipal} = {formaterTaux(1 / Number(ligne.taux))} {ligne.code})
+            </>
+          )}{" "}
+          · {LIBELLE_SOURCE[ligne.taux_source] ?? ligne.taux_source} ·{" "}
+          {dateCourte(ligne.taux_maj_le)}
           {!ligne.actif && " · désactivée"}
         </p>
         {ligne.derniere_erreur && (
@@ -585,5 +614,110 @@ const CreationDevise: React.FC<{
         Ajouter à la liste
       </button>
     </div>
+  );
+};
+
+const TYPES_DOCUMENTS: { type: string; libelle: string }[] = [
+  { type: "proforma", libelle: "Facture proforma" },
+  { type: "devis", libelle: "Devis" },
+  { type: "facture", libelle: "Facture" },
+  { type: "commission", libelle: "Facture de service" },
+  { type: "recu", libelle: "Reçu" },
+  { type: "commande", libelle: "Bon de commande client" },
+];
+
+/** Où voir les prix convertis : à l'écran, et sur quels documents. */
+const AffichageBloc: React.FC<{
+  d: DevisesBoutique;
+  parametres: ValeursParametres;
+  onSave: Props["onSaveParametre"];
+}> = ({ d, parametres, onSave }) => {
+  const [erreur, setErreur] = useState<string | null>(null);
+  const actives = d.devises.filter((x) => x.actif && !x.principale).map((x) => x.code);
+  const ecran = lireParametre(parametres, "devises_affichees");
+  const documents = lireParametre(parametres, "devises_documents");
+
+  const basculer = (liste: string[], code: string) =>
+    liste.includes(code)
+      ? liste.filter((c) => c !== code)
+      : [...actives.filter((c) => liste.includes(c) || c === code)];
+
+  const ecrire = async (cle: string, valeur: Json) => {
+    setErreur(null);
+    const { error } = await onSave(cle, valeur);
+    if (error) setErreur(error);
+  };
+
+  const pastilles = (choisies: string[], onChoisir: (code: string) => void, libelle: string) => (
+    <div className="flex flex-wrap gap-2" role="group" aria-label={libelle}>
+      {actives.map((code) => (
+        <button
+          key={code}
+          type="button"
+          aria-pressed={choisies.includes(code)}
+          onClick={() => onChoisir(code)}
+          className={`app-chip ${choisies.includes(code) ? "app-chip-active" : ""}`}
+        >
+          {code}
+        </button>
+      ))}
+    </div>
+  );
+
+  return (
+    <SettingsSection
+      title="Prix dans les autres devises"
+      description="Montrer, sous chaque prix, sa valeur dans vos autres devises au taux du jour. Rien n'est converti ni enregistré : c'est un affichage."
+      icon={<Eye className="w-4 h-4" />}
+    >
+      {actives.length === 0 ? (
+        <SettingsBlock>
+          <p className="text-sm text-muted-foreground">
+            Ajoutez d'abord une devise dans la section « Devises » ci-dessus (par exemple KMF ou
+            EUR).
+          </p>
+        </SettingsBlock>
+      ) : (
+        <>
+          <SettingsRow
+            label="À l'écran"
+            hint="Sous les prix de la caisse, des produits et des achats."
+          >
+            {pastilles(
+              ecran,
+              (code) => ecrire("devises_affichees", basculer(ecran, code)),
+              "Devises affichées à l'écran",
+            )}
+          </SettingsRow>
+          {TYPES_DOCUMENTS.map((t) => {
+            const choisies = documents[t.type] ?? [];
+            return (
+              <SettingsRow
+                key={t.type}
+                label={t.libelle}
+                hint={
+                  t.type === "proforma" ? "Sous chaque prix et sous le total imprimés." : undefined
+                }
+              >
+                {pastilles(
+                  choisies,
+                  (code) =>
+                    ecrire("devises_documents", {
+                      ...documents,
+                      [t.type]: basculer(choisies, code),
+                    }),
+                  `Devises imprimées sur : ${t.libelle}`,
+                )}
+              </SettingsRow>
+            );
+          })}
+        </>
+      )}
+      {erreur && (
+        <SettingsBlock>
+          <SettingsFeedback type="error">{erreur}</SettingsFeedback>
+        </SettingsBlock>
+      )}
+    </SettingsSection>
   );
 };

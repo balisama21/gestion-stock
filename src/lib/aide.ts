@@ -275,11 +275,20 @@ const fr: Dictionnaire = {
           "Manuel : vous fixez la valeur. Automatique : le taux suit le marché deux fois par jour ; si le service est indisponible, le dernier taux connu est gardé.",
       },
       {
+        titre: "Voir les prix en KMF, en euros…",
+        texte:
+          "Ajoutez la devise dans « Devises », puis choisissez-la dans « Prix dans les autres devises » : pour l'écran (caisse, produits, achats) et, séparément, pour chaque type de document comme la facture proforma.",
+      },
+      {
         titre: "Historique des taux",
         texte: "Chaque changement de taux est enregistré, avec sa date et son origine.",
       },
     ],
     questions: [
+      {
+        q: "Je veux voir mes prix en euros : dois-je changer la devise principale ?",
+        r: "Non. Gardez l'ariary en principale et ajoutez l'euro comme autre devise : les équivalents s'affichent sous vos prix.",
+      },
       {
         q: "Changer de devise principale convertit-il mes montants ?",
         r: "Non. Seuls les taux des autres devises sont recalculés ; les montants déjà enregistrés restent tels quels.",

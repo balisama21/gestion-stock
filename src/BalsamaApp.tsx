@@ -30,6 +30,10 @@ import { useTaches } from "./hooks/useTaches";
 import { useParametres } from "./hooks/useParametres";
 import { useNotesDeFrais } from "./hooks/useNotesDeFrais";
 import { lireParametre } from "./lib/parametres";
+import { useDevises } from "./hooks/useDevises";
+import { ficheDevise } from "./lib/devises";
+import { FournisseurDevises, type DeviseAffichee } from "./lib/contexteDevises";
+import { definirDevisePrincipale } from "./utils/formulas";
 import { useEvenements } from "./hooks/useEvenements";
 import { useRappels } from "./hooks/useRappels";
 import { echeancesMetier } from "./lib/evenements";
@@ -138,8 +142,8 @@ const VentesView = lazy(() =>
 const VendeursView = lazy(() =>
   import("./components/VendeursView").then((m) => ({ default: m.VendeursView })),
 );
-const NotesDeFraisPage = lazy(() =>
-  import("./components/NotesDeFraisView").then((m) => ({ default: m.NotesDeFraisPage })),
+const NotesDeFraisView = lazy(() =>
+  import("./components/NotesDeFraisView").then((m) => ({ default: m.NotesDeFraisView })),
 );
 const SalairesView = lazy(() =>
   import("./components/SalairesView").then((m) => ({ default: m.SalairesView })),
@@ -215,6 +219,32 @@ function AppInner() {
   const { lignes: journalActivite } = useJournalActivite(workspace.activeStore?.id ?? null);
   const organisation = useTaches(workspace.activeStore?.id ?? null, user?.id ?? null);
   const parametresBoutique = useParametres(workspace.activeStore?.id ?? null, user?.id ?? null);
+  const devisesBoutique = useDevises(
+    estLivreur ? null : (workspace.activeStore?.id ?? null),
+    user?.id ?? null,
+  );
+  // Les montants de l'application portent le symbole de la devise principale.
+  definirDevisePrincipale(
+    devisesBoutique.fichePrincipale?.symbole ?? "Ar",
+    devisesBoutique.fichePrincipale?.decimales ?? 0,
+  );
+  const valeurDevises = useMemo(() => {
+    const versAffichee = (code: string): DeviseAffichee | null => {
+      const d = devisesBoutique.devises.find((x) => x.code === code && x.actif && !x.principale);
+      const f = ficheDevise(devisesBoutique.catalogue, code);
+      return d && f
+        ? { code, symbole: f.symbole, decimales: f.decimales, taux: Number(d.taux) }
+        : null;
+    };
+    const liste = (codes: string[]) =>
+      codes.map(versAffichee).filter((x): x is DeviseAffichee => x !== null);
+    const ecran = lireParametre(parametresBoutique.valeurs, "devises_affichees");
+    const documents = lireParametre(parametresBoutique.valeurs, "devises_documents");
+    return {
+      affichees: liste(ecran),
+      pourDocument: (type: string) => liste(documents[type] ?? []),
+    };
+  }, [devisesBoutique.devises, devisesBoutique.catalogue, parametresBoutique.valeurs]);
   const notesDeFrais = useNotesDeFrais(
     estLivreur ? null : (workspace.activeStore?.id ?? null),
     user?.id ?? null,
@@ -1761,505 +1791,531 @@ function AppInner() {
        en propriétés aurait obligé chaque composant traversé à
        transporter une donnée qui ne le concerne pas. */
     <contextePersonnalisation.Provider value={personnalisation}>
-      {/* Le décalage à gauche libère la place de la sidebar fixe (voir
+      <FournisseurDevises value={valeurDevises}>
+        {/* Le décalage à gauche libère la place de la sidebar fixe (voir
           src/components/Sidebar.tsx : 16rem ouverte, 4.5rem repliée). Il
           est posé ici plutôt que sur .app-container, dont il écraserait
           la gouttière interne, et il s'applique du coup à la barre du
           haut comme au contenu. */}
-      <div
-        className={`min-h-screen flex flex-col font-sans bg-background text-foreground selection:bg-emerald-500 selection:text-slate-950 transition-[padding] duration-200 ${
-          sidebarCollapsed ? "lg:pl-18" : "lg:pl-64"
-        }`}
-      >
-        <Header
-          activeTab={activeTab}
-          setActiveTab={setActiveTab}
-          onViserLigne={viserLigne}
-          settings={storeSettings}
-          tresorerie={computedCapital.tresorerieGlobaleActuelle}
-          seuilAlerte={computedCapital.seuilAlerteTresorerie}
-          onOuvrirIdentiteBoutique={ouvrirIdentiteBoutique}
-          notifications={notifications}
-          onActionNotification={actionNotification}
-          theme={theme}
-          setTheme={setTheme}
-          sidebarCollapsed={sidebarCollapsed}
-          onToggleSidebar={toggleSidebar}
-          badgesNav={badgesNav}
-        />
+        <div
+          className={`min-h-screen flex flex-col font-sans bg-background text-foreground selection:bg-emerald-500 selection:text-slate-950 transition-[padding] duration-200 ${
+            sidebarCollapsed ? "lg:pl-18" : "lg:pl-64"
+          }`}
+        >
+          <Header
+            activeTab={activeTab}
+            setActiveTab={setActiveTab}
+            onViserLigne={viserLigne}
+            settings={storeSettings}
+            tresorerie={computedCapital.tresorerieGlobaleActuelle}
+            seuilAlerte={computedCapital.seuilAlerteTresorerie}
+            onOuvrirIdentiteBoutique={ouvrirIdentiteBoutique}
+            notifications={notifications}
+            onActionNotification={actionNotification}
+            theme={theme}
+            setTheme={setTheme}
+            sidebarCollapsed={sidebarCollapsed}
+            onToggleSidebar={toggleSidebar}
+            badgesNav={badgesNav}
+          />
 
-        <main className="app-container flex-1 py-4 pb-[calc(6rem+env(safe-area-inset-bottom,0px))] md:py-6 lg:pb-6">
-          {/* La rangee des ecrans du meme univers. Rendue ici, en un
+          <main className="app-container flex-1 py-4 pb-[calc(6rem+env(safe-area-inset-bottom,0px))] md:py-6 lg:pb-6">
+            {/* La rangee des ecrans du meme univers. Rendue ici, en un
               seul endroit, plutot que dans chacune des quinze vues :
               elle s applique du meme coup aux ecrans de repli affiches
               quand une permission manque. Elle ne parait que la ou elle
               a quelque chose a relier. */}
-          {vue !== VUE_VERROUILLEE && (
-            <SousNavigation
-              actif={activeTab}
-              items={universDe(activeTab, workspace.memberPermissions, personnalisation)}
-              onChoisir={setActiveTab}
-            />
-          )}
+            {vue !== VUE_VERROUILLEE && (
+              <SousNavigation
+                actif={activeTab}
+                items={universDe(activeTab, workspace.memberPermissions, personnalisation)}
+                onChoisir={setActiveTab}
+              />
+            )}
 
-          {/* La cle remet la limite a neuf a chaque changement d onglet.
+            {/* La cle remet la limite a neuf a chaque changement d onglet.
               Sans elle, un ecran qui a echoue laisse son message en place
               meme apres avoir choisi un autre onglet, et l utilisateur
               croit toute l application en panne. */}
-          {/* La cle sur ce conteneur le remonte a chaque changement
+            {/* La cle sur ce conteneur le remonte a chaque changement
               d onglet : c est ce remontage qui rejoue l animation
               d entree de la vue. Quatre pixels, deux dixiemes de
               seconde — la reponse au doigt qui vient de choisir, pas un
               effet d apparition. */}
-          <div key={vue} className="app-vue">
-            <LimiteChargement>
-              <Suspense fallback={<EcranQuiArrive />}>
-                {vue === VUE_VERROUILLEE && (
-                  <StoreLockedScreen
-                    storeName={boutiqueActive.name}
-                    storeId={boutiqueActive.id}
-                    onActivated={workspace.refreshStores}
-                    autresBoutiques={autresBoutiques}
-                    onChangerDeBoutique={workspace.switchStore}
-                    onOuvrirLeCompte={() => setActiveTab("settings")}
-                  />
-                )}
+            <div key={vue} className="app-vue">
+              <LimiteChargement>
+                <Suspense fallback={<EcranQuiArrive />}>
+                  {vue === VUE_VERROUILLEE && (
+                    <StoreLockedScreen
+                      storeName={boutiqueActive.name}
+                      storeId={boutiqueActive.id}
+                      onActivated={workspace.refreshStores}
+                      autresBoutiques={autresBoutiques}
+                      onChangerDeBoutique={workspace.switchStore}
+                      onOuvrirLeCompte={() => setActiveTab("settings")}
+                    />
+                  )}
 
-                {vue === "dashboard" &&
-                  (hasDashboardAccess ? (
-                    dashboardV2 ? (
-                      // Les collections `visible*` sont celles que recoivent
-                      // deja les pages Ventes, Depenses et Clients : elles ne
-                      // contiennent que ce que cette personne a le droit de
-                      // lire, selon la portee de chaque module. Le tableau de
-                      // bord v2 s en sert plutot que des listes completes,
-                      // pour qu un collaborateur en portee « mes donnees » y
-                      // lise ses chiffres a lui. La tresorerie et les soldes
-                      // vendeurs restent globaux : ce sont des soldes de
-                      // boutique, et leurs cartes ont leurs propres droits.
-                      <DashboardV2Page
-                        storeId={workspace.activeStore?.id ?? null}
+                  {vue === "dashboard" &&
+                    (hasDashboardAccess ? (
+                      dashboardV2 ? (
+                        // Les collections `visible*` sont celles que recoivent
+                        // deja les pages Ventes, Depenses et Clients : elles ne
+                        // contiennent que ce que cette personne a le droit de
+                        // lire, selon la portee de chaque module. Le tableau de
+                        // bord v2 s en sert plutot que des listes completes,
+                        // pour qu un collaborateur en portee « mes donnees » y
+                        // lise ses chiffres a lui. La tresorerie et les soldes
+                        // vendeurs restent globaux : ce sont des soldes de
+                        // boutique, et leurs cartes ont leurs propres droits.
+                        <DashboardV2Page
+                          storeId={workspace.activeStore?.id ?? null}
+                          capital={computedCapital}
+                          products={products}
+                          sales={visibleSales}
+                          purchases={purchases}
+                          expenses={visibleExpenses}
+                          payments={visiblePayments}
+                          sellers={computedSellers}
+                          orders={visibleOrders}
+                          clients={visibleClients}
+                          quotes={storeData.quotes}
+                          deliveries={storeData.deliveries}
+                          taches={organisation.taches}
+                          productImages={storeData.productImages}
+                          evenements={calendrier.evenements}
+                          rappels={memos.rappels}
+                          nomBoutique={workspace.activeStore?.name || APP_NAME}
+                          supplierPayments={storeData.supplierPayments}
+                          onTerminerTache={
+                            peutTerminerUneTache
+                              ? (id) => organisation.changerStatut(id, "termine")
+                              : undefined
+                          }
+                          onRafraichir={storeData.refresh}
+                          onTelechargerLaListe={() => setBonDeCommandeOuvert(true)}
+                          reglagesAlertes={alertesStock.reglages}
+                          onNavigateTab={(onglet) => setActiveTab(onglet as ActiveTab)}
+                          peutVendre={peutEnregistrerUneVente}
+                        />
+                      ) : (
+                        <DashboardView
+                          capital={computedCapital}
+                          products={products}
+                          sales={sales}
+                          purchases={purchases}
+                          expenses={expenses}
+                          sellers={computedSellers}
+                          orders={storeData.orders}
+                          clients={storeData.clients}
+                          quotes={storeData.quotes}
+                          deliveries={storeData.deliveries}
+                          productImages={storeData.productImages}
+                          categories={storeData.categories}
+                          taches={organisation.taches}
+                          // Les règles de lecture ont déjà fait le tri : un
+                          // collaborateur ne reçoit que ses propres lignes,
+                          // et ne verra donc jamais la demande d'un collègue
+                          // apparaître dans « En suspens ».
+                          avancesEnAttente={avancesEnAttente}
+                          locale={locale}
+                          onNavigateTab={setActiveTab}
+                          // Absent quand la personne n'a pas le droit
+                          // d'enregistrer un achat : la ligne de stock
+                          // redevient alors une simple information.
+                          onReapprovisionner={
+                            peutEnregistrerUnAchat
+                              ? (p) => {
+                                  setReapprovisionner({
+                                    designation: p.designation,
+                                    prixAchat: p.prixAchat,
+                                    fournisseur: p.fournisseur,
+                                  });
+                                  setActiveTab("achats");
+                                }
+                              : undefined
+                          }
+                          showPrixAchat={
+                            produitsVisibleFields === null ||
+                            produitsVisibleFields.includes("prix_achat")
+                          }
+                        />
+                      )
+                    ) : (
+                      <MyActivityView
+                        variant="dashboard"
+                        storeName={workspace.activeStore?.name || "cette boutique"}
+                        mySellerData={mySellerData}
+                      />
+                    ))}
+                  {vue === "capital" &&
+                    (hasCapitalAccess ? (
+                      <CapitalView
                         capital={computedCapital}
-                        products={products}
-                        sales={visibleSales}
-                        purchases={purchases}
-                        expenses={visibleExpenses}
-                        payments={visiblePayments}
-                        sellers={computedSellers}
-                        orders={visibleOrders}
-                        clients={visibleClients}
-                        quotes={storeData.quotes}
-                        deliveries={storeData.deliveries}
-                        taches={organisation.taches}
-                        productImages={storeData.productImages}
-                        evenements={calendrier.evenements}
-                        rappels={memos.rappels}
-                        nomBoutique={workspace.activeStore?.name || APP_NAME}
-                        supplierPayments={storeData.supplierPayments}
-                        onTerminerTache={
-                          peutTerminerUneTache
-                            ? (id) => organisation.changerStatut(id, "termine")
-                            : undefined
-                        }
-                        onRafraichir={storeData.refresh}
-                        onTelechargerLaListe={() => setBonDeCommandeOuvert(true)}
-                        reglagesAlertes={alertesStock.reglages}
-                        onNavigateTab={(onglet) => setActiveTab(onglet as ActiveTab)}
-                        peutVendre={peutEnregistrerUneVente}
+                        apports={apports}
+                        locale={locale}
+                        onUpdateCapitalInitial={handleUpdateCapitalInitial}
+                        onUpdateSeuil={handleUpdateSeuil}
+                        onAddApport={handleAddApport}
+                        onDeleteApport={handleDeleteApport}
+                        onDownloadExcel={handleDownloadExcel}
                       />
                     ) : (
-                      <DashboardView
-                        capital={computedCapital}
-                        products={products}
-                        sales={sales}
-                        purchases={purchases}
-                        expenses={expenses}
-                        sellers={computedSellers}
-                        orders={storeData.orders}
-                        clients={storeData.clients}
-                        quotes={storeData.quotes}
-                        deliveries={storeData.deliveries}
-                        productImages={storeData.productImages}
-                        categories={storeData.categories}
-                        taches={organisation.taches}
-                        // Les règles de lecture ont déjà fait le tri : un
-                        // collaborateur ne reçoit que ses propres lignes,
-                        // et ne verra donc jamais la demande d'un collègue
-                        // apparaître dans « En suspens ».
-                        avancesEnAttente={avancesEnAttente}
-                        locale={locale}
-                        onNavigateTab={setActiveTab}
-                        // Absent quand la personne n'a pas le droit
-                        // d'enregistrer un achat : la ligne de stock
-                        // redevient alors une simple information.
-                        onReapprovisionner={
-                          peutEnregistrerUnAchat
-                            ? (p) => {
-                                setReapprovisionner({
-                                  designation: p.designation,
-                                  prixAchat: p.prixAchat,
-                                  fournisseur: p.fournisseur,
-                                });
-                                setActiveTab("achats");
-                              }
-                            : undefined
-                        }
-                        showPrixAchat={
-                          produitsVisibleFields === null ||
-                          produitsVisibleFields.includes("prix_achat")
-                        }
+                      <MyActivityView
+                        variant="capital"
+                        storeName={workspace.activeStore?.name || "cette boutique"}
+                        mySellerData={mySellerData}
                       />
-                    )
-                  ) : (
-                    <MyActivityView
-                      variant="dashboard"
-                      storeName={workspace.activeStore?.name || "cette boutique"}
-                      mySellerData={mySellerData}
-                    />
-                  ))}
-                {vue === "capital" &&
-                  (hasCapitalAccess ? (
-                    <CapitalView
-                      capital={computedCapital}
-                      apports={apports}
+                    ))}
+                  {vue === "produits" && (
+                    <ProduitsView
+                      reglagesAlertes={alertesStock.reglages}
+                      // Le stock se corrige par un mouvement d'ajustement,
+                      // jamais par une écriture directe sur la colonne :
+                      // le chiffre et son journal doivent bouger ensemble.
+                      onAjusterStock={
+                        workspace.isOwner ||
+                        hasModuleAction(
+                          workspace.memberPermissionsDetailed ?? {},
+                          "produits",
+                          "adjust_stock",
+                        )
+                          ? storeData.ajusterStock
+                          : undefined
+                      }
+                      products={products}
                       locale={locale}
-                      onUpdateCapitalInitial={handleUpdateCapitalInitial}
-                      onUpdateSeuil={handleUpdateSeuil}
-                      onAddApport={handleAddApport}
-                      onDeleteApport={handleDeleteApport}
-                      onDownloadExcel={handleDownloadExcel}
+                      onAddProduct={handleAddProduct}
+                      onEditProduct={storeData.updateProduct}
+                      onDeleteProducts={storeData.deleteProducts}
+                      categories={storeData.categories}
+                      fournisseurs={storeData.suppliers}
+                      onAddFournisseur={peutCompleterLesListes ? creerFournisseurRapide : undefined}
+                      onUpdateFournisseur={completerFournisseur}
+                      onCreerCategorie={peutCompleterLesListes ? creerCategorieProduit : undefined}
+                      prixAuto={prixAuto}
+                      productImages={storeData.productImages}
+                      storeId={workspace.activeStore?.id ?? null}
+                      onEditProductDetails={storeData.updateProductDetails}
+                      onAddProductImage={storeData.addProductImage}
+                      onDeleteProductImage={storeData.deleteProductImage}
+                      visibleFields={produitsVisibleFields}
+                      allowedActions={produitsActions}
                     />
-                  ) : (
-                    <MyActivityView
-                      variant="capital"
-                      storeName={workspace.activeStore?.name || "cette boutique"}
-                      mySellerData={mySellerData}
+                  )}
+                  {vue === "achats" && (
+                    <AchatsView
+                      onAddFournisseur={peutCompleterLesListes ? creerFournisseurRapide : undefined}
+                      onUpdateFournisseur={completerFournisseur}
+                      onCreerCategorie={peutCompleterLesListes ? creerCategorieProduit : undefined}
+                      prixAuto={prixAuto}
+                      onReporterPrixAchat={storeData.updateProduct}
+                      purchases={purchases}
+                      products={products}
+                      locale={locale}
+                      settings={storeSettings}
+                      categories={storeData.categories}
+                      fournisseurs={storeData.suppliers}
+                      storeId={workspace.activeStore?.id ?? null}
+                      onEditProductDetails={storeData.updateProductDetails}
+                      // Un achat dont la désignation ne correspond à rien
+                      // crée un produit : la photo choisie dans sa fiche
+                      // lui revient, comme le reste de sa description.
+                      onAddProductImage={storeData.addProductImage}
+                      productImages={storeData.productImages}
+                      onAddPurchase={handleAddPurchase}
+                      // Supprimer un achat saisi par erreur. La base
+                      // remet le stock comme avant et efface le règlement
+                      // attaché ; la trésorerie remonte d'elle-même,
+                      // puisqu'elle est la somme des achats qui restent.
+                      onDeletePurchase={
+                        workspace.isOwner ||
+                        hasModuleAction(
+                          workspace.memberPermissionsDetailed ?? {},
+                          "achats",
+                          "delete",
+                        )
+                          ? storeData.deletePurchase
+                          : undefined
+                      }
+                      // Corriger un achat : le stock bouge du delta de
+                      // quantité, le total est recalculé et le règlement
+                      // comptant est repris, le tout en une transaction.
+                      onUpdatePurchase={
+                        workspace.isOwner ||
+                        hasModuleAction(workspace.memberPermissionsDetailed ?? {}, "achats", "edit")
+                          ? storeData.updatePurchase
+                          : undefined
+                      }
+                      reapprovisionner={reapprovisionner}
+                      onReapprovisionnementOuvert={() => setReapprovisionner(null)}
+                      visibleFields={achatsVisibleFields}
+                      onOuvrirFacturesRecues={() => setActiveTab("factures_achat")}
                     />
-                  ))}
-                {vue === "produits" && (
-                  <ProduitsView
-                    reglagesAlertes={alertesStock.reglages}
-                    // Le stock se corrige par un mouvement d'ajustement,
-                    // jamais par une écriture directe sur la colonne :
-                    // le chiffre et son journal doivent bouger ensemble.
-                    onAjusterStock={
-                      workspace.isOwner ||
-                      hasModuleAction(
-                        workspace.memberPermissionsDetailed ?? {},
-                        "produits",
-                        "adjust_stock",
-                      )
-                        ? storeData.ajusterStock
-                        : undefined
-                    }
-                    products={products}
-                    locale={locale}
-                    onAddProduct={handleAddProduct}
-                    onEditProduct={storeData.updateProduct}
-                    onDeleteProducts={storeData.deleteProducts}
-                    categories={storeData.categories}
-                    fournisseurs={storeData.suppliers}
-                    onAddFournisseur={peutCompleterLesListes ? creerFournisseurRapide : undefined}
-                    onUpdateFournisseur={completerFournisseur}
-                    onCreerCategorie={peutCompleterLesListes ? creerCategorieProduit : undefined}
-                    prixAuto={prixAuto}
-                    productImages={storeData.productImages}
-                    storeId={workspace.activeStore?.id ?? null}
-                    onEditProductDetails={storeData.updateProductDetails}
-                    onAddProductImage={storeData.addProductImage}
-                    onDeleteProductImage={storeData.deleteProductImage}
-                    visibleFields={produitsVisibleFields}
-                    allowedActions={produitsActions}
-                  />
-                )}
-                {vue === "achats" && (
-                  <AchatsView
-                    onAddFournisseur={peutCompleterLesListes ? creerFournisseurRapide : undefined}
-                    onUpdateFournisseur={completerFournisseur}
-                    onCreerCategorie={peutCompleterLesListes ? creerCategorieProduit : undefined}
-                    prixAuto={prixAuto}
-                    onReporterPrixAchat={storeData.updateProduct}
-                    purchases={purchases}
-                    products={products}
-                    locale={locale}
-                    settings={storeSettings}
-                    categories={storeData.categories}
-                    fournisseurs={storeData.suppliers}
-                    storeId={workspace.activeStore?.id ?? null}
-                    onEditProductDetails={storeData.updateProductDetails}
-                    // Un achat dont la désignation ne correspond à rien
-                    // crée un produit : la photo choisie dans sa fiche
-                    // lui revient, comme le reste de sa description.
-                    onAddProductImage={storeData.addProductImage}
-                    productImages={storeData.productImages}
-                    onAddPurchase={handleAddPurchase}
-                    // Supprimer un achat saisi par erreur. La base
-                    // remet le stock comme avant et efface le règlement
-                    // attaché ; la trésorerie remonte d'elle-même,
-                    // puisqu'elle est la somme des achats qui restent.
-                    onDeletePurchase={
-                      workspace.isOwner ||
-                      hasModuleAction(workspace.memberPermissionsDetailed ?? {}, "achats", "delete")
-                        ? storeData.deletePurchase
-                        : undefined
-                    }
-                    // Corriger un achat : le stock bouge du delta de
-                    // quantité, le total est recalculé et le règlement
-                    // comptant est repris, le tout en une transaction.
-                    onUpdatePurchase={
-                      workspace.isOwner ||
-                      hasModuleAction(workspace.memberPermissionsDetailed ?? {}, "achats", "edit")
-                        ? storeData.updatePurchase
-                        : undefined
-                    }
-                    reapprovisionner={reapprovisionner}
-                    onReapprovisionnementOuvert={() => setReapprovisionner(null)}
-                    visibleFields={achatsVisibleFields}
-                    onOuvrirFacturesRecues={() => setActiveTab("factures_achat")}
-                  />
-                )}
-                {/* Le classeur des factures reçues. Il n'est pas dans
+                  )}
+                  {/* Le classeur des factures reçues. Il n'est pas dans
                     la navigation : on y entre depuis les achats, là où
                     l'on pense au fournisseur, et l'on en revient par
                     la flèche de son en-tête. */}
-                {vue === "factures_achat" && (
-                  <FacturesAchatView
-                    factures={storeData.supplierInvoices}
-                    lignes={storeData.supplierInvoiceItems}
-                    fournisseurs={storeData.suppliers}
-                    products={products}
-                    settings={storeSettings}
-                    reglagesDocuments={reglagesDocuments}
-                    storeId={workspace.activeStore?.id ?? null}
-                    onAdd={storeData.addSupplierInvoice}
-                    onUpdate={storeData.updateSupplierInvoice}
-                    onDelete={
-                      workspace.isOwner ||
-                      hasModuleAction(workspace.memberPermissionsDetailed ?? {}, "achats", "delete")
-                        ? storeData.deleteSupplierInvoice
-                        : undefined
-                    }
-                    onRetour={() => setActiveTab("achats")}
-                    peutCreer={
-                      workspace.isOwner ||
-                      hasModuleAction(workspace.memberPermissionsDetailed ?? {}, "achats", "create")
-                    }
-                    peutModifier={
-                      workspace.isOwner ||
-                      hasModuleAction(workspace.memberPermissionsDetailed ?? {}, "achats", "edit")
-                    }
-                  />
-                )}
-                {vue === "taches" && (
-                  <TachesView
-                    taches={organisation.taches}
-                    membres={storeMembers}
-                    moiId={user?.id ?? null}
-                    voitTouteLEquipe={
-                      workspace.memberPermissions === null ||
-                      getModuleScope(workspace.memberPermissionsDetailed ?? {}, "taches") === "all"
-                    }
-                    peutAttribuer={
-                      workspace.memberPermissions === null ||
-                      hasModuleAction(workspace.memberPermissionsDetailed ?? {}, "taches", "assign")
-                    }
-                    peutSupprimer={
-                      workspace.memberPermissions === null ||
-                      hasModuleAction(workspace.memberPermissionsDetailed ?? {}, "taches", "delete")
-                    }
-                    onCreer={organisation.creer}
-                    onChangerStatut={organisation.changerStatut}
-                    onSupprimer={organisation.supprimer}
-                  />
-                )}
-                {vue === "vue_equipe" && (
-                  <VueEquipeView
-                    taches={organisation.taches}
-                    evenements={calendrier.evenements}
-                    echeances={echeancesMetier(
-                      purchases,
-                      storeData.quotes,
-                      storeData.deliveries,
-                      formatCurrency,
-                      (j) => urgenceDe(j) === "retard",
-                    )}
-                    membres={storeMembers}
-                    moiId={user?.id ?? null}
-                    onNavigateTab={(t) => setActiveTab(t as ActiveTab)}
-                  />
-                )}
-                {vue === "rappels" && (
-                  <RappelsView
-                    rappels={memos.rappels}
-                    membres={storeMembers}
-                    moiId={user?.id ?? null}
-                    onCreer={memos.creer}
-                    onBasculer={memos.basculer}
-                    onSupprimer={memos.supprimer}
-                  />
-                )}
-                {vue === "agenda" && (
-                  <AgendaView
-                    evenements={calendrier.evenements}
-                    membres={storeMembers}
-                    moiId={user?.id ?? null}
-                    onCreer={calendrier.creer}
-                    onSupprimer={calendrier.supprimer}
-                    purchases={purchases}
-                    quotes={storeData.quotes}
-                    deliveries={storeData.deliveries}
-                    onNavigateTab={(t) => setActiveTab(t as ActiveTab)}
-                  />
-                )}
-                {vue === "devis" && (
-                  <DevisView
-                    documentsV2={documentsV2}
-                    reglagesDocuments={reglagesDocuments}
-                    quotes={storeData.quotes}
-                    quoteItems={storeData.quoteItems}
-                    clients={storeData.clients}
-                    products={products}
-                    onAddQuote={storeData.addQuote}
-                    onUpdateQuote={storeData.updateQuote}
-                    onSetStatus={storeData.setQuoteStatus}
-                    onDeleteQuote={storeData.deleteQuote}
-                    settings={storeSettings}
-                    onTransformerEnVente={handleTransformerEnVente}
-                    peutCreer={!devisActions || devisActions.includes("create")}
-                    peutModifier={!devisActions || devisActions.includes("edit")}
-                    peutSupprimer={!devisActions || devisActions.includes("delete")}
-                  />
-                )}
-                {vue === "facturation" && (
-                  <FacturationPage
-                    documents={documentsFacturation}
-                    payments={payments}
-                    clients={storeData.clients}
-                    fournisseurs={storeData.suppliers}
-                    produits={products}
-                    lignesFactureAchat={storeData.supplierInvoiceItems}
-                    vendeurs={computedSellers.map((v) => v.nom)}
-                    settings={storeSettings}
-                    locale={locale}
-                    reglagesDocuments={reglagesDocuments}
-                    facturation={facturation}
-                    moiNom={myName}
-                    voitTout={facturationVoitTout}
-                    droits={{
-                      creer: !facturationActions || facturationActions.includes("create"),
-                      envoyer: !facturationActions || facturationActions.includes("send"),
-                      encaisser: !facturationActions || facturationActions.includes("payment"),
-                      avoir: !facturationActions || facturationActions.includes("credit_note"),
-                    }}
-                    onAddSaleTicket={(data) =>
-                      handleAddSaleTicket({
-                        date: data.date,
-                        vendeur: data.vendeur,
-                        clientCredit: data.client_credit,
-                        clientId: data.client_id,
-                        montantPaye: data.montant_paye_total,
-                        methode: data.methode,
-                        lignes: data.lignes.map((l) => ({
-                          productId: l.product_id,
-                          quantite: l.quantite,
-                          prixVenteUnit: l.prix_vente_unit,
-                          designation: l.designation,
-                        })),
-                      })
-                    }
-                    tauxCommission={lireParametre(parametresBoutique.valeurs, "commission_taux")}
-                    onFixerCommission={storeData.fixerCommission}
-                    onAddPaymentToSale={(id, data) => storeData.addPaymentToSale(id, data)}
-                    onRefundSale={storeData.refundSale}
-                    onAjusterStock={storeData.ajusterStock}
-                    onAllerVers={(ecran) => setActiveTab(ecran)}
-                    onDevisConverti={(devisId, ticketId) =>
-                      storeData.setQuoteStatus(devisId, "accepte", ticketId)
-                    }
-                  />
-                )}
-                {vue === "livraisons" && (
-                  <LivraisonsView
-                    deliveries={storeData.deliveries}
-                    membres={storeMembers}
-                    personnesExternes={storeData.personnesExternes.filter((p) => p.actif)}
-                    // Le type genere attend `Json`, qui exige une signature
-                    // d index ; une interface nommee n en a pas, meme quand sa
-                    // forme est un JSON parfaitement valide. La conversion est
-                    // donc explicite ici plutot que subie dans l ecran.
-                    onAddDelivery={(d) =>
-                      storeData.addDelivery({ ...d, contenu: d.contenu as unknown as Json })
-                    }
-                    onUpdateDelivery={(id, d) =>
-                      storeData.updateDelivery(id, {
-                        ...d,
-                        contenu: d.contenu ? (d.contenu as unknown as Json) : undefined,
-                      })
-                    }
-                    onDeleteDelivery={storeData.deleteDelivery}
-                    onRemettreArgent={storeData.remettreArgentLivraisons}
-                    peutCreer={!livraisonsActions || livraisonsActions.includes("create")}
-                    peutModifier={!livraisonsActions || livraisonsActions.includes("edit")}
-                    peutSupprimer={!livraisonsActions || livraisonsActions.includes("delete")}
-                  />
-                )}
-                {vue === "ventes" && (
-                  <VentesView
-                    personnes={personnesDeLaBoutique}
-                    onCreerPersonne={peutCompleterLesListes ? creerPersonneExterne : undefined}
-                    documentsV2={documentsV2}
-                    reglagesDocuments={reglagesDocuments}
-                    productImages={storeData.productImages}
-                    sales={visibleSales}
-                    products={products}
-                    clients={storeData.clients}
-                    sellers={computedSellers}
-                    locale={locale}
-                    settings={storeSettings}
-                    onAddSaleTicket={handleAddSaleTicket}
-                    panierInitial={panierDepuisDevis}
-                    onPanierRepris={() => setPanierDepuisDevis(null)}
-                    onVenteEnregistree={handleVenteEnregistree}
-                    onEditSale={hasVentesAccess ? handleEditSale : undefined}
-                    tauxCommission={lireParametre(parametresBoutique.valeurs, "commission_taux")}
-                    onFixerCommission={hasVentesAccess ? storeData.fixerCommission : undefined}
-                    onDeleteSale={hasVentesAccess ? handleDeleteSale : undefined}
-                    restrictedToOwnSales={!hasVentesAccess}
-                    visibleFields={ventesVisibleFields}
-                  />
-                )}
-                {vue === "vendeurs" && (
-                  <VendeursView
-                    sellers={computedSellers}
-                    sales={sales}
-                    expenses={expenses}
-                    purchases={purchases}
-                    locale={locale}
-                    settings={storeSettings}
-                    products={products}
-                    onAddSeller={(nom) => {
-                      // Les vendeurs sont ajoutés via invitations dans Paramètres > Équipe
-                      // Rediriger vers paramètres si le nom est vide ou si on veut inviter
-                      setActiveTab("settings");
-                    }}
-                    onDeleteSeller={handleDeleteSeller}
-                    remises={storeData.remises}
-                    // Encaisser une remise n'est proposé qu'à qui peut le
-                    // faire. La base refuserait de toute façon, mais un
-                    // bouton qui échoue est pire qu'un bouton absent.
-                    onAddRemise={
-                      workspace.isOwner ||
-                      hasModuleAction(workspace.memberPermissionsDetailed ?? {}, "vendeurs", "view")
-                        ? storeData.addRemise
-                        : undefined
-                    }
-                    onEditSale={handleEditSale}
-                    onDeleteSale={handleDeleteSale}
-                    onEditExpense={handleEditExpense}
-                    onDeleteExpense={handleDeleteExpense}
-                  />
-                )}
-                {/* ── Deux écrans derrière un seul onglet ──
+                  {vue === "factures_achat" && (
+                    <FacturesAchatView
+                      factures={storeData.supplierInvoices}
+                      lignes={storeData.supplierInvoiceItems}
+                      fournisseurs={storeData.suppliers}
+                      products={products}
+                      settings={storeSettings}
+                      reglagesDocuments={reglagesDocuments}
+                      storeId={workspace.activeStore?.id ?? null}
+                      onAdd={storeData.addSupplierInvoice}
+                      onUpdate={storeData.updateSupplierInvoice}
+                      onDelete={
+                        workspace.isOwner ||
+                        hasModuleAction(
+                          workspace.memberPermissionsDetailed ?? {},
+                          "achats",
+                          "delete",
+                        )
+                          ? storeData.deleteSupplierInvoice
+                          : undefined
+                      }
+                      onRetour={() => setActiveTab("achats")}
+                      peutCreer={
+                        workspace.isOwner ||
+                        hasModuleAction(
+                          workspace.memberPermissionsDetailed ?? {},
+                          "achats",
+                          "create",
+                        )
+                      }
+                      peutModifier={
+                        workspace.isOwner ||
+                        hasModuleAction(workspace.memberPermissionsDetailed ?? {}, "achats", "edit")
+                      }
+                    />
+                  )}
+                  {vue === "taches" && (
+                    <TachesView
+                      taches={organisation.taches}
+                      membres={storeMembers}
+                      moiId={user?.id ?? null}
+                      voitTouteLEquipe={
+                        workspace.memberPermissions === null ||
+                        getModuleScope(workspace.memberPermissionsDetailed ?? {}, "taches") ===
+                          "all"
+                      }
+                      peutAttribuer={
+                        workspace.memberPermissions === null ||
+                        hasModuleAction(
+                          workspace.memberPermissionsDetailed ?? {},
+                          "taches",
+                          "assign",
+                        )
+                      }
+                      peutSupprimer={
+                        workspace.memberPermissions === null ||
+                        hasModuleAction(
+                          workspace.memberPermissionsDetailed ?? {},
+                          "taches",
+                          "delete",
+                        )
+                      }
+                      onCreer={organisation.creer}
+                      onChangerStatut={organisation.changerStatut}
+                      onSupprimer={organisation.supprimer}
+                    />
+                  )}
+                  {vue === "vue_equipe" && (
+                    <VueEquipeView
+                      taches={organisation.taches}
+                      evenements={calendrier.evenements}
+                      echeances={echeancesMetier(
+                        purchases,
+                        storeData.quotes,
+                        storeData.deliveries,
+                        formatCurrency,
+                        (j) => urgenceDe(j) === "retard",
+                      )}
+                      membres={storeMembers}
+                      moiId={user?.id ?? null}
+                      onNavigateTab={(t) => setActiveTab(t as ActiveTab)}
+                    />
+                  )}
+                  {vue === "rappels" && (
+                    <RappelsView
+                      rappels={memos.rappels}
+                      membres={storeMembers}
+                      moiId={user?.id ?? null}
+                      onCreer={memos.creer}
+                      onBasculer={memos.basculer}
+                      onSupprimer={memos.supprimer}
+                    />
+                  )}
+                  {vue === "agenda" && (
+                    <AgendaView
+                      evenements={calendrier.evenements}
+                      membres={storeMembers}
+                      moiId={user?.id ?? null}
+                      onCreer={calendrier.creer}
+                      onSupprimer={calendrier.supprimer}
+                      purchases={purchases}
+                      quotes={storeData.quotes}
+                      deliveries={storeData.deliveries}
+                      onNavigateTab={(t) => setActiveTab(t as ActiveTab)}
+                    />
+                  )}
+                  {vue === "devis" && (
+                    <DevisView
+                      documentsV2={documentsV2}
+                      reglagesDocuments={reglagesDocuments}
+                      quotes={storeData.quotes}
+                      quoteItems={storeData.quoteItems}
+                      clients={storeData.clients}
+                      products={products}
+                      onAddQuote={storeData.addQuote}
+                      onUpdateQuote={storeData.updateQuote}
+                      onSetStatus={storeData.setQuoteStatus}
+                      onDeleteQuote={storeData.deleteQuote}
+                      settings={storeSettings}
+                      onTransformerEnVente={handleTransformerEnVente}
+                      peutCreer={!devisActions || devisActions.includes("create")}
+                      peutModifier={!devisActions || devisActions.includes("edit")}
+                      peutSupprimer={!devisActions || devisActions.includes("delete")}
+                    />
+                  )}
+                  {vue === "facturation" && (
+                    <FacturationPage
+                      documents={documentsFacturation}
+                      payments={payments}
+                      clients={storeData.clients}
+                      fournisseurs={storeData.suppliers}
+                      produits={products}
+                      lignesFactureAchat={storeData.supplierInvoiceItems}
+                      vendeurs={computedSellers.map((v) => v.nom)}
+                      settings={storeSettings}
+                      locale={locale}
+                      reglagesDocuments={reglagesDocuments}
+                      facturation={facturation}
+                      moiNom={myName}
+                      voitTout={facturationVoitTout}
+                      droits={{
+                        creer: !facturationActions || facturationActions.includes("create"),
+                        envoyer: !facturationActions || facturationActions.includes("send"),
+                        encaisser: !facturationActions || facturationActions.includes("payment"),
+                        avoir: !facturationActions || facturationActions.includes("credit_note"),
+                      }}
+                      onAddSaleTicket={(data) =>
+                        handleAddSaleTicket({
+                          date: data.date,
+                          vendeur: data.vendeur,
+                          clientCredit: data.client_credit,
+                          clientId: data.client_id,
+                          montantPaye: data.montant_paye_total,
+                          methode: data.methode,
+                          lignes: data.lignes.map((l) => ({
+                            productId: l.product_id,
+                            quantite: l.quantite,
+                            prixVenteUnit: l.prix_vente_unit,
+                            designation: l.designation,
+                          })),
+                        })
+                      }
+                      tauxCommission={lireParametre(parametresBoutique.valeurs, "commission_taux")}
+                      onFixerCommission={storeData.fixerCommission}
+                      onAddPaymentToSale={(id, data) => storeData.addPaymentToSale(id, data)}
+                      onRefundSale={storeData.refundSale}
+                      onAjusterStock={storeData.ajusterStock}
+                      onAllerVers={(ecran) => setActiveTab(ecran)}
+                      onDevisConverti={(devisId, ticketId) =>
+                        storeData.setQuoteStatus(devisId, "accepte", ticketId)
+                      }
+                    />
+                  )}
+                  {vue === "livraisons" && (
+                    <LivraisonsView
+                      deliveries={storeData.deliveries}
+                      membres={storeMembers}
+                      personnesExternes={storeData.personnesExternes.filter((p) => p.actif)}
+                      // Le type genere attend `Json`, qui exige une signature
+                      // d index ; une interface nommee n en a pas, meme quand sa
+                      // forme est un JSON parfaitement valide. La conversion est
+                      // donc explicite ici plutot que subie dans l ecran.
+                      onAddDelivery={(d) =>
+                        storeData.addDelivery({ ...d, contenu: d.contenu as unknown as Json })
+                      }
+                      onUpdateDelivery={(id, d) =>
+                        storeData.updateDelivery(id, {
+                          ...d,
+                          contenu: d.contenu ? (d.contenu as unknown as Json) : undefined,
+                        })
+                      }
+                      onDeleteDelivery={storeData.deleteDelivery}
+                      onRemettreArgent={storeData.remettreArgentLivraisons}
+                      peutCreer={!livraisonsActions || livraisonsActions.includes("create")}
+                      peutModifier={!livraisonsActions || livraisonsActions.includes("edit")}
+                      peutSupprimer={!livraisonsActions || livraisonsActions.includes("delete")}
+                    />
+                  )}
+                  {vue === "ventes" && (
+                    <VentesView
+                      personnes={personnesDeLaBoutique}
+                      onCreerPersonne={peutCompleterLesListes ? creerPersonneExterne : undefined}
+                      documentsV2={documentsV2}
+                      reglagesDocuments={reglagesDocuments}
+                      productImages={storeData.productImages}
+                      sales={visibleSales}
+                      products={products}
+                      clients={storeData.clients}
+                      sellers={computedSellers}
+                      locale={locale}
+                      settings={storeSettings}
+                      onAddSaleTicket={handleAddSaleTicket}
+                      panierInitial={panierDepuisDevis}
+                      onPanierRepris={() => setPanierDepuisDevis(null)}
+                      onVenteEnregistree={handleVenteEnregistree}
+                      onEditSale={hasVentesAccess ? handleEditSale : undefined}
+                      tauxCommission={lireParametre(parametresBoutique.valeurs, "commission_taux")}
+                      onFixerCommission={hasVentesAccess ? storeData.fixerCommission : undefined}
+                      onDeleteSale={hasVentesAccess ? handleDeleteSale : undefined}
+                      restrictedToOwnSales={!hasVentesAccess}
+                      visibleFields={ventesVisibleFields}
+                    />
+                  )}
+                  {vue === "vendeurs" && (
+                    <VendeursView
+                      sellers={computedSellers}
+                      sales={sales}
+                      expenses={expenses}
+                      purchases={purchases}
+                      locale={locale}
+                      settings={storeSettings}
+                      products={products}
+                      onAddSeller={(nom) => {
+                        // Les vendeurs sont ajoutés via invitations dans Paramètres > Équipe
+                        // Rediriger vers paramètres si le nom est vide ou si on veut inviter
+                        setActiveTab("settings");
+                      }}
+                      onDeleteSeller={handleDeleteSeller}
+                      remises={storeData.remises}
+                      // Encaisser une remise n'est proposé qu'à qui peut le
+                      // faire. La base refuserait de toute façon, mais un
+                      // bouton qui échoue est pire qu'un bouton absent.
+                      onAddRemise={
+                        workspace.isOwner ||
+                        hasModuleAction(
+                          workspace.memberPermissionsDetailed ?? {},
+                          "vendeurs",
+                          "view",
+                        )
+                          ? storeData.addRemise
+                          : undefined
+                      }
+                      onEditSale={handleEditSale}
+                      onDeleteSale={handleDeleteSale}
+                      onEditExpense={handleEditExpense}
+                      onDeleteExpense={handleDeleteExpense}
+                    />
+                  )}
+                  {/* ── Deux écrans derrière un seul onglet ──
                     La PORTÉE décide, et elle est la même qu'en base :
                     qui voit toute l'équipe reçoit l'écran du
                     responsable, les autres le leur. Ce n'est pas une
@@ -2268,304 +2324,310 @@ function AppInner() {
                     lignes, et l'écran du responsable leur montrerait
                     une masse salariale d'une seule personne, ce qui
                     n'aurait aucun sens. */}
-                {vue === "salaires" && !voitTousLesSalaires && (
-                  <MaPaieView
-                    salaires={storeData.salaires}
-                    paiements={storeData.paiementsSalaire}
-                    locale={locale}
-                    onDemander={({ employe, montant, motif, periode }) =>
-                      storeData.addPaiementSalaire({
-                        employe,
-                        type: "avance",
-                        montant,
-                        periode,
-                        statut: "en_attente",
-                        user_id: user?.id ?? null,
-                        motif,
-                      })
-                    }
-                    onAnnuler={(id) => storeData.updatePaiementSalaire(id, { statut: "annulee" })}
-                  />
-                )}
-                {vue === "salaires" && voitTousLesSalaires && (
-                  <SalairesView
-                    salaires={storeData.salaires}
-                    paiements={storeData.paiementsSalaire}
-                    // Les noms déjà connus, pour la saisie assistée.
-                    // Une LISTE FERMÉE exclurait par construction tout
-                    // nouvel employé — un livreur embauché lundi
-                    // n'apparaît dans aucune vente. C'est donc une
-                    // suggestion, jamais une contrainte.
-                    nomsConnus={Array.from(
-                      new Set([
-                        ...computedSellers.map((v) => v.nom),
-                        ...storeData.salaires.map((s) => s.employe),
-                      ]),
-                    ).sort((a, b) => a.localeCompare(b, "fr"))}
-                    membres={storeMembers}
-                    locale={locale}
-                    peutGerer={peutGererLesSalaires}
-                    onAddSalaire={storeData.addSalaire}
-                    onDeleteSalaire={storeData.deleteSalaire}
-                    onAddPaiement={storeData.addPaiementSalaire}
-                    onUpdatePaiement={storeData.updatePaiementSalaire}
-                    onDeletePaiement={storeData.deletePaiementSalaire}
-                  />
-                )}
-                {vue === "notes_frais" && (
-                  <NotesDeFraisPage
-                    storeId={workspace.activeStore?.id ?? null}
-                    notes={notesDeFrais.notes}
-                    peutGerer={notesDeFrais.peutGerer}
-                    moiId={user?.id ?? null}
-                    monNom={myName}
-                    locale={locale}
-                    postes={storeData.categories
-                      .filter((c) => (c.usage ?? "produit") === "depense")
-                      .map((c) => ({ id: c.id, nom: c.nom }))}
-                    personnes={personnesDeLaBoutique}
-                    onCreerPersonne={peutCompleterLesListes ? creerPersonneExterne : undefined}
-                    onCreerPoste={peutCompleterLesListes ? creerPosteDeDepense : undefined}
-                    onCreer={notesDeFrais.creer}
-                    onModifier={notesDeFrais.modifier}
-                    onSupprimer={notesDeFrais.supprimer}
-                    onDecider={notesDeFrais.decider}
-                    onRembourser={async (id, date) => {
-                      const r = await notesDeFrais.rembourser(id, date);
-                      // Le remboursement a créé une dépense : la trésorerie change.
-                      if (!r.error) storeData.refresh();
-                      return r;
-                    }}
-                  />
-                )}
-                {vue === "depenses" && (
-                  <DepensesView
-                    expenses={visibleExpenses}
-                    sellers={computedSellers}
-                    locale={locale}
-                    settings={storeSettings}
-                    postes={storeData.categories
-                      .filter((c) => (c.usage ?? "produit") === "depense")
-                      .map((c) => ({ id: c.id, nom: c.nom, parent_id: c.parent_id }))}
-                    prestataires={storeData.providers.map((p) => ({ id: p.id, nom: p.nom }))}
-                    storeId={workspace.activeStore?.id ?? null}
-                    personnes={personnesDeLaBoutique}
-                    onCreerPersonne={peutCompleterLesListes ? creerPersonneExterne : undefined}
-                    onCreerPoste={peutCompleterLesListes ? creerPosteDeDepense : undefined}
-                    libelleEffectuePar={libelleEffectuePar(personnalisation)}
-                    onAddExpense={handleAddExpense}
-                    onEditExpense={depensesScope === "all" ? handleEditExpense : undefined}
-                    onDeleteExpense={depensesScope === "all" ? handleDeleteExpense : undefined}
-                  />
-                )}
-                {vue === "rapports" && (
-                  <RapportsView
-                    sales={visibleSales}
-                    purchases={purchases}
-                    expenses={visibleExpenses}
-                    products={products}
-                    postes={storeData.categories
-                      .filter((c) => (c.usage ?? "produit") === "depense")
-                      .map((c) => ({ id: c.id, nom: c.nom }))}
-                    locale={locale}
-                  />
-                )}
-                {vue === "statistiques" && (
-                  <StatistiquesView
-                    sales={visibleSales}
-                    products={products}
-                    sellers={
-                      workspace.isOwner ||
-                      getModuleScope(workspace.memberPermissionsDetailed ?? {}, "statistiques") ===
-                        "all"
-                        ? computedSellers
-                        : computedSellers.filter((s) => s.nom === myName)
-                    }
-                    expenses={visibleExpenses}
-                    locale={locale}
-                  />
-                )}
-                {vue === "historique" && (
-                  <HistoriqueView
-                    purchases={historiquePurchases}
-                    sales={visibleSales}
-                    expenses={visibleExpenses}
-                    apports={historiqueApports}
-                    orders={visibleOrders}
-                    notesDeFrais={notesDeFrais.notes}
-                    locale={locale}
-                    products={products}
-                  />
-                )}
-                {vue === "commandes" && (
-                  <CommandesView
-                    documentsV2={documentsV2}
-                    reglagesDocuments={reglagesDocuments}
-                    settings={storeSettings}
-                    orders={visibleOrders}
-                    clients={storeData.clients}
-                    products={storeData.products}
-                    isOwner={workspace.isOwner}
-                    onAddOrder={storeData.addOrder}
-                    onUpdateOrder={handleUpdateOrder}
-                    onAddPayment={storeData.addPaymentToOrder}
-                    onRefundOrder={storeData.refundOrder}
-                    onDeleteOrder={storeData.deleteOrder}
-                  />
-                )}
-                {vue === "paiements" && (
-                  <PaiementsARecevoirView
-                    sales={visibleSales}
-                    orders={visibleOrders}
-                    payments={visiblePayments}
-                    products={products}
-                    onAddPaymentToSale={storeData.addPaymentToSale}
-                    onAddPaymentToOrder={storeData.addPaymentToOrder}
-                  />
-                )}
-                {vue === "clients" && (
-                  <ClientsView
-                    clients={visibleClients}
-                    orders={storeData.orders}
-                    sales={visibleSales}
-                    payments={visiblePayments}
-                    onAddClient={storeData.addClient}
-                    onUpdateClient={storeData.updateClient}
-                    onDeleteClient={storeData.deleteClient}
-                    onNavigateToOrders={
-                      // Le raccourci disparaît avec le module : mieux vaut
-                      // pas de bouton qu'un bouton qui ne mène nulle part.
-                      moduleMasque(personnalisation, "commandes")
-                        ? undefined
-                        : () => setActiveTab("commandes")
-                    }
-                    champsPersonnalises={storeData.customFields}
-                  />
-                )}
-                {vue === "fournisseurs" && (
-                  <FournisseursView
-                    suppliers={storeData.suppliers}
-                    purchases={purchases}
-                    products={products}
-                    onAddSupplier={storeData.addSupplier}
-                    onUpdateSupplier={storeData.updateSupplier}
-                    onDeleteSupplier={storeData.deleteSupplier}
-                    onAddSupplierPayment={storeData.addSupplierPayment}
-                    champsPersonnalises={storeData.customFields}
-                    typesFournisseur={storeData.categories}
-                    onCreerTypeFournisseur={
-                      peutCompleterLesListes ? creerTypeFournisseur : undefined
-                    }
-                    peutCreer={!fournisseursActions || fournisseursActions.includes("create")}
-                    peutModifier={!fournisseursActions || fournisseursActions.includes("edit")}
-                    peutSupprimer={!fournisseursActions || fournisseursActions.includes("delete")}
-                  />
-                )}
-                {vue === "prestataires" && (
-                  <PrestatairesView
-                    providers={storeData.providers}
-                    providerServices={storeData.providerServices}
-                    depenses={expenses}
-                    onAddProvider={storeData.addProvider}
-                    onUpdateProvider={storeData.updateProvider}
-                    onDeleteProvider={storeData.deleteProvider}
-                    onAddService={storeData.addProviderService}
-                    onDeleteService={storeData.deleteProviderService}
-                    champsPersonnalises={storeData.customFields}
-                    peutCreer={!prestatairesActions || prestatairesActions.includes("create")}
-                    peutModifier={!prestatairesActions || prestatairesActions.includes("edit")}
-                    peutSupprimer={!prestatairesActions || prestatairesActions.includes("delete")}
-                  />
-                )}
-                {vue === "settings" && (
-                  <ParametresView
-                    sales={sales}
-                    products={products}
-                    sectionInitiale={sectionParametres}
-                    settings={storeSettings}
-                    personnalisation={personnalisation}
-                    onSavePersonnalisation={handleSavePersonnalisation}
-                    alertesStock={{
-                      reglages: alertesStock.reglages,
-                      chargement: alertesStock.chargement,
-                      enregistrer: alertesStock.enregistrer,
-                      produits: produitsPourExemplePrealerte,
-                    }}
-                    categories={storeData.categories}
-                    compteParValeur={compteParValeurDeListe}
-                    personnesExternes={storeData.personnesExternes}
-                    onAddPersonneExterne={storeData.addPersonneExterne}
-                    onUpdatePersonneExterne={storeData.updatePersonneExterne}
-                    onAddCategorie={storeData.addCategorie}
-                    onUpdateCategorie={storeData.updateCategorie}
-                    onDeleteCategorie={storeData.deleteCategorie}
-                    champsPersonnalises={storeData.customFields}
-                    onAddChampPersonnalise={storeData.addCustomField}
-                    onUpdateChampPersonnalise={storeData.updateCustomField}
-                    onDeleteChampPersonnalise={storeData.deleteCustomField}
-                    onUpdateSettings={handleUpdateSettings}
-                    sellers={computedSellers}
-                    onDeleteSeller={handleDeleteSeller}
-                    locale={locale}
-                    setLocale={setLocale}
-                    capital={computedCapital}
-                    onDownloadExcel={handleDownloadExcel}
-                    theme={theme}
-                    setTheme={setTheme}
-                    isPlatformAdmin={profile?.is_platform_admin ?? false}
-                    currentUserId={user?.id ?? undefined}
-                    parametres={parametresBoutique.valeurs}
-                    onSaveParametre={parametresBoutique.enregistrer}
-                  />
-                )}
-              </Suspense>
-            </LimiteChargement>
-          </div>
-        </main>
-
-        {activityToast && (
-          <div className="fixed inset-x-3 bottom-3 sm:inset-x-auto sm:bottom-6 sm:right-6 z-50 sm:max-w-md bg-card/95 border-2 border-success-border rounded-2xl p-4 shadow-2xl flex items-start gap-3 backdrop-blur-md">
-            <div className="p-2.5 rounded-xl bg-success-soft t-success shrink-0 mt-0.5">
-              <Zap className="w-5 h-5 animate-pulse" />
+                  {vue === "salaires" && !voitTousLesSalaires && (
+                    <MaPaieView
+                      salaires={storeData.salaires}
+                      paiements={storeData.paiementsSalaire}
+                      locale={locale}
+                      onDemander={({ employe, montant, motif, periode }) =>
+                        storeData.addPaiementSalaire({
+                          employe,
+                          type: "avance",
+                          montant,
+                          periode,
+                          statut: "en_attente",
+                          user_id: user?.id ?? null,
+                          motif,
+                        })
+                      }
+                      onAnnuler={(id) => storeData.updatePaiementSalaire(id, { statut: "annulee" })}
+                    />
+                  )}
+                  {vue === "salaires" && voitTousLesSalaires && (
+                    <SalairesView
+                      salaires={storeData.salaires}
+                      paiements={storeData.paiementsSalaire}
+                      // Les noms déjà connus, pour la saisie assistée.
+                      // Une LISTE FERMÉE exclurait par construction tout
+                      // nouvel employé — un livreur embauché lundi
+                      // n'apparaît dans aucune vente. C'est donc une
+                      // suggestion, jamais une contrainte.
+                      nomsConnus={Array.from(
+                        new Set([
+                          ...computedSellers.map((v) => v.nom),
+                          ...storeData.salaires.map((s) => s.employe),
+                        ]),
+                      ).sort((a, b) => a.localeCompare(b, "fr"))}
+                      membres={storeMembers}
+                      locale={locale}
+                      peutGerer={peutGererLesSalaires}
+                      onAddSalaire={storeData.addSalaire}
+                      onDeleteSalaire={storeData.deleteSalaire}
+                      onAddPaiement={storeData.addPaiementSalaire}
+                      onUpdatePaiement={storeData.updatePaiementSalaire}
+                      onDeletePaiement={storeData.deletePaiementSalaire}
+                    />
+                  )}
+                  {vue === "notes_frais" && (
+                    <NotesDeFraisView
+                      catalogue={devisesBoutique.catalogue}
+                      devises={devisesBoutique.devises}
+                      principale={devisesBoutique.principale}
+                      notes={notesDeFrais.notes}
+                      peutGerer={notesDeFrais.peutGerer}
+                      moiId={user?.id ?? null}
+                      monNom={myName}
+                      locale={locale}
+                      postes={storeData.categories
+                        .filter((c) => (c.usage ?? "produit") === "depense")
+                        .map((c) => ({ id: c.id, nom: c.nom }))}
+                      personnes={personnesDeLaBoutique}
+                      onCreerPersonne={peutCompleterLesListes ? creerPersonneExterne : undefined}
+                      onCreerPoste={peutCompleterLesListes ? creerPosteDeDepense : undefined}
+                      onCreer={notesDeFrais.creer}
+                      onModifier={notesDeFrais.modifier}
+                      onSupprimer={notesDeFrais.supprimer}
+                      onDecider={notesDeFrais.decider}
+                      onRembourser={async (id, date) => {
+                        const r = await notesDeFrais.rembourser(id, date);
+                        // Le remboursement a créé une dépense : la trésorerie change.
+                        if (!r.error) storeData.refresh();
+                        return r;
+                      }}
+                    />
+                  )}
+                  {vue === "depenses" && (
+                    <DepensesView
+                      expenses={visibleExpenses}
+                      sellers={computedSellers}
+                      locale={locale}
+                      settings={storeSettings}
+                      postes={storeData.categories
+                        .filter((c) => (c.usage ?? "produit") === "depense")
+                        .map((c) => ({ id: c.id, nom: c.nom, parent_id: c.parent_id }))}
+                      prestataires={storeData.providers.map((p) => ({ id: p.id, nom: p.nom }))}
+                      storeId={workspace.activeStore?.id ?? null}
+                      personnes={personnesDeLaBoutique}
+                      onCreerPersonne={peutCompleterLesListes ? creerPersonneExterne : undefined}
+                      onCreerPoste={peutCompleterLesListes ? creerPosteDeDepense : undefined}
+                      libelleEffectuePar={libelleEffectuePar(personnalisation)}
+                      onAddExpense={handleAddExpense}
+                      onEditExpense={depensesScope === "all" ? handleEditExpense : undefined}
+                      onDeleteExpense={depensesScope === "all" ? handleDeleteExpense : undefined}
+                    />
+                  )}
+                  {vue === "rapports" && (
+                    <RapportsView
+                      sales={visibleSales}
+                      purchases={purchases}
+                      expenses={visibleExpenses}
+                      products={products}
+                      postes={storeData.categories
+                        .filter((c) => (c.usage ?? "produit") === "depense")
+                        .map((c) => ({ id: c.id, nom: c.nom }))}
+                      locale={locale}
+                    />
+                  )}
+                  {vue === "statistiques" && (
+                    <StatistiquesView
+                      sales={visibleSales}
+                      products={products}
+                      sellers={
+                        workspace.isOwner ||
+                        getModuleScope(
+                          workspace.memberPermissionsDetailed ?? {},
+                          "statistiques",
+                        ) === "all"
+                          ? computedSellers
+                          : computedSellers.filter((s) => s.nom === myName)
+                      }
+                      expenses={visibleExpenses}
+                      locale={locale}
+                    />
+                  )}
+                  {vue === "historique" && (
+                    <HistoriqueView
+                      purchases={historiquePurchases}
+                      sales={visibleSales}
+                      expenses={visibleExpenses}
+                      apports={historiqueApports}
+                      orders={visibleOrders}
+                      notesDeFrais={notesDeFrais.notes}
+                      locale={locale}
+                      products={products}
+                    />
+                  )}
+                  {vue === "commandes" && (
+                    <CommandesView
+                      documentsV2={documentsV2}
+                      reglagesDocuments={reglagesDocuments}
+                      settings={storeSettings}
+                      orders={visibleOrders}
+                      clients={storeData.clients}
+                      products={storeData.products}
+                      isOwner={workspace.isOwner}
+                      onAddOrder={storeData.addOrder}
+                      onUpdateOrder={handleUpdateOrder}
+                      onAddPayment={storeData.addPaymentToOrder}
+                      onRefundOrder={storeData.refundOrder}
+                      onDeleteOrder={storeData.deleteOrder}
+                    />
+                  )}
+                  {vue === "paiements" && (
+                    <PaiementsARecevoirView
+                      sales={visibleSales}
+                      orders={visibleOrders}
+                      payments={visiblePayments}
+                      products={products}
+                      onAddPaymentToSale={storeData.addPaymentToSale}
+                      onAddPaymentToOrder={storeData.addPaymentToOrder}
+                    />
+                  )}
+                  {vue === "clients" && (
+                    <ClientsView
+                      clients={visibleClients}
+                      orders={storeData.orders}
+                      sales={visibleSales}
+                      payments={visiblePayments}
+                      onAddClient={storeData.addClient}
+                      onUpdateClient={storeData.updateClient}
+                      onDeleteClient={storeData.deleteClient}
+                      onNavigateToOrders={
+                        // Le raccourci disparaît avec le module : mieux vaut
+                        // pas de bouton qu'un bouton qui ne mène nulle part.
+                        moduleMasque(personnalisation, "commandes")
+                          ? undefined
+                          : () => setActiveTab("commandes")
+                      }
+                      champsPersonnalises={storeData.customFields}
+                    />
+                  )}
+                  {vue === "fournisseurs" && (
+                    <FournisseursView
+                      suppliers={storeData.suppliers}
+                      purchases={purchases}
+                      products={products}
+                      onAddSupplier={storeData.addSupplier}
+                      onUpdateSupplier={storeData.updateSupplier}
+                      onDeleteSupplier={storeData.deleteSupplier}
+                      onAddSupplierPayment={storeData.addSupplierPayment}
+                      champsPersonnalises={storeData.customFields}
+                      typesFournisseur={storeData.categories}
+                      onCreerTypeFournisseur={
+                        peutCompleterLesListes ? creerTypeFournisseur : undefined
+                      }
+                      peutCreer={!fournisseursActions || fournisseursActions.includes("create")}
+                      peutModifier={!fournisseursActions || fournisseursActions.includes("edit")}
+                      peutSupprimer={!fournisseursActions || fournisseursActions.includes("delete")}
+                    />
+                  )}
+                  {vue === "prestataires" && (
+                    <PrestatairesView
+                      providers={storeData.providers}
+                      providerServices={storeData.providerServices}
+                      depenses={expenses}
+                      onAddProvider={storeData.addProvider}
+                      onUpdateProvider={storeData.updateProvider}
+                      onDeleteProvider={storeData.deleteProvider}
+                      onAddService={storeData.addProviderService}
+                      onDeleteService={storeData.deleteProviderService}
+                      champsPersonnalises={storeData.customFields}
+                      peutCreer={!prestatairesActions || prestatairesActions.includes("create")}
+                      peutModifier={!prestatairesActions || prestatairesActions.includes("edit")}
+                      peutSupprimer={!prestatairesActions || prestatairesActions.includes("delete")}
+                    />
+                  )}
+                  {vue === "settings" && (
+                    <ParametresView
+                      sales={sales}
+                      products={products}
+                      sectionInitiale={sectionParametres}
+                      settings={storeSettings}
+                      personnalisation={personnalisation}
+                      onSavePersonnalisation={handleSavePersonnalisation}
+                      alertesStock={{
+                        reglages: alertesStock.reglages,
+                        chargement: alertesStock.chargement,
+                        enregistrer: alertesStock.enregistrer,
+                        produits: produitsPourExemplePrealerte,
+                      }}
+                      categories={storeData.categories}
+                      compteParValeur={compteParValeurDeListe}
+                      personnesExternes={storeData.personnesExternes}
+                      onAddPersonneExterne={storeData.addPersonneExterne}
+                      onUpdatePersonneExterne={storeData.updatePersonneExterne}
+                      onAddCategorie={storeData.addCategorie}
+                      onUpdateCategorie={storeData.updateCategorie}
+                      onDeleteCategorie={storeData.deleteCategorie}
+                      champsPersonnalises={storeData.customFields}
+                      onAddChampPersonnalise={storeData.addCustomField}
+                      onUpdateChampPersonnalise={storeData.updateCustomField}
+                      onDeleteChampPersonnalise={storeData.deleteCustomField}
+                      onUpdateSettings={handleUpdateSettings}
+                      sellers={computedSellers}
+                      onDeleteSeller={handleDeleteSeller}
+                      locale={locale}
+                      setLocale={setLocale}
+                      capital={computedCapital}
+                      onDownloadExcel={handleDownloadExcel}
+                      theme={theme}
+                      setTheme={setTheme}
+                      isPlatformAdmin={profile?.is_platform_admin ?? false}
+                      currentUserId={user?.id ?? undefined}
+                      parametres={parametresBoutique.valeurs}
+                      devises={devisesBoutique}
+                      onSaveParametre={parametresBoutique.enregistrer}
+                    />
+                  )}
+                </Suspense>
+              </LimiteChargement>
             </div>
-            <div className="flex-1 text-xs">
-              <div className="flex items-center justify-between mb-1">
-                <span className="font-bold t-success uppercase tracking-wider text-[10px] flex items-center gap-1">
-                  <span className="w-2 h-2 rounded-full bg-success animate-ping"></span>
-                  Alerte Activité
-                </span>
-                <span className="text-[10px] text-muted-foreground font-mono">
-                  {activityToast.timestamp}
-                </span>
+          </main>
+
+          {activityToast && (
+            <div className="fixed inset-x-3 bottom-3 sm:inset-x-auto sm:bottom-6 sm:right-6 z-50 sm:max-w-md bg-card/95 border-2 border-success-border rounded-2xl p-4 shadow-2xl flex items-start gap-3 backdrop-blur-md">
+              <div className="p-2.5 rounded-xl bg-success-soft t-success shrink-0 mt-0.5">
+                <Zap className="w-5 h-5 animate-pulse" />
               </div>
-              <p className="text-foreground font-medium leading-relaxed">
-                <span className="font-bold t-warning bg-warning-soft px-1.5 py-0.5 rounded mr-1">
-                  {activityToast.vendeur}
-                </span>{" "}
-                {activityToast.message}
-              </p>
+              <div className="flex-1 text-xs">
+                <div className="flex items-center justify-between mb-1">
+                  <span className="font-bold t-success uppercase tracking-wider text-[10px] flex items-center gap-1">
+                    <span className="w-2 h-2 rounded-full bg-success animate-ping"></span>
+                    Alerte Activité
+                  </span>
+                  <span className="text-[10px] text-muted-foreground font-mono">
+                    {activityToast.timestamp}
+                  </span>
+                </div>
+                <p className="text-foreground font-medium leading-relaxed">
+                  <span className="font-bold t-warning bg-warning-soft px-1.5 py-0.5 rounded mr-1">
+                    {activityToast.vendeur}
+                  </span>{" "}
+                  {activityToast.message}
+                </p>
+              </div>
+              <button
+                onClick={() => setActivityToast(null)}
+                className="p-1 text-muted-foreground hover:text-foreground bg-muted rounded-lg transition-colors"
+              >
+                <X className="w-4 h-4" />
+              </button>
             </div>
-            <button
-              onClick={() => setActivityToast(null)}
-              className="p-1 text-muted-foreground hover:text-foreground bg-muted rounded-lg transition-colors"
-            >
-              <X className="w-4 h-4" />
-            </button>
-          </div>
-        )}
+          )}
 
-        {/* Le bon de commande se compose depuis n'importe où : la
+          {/* Le bon de commande se compose depuis n'importe où : la
             cloche l'ouvre, la carte Stock aussi. Il vit donc à la
             racine plutôt que dans l'un des deux écrans, et l'autre
             aurait dû aller le chercher. */}
-        <BonDeCommande
-          ouvert={bonDeCommandeOuvert}
-          onFermer={() => setBonDeCommandeOuvert(false)}
-          produits={produitsARecommander}
-          reglages={alertesStock.reglages}
-          settings={storeSettings}
-        />
-      </div>
+          <BonDeCommande
+            ouvert={bonDeCommandeOuvert}
+            onFermer={() => setBonDeCommandeOuvert(false)}
+            produits={produitsARecommander}
+            reglages={alertesStock.reglages}
+            settings={storeSettings}
+          />
+        </div>
+      </FournisseurDevises>
     </contextePersonnalisation.Provider>
   );
 }

@@ -8,8 +8,8 @@ import type { Json } from "./database.types";
 export interface DefinitionParametre {
   libelle: string;
   aide: string;
-  type: "pourcentage" | "nombre" | "texte" | "booleen";
-  defaut: number | string | boolean;
+  type: "pourcentage" | "nombre" | "texte" | "booleen" | "liste" | "carte";
+  defaut: number | string | boolean | string[] | Record<string, string[]>;
   min?: number;
   max?: number;
 }
@@ -23,6 +23,18 @@ export const PARAMETRES = {
     min: 0,
     max: 100,
   },
+  devises_affichees: {
+    libelle: "Montants aussi en",
+    aide: "Les devises dont l'équivalent s'affiche sous les prix : caisse, produits, achats.",
+    type: "liste",
+    defaut: [] as string[],
+  },
+  devises_documents: {
+    libelle: "Sur les documents",
+    aide: "Par type de document, les devises dont l'équivalent s'imprime sous chaque prix et sous le total.",
+    type: "carte",
+    defaut: {} as Record<string, string[]>,
+  },
 } satisfies Record<string, DefinitionParametre>;
 
 export type CleParametre = keyof typeof PARAMETRES;
@@ -35,5 +47,6 @@ export function lireParametre<K extends CleParametre>(
   const v = valeurs[cle];
   const def = PARAMETRES[cle].defaut;
   if (v === undefined || v === null || typeof v !== typeof def) return def;
+  if (Array.isArray(v) !== Array.isArray(def)) return def;
   return v as (typeof PARAMETRES)[K]["defaut"];
 }

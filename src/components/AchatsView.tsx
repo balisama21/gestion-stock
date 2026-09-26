@@ -56,6 +56,7 @@ import { PAPER_FORMATS, getPaperFormat, type PaperFormatId } from "../lib/paperF
 import { dateDuJour } from "../lib/dates";
 import { envoyerFichier, supprimerFichier } from "../lib/stockageFichiers";
 import { useRechercheInitiale } from "../lib/cibleRecherche";
+import { Equivalents } from "../lib/contexteDevises";
 
 interface AchatsViewProps {
   /** Ouvrir le classeur des factures reçues des fournisseurs. */
@@ -1410,6 +1411,13 @@ export const AchatsView: React.FC<AchatsViewProps> = ({
                   onChange={(e) => setPrixAchatUnit(Number(e.target.value))}
                   className="app-field font-mono"
                 />
+                <Equivalents montant={prixAchatUnit} className="mt-1" />
+                {quantite > 1 && totalSaisi > 0 && (
+                  <span className="mt-0.5 block text-xs text-muted-foreground">
+                    Total {formatCurrency(totalSaisi)}
+                    <Equivalents montant={totalSaisi} />
+                  </span>
+                )}
               </div>
             </div>
 

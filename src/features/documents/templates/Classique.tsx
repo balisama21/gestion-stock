@@ -11,6 +11,7 @@ import {
   TableauLignes,
   TamponPaiement,
   Totaux,
+  EquivalentsTotal,
 } from "../parts/blocs";
 import { Ressort, TeteSuite, type ProprietesModele } from "../parts/squelette";
 
@@ -98,6 +99,7 @@ export const Classique: React.FC<ProprietesModele> = ({
               <span>{d.totaux.libelleTotal}</span>
               <span className="doc-num">{montantOuTiret(d.totaux.total, d.devise)}</span>
             </div>
+            <EquivalentsTotal total={d.totaux.total} />
           </div>
         </div>
 

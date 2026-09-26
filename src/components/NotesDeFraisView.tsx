@@ -16,7 +16,6 @@ import {
   type DeviseBoutique,
 } from "../lib/devises";
 import type { NoteDeFrais, SaisieNoteDeFrais } from "../hooks/useNotesDeFrais";
-import { useDevises } from "../hooks/useDevises";
 
 type Statut = NoteDeFrais["statut"];
 type Filtre = "toutes" | Statut;
@@ -620,20 +619,5 @@ const DetailNote: React.FC<
         )}
       </div>
     </Modal>
-  );
-};
-
-/** L'écran chargé à la demande : il lit les taux au moment où on l'ouvre. */
-export const NotesDeFraisPage: React.FC<
-  Omit<Props, "catalogue" | "devises" | "principale"> & { storeId: string | null }
-> = ({ storeId, ...rest }) => {
-  const d = useDevises(storeId, rest.moiId);
-  return (
-    <NotesDeFraisView
-      {...rest}
-      catalogue={d.catalogue}
-      devises={d.devises}
-      principale={d.principale}
-    />
   );
 };

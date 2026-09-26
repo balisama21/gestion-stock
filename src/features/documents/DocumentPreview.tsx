@@ -18,6 +18,8 @@ import { Compact } from "./templates/Compact";
 import { Epure } from "./templates/Epure";
 import { Ticket } from "./templates/Ticket";
 import type { ProprietesModele } from "./parts/squelette";
+import { ContexteEquivalents } from "./lib/equivalents";
+import { useDevisesDuDocument } from "../../lib/contexteDevises";
 import "./index.css";
 
 /**
@@ -175,6 +177,7 @@ export const DocumentPreview: React.FC<DocumentPreviewProps> = ({
    * `resoudreType` s'en charge, et lui seul connaît l'ordre.
    */
   const regle = resoudreType(reglages, doc.type);
+  const equivalents = useDevisesDuDocument(doc.type);
   const nomModele = modele ?? regle.modele;
   const Modele = MODELES[nomModele] ?? Classique;
 
@@ -212,8 +215,9 @@ export const DocumentPreview: React.FC<DocumentPreviewProps> = ({
   // Une nouvelle mesure s'impose dès que le contenu, le modèle ou le
   // format change.
   const empreinte = useMemo(
-    () => `${format}|${nomModele}|${doc.nomDeFichier}|${doc.lignes.length}|${doc.totaux.total}`,
-    [format, nomModele, doc],
+    () =>
+      `${format}|${nomModele}|${doc.nomDeFichier}|${doc.lignes.length}|${doc.totaux.total}|${equivalents.map((e) => e.code).join(",")}`,
+    [format, nomModele, doc, equivalents],
   );
 
   if (mesure.cle !== empreinte) setMesure({ cle: empreinte, pages: null });
@@ -331,115 +335,117 @@ export const DocumentPreview: React.FC<DocumentPreviewProps> = ({
   };
 
   return (
-    <div className="doc-racine" style={variablesDeCouleur(regle.couleur) as React.CSSProperties}>
-      {erreur && (
-        <p
-          role="alert"
-          className="no-print mb-3 rounded-xl border border-danger-border bg-danger-soft px-3.5 py-3 text-sm t-danger"
-        >
-          {erreur}
-        </p>
-      )}
+    <ContexteEquivalents.Provider value={equivalents}>
+      <div className="doc-racine" style={variablesDeCouleur(regle.couleur) as React.CSSProperties}>
+        {erreur && (
+          <p
+            role="alert"
+            className="no-print mb-3 rounded-xl border border-danger-border bg-danger-soft px-3.5 py-3 text-sm t-danger"
+          >
+            {erreur}
+          </p>
+        )}
 
-      <div className="doc-scene" ref={scene}>
-        <div
-          className="doc-echelle"
-          style={{
-            transform: `scale(${echelle})`,
-            height: hauteur ?? undefined,
-            // La feuille de mesure ne doit jamais être vue : elle
-            // porte tout le document sur une page et déborderait.
-            visibility: enMesure ? "hidden" : undefined,
-          }}
-        >
-          {/*
-           * `printable-receipt` est l'accroche que la feuille de style
-           * d'impression de l'application connaît déjà : elle masque le
-           * reste de la modale et neutralise les conteneurs qui
-           * rogneraient le document. La reprendre évite de réécrire un
-           * travail qui a demandé plusieurs corrections.
-           */}
-          {rouleau ? (
-            <div
-              className={`doc-ticket printable-receipt${format === "t58" ? " doc-ticket--58" : ""}`}
-              ref={poser(0)}
-            >
-              <Ticket
-                document={doc}
-                reglages={{ ...reglages.ticket, largeur: format === "t58" ? 58 : 80 }}
-                date={doc.meta.find((m) => m.libelle === "Date")?.valeur ?? ""}
-              />
-            </div>
-          ) : (
-            repartition.map((indices, rang) => (
+        <div className="doc-scene" ref={scene}>
+          <div
+            className="doc-echelle"
+            style={{
+              transform: `scale(${echelle})`,
+              height: hauteur ?? undefined,
+              // La feuille de mesure ne doit jamais être vue : elle
+              // porte tout le document sur une page et déborderait.
+              visibility: enMesure ? "hidden" : undefined,
+            }}
+          >
+            {/*
+             * `printable-receipt` est l'accroche que la feuille de style
+             * d'impression de l'application connaît déjà : elle masque le
+             * reste de la modale et neutralise les conteneurs qui
+             * rogneraient le document. La reprendre évite de réécrire un
+             * travail qui a demandé plusieurs corrections.
+             */}
+            {rouleau ? (
               <div
-                className={`doc-feuille printable-receipt m-${nomModele}`}
-                key={rang}
-                ref={poser(rang)}
+                className={`doc-ticket printable-receipt${format === "t58" ? " doc-ticket--58" : ""}`}
+                ref={poser(0)}
               >
-                <Modele
+                <Ticket
                   document={doc}
-                  /* Le filet de sécurité, en plus de la remise à zéro
-                     ci-dessus : un rang qui ne désigne plus rien est
-                     ignoré, jamais passé tel quel au modèle. */
-                  lignes={indices
-                    .map((i) => doc.lignes[i])
-                    .filter((l): l is LigneDocument => l !== undefined)}
-                  premiere={rang === 0}
-                  derniere={rang === repartition.length - 1}
-                  pagination={doc.paginer ? mentionDePage(rang, repartition.length) : null}
+                  reglages={{ ...reglages.ticket, largeur: format === "t58" ? 58 : 80 }}
+                  date={doc.meta.find((m) => m.libelle === "Date")?.valeur ?? ""}
                 />
               </div>
-            ))
-          )}
+            ) : (
+              repartition.map((indices, rang) => (
+                <div
+                  className={`doc-feuille printable-receipt m-${nomModele}`}
+                  key={rang}
+                  ref={poser(rang)}
+                >
+                  <Modele
+                    document={doc}
+                    /* Le filet de sécurité, en plus de la remise à zéro
+                     ci-dessus : un rang qui ne désigne plus rien est
+                     ignoré, jamais passé tel quel au modèle. */
+                    lignes={indices
+                      .map((i) => doc.lignes[i])
+                      .filter((l): l is LigneDocument => l !== undefined)}
+                    premiere={rang === 0}
+                    derniere={rang === repartition.length - 1}
+                    pagination={doc.paginer ? mentionDePage(rang, repartition.length) : null}
+                  />
+                </div>
+              ))
+            )}
+          </div>
         </div>
-      </div>
 
-      {!sansActions && (
-        <div className="no-print mt-4 flex flex-wrap items-center justify-end gap-2">
-          {!rouleau && repartition.length > 1 && (
-            <span className="mr-auto text-xs text-muted-foreground">
-              {repartition.length} pages
-            </span>
-          )}
-          {/*
-           * « Imprimer » est l'action principale, et ce n'est pas un
-           * détail : elle produit du TEXTE réel, sélectionnable et net
-           * à toute taille. Le PDF, lui, est une photographie du bloc
-           * — fidèle, mais pesante et non sélectionnable. Le bouton
-           * qui donne le meilleur résultat doit être celui qu'on
-           * atteint sans réfléchir.
-           */}
-          <button
-            type="button"
-            onClick={() => imprimerFeuille(rouleau ? largeurMm : undefined)}
-            className="app-btn-primary"
-          >
-            <Printer className="h-4 w-4" />
-            Imprimer
-          </button>
-          <button
-            type="button"
-            onClick={() => exporter("pdf")}
-            disabled={exportEnCours !== null}
-            className="app-btn-secondary"
-            title="Un PDF fidèle à l'aperçu, à envoyer ou à archiver"
-          >
-            <Download className="h-4 w-4" />
-            {exportEnCours === "pdf" ? "Création…" : "PDF"}
-          </button>
-          <button
-            type="button"
-            onClick={() => exporter("image")}
-            disabled={exportEnCours !== null}
-            className="app-btn-secondary"
-            title="Une image par page, pratique à envoyer par messagerie"
-          >
-            <ImageIcon className="h-4 w-4" />
-            {exportEnCours === "image" ? "Création…" : "Image"}
-          </button>
-        </div>
-      )}
-    </div>
+        {!sansActions && (
+          <div className="no-print mt-4 flex flex-wrap items-center justify-end gap-2">
+            {!rouleau && repartition.length > 1 && (
+              <span className="mr-auto text-xs text-muted-foreground">
+                {repartition.length} pages
+              </span>
+            )}
+            {/*
+             * « Imprimer » est l'action principale, et ce n'est pas un
+             * détail : elle produit du TEXTE réel, sélectionnable et net
+             * à toute taille. Le PDF, lui, est une photographie du bloc
+             * — fidèle, mais pesante et non sélectionnable. Le bouton
+             * qui donne le meilleur résultat doit être celui qu'on
+             * atteint sans réfléchir.
+             */}
+            <button
+              type="button"
+              onClick={() => imprimerFeuille(rouleau ? largeurMm : undefined)}
+              className="app-btn-primary"
+            >
+              <Printer className="h-4 w-4" />
+              Imprimer
+            </button>
+            <button
+              type="button"
+              onClick={() => exporter("pdf")}
+              disabled={exportEnCours !== null}
+              className="app-btn-secondary"
+              title="Un PDF fidèle à l'aperçu, à envoyer ou à archiver"
+            >
+              <Download className="h-4 w-4" />
+              {exportEnCours === "pdf" ? "Création…" : "PDF"}
+            </button>
+            <button
+              type="button"
+              onClick={() => exporter("image")}
+              disabled={exportEnCours !== null}
+              className="app-btn-secondary"
+              title="Une image par page, pratique à envoyer par messagerie"
+            >
+              <ImageIcon className="h-4 w-4" />
+              {exportEnCours === "image" ? "Création…" : "Image"}
+            </button>
+          </div>
+        )}
+      </div>
+    </ContexteEquivalents.Provider>
   );
 };

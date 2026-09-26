@@ -9,6 +9,7 @@ import {
   type ReglagesPrixAuto,
 } from "../../lib/prixAuto";
 import { formatCurrency } from "../../utils/formulas";
+import { Equivalents } from "../../lib/contexteDevises";
 
 interface ChampPrixDeVenteProps {
   prixAchat: number;
@@ -101,6 +102,7 @@ export const ChampPrixDeVente: React.FC<ChampPrixDeVenteProps> = ({
         }}
         className="app-field font-mono"
       />
+      <Equivalents montant={prixVente} className="mt-1" />
 
       {reglages.actif && (
         <div className="mt-2 space-y-2">

@@ -191,3 +191,5 @@ async function actualiserInterne(storeId: string): Promise<string | null> {
     ? "Source des taux indisponible : dernier taux connu conservé."
     : null;
 }
+
+export type DevisesBoutique = ReturnType<typeof useDevises>;

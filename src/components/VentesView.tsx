@@ -63,6 +63,7 @@ import { useRechercheInitiale } from "../lib/cibleRecherche";
 import { FiletDeSecurite } from "../features/documents/FiletDeSecurite";
 import { SortieDocument } from "../features/documents/SortieDocument";
 import { documentDeVente } from "../features/documents/lib/buildDocument";
+import { Equivalents, texteEquivalents, useDevisesAffichees } from "../lib/contexteDevises";
 import type { ReglagesDocuments } from "../features/documents/lib/reglages";
 
 type Client = Database["public"]["Tables"]["clients"]["Row"];
@@ -201,6 +202,7 @@ export const VentesView: React.FC<VentesViewProps> = ({
   const [editingSale, setEditingSale] = useState<Sale | null>(null);
   /* La vente dont on règle la commission, et le montant en cours. */
   const [venteCommission, setVenteCommission] = useState<Sale | null>(null);
+  const devisesAffichees = useDevisesAffichees();
   const [montantCommission, setMontantCommission] = useState(0);
   const [erreurCommission, setErreurCommission] = useState<string | null>(null);
   const [formError, setFormError] = useState<string | null>(null);
@@ -452,6 +454,7 @@ export const VentesView: React.FC<VentesViewProps> = ({
   const currentProduct = products.find((p) => p.id === selectedProductId);
   const produitDe = (id: string) => products.find((p) => p.id === id);
   const totalPanier = panier.reduce((n, l) => n + l.quantite * l.prixVenteUnit, 0);
+  const equivalentsPanier = texteEquivalents(totalPanier, devisesAffichees);
 
   useEffect(() => {
     if (!clientCredit) {
@@ -1198,6 +1201,7 @@ export const VentesView: React.FC<VentesViewProps> = ({
                 }}
                 className="app-field font-mono"
               />
+              <Equivalents montant={prixVenteUnit} className="mt-1" />
               <p className="mt-1 text-xs text-muted-foreground">
                 Prérempli au prix de référence ({currentProduct?.prixVenteDefaut} Ar).
               </p>
@@ -1247,6 +1251,7 @@ export const VentesView: React.FC<VentesViewProps> = ({
                         <span className="app-list-primary min-w-0 flex-1 truncate">{nom}</span>
                         <span className="app-list-amount">
                           {formatCurrency(ligne.quantite * ligne.prixVenteUnit)}
+                          <Equivalents montant={ligne.quantite * ligne.prixVenteUnit} />
                         </span>
                       </div>
                       <div className="flex w-full items-center justify-between gap-2">
@@ -1347,7 +1352,11 @@ export const VentesView: React.FC<VentesViewProps> = ({
 
           {/* Récapitulatif */}
           <div className="app-statbar grid-cols-2">
-            <StatCol label="Total du panier" value={formatCurrency(totalPanier)} />
+            <StatCol
+              label="Total du panier"
+              value={formatCurrency(totalPanier)}
+              hint={equivalentsPanier ? `≈ ${equivalentsPanier}` : undefined}
+            />
             <StatCol
               label="Reste à payer"
               value={formatCurrency(totalPanier - montantPaye)}

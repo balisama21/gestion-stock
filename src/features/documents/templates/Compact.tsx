@@ -1,6 +1,7 @@
 import React from "react";
 import type { CleColonne } from "../lib/buildDocument";
 import { celluleDeLigne } from "../parts/cellules";
+import { useEquivalentsDuDocument } from "../lib/equivalents";
 import {
   BlocAdresse,
   CoordonneesPaiement,
@@ -66,6 +67,7 @@ export const Compact: React.FC<ProprietesModele> = ({
   pagination,
 }) => {
   const avecUnite = d.colonnes.some((c) => c.cle === "unite");
+  const equivalents = useEquivalentsDuDocument();
   // Le rang de chaque ligne dans le document entier, et non sur la page.
   const premierRang = d.lignes.findIndex((l) => l.id === lignes[0]?.id);
   const rangDe = (i: number) => (premierRang >= 0 ? premierRang + i : i) + 1;
@@ -135,7 +137,7 @@ export const Compact: React.FC<ProprietesModele> = ({
                         {l.detail && <span className="doc-muted"> · {l.detail}</span>}
                       </>
                     ) : (
-                      celluleDeLigne(c.cle, l, d.devise, avecUnite)
+                      celluleDeLigne(c.cle, l, d.devise, avecUnite, equivalents)
                     )}
                   </td>
                 ))}

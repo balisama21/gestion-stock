@@ -39,13 +39,23 @@ export function formatDateLocale(dateStr: string, locale: LocaleSetting): string
   }
 }
 
+let symboleCourant = "Ar";
+let decimalesCourantes = 0;
+
+/** Posé par l'application à l'ouverture d'une boutique : sa devise principale. */
+export function definirDevisePrincipale(symbole: string, decimales: number): void {
+  symboleCourant = symbole || "Ar";
+  decimalesCourantes = decimales;
+}
+
 /**
  * Format currency string (default Ariary Ar)
  */
 export function formatCurrency(amount: number): string {
   return (
     new Intl.NumberFormat("fr-FR", {
-      maximumFractionDigits: 0,
+      minimumFractionDigits: decimalesCourantes,
+      maximumFractionDigits: decimalesCourantes,
     })
       .format(amount)
       //  , l’espace fine insécable que la locale française place
@@ -53,7 +63,9 @@ export function formatCurrency(amount: number): string {
       // un encodage sur un octet ni à tous les éditeurs de texte. On lui
       // substitue l’espace insécable ordinaire, qui s’affiche pareil et
       // empêche toujours « 6 » et « 500 » de se retrouver sur deux lignes.
-      .replace(/ /g, " ") + " Ar"
+      .replace(/ /g, " ") +
+    " " +
+    symboleCourant
   );
 }
 

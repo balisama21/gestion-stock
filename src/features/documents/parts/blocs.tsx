@@ -12,6 +12,8 @@ import type {
 } from "../lib/buildDocument";
 import { montant, montantOuTiret } from "../lib/format";
 import { celluleDeLigne, CLASSE, COLONNE } from "./cellules";
+import { useEquivalentsDuDocument } from "../lib/equivalents";
+import { convertir } from "../../../lib/contexteDevises";
 
 /**
  * LES MORCEAUX DONT LES QUATRE MODÈLES SONT FAITS
@@ -124,6 +126,7 @@ export const TableauLignes: React.FC<{
   devise: string;
 }> = ({ lignes, colonnes, devise }) => {
   const avecUnite = colonnes.some((c) => c.cle === "unite");
+  const equivalents = useEquivalentsDuDocument();
   return (
     <table>
       <thead>
@@ -145,7 +148,7 @@ export const TableauLignes: React.FC<{
           <tr key={l.id}>
             {colonnes.map((c) => (
               <td key={c.cle} className={CLASSE[c.cle] || undefined}>
-                {celluleDeLigne(c.cle, l, devise, avecUnite)}
+                {celluleDeLigne(c.cle, l, devise, avecUnite, equivalents)}
               </td>
             ))}
           </tr>
@@ -156,6 +159,22 @@ export const TableauLignes: React.FC<{
 };
 
 /* ── Les totaux ──────────────────────────────────────────────────── */
+
+/** « Soit 12,40 € » sous le total, une ligne par devise choisie. */
+export const EquivalentsTotal: React.FC<{ total: number | null }> = ({ total }) => {
+  const equivalents = useEquivalentsDuDocument();
+  if (total === null || !equivalents.length) return null;
+  return (
+    <div className="doc-totaux doc-totaux-equiv">
+      {equivalents.map((d) => (
+        <div key={d.code} className="l">
+          <span className="doc-muted">Soit en {d.code}</span>
+          <span className="doc-num doc-muted">{convertir(total, d)}</span>
+        </div>
+      ))}
+    </div>
+  );
+};
 
 /**
  * Les lignes de total qui précèdent le montant final.
@@ -212,6 +231,7 @@ export const Totaux: React.FC<{
         <span className="doc-num">{montantOuTiret(totaux.total, devise)}</span>
       </div>
     )}
+    {!sansTotal && <EquivalentsTotal total={totaux.total} />}
     {totaux.paye !== null && (
       <div className="l">
         <span className="doc-muted">

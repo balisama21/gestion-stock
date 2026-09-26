@@ -1,6 +1,22 @@
 import React from "react";
 import type { CleColonne, LigneDocument } from "../lib/buildDocument";
 import { montantOuTiret, nombre, quantite } from "../lib/format";
+import { convertir, type DeviseAffichee } from "../../../lib/contexteDevises";
+
+/** Le montant, puis ses équivalents en petit dessous. */
+function avecEquivalents(texte: string, valeur: number | null, equivalents: DeviseAffichee[]) {
+  if (valeur === null || !equivalents.length) return texte;
+  return (
+    <>
+      {texte}
+      {equivalents.map((d) => (
+        <span key={d.code} className="doc-equiv">
+          {convertir(valeur, d)}
+        </span>
+      ))}
+    </>
+  );
+}
 
 /**
  * LE CONTENU D'UNE CELLULE, COLONNE PAR COLONNE
@@ -32,6 +48,7 @@ export function celluleDeLigne(
   l: LigneDocument,
   devise: string,
   avecUnite: boolean,
+  equivalents: DeviseAffichee[] = [],
 ): React.ReactNode {
   switch (cle) {
     case "designation":
@@ -55,9 +72,9 @@ export function celluleDeLigne(
     /* Un tiret, jamais « 0 Ar », quand le prix est inconnu : sur un bon
        de commande, zéro se lit « gratuit » chez le fournisseur. */
     case "prixUnitaire":
-      return montantOuTiret(l.prixUnitaire, devise);
+      return avecEquivalents(montantOuTiret(l.prixUnitaire, devise), l.prixUnitaire, equivalents);
     case "total":
-      return <b>{montantOuTiret(l.total, devise)}</b>;
+      return <b>{avecEquivalents(montantOuTiret(l.total, devise), l.total, equivalents)}</b>;
   }
 }
 
