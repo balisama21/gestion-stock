@@ -166,7 +166,7 @@ export const EditeurColonne: React.FC<Props> = ({
 
   const ecran = (
     <div
-      className="fixed inset-0 z-50 flex flex-col bg-background"
+      className="fixed inset-0 z-[80] flex flex-col bg-background"
       role="dialog"
       aria-modal="true"
       aria-label="Éditeur du ticket"

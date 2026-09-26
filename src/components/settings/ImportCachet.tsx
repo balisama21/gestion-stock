@@ -244,7 +244,7 @@ export const ImportCachet: React.FC<Props> = ({ storeId, onFermer, onAjoute }) =
 
   const ecran = (
     <div
-      className="fixed inset-0 z-50 flex flex-col bg-background"
+      className="fixed inset-0 z-[80] flex flex-col bg-background"
       role="dialog"
       aria-modal="true"
       aria-label="Nouveau cachet ou signature"
