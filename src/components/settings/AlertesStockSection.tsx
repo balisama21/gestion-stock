@@ -9,6 +9,7 @@ import {
   type ProduitPourExemple,
   type ReglagesAlertesStock,
 } from "../../lib/prealerteStock";
+import { niveauCibleParRegle } from "../../lib/reapprovisionnement";
 
 /**
  * QUAND PRÉVENIR, AVANT LA RUPTURE.
@@ -93,6 +94,7 @@ interface Champs {
   ecart: string;
   pourcentage: string;
   heure: string;
+  valeurCible: string;
 }
 
 /**
@@ -118,7 +120,12 @@ export const AlertesStockSection: React.FC<ReglagesAlertesStockProps> = ({
   enregistrer,
 }) => {
   const [brouillon, setBrouillon] = useState<ReglagesAlertesStock>(reglages);
-  const [champs, setChamps] = useState<Champs>({ ecart: "", pourcentage: "", heure: "" });
+  const [champs, setChamps] = useState<Champs>({
+    ecart: "",
+    pourcentage: "",
+    heure: "",
+    valeurCible: "",
+  });
   const [envoi, setEnvoi] = useState(false);
   const [enregistre, setEnregistre] = useState(false);
   const [erreur, setErreur] = useState<string | null>(null);
@@ -130,6 +137,7 @@ export const AlertesStockSection: React.FC<ReglagesAlertesStockProps> = ({
       ecart: String(reglages.ecart),
       pourcentage: String(reglages.pourcentage),
       heure: String(reglages.heureResume),
+      valeurCible: String(reglages.reapproValeur).replace(".", ","),
     });
   }, [reglages]);
 
@@ -141,10 +149,13 @@ export const AlertesStockSection: React.FC<ReglagesAlertesStockProps> = ({
     ecart: Number(champs.ecart),
     pourcentage: Number(champs.pourcentage),
     heureResume: Number(champs.heure),
+    reapproValeur: Number(champs.valeurCible.replace(",", ".")),
   });
 
   const modifie = JSON.stringify(effectifs) !== JSON.stringify(reglages);
   const exemple = exempleDePrealerte(produits, effectifs);
+  const seuilExemple = exemple.seuil;
+  const cibleExemple = niveauCibleParRegle(seuilExemple, effectifs);
   const soumettre = async () => {
     setEnvoi(true);
     setErreur(null);
@@ -342,6 +353,79 @@ export const AlertesStockSection: React.FC<ReglagesAlertesStockProps> = ({
                 personne ne le reçoit tant qu&apos;il ne l&apos;a pas demandé.
               </span>
             </div>
+          </SettingsBlock>
+        </>
+      )}
+
+      <SettingsRow
+        label="Niveau cible de réapprovisionnement"
+        hint="Chaque produit peut porter un niveau cible : la quantité suggérée remonte le stock jusque-là, et non plus au double du seuil. Ajoute l'écran « Réapprovisionnement » et sa feuille A4 dans Produits. Éteint, rien ne change."
+        htmlFor="reappro-active"
+      >
+        <div className="sm:flex sm:justify-end">
+          <Toggle
+            id="reappro-active"
+            label="Niveau cible de réapprovisionnement"
+            checked={brouillon.reapproActive}
+            disabled={chargement}
+            onChange={(v) => setBrouillon((p) => ({ ...p, reapproActive: v }))}
+          />
+        </div>
+      </SettingsRow>
+
+      {brouillon.reapproActive && (
+        <>
+          <SettingsRow
+            label="Cible par défaut"
+            hint="Pour les produits dont la fiche ne précise pas de niveau cible. Chaque fiche reste libre d'en fixer un."
+          >
+            <Choix
+              nom="Cible par défaut"
+              valeur={brouillon.reapproMode}
+              onChange={(reapproMode) => setBrouillon((p) => ({ ...p, reapproMode }))}
+              options={[
+                { value: "multiple", label: "Multiple du seuil" },
+                { value: "ecart", label: "Seuil + quantité" },
+              ]}
+            />
+          </SettingsRow>
+
+          <SettingsRow
+            label={brouillon.reapproMode === "multiple" ? "Multiplicateur" : "Quantité ajoutée"}
+            hint={
+              brouillon.reapproMode === "multiple"
+                ? "Niveau cible = seuil × multiplicateur, arrondi au supérieur. 2 reproduit le calcul actuel."
+                : "Niveau cible = seuil + cette quantité."
+            }
+            htmlFor="reappro-valeur"
+          >
+            <div className="flex items-center gap-2">
+              <input
+                id="reappro-valeur"
+                type="text"
+                inputMode="decimal"
+                value={champs.valeurCible}
+                onChange={(e) => setChamps((c) => ({ ...c, valeurCible: e.target.value }))}
+                className="app-field"
+              />
+              <span className="shrink-0 text-sm text-muted-foreground">
+                {brouillon.reapproMode === "multiple" ? "× seuil" : "unités"}
+              </span>
+            </div>
+          </SettingsRow>
+
+          <SettingsBlock>
+            <p
+              aria-live="polite"
+              className="rounded-xl border border-border p-3 text-sm leading-relaxed text-muted-foreground"
+            >
+              Avec un seuil de {seuilExemple}, un produit sans niveau cible sera réapprovisionné
+              jusqu&apos;à{" "}
+              <strong className="text-foreground">
+                {cibleExemple} unité{cibleExemple > 1 ? "s" : ""}
+              </strong>
+              .
+            </p>
           </SettingsBlock>
         </>
       )}

@@ -49,6 +49,8 @@ interface DetailsProduitProps {
    */
   photosEnAttente?: File[];
   onPhotosEnAttenteChange?: (fichiers: File[]) => void;
+  /** Réapprovisionnement activé : `stock_max` devient le niveau cible. */
+  reappro?: { seuil: number; cibleParDefaut: number };
 }
 
 /**
@@ -76,6 +78,7 @@ export const DetailsProduit: React.FC<DetailsProduitProps> = ({
   onDeleteImage,
   photosEnAttente = [],
   onPhotosEnAttenteChange,
+  reappro,
 }) => {
   const [envoi, setEnvoi] = useState(false);
   const [erreurImage, setErreurImage] = useState<string | null>(null);
@@ -372,7 +375,7 @@ export const DetailsProduit: React.FC<DetailsProduitProps> = ({
             htmlFor="pd-stockmax"
             className="mb-1 block text-xs font-medium text-muted-foreground"
           >
-            Stock maximum
+            {reappro ? "Niveau cible de réapprovisionnement" : "Stock maximum"}
           </label>
           <input
             id="pd-stockmax"
@@ -382,8 +385,18 @@ export const DetailsProduit: React.FC<DetailsProduitProps> = ({
             inputMode="decimal"
             className="app-field font-mono"
             value={valeurs.stock_max}
+            placeholder={reappro ? `Par défaut : ${reappro.cibleParDefaut}` : undefined}
             onChange={(e) => modifier({ stock_max: e.target.value })}
           />
+          {reappro && (
+            <p className="mt-1 text-xs text-muted-foreground">
+              {valeurs.stock_max.trim() !== "" &&
+              Number(valeurs.stock_max) > 0 &&
+              Number(valeurs.stock_max) <= reappro.seuil
+                ? `Au niveau du seuil (${reappro.seuil}) ou en dessous : le produit restera en alerte après réapprovisionnement.`
+                : "Stock visé après réapprovisionnement. Vide : la règle de la boutique."}
+            </p>
+          )}
         </div>
 
         <div className="sm:col-span-2">
