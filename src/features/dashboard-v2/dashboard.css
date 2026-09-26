@@ -3243,3 +3243,63 @@
     grid-column: span 12;
   }
 }
+
+/* ═══════════════════════════════════════════════════════════════════
+   REFONTE ORDINATEUR — bandeaux unifiés (au-dessus de 900 px seulement)
+   ═══════════════════════════════════════════════════════════════════ */
+
+.dash2 .today-attn {
+  display: none;
+}
+
+@media (min-width: 901px) {
+  /* A. En-tête : la phrase de synthèse redit la carte Ventes ; les puces
+     passent dans le bandeau du jour. */
+  .dash2 .top .synthese,
+  .dash2 .top .attn {
+    display: none;
+  }
+  .dash2 .top .brief:not(:has(.rolenote)) {
+    display: none;
+  }
+
+  /* Le bandeau du jour devient une seule carte, colonnes séparées d'un filet. */
+  .dash2 .today {
+    gap: 0;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    border-radius: var(--r-carte);
+    box-shadow: var(--shadow);
+    overflow: hidden;
+  }
+  .dash2 .today-head {
+    padding: 10px 16px;
+    border-bottom: 1px solid var(--line);
+    flex-wrap: wrap;
+  }
+  .dash2 .today-attn {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 6px;
+  }
+  .dash2 .today .rail {
+    gap: 1px;
+    background: var(--line);
+  }
+  .dash2 .today .rail > .tile {
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+    background: var(--surface);
+    min-height: 196px;
+  }
+  .dash2 .today .tile-go {
+    background: none;
+    color: var(--muted);
+  }
+  .dash2 .today .tile-go:hover {
+    background: none;
+    color: var(--ink);
+  }
+}

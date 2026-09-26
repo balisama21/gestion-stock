@@ -615,6 +615,50 @@ export const DashboardV2Page: React.FC<DashboardV2PageProps> = ({
     return <CarteSquelette key={cle} span={def?.span ?? 4} lignes={def?.span === 8 ? 5 : 3} />;
   };
 
+  /** Les puces d'attention : dans l'en-tête sur téléphone, dans le bandeau du jour sur ordinateur. */
+  const puces =
+    chiffres.attention.total === 0 ? (
+      <ChipRienDUrgent />
+    ) : (
+      <>
+        {chiffres.attention.tachesEnRetard > 0 && (
+          <Chip
+            nombre={chiffres.attention.tachesEnRetard}
+            singulier="tâche en retard"
+            pluriel="tâches en retard"
+            ton="crit"
+            cible="carte-taches"
+            onAller={allerALaCarte}
+          />
+        )}
+        {chiffres.attention.produitsARecommander > 0 && (
+          <Chip
+            nombre={chiffres.attention.produitsARecommander}
+            singulier="produit à recommander"
+            pluriel="produits à recommander"
+            ton="warn"
+            /* « Ruptures à venir » ne montre que ce qui est
+             déjà sous le seuil. Dès que la préalerte ajoute
+             des produits au compte, la pastille mène à
+             l'étagère, qui les montre tous les deux — et
+             porte les boutons pour agir. */
+            cible={chiffres.stock.enPrealerte.length > 0 ? "carte-stock" : "carte-ruptures"}
+            onAller={allerALaCarte}
+          />
+        )}
+        {chiffres.attention.devisSansReponse > 0 && (
+          <Chip
+            nombre={chiffres.attention.devisSansReponse}
+            singulier="devis sans réponse"
+            pluriel="devis sans réponse"
+            ton="info"
+            cible="carte-taches"
+            onAller={allerALaCarte}
+          />
+        )}
+      </>
+    );
+
   return (
     <div className="dash2">
       <div className="dash2-wrap">
@@ -772,49 +816,7 @@ export const DashboardV2Page: React.FC<DashboardV2PageProps> = ({
                 : "Aujourd'hui"}
             </div>
             <div className="attn" aria-label="Points d'attention">
-              {chiffres.attention.total === 0 ? (
-                <ChipRienDUrgent />
-              ) : (
-                <>
-                  {chiffres.attention.tachesEnRetard > 0 && (
-                    <Chip
-                      nombre={chiffres.attention.tachesEnRetard}
-                      singulier="tâche en retard"
-                      pluriel="tâches en retard"
-                      ton="crit"
-                      cible="carte-taches"
-                      onAller={allerALaCarte}
-                    />
-                  )}
-                  {chiffres.attention.produitsARecommander > 0 && (
-                    <Chip
-                      nombre={chiffres.attention.produitsARecommander}
-                      singulier="produit à recommander"
-                      pluriel="produits à recommander"
-                      ton="warn"
-                      /* « Ruptures à venir » ne montre que ce qui est
-                         déjà sous le seuil. Dès que la préalerte ajoute
-                         des produits au compte, la pastille mène à
-                         l'étagère, qui les montre tous les deux — et
-                         porte les boutons pour agir. */
-                      cible={
-                        chiffres.stock.enPrealerte.length > 0 ? "carte-stock" : "carte-ruptures"
-                      }
-                      onAller={allerALaCarte}
-                    />
-                  )}
-                  {chiffres.attention.devisSansReponse > 0 && (
-                    <Chip
-                      nombre={chiffres.attention.devisSansReponse}
-                      singulier="devis sans réponse"
-                      pluriel="devis sans réponse"
-                      ton="info"
-                      cible="carte-taches"
-                      onAller={allerALaCarte}
-                    />
-                  )}
-                </>
-              )}
+              {puces}
             </div>
 
             {droits.vue !== "dirigeant" && vueCourante && (
@@ -843,6 +845,7 @@ export const DashboardV2Page: React.FC<DashboardV2PageProps> = ({
             setPanneau(DETAIL_TUILE[cle]);
           }}
           onVendre={peutVendre && onNavigateTab ? () => onNavigateTab("ventes") : undefined}
+          alertes={puces}
         />
 
         {/* ── Le chiffre d'affaires, seul au-dessus ──

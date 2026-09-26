@@ -155,6 +155,8 @@ export interface BandeauProps {
   onOuvrir: (cle: CleTuile) => void;
   /** « + Vendre ». Absent quand la personne n'a pas le droit de vendre. */
   onVendre?: () => void;
+  /** Les puces d'attention, reprises dans l'en-tête du bandeau sur ordinateur. */
+  alertes?: React.ReactNode;
 }
 
 /** « Mer. 16/09 », comme le pied de la tuile des ventes dans la maquette. */
@@ -175,6 +177,7 @@ export const BandeauAujourdhui: React.FC<BandeauProps> = ({
   montantsAchatVisibles,
   onOuvrir,
   onVendre,
+  alertes,
 }) => {
   /**
    * L'heure affichée à côté de la date.
@@ -475,6 +478,7 @@ export const BandeauAujourdhui: React.FC<BandeauProps> = ({
             {maintenant && ` \u00b7 ${heure(maintenant)}`}
           </span>
         </h2>
+        {alertes && <div className="today-attn">{alertes}</div>}
       </div>
 
       <div
