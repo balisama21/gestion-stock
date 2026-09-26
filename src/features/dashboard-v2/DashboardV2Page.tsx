@@ -871,7 +871,20 @@ export const DashboardV2Page: React.FC<DashboardV2PageProps> = ({
                 {groupe.titre}
               </h2>
               <div className={`grid${droits.vue !== "dirigeant" ? " dense" : ""}`}>
-                {cles.map(rendreCarte)}
+                {enBlocs(cles).map((b) =>
+                  b.bloc ? (
+                    <div
+                      key={b.cles[0]}
+                      className="bloc"
+                      data-bloc={b.bloc}
+                      style={{ ["--cols" as string]: colonnesDuBloc(b.cles) }}
+                    >
+                      {b.cles.map(rendreCarte)}
+                    </div>
+                  ) : (
+                    b.cles.map(rendreCarte)
+                  ),
+                )}
               </div>
             </section>
           );
@@ -1094,6 +1107,35 @@ export const DashboardV2Page: React.FC<DashboardV2PageProps> = ({
     </div>
   );
 };
+
+/* ─── bandeaux unifiés (ordinateur) ─── */
+
+/** Sur ordinateur, les cartes d'un même bloc partagent une carte ; sur téléphone le bloc s'efface. */
+const BLOC_DE: Partial<Record<CleCarte, string>> = {
+  agenda: "operations",
+  taches: "operations",
+  livraisons: "operations",
+};
+
+/** Cartes qui prennent toute la largeur de leur bloc. */
+const PLEINE_LARGEUR = new Set<CleCarte>([]);
+
+/** Regroupe les cartes consécutives d'un même bloc, sans jamais changer leur ordre. */
+function enBlocs(cles: CleCarte[]): { bloc?: string; cles: CleCarte[] }[] {
+  const sortie: { bloc?: string; cles: CleCarte[] }[] = [];
+  for (const cle of cles) {
+    const bloc = BLOC_DE[cle];
+    const dernier = sortie[sortie.length - 1];
+    if (bloc && dernier?.bloc === bloc) dernier.cles.push(cle);
+    else sortie.push({ bloc, cles: [cle] });
+  }
+  return sortie;
+}
+
+function colonnesDuBloc(cles: CleCarte[]): number {
+  const n = cles.filter((c) => !PLEINE_LARGEUR.has(c)).length;
+  return n === 4 ? 2 : Math.max(1, n);
+}
 
 /* ─── deux petites briques, propres à la table de contrôle ─── */
 
