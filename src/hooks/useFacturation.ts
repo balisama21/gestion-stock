@@ -64,6 +64,8 @@ export interface Facturation {
     type: string,
     snapshot: unknown,
   ) => Promise<void>;
+  /** La copie figée d'une pièce déjà émise, ou `null` si elle n'est jamais partie. */
+  lireCopie: (entite: EntiteDocument, id: string, type: string) => Promise<unknown | null>;
   marquerEnvoye: (
     entite: EntiteDocument,
     id: string,
@@ -103,7 +105,11 @@ export function useFacturation(storeId: string | null, actif: boolean): Facturat
     setErreur(null);
     try {
       const [avoirsRes, lignesRes, envoisRes, emissionsRes, dateRes] = await Promise.all([
-        supabase.from("avoirs").select("*").eq("store_id", storeId).order("date", { ascending: false }),
+        supabase
+          .from("avoirs")
+          .select("*")
+          .eq("store_id", storeId)
+          .order("date", { ascending: false }),
         supabase.from("avoir_items").select("*").eq("store_id", storeId).order("ordre"),
         supabase
           .from("document_envois")
@@ -194,6 +200,25 @@ export function useFacturation(storeId: string | null, actif: boolean): Facturat
     [storeId, emissions],
   );
 
+  const lireCopie = useCallback(
+    async (entite: EntiteDocument, id: string, type: string) => {
+      if (!storeId) return null;
+      if (!emissions.some((e) => e.entite === entite && e.entite_id === id && e.type === type)) {
+        return null;
+      }
+      const { data } = await supabase
+        .from("document_emissions")
+        .select("snapshot")
+        .eq("store_id", storeId)
+        .eq("entite", entite)
+        .eq("entite_id", id)
+        .eq("type", type)
+        .maybeSingle();
+      return data?.snapshot ?? null;
+    },
+    [storeId, emissions],
+  );
+
   const marquerEnvoye = useCallback(
     async (entite: EntiteDocument, id: string, type: string, canal: string, relance: boolean) => {
       if (!storeId) return { error: "Non autorisé" };
@@ -250,6 +275,7 @@ export function useFacturation(storeId: string | null, actif: boolean): Facturat
     aujourdhui,
     recharger,
     marquerEmis,
+    lireCopie,
     marquerEnvoye,
     creerAvoir,
   };

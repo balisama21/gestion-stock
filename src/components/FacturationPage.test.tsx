@@ -3,6 +3,7 @@ import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-li
 import { FacturationPage } from "./FacturationPage";
 import type { Product, Sale, StoreSettings } from "../types";
 import { REGLAGES_DOCUMENTS_PAR_DEFAUT } from "../features/documents/lib/reglages";
+import { figer } from "../features/documents/lib/copieFigee";
 import type { Facturation } from "../hooks/useFacturation";
 import type { DocumentCommercial } from "./facturation/documents";
 
@@ -114,6 +115,7 @@ const facturation = (p: Partial<Facturation> = {}): Facturation => ({
   aujourdhui: AUJOURDHUI,
   recharger: vi.fn().mockResolvedValue(undefined),
   marquerEmis: vi.fn().mockResolvedValue(undefined),
+  lireCopie: vi.fn().mockResolvedValue(null),
   marquerEnvoye: vi.fn().mockResolvedValue({ error: null }),
   creerAvoir: vi.fn().mockResolvedValue({ avoir: null, error: null }),
   ...p,
@@ -289,6 +291,28 @@ describe("la copie figée d'une pièce émise", () => {
     expect(copie).toHaveProperty("identite");
     expect(copie).toHaveProperty("type.titre", "FACTURE");
     expect(copie).toHaveProperty("type.prefixe", "FAC-");
+  });
+
+  it("une réimpression relit la copie au lieu d'en ranger une nouvelle", async () => {
+    // Émise sous un autre titre et un autre nom ; la boutique a changé depuis.
+    const avant = {
+      ...REGLAGES_DOCUMENTS_PAR_DEFAUT,
+      types: { facture: { titre: "FACTURE ACQUITTÉE" } },
+    };
+    const copie = JSON.parse(
+      JSON.stringify(
+        figer(avant, { ...BOUTIQUE, storeName: "Ancien nom" }, "facture", "2026-09-01"),
+      ),
+    );
+    const f = facturation({ lireCopie: vi.fn().mockResolvedValue(copie) });
+    afficher({ facturation: f });
+    fireEvent.click(screen.getByText("FAC-V001"));
+    fireEvent.click(screen.getByRole("button", { name: /Voir, PDF, imprimer/ }));
+
+    await waitFor(() => expect(screen.getAllByText("FACTURE ACQUITTÉE").length).toBeGreaterThan(0));
+    expect(screen.getAllByText("Ancien nom").length).toBeGreaterThan(0);
+    expect(f.lireCopie).toHaveBeenCalledWith("vente", "T1", "facture");
+    expect(f.marquerEmis).not.toHaveBeenCalled();
   });
 });
 

@@ -13,7 +13,7 @@ import {
 import { Modal } from "../shared/Modal";
 import { SortieDocument } from "../../features/documents/SortieDocument";
 import type { ReglagesDocuments } from "../../features/documents/lib/reglages";
-import { resoudreType } from "../../features/documents/lib/resolveur";
+import { figer, lireCopieFigee, type PieceFigee } from "../../features/documents/lib/copieFigee";
 import type { TypeDocumentV3 } from "../../features/documents/lib/typesDocument";
 import { montant as formaterMontant } from "../../features/documents/lib/format";
 import type { DocumentCommercial } from "./documents";
@@ -23,13 +23,7 @@ import {
   type SortieVoulue,
   type SourcesDeLaPiece,
 } from "./construireLaPiece";
-import {
-  lienEmail,
-  lienWhatsApp,
-  messageDEnvoi,
-  messageDeRelance,
-  objetDuCourrier,
-} from "./envoi";
+import { lienEmail, lienWhatsApp, messageDEnvoi, messageDeRelance, objetDuCourrier } from "./envoi";
 
 /**
  * CE QU'ON PEUT FAIRE D'UNE PIÈCE.
@@ -61,6 +55,8 @@ export interface ActionsDocumentProps {
   /** Combien de relances sont déjà parties pour cette pièce. */
   relances: number;
   onEmis: (type: string, snapshot: unknown) => void;
+  /** La copie figée de cette pièce pour ce type, si elle a déjà été émise. */
+  lireCopie?: (type: string) => Promise<unknown | null>;
   onEnvoye: (canal: string, relance: boolean) => void;
   onEncaisser?: (doc: DocumentCommercial) => void;
   onConvertir?: (doc: DocumentCommercial) => void;
@@ -76,6 +72,7 @@ export const ActionsDocument: React.FC<ActionsDocumentProps> = ({
   aujourdhui,
   relances,
   onEmis,
+  lireCopie,
   onEnvoye,
   onEncaisser,
   onConvertir,
@@ -83,11 +80,19 @@ export const ActionsDocument: React.FC<ActionsDocumentProps> = ({
   onAvoir,
 }) => {
   const [sortie, setSortie] = useState<SortieVoulue | null>(null);
+  const [fige, setFige] = useState<PieceFigee | null>(null);
   const [envoi, setEnvoi] = useState<{ relance: boolean } | null>(null);
 
   const argent = (n: number) => formaterMontant(n, sources.boutique.currencySymbol);
 
-  const piece = sortie ? construireLaPiece(d, sources, sortie) : null;
+  const sourcesDeLaPiece = fige
+    ? {
+        ...sources,
+        reglages: fige.reglages,
+        boutique: { ...sources.boutique, ...fige.boutique },
+      }
+    : sources;
+  const piece = sortie ? construireLaPiece(d, sourcesDeLaPiece, sortie) : null;
   const estUneOffre = d.entite === "devis";
   const estUneVente = d.entite === "vente";
   const converti = d.statut === "converti";
@@ -105,22 +110,28 @@ export const ActionsDocument: React.FC<ActionsDocumentProps> = ({
    * celle que le client a reçue. Une seule copie par pièce : une
    * réimpression relit la première.
    */
-  const ouvrirLaPiece = (voulue: SortieVoulue) => {
+  const ouvrirLaPiece = async (voulue: SortieVoulue) => {
+    const type = (voulue === "recu" ? "recu" : d.type) as TypeDocumentV3;
+    // Déjà émise : on la reconstruit telle qu'elle est partie.
+    const brut = lireCopie ? await lireCopie(type).catch(() => null) : null;
+    const relue = brut ? lireCopieFigee(brut, reglages, type) : null;
+    if (relue) {
+      setFige(relue);
+    } else {
+      setFige(null);
+      onEmis(type, figer(reglages, sources.boutique, type, aujourdhui));
+    }
     setSortie(voulue);
-    const type = voulue === "recu" ? "recu" : d.type;
-    onEmis(type, {
-      version: 1,
-      emisLe: aujourdhui,
-      identite: reglages.identite,
-      type: resoudreType(reglages, type as TypeDocumentV3),
-      page: reglages.pages[type as TypeDocumentV3] ?? null,
-    });
   };
 
   return (
     <>
       <div className="flex flex-wrap gap-2">
-        <button type="button" onClick={() => ouvrirLaPiece("facture")} className="app-btn-secondary">
+        <button
+          type="button"
+          onClick={() => ouvrirLaPiece("facture")}
+          className="app-btn-secondary"
+        >
           <FileText className="h-4 w-4" />
           Voir, PDF, imprimer
         </button>
@@ -152,11 +163,7 @@ export const ActionsDocument: React.FC<ActionsDocumentProps> = ({
         )}
 
         {droits.encaisser && estUneVente && d.reste > 0 && !annulee && onEncaisser && (
-          <button
-            type="button"
-            onClick={() => onEncaisser(d)}
-            className="app-btn-secondary"
-          >
+          <button type="button" onClick={() => onEncaisser(d)} className="app-btn-secondary">
             <Wallet className="h-4 w-4" />
             Enregistrer un paiement
           </button>
@@ -194,7 +201,7 @@ export const ActionsDocument: React.FC<ActionsDocumentProps> = ({
       {piece && (
         <SortieDocument
           document={piece}
-          reglages={reglages}
+          reglages={fige?.reglages ?? reglages}
           formats={d.entite === "vente" ? ["a4", "t80", "t58"] : ["a4"]}
           onFermer={() => setSortie(null)}
         />

@@ -414,3 +414,37 @@ seul type, avec la phrase qui explique pourquoi.
 **Tests.** 452 → 469. Nouveau : `lib/apercuDesReglages.test.ts` (16),
 mis en défaut volontairement avant d'être gardé — en faisant ignorer le
 type au constructeur, 14 des 16 tombent.
+
+## Éditeur visuel libre et cachets (cahier « éditeur visuel + cachet »)
+
+**Mode libre.** Chaque bloc (logo, nom, repères, client, tableau, totaux,
+signatures, pied…) se pose en millimètres sur l'A4, à partir des
+positions d'un des quatre modèles. Rangé dans
+`personnalisation.documents.libre` (`dispositions` + `parType`), sans
+migration. Le mode simple reste le défaut ; une boutique sans
+disposition garde un rendu identique (testé).
+
+**Décisions.** Moteur maison sur Pointer Events (pas de bibliothèque de
+canevas : le PDF photographie du HTML). Aimantation aux marges, au
+milieu et aux autres blocs ; pas de grille de 1 mm, qui aurait contredit
+le placement « au pixel ». Ticket en colonne (ordre des sections).
+Mentions obligatoires : déplaçables, jamais masquables, au premier plan.
+
+**Pagination libre.** Tout tient dans le cadre du tableau : une page.
+Sinon la page 1 garde les blocs posés au-dessus du tableau, les
+suivantes continuent le tableau, la dernière reçoit les blocs posés
+dessous ; les blocs « répétés » sont sur toutes. Voir `paginationLibre.ts`.
+
+**Cachets.** Seau privé `cachets` (dépôt réservé à ceux qui règlent les
+documents, ni remplacement ni suppression). Fond retiré sur le
+téléphone, dans un Web Worker, sans service externe (`fondCachet.ts`).
+Un cachet placé est un bloc de plus, entre le texte et les mentions
+obligatoires ; ses images sont chargées avant toute capture PDF.
+
+**Copie figée.** Version 2 : les réglages entiers réduits à la pièce,
+disposition et cachets compris, et les champs texte de la boutique.
+Relue à la réimpression dans Facturation, seul écran qui enregistre les
+émissions. **Le logo n'est pas figé** : il pèse jusqu'à 2 Mo en base64
+dans `stores.logo_url`, et le recopier dans chaque pièce coûterait des
+centaines de mégaoctets par an. Les copies de version 1 se relisent en
+mode simple, puisqu'elles précèdent le mode libre.
