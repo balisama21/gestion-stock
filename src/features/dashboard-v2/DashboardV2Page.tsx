@@ -869,10 +869,8 @@ export const DashboardV2Page: React.FC<DashboardV2PageProps> = ({
           alertes={puces}
         />
 
-        {/* ── Le chiffre d'affaires, seul au-dessus ──
-            C'est le seul gros chiffre de l'ecran. Lui donner une rangee
-            entiere, sans titre de groupe et sans voisine, est ce qui
-            fait qu'on le lit en premier sans avoir a le chercher. */}
+        {/* Cartes « tete » du registre, hors famille. Aucune pour l'instant :
+            le chiffre d'affaires a rejoint la famille « Les ventes ». */}
         {enTete.length > 0 && (
           <section className="grid" aria-label="Chiffre d'affaires">
             {enTete.map(rendreCarte)}
@@ -1136,24 +1134,25 @@ export const DashboardV2Page: React.FC<DashboardV2PageProps> = ({
 const BLOC_DE: Partial<Record<CleCarte, string>> = {
   agenda: "operations",
   taches: "operations",
+  commandes: "operations",
   livraisons: "operations",
   tresorerie: "finance",
   sorties: "finance",
   resultat: "finance",
   paiements: "finance",
   fournisseurs: "finance",
-  vendeurs: "equipe",
-  commandes: "equipe",
-  fil: "activite",
-  clients: "activite",
-  top: "activite",
+  ventes: "ventes",
+  fil: "ventes",
+  clients: "ventes",
+  top: "ventes",
+  vendeurs: "ventes",
   stock: "stock",
   ruptures: "stock",
   mouvements: "stock",
 };
 
 /** Cartes qui prennent toute la largeur de leur bloc. */
-const PLEINE_LARGEUR = new Set<CleCarte>(["tresorerie", "fil", "mouvements"]);
+const PLEINE_LARGEUR = new Set<CleCarte>(["tresorerie", "ventes", "fil", "mouvements"]);
 
 /** Regroupe les cartes consécutives d'un même bloc, sans jamais changer leur ordre. */
 function enBlocs(cles: CleCarte[]): { bloc?: string; cles: CleCarte[] }[] {

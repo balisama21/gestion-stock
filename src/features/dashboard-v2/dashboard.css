@@ -3330,7 +3330,7 @@
     box-shadow: none;
     animation: none;
   }
-  .dash2 .groupe .bloc > :is(#carte-tresorerie, #carte-fil, #carte-mouvements) {
+  .dash2 .groupe .bloc > :is(#carte-tresorerie, #carte-ventes, #carte-fil, #carte-mouvements) {
     grid-column: 1 / -1;
   }
   .dash2 .groupe .bloc > .card.flash {

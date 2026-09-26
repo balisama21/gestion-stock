@@ -80,9 +80,9 @@ export type GroupeCarte = "tete" | "aujourdhui" | "argent" | "ventes" | "stock";
 
 /** Dans l'ordre d'affichage. La tête n'y figure pas : elle n'a pas de titre. */
 export const GROUPES: { cle: Exclude<GroupeCarte, "tete">; titre: string }[] = [
-  { cle: "aujourdhui", titre: "Aujourd’hui" },
-  { cle: "argent", titre: "L’argent" },
+  { cle: "aujourdhui", titre: "Opérations" },
   { cle: "ventes", titre: "Les ventes" },
+  { cle: "argent", titre: "L’argent" },
   { cle: "stock", titre: "Le stock" },
 ];
 
@@ -131,7 +131,7 @@ export const CARTES: DefinitionCarte[] = [
   },
   {
     cle: "ventes",
-    groupe: "tete",
+    groupe: "ventes",
     titre: "Ventes du mois",
     span: 7,
     module: "ventes",
@@ -173,18 +173,8 @@ export const CARTES: DefinitionCarte[] = [
     donnees: ["taches", "devis"],
   },
   {
-    cle: "vendeurs",
-    groupe: "ventes",
-    titre: "Classement vendeurs",
-    span: 4,
-    secondaire: true,
-    module: "vendeurs",
-    widget: "perf_equipe",
-    donnees: ["vendeurs"],
-  },
-  {
     cle: "commandes",
-    groupe: "ventes",
+    groupe: "aujourdhui",
     titre: "Suivi des commandes",
     span: 4,
     secondaire: true,
@@ -255,6 +245,16 @@ export const CARTES: DefinitionCarte[] = [
     module: "ventes",
     widget: "produits_plus_vendus",
     donnees: ["ventes", "produits"],
+  },
+  {
+    cle: "vendeurs",
+    groupe: "ventes",
+    titre: "Classement vendeurs",
+    span: 4,
+    secondaire: true,
+    module: "vendeurs",
+    widget: "perf_equipe",
+    donnees: ["vendeurs"],
   },
   {
     cle: "livraisons",
