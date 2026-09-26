@@ -113,6 +113,14 @@
 .doc-feuille th {
   vertical-align: top;
 }
+/* La règle globale `.printable-receipt th, td { white-space: normal }` sert
+   aux reçus v1, de largeur variable. Sur une feuille de 210 mm, un
+   en-tête de colonne ou un montant ne se replie jamais. */
+.doc-feuille thead th,
+.doc-feuille .doc-montant,
+.doc-feuille .doc-qte {
+  white-space: nowrap;
+}
 .doc-montant {
   text-align: right;
   white-space: nowrap;
