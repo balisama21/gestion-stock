@@ -2,6 +2,7 @@ import type { Echeance } from "./format";
 import { IDENTITE_PAR_DEFAUT, lireIdentite, type IdentiteBoutique } from "./identite";
 import { lireMisesEnPage, type MisesEnPage } from "./miseEnPage";
 import { LIBRE_PAR_DEFAUT, lireLibre, type ReglagesLibres } from "./disposition";
+import { lireCachets, type Cachet } from "./cachets";
 import { lireTypes, TYPES_DOCUMENT, type ReglagesParType } from "./typesDocument";
 
 /**
@@ -84,6 +85,8 @@ export interface ReglagesDocuments {
   pages: MisesEnPage;
   /** Mode libre : dispositions dessinées à la main, et celle de chaque type. */
   libre: ReglagesLibres;
+  /** Cachets et signatures, placés comme des blocs en mode libre. */
+  cachets: Cachet[];
   /**
    * L'INTERRUPTEUR DE LA BOUTIQUE.
    *
@@ -118,6 +121,7 @@ export const REGLAGES_DOCUMENTS_PAR_DEFAUT: ReglagesDocuments = {
   types: {},
   pages: {},
   libre: LIBRE_PAR_DEFAUT,
+  cachets: [],
   modele: "classique",
   couleur: "#0E7C5A",
   logo: "auto",
@@ -195,6 +199,7 @@ export function lireReglagesDocuments(brut: unknown): ReglagesDocuments {
     types: lireTypes(r.types),
     pages: lireMisesEnPage(r.pages, TYPES_DOCUMENT),
     libre: lireLibre(r.libre),
+    cachets: lireCachets(r.cachets),
     modele: dans(r.modele, MODELES, d.modele),
     couleur: COULEUR_VALIDE.test(couleur) ? couleur : d.couleur,
     logo: dans(r.logo, LOGOS, d.logo),

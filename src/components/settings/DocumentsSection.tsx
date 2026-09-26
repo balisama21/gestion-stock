@@ -4,6 +4,8 @@ import { SettingsBlock, SettingsRow, SettingsSection, SettingsToggle } from "./p
 import { IdentiteDocuments } from "./IdentiteDocuments";
 import { ReglagesParDocument } from "./ReglagesParDocument";
 import { ChoixDisposition } from "./ChoixDisposition";
+import { CachetsSection } from "./CachetsSection";
+import type { Cachet } from "../../features/documents/lib/cachets";
 import { COULEURS_DOCUMENT, LOGOS_DOCUMENT, MODELES_DOCUMENT } from "./choixDocuments";
 import type { Personnalisation } from "../../lib/personnalisation";
 import type { Product, Sale, StoreSettings } from "../../types";
@@ -62,6 +64,8 @@ interface DocumentsSectionProps {
   /** Les ventes de la boutique, pour l'aperçu. Jamais modifiées. */
   sales: Sale[];
   products: Product[];
+  /** La boutique active : les cachets sont rangés sous son identifiant. */
+  storeId?: string;
 }
 
 const MODELES = MODELES_DOCUMENT;
@@ -101,6 +105,7 @@ export const DocumentsSection: React.FC<DocumentsSectionProps> = ({
   settings,
   sales,
   products,
+  storeId,
 }) => {
   const enregistres = useMemo(
     () => lireReglagesDocuments(personnalisation.documents),
@@ -129,6 +134,7 @@ export const DocumentsSection: React.FC<DocumentsSectionProps> = ({
   const changerTypes = (types: ReglagesParType) => setBrouillon((b) => ({ ...b, types }));
   const changerPages = (pages: MisesEnPage) => setBrouillon((b) => ({ ...b, pages }));
   const changerLibre = (libre: ReglagesLibres) => setBrouillon((b) => ({ ...b, libre }));
+  const changerCachets = (cachets: Cachet[]) => setBrouillon((b) => ({ ...b, cachets }));
 
   const enregistrer = async (version?: ReglagesDocuments) => {
     const aEcrire = version ?? brouillon;
@@ -451,6 +457,13 @@ export const DocumentsSection: React.FC<DocumentsSectionProps> = ({
           onEnregistrerLibre={(libre) => enregistrer({ ...brouillon, libre })}
         />
       </SettingsSection>
+
+      <CachetsSection
+        cachets={brouillon.cachets}
+        storeId={storeId}
+        onChange={changerCachets}
+        onEnregistrer={(cachets) => enregistrer({ ...brouillon, cachets })}
+      />
 
       <SettingsSection
         title="Ticket de caisse"

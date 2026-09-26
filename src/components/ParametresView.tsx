@@ -1042,6 +1042,7 @@ export const ParametresView: React.FC<ParametresViewProps> = ({
           settings={settings}
           sales={sales}
           products={products}
+          storeId={workspace.activeStore?.id}
         />
       )}
 
