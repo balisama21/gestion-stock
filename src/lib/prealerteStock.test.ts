@@ -157,6 +157,9 @@ describe("lire ce que la base rend", () => {
       frequence: "mouvement",
       heure_resume: 40,
       mis_a_jour_le: "2026-09-20T00:00:00Z",
+      reappro_active: null,
+      reappro_mode: null,
+      reappro_valeur: null,
     });
 
     expect(lu.ecart).toBe(BORNES.ecart.max);
@@ -174,6 +177,9 @@ describe("lire ce que la base rend", () => {
       frequence: "autre",
       heure_resume: 8,
       mis_a_jour_le: "2026-09-20T00:00:00Z",
+      reappro_active: null,
+      reappro_mode: null,
+      reappro_valeur: null,
     });
 
     expect(lu.mode).toBe("ecart");

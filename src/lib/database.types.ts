@@ -2510,6 +2510,9 @@ export type Database = {
           mode: string;
           pourcentage: number;
           prealerte_active: boolean;
+          reappro_active: boolean | null;
+          reappro_mode: string | null;
+          reappro_valeur: number | null;
           store_id: string;
         };
         Insert: {
@@ -2520,6 +2523,9 @@ export type Database = {
           mode?: string;
           pourcentage?: number;
           prealerte_active?: boolean;
+          reappro_active?: boolean | null;
+          reappro_mode?: string | null;
+          reappro_valeur?: number | null;
           store_id: string;
         };
         Update: {
@@ -2530,6 +2536,9 @@ export type Database = {
           mode?: string;
           pourcentage?: number;
           prealerte_active?: boolean;
+          reappro_active?: boolean | null;
+          reappro_mode?: string | null;
+          reappro_valeur?: number | null;
           store_id?: string;
         };
         Relationships: [

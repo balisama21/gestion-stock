@@ -69,7 +69,14 @@ export interface ReglagesAlertesStock {
   frequence: FrequencePrealerte;
   /** Heure du résumé quotidien, en heure de Madagascar. */
   heureResume: number;
+  /** Niveau cible et feuille de réapprovisionnement. Éteint = comportement historique. */
+  reapproActive: boolean;
+  /** Règle du niveau cible des produits qui n'en ont pas. */
+  reapproMode: ModeCible;
+  reapproValeur: number;
 }
+
+export type ModeCible = "multiple" | "ecart";
 
 /**
  * Les valeurs par défaut, qui sont aussi celles de la base.
@@ -85,6 +92,9 @@ export const REGLAGES_PAR_DEFAUT: ReglagesAlertesStock = {
   pourcentage: 50,
   frequence: "quotidien",
   heureResume: 8,
+  reapproActive: false,
+  reapproMode: "multiple",
+  reapproValeur: 2,
 };
 
 /**
@@ -98,7 +108,15 @@ export const BORNES = {
   ecart: { min: 1, max: 9999 },
   pourcentage: { min: 1, max: 1000 },
   heureResume: { min: 0, max: 23 },
+  reapproValeur: { min: 1, max: 9999 },
 } as const;
+
+/** Décimale permise (×1,5), arrondie au dixième. */
+function bornerValeurCible(v: number): number {
+  const { min, max } = BORNES.reapproValeur;
+  if (!Number.isFinite(v)) return REGLAGES_PAR_DEFAUT.reapproValeur;
+  return Math.min(max, Math.max(min, Math.round(v * 10) / 10));
+}
 
 const borner = (valeur: number, { min, max }: { min: number; max: number }) =>
   Number.isFinite(valeur) ? Math.min(max, Math.max(min, Math.round(valeur))) : min;
@@ -117,6 +135,7 @@ export function bornerReglages(r: ReglagesAlertesStock): ReglagesAlertesStock {
     ecart: borner(r.ecart, BORNES.ecart),
     pourcentage: borner(r.pourcentage, BORNES.pourcentage),
     heureResume: borner(r.heureResume, BORNES.heureResume),
+    reapproValeur: bornerValeurCible(r.reapproValeur),
   };
 }
 
@@ -226,6 +245,12 @@ export function lireReglages(ligne: LigneReglages | null | undefined): ReglagesA
     pourcentage: borner(ligne.pourcentage, BORNES.pourcentage),
     frequence: ligne.frequence === "mouvement" ? "mouvement" : "quotidien",
     heureResume: borner(ligne.heure_resume, BORNES.heureResume),
+    reapproActive: Boolean(ligne.reappro_active),
+    reapproMode: ligne.reappro_mode === "ecart" ? "ecart" : "multiple",
+    reapproValeur:
+      ligne.reappro_valeur == null
+        ? REGLAGES_PAR_DEFAUT.reapproValeur
+        : bornerValeurCible(Number(ligne.reappro_valeur)),
   };
 }
 
@@ -243,6 +268,9 @@ export function ecrireReglages(
     pourcentage: borne.pourcentage,
     frequence: borne.frequence,
     heure_resume: borne.heureResume,
+    reappro_active: borne.reapproActive,
+    reappro_mode: borne.reapproMode,
+    reappro_valeur: borne.reapproValeur,
   };
 }
 
