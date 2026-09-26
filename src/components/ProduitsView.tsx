@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from "react";
-import { Product, LocaleSetting } from "../types";
+import { Product, LocaleSetting, type StoreSettings } from "../types";
 import {
   Package,
   Plus,
@@ -31,6 +31,9 @@ import { envoyerFichier, supprimerFichier } from "../lib/stockageFichiers";
 import type { Database } from "../lib/database.types";
 import { useFiltreInitial, useRechercheInitiale } from "../lib/cibleRecherche";
 import { estARecommander, type ReglagesAlertesStock } from "../lib/prealerteStock";
+import { lignesDeReappro, niveauCibleParRegle } from "../lib/reapprovisionnement";
+import type { ProduitARecommander } from "../lib/bonDeCommande";
+import { ReapproVue } from "./produits/ReapproVue";
 import { symboleDeSaisie } from "../lib/affichageDevise";
 
 /**
@@ -146,6 +149,9 @@ interface ProduitsViewProps {
    * Clés possibles : view, create, edit, delete, adjust_stock, inventory.
    */
   allowedActions?: string[] | null;
+  /** Actifs, hors services : la base de l'écran Réapprovisionnement. */
+  produitsARecommander?: ProduitARecommander[];
+  settings?: StoreSettings;
 }
 
 export const ProduitsView: React.FC<ProduitsViewProps> = ({
@@ -169,6 +175,8 @@ export const ProduitsView: React.FC<ProduitsViewProps> = ({
   onAjusterStock,
   visibleFields,
   allowedActions,
+  produitsARecommander = [],
+  settings,
 }) => {
   // null/undefined = tout visible (propriétaire). Sinon, seuls les champs
   // explicitement listés sont montrés.
@@ -196,6 +204,15 @@ export const ProduitsView: React.FC<ProduitsViewProps> = ({
   useFiltreInitial("produits", (f) => setStockFilter(f as FiltreStock));
   const [supplierFilter, setSupplierFilter] = useState<string>("Tous");
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
+  const [vueReappro, setVueReappro] = useState(false);
+  const reapproVisible = reglagesAlertes.reapproActive && vueReappro;
+  const nbSousLeSeuil = useMemo(
+    () =>
+      reglagesAlertes.reapproActive
+        ? lignesDeReappro(produitsARecommander, reglagesAlertes).length
+        : 0,
+    [produitsARecommander, reglagesAlertes],
+  );
   const [saving, setSaving] = useState(false);
 
   // Form State for new product
@@ -550,184 +567,240 @@ export const ProduitsView: React.FC<ProduitsViewProps> = ({
         }
       />
 
-      {/* Indicateurs */}
-      <div className="app-statbar grid-cols-1 sm:grid-cols-3">
-        <StatCol
-          label="Références"
-          value={`${totalReferences}`}
-          hint={`produit${totalReferences > 1 ? "s" : ""} au catalogue`}
-          icon={<Layers className="w-5 h-5" />}
-          tone="success"
+      {reglagesAlertes.reapproActive && (
+        <div
+          role="tablist"
+          aria-label="Vue"
+          className="flex w-full items-center gap-1 rounded-xl border border-border bg-muted p-1 sm:w-auto sm:inline-flex"
+        >
+          {[
+            { cle: false, label: "Catalogue" },
+            { cle: true, label: `Réapprovisionnement (${nbSousLeSeuil})` },
+          ].map((o) => (
+            <button
+              key={String(o.cle)}
+              type="button"
+              role="tab"
+              aria-selected={vueReappro === o.cle}
+              onClick={() => setVueReappro(o.cle)}
+              className={`flex-1 whitespace-nowrap rounded-lg px-3 py-2 text-xs font-medium transition-colors sm:flex-none ${
+                vueReappro === o.cle
+                  ? "bg-primary text-primary-foreground font-semibold"
+                  : "text-muted-foreground hover:text-foreground"
+              }`}
+            >
+              {o.label}
+            </button>
+          ))}
+        </div>
+      )}
+
+      {reapproVisible && (
+        <ReapproVue
+          produits={produitsARecommander}
+          reglages={reglagesAlertes}
+          settings={settings}
+          montrerFournisseur={showFournisseur}
         />
+      )}
 
-        {showValeurStock && (
-          <StatCol
-            label="Valeur du stock"
-            value={formatCurrency(totalValeurStock)}
-            hint="au prix d'achat"
-            icon={<DollarSign className="w-5 h-5" />}
-            tone="info"
-          />
-        )}
+      {!reapproVisible && (
+        <>
+          {/* Indicateurs */}
+          <div className="app-statbar grid-cols-1 sm:grid-cols-3">
+            <StatCol
+              label="Références"
+              value={`${totalReferences}`}
+              hint={`produit${totalReferences > 1 ? "s" : ""} au catalogue`}
+              icon={<Layers className="w-5 h-5" />}
+              tone="success"
+            />
 
-        <StatCol
-          label="Stock bas"
-          value={`${totalAlertesStock}`}
-          hint={
-            totalAlertesStock > 0
-              ? `produit${totalAlertesStock > 1 ? "s" : ""} à réapprovisionner`
-              : "tout est approvisionné"
-          }
-          hintTone={totalAlertesStock > 0 ? "warning" : "neutral"}
-          icon={<AlertTriangle className="w-5 h-5" />}
-          tone={totalAlertesStock > 0 ? "warning" : "neutral"}
-        />
-      </div>
+            {showValeurStock && (
+              <StatCol
+                label="Valeur du stock"
+                value={formatCurrency(totalValeurStock)}
+                hint="au prix d'achat"
+                icon={<DollarSign className="w-5 h-5" />}
+                tone="info"
+              />
+            )}
 
-      {/* Recherche et filtres */}
-      <FilterBar
-        searchValue={searchTerm}
-        onSearchChange={setSearchTerm}
-        searchPlaceholder="Rechercher un produit, une référence, un fournisseur…"
-        activeFilterCount={(stockFilter !== "Tous" ? 1 : 0) + (supplierFilter !== "Tous" ? 1 : 0)}
-        onReset={() => {
-          setStockFilter("Tous");
-          setSupplierFilter("Tous");
-          setSearchTerm("");
-        }}
-      >
-        <FilterField label="Stock">
-          <div className="flex w-full items-center gap-1 rounded-xl border border-border bg-muted p-1 lg:w-auto">
-            {(
-              [
-                { key: "Tous" as const, label: "Tous", count: products.length },
-                {
-                  key: "OK" as const,
-                  label: "OK",
-                  count: products.length - totalAlertesStock,
-                },
-                { key: "Alerte" as const, label: "Alertes", count: totalAlertesStock },
-                ...(reglagesAlertes.prealerteActive
-                  ? [
-                      {
-                        key: FILTRE_A_RECOMMANDER,
-                        label: "À recommander",
-                        count: totalARecommander,
-                      },
-                    ]
-                  : []),
-              ] as { key: FiltreStock; label: string; count: number }[]
-            ).map((opt) => (
-              <button
-                key={opt.key}
-                type="button"
-                onClick={() => setStockFilter(opt.key)}
-                className={`flex-1 whitespace-nowrap rounded-lg px-2.5 py-2 text-xs font-medium transition-colors lg:flex-none ${
-                  stockFilter === opt.key
-                    ? "bg-primary text-primary-foreground font-semibold"
-                    : "text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                {opt.label} ({opt.count})
-              </button>
-            ))}
+            <StatCol
+              label="Stock bas"
+              value={`${totalAlertesStock}`}
+              hint={
+                totalAlertesStock > 0
+                  ? `produit${totalAlertesStock > 1 ? "s" : ""} à réapprovisionner`
+                  : "tout est approvisionné"
+              }
+              hintTone={totalAlertesStock > 0 ? "warning" : "neutral"}
+              icon={<AlertTriangle className="w-5 h-5" />}
+              tone={totalAlertesStock > 0 ? "warning" : "neutral"}
+            />
           </div>
-        </FilterField>
 
-        <FilterField label="Fournisseur">
-          <select
-            value={supplierFilter}
-            onChange={(e) => setSupplierFilter(e.target.value)}
-            className="app-field-sm lg:w-auto"
+          {/* Recherche et filtres */}
+          <FilterBar
+            searchValue={searchTerm}
+            onSearchChange={setSearchTerm}
+            searchPlaceholder="Rechercher un produit, une référence, un fournisseur…"
+            activeFilterCount={
+              (stockFilter !== "Tous" ? 1 : 0) + (supplierFilter !== "Tous" ? 1 : 0)
+            }
+            onReset={() => {
+              setStockFilter("Tous");
+              setSupplierFilter("Tous");
+              setSearchTerm("");
+            }}
           >
-            <option value="Tous">Tous les fournisseurs</option>
-            {uniqueSuppliers.map((sup) => (
-              <option key={sup} value={sup}>
-                {sup}
-              </option>
-            ))}
-          </select>
-        </FilterField>
-      </FilterBar>
+            <FilterField label="Stock">
+              <div className="flex w-full items-center gap-1 rounded-xl border border-border bg-muted p-1 lg:w-auto">
+                {(
+                  [
+                    { key: "Tous" as const, label: "Tous", count: products.length },
+                    {
+                      key: "OK" as const,
+                      label: "OK",
+                      count: products.length - totalAlertesStock,
+                    },
+                    { key: "Alerte" as const, label: "Alertes", count: totalAlertesStock },
+                    ...(reglagesAlertes.prealerteActive
+                      ? [
+                          {
+                            key: FILTRE_A_RECOMMANDER,
+                            label: "À recommander",
+                            count: totalARecommander,
+                          },
+                        ]
+                      : []),
+                  ] as { key: FiltreStock; label: string; count: number }[]
+                ).map((opt) => (
+                  <button
+                    key={opt.key}
+                    type="button"
+                    onClick={() => setStockFilter(opt.key)}
+                    className={`flex-1 whitespace-nowrap rounded-lg px-2.5 py-2 text-xs font-medium transition-colors lg:flex-none ${
+                      stockFilter === opt.key
+                        ? "bg-primary text-primary-foreground font-semibold"
+                        : "text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    {opt.label} ({opt.count})
+                  </button>
+                ))}
+              </div>
+            </FilterField>
 
-      {/* Liste unique — desktop ET mobile.
+            <FilterField label="Fournisseur">
+              <select
+                value={supplierFilter}
+                onChange={(e) => setSupplierFilter(e.target.value)}
+                className="app-field-sm lg:w-auto"
+              >
+                <option value="Tous">Tous les fournisseurs</option>
+                {uniqueSuppliers.map((sup) => (
+                  <option key={sup} value={sup}>
+                    {sup}
+                  </option>
+                ))}
+              </select>
+            </FilterField>
+          </FilterBar>
+
+          {/* Liste unique — desktop ET mobile.
           Une fiche produit ne se lit pas comme une transaction : ce qui
           compte ici est le nom, l'état du stock et le prix de vente,
           pas un montant total. Le stock devient donc le badge, et le
           prix le montant de droite. */}
-      <div className="app-card overflow-hidden">
-        <DataList
-          emptyLabel="Aucun produit ne correspond à ces filtres."
-          items={filteredProducts.map((p) => {
-            const rupture = p.stockActuel <= 0;
-            const bas = !rupture && p.stockActuel <= p.seuilAlerte;
-            return {
-              id: p.id,
-              // La vignette seule, pour reconnaitre la ligne qu'on lit.
-              // La case a cocher qui l'accompagnait est partie avec la
-              // selection multiple : on supprime un produit depuis sa
-              // propre ligne, ce qui laisse voir lequel on supprime.
-              leading: (
-                <VignetteProduit nom={getProductLabel(p, products)} chemin={vignettes.get(p.id)} />
-              ),
-              primary: (
-                <span className="flex min-w-0 items-center gap-2">
-                  <span className="truncate">{getProductLabel(p, products)}</span>
-                  <VariantBadge prix={getProductVariant(p, products)} autorise={showPrixAchat} />
-                </span>
-              ),
-              meta: [
-                p.numero,
-                showFournisseur ? p.fournisseur || null : null,
-                `seuil ${p.seuilAlerte}`,
-              ],
-              amount: formatCurrency(p.prixVenteDefaut),
-              amountHint: showPrixAchat ? `achat ${formatCurrency(p.prixAchat)}` : undefined,
-              badge: (
-                <span
-                  className={`app-badge ${
-                    rupture ? "app-badge-danger" : bas ? "app-badge-warning" : "app-badge-neutral"
-                  }`}
-                >
-                  {rupture ? "Rupture" : `${p.stockActuel} en stock`}
-                </span>
-              ),
-              detailTitle: getProductLabel(p, products),
-              detailSubtitle: p.numero,
-              details: [
-                { label: "Référence", value: p.numero },
-                { label: "Stock actuel", value: `${p.stockActuel}` },
-                { label: "Stock réservé", value: `${p.stockReserve}`, hideIfEmpty: true },
-                { label: "Stock disponible", value: `${p.stockDisponible}` },
-                { label: "Seuil d'alerte", value: `${p.seuilAlerte}` },
-                ...(showPrixAchat
-                  ? [{ label: "Prix d'achat", value: formatCurrency(p.prixAchat) }]
-                  : []),
-                { label: "Prix de vente", value: formatCurrency(p.prixVenteDefaut) },
-                ...(showFournisseur
-                  ? [{ label: "Fournisseur", value: p.fournisseur || "-", hideIfEmpty: true }]
-                  : []),
-              ],
-              actions: (
-                <>
-                  {onEditProduct && canEdit && (
-                    <button onClick={() => openEditModal(p)} className="app-btn-secondary">
-                      <Pencil className="w-4 h-4" />
-                      Modifier
-                    </button>
-                  )}
-                  {onDeleteProducts && canDelete && (
-                    <button onClick={() => setConfirmDeleteIds([p.id])} className="app-btn-danger">
-                      <Trash2 className="w-4 h-4" />
-                      Supprimer
-                    </button>
-                  )}
-                </>
-              ),
-            };
-          })}
-        />
-      </div>
+          <div className="app-card overflow-hidden">
+            <DataList
+              emptyLabel="Aucun produit ne correspond à ces filtres."
+              items={filteredProducts.map((p) => {
+                const rupture = p.stockActuel <= 0;
+                const bas = !rupture && p.stockActuel <= p.seuilAlerte;
+                return {
+                  id: p.id,
+                  // La vignette seule, pour reconnaitre la ligne qu'on lit.
+                  // La case a cocher qui l'accompagnait est partie avec la
+                  // selection multiple : on supprime un produit depuis sa
+                  // propre ligne, ce qui laisse voir lequel on supprime.
+                  leading: (
+                    <VignetteProduit
+                      nom={getProductLabel(p, products)}
+                      chemin={vignettes.get(p.id)}
+                    />
+                  ),
+                  primary: (
+                    <span className="flex min-w-0 items-center gap-2">
+                      <span className="truncate">{getProductLabel(p, products)}</span>
+                      <VariantBadge
+                        prix={getProductVariant(p, products)}
+                        autorise={showPrixAchat}
+                      />
+                    </span>
+                  ),
+                  meta: [
+                    p.numero,
+                    showFournisseur ? p.fournisseur || null : null,
+                    `seuil ${p.seuilAlerte}`,
+                  ],
+                  amount: formatCurrency(p.prixVenteDefaut),
+                  amountHint: showPrixAchat ? `achat ${formatCurrency(p.prixAchat)}` : undefined,
+                  badge: (
+                    <span
+                      className={`app-badge ${
+                        rupture
+                          ? "app-badge-danger"
+                          : bas
+                            ? "app-badge-warning"
+                            : "app-badge-neutral"
+                      }`}
+                    >
+                      {rupture ? "Rupture" : `${p.stockActuel} en stock`}
+                    </span>
+                  ),
+                  detailTitle: getProductLabel(p, products),
+                  detailSubtitle: p.numero,
+                  details: [
+                    { label: "Référence", value: p.numero },
+                    { label: "Stock actuel", value: `${p.stockActuel}` },
+                    { label: "Stock réservé", value: `${p.stockReserve}`, hideIfEmpty: true },
+                    { label: "Stock disponible", value: `${p.stockDisponible}` },
+                    { label: "Seuil d'alerte", value: `${p.seuilAlerte}` },
+                    ...(showPrixAchat
+                      ? [{ label: "Prix d'achat", value: formatCurrency(p.prixAchat) }]
+                      : []),
+                    { label: "Prix de vente", value: formatCurrency(p.prixVenteDefaut) },
+                    ...(showFournisseur
+                      ? [{ label: "Fournisseur", value: p.fournisseur || "-", hideIfEmpty: true }]
+                      : []),
+                  ],
+                  actions: (
+                    <>
+                      {onEditProduct && canEdit && (
+                        <button onClick={() => openEditModal(p)} className="app-btn-secondary">
+                          <Pencil className="w-4 h-4" />
+                          Modifier
+                        </button>
+                      )}
+                      {onDeleteProducts && canDelete && (
+                        <button
+                          onClick={() => setConfirmDeleteIds([p.id])}
+                          className="app-btn-danger"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                          Supprimer
+                        </button>
+                      )}
+                    </>
+                  ),
+                };
+              })}
+            />
+          </div>
+        </>
+      )}
 
       {/* ── Nouveau produit ── */}
       <Modal
@@ -856,6 +929,14 @@ export const ProduitsView: React.FC<ProduitsViewProps> = ({
             images={[]}
             storeId={storeId}
             productId={null}
+            reappro={
+              reglagesAlertes.reapproActive
+                ? {
+                    seuil: Number(seuilAlerte),
+                    cibleParDefaut: niveauCibleParRegle(Number(seuilAlerte), reglagesAlertes),
+                  }
+                : undefined
+            }
             photosEnAttente={onAddProductImage ? addPhotos : undefined}
             onPhotosEnAttenteChange={onAddProductImage ? setAddPhotos : undefined}
             onAddImage={onAddProductImage ?? (async () => ({ error: "Envoi indisponible." }))}
@@ -1053,6 +1134,14 @@ export const ProduitsView: React.FC<ProduitsViewProps> = ({
               images={productImages.filter((i) => i.product_id === editingProduct.id)}
               storeId={storeId}
               productId={editingProduct.id}
+              reappro={
+                reglagesAlertes.reapproActive
+                  ? {
+                      seuil: Number(editSeuilAlerte),
+                      cibleParDefaut: niveauCibleParRegle(Number(editSeuilAlerte), reglagesAlertes),
+                    }
+                  : undefined
+              }
               onAddImage={onAddProductImage ?? (async () => ({ error: "Envoi indisponible." }))}
               onDeleteImage={
                 onDeleteProductImage ?? (async () => ({ error: "Suppression indisponible." }))

@@ -1,0 +1,163 @@
+/* Feuille de réapprovisionnement. Le papier est toujours blanc :
+   gris neutres des autres modèles, couleur du document pour l'accent. */
+
+.m-reappro .doc-pad {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 5mm;
+}
+
+.rp-tete {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 8mm;
+  padding-bottom: 4mm;
+  border-bottom: 0.5mm solid var(--doc);
+}
+.rp-boutique {
+  margin: 0 0 1mm;
+  font-size: 10pt;
+  font-weight: 600;
+  color: #4b5550;
+}
+.rp-titre {
+  margin: 0;
+  font-size: 17pt;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  color: var(--doc-ink);
+}
+.rp-meta {
+  display: flex;
+  gap: 7mm;
+  margin: 0;
+}
+.rp-meta dt {
+  font-size: 7.5pt;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #6b7671;
+}
+.rp-meta dd {
+  margin: 0;
+  font-family: var(--doc-mono);
+  font-size: 10pt;
+  white-space: nowrap;
+}
+
+.rp-table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+  font-size: 9.5pt;
+}
+.rp-table th {
+  text-align: left;
+  font-size: 7.5pt;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: #6b7671;
+  padding: 0 1.5mm 2mm;
+  border-bottom: 0.3mm solid #cfd6d2;
+}
+.rp-table td {
+  padding: 2.2mm 1.5mm;
+  border-bottom: 0.2mm solid #e6ebe8;
+  vertical-align: top;
+}
+.rp-table .rp-num {
+  width: 15mm;
+  text-align: right;
+  font-family: var(--doc-mono);
+  white-space: nowrap;
+}
+.rp-table .rp-col-qte {
+  width: 24mm;
+}
+.rp-table .rp-qte {
+  font-weight: 700;
+  color: var(--doc-ink);
+}
+.rp-unite {
+  font-family: var(--doc-sans);
+  font-weight: 400;
+  font-size: 8pt;
+  color: #6b7671;
+}
+.rp-table .rp-case {
+  width: 8mm;
+  padding-left: 0;
+}
+.rp-case span {
+  display: block;
+  width: 4mm;
+  height: 4mm;
+  border: 0.3mm solid #16181a;
+  border-radius: 0.6mm;
+}
+.rp-produit {
+  overflow-wrap: anywhere;
+}
+.rp-nom {
+  display: block;
+  font-weight: 600;
+}
+.rp-ref {
+  display: block;
+  font-size: 8pt;
+  color: #6b7671;
+}
+.rp-table .rp-col-notes {
+  width: 32mm;
+}
+.rp-notes {
+  border-bottom-style: dotted !important;
+}
+.rp-table .rp-col-fournisseur {
+  width: 30mm;
+  overflow-wrap: anywhere;
+  font-size: 8.5pt;
+}
+
+.rp-groupe td {
+  padding: 4mm 0 1.5mm;
+  font-weight: 700;
+  font-size: 10pt;
+  color: var(--doc-ink);
+  border-bottom: 0.3mm solid var(--doc);
+}
+.rp-suite td {
+  padding-top: 0;
+  font-weight: 600;
+  color: #4b5550;
+}
+.rp-nb {
+  margin-left: 3mm;
+  font-weight: 400;
+  font-size: 8.5pt;
+  color: #6b7671;
+}
+
+.rp-cloture {
+  display: flex;
+  flex-direction: column;
+  gap: 3mm;
+}
+.rp-legende {
+  margin: 0;
+  font-size: 8.5pt;
+  color: #6b7671;
+}
+.rp-annotations {
+  height: 26mm;
+  border: 0.3mm solid #cfd6d2;
+  border-radius: 1.5mm;
+  padding: 2mm 3mm;
+  font-size: 7.5pt;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: #6b7671;
+}

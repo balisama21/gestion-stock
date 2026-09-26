@@ -645,6 +645,7 @@ function AppInner() {
           fournisseur: p.fournisseur,
           prixAchat: p.prixAchat,
           unite: p.unite,
+          niveauCible: p.stockMax,
         })),
     [products],
   );
@@ -2036,6 +2037,8 @@ function AppInner() {
                       onDeleteProductImage={storeData.deleteProductImage}
                       visibleFields={produitsVisibleFields}
                       allowedActions={produitsActions}
+                      produitsARecommander={produitsARecommander}
+                      settings={storeSettings}
                     />
                   )}
                   {vue === "achats" && (
