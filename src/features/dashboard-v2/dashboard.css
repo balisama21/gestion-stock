@@ -3359,6 +3359,18 @@
     grid-row: 3;
     align-self: end;
   }
+  /* Trois colonnes ne tiennent pas sous 960 px : deux, et la dernière carte prend la rangée. */
+  .dash2 .groupe {
+    container-type: inline-size;
+  }
+  @container (max-width: 960px) {
+    .dash2 .groupe .bloc[data-cols="3"] {
+      grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+    .dash2 .groupe .bloc[data-cols="3"] > :last-child {
+      grid-column: 1 / -1;
+    }
+  }
 }
 @keyframes dash2-flash-dedans {
   0%,

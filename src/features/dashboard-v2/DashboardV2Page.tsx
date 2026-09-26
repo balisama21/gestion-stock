@@ -877,6 +877,7 @@ export const DashboardV2Page: React.FC<DashboardV2PageProps> = ({
                       key={b.cles[0]}
                       className="bloc"
                       data-bloc={b.bloc}
+                      data-cols={colonnesDuBloc(b.cles)}
                       style={{ ["--cols" as string]: colonnesDuBloc(b.cles) }}
                     >
                       {b.cles.map(rendreCarte)}
@@ -1125,10 +1126,13 @@ const BLOC_DE: Partial<Record<CleCarte, string>> = {
   fil: "activite",
   clients: "activite",
   top: "activite",
+  stock: "stock",
+  ruptures: "stock",
+  mouvements: "stock",
 };
 
 /** Cartes qui prennent toute la largeur de leur bloc. */
-const PLEINE_LARGEUR = new Set<CleCarte>(["tresorerie", "fil"]);
+const PLEINE_LARGEUR = new Set<CleCarte>(["tresorerie", "fil", "mouvements"]);
 
 /** Regroupe les cartes consécutives d'un même bloc, sans jamais changer leur ordre. */
 function enBlocs(cles: CleCarte[]): { bloc?: string; cles: CleCarte[] }[] {
