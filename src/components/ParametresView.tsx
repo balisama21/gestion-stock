@@ -38,6 +38,8 @@ import { InvoiceSection } from "./settings/InvoiceSection";
 import { DocumentsSection } from "./settings/DocumentsSection";
 import { InstallationSection } from "./settings/InstallationSection";
 import { Trash2 } from "lucide-react";
+import { ReglagesMetierSection } from "./settings/ReglagesMetierSection";
+import type { ValeursParametres } from "../lib/parametres";
 
 interface ParametresViewProps {
   settings: StoreSettings;
@@ -131,6 +133,9 @@ interface ParametresViewProps {
    * lui.
    */
   sectionInitiale?: SettingsTab;
+  /** Paramètres métier clé/valeur de la boutique. */
+  parametres: ValeursParametres;
+  onSaveParametre: (cle: string, valeur: Json) => Promise<{ error: string | null }>;
 }
 
 // Contact admin réel de la plateforme (celui affiché dans AuthPage.tsx et
@@ -167,6 +172,8 @@ export const ParametresView: React.FC<ParametresViewProps> = ({
   isPlatformAdmin = false,
   currentUserId,
   sectionInitiale,
+  parametres,
+  onSaveParametre,
 }) => {
   // L ecran est demonte des qu on quitte l onglet Parametres : l etat
   // initial est donc relu a chaque arrivee, et le raccourci du logo tombe
@@ -939,6 +946,15 @@ export const ParametresView: React.FC<ParametresViewProps> = ({
 
   return (
     <SettingsLayout activeTab={activeTab} onTabChange={setActiveTab} isOwner={workspace.isOwner}>
+      {activeTab === "metier" && (
+        <ReglagesMetierSection
+          storeId={workspace.activeStore?.id ?? null}
+          userId={user?.id ?? null}
+          parametres={parametres}
+          onSaveParametre={onSaveParametre}
+        />
+      )}
+
       {activeTab === "compte" && (
         <AccountSection
           fullName={fullName}

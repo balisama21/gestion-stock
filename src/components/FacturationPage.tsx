@@ -73,6 +73,7 @@ export interface FacturationPageProps {
     }[];
   }) => Promise<{ ventes: Sale[]; error: string | null }>;
   onFixerCommission: (saleId: string, montant: number) => Promise<{ error: string | null }>;
+  tauxCommission?: number;
   onAddPaymentToSale: (
     saleId: string,
     data: { montant: number; methode: string; reference: string | null },
@@ -115,6 +116,7 @@ export const FacturationPage: React.FC<FacturationPageProps> = ({
   droits,
   onAddSaleTicket,
   onFixerCommission,
+  tauxCommission,
   onAddPaymentToSale,
   onRefundSale,
   onAjusterStock,
@@ -377,11 +379,7 @@ export const FacturationPage: React.FC<FacturationPageProps> = ({
               exporterCsv(visibles, devise, nomDeLExport("liste", facturation.aujourdhui))
             }
             onTableur={() =>
-              void exporterTableur(
-                visibles,
-                devise,
-                nomDeLExport("liste", facturation.aujourdhui),
-              )
+              void exporterTableur(visibles, devise, nomDeLExport("liste", facturation.aujourdhui))
             }
             onPdf={() => setZip(visibles)}
           />
@@ -433,6 +431,7 @@ export const FacturationPage: React.FC<FacturationPageProps> = ({
 
       {creation && (
         <FormulaireNouveauDocument
+          tauxCommission={tauxCommission}
           nature={creation.nature}
           produits={produits}
           clients={clients}
@@ -456,9 +455,7 @@ export const FacturationPage: React.FC<FacturationPageProps> = ({
           enCours={enCours}
           erreur={erreur}
           onFermer={() => setPaiement(null)}
-          onValider={(montant, methode, reference) =>
-            void encaisser(montant, methode, reference)
-          }
+          onValider={(montant, methode, reference) => void encaisser(montant, methode, reference)}
         />
       )}
 

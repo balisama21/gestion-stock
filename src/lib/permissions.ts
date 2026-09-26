@@ -393,6 +393,17 @@ export const MODULE_DEFINITIONS: ModuleDef[] = [
     fields: [],
   },
   {
+    key: "notes_frais",
+    label: "Notes de frais",
+    hasScope: true,
+    actions: [
+      { key: "view", label: "Voir les notes de frais" },
+      { key: "create", label: "Déclarer une note de frais" },
+      { key: "approve", label: "Valider et rembourser" },
+    ],
+    fields: [],
+  },
+  {
     key: "statistiques",
     label: "Statistiques",
     hasScope: false,
@@ -699,6 +710,7 @@ const MANAGER_TEMPLATE: PermissionsMap = Object.fromEntries([
     actions: ["view", "create", "edit", "request_advance", "approve", "pay"],
   }),
   module("depenses", true, { scope: "all", actions: ["view", "create", "edit"] }),
+  module("notes_frais", true, { scope: "all", actions: ["view", "create", "approve"] }),
   module("statistiques", true, { fields: getModuleDef("statistiques")!.fields.map((f) => f.key) }),
   module("rapports", true, { actions: ["export"] }),
   module("historique", true, { scope: "all" }),
@@ -771,6 +783,7 @@ const COMPTABLE_TEMPLATE: PermissionsMap = Object.fromEntries([
   // collaborateur.
   module("salaires", true, { scope: "all", actions: ["view"] }),
   module("depenses", true, { scope: "all", actions: ["view", "create", "edit"] }),
+  module("notes_frais", true, { scope: "all", actions: ["view", "create", "approve"] }),
   module("statistiques", true, { fields: getModuleDef("statistiques")!.fields.map((f) => f.key) }),
   module("rapports", true, { actions: ["export"] }),
   module("historique", true, { scope: "all" }),
@@ -822,6 +835,7 @@ const VENDEUR_TEMPLATE: PermissionsMap = Object.fromEntries([
   // la portée « own » est appliquée en base, pas seulement à l'écran.
   module("salaires", true, { scope: "own", actions: ["view", "request_advance"] }),
   module("depenses", false),
+  module("notes_frais", true, { scope: "own", actions: ["view", "create"] }),
   module("statistiques", true, { fields: ["perf_personnelles"] }),
   module("rapports", false),
   module("historique", true, { scope: "own" }),
@@ -867,6 +881,7 @@ const GESTIONNAIRE_STOCK_TEMPLATE: PermissionsMap = Object.fromEntries([
   module("vendeurs", false),
   module("salaires", true, { scope: "own", actions: ["view", "request_advance"] }),
   module("depenses", false),
+  module("notes_frais", true, { scope: "own", actions: ["view", "create"] }),
   module("statistiques", false),
   module("rapports", false),
   module("historique", true, { scope: "own" }),

@@ -14,7 +14,9 @@ import {
   Plus,
   Copy,
   KeyRound,
+  HelpCircle,
 } from "lucide-react";
+import { PanneauAide } from "./shared/PanneauAide";
 import { formatCurrency } from "../utils/formulas";
 import { Modal } from "./shared/Modal";
 import { Sidebar } from "./Sidebar";
@@ -145,6 +147,7 @@ export const Header: React.FC<HeaderProps> = ({
 
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
+  const [aideOuverte, setAideOuverte] = useState(false);
 
   /**
    * La zone qui englobe la cloche ET son panneau. Cliquer ailleurs le
@@ -522,6 +525,21 @@ export const Header: React.FC<HeaderProps> = ({
                 badge Trésorerie en est parti — le raisonnement est en
                 tête de ce fichier. */}
             <div className="flex shrink-0 items-center gap-1 sm:gap-2 lg:ml-auto">
+              {/* Aide de l'écran affiché, toujours au même endroit. */}
+              <button
+                onClick={() => setAideOuverte(true)}
+                className="app-btn-icon"
+                title="Aide sur cet écran"
+                aria-label="Aide sur cet écran"
+              >
+                <HelpCircle className="h-4 w-4 text-primary" />
+              </button>
+              <PanneauAide
+                ouvert={aideOuverte}
+                onFermer={() => setAideOuverte(false)}
+                ecran={activeTab}
+              />
+
               {/* Clair / sombre. L'icône et le libellé annoncent ce que
                   le clic FERA, et non l'état courant : sur un écran
                   clair on voit une lune, qui promet le mode sombre. Un

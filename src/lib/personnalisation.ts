@@ -75,6 +75,7 @@ export const MODULES_PERSONNALISABLES: { cle: string; libelleParDefaut: string }
   { cle: "prestataires", libelleParDefaut: "Prestataires" },
   { cle: "capital", libelleParDefaut: "Capital" },
   { cle: "depenses", libelleParDefaut: "Dépenses" },
+  { cle: "notes_frais", libelleParDefaut: "Notes de frais" },
   { cle: "vendeurs", libelleParDefaut: "Vendeurs" },
   { cle: "salaires", libelleParDefaut: "Salaires" },
 ];

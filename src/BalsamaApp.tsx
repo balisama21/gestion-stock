@@ -27,6 +27,9 @@ import { avancesPrisesSurLaCaisse, demandesEnAttente } from "./lib/salaires";
 import { delaisDeRappel } from "./lib/rappels";
 import { useJournalActivite } from "./hooks/useJournalActivite";
 import { useTaches } from "./hooks/useTaches";
+import { useParametres } from "./hooks/useParametres";
+import { useNotesDeFrais } from "./hooks/useNotesDeFrais";
+import { lireParametre } from "./lib/parametres";
 import { useEvenements } from "./hooks/useEvenements";
 import { useRappels } from "./hooks/useRappels";
 import { echeancesMetier } from "./lib/evenements";
@@ -135,6 +138,9 @@ const VentesView = lazy(() =>
 const VendeursView = lazy(() =>
   import("./components/VendeursView").then((m) => ({ default: m.VendeursView })),
 );
+const NotesDeFraisPage = lazy(() =>
+  import("./components/NotesDeFraisView").then((m) => ({ default: m.NotesDeFraisPage })),
+);
 const SalairesView = lazy(() =>
   import("./components/SalairesView").then((m) => ({ default: m.SalairesView })),
 );
@@ -208,6 +214,11 @@ function AppInner() {
   );
   const { lignes: journalActivite } = useJournalActivite(workspace.activeStore?.id ?? null);
   const organisation = useTaches(workspace.activeStore?.id ?? null, user?.id ?? null);
+  const parametresBoutique = useParametres(workspace.activeStore?.id ?? null, user?.id ?? null);
+  const notesDeFrais = useNotesDeFrais(
+    estLivreur ? null : (workspace.activeStore?.id ?? null),
+    user?.id ?? null,
+  );
   const calendrier = useEvenements(workspace.activeStore?.id ?? null, user?.id ?? null);
   const memos = useRappels(workspace.activeStore?.id ?? null, user?.id ?? null);
   const { members: storeMembers, removeMember: removeStoreMember } = useStoreMembers(
@@ -1591,6 +1602,8 @@ function AppInner() {
 
   const handleDeleteExpense = async (expenseId: string) => {
     await storeData.deleteExpense(expenseId);
+    // Supprimer un remboursement remet sa note de frais « validée ».
+    if (notesDeFrais.notes.some((n) => n.depense_id === expenseId)) notesDeFrais.recharger();
   };
 
   const handleAddApport = async (newApport: any) => {
@@ -2154,6 +2167,7 @@ function AppInner() {
                         })),
                       })
                     }
+                    tauxCommission={lireParametre(parametresBoutique.valeurs, "commission_taux")}
                     onFixerCommission={storeData.fixerCommission}
                     onAddPaymentToSale={(id, data) => storeData.addPaymentToSale(id, data)}
                     onRefundSale={storeData.refundSale}
@@ -2207,6 +2221,7 @@ function AppInner() {
                     onPanierRepris={() => setPanierDepuisDevis(null)}
                     onVenteEnregistree={handleVenteEnregistree}
                     onEditSale={hasVentesAccess ? handleEditSale : undefined}
+                    tauxCommission={lireParametre(parametresBoutique.valeurs, "commission_taux")}
                     onFixerCommission={hasVentesAccess ? storeData.fixerCommission : undefined}
                     onDeleteSale={hasVentesAccess ? handleDeleteSale : undefined}
                     restrictedToOwnSales={!hasVentesAccess}
@@ -2297,6 +2312,32 @@ function AppInner() {
                     onDeletePaiement={storeData.deletePaiementSalaire}
                   />
                 )}
+                {vue === "notes_frais" && (
+                  <NotesDeFraisPage
+                    storeId={workspace.activeStore?.id ?? null}
+                    notes={notesDeFrais.notes}
+                    peutGerer={notesDeFrais.peutGerer}
+                    moiId={user?.id ?? null}
+                    monNom={myName}
+                    locale={locale}
+                    postes={storeData.categories
+                      .filter((c) => (c.usage ?? "produit") === "depense")
+                      .map((c) => ({ id: c.id, nom: c.nom }))}
+                    personnes={personnesDeLaBoutique}
+                    onCreerPersonne={peutCompleterLesListes ? creerPersonneExterne : undefined}
+                    onCreerPoste={peutCompleterLesListes ? creerPosteDeDepense : undefined}
+                    onCreer={notesDeFrais.creer}
+                    onModifier={notesDeFrais.modifier}
+                    onSupprimer={notesDeFrais.supprimer}
+                    onDecider={notesDeFrais.decider}
+                    onRembourser={async (id, date) => {
+                      const r = await notesDeFrais.rembourser(id, date);
+                      // Le remboursement a créé une dépense : la trésorerie change.
+                      if (!r.error) storeData.refresh();
+                      return r;
+                    }}
+                  />
+                )}
                 {vue === "depenses" && (
                   <DepensesView
                     expenses={visibleExpenses}
@@ -2351,6 +2392,7 @@ function AppInner() {
                     expenses={visibleExpenses}
                     apports={historiqueApports}
                     orders={visibleOrders}
+                    notesDeFrais={notesDeFrais.notes}
                     locale={locale}
                     products={products}
                   />
@@ -2472,6 +2514,8 @@ function AppInner() {
                     setTheme={setTheme}
                     isPlatformAdmin={profile?.is_platform_admin ?? false}
                     currentUserId={user?.id ?? undefined}
+                    parametres={parametresBoutique.valeurs}
+                    onSaveParametre={parametresBoutique.enregistrer}
                   />
                 )}
               </Suspense>

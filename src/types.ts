@@ -226,6 +226,7 @@ export type ActiveTab =
   | "vendeurs"
   | "salaires"
   | "depenses"
+  | "notes_frais"
   | "statistiques"
   | "historique"
   | "rapports"

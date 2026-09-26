@@ -732,6 +732,103 @@ export type Database = {
           },
         ];
       };
+      devises: {
+        Row: {
+          code: string;
+          created_at: string;
+          created_by: string | null;
+          decimales: number;
+          id: string;
+          nom: string;
+          region: string | null;
+          store_id: string | null;
+          symbole: string;
+        };
+        Insert: {
+          code: string;
+          created_at?: string;
+          created_by?: string | null;
+          decimales?: number;
+          id?: string;
+          nom: string;
+          region?: string | null;
+          store_id?: string | null;
+          symbole: string;
+        };
+        Update: {
+          code?: string;
+          created_at?: string;
+          created_by?: string | null;
+          decimales?: number;
+          id?: string;
+          nom?: string;
+          region?: string | null;
+          store_id?: string | null;
+          symbole?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "devises_store_id_fkey";
+            columns: ["store_id"];
+            isOneToOne: false;
+            referencedRelation: "stores";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      devises_boutique: {
+        Row: {
+          actif: boolean;
+          code: string;
+          created_at: string;
+          derniere_erreur: string | null;
+          id: string;
+          mode_taux: string;
+          principale: boolean;
+          store_id: string;
+          taux: number;
+          taux_maj_le: string;
+          taux_source: string;
+          updated_at: string;
+        };
+        Insert: {
+          actif?: boolean;
+          code: string;
+          created_at?: string;
+          derniere_erreur?: string | null;
+          id?: string;
+          mode_taux?: string;
+          principale?: boolean;
+          store_id: string;
+          taux?: number;
+          taux_maj_le?: string;
+          taux_source?: string;
+          updated_at?: string;
+        };
+        Update: {
+          actif?: boolean;
+          code?: string;
+          created_at?: string;
+          derniere_erreur?: string | null;
+          id?: string;
+          mode_taux?: string;
+          principale?: boolean;
+          store_id?: string;
+          taux?: number;
+          taux_maj_le?: string;
+          taux_source?: string;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "devises_boutique_store_id_fkey";
+            columns: ["store_id"];
+            isOneToOne: false;
+            referencedRelation: "stores";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       document_emissions: {
         Row: {
           emis_le: string;
@@ -963,10 +1060,24 @@ export type Database = {
             referencedColumns: ["id"];
           },
           {
+            foreignKeyName: "expenses_membre_id_fkey";
+            columns: ["membre_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
             foreignKeyName: "expenses_owner_id_fkey";
             columns: ["owner_id"];
             isOneToOne: false;
             referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "expenses_personne_id_fkey";
+            columns: ["personne_id"];
+            isOneToOne: false;
+            referencedRelation: "personnes_externes";
             referencedColumns: ["id"];
           },
           {
@@ -978,6 +1089,50 @@ export type Database = {
           },
           {
             foreignKeyName: "expenses_store_id_fkey";
+            columns: ["store_id"];
+            isOneToOne: false;
+            referencedRelation: "stores";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      historique_taux: {
+        Row: {
+          ancien_taux: number | null;
+          change_par: string | null;
+          code: string;
+          created_at: string;
+          id: string;
+          mode_taux: string;
+          nouveau_taux: number;
+          source: string;
+          store_id: string;
+        };
+        Insert: {
+          ancien_taux?: number | null;
+          change_par?: string | null;
+          code: string;
+          created_at?: string;
+          id?: string;
+          mode_taux: string;
+          nouveau_taux: number;
+          source: string;
+          store_id: string;
+        };
+        Update: {
+          ancien_taux?: number | null;
+          change_par?: string | null;
+          code?: string;
+          created_at?: string;
+          id?: string;
+          mode_taux?: string;
+          nouveau_taux?: number;
+          source?: string;
+          store_id?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "historique_taux_store_id_fkey";
             columns: ["store_id"];
             isOneToOne: false;
             referencedRelation: "stores";
@@ -1025,6 +1180,120 @@ export type Database = {
         Relationships: [
           {
             foreignKeyName: "journal_activite_store_id_fkey";
+            columns: ["store_id"];
+            isOneToOne: false;
+            referencedRelation: "stores";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      notes_de_frais: {
+        Row: {
+          beneficiaire: string;
+          category_id: string | null;
+          created_at: string;
+          created_by: string | null;
+          date: string;
+          decision_le: string | null;
+          decision_par: string | null;
+          depense_id: string | null;
+          devise: string;
+          id: string;
+          justificatif: string | null;
+          membre_id: string | null;
+          montant: number;
+          montant_converti: number;
+          motif: string;
+          motif_refus: string | null;
+          numero: string | null;
+          personne_id: string | null;
+          rembourse_le: string | null;
+          statut: string;
+          store_id: string;
+          taux: number;
+          updated_at: string;
+        };
+        Insert: {
+          beneficiaire: string;
+          category_id?: string | null;
+          created_at?: string;
+          created_by?: string | null;
+          date?: string;
+          decision_le?: string | null;
+          decision_par?: string | null;
+          depense_id?: string | null;
+          devise: string;
+          id?: string;
+          justificatif?: string | null;
+          membre_id?: string | null;
+          montant: number;
+          montant_converti?: number;
+          motif: string;
+          motif_refus?: string | null;
+          numero?: string | null;
+          personne_id?: string | null;
+          rembourse_le?: string | null;
+          statut?: string;
+          store_id: string;
+          taux?: number;
+          updated_at?: string;
+        };
+        Update: {
+          beneficiaire?: string;
+          category_id?: string | null;
+          created_at?: string;
+          created_by?: string | null;
+          date?: string;
+          decision_le?: string | null;
+          decision_par?: string | null;
+          depense_id?: string | null;
+          devise?: string;
+          id?: string;
+          justificatif?: string | null;
+          membre_id?: string | null;
+          montant?: number;
+          montant_converti?: number;
+          motif?: string;
+          motif_refus?: string | null;
+          numero?: string | null;
+          personne_id?: string | null;
+          rembourse_le?: string | null;
+          statut?: string;
+          store_id?: string;
+          taux?: number;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "notes_de_frais_category_id_fkey";
+            columns: ["category_id"];
+            isOneToOne: false;
+            referencedRelation: "categories";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "notes_de_frais_depense_id_fkey";
+            columns: ["depense_id"];
+            isOneToOne: false;
+            referencedRelation: "expenses";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "notes_de_frais_membre_id_fkey";
+            columns: ["membre_id"];
+            isOneToOne: false;
+            referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "notes_de_frais_personne_id_fkey";
+            columns: ["personne_id"];
+            isOneToOne: false;
+            referencedRelation: "personnes_externes";
+            referencedColumns: ["id"];
+          },
+          {
+            foreignKeyName: "notes_de_frais_store_id_fkey";
             columns: ["store_id"];
             isOneToOne: false;
             referencedRelation: "stores";
@@ -1256,6 +1525,38 @@ export type Database = {
             columns: ["user_id"];
             isOneToOne: false;
             referencedRelation: "profiles";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
+      parametres_boutique: {
+        Row: {
+          cle: string;
+          store_id: string;
+          updated_at: string;
+          updated_by: string | null;
+          valeur: Json;
+        };
+        Insert: {
+          cle: string;
+          store_id: string;
+          updated_at?: string;
+          updated_by?: string | null;
+          valeur: Json;
+        };
+        Update: {
+          cle?: string;
+          store_id?: string;
+          updated_at?: string;
+          updated_by?: string | null;
+          valeur?: Json;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "parametres_boutique_store_id_fkey";
+            columns: ["store_id"];
+            isOneToOne: false;
+            referencedRelation: "stores";
             referencedColumns: ["id"];
           },
         ];
@@ -2968,6 +3269,13 @@ export type Database = {
             referencedRelation: "stores";
             referencedColumns: ["id"];
           },
+          {
+            foreignKeyName: "suppliers_type_id_fkey";
+            columns: ["type_id"];
+            isOneToOne: false;
+            referencedRelation: "categories";
+            referencedColumns: ["id"];
+          },
         ];
       };
       taches: {
@@ -3025,6 +3333,27 @@ export type Database = {
             referencedColumns: ["id"];
           },
         ];
+      };
+      taux_reference: {
+        Row: {
+          code: string;
+          recupere_le: string;
+          source: string;
+          unites_par_usd: number;
+        };
+        Insert: {
+          code: string;
+          recupere_le?: string;
+          source: string;
+          unites_par_usd: number;
+        };
+        Update: {
+          code?: string;
+          recupere_le?: string;
+          source?: string;
+          unites_par_usd?: number;
+        };
+        Relationships: [];
       };
     };
     Views: {
@@ -3122,6 +3451,7 @@ export type Database = {
           isSetofReturn: false;
         };
       };
+      actualiser_mes_taux: { Args: { p_store_id: string }; Returns: number };
       add_payment: {
         Args: {
           p_idempotency_key: string;
@@ -3158,6 +3488,10 @@ export type Database = {
         Args: { p_delta: number; p_note?: string; p_product_id: string };
         Returns: Json;
       };
+      appliquer_taux_automatiques: {
+        Args: { p_store_id?: string };
+        Returns: number;
+      };
       avancer_livraison: {
         Args: {
           p_delivery_id: string;
@@ -3172,6 +3506,7 @@ export type Database = {
         Args: { p_owner_id: string; p_store_id: string };
         Returns: boolean;
       };
+      cle_de_liste: { Args: { p_texte: string }; Returns: string };
       compte_est_active: { Args: { p_user_id: string }; Returns: boolean };
       copy_store: {
         Args: { p_new_name: string; p_source_store_id: string };
@@ -3311,11 +3646,20 @@ export type Database = {
         Returns: Json;
       };
       date_de_la_boutique: { Args: never; Returns: string };
+      decider_note_de_frais: {
+        Args: { p_decision: string; p_id: string; p_motif?: string };
+        Returns: undefined;
+      };
+      definir_devise_principale: {
+        Args: { p_code: string; p_store_id: string };
+        Returns: undefined;
+      };
       delete_order: { Args: { p_order_id: string }; Returns: undefined };
       delete_own_account: { Args: never; Returns: undefined };
       delete_products: { Args: { p_product_ids: string[] }; Returns: number };
       delete_purchase: { Args: { p_purchase_id: string }; Returns: undefined };
       delete_sale: { Args: { p_sale_id: string }; Returns: undefined };
+      demander_la_synchro_des_taux: { Args: never; Returns: boolean };
       demander_les_resumes_par_email: { Args: never; Returns: number };
       est_dans_la_boutique: { Args: { p_store_id: string }; Returns: boolean };
       est_invite_a: { Args: { p_evenement_id: string }; Returns: boolean };
@@ -3337,6 +3681,10 @@ export type Database = {
       fuseau_des_boutiques: { Args: never; Returns: string };
       generate_access_code: { Args: never; Returns: string };
       get_auth_role: { Args: never; Returns: string };
+      installer_les_listes_par_defaut: {
+        Args: { p_store_id: string };
+        Returns: undefined;
+      };
       is_platform_admin: { Args: never; Returns: boolean };
       is_store_member: { Args: { p_store_id: string }; Returns: boolean };
       is_store_owner: { Args: { p_store_id: string }; Returns: boolean };
@@ -3366,11 +3714,19 @@ export type Database = {
         Returns: number;
       };
       niveau_surveille: { Args: { p_product_id: string }; Returns: number };
+      peut_ajouter_une_valeur_de_liste: {
+        Args: { p_store_id: string };
+        Returns: boolean;
+      };
       peut_encaisser_une_remise: {
         Args: { p_store_id: string };
         Returns: boolean;
       };
       peut_gerer_les_salaires: {
+        Args: { p_store_id: string };
+        Returns: boolean;
+      };
+      peut_gerer_notes_de_frais: {
         Args: { p_store_id: string };
         Returns: boolean;
       };
@@ -3418,6 +3774,10 @@ export type Database = {
           p_sale_id: string;
         };
         Returns: Json;
+      };
+      rembourser_note_de_frais: {
+        Args: { p_date?: string; p_id: string };
+        Returns: string;
       };
       remettre_argent_livraisons: {
         Args: { p_delivery_ids: string[] };

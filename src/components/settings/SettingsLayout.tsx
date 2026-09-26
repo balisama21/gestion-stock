@@ -17,9 +17,11 @@ import {
   ListChecks,
   PackageSearch,
   LogOut,
+  SlidersHorizontal,
 } from "lucide-react";
 
 export type SettingsTab =
+  | "metier"
   | "compte"
   | "securite"
   | "boutique"
@@ -97,6 +99,13 @@ const GROUPS: GroupDef[] = [
   {
     title: "Boutique",
     tabs: [
+      {
+        id: "metier",
+        label: "Réglages métier",
+        hint: "Commission, devises, taux",
+        icon: <SlidersHorizontal className="w-4 h-4" />,
+        ownerOnly: true,
+      },
       {
         id: "boutique",
         label: "Ma boutique",

@@ -138,6 +138,8 @@ interface VentesViewProps {
    * Absent quand la personne n'a pas le droit de modifier une vente.
    */
   onFixerCommission?: (saleId: string, montant: number) => Promise<{ error: string | null }>;
+  /** Taux de commission de la boutique (Paramètres → Réglages métier), proposé à la saisie. */
+  tauxCommission?: number;
   onDeleteSale?: (saleId: string) => void;
   /**
    * true si l'utilisateur n'a pas la permission "Ventes" complète : la
@@ -174,6 +176,7 @@ export const VentesView: React.FC<VentesViewProps> = ({
   onVenteEnregistree,
   onEditSale,
   onFixerCommission,
+  tauxCommission = 5,
   onDeleteSale,
   restrictedToOwnSales,
   visibleFields,
@@ -720,7 +723,11 @@ export const VentesView: React.FC<VentesViewProps> = ({
             <button
               onClick={() => {
                 setErreurCommission(null);
-                setMontantCommission(s.commission ?? 0);
+                setMontantCommission(
+                  s.commission > 0
+                    ? s.commission
+                    : Math.round((s.totalVente * tauxCommission) / 100),
+                );
                 setVenteCommission(s);
               }}
               className="app-btn-secondary"
@@ -1421,6 +1428,17 @@ export const VentesView: React.FC<VentesViewProps> = ({
                 Sur un total de {formatCurrency(venteCommission.totalVente)}. À zéro, la facture
                 n&apos;en parle pas.
               </p>
+              <button
+                type="button"
+                onClick={() =>
+                  setMontantCommission(
+                    Math.round((venteCommission.totalVente * tauxCommission) / 100),
+                  )
+                }
+                className="mt-1 text-xs font-medium text-primary hover:underline"
+              >
+                Appliquer le taux de la boutique ({tauxCommission} %)
+              </button>
             </div>
           </div>
         </Modal>

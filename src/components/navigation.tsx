@@ -20,6 +20,7 @@ import {
   CalendarRange,
   History,
   ReceiptText,
+  Receipt,
 } from "lucide-react";
 import type { ActiveTab } from "../types";
 import { libelleModule, moduleMasque, type Personnalisation } from "../lib/personnalisation";
@@ -103,6 +104,7 @@ export const NAV_GROUPS: NavGroup[] = [
     items: [
       { id: "capital", label: "Capital", icon: <Wallet className="w-4 h-4" /> },
       { id: "depenses", label: "Dépenses", icon: <ArrowRightLeft className="w-4 h-4" /> },
+      { id: "notes_frais", label: "Notes de frais", icon: <Receipt className="w-4 h-4" /> },
     ],
   },
   {
@@ -130,7 +132,7 @@ const UNIVERS: ActiveTab[][] = [
   ["ventes", "facturation", "devis", "commandes", "livraisons"],
   ["produits", "achats", "fournisseurs", "prestataires"],
   ["clients", "paiements"],
-  ["capital", "depenses", "rapports"],
+  ["capital", "depenses", "notes_frais", "rapports"],
   // Les deux faces de l'équipe : ce que chacun détient de votre argent,
   // et ce que vous lui devez. Deux comptes opposés qu'on consulte
   // souvent l'un après l'autre.

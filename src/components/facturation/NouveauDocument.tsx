@@ -171,6 +171,8 @@ export const FormulaireNouveauDocument: React.FC<{
   /** Les lignes reprises d'une pièce qu'on duplique. */
   lignesInitiales?: LigneNouvelle[];
   clientInitial?: { id: string | null; nom: string };
+  /** Taux de commission de la boutique, proposé sur une facture de service. */
+  tauxCommission?: number;
   onFermer: () => void;
   onValider: (saisie: SaisieNouveauDocument) => void;
 }> = ({
@@ -185,6 +187,7 @@ export const FormulaireNouveauDocument: React.FC<{
   erreur,
   lignesInitiales,
   clientInitial,
+  tauxCommission,
   onFermer,
   onValider,
 }) => {
@@ -494,6 +497,15 @@ export const FormulaireNouveauDocument: React.FC<{
                 Elle est COMPRISE dans le total, elle ne s&apos;y ajoute pas : c&apos;est la part
                 que la boutique garde sur ce que le client paie.
               </p>
+              {tauxCommission !== undefined && total > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setCommission(String(Math.round((total * tauxCommission) / 100)))}
+                  className="mt-1 text-xs font-medium text-primary hover:underline"
+                >
+                  Appliquer le taux de la boutique ({tauxCommission} %)
+                </button>
+              )}
               {commissionTropGrande && (
                 <p className="mt-1 text-xs t-danger">
                   La commission dépasse le total ({argent(total)}).
