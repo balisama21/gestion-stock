@@ -3,6 +3,8 @@ import { Building2, FileText, RotateCcw, Save, SlidersHorizontal } from "lucide-
 import { SettingsBlock, SettingsRow, SettingsSection, SettingsToggle } from "./primitives";
 import { IdentiteDocuments } from "./IdentiteDocuments";
 import { ReglagesParDocument } from "./ReglagesParDocument";
+import { ChoixDisposition } from "./ChoixDisposition";
+import { useEditeurLibreVisible } from "../../features/documents/drapeauLibre";
 import { COULEURS_DOCUMENT, LOGOS_DOCUMENT, MODELES_DOCUMENT } from "./choixDocuments";
 import type { Personnalisation } from "../../lib/personnalisation";
 import type { Product, Sale, StoreSettings } from "../../types";
@@ -171,6 +173,19 @@ export const DocumentsSection: React.FC<DocumentsSectionProps> = ({
       }),
     [typeRegle, sales, products, settings, brouillon],
   );
+
+  const vuTicket = useMemo(
+    () =>
+      apercuDesReglages({
+        type: "recu",
+        sales,
+        produits: products,
+        boutique: settings,
+        reglages: brouillon,
+      }),
+    [sales, products, settings, brouillon],
+  );
+  const libreVisible = useEditeurLibreVisible();
 
   /** Un rouleau n'a de sens que sur ce qui s'imprime en caisse. */
   const format: FormatDocument =
@@ -497,6 +512,16 @@ export const DocumentsSection: React.FC<DocumentsSectionProps> = ({
             placeholder={settings?.receiptFooter || "Merci et à bientôt !"}
           />
         </SettingsRow>
+
+        {libreVisible && (
+          <ChoixDisposition
+            reglages={brouillon}
+            type="ticket"
+            document={vuTicket?.document ?? null}
+            onChange={changerLibre}
+            onEnregistrer={(libre) => enregistrer({ ...brouillon, libre })}
+          />
+        )}
       </SettingsSection>
     </div>
   );

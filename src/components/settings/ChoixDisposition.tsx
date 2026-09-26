@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { Copy, LayoutTemplate, Plus, Trash2 } from "lucide-react";
 import { SettingsBlock } from "./primitives";
 import { EditeurLibre } from "./EditeurLibre";
+import { EditeurColonne } from "./EditeurColonne";
 import { MODELES_DOCUMENT } from "./choixDocuments";
 import type { Document } from "../../features/documents/lib/buildDocument";
 import type { ReglagesDocuments } from "../../features/documents/lib/reglages";
@@ -41,6 +42,7 @@ export const ChoixDisposition: React.FC<Props> = ({
   const [ouverte, setOuverte] = useState<string | null>(null);
   const [depart, setDepart] = useState<string>(resoudreType(reglages, type).modele);
   const [enCours, setEnCours] = useState(false);
+  const enColonne = type === "ticket";
 
   const duType = Object.values(libre.dispositions).filter((d) => d.type === type);
   const active = libre.parType[type];
@@ -66,7 +68,9 @@ export const ChoixDisposition: React.FC<Props> = ({
     const source = libre.dispositions[depart];
     const nom = `Disposition ${duType.length + 1}`;
     ajouter(
-      source ? dupliquerDisposition(source, nom) : creerDisposition(type, depart as never, nom),
+      source
+        ? dupliquerDisposition(source, nom)
+        : creerDisposition(type, enColonne ? "classique" : (depart as never), nom),
     );
   };
 
@@ -103,7 +107,9 @@ export const ChoixDisposition: React.FC<Props> = ({
         >
           <span className="block text-sm font-medium text-foreground">Mode simple</span>
           <span className="block text-xs text-muted-foreground">
-            Modèle {nomDuModele(resoudreType(reglages, type).modele)}
+            {enColonne
+              ? "Ticket actuel"
+              : `Modèle ${nomDuModele(resoudreType(reglages, type).modele)}`}
           </span>
         </button>
         {duType.map((d) => (
@@ -116,7 +122,7 @@ export const ChoixDisposition: React.FC<Props> = ({
           >
             <span className="block truncate text-sm font-medium text-foreground">{d.nom}</span>
             <span className="block text-xs text-muted-foreground">
-              Libre · départ {nomDuModele(d.base)}
+              {enColonne ? "Ordre personnalisé" : `Libre · départ ${nomDuModele(d.base)}`}
             </span>
           </button>
         ))}
@@ -151,11 +157,15 @@ export const ChoixDisposition: React.FC<Props> = ({
             onChange={(e) => setDepart(e.target.value)}
             className="app-field mt-1 w-full"
           >
-            {MODELES_DOCUMENT.map((m) => (
-              <option key={m.cle} value={m.cle}>
-                Modèle {m.nom}
-              </option>
-            ))}
+            {enColonne ? (
+              <option value="classique">Le ticket actuel</option>
+            ) : (
+              MODELES_DOCUMENT.map((m) => (
+                <option key={m.cle} value={m.cle}>
+                  Modèle {m.nom}
+                </option>
+              ))
+            )}
             {duType.map((d) => (
               <option key={d.id} value={d.id}>
                 {d.nom}
@@ -169,7 +179,29 @@ export const ChoixDisposition: React.FC<Props> = ({
         </button>
       </div>
 
-      {editee && (
+      {editee && enColonne && (
+        <EditeurColonne
+          key={editee.id}
+          disposition={editee}
+          document={doc}
+          ticket={reglages.ticket}
+          enCours={enCours}
+          onFermer={(d) => {
+            onChange(avec(d));
+            setOuverte(null);
+          }}
+          onEnregistrer={async (d) => {
+            setEnCours(true);
+            try {
+              await onEnregistrer(avec(d));
+            } finally {
+              setEnCours(false);
+            }
+          }}
+        />
+      )}
+
+      {editee && !enColonne && (
         <EditeurLibre
           key={editee.id}
           disposition={editee}

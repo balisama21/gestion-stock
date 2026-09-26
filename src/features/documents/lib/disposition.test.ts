@@ -1,5 +1,15 @@
 import { describe, expect, it } from "vitest";
 import {
+  aimanterDeplacement,
+  aimanterRedimension,
+  basculerSection,
+  ciblesAimant,
+  colonneResolue,
+  deplacerSection,
+  MARGES,
+  ORDRE_TICKET,
+  redimensionner,
+  TAILLE_MIN,
   BLOCS,
   blocsDeDepart,
   blocsResolus,
@@ -140,5 +150,111 @@ describe("revenir, dupliquer", () => {
     expect(copie.id).not.toBe(d.id);
     expect(blocsResolus(d).logo.x).toBe(15);
     expect(blocsResolus(copie).logo.x).toBe(120);
+  });
+});
+
+describe("redimensionner par un coin", () => {
+  const b = { x: 50, y: 50, l: 40, h: 20 };
+
+  it("le coin opposé ne bouge pas", () => {
+    const r = redimensionner(b, "no", -10, -5);
+    expect(r).toMatchObject({ x: 40, y: 45, l: 50, h: 25 });
+  });
+
+  it("garde une taille minimale sans faire glisser le bloc", () => {
+    const r = redimensionner(b, "se", -100, -100);
+    expect(r).toMatchObject({ x: 50, y: 50, l: TAILLE_MIN, h: TAILLE_MIN });
+  });
+
+  it("ne tire jamais un bord hors de la feuille", () => {
+    for (const p of ["no", "ne", "so", "se"] as const) {
+      expect(dansLaFeuille(redimensionner(b, p, 500, 500))).toBe(true);
+      expect(dansLaFeuille(redimensionner(b, p, -500, -500))).toBe(true);
+    }
+  });
+});
+
+describe("l'aimantation", () => {
+  const d = creerDisposition("facture", "classique", "x");
+  const cibles = ciblesAimant(blocsResolus(d), "logo", "classique");
+
+  it("colle un bloc à la marge quand il en passe près", () => {
+    const r = aimanterDeplacement({ x: 16.2, y: 100.3, l: 13, h: 13 }, cibles, 1.5);
+    expect(r.bloc.x).toBe(MARGES.classique.x);
+    expect(r.guides).toContainEqual({ axe: "x", pos: 15 });
+  });
+
+  it("aligne le milieu sur le milieu de la feuille", () => {
+    const r = aimanterDeplacement({ x: 90, y: 150, l: 31, h: 7 }, cibles, 1.5);
+    expect(r.bloc.x + r.bloc.l / 2).toBe(105);
+  });
+
+  it("colle au bord d'un autre bloc", () => {
+    const t = blocsResolus(d).tableau;
+    const r = aimanterDeplacement({ x: 60, y: t.y + t.h + 0.7, l: 20, h: 3 }, cibles, 1.5);
+    expect(r.bloc.y).toBe(t.y + t.h);
+  });
+
+  it("laisse le bloc où il est au-delà du seuil, ou quand l'aimant est coupé", () => {
+    const loin = { x: 40.3, y: 120.3, l: 13, h: 13 };
+    expect(aimanterDeplacement(loin, cibles, 1.5)).toEqual({ bloc: loin, guides: [] });
+    expect(aimanterDeplacement({ ...loin, x: 15.4 }, cibles, 0).bloc.x).toBe(15.4);
+  });
+
+  it("n'aimante que les bords qu'on tire", () => {
+    const r = aimanterRedimension({ x: 20, y: 60, l: 174.4, h: 10 }, "se", cibles, 1.5);
+    expect(r.bloc.x).toBe(20);
+    expect(r.bloc.x + r.bloc.l).toBe(195);
+  });
+
+  it("ignore un bloc masqué", () => {
+    const t = blocsResolus(d).tampon;
+    const c = ciblesAimant(
+      blocsResolus(poserBloc(d, "tampon", { masque: true })),
+      "logo",
+      "classique",
+    );
+    expect(c.y).not.toContain(t.y + t.h);
+  });
+});
+
+describe("le ticket, en colonne", () => {
+  it("part de l'ordre actuel du ticket", () => {
+    const t = creerDisposition("ticket", "classique", "Caisse");
+    expect(colonneResolue(t)).toEqual({ ordre: ORDRE_TICKET, masques: [] });
+  });
+
+  it("déplace une section et se recharge à l'identique", () => {
+    let t = creerDisposition("ticket", "classique", "Caisse");
+    t = deplacerSection(t, "codeBarres", 0);
+    t = basculerSection(t, "codeBarres");
+    const relu = lireLibre(JSON.parse(JSON.stringify({ dispositions: { [t.id]: t } })));
+    expect(relu.dispositions[t.id]).toEqual(t);
+    expect(colonneResolue(t).ordre[0]).toBe("codeBarres");
+  });
+
+  it("ne masque aucune mention obligatoire du ticket", () => {
+    let t = creerDisposition("ticket", "classique", "Caisse");
+    for (const cle of ["entete", "infos", "articles", "totaux", "pied"] as const) {
+      t = basculerSection(t, cle);
+    }
+    expect(colonneResolue(t).masques).toEqual([]);
+    const lu = lireLibre({
+      dispositions: {
+        a: {
+          type: "ticket",
+          base: "classique",
+          blocs: {},
+          colonne: { ordre: ["pied", "pied", "x"], masques: ["pied", "codeBarres"] },
+        },
+      },
+    }).dispositions.a;
+    expect(colonneResolue(lu).masques).toEqual(["codeBarres"]);
+    expect([...colonneResolue(lu).ordre].sort()).toEqual([...ORDRE_TICKET].sort());
+  });
+
+  it("revenir au modèle d'origine remet l'ordre du ticket", () => {
+    const t = deplacerSection(creerDisposition("ticket", "classique", "c"), "pied", 0);
+    expect(colonneResolue(reinitialiserDisposition(t)).ordre).toEqual(ORDRE_TICKET);
   });
 });

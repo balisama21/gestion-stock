@@ -18,14 +18,22 @@ import { SettingsToggle } from "./primitives";
 import type { Document } from "../../features/documents/lib/buildDocument";
 import { variablesDeCouleur } from "../../features/documents/lib/reglages";
 import {
+  aimanterDeplacement,
+  aimanterRedimension,
   BLOCS,
   blocsResolus,
+  ciblesAimant,
+  contraindre,
   poserBloc,
+  redimensionner,
   reinitialiserDisposition,
   type Alignement,
   type BlocPose,
+  type Cibles,
   type CleBloc,
   type Disposition,
+  type Guide,
+  type Poignee,
 } from "../../features/documents/lib/disposition";
 import {
   classeDuBloc,
@@ -56,7 +64,16 @@ interface Glisse {
   x0: number;
   y0: number;
   depart: BlocPose;
+  poignee: Poignee | null;
+  cibles: Cibles;
 }
+
+const POIGNEES: { cle: Poignee; x: 0 | 1; y: 0 | 1; curseur: string }[] = [
+  { cle: "no", x: 0, y: 0, curseur: "nwse-resize" },
+  { cle: "ne", x: 1, y: 0, curseur: "nesw-resize" },
+  { cle: "so", x: 0, y: 1, curseur: "nesw-resize" },
+  { cle: "se", x: 1, y: 1, curseur: "nwse-resize" },
+];
 
 const CHAMPS: { cle: "x" | "y" | "l" | "h"; nom: string }[] = [
   { cle: "x", nom: "Gauche" },
@@ -87,6 +104,7 @@ export const EditeurLibre: React.FC<Props> = ({
   const [echelle, setEchelle] = useState(1);
   const [debords, setDebords] = useState<string>("");
   const [lignesCachees, setLignesCachees] = useState(0);
+  const [guides, setGuides] = useState<Guide[]>([]);
   const scene = useRef<HTMLDivElement>(null);
   const feuille = useRef<HTMLDivElement>(null);
   const glisse = useRef<Glisse | null>(null);
@@ -168,7 +186,7 @@ export const EditeurLibre: React.FC<Props> = ({
     };
   }, []);
 
-  const saisir = (e: React.PointerEvent<HTMLDivElement>, cle: CleBloc) => {
+  const saisir = (e: React.PointerEvent<HTMLElement>, cle: CleBloc, poignee: Poignee | null) => {
     e.stopPropagation();
     // Au doigt, le premier appui sélectionne : sans cela, on ne pourrait plus faire défiler l'écran.
     if (e.pointerType !== "mouse" && choisi !== cle) {
@@ -176,22 +194,44 @@ export const EditeurLibre: React.FC<Props> = ({
       return;
     }
     setChoisi(cle);
-    e.currentTarget.setPointerCapture?.(e.pointerId);
-    glisse.current = { id: e.pointerId, cle, x0: e.clientX, y0: e.clientY, depart: blocs[cle] };
+    try {
+      e.currentTarget.setPointerCapture(e.pointerId);
+    } catch {
+      // Pointeur déjà relâché : le geste se suit quand même par les événements du cadre.
+    }
+    glisse.current = {
+      id: e.pointerId,
+      cle,
+      x0: e.clientX,
+      y0: e.clientY,
+      depart: blocs[cle],
+      poignee,
+      cibles: ciblesAimant(blocs, cle, d.base),
+    };
   };
 
   const suivre = (e: React.PointerEvent<HTMLDivElement>) => {
     const g = glisse.current;
     if (!g || g.id !== e.pointerId) return;
     const k = echelle * PX_MM;
-    poser(g.cle, {
-      x: g.depart.x + (e.clientX - g.x0) / k,
-      y: g.depart.y + (e.clientY - g.y0) / k,
-    });
+    const dx = (e.clientX - g.x0) / k;
+    const dy = (e.clientY - g.y0) / k;
+    // Six pixels à l'écran, quelle que soit l'échelle de la feuille.
+    const seuil = e.altKey ? 0 : Math.max(0.8, 6 / k);
+    const r = g.poignee
+      ? aimanterRedimension(redimensionner(g.depart, g.poignee, dx, dy), g.poignee, g.cibles, seuil)
+      : aimanterDeplacement(
+          contraindre({ ...g.depart, x: g.depart.x + dx, y: g.depart.y + dy }),
+          g.cibles,
+          seuil,
+        );
+    poser(g.cle, { x: r.bloc.x, y: r.bloc.y, l: r.bloc.l, h: r.bloc.h });
+    setGuides(r.guides);
   };
 
   const lacher = () => {
     glisse.current = null;
+    setGuides([]);
   };
 
   const trop = new Set(debords ? debords.split(",") : []);
@@ -283,7 +323,7 @@ export const EditeurLibre: React.FC<Props> = ({
                       <div
                         key={cle}
                         data-cadre={cle}
-                        onPointerDown={(e) => saisir(e, cle)}
+                        onPointerDown={(e) => saisir(e, cle, null)}
                         onPointerMove={suivre}
                         onPointerUp={lacher}
                         onPointerCancel={lacher}
@@ -310,9 +350,50 @@ export const EditeurLibre: React.FC<Props> = ({
                             {catalogue?.nom}
                           </span>
                         )}
+                        {actif &&
+                          POIGNEES.map((p) => (
+                            <span
+                              key={p.cle}
+                              data-poignee={p.cle}
+                              aria-hidden="true"
+                              onPointerDown={(e) => saisir(e, cle, p.cle)}
+                              className="absolute flex items-center justify-center"
+                              style={{
+                                // Zone de prise de 28 px à l'écran, carré visible de 10 px.
+                                width: 28 / echelle,
+                                height: 28 / echelle,
+                                left: `calc(${p.x * 100}% - ${14 / echelle}px)`,
+                                top: `calc(${p.y * 100}% - ${14 / echelle}px)`,
+                                cursor: p.curseur,
+                                touchAction: "none",
+                              }}
+                            >
+                              <span
+                                className="block border-primary bg-card"
+                                style={{
+                                  width: 10 / echelle,
+                                  height: 10 / echelle,
+                                  borderWidth: 2 / echelle,
+                                  borderStyle: "solid",
+                                }}
+                              />
+                            </span>
+                          ))}
                       </div>
                     );
                   })}
+                  {guides.map((g) => (
+                    <span
+                      key={`${g.axe}${g.pos}`}
+                      data-guide={g.axe}
+                      className="pointer-events-none absolute bg-primary"
+                      style={
+                        g.axe === "x"
+                          ? { left: `${g.pos}mm`, top: 0, bottom: 0, width: 1 / echelle }
+                          : { top: `${g.pos}mm`, left: 0, right: 0, height: 1 / echelle }
+                      }
+                    />
+                  ))}
                 </div>
               </div>
             </div>
@@ -419,8 +500,10 @@ export const EditeurLibre: React.FC<Props> = ({
             </section>
           ) : (
             <p className="border-b border-border p-4 text-xs leading-relaxed text-muted-foreground">
-              Touchez un bloc pour le choisir, puis faites-le glisser. Les flèches du clavier le
-              déplacent d&apos;un millimètre, de cinq avec Maj.
+              Touchez un bloc pour le choisir, puis faites-le glisser ; tirez un coin pour le
+              redimensionner. Il s&apos;aimante aux marges, au milieu de la feuille et aux autres
+              blocs (Alt pour s&apos;en affranchir). Les flèches du clavier le déplacent d&apos;un
+              millimètre, de cinq avec Maj.
             </p>
           )}
 

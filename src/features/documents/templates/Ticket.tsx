@@ -5,6 +5,7 @@ import { argent, argentOuTiret, montantOuTiret, quantite } from "../lib/format";
 import type { LargeurTicket, ReglagesTicket } from "../lib/reglages";
 import { useEquivalentsDuDocument } from "../lib/equivalents";
 import { convertir } from "../../../lib/contexteDevises";
+import { ORDRE_TICKET, type CleTicket, type ColonneTicket } from "../lib/disposition";
 
 /**
  * LE TICKET DE CAISSE
@@ -110,13 +111,15 @@ const CodeBarres: React.FC<{ valeur: string; largeurTicket: LargeurTicket }> = (
   );
 };
 
-export const Ticket: React.FC<{
+type ProprietesTicket = {
   document: Document;
   reglages: ReglagesTicket;
   /** Le jour de la vente, déjà mis en forme. */
   date: string;
-}> = ({ document: d, reglages, date }) => (
-  <>
+};
+
+const SECTIONS: Record<CleTicket, React.FC<ProprietesTicket>> = {
+  entete: ({ document: d }) => (
     <div className="c entete">
       {d.emetteur.logoUrl && <img className="logo" src={d.emetteur.logoUrl} alt="" />}
       <div className="nom">{d.emetteur.nom}</div>
@@ -125,20 +128,22 @@ export const Ticket: React.FC<{
       ))}
       {d.emetteur.nif && <div>NIF {d.emetteur.nif}</div>}
     </div>
+  ),
 
-    <Separateur />
+  infos: ({ document: d, date }) => (
+    <>
+      {d.codeBarres && <Ligne gauche="Ticket" droite={d.codeBarres} />}
+      <Ligne gauche="Date" droite={`${date}${d.heure ? ` ${d.heure}` : ""}`} />
+      {d.meta
+        .filter((m) => m.libelle === "Vendeur")
+        .map((m) => (
+          <Ligne key={m.libelle} gauche={m.libelle} droite={m.valeur} />
+        ))}
+      <Ligne gauche="Client" droite={d.destinataire.nom} />
+    </>
+  ),
 
-    {d.codeBarres && <Ligne gauche="Ticket" droite={d.codeBarres} />}
-    <Ligne gauche="Date" droite={`${date}${d.heure ? ` ${d.heure}` : ""}`} />
-    {d.meta
-      .filter((m) => m.libelle === "Vendeur")
-      .map((m) => (
-        <Ligne key={m.libelle} gauche={m.libelle} droite={m.valeur} />
-      ))}
-    <Ligne gauche="Client" droite={d.destinataire.nom} />
-
-    <Separateur />
-
+  articles: ({ document: d, reglages }) => (
     <div>
       {d.lignes.map((l) => (
         <div className="art" key={l.id}>
@@ -158,36 +163,38 @@ export const Ticket: React.FC<{
         </div>
       ))}
     </div>
+  ),
 
-    <Separateur />
-
-    {d.totaux.horsTaxe !== null && (
-      <Ligne gauche="Total hors taxe" droite={argent(d.totaux.horsTaxe)} />
-    )}
-    {d.totaux.tva && (
-      <Ligne gauche={`TVA ${d.totaux.tva.taux} %`} droite={argent(d.totaux.tva.montant)} />
-    )}
-    <div className="l tot">
-      <span>TOTAL</span>
-      <span>{montantOuTiret(d.totaux.total, d.devise)}</span>
-    </div>
-    <EquivalentsTotalTicket total={d.totaux.total} />
-    {d.totaux.paye !== null && (
-      <Ligne
-        gauche={d.totaux.modePaiement ?? d.totaux.libellePaye}
-        droite={argent(d.totaux.paye)}
-      />
-    )}
-    {/* « Rendu 0 » n'apprend rien ; « Reste à payer », si. */}
-    {d.totaux.reste !== null && d.totaux.reste > 0 && (
-      <div className="l du">
-        <span>Reste à payer</span>
-        <span>{argent(d.totaux.reste)}</span>
+  totaux: ({ document: d }) => (
+    <>
+      {d.totaux.horsTaxe !== null && (
+        <Ligne gauche="Total hors taxe" droite={argent(d.totaux.horsTaxe)} />
+      )}
+      {d.totaux.tva && (
+        <Ligne gauche={`TVA ${d.totaux.tva.taux} %`} droite={argent(d.totaux.tva.montant)} />
+      )}
+      <div className="l tot">
+        <span>TOTAL</span>
+        <span>{montantOuTiret(d.totaux.total, d.devise)}</span>
       </div>
-    )}
+      <EquivalentsTotalTicket total={d.totaux.total} />
+      {d.totaux.paye !== null && (
+        <Ligne
+          gauche={d.totaux.modePaiement ?? d.totaux.libellePaye}
+          droite={argent(d.totaux.paye)}
+        />
+      )}
+      {/* « Rendu 0 » n'apprend rien ; « Reste à payer », si. */}
+      {d.totaux.reste !== null && d.totaux.reste > 0 && (
+        <div className="l du">
+          <span>Reste à payer</span>
+          <span>{argent(d.totaux.reste)}</span>
+        </div>
+      )}
+    </>
+  ),
 
-    <Separateur />
-
+  pied: ({ document: d }) => (
     <div className="c pied">
       {d.messageTicket && <div>{d.messageTicket}</div>}
       {/* La mention qui évite le malentendu. Elle n'est pas réglable :
@@ -198,9 +205,44 @@ export const Ticket: React.FC<{
         Facture sur demande à la caisse.
       </div>
     </div>
+  ),
 
-    {reglages.codeBarres && d.codeBarres && (
+  codeBarres: ({ document: d, reglages }) =>
+    reglages.codeBarres && d.codeBarres ? (
       <CodeBarres valeur={d.codeBarres} largeurTicket={reglages.largeur} />
-    )}
-  </>
-);
+    ) : null,
+};
+
+/** Le code-barres suit le pied sans filet ; toute autre section en est séparée. */
+const filetAvant = (cle: CleTicket, rang: number) => rang > 0 && cle !== "codeBarres";
+
+export const Ticket: React.FC<
+  ProprietesTicket & {
+    /** Mode libre : l'ordre des sections et celles qu'on ne montre pas. */
+    colonne?: ColonneTicket;
+    /** Enveloppe chaque section d'un repère, pour que l'éditeur la retrouve. */
+    reperer?: boolean;
+  }
+> = ({ colonne, reperer, ...p }) => {
+  const { ordre, masques } = colonne ?? { ordre: ORDRE_TICKET, masques: [] };
+  const visibles = ordre.filter((c) => !masques.includes(c));
+  return (
+    <>
+      {visibles.map((cle, rang) => {
+        const Section = SECTIONS[cle];
+        return (
+          <React.Fragment key={cle}>
+            {filetAvant(cle, rang) && <Separateur />}
+            {reperer ? (
+              <div data-section={cle}>
+                <Section {...p} />
+              </div>
+            ) : (
+              <Section {...p} />
+            )}
+          </React.Fragment>
+        );
+      })}
+    </>
+  );
+};

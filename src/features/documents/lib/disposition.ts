@@ -51,7 +51,27 @@ export interface Disposition {
   type: TypeDocumentV3;
   base: ModeleDocument;
   blocs: Partial<Record<string, BlocPose>>;
+  /** Ticket de caisse : l'ordre des sections, de haut en bas. */
+  colonne?: ColonneTicket;
 }
+
+export type CleTicket = "entete" | "infos" | "articles" | "totaux" | "pied" | "codeBarres";
+
+export interface ColonneTicket {
+  ordre: CleTicket[];
+  masques: CleTicket[];
+}
+
+export const SECTIONS_TICKET: { cle: CleTicket; nom: string; verrouille?: boolean }[] = [
+  { cle: "entete", nom: "En-tête de la boutique", verrouille: true },
+  { cle: "infos", nom: "Ticket, date, client", verrouille: true },
+  { cle: "articles", nom: "Articles", verrouille: true },
+  { cle: "totaux", nom: "Totaux", verrouille: true },
+  { cle: "pied", nom: "Message et mention légale", verrouille: true },
+  { cle: "codeBarres", nom: "Code-barres" },
+];
+
+export const ORDRE_TICKET: CleTicket[] = SECTIONS_TICKET.map((s) => s.cle);
 
 export interface ReglagesLibres {
   dispositions: Record<string, Disposition>;
@@ -88,6 +108,14 @@ export const BLOCS: BlocCatalogue[] = [
 ];
 
 const CLES = new Set<string>(BLOCS.map((b) => b.cle));
+
+/** Les marges de chaque modèle, en mm : c'est sur elles que les blocs s'aimantent. */
+export const MARGES: Record<ModeleDocument, { x: number; y: number }> = {
+  classique: { x: 15, y: 14 },
+  bandeau: { x: 15, y: 14 },
+  epure: { x: 15, y: 15 },
+  compact: { x: 12, y: 12 },
+};
 export const estVerrouille = (cle: string) => BLOCS.find((b) => b.cle === cle)?.verrouille === true;
 export const nomDuBloc = (cle: string) => BLOCS.find((b) => b.cle === cle)?.nom ?? cle;
 
@@ -203,6 +231,151 @@ export function blocsResolus(d: Disposition): Record<CleBloc, BlocPose> {
   return sortie;
 }
 
+/* ── Redimensionnement et aimantation ────────────────────────────── */
+
+/** Le coin saisi : nord-ouest, nord-est, sud-ouest, sud-est. */
+export type Poignee = "no" | "ne" | "so" | "se";
+
+const bordGauche = (p: Poignee) => p === "no" || p === "so";
+const bordHaut = (p: Poignee) => p === "no" || p === "ne";
+
+/** Tire un coin : le coin opposé ne bouge pas, le bloc garde sa taille minimale. */
+export function redimensionner(b: BlocPose, p: Poignee, dx: number, dy: number): BlocPose {
+  let g = b.x;
+  let d = b.x + b.l;
+  let h = b.y;
+  let bas = b.y + b.h;
+  if (bordGauche(p)) g = Math.min(d - TAILLE_MIN, Math.max(0, g + dx));
+  else d = Math.max(g + TAILLE_MIN, Math.min(FEUILLE.l, d + dx));
+  if (bordHaut(p)) h = Math.min(bas - TAILLE_MIN, Math.max(0, h + dy));
+  else bas = Math.max(h + TAILLE_MIN, Math.min(FEUILLE.h, bas + dy));
+  return contraindre({ ...b, x: g, y: h, l: d - g, h: bas - h });
+}
+
+export interface Guide {
+  axe: "x" | "y";
+  /** Position de la ligne, en mm. */
+  pos: number;
+}
+
+export interface Cibles {
+  x: number[];
+  y: number[];
+}
+
+/** Les lignes qui attirent un bloc : bords et milieu de la feuille, marges, autres blocs. */
+export function ciblesAimant(
+  blocs: Record<CleBloc, BlocPose>,
+  sauf: CleBloc,
+  base: ModeleDocument,
+): Cibles {
+  const m = MARGES[base];
+  const x = [0, m.x, FEUILLE.l / 2, FEUILLE.l - m.x, FEUILLE.l];
+  const y = [0, m.y, FEUILLE.h / 2, FEUILLE.h - m.y, FEUILLE.h];
+  for (const { cle } of BLOCS) {
+    const b = blocs[cle];
+    if (cle === sauf || b.masque) continue;
+    x.push(b.x, b.x + b.l / 2, b.x + b.l);
+    y.push(b.y, b.y + b.h / 2, b.y + b.h);
+  }
+  return { x, y };
+}
+
+function plusProche(points: number[], cibles: number[], seuil: number) {
+  let meilleur: { delta: number; pos: number } | null = null;
+  for (const p of points) {
+    for (const c of cibles) {
+      const delta = c - p;
+      if (Math.abs(delta) <= seuil && (!meilleur || Math.abs(delta) < Math.abs(meilleur.delta))) {
+        meilleur = { delta, pos: c };
+      }
+    }
+  }
+  return meilleur;
+}
+
+/** Colle un bloc déplacé à la ligne la plus proche, par son bord gauche, son milieu ou son bord droit. */
+export function aimanterDeplacement(
+  b: BlocPose,
+  cibles: Cibles,
+  seuil: number,
+): { bloc: BlocPose; guides: Guide[] } {
+  const sx = plusProche([b.x, b.x + b.l / 2, b.x + b.l], cibles.x, seuil);
+  const sy = plusProche([b.y, b.y + b.h / 2, b.y + b.h], cibles.y, seuil);
+  const guides: Guide[] = [];
+  if (sx) guides.push({ axe: "x", pos: sx.pos });
+  if (sy) guides.push({ axe: "y", pos: sy.pos });
+  return {
+    bloc: contraindre({ ...b, x: b.x + (sx?.delta ?? 0), y: b.y + (sy?.delta ?? 0) }),
+    guides,
+  };
+}
+
+/** Pendant un redimensionnement, seuls les bords tirés s'aimantent. */
+export function aimanterRedimension(
+  b: BlocPose,
+  p: Poignee,
+  cibles: Cibles,
+  seuil: number,
+): { bloc: BlocPose; guides: Guide[] } {
+  const guides: Guide[] = [];
+  const r = { ...b };
+  const sx = plusProche([bordGauche(p) ? b.x : b.x + b.l], cibles.x, seuil);
+  if (sx) {
+    const l = bordGauche(p) ? b.l - sx.delta : b.l + sx.delta;
+    if (l >= TAILLE_MIN) {
+      if (bordGauche(p)) r.x = b.x + sx.delta;
+      r.l = l;
+      guides.push({ axe: "x", pos: sx.pos });
+    }
+  }
+  const sy = plusProche([bordHaut(p) ? b.y : b.y + b.h], cibles.y, seuil);
+  if (sy) {
+    const h = bordHaut(p) ? b.h - sy.delta : b.h + sy.delta;
+    if (h >= TAILLE_MIN) {
+      if (bordHaut(p)) r.y = b.y + sy.delta;
+      r.h = h;
+      guides.push({ axe: "y", pos: sy.pos });
+    }
+  }
+  return { bloc: contraindre(r), guides };
+}
+
+/* ── Ticket de caisse : une colonne ──────────────────────────────── */
+
+const SECTIONS = new Set<string>(ORDRE_TICKET);
+const verrouTicket = (cle: CleTicket) =>
+  SECTIONS_TICKET.find((s) => s.cle === cle)?.verrouille === true;
+
+/** L'ordre complet et les sections masquées, quoi que contienne l'enregistrement. */
+export function colonneResolue(d: Pick<Disposition, "colonne"> | null): ColonneTicket {
+  const ordre = (d?.colonne?.ordre ?? []).filter(
+    (c, i, t) => SECTIONS.has(c) && t.indexOf(c) === i,
+  );
+  // Une section absente de l'enregistrement reprend sa place d'origine.
+  ORDRE_TICKET.forEach((c, i) => {
+    if (!ordre.includes(c)) ordre.splice(Math.min(i, ordre.length), 0, c);
+  });
+  const masques = (d?.colonne?.masques ?? []).filter(
+    (c, i, t) => SECTIONS.has(c) && !verrouTicket(c) && t.indexOf(c) === i,
+  );
+  return { ordre, masques };
+}
+
+export function deplacerSection(d: Disposition, cle: CleTicket, rang: number): Disposition {
+  const { ordre, masques } = colonneResolue(d);
+  const suite = ordre.filter((c) => c !== cle);
+  suite.splice(Math.max(0, Math.min(rang, suite.length)), 0, cle);
+  return { ...d, colonne: { ordre: suite, masques } };
+}
+
+export function basculerSection(d: Disposition, cle: CleTicket): Disposition {
+  const { ordre, masques } = colonneResolue(d);
+  if (verrouTicket(cle)) return { ...d, colonne: { ordre, masques } };
+  const suite = masques.includes(cle) ? masques.filter((c) => c !== cle) : [...masques, cle];
+  return { ...d, colonne: { ordre, masques: suite } };
+}
+
 /* ── Lecture de la colonne JSON ──────────────────────────────────── */
 
 const MODELES: ModeleDocument[] = ["classique", "bandeau", "epure", "compact"];
@@ -237,7 +410,15 @@ function lireDisposition(brut: unknown, id: string): Disposition | null {
     }
   }
   const nom = typeof brut.nom === "string" && brut.nom.trim() ? brut.nom : "Disposition";
-  return { id, nom, type, base, blocs };
+  const lue: Disposition = { id, nom, type, base, blocs };
+  if (objet(brut.colonne)) {
+    const liste = (v: unknown) =>
+      Array.isArray(v) ? v.filter((c): c is CleTicket => typeof c === "string") : [];
+    lue.colonne = colonneResolue({
+      colonne: { ordre: liste(brut.colonne.ordre), masques: liste(brut.colonne.masques) },
+    });
+  }
+  return lue;
 }
 
 export function lireLibre(brut: unknown): ReglagesLibres {
@@ -271,6 +452,9 @@ export function creerDisposition(
   base: ModeleDocument,
   nom: string,
 ): Disposition {
+  if (type === "ticket") {
+    return { id: nouvelId(), nom, type, base, blocs: {}, colonne: colonneResolue(null) };
+  }
   return { id: nouvelId(), nom, type, base, blocs: blocsDeDepart(base) };
 }
 
@@ -280,6 +464,7 @@ export function dupliquerDisposition(d: Disposition, nom: string): Disposition {
 
 /** Revient aux positions du modèle de départ. Le nom et le type restent. */
 export function reinitialiserDisposition(d: Disposition): Disposition {
+  if (d.type === "ticket") return { ...d, colonne: colonneResolue(null) };
   return { ...d, blocs: blocsDeDepart(d.base) };
 }
 
