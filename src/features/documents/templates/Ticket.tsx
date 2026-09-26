@@ -3,6 +3,8 @@ import type { Document } from "../lib/buildDocument";
 import { dessinerCode128 } from "../lib/codeBarres";
 import { montantOuTiret, nombre, nombreOuTiret, quantite } from "../lib/format";
 import type { LargeurTicket, ReglagesTicket } from "../lib/reglages";
+import { useEquivalentsDuDocument } from "../lib/equivalents";
+import { convertir } from "../../../lib/contexteDevises";
 
 /**
  * LE TICKET DE CAISSE
@@ -38,6 +40,34 @@ const MODULE_MM: Record<LargeurTicket, number> = {
 };
 
 const Separateur: React.FC = () => <div className="sep" aria-hidden="true" />;
+
+/** « ≈ 2,00 € · 983 CF » sous le prix d'un article. */
+const EquivalentsArticle: React.FC<{ montant: number | null }> = ({ montant }) => {
+  const equivalents = useEquivalentsDuDocument();
+  if (montant === null || !montant || !equivalents.length) return null;
+  return (
+    <div className="l equiv">
+      <span />
+      <span>≈ {equivalents.map((d) => convertir(montant, d)).join(" · ")}</span>
+    </div>
+  );
+};
+
+/** « Soit en EUR » sous le total, une ligne par devise choisie. */
+const EquivalentsTotalTicket: React.FC<{ total: number | null }> = ({ total }) => {
+  const equivalents = useEquivalentsDuDocument();
+  if (total === null || !equivalents.length) return null;
+  return (
+    <>
+      {equivalents.map((d) => (
+        <div key={d.code} className="l equiv">
+          <span>Soit en {d.code}</span>
+          <span>{convertir(total, d)}</span>
+        </div>
+      ))}
+    </>
+  );
+};
 
 const Ligne: React.FC<{ gauche: React.ReactNode; droite: React.ReactNode }> = ({
   gauche,
@@ -124,6 +154,7 @@ export const Ticket: React.FC<{
             </span>
             <span>{nombreOuTiret(l.total)}</span>
           </div>
+          <EquivalentsArticle montant={l.total} />
         </div>
       ))}
     </div>
@@ -140,6 +171,7 @@ export const Ticket: React.FC<{
       <span>TOTAL</span>
       <span>{montantOuTiret(d.totaux.total, d.devise)}</span>
     </div>
+    <EquivalentsTotalTicket total={d.totaux.total} />
     {d.totaux.paye !== null && (
       <Ligne
         gauche={d.totaux.modePaiement ?? d.totaux.libellePaye}

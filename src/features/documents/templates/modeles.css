@@ -753,3 +753,13 @@
 .doc-ticket--58 .pied {
   font-size: 7pt;
 }
+
+/* Équivalents en autres devises sur le ticket : plus petits, mais noirs —
+   une imprimante thermique ne rend pas le gris. */
+.doc-ticket .l.equiv {
+  font-size: 0.85em;
+}
+.doc-ticket .art .l.equiv > span:last-child {
+  white-space: normal;
+  text-align: right;
+}

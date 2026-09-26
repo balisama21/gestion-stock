@@ -624,6 +624,7 @@ const TYPES_DOCUMENTS: { type: string; libelle: string }[] = [
   { type: "commission", libelle: "Facture de service" },
   { type: "recu", libelle: "Reçu" },
   { type: "commande", libelle: "Bon de commande client" },
+  { type: "ticket", libelle: "Ticket de caisse" },
 ];
 
 /** Où voir les prix convertis : à l'écran, et sur quels documents. */
@@ -696,7 +697,11 @@ const AffichageBloc: React.FC<{
                 key={t.type}
                 label={t.libelle}
                 hint={
-                  t.type === "proforma" ? "Sous chaque prix et sous le total imprimés." : undefined
+                  t.type === "proforma"
+                    ? "Sous chaque prix et sous le total imprimés."
+                    : t.type === "ticket"
+                      ? "Sous chaque article et sous le total, sur le rouleau."
+                      : undefined
                 }
               >
                 {pastilles(

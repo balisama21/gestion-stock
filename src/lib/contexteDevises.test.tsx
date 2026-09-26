@@ -41,3 +41,51 @@ describe("équivalents en devises", () => {
     expect(screen.getByText("Soit en KMF")).toBeTruthy();
   });
 });
+
+describe("ticket de caisse", () => {
+  afterEach(cleanup);
+
+  it("imprime les équivalents sous chaque article et sous le total", async () => {
+    const { Ticket } = await import("../features/documents/templates/Ticket");
+    const document = {
+      emetteur: { nom: "B", lignes: [], nif: null },
+      destinataire: { nom: "Client" },
+      meta: [],
+      codeBarres: null,
+      heure: null,
+      lignes: [
+        {
+          id: "1",
+          designation: "Savon",
+          detail: null,
+          quantite: 1,
+          unite: null,
+          prixUnitaire: 10000,
+          total: 10000,
+        },
+      ],
+      totaux: {
+        horsTaxe: null,
+        tva: null,
+        total: 10000,
+        paye: null,
+        reste: null,
+        modePaiement: null,
+        libellePaye: "",
+      },
+      devise: "Ar",
+      messageTicket: null,
+    } as unknown as React.ComponentProps<typeof Ticket>["document"];
+    render(
+      <ContexteEquivalents.Provider value={[EUR]}>
+        <Ticket
+          document={document}
+          reglages={{ detailLignes: false, codeBarres: false } as never}
+          date=""
+        />
+      </ContexteEquivalents.Provider>,
+    );
+    expect(screen.getByText("Soit en EUR")).toBeTruthy();
+    expect(screen.getByText(/≈ 2,00.€/)).toBeTruthy();
+  });
+});

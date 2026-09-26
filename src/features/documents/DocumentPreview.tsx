@@ -177,7 +177,8 @@ export const DocumentPreview: React.FC<DocumentPreviewProps> = ({
    * `resoudreType` s'en charge, et lui seul connaît l'ordre.
    */
   const regle = resoudreType(reglages, doc.type);
-  const equivalents = useDevisesDuDocument(doc.type);
+  // Le rouleau a son propre réglage : on ne veut pas forcément les mêmes devises qu'en A4.
+  const equivalents = useDevisesDuDocument(rouleau ? "ticket" : doc.type);
   const nomModele = modele ?? regle.modele;
   const Modele = MODELES[nomModele] ?? Classique;
 
