@@ -1,4 +1,4 @@
-import { BLOCS, FEUILLE, MARGES, type BlocPose, type CleBloc } from "./disposition";
+import { clesPosees, FEUILLE, MARGES, type Blocs, type ClePosee } from "./disposition";
 import type { ModeleDocument } from "./reglages";
 import type { Page } from "./pagination";
 
@@ -24,17 +24,20 @@ export interface Cadre {
 }
 
 export interface ZonesLibres {
-  avant: CleBloc[];
-  apres: CleBloc[];
-  repetes: CleBloc[];
+  /** Toutes les clés posées, dans l'ordre de rendu. */
+  ordre: ClePosee[];
+  avant: ClePosee[];
+  apres: ClePosee[];
+  repetes: ClePosee[];
   premiere: Cadre;
   suite: Cadre;
   derniere: Cadre;
 }
 
-export function zonesLibres(blocs: Record<CleBloc, BlocPose>, base: ModeleDocument): ZonesLibres {
+export function zonesLibres(blocs: Blocs, base: ModeleDocument): ZonesLibres {
   const t = blocs.tableau;
-  const visibles = BLOCS.map((b) => b.cle).filter((c) => c !== "tableau" && !blocs[c].masque);
+  const ordre = clesPosees(blocs);
+  const visibles = ordre.filter((c) => c !== "tableau" && !blocs[c].masque);
   const repetes = visibles.filter((c) => blocs[c].repete);
   const avant = visibles.filter((c) => !blocs[c].repete && blocs[c].y < t.y);
   const apres = visibles.filter((c) => !blocs[c].repete && blocs[c].y >= t.y);
@@ -47,6 +50,7 @@ export function zonesLibres(blocs: Record<CleBloc, BlocPose>, base: ModeleDocume
   const finDerniere = Math.min(bas, ...apres.map((c) => blocs[c].y - ECART));
 
   return {
+    ordre,
     avant,
     apres,
     repetes,
@@ -102,9 +106,9 @@ export function feuilleLibre(
   rang: number,
   total: number,
   z: ZonesLibres,
-): { cles: CleBloc[]; cadre: Cadre } {
-  const avecTableau = (cles: CleBloc[]) =>
-    BLOCS.map((b) => b.cle).filter((c) => c === "tableau" || cles.includes(c));
+): { cles: ClePosee[]; cadre: Cadre } {
+  const avecTableau = (cles: ClePosee[]) =>
+    z.ordre.filter((c) => c === "tableau" || cles.includes(c));
   if (total <= 1) {
     return { cles: avecTableau([...z.avant, ...z.apres, ...z.repetes]), cadre: z.premiere };
   }

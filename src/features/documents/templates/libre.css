@@ -21,16 +21,31 @@
   inset: 0;
   background: var(--doc);
 }
+.doc-libre-cachet {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
 .doc-libre-logo {
   width: 100%;
   height: 100%;
   object-fit: contain;
   object-position: left center;
 }
-.bl-droite .doc-libre-logo {
+.bl-droite .doc-libre-cachet {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+.doc-libre-logo {
   object-position: right center;
 }
-.bl-centre .doc-libre-logo {
+.bl-centre .doc-libre-cachet {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+.doc-libre-logo {
   object-position: center;
 }
 .doc-libre .doc-totaux {

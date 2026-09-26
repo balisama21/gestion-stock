@@ -52,3 +52,9 @@ export function lireCachets(brut: unknown): Cachet[] {
   }
   return sortie;
 }
+
+/** La résolution réelle d'un cachet posé sur `largeurMm` : en dessous de 200 ppp, il se verra flou. */
+export const pppEffectif = (c: Pick<Cachet, "largeur">, largeurMm: number) =>
+  Math.round(c.largeur / (Math.max(1, largeurMm) / 25.4));
+
+export const PPP_MINIMUM = 200;

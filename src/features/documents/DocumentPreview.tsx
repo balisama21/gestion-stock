@@ -18,7 +18,8 @@ import { Compact } from "./templates/Compact";
 import { Epure } from "./templates/Epure";
 import { Ticket } from "./templates/Ticket";
 import { Libre } from "./templates/Libre";
-import { blocsResolus, colonneResolue, dispositionDuType } from "./lib/disposition";
+import { blocsResolus, cachetsPlaces, colonneResolue, dispositionDuType } from "./lib/disposition";
+import { imageCachet } from "./lib/traiterCachet";
 import { feuilleLibre, paginerLibre, zonesLibres, type MesuresLibres } from "./lib/paginationLibre";
 import type { ProprietesModele } from "./parts/squelette";
 import { ContexteEquivalents } from "./lib/equivalents";
@@ -214,6 +215,34 @@ export const DocumentPreview: React.FC<DocumentPreviewProps> = ({
     () => (libre && blocs ? zonesLibres(blocs, libre.base) : null),
     [libre, blocs],
   );
+  // Les cachets posés, et leurs images : chargées AVANT de signaler la page prête.
+  const cachetsDuDocument = useMemo(() => {
+    if (!libre) return [];
+    const ids = new Set(cachetsPlaces(libre));
+    return reglages.cachets.filter((c) => ids.has(c.id));
+  }, [libre, reglages.cachets]);
+  const clesImages = cachetsDuDocument.map((c) => c.chemin).join("|");
+  const [images, setImages] = useState<{ cle: string; urls: Record<string, string> }>({
+    cle: "",
+    urls: {},
+  });
+  useEffect(() => {
+    let actif = true;
+    const chemins = clesImages ? clesImages.split("|") : [];
+    void Promise.all(chemins.map((c) => imageCachet(c))).then((urls) => {
+      if (!actif) return;
+      const table: Record<string, string> = {};
+      chemins.forEach((c, i) => {
+        const u = urls[i];
+        if (u) table[c] = u;
+      });
+      setImages({ cle: clesImages, urls: table });
+    });
+    return () => {
+      actif = false;
+    };
+  }, [clesImages]);
+  const imagesPretes = images.cle === clesImages;
   const dispoTicket = rouleau ? dispositionDuType(reglages.libre, "ticket") : null;
   const colonne = dispoTicket ? colonneResolue(dispoTicket) : undefined;
   const nomModele = libre?.base ?? modele ?? regle.modele;
@@ -339,9 +368,10 @@ export const DocumentPreview: React.FC<DocumentPreviewProps> = ({
   useEffect(() => {
     if (!onPret) return;
     if (!rouleau && pages === null) return;
+    if (!imagesPretes) return;
     const noeuds = noeudsPoses();
     if (noeuds.length > 0) onPret(noeuds);
-  }, [onPret, rouleau, pages, noeudsPoses]);
+  }, [onPret, rouleau, pages, noeudsPoses, imagesPretes]);
 
   useLayoutEffect(() => {
     const cadre = scene.current;
@@ -353,7 +383,7 @@ export const DocumentPreview: React.FC<DocumentPreviewProps> = ({
 
   const exporter = async (type: "pdf" | "image") => {
     const noeuds = noeudsPoses();
-    if (noeuds.length === 0 || exportEnCours) return;
+    if (noeuds.length === 0 || exportEnCours || !imagesPretes) return;
     setExportEnCours(type);
     setErreur(null);
     try {
@@ -438,6 +468,7 @@ export const DocumentPreview: React.FC<DocumentPreviewProps> = ({
                         .filter((l): l is LigneDocument => l !== undefined)}
                       cles={f.cles}
                       cadreTableau={f.cadre}
+                      cachets={{ cachets: cachetsDuDocument, images: images.urls }}
                       pagination={doc.paginer ? mentionDePage(rang, repartition.length) : null}
                     />
                   </div>
@@ -486,6 +517,7 @@ export const DocumentPreview: React.FC<DocumentPreviewProps> = ({
             <button
               type="button"
               onClick={() => imprimerFeuille(rouleau ? largeurMm : undefined)}
+              disabled={!imagesPretes}
               className="app-btn-primary"
             >
               <Printer className="h-4 w-4" />
@@ -494,7 +526,7 @@ export const DocumentPreview: React.FC<DocumentPreviewProps> = ({
             <button
               type="button"
               onClick={() => exporter("pdf")}
-              disabled={exportEnCours !== null}
+              disabled={exportEnCours !== null || !imagesPretes}
               className="app-btn-secondary"
               title="Un PDF fidèle à l'aperçu, à envoyer ou à archiver"
             >
@@ -504,7 +536,7 @@ export const DocumentPreview: React.FC<DocumentPreviewProps> = ({
             <button
               type="button"
               onClick={() => exporter("image")}
-              disabled={exportEnCours !== null}
+              disabled={exportEnCours !== null || !imagesPretes}
               className="app-btn-secondary"
               title="Une image par page, pratique à envoyer par messagerie"
             >

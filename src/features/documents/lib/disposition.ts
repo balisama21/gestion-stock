@@ -117,6 +117,27 @@ export const MARGES: Record<ModeleDocument, { x: number; y: number }> = {
   compact: { x: 12, y: 12 },
 };
 export const estVerrouille = (cle: string) => BLOCS.find((b) => b.cle === cle)?.verrouille === true;
+
+/* ── Cachets et signatures : des blocs de plus, un par image placée ── */
+
+export type CleCachet = `cachet:${string}`;
+export type ClePosee = CleBloc | CleCachet;
+/** Les blocs du catalogue, toujours là, et les cachets placés. */
+export type Blocs = Record<CleBloc, BlocPose> & { [cle: CleCachet]: BlocPose };
+
+export const cleCachet = (id: string): CleCachet => `cachet:${id}`;
+export const estCleCachet = (cle: string): cle is CleCachet => /^cachet:[\w-]{1,64}$/.test(cle);
+export const idDuCachet = (cle: CleCachet) => cle.slice(7);
+
+/** Les clés posées, dans l'ordre : le catalogue, puis les cachets. */
+export const clesPosees = (blocs: Blocs): ClePosee[] => [
+  ...BLOCS.map((b) => b.cle),
+  ...(Object.keys(blocs).filter(estCleCachet) as CleCachet[]),
+];
+
+/** Au-dessus des blocs ordinaires, sous les mentions obligatoires. */
+export const niveauDuBloc = (cle: ClePosee): 1 | 2 | 3 =>
+  estVerrouille(cle) ? 3 : estCleCachet(cle) ? 2 : 1;
 export const nomDuBloc = (cle: string) => BLOCS.find((b) => b.cle === cle)?.nom ?? cle;
 
 /* ── Positions de départ, relevées sur chaque modèle ─────────────── */
@@ -220,13 +241,16 @@ export function contraindre(b: BlocPose): BlocPose {
 }
 
 /** Les blocs à poser : le départ du modèle, recouvert de ce que la boutique a déplacé. */
-export function blocsResolus(d: Disposition): Record<CleBloc, BlocPose> {
+export function blocsResolus(d: Disposition): Blocs {
   const depart = blocsDeDepart(d.base);
-  const sortie = {} as Record<CleBloc, BlocPose>;
+  const sortie = {} as Blocs;
   for (const { cle, verrouille } of BLOCS) {
     const b = contraindre({ ...depart[cle], ...d.blocs[cle] });
     if (verrouille) delete b.masque;
     sortie[cle] = b;
+  }
+  for (const [cle, b] of Object.entries(d.blocs)) {
+    if (estCleCachet(cle) && b) sortie[cle] = contraindre(b);
   }
   return sortie;
 }
@@ -264,15 +288,11 @@ export interface Cibles {
 }
 
 /** Les lignes qui attirent un bloc : bords et milieu de la feuille, marges, autres blocs. */
-export function ciblesAimant(
-  blocs: Record<CleBloc, BlocPose>,
-  sauf: CleBloc,
-  base: ModeleDocument,
-): Cibles {
+export function ciblesAimant(blocs: Blocs, sauf: ClePosee, base: ModeleDocument): Cibles {
   const m = MARGES[base];
   const x = [0, m.x, FEUILLE.l / 2, FEUILLE.l - m.x, FEUILLE.l];
   const y = [0, m.y, FEUILLE.h / 2, FEUILLE.h - m.y, FEUILLE.h];
-  for (const { cle } of BLOCS) {
+  for (const cle of clesPosees(blocs)) {
     const b = blocs[cle];
     if (cle === sauf || b.masque) continue;
     x.push(b.x, b.x + b.l / 2, b.x + b.l);
@@ -404,7 +424,7 @@ function lireDisposition(brut: unknown, id: string): Disposition | null {
   const blocs: Disposition["blocs"] = {};
   if (objet(brut.blocs)) {
     for (const [cle, b] of Object.entries(brut.blocs)) {
-      if (!CLES.has(cle)) continue;
+      if (!CLES.has(cle) && !estCleCachet(cle)) continue;
       const lu = lireBloc(b, cle);
       if (lu) blocs[cle] = lu;
     }
@@ -468,12 +488,60 @@ export function reinitialiserDisposition(d: Disposition): Disposition {
   return { ...d, blocs: blocsDeDepart(d.base) };
 }
 
-export function poserBloc(d: Disposition, cle: CleBloc, patch: Partial<BlocPose>): Disposition {
+export function poserBloc(d: Disposition, cle: ClePosee, patch: Partial<BlocPose>): Disposition {
   const actuel = blocsResolus(d)[cle];
+  if (!actuel) return d;
   const suite = contraindre({ ...actuel, ...patch });
   if (estVerrouille(cle)) delete suite.masque;
   return { ...d, blocs: { ...d.blocs, [cle]: suite } };
 }
+
+/**
+ * Place un cachet sur la feuille, à la hauteur des signatures, à droite :
+ * c'est là qu'un tampon se pose sur un document papier. Sa taille suit
+ * celle de l'image, sans la déformer.
+ */
+export function placerCachet(
+  d: Disposition,
+  c: { id: string; largeur: number; hauteur: number },
+): Disposition {
+  const ratio = c.hauteur / Math.max(1, c.largeur);
+  let l = ratio > 0.6 ? 40 : 55;
+  let h = l * ratio;
+  if (h > 40) {
+    h = 40;
+    l = h / ratio;
+  }
+  const blocs = blocsResolus(d);
+  const sig = blocs.signatures;
+  const m = MARGES[d.base];
+  const x = FEUILLE.l - m.x - l;
+  const bas = sig.y + sig.h;
+  // Sans mordre sur une mention obligatoire posée juste au-dessus (le total, souvent).
+  const plafond = Math.max(
+    0,
+    ...BLOCS.filter((b) => b.verrouille)
+      .map((b) => blocs[b.cle])
+      .filter((b) => b.x < x + l && b.x + b.l > x && b.y + b.h <= bas && b.y + b.h > bas - h)
+      .map((b) => b.y + b.h + 2),
+  );
+  if (bas - plafond < h) {
+    h = Math.max(20, bas - plafond);
+    l = h / ratio;
+  }
+  const b = contraindre({ x: FEUILLE.l - m.x - l, y: bas - h, l, h });
+  return { ...d, blocs: { ...d.blocs, [cleCachet(c.id)]: b } };
+}
+
+export function retirerCachet(d: Disposition, id: string): Disposition {
+  const blocs = { ...d.blocs };
+  delete blocs[cleCachet(id)];
+  return { ...d, blocs };
+}
+
+/** Les cachets que cette disposition place. */
+export const cachetsPlaces = (d: Disposition): string[] =>
+  Object.keys(d.blocs).filter(estCleCachet).map(idDuCachet);
 
 /** La disposition qu'utilise ce type, ou `null` en mode simple. */
 export function dispositionDuType(libre: ReglagesLibres, type: TypeDocumentV3): Disposition | null {

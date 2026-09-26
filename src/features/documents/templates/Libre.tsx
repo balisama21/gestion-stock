@@ -2,7 +2,16 @@ import React from "react";
 import type { Document, LigneDocument } from "../lib/buildDocument";
 import { montantOuTiret } from "../lib/format";
 import type { ModeleDocument } from "../lib/reglages";
-import { BLOCS, type BlocPose, type CleBloc } from "../lib/disposition";
+import {
+  clesPosees,
+  estCleCachet,
+  idDuCachet,
+  niveauDuBloc,
+  type BlocPose,
+  type Blocs,
+  type ClePosee,
+} from "../lib/disposition";
+import type { Cachet } from "../lib/cachets";
 import {
   BlocAdresse,
   CoordonneesPaiement,
@@ -16,14 +25,29 @@ import {
   Totaux,
 } from "../parts/blocs";
 
+/** Les images des cachets, déjà chargées : la capture du PDF ne doit rien attendre. */
+export interface ImagesCachets {
+  cachets: Cachet[];
+  /** Chemin dans le seau → data URL. */
+  images: Record<string, string>;
+}
+
 /** Le contenu d'un bloc, ou `null` quand ce document n'a rien à y mettre. */
 export function contenuDuBloc(
-  cle: CleBloc,
+  cle: ClePosee,
   d: Document,
   base: ModeleDocument,
   lignes: LigneDocument[],
   pagination: string | null,
+  cachets?: ImagesCachets,
 ): React.ReactNode {
+  if (estCleCachet(cle)) {
+    const c = cachets?.cachets.find((x) => x.id === idDuCachet(cle));
+    const src = c ? cachets?.images[c.chemin] : undefined;
+    return c && src ? (
+      <img className="doc-libre-cachet" src={src} alt="" style={{ opacity: c.opacite }} />
+    ) : null;
+  }
   const e = d.emetteur;
   switch (cle) {
     case "fond":
@@ -93,30 +117,31 @@ export function contenuDuBloc(
   }
 }
 
-export const styleDuBloc = (b: BlocPose, avant: boolean): React.CSSProperties => ({
+export const styleDuBloc = (b: BlocPose, niveau: number): React.CSSProperties => ({
   left: `${b.x}mm`,
   top: `${b.y}mm`,
   width: `${b.l}mm`,
   height: `${b.h}mm`,
   textAlign: b.align === "droite" ? "right" : b.align === "centre" ? "center" : undefined,
-  zIndex: avant ? 2 : 1,
+  zIndex: niveau,
 });
 
-export const classeDuBloc = (cle: CleBloc, b: BlocPose) =>
-  `doc-libre-bloc bl-${cle}${b.inverse ? " bl-inverse" : ""}${
+export const classeDuBloc = (cle: ClePosee, b: BlocPose) =>
+  `doc-libre-bloc bl-${estCleCachet(cle) ? "cachet" : cle}${b.inverse ? " bl-inverse" : ""}${
     b.align === "droite" ? " bl-droite" : b.align === "centre" ? " bl-centre" : ""
   }`;
 
 interface ProprietesLibre {
   document: Document;
   base: ModeleDocument;
-  blocs: Record<CleBloc, BlocPose>;
+  blocs: Blocs;
   lignes: LigneDocument[];
   /** Les blocs à poser sur cette feuille. Par défaut : tous ceux qui ne sont pas masqués. */
-  cles?: CleBloc[];
+  cles?: ClePosee[];
   pagination: string | null;
   /** Le cadre du tableau sur cette page, quand le document en compte plusieurs. */
   cadreTableau?: { y: number; h: number };
+  cachets?: ImagesCachets;
 }
 
 /** Une feuille en mode libre : chaque bloc à sa place, au millimètre. */
@@ -128,20 +153,20 @@ export const Libre: React.FC<ProprietesLibre> = ({
   cles,
   pagination,
   cadreTableau,
+  cachets,
 }) => (
   <div className="doc-libre">
-    {(cles ?? BLOCS.map((b) => b.cle).filter((c) => !blocs[c].masque)).map((cle) => {
+    {(cles ?? clesPosees(blocs).filter((c) => !blocs[c].masque)).map((cle) => {
       if (cle === "tableau" && cadreTableau && lignes.length === 0) return null;
       const b = cle === "tableau" && cadreTableau ? { ...blocs[cle], ...cadreTableau } : blocs[cle];
-      const contenu = contenuDuBloc(cle, d, base, lignes, pagination);
+      const contenu = contenuDuBloc(cle, d, base, lignes, pagination, cachets);
       if (contenu === null) return null;
-      const avant = BLOCS.find((x) => x.cle === cle)?.verrouille === true;
       return (
         <div
           key={cle}
           data-bloc={cle}
           className={classeDuBloc(cle, b)}
-          style={styleDuBloc(b, avant)}
+          style={styleDuBloc(b, niveauDuBloc(cle))}
         >
           {contenu}
         </div>

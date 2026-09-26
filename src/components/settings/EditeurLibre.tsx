@@ -25,15 +25,21 @@ import {
   aimanterRedimension,
   BLOCS,
   blocsResolus,
+  cleCachet,
+  clesPosees,
   ciblesAimant,
   contraindre,
+  estCleCachet,
+  idDuCachet,
+  placerCachet,
   poserBloc,
+  retirerCachet,
   redimensionner,
   reinitialiserDisposition,
   type Alignement,
   type BlocPose,
   type Cibles,
-  type CleBloc,
+  type ClePosee,
   type Disposition,
   type Guide,
   type Poignee,
@@ -44,6 +50,8 @@ import {
   Libre,
   styleDuBloc,
 } from "../../features/documents/templates/Libre";
+import { imageCachet } from "../../features/documents/lib/traiterCachet";
+import { PPP_MINIMUM, pppEffectif } from "../../features/documents/lib/cachets";
 import "../../features/documents/index.css";
 
 /** Pixels CSS par millimètre, à 96 points par pouce. */
@@ -65,7 +73,7 @@ interface Props {
 
 interface Glisse {
   id: number;
-  cle: CleBloc;
+  cle: ClePosee;
   x0: number;
   y0: number;
   depart: BlocPose;
@@ -107,7 +115,7 @@ export const EditeurLibre: React.FC<Props> = ({
 }) => {
   const [d, setD] = useState(disposition);
   const [apercu, setApercu] = useState(false);
-  const [choisi, setChoisi] = useState<CleBloc | null>(null);
+  const [choisi, setChoisi] = useState<ClePosee | null>(null);
   const [echelle, setEchelle] = useState(1);
   const [debords, setDebords] = useState<string>("");
   const [lignesCachees, setLignesCachees] = useState(0);
@@ -117,15 +125,35 @@ export const EditeurLibre: React.FC<Props> = ({
   const glisse = useRef<Glisse | null>(null);
 
   const blocs = blocsResolus(d);
-  const visibles = BLOCS.map((b) => b.cle).filter((c) => !blocs[c].masque);
+  const visibles = clesPosees(blocs).filter((c) => !blocs[c].masque);
+  const cachets = reglages?.cachets ?? [];
+  const [images, setImages] = useState<Record<string, string>>({});
+  const nomDe = (cle: ClePosee) =>
+    estCleCachet(cle)
+      ? (cachets.find((c) => c.id === idDuCachet(cle))?.nom ?? "Cachet")
+      : (BLOCS.find((b) => b.cle === cle)?.nom ?? cle);
+
+  useEffect(() => {
+    let actif = true;
+    for (const c of cachets) {
+      if (images[c.chemin]) continue;
+      void imageCachet(c.chemin).then(
+        (url) => actif && url && setImages((m) => ({ ...m, [c.chemin]: url })),
+      );
+    }
+    return () => {
+      actif = false;
+    };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cachets]);
   const modifie = JSON.stringify(d) !== JSON.stringify(disposition);
 
   const poser = useCallback(
-    (cle: CleBloc, patch: Partial<BlocPose>) => setD((p) => poserBloc(p, cle, patch)),
+    (cle: ClePosee, patch: Partial<BlocPose>) => setD((p) => poserBloc(p, cle, patch)),
     [],
   );
   const deplacer = useCallback(
-    (cle: CleBloc, dx: number, dy: number) =>
+    (cle: ClePosee, dx: number, dy: number) =>
       setD((p) => {
         const b = blocsResolus(p)[cle];
         return poserBloc(p, cle, { x: b.x + dx, y: b.y + dy });
@@ -193,7 +221,7 @@ export const EditeurLibre: React.FC<Props> = ({
     };
   }, []);
 
-  const saisir = (e: React.PointerEvent<HTMLElement>, cle: CleBloc, poignee: Poignee | null) => {
+  const saisir = (e: React.PointerEvent<HTMLElement>, cle: ClePosee, poignee: Poignee | null) => {
     e.stopPropagation();
     // Au doigt, le premier appui sélectionne : sans cela, on ne pourrait plus faire défiler l'écran.
     if (e.pointerType !== "mouse" && choisi !== cle) {
@@ -243,7 +271,8 @@ export const EditeurLibre: React.FC<Props> = ({
 
   const trop = new Set(debords ? debords.split(",") : []);
   const bloc = choisi ? blocs[choisi] : null;
-  const catalogue = choisi ? BLOCS.find((b) => b.cle === choisi)! : null;
+  const nomChoisi = choisi ? nomDe(choisi) : null;
+  const choisiCachet = choisi !== null && estCleCachet(choisi);
 
   const ecran = (
     <div
@@ -349,12 +378,16 @@ export const EditeurLibre: React.FC<Props> = ({
                     lignes={doc.lignes}
                     cles={visibles}
                     pagination={null}
+                    cachets={{ cachets, images }}
                   />
                 )}
                 <div className="absolute inset-0" style={{ zIndex: 5 }}>
                   {visibles.map((cle) => {
                     const b = blocs[cle];
-                    const vide = !doc || contenuDuBloc(cle, doc, d.base, doc.lignes, null) === null;
+                    const vide =
+                      !doc ||
+                      contenuDuBloc(cle, doc, d.base, doc.lignes, null, { cachets, images }) ===
+                        null;
                     const actif = choisi === cle;
                     return (
                       <div
@@ -372,19 +405,19 @@ export const EditeurLibre: React.FC<Props> = ({
                               : "outline-dashed outline-1 outline-transparent hover:outline-muted-foreground/50"
                         }`}
                         style={{
-                          ...styleDuBloc(b, false),
+                          ...styleDuBloc(b, 1),
                           zIndex: actif ? 3 : 1,
                           touchAction: actif ? "none" : undefined,
                         }}
                       >
                         {vide && (
                           <span className="flex h-full w-full items-center justify-center overflow-hidden border border-dashed border-border px-1 text-center text-[9pt] text-muted-foreground">
-                            {BLOCS.find((x) => x.cle === cle)!.nom}
+                            {nomDe(cle)}
                           </span>
                         )}
                         {actif && (
                           <span className="absolute -top-[7mm] left-0 whitespace-nowrap rounded bg-primary px-[2mm] py-[0.5mm] text-[8pt] font-medium text-primary-foreground">
-                            {catalogue?.nom}
+                            {nomChoisi}
                           </span>
                         )}
                         {actif &&
@@ -444,10 +477,10 @@ export const EditeurLibre: React.FC<Props> = ({
         </div>
 
         <aside className="border-t border-border bg-card lg:w-80 lg:overflow-y-auto lg:border-l lg:border-t-0">
-          {bloc && choisi && catalogue ? (
+          {bloc && choisi && nomChoisi ? (
             <section className="space-y-4 border-b border-border p-4">
               <div className="flex items-center justify-between gap-2">
-                <p className="text-sm font-semibold text-foreground">{catalogue.nom}</p>
+                <p className="text-sm font-semibold text-foreground">{nomChoisi}</p>
                 <button
                   type="button"
                   onClick={() => setChoisi(null)}
@@ -479,7 +512,7 @@ export const EditeurLibre: React.FC<Props> = ({
                 ))}
               </div>
               <div className="flex items-center justify-between gap-2">
-                <div className="flex">
+                <div className={`flex${choisiCachet ? " invisible" : ""}`}>
                   {ALIGNEMENTS.map(({ cle, nom, Icone }) => (
                     <button
                       key={cle}
@@ -525,15 +558,39 @@ export const EditeurLibre: React.FC<Props> = ({
                   label="Répéter sur chaque page"
                 />
               </div>
-              <div className="flex items-center justify-between gap-3">
-                <span className="text-xs text-foreground">Texte clair, sur fond de couleur</span>
-                <SettingsToggle
-                  size="sm"
-                  checked={bloc.inverse === true}
-                  onChange={(v) => poser(choisi, { inverse: v })}
-                  label="Texte clair"
-                />
-              </div>
+              {choisiCachet &&
+                (() => {
+                  const c = cachets.find((x) => x.id === idDuCachet(choisi as `cachet:${string}`));
+                  const ppp = c ? pppEffectif(c, bloc.l) : PPP_MINIMUM;
+                  return ppp < PPP_MINIMUM ? (
+                    <p className="rounded-lg border border-warning-border bg-warning-soft px-3 py-2 text-xs text-warning">
+                      À cette taille, l&apos;image n&apos;a que {ppp} points par pouce : elle sera
+                      floue à l&apos;impression. Réduisez-la, ou importez une photo plus nette.
+                    </p>
+                  ) : null;
+                })()}
+              {choisiCachet ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setD((p) => retirerCachet(p, idDuCachet(choisi as `cachet:${string}`)));
+                    setChoisi(null);
+                  }}
+                  className="app-btn-secondary w-full"
+                >
+                  Retirer de la feuille
+                </button>
+              ) : (
+                <div className="flex items-center justify-between gap-3">
+                  <span className="text-xs text-foreground">Texte clair, sur fond de couleur</span>
+                  <SettingsToggle
+                    size="sm"
+                    checked={bloc.inverse === true}
+                    onChange={(v) => poser(choisi, { inverse: v })}
+                    label="Texte clair"
+                  />
+                </div>
+              )}
             </section>
           ) : (
             <p className="border-b border-border p-4 text-xs leading-relaxed text-muted-foreground">
@@ -589,6 +646,66 @@ export const EditeurLibre: React.FC<Props> = ({
               );
             })}
           </ul>
+          <section className="border-t border-border p-4">
+            <p className="mb-2 text-sm font-semibold text-foreground">Cachets et signatures</p>
+            {cachets.length === 0 ? (
+              <p className="text-xs leading-relaxed text-muted-foreground">
+                Ajoutez-les dans Paramètres → Documents → Cachets et signatures, puis placez-les
+                ici.
+              </p>
+            ) : (
+              <ul className="space-y-2">
+                {cachets.map((c) => {
+                  const cle = cleCachet(c.id);
+                  const place = blocs[cle] !== undefined;
+                  return (
+                    <li key={c.id} className="flex items-center gap-2">
+                      <span
+                        className="flex h-10 w-14 shrink-0 items-center justify-center overflow-hidden rounded"
+                        style={{
+                          background:
+                            "repeating-conic-gradient(#eef1ef 0% 25%, #ffffff 0% 50%) 50% / 10px 10px",
+                        }}
+                      >
+                        {images[c.chemin] && (
+                          <img
+                            src={images[c.chemin]}
+                            alt=""
+                            className="max-h-full max-w-full object-contain"
+                          />
+                        )}
+                      </span>
+                      <button
+                        type="button"
+                        disabled={!place}
+                        onClick={() => setChoisi(cle)}
+                        className={`min-w-0 flex-1 truncate text-left text-sm ${
+                          choisi === cle ? "font-medium text-primary" : "text-foreground"
+                        }`}
+                      >
+                        {c.nom}
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          if (place) {
+                            setD((p) => retirerCachet(p, c.id));
+                            if (choisi === cle) setChoisi(null);
+                          } else {
+                            setD((p) => placerCachet(p, c));
+                            setChoisi(cle);
+                          }
+                        }}
+                        className="app-btn-secondary"
+                      >
+                        {place ? "Retirer" : "Placer"}
+                      </button>
+                    </li>
+                  );
+                })}
+              </ul>
+            )}
+          </section>
           {modifie && (
             <p className="p-4 text-xs text-muted-foreground">Modifications non enregistrées.</p>
           )}
