@@ -1115,10 +1115,15 @@ const BLOC_DE: Partial<Record<CleCarte, string>> = {
   agenda: "operations",
   taches: "operations",
   livraisons: "operations",
+  tresorerie: "finance",
+  sorties: "finance",
+  resultat: "finance",
+  paiements: "finance",
+  fournisseurs: "finance",
 };
 
 /** Cartes qui prennent toute la largeur de leur bloc. */
-const PLEINE_LARGEUR = new Set<CleCarte>([]);
+const PLEINE_LARGEUR = new Set<CleCarte>(["tresorerie"]);
 
 /** Regroupe les cartes consécutives d'un même bloc, sans jamais changer leur ordre. */
 function enBlocs(cles: CleCarte[]): { bloc?: string; cles: CleCarte[] }[] {
