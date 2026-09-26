@@ -37,6 +37,7 @@ const facturation = (p: Partial<Facturation> = {}): Facturation => ({
   recharger: vi.fn().mockResolvedValue(undefined),
   marquerEmis: vi.fn().mockResolvedValue(undefined),
   lireCopie: vi.fn().mockResolvedValue(null),
+  preparerLogo: vi.fn().mockResolvedValue(undefined),
   marquerEnvoye: vi.fn().mockResolvedValue({ error: null }),
   creerAvoir: vi.fn().mockResolvedValue({ avoir: null, error: null }),
   ...p,

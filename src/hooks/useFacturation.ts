@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from "react";
+import { preparerLogo, type LogoCopie } from "../features/documents/lib/logoFige";
 import { supabase } from "../lib/supabase";
 import { dateDuJour } from "../lib/dates";
 import type { Avoir, LigneAvoir } from "../components/facturation/documents";
@@ -66,6 +67,8 @@ export interface Facturation {
   ) => Promise<void>;
   /** La copie figée d'une pièce déjà émise, ou `null` si elle n'est jamais partie. */
   lireCopie: (entite: EntiteDocument, id: string, type: string) => Promise<unknown | null>;
+  /** Ce que la copie figée retient du logo ; range sa version dans le seau `logos` si elle manque. */
+  preparerLogo: (logoUrl: string | null | undefined) => Promise<LogoCopie | undefined>;
   marquerEnvoye: (
     entite: EntiteDocument,
     id: string,
@@ -219,6 +222,12 @@ export function useFacturation(storeId: string | null, actif: boolean): Facturat
     [storeId, emissions],
   );
 
+  const preparerLogoDeLaBoutique = useCallback(
+    (logoUrl: string | null | undefined) =>
+      storeId ? preparerLogo(storeId, logoUrl) : Promise.resolve(undefined),
+    [storeId],
+  );
+
   const marquerEnvoye = useCallback(
     async (entite: EntiteDocument, id: string, type: string, canal: string, relance: boolean) => {
       if (!storeId) return { error: "Non autorisé" };
@@ -276,6 +285,7 @@ export function useFacturation(storeId: string | null, actif: boolean): Facturat
     recharger,
     marquerEmis,
     lireCopie,
+    preparerLogo: preparerLogoDeLaBoutique,
     marquerEnvoye,
     creerAvoir,
   };

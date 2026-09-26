@@ -4,6 +4,7 @@ import { lireIdentite } from "./identite";
 import { lireReglagesDocuments, type ReglagesDocuments } from "./reglages";
 import { resoudreType, type TypeResolu } from "./resolveur";
 import { lireTypes, type ReglagesType, type TypeDocumentV3 } from "./typesDocument";
+import { lireLogoCopie, type LogoCopie } from "./logoFige";
 
 /**
  * LA COPIE FIGÉE D'UNE PIÈCE ÉMISE
@@ -14,9 +15,9 @@ import { lireTypes, type ReglagesType, type TypeDocumentV3 } from "./typesDocume
  * est partie. Les chiffres, eux, viennent toujours de la base : ils ne
  * changent pas.
  *
- * Seul le logo reste celui du moment. Il pèse jusqu'à 2 Mo en base64
- * dans `stores.logo_url` : le recopier dans chaque pièce ferait grossir
- * la base de plusieurs centaines de mégaoctets par an.
+ * Le logo, qui pèse jusqu'à 2 Mo, n'y est pas recopié : la copie garde le
+ * chemin de sa version dans le seau `logos`, rangée une fois pour toutes.
+ * Voir `logoFige.ts`.
  */
 
 type ChampBoutique =
@@ -42,7 +43,7 @@ const CHAMPS_BOUTIQUE: ChampBoutique[] = [
   "tvaRate",
 ];
 
-export type BoutiqueFigee = Partial<Pick<StoreSettings, ChampBoutique>>;
+export type BoutiqueFigee = Partial<Pick<StoreSettings, ChampBoutique | "logoUrl">>;
 
 export interface CopieFigee {
   version: 2;
@@ -54,6 +55,8 @@ export interface CopieFigee {
   /** Les réglages entiers, réduits à ce que cette pièce utilise. */
   reglages: ReglagesDocuments;
   boutique: BoutiqueFigee;
+  /** Absent : le logo n'a pas pu être figé, celui du moment sera repris. */
+  logo?: LogoCopie;
 }
 
 const versReglagesType = (r: TypeResolu): ReglagesType => ({
@@ -74,6 +77,7 @@ export function figer(
   boutique: StoreSettings | undefined,
   type: TypeDocumentV3,
   emisLe: string,
+  logo?: LogoCopie,
 ): CopieFigee {
   const resolu = resoudreType(reglages, type);
   const libre = dispositionDuType(reglages.libre, type);
@@ -112,12 +116,14 @@ export function figer(
     page,
     reglages: figes,
     boutique: figee,
+    ...(logo ? { logo } : {}),
   };
 }
 
 export interface PieceFigee {
   reglages: ReglagesDocuments;
   boutique: BoutiqueFigee;
+  logo?: LogoCopie;
 }
 
 function lireBoutique(brut: unknown): BoutiqueFigee {
@@ -150,7 +156,11 @@ export function lireCopieFigee(
   const r = brut as Record<string, unknown>;
 
   if (r.version === 2 && r.reglages && typeof r.reglages === "object") {
-    return { reglages: lireReglagesDocuments(r.reglages), boutique: lireBoutique(r.boutique) };
+    return {
+      reglages: lireReglagesDocuments(r.reglages),
+      boutique: lireBoutique(r.boutique),
+      logo: lireLogoCopie(r.logo),
+    };
   }
 
   if (r.version === 1) {

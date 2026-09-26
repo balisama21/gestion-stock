@@ -396,6 +396,7 @@ export const FacturationPage: React.FC<FacturationPageProps> = ({
               void facturation.marquerEmis(d.entite, d.entiteId, type, snapshot)
             }
             lireCopie={(type) => facturation.lireCopie(d.entite, d.entiteId, type)}
+            preparerLogo={facturation.preparerLogo}
             onEnvoye={(canal, relance) =>
               void facturation.marquerEnvoye(d.entite, d.entiteId, d.type, canal, relance)
             }

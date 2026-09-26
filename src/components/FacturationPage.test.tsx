@@ -116,6 +116,7 @@ const facturation = (p: Partial<Facturation> = {}): Facturation => ({
   recharger: vi.fn().mockResolvedValue(undefined),
   marquerEmis: vi.fn().mockResolvedValue(undefined),
   lireCopie: vi.fn().mockResolvedValue(null),
+  preparerLogo: vi.fn().mockResolvedValue(undefined),
   marquerEnvoye: vi.fn().mockResolvedValue({ error: null }),
   creerAvoir: vi.fn().mockResolvedValue({ avoir: null, error: null }),
   ...p,
@@ -313,6 +314,41 @@ describe("la copie figée d'une pièce émise", () => {
     expect(screen.getAllByText("Ancien nom").length).toBeGreaterThan(0);
     expect(f.lireCopie).toHaveBeenCalledWith("vente", "T1", "facture");
     expect(f.marquerEmis).not.toHaveBeenCalled();
+  });
+});
+
+describe("le logo de la copie figée", () => {
+  const LOGO =
+    "data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==";
+
+  it("est retenu à l'émission, sans recopier l'image", async () => {
+    const logo = { chemin: "s/" + "e".repeat(64) + ".png", empreinte: "e".repeat(64) };
+    const f = facturation({ preparerLogo: vi.fn().mockResolvedValue(logo) });
+    afficher({ facturation: f, settings: { ...BOUTIQUE, logoUrl: LOGO } });
+    fireEvent.click(screen.getByText("FAC-V001"));
+    fireEvent.click(screen.getByRole("button", { name: /Voir, PDF, imprimer/ }));
+
+    await waitFor(() => expect(f.marquerEmis).toHaveBeenCalledTimes(1));
+    expect(f.preparerLogo).toHaveBeenCalledWith(LOGO);
+    const copie = (f.marquerEmis as ReturnType<typeof vi.fn>).mock.calls[0][3];
+    expect(copie.logo).toEqual(logo);
+    expect(JSON.stringify(copie)).not.toContain("iVBORw0KGgo");
+  });
+
+  it("une pièce émise sans logo se réimprime sans logo, même si la boutique en a un depuis", async () => {
+    const copie = JSON.parse(
+      JSON.stringify(
+        figer(REGLAGES_DOCUMENTS_PAR_DEFAUT, BOUTIQUE, "facture", "2026-09-01", { aucun: true }),
+      ),
+    );
+    const f = facturation({ lireCopie: vi.fn().mockResolvedValue(copie) });
+    afficher({ facturation: f, settings: { ...BOUTIQUE, logoUrl: LOGO } });
+    fireEvent.click(screen.getByText("FAC-V001"));
+    fireEvent.click(screen.getByRole("button", { name: /Voir, PDF, imprimer/ }));
+
+    await waitFor(() => expect(document.querySelector(".doc-feuille")).not.toBeNull());
+    expect(document.querySelector(".doc-feuille .doc-logo")).toBeNull();
+    expect(document.querySelector(".doc-feuille .doc-pastille")?.textContent).toBe("MB");
   });
 });
 

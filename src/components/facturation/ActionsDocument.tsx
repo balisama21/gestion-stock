@@ -14,6 +14,7 @@ import { Modal } from "../shared/Modal";
 import { SortieDocument } from "../../features/documents/SortieDocument";
 import type { ReglagesDocuments } from "../../features/documents/lib/reglages";
 import { figer, lireCopieFigee, type PieceFigee } from "../../features/documents/lib/copieFigee";
+import { logoDeLaCopie, type LogoCopie } from "../../features/documents/lib/logoFige";
 import type { TypeDocumentV3 } from "../../features/documents/lib/typesDocument";
 import { montant as formaterMontant } from "../../features/documents/lib/format";
 import type { DocumentCommercial } from "./documents";
@@ -57,6 +58,8 @@ export interface ActionsDocumentProps {
   onEmis: (type: string, snapshot: unknown) => void;
   /** La copie figée de cette pièce pour ce type, si elle a déjà été émise. */
   lireCopie?: (type: string) => Promise<unknown | null>;
+  /** Ce que la copie figée retient du logo du moment. */
+  preparerLogo?: (logoUrl: string | null | undefined) => Promise<LogoCopie | undefined>;
   onEnvoye: (canal: string, relance: boolean) => void;
   onEncaisser?: (doc: DocumentCommercial) => void;
   onConvertir?: (doc: DocumentCommercial) => void;
@@ -73,6 +76,7 @@ export const ActionsDocument: React.FC<ActionsDocumentProps> = ({
   relances,
   onEmis,
   lireCopie,
+  preparerLogo,
   onEnvoye,
   onEncaisser,
   onConvertir,
@@ -116,10 +120,16 @@ export const ActionsDocument: React.FC<ActionsDocumentProps> = ({
     const brut = lireCopie ? await lireCopie(type).catch(() => null) : null;
     const relue = brut ? lireCopieFigee(brut, reglages, type) : null;
     if (relue) {
-      setFige(relue);
+      const logoUrl = await logoDeLaCopie(relue.logo);
+      setFige(
+        logoUrl === undefined ? relue : { ...relue, boutique: { ...relue.boutique, logoUrl } },
+      );
     } else {
       setFige(null);
-      onEmis(type, figer(reglages, sources.boutique, type, aujourdhui));
+      const logo = preparerLogo
+        ? await preparerLogo(sources.boutique.logoUrl).catch(() => undefined)
+        : undefined;
+      onEmis(type, figer(reglages, sources.boutique, type, aujourdhui, logo));
     }
     setSortie(voulue);
   };

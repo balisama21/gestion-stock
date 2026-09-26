@@ -444,7 +444,15 @@ obligatoires ; ses images sont chargées avant toute capture PDF.
 **Copie figée.** Version 2 : les réglages entiers réduits à la pièce,
 disposition et cachets compris, et les champs texte de la boutique.
 Relue à la réimpression dans Facturation, seul écran qui enregistre les
-émissions. **Le logo n'est pas figé** : il pèse jusqu'à 2 Mo en base64
-dans `stores.logo_url`, et le recopier dans chaque pièce coûterait des
-centaines de mégaoctets par an. Les copies de version 1 se relisent en
-mode simple, puisqu'elles précèdent le mode libre.
+émissions. Les copies de version 1 se relisent en mode simple, puisqu'elles
+précèdent le mode libre.
+
+**Le logo, figé sans être recopié.** Il pèse jusqu'à 2 Mo en base64 dans
+`stores.logo_url` : chaque version est rangée une seule fois dans le seau
+`logos`, sous `<boutique>/<empreinte SHA-256>.<ext>` (dépôt et lecture
+par les membres, ni remplacement ni suppression), et la copie ne garde
+que ce chemin. L'envoi part en arrière-plan après une vérification de
+présence ; à la relecture, l'empreinte du fichier est contrôlée. Une
+pièce émise sans logo se réimprime avec ses initiales ; une copie qui ne
+dit rien du logo (antérieure, ou fichier introuvable) reprend celui du
+moment.
