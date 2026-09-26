@@ -1,0 +1,87 @@
+/* ── Mode libre : des blocs posés au millimètre sur une A4 fixe ───── */
+
+.doc-feuille.doc-feuille--libre {
+  height: 297mm;
+  overflow: hidden;
+}
+.doc-libre {
+  position: relative;
+  width: 210mm;
+  height: 297mm;
+}
+.doc-libre-bloc {
+  position: absolute;
+  min-width: 0;
+}
+.doc-libre-bloc.bl-tableau {
+  overflow: hidden;
+}
+.doc-libre-fond {
+  position: absolute;
+  inset: 0;
+  background: var(--doc);
+}
+.doc-libre-logo {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  object-position: left center;
+}
+.bl-droite .doc-libre-logo {
+  object-position: right center;
+}
+.bl-centre .doc-libre-logo {
+  object-position: center;
+}
+.doc-libre .doc-totaux {
+  width: 100%;
+}
+.doc-libre .doc-signatures {
+  margin-top: 0 !important;
+}
+.doc-libre .doc-lettres {
+  margin-top: 0;
+}
+.doc-libre .merci {
+  margin-top: 0;
+  color: var(--doc);
+  font-weight: 600;
+  font-size: 12pt;
+}
+.doc-libre .coordonnees {
+  font-size: 9pt;
+}
+.doc-libre-pied {
+  border-top: 0.3mm solid #e6ebe8;
+  padding-top: 2.5mm;
+  font-size: 8.5pt;
+  color: #6b7671;
+}
+.doc-libre .barre-pied {
+  margin: 0;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  padding: 0 15mm;
+  background: var(--doc);
+  color: #fff;
+  font-size: 8.5pt;
+}
+.bl-inverse,
+.bl-inverse .doc-bloc b,
+.bl-inverse .doc-bloc p {
+  color: #fff;
+}
+.bl-inverse .doc-sous-titre,
+.bl-inverse .doc-bloc h4,
+.bl-inverse .doc-muted,
+.bl-inverse .coordonnees {
+  color: rgba(255, 255, 255, 0.78);
+}
+.bl-inverse .doc-pastille {
+  background: rgba(255, 255, 255, 0.16);
+}
+.bl-droite .doc-totaux,
+.bl-droite .doc-meta {
+  margin-left: auto;
+}

@@ -1,6 +1,7 @@
 import type { Echeance } from "./format";
 import { IDENTITE_PAR_DEFAUT, lireIdentite, type IdentiteBoutique } from "./identite";
 import { lireMisesEnPage, type MisesEnPage } from "./miseEnPage";
+import { LIBRE_PAR_DEFAUT, lireLibre, type ReglagesLibres } from "./disposition";
 import { lireTypes, TYPES_DOCUMENT, type ReglagesParType } from "./typesDocument";
 
 /**
@@ -81,6 +82,8 @@ export interface ReglagesDocuments {
    * quel nom, dans quel ordre. Voir `miseEnPage.ts`.
    */
   pages: MisesEnPage;
+  /** Mode libre : dispositions dessinées à la main, et celle de chaque type. */
+  libre: ReglagesLibres;
   /**
    * L'INTERRUPTEUR DE LA BOUTIQUE.
    *
@@ -114,6 +117,7 @@ export const REGLAGES_DOCUMENTS_PAR_DEFAUT: ReglagesDocuments = {
   identite: IDENTITE_PAR_DEFAUT,
   types: {},
   pages: {},
+  libre: LIBRE_PAR_DEFAUT,
   modele: "classique",
   couleur: "#0E7C5A",
   logo: "auto",
@@ -190,6 +194,7 @@ export function lireReglagesDocuments(brut: unknown): ReglagesDocuments {
     identite: lireIdentite(r.identite),
     types: lireTypes(r.types),
     pages: lireMisesEnPage(r.pages, TYPES_DOCUMENT),
+    libre: lireLibre(r.libre),
     modele: dans(r.modele, MODELES, d.modele),
     couleur: COULEUR_VALIDE.test(couleur) ? couleur : d.couleur,
     logo: dans(r.logo, LOGOS, d.logo),

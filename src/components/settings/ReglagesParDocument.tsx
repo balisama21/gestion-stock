@@ -3,6 +3,10 @@ import { RotateCcw, SlidersHorizontal } from "lucide-react";
 import { SettingsBlock, SettingsRow, SettingsToggle } from "./primitives";
 import { COULEURS_DOCUMENT, MODELES_DOCUMENT } from "./choixDocuments";
 import { EditeurMiseEnPage } from "./EditeurMiseEnPage";
+import { ChoixDisposition } from "./ChoixDisposition";
+import type { Document } from "../../features/documents/lib/buildDocument";
+import type { ReglagesLibres } from "../../features/documents/lib/disposition";
+import { useEditeurLibreVisible } from "../../features/documents/drapeauLibre";
 import type { MisesEnPage } from "../../features/documents/lib/miseEnPage";
 import { LIBELLE_ECHEANCE, type Echeance } from "../../features/documents/lib/format";
 import type { ModeleDocument, ReglagesDocuments } from "../../features/documents/lib/reglages";
@@ -50,6 +54,10 @@ interface Props {
   onType: (type: TypeDocumentV3) => void;
   /** L'aperçu du document réglé, posé sous le choix du type. */
   apercu?: React.ReactNode;
+  /** Le document de l'aperçu, repris par l'éditeur libre. */
+  document?: Document | null;
+  onChangeLibre?: (libre: ReglagesLibres) => void;
+  onEnregistrerLibre?: (libre: ReglagesLibres) => Promise<void> | void;
 }
 
 /** Un numéro d'exemple, pour voir ce que le préfixe donne vraiment. */
@@ -62,7 +70,11 @@ export const ReglagesParDocument: React.FC<Props> = ({
   type,
   onType,
   apercu,
+  document: doc = null,
+  onChangeLibre,
+  onEnregistrerLibre,
 }) => {
+  const libreVisible = useEditeurLibreVisible();
   const defauts = DEFAUTS_TYPE[type];
   const propre = reglages.types[type];
   const personnalise = propre !== undefined;
@@ -126,6 +138,16 @@ export const ReglagesParDocument: React.FC<Props> = ({
           document, puis on tend la main vers le bouton qui le change.
           Placé en bas, il obligeait à remonter pour voir l'effet. */}
       {apercu}
+
+      {libreVisible && onChangeLibre && onEnregistrerLibre && (
+        <ChoixDisposition
+          reglages={reglages}
+          type={type}
+          document={doc}
+          onChange={onChangeLibre}
+          onEnregistrer={onEnregistrerLibre}
+        />
+      )}
 
       {!personnalise ? (
         <SettingsBlock>

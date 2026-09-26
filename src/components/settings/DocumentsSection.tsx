@@ -12,6 +12,7 @@ import { LIBELLE_ECHEANCE, type Echeance } from "../../features/documents/lib/fo
 import type { IdentiteBoutique } from "../../features/documents/lib/identite";
 import type { ReglagesParType, TypeDocumentV3 } from "../../features/documents/lib/typesDocument";
 import type { MisesEnPage } from "../../features/documents/lib/miseEnPage";
+import type { ReglagesLibres } from "../../features/documents/lib/disposition";
 import {
   lireReglagesDocuments,
   REGLAGES_DOCUMENTS_PAR_DEFAUT,
@@ -126,8 +127,12 @@ export const DocumentsSection: React.FC<DocumentsSectionProps> = ({
   const changerIdentite = (identite: IdentiteBoutique) => setBrouillon((b) => ({ ...b, identite }));
   const changerTypes = (types: ReglagesParType) => setBrouillon((b) => ({ ...b, types }));
   const changerPages = (pages: MisesEnPage) => setBrouillon((b) => ({ ...b, pages }));
+  const changerLibre = (libre: ReglagesLibres) => setBrouillon((b) => ({ ...b, libre }));
 
-  const enregistrer = async () => {
+  const enregistrer = async (version?: ReglagesDocuments) => {
+    const aEcrire = version ?? brouillon;
+    if (version) setBrouillon(version);
+    const auDefaut = JSON.stringify(aEcrire) === JSON.stringify(REGLAGES_DOCUMENTS_PAR_DEFAUT);
     setEnCours(true);
     /*
      * Le reste de la personnalisation est RECOPIÉ : cet écran ne règle
@@ -139,8 +144,8 @@ export const DocumentsSection: React.FC<DocumentsSectionProps> = ({
      * prévu », et suivra donc une évolution future des défauts.
      */
     const suite: Personnalisation = { ...personnalisation };
-    if (parDefaut) delete suite.documents;
-    else suite.documents = brouillon as unknown as Personnalisation[string];
+    if (auDefaut) delete suite.documents;
+    else suite.documents = aEcrire as unknown as Personnalisation[string];
 
     await onSave(suite);
     setEnCours(false);
@@ -252,7 +257,7 @@ export const DocumentsSection: React.FC<DocumentsSectionProps> = ({
             )}
             <button
               type="button"
-              onClick={enregistrer}
+              onClick={() => void enregistrer()}
               disabled={!modifie || enCours}
               className="app-btn-primary"
             >
@@ -428,6 +433,9 @@ export const DocumentsSection: React.FC<DocumentsSectionProps> = ({
           type={typeRegle}
           onType={setTypeRegle}
           apercu={blocApercu}
+          document={vu?.document ?? null}
+          onChangeLibre={changerLibre}
+          onEnregistrerLibre={(libre) => enregistrer({ ...brouillon, libre })}
         />
       </SettingsSection>
 
