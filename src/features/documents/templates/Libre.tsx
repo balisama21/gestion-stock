@@ -12,6 +12,7 @@ import {
   type ClePosee,
 } from "../lib/disposition";
 import type { Cachet } from "../lib/cachets";
+import { appliquerTextes } from "../lib/textesLibres";
 import {
   BlocAdresse,
   CoordonneesPaiement,
@@ -40,6 +41,8 @@ export function contenuDuBloc(
   lignes: LigneDocument[],
   pagination: string | null,
   cachets?: ImagesCachets,
+  /** Les mots réécrits de ce bloc que le document ne porte pas lui-même. */
+  textes?: Record<string, string>,
 ): React.ReactNode {
   if (estCleCachet(cle)) {
     const c = cachets?.cachets.find((x) => x.id === idDuCachet(cle));
@@ -96,13 +99,13 @@ export function contenuDuBloc(
       );
     case "lettres":
       return d.montantEnLettres ? (
-        <MontantEnLettres texte={d.montantEnLettres} type={d.type} />
+        <MontantEnLettres texte={d.montantEnLettres} type={d.type} intro={textes?.intro} />
       ) : null;
     case "mentions":
       return d.mentions ? <Mentions texte={d.mentions} /> : null;
     case "paiement":
       return d.coordonneesPaiement?.length ? (
-        <CoordonneesPaiement lignes={d.coordonneesPaiement} />
+        <CoordonneesPaiement lignes={d.coordonneesPaiement} titre={textes?.titre} />
       ) : null;
     case "signatures":
       return d.signatures ? <Signature signatures={d.signatures} /> : null;
@@ -146,7 +149,7 @@ interface ProprietesLibre {
 
 /** Une feuille en mode libre : chaque bloc à sa place, au millimètre. */
 export const Libre: React.FC<ProprietesLibre> = ({
-  document: d,
+  document: brut,
   base,
   blocs,
   lignes,
@@ -154,23 +157,27 @@ export const Libre: React.FC<ProprietesLibre> = ({
   pagination,
   cadreTableau,
   cachets,
-}) => (
-  <div className="doc-libre">
-    {(cles ?? clesPosees(blocs).filter((c) => !blocs[c].masque)).map((cle) => {
-      if (cle === "tableau" && cadreTableau && lignes.length === 0) return null;
-      const b = cle === "tableau" && cadreTableau ? { ...blocs[cle], ...cadreTableau } : blocs[cle];
-      const contenu = contenuDuBloc(cle, d, base, lignes, pagination, cachets);
-      if (contenu === null) return null;
-      return (
-        <div
-          key={cle}
-          data-bloc={cle}
-          className={classeDuBloc(cle, b)}
-          style={styleDuBloc(b, niveauDuBloc(cle))}
-        >
-          {contenu}
-        </div>
-      );
-    })}
-  </div>
-);
+}) => {
+  const d = appliquerTextes(brut, blocs);
+  return (
+    <div className="doc-libre">
+      {(cles ?? clesPosees(blocs).filter((c) => !blocs[c].masque)).map((cle) => {
+        if (cle === "tableau" && cadreTableau && lignes.length === 0) return null;
+        const b =
+          cle === "tableau" && cadreTableau ? { ...blocs[cle], ...cadreTableau } : blocs[cle];
+        const contenu = contenuDuBloc(cle, d, base, lignes, pagination, cachets, b.textes);
+        if (contenu === null) return null;
+        return (
+          <div
+            key={cle}
+            data-bloc={cle}
+            className={classeDuBloc(cle, b)}
+            style={styleDuBloc(b, niveauDuBloc(cle))}
+          >
+            {contenu}
+          </div>
+        );
+      })}
+    </div>
+  );
+};

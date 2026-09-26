@@ -51,6 +51,7 @@ import {
   styleDuBloc,
 } from "../../features/documents/templates/Libre";
 import { imageCachet } from "../../features/documents/lib/traiterCachet";
+import { appliquerTextes, textesDuBloc } from "../../features/documents/lib/textesLibres";
 import { PPP_MINIMUM, pppEffectif } from "../../features/documents/lib/cachets";
 import "../../features/documents/index.css";
 
@@ -120,6 +121,15 @@ export const EditeurLibre: React.FC<Props> = ({
   const [debords, setDebords] = useState<string>("");
   const [lignesCachees, setLignesCachees] = useState(0);
   const [guides, setGuides] = useState<Guide[]>([]);
+  /** Le texte qu'on écrit à même la feuille, et l'allure qu'il y a. */
+  const [ecrit, setEcrit] = useState<{
+    cle: ClePosee;
+    k: string;
+    valeur: string;
+    defaut: string;
+    long?: boolean;
+    style: React.CSSProperties;
+  } | null>(null);
   const scene = useRef<HTMLDivElement>(null);
   const feuille = useRef<HTMLDivElement>(null);
   const glisse = useRef<Glisse | null>(null);
@@ -272,11 +282,66 @@ export const EditeurLibre: React.FC<Props> = ({
   const trop = new Set(debords ? debords.split(",") : []);
   const bloc = choisi ? blocs[choisi] : null;
   const nomChoisi = choisi ? nomDe(choisi) : null;
+  const docEcrit = doc ? appliquerTextes(doc, blocs) : null;
+  const champsTexte = doc && choisi ? textesDuBloc(choisi, doc, d.base) : [];
+
+  /** Un mot rendu à sa valeur des réglages n'est plus gardé : il suivra les réglages. */
+  const ecrireTexte = (cle: ClePosee, k: string, valeur: string, defaut: string) =>
+    setD((p) => {
+      const actuels = { ...blocsResolus(p)[cle]?.textes };
+      if (valeur === defaut) delete actuels[k];
+      else actuels[k] = valeur;
+      return poserBloc(p, cle, { textes: Object.keys(actuels).length ? actuels : undefined });
+    });
+
+  /** Double-clic : un seul texte s'écrit sur place, plusieurs s'écrivent dans le panneau. */
+  const ecrireSurLaFeuille = (cle: ClePosee) => {
+    if (!doc) return;
+    const champs = textesDuBloc(cle, doc, d.base);
+    setChoisi(cle);
+    if (champs.length === 1) {
+      const c = champs[0];
+      const el = feuille.current?.querySelector<HTMLElement>(`.doc-libre [data-bloc="${cle}"]`);
+      const cible = (el?.querySelector<HTMLElement>("h4, h5, .doc-titre, .merci, p, footer, div") ??
+        el) as HTMLElement | null;
+      const cs = cible ? getComputedStyle(cible) : null;
+      setEcrit({
+        cle,
+        k: c.cle,
+        valeur: blocs[cle]?.textes?.[c.cle] ?? c.valeur,
+        defaut: c.valeur,
+        long: c.long,
+        style: cs
+          ? {
+              fontFamily: cs.fontFamily,
+              fontSize: cs.fontSize,
+              fontWeight: cs.fontWeight,
+              fontStyle: cs.fontStyle,
+              letterSpacing: cs.letterSpacing,
+              lineHeight: cs.lineHeight,
+              textTransform: cs.textTransform as React.CSSProperties["textTransform"],
+              textAlign: getComputedStyle(el!).textAlign as React.CSSProperties["textAlign"],
+              color: "#16181a",
+            }
+          : {},
+      });
+    } else if (champs.length > 1) {
+      requestAnimationFrame(() =>
+        document.querySelector<HTMLElement>("[data-champ-texte]")?.focus(),
+      );
+    }
+  };
+
+  const validerEcrit = () => {
+    if (!ecrit) return;
+    ecrireTexte(ecrit.cle, ecrit.k, ecrit.valeur, ecrit.defaut);
+    setEcrit(null);
+  };
   const choisiCachet = choisi !== null && estCleCachet(choisi);
 
   const ecran = (
     <div
-      className="fixed inset-0 z-50 flex flex-col bg-background"
+      className="fixed inset-0 z-[80] flex flex-col bg-background"
       role="dialog"
       aria-modal="true"
       aria-label="Éditeur de disposition"
@@ -385,15 +450,23 @@ export const EditeurLibre: React.FC<Props> = ({
                   {visibles.map((cle) => {
                     const b = blocs[cle];
                     const vide =
-                      !doc ||
-                      contenuDuBloc(cle, doc, d.base, doc.lignes, null, { cachets, images }) ===
-                        null;
+                      !docEcrit ||
+                      contenuDuBloc(
+                        cle,
+                        docEcrit,
+                        d.base,
+                        docEcrit.lignes,
+                        null,
+                        { cachets, images },
+                        b.textes,
+                      ) === null;
                     const actif = choisi === cle;
                     return (
                       <div
                         key={cle}
                         data-cadre={cle}
                         onPointerDown={(e) => saisir(e, cle, null)}
+                        onDoubleClick={() => ecrireSurLaFeuille(cle)}
                         onPointerMove={suivre}
                         onPointerUp={lacher}
                         onPointerCancel={lacher}
@@ -414,6 +487,35 @@ export const EditeurLibre: React.FC<Props> = ({
                           <span className="flex h-full w-full items-center justify-center overflow-hidden border border-dashed border-border px-1 text-center text-[9pt] text-muted-foreground">
                             {nomDe(cle)}
                           </span>
+                        )}
+                        {ecrit?.cle === cle && (
+                          <textarea
+                            autoFocus
+                            data-ecriture
+                            aria-label={`Écrire : ${nomDe(cle)}`}
+                            value={ecrit.valeur}
+                            onChange={(e) => setEcrit({ ...ecrit, valeur: e.target.value })}
+                            ref={(el) => {
+                              // La zone suit le texte : une ligne de trop ne doit pas cacher la première.
+                              if (!el) return;
+                              el.style.height = "auto";
+                              el.style.height = `${el.scrollHeight}px`;
+                            }}
+                            onBlur={validerEcrit}
+                            onPointerDown={(e) => e.stopPropagation()}
+                            onDoubleClick={(e) => e.stopPropagation()}
+                            onKeyDown={(e) => {
+                              if (e.key === "Escape") {
+                                e.preventDefault();
+                                setEcrit(null);
+                              } else if (e.key === "Enter" && !ecrit.long && !e.shiftKey) {
+                                e.preventDefault();
+                                validerEcrit();
+                              }
+                            }}
+                            className="absolute left-0 top-0 z-10 min-h-full w-full resize-none overflow-hidden border-0 bg-white p-0 outline outline-2 outline-primary"
+                            style={ecrit.style}
+                          />
                         )}
                         {actif && (
                           <span className="absolute -top-[7mm] left-0 whitespace-nowrap rounded bg-primary px-[2mm] py-[0.5mm] text-[8pt] font-medium text-primary-foreground">
@@ -489,6 +591,46 @@ export const EditeurLibre: React.FC<Props> = ({
                   Fermer
                 </button>
               </div>
+              {champsTexte.length > 0 && (
+                <div className="space-y-2">
+                  <p className="text-xs font-medium text-foreground">Textes</p>
+                  {champsTexte.map((c, i) => {
+                    const v = bloc.textes?.[c.cle];
+                    const Champ = c.long ? "textarea" : "input";
+                    return (
+                      <label key={c.cle} className="block text-xs text-muted-foreground">
+                        <span className="flex items-center justify-between gap-2">
+                          {c.nom}
+                          {v !== undefined && (
+                            <button
+                              type="button"
+                              onClick={() => ecrireTexte(choisi, c.cle, c.valeur, c.valeur)}
+                              className="inline-flex h-[26px] w-[26px] items-center justify-center text-muted-foreground hover:text-foreground"
+                              aria-label={`Rétablir ${c.nom}`}
+                              title="Reprendre le mot des réglages"
+                            >
+                              <RotateCcw className="h-3.5 w-3.5" />
+                            </button>
+                          )}
+                        </span>
+                        <Champ
+                          {...(i === 0 ? { "data-champ-texte": "" } : {})}
+                          value={v ?? c.valeur}
+                          onChange={(
+                            e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>,
+                          ) => ecrireTexte(choisi, c.cle, e.target.value, c.valeur)}
+                          {...(c.long ? { rows: 3 } : { type: "text" })}
+                          className="app-field mt-1 w-full"
+                        />
+                      </label>
+                    );
+                  })}
+                  <p className="text-[11px] leading-relaxed text-muted-foreground">
+                    Les chiffres, le client, les lignes et le nom de la boutique viennent de la base
+                    : ils ne s&apos;écrivent pas ici.
+                  </p>
+                </div>
+              )}
               {trop.has(choisi) && (
                 <p className="rounded-lg border border-warning-border bg-warning-soft px-3 py-2 text-xs text-warning">
                   Le contenu dépasse du cadre. Agrandissez-le pour que rien ne soit coupé.
@@ -595,9 +737,10 @@ export const EditeurLibre: React.FC<Props> = ({
           ) : (
             <p className="border-b border-border p-4 text-xs leading-relaxed text-muted-foreground">
               Touchez un bloc pour le choisir, puis faites-le glisser ; tirez un coin pour le
-              redimensionner. Il s&apos;aimante aux marges, au milieu de la feuille et aux autres
-              blocs (Alt pour s&apos;en affranchir). Les flèches du clavier le déplacent d&apos;un
-              millimètre, de cinq avec Maj.
+              redimensionner. Double-cliquez sur un texte pour l&apos;écrire directement. Il
+              s&apos;aimante aux marges, au milieu de la feuille et aux autres blocs (Alt pour
+              s&apos;en affranchir). Les flèches du clavier le déplacent d&apos;un millimètre, de
+              cinq avec Maj.
             </p>
           )}
 

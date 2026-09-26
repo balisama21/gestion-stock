@@ -256,15 +256,19 @@ export const Totaux: React.FC<{
 
 /* ── Bas de page ─────────────────────────────────────────────────── */
 
-export const MontantEnLettres: React.FC<{ texte: string | null; type: Document["type"] }> = ({
-  texte,
-  type,
-}) => {
+export const introMontantEnLettres = (type: Document["type"]) =>
+  `Arrêtée la présente ${type === "devis" ? "offre" : type === "recu" ? "quittance" : "facture"} à la somme de`;
+
+export const MontantEnLettres: React.FC<{
+  texte: string | null;
+  type: Document["type"];
+  /** Réécrite sur la feuille en mode libre. */
+  intro?: string;
+}> = ({ texte, type, intro }) => {
   if (!texte) return null;
-  const mot = type === "devis" ? "offre" : type === "recu" ? "quittance" : "facture";
   return (
     <p className="doc-lettres">
-      Arrêtée la présente {mot} à la somme de <b>{texte}</b>.
+      {intro ?? introMontantEnLettres(type)} <b>{texte}</b>.
     </p>
   );
 };
@@ -278,10 +282,15 @@ export const Mentions: React.FC<{ texte: string | null }> = ({ texte }) =>
  * Le titre ne vit pas sans ses lignes : rien de saisi, rien du tout,
  * pas d'intitulé orphelin au-dessus d'un vide.
  */
-export const CoordonneesPaiement: React.FC<{ lignes: string[] | null }> = ({ lignes }) =>
+export const TITRE_PAIEMENT = "Coordonnées de paiement";
+
+export const CoordonneesPaiement: React.FC<{ lignes: string[] | null; titre?: string }> = ({
+  lignes,
+  titre = TITRE_PAIEMENT,
+}) =>
   lignes && lignes.length > 0 ? (
     <div className="doc-paiement">
-      <h5>Coordonnées de paiement</h5>
+      {titre && <h5>{titre}</h5>}
       {lignes.map((l) => (
         <div key={l}>{l}</div>
       ))}

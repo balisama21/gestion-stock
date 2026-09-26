@@ -1,6 +1,15 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { EditeurLibre } from "./EditeurLibre";
+import { documentDeVente } from "../../features/documents/lib/buildDocument";
+import {
+  BOUTIQUE,
+  CLIENT,
+  PAIEMENT,
+  PRODUITS,
+  TICKET_TROIS_LIGNES,
+} from "../../features/documents/lib/fixtures";
+import { REGLAGES_DOCUMENTS_PAR_DEFAUT } from "../../features/documents/lib/reglages";
 import {
   blocsResolus,
   creerDisposition,
@@ -70,5 +79,75 @@ describe("l'éditeur libre", () => {
     });
     fireEvent.click(screen.getByRole("button", { name: "Revenir aux réglages" }));
     expect(onFermer.mock.calls[0][0].nom).toBe("Factures pro");
+  });
+});
+
+describe("écrire sur la feuille", () => {
+  const doc = documentDeVente({
+    ventes: TICKET_TROIS_LIGNES,
+    produits: PRODUITS,
+    client: CLIENT,
+    paiements: [PAIEMENT],
+    boutique: BOUTIQUE,
+    reglages: REGLAGES_DOCUMENTS_PAR_DEFAUT,
+  });
+
+  function ouvrirAvecDocument() {
+    const onEnregistrer = vi.fn();
+    render(
+      <EditeurLibre
+        disposition={creerDisposition("facture", "classique", "Essai")}
+        document={doc}
+        couleur="#0E7C5A"
+        enCours={false}
+        onEnregistrer={onEnregistrer}
+        onFermer={vi.fn()}
+      />,
+    );
+    return () => {
+      fireEvent.click(screen.getByRole("button", { name: /^Enregistrer/ }));
+      return onEnregistrer.mock.calls.at(-1)?.[0] as Disposition;
+    };
+  }
+
+  it("un double-clic sur le titre l'écrit sur place, et la feuille le montre", () => {
+    const enregistrer = ouvrirAvecDocument();
+    fireEvent.doubleClick(document.querySelector('[data-cadre="titre"]')!);
+    const zone = screen.getByLabelText("Écrire : Titre du document");
+    fireEvent.change(zone, { target: { value: "DEVIS ESTIMATIF" } });
+    fireEvent.keyDown(zone, { key: "Enter" });
+    expect(document.querySelector('.doc-libre [data-bloc="titre"]')?.textContent).toBe(
+      "DEVIS ESTIMATIF",
+    );
+    expect(blocsResolus(enregistrer()).titre.textes).toEqual({ titre: "DEVIS ESTIMATIF" });
+  });
+
+  it("Échap abandonne ce qu'on écrivait", () => {
+    const enregistrer = ouvrirAvecDocument();
+    fireEvent.doubleClick(document.querySelector('[data-cadre="motDeFin"]')!);
+    const zone = screen.getByLabelText("Écrire : Mot de fin");
+    fireEvent.change(zone, { target: { value: "À bientôt" } });
+    fireEvent.keyDown(zone, { key: "Escape" });
+    expect(blocsResolus(enregistrer()).motDeFin.textes).toBeUndefined();
+  });
+
+  it("un bloc à plusieurs mots s'écrit dans le panneau, et se rétablit", () => {
+    const enregistrer = ouvrirAvecDocument();
+    fireEvent.doubleClick(document.querySelector('[data-cadre="totaux"]')!);
+    const champ = screen.getByLabelText("Total") as HTMLInputElement;
+    fireEvent.change(champ, { target: { value: "Net à payer" } });
+    expect(document.querySelector('.doc-libre [data-bloc="totaux"]')?.textContent).toContain(
+      "Net à payer",
+    );
+    expect(blocsResolus(enregistrer()).totaux.textes).toEqual({ libelleTotal: "Net à payer" });
+    fireEvent.click(screen.getByRole("button", { name: "Rétablir Total" }));
+    expect(blocsResolus(enregistrer()).totaux.textes).toBeUndefined();
+  });
+
+  it("n'offre pas d'écrire le nom de la boutique", () => {
+    ouvrirAvecDocument();
+    fireEvent.doubleClick(document.querySelector('[data-cadre="nom"]')!);
+    expect(screen.queryByLabelText(/^Écrire/)).toBeNull();
+    expect(screen.queryByText("Textes")).toBeNull();
   });
 });

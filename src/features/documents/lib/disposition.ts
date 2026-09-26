@@ -43,6 +43,8 @@ export interface BlocPose {
   align?: Alignement;
   /** Texte clair, pour un bloc posé sur le bandeau de couleur. */
   inverse?: boolean;
+  /** Les mots réécrits sur la feuille, par élément du bloc. Jamais une donnée. */
+  textes?: Record<string, string>;
 }
 
 export interface Disposition {
@@ -413,6 +415,13 @@ function lireBloc(brut: unknown, cle: string): BlocPose | null {
   if (typeof brut.repete === "boolean") b.repete = brut.repete;
   if (typeof brut.inverse === "boolean") b.inverse = brut.inverse;
   if (ALIGNS.includes(brut.align as Alignement)) b.align = brut.align as Alignement;
+  if (objet(brut.textes)) {
+    const textes: Record<string, string> = {};
+    for (const [k, v] of Object.entries(brut.textes)) {
+      if (typeof v === "string" && k.length <= 60) textes[k] = v.slice(0, 2000);
+    }
+    if (Object.keys(textes).length > 0) b.textes = textes;
+  }
   return contraindre(b);
 }
 
