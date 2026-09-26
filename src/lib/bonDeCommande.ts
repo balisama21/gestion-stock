@@ -1,4 +1,5 @@
 import { estARecommander, type ReglagesAlertesStock } from "./prealerteStock";
+import { quantiteACommander } from "./reapprovisionnement";
 
 /**
  * LA LISTE À RÉAPPROVISIONNER, ET CE QU'ELLE VAUT.
@@ -36,6 +37,8 @@ export interface ProduitARecommander {
   fournisseur?: string | null;
   prixAchat?: number | null;
   unite?: string | null;
+  /** `stock_max` de la fiche : lu seulement quand le réapprovisionnement est activé. */
+  niveauCible?: number | null;
 }
 
 export interface LigneBonDeCommande {
@@ -56,20 +59,8 @@ export interface LigneBonDeCommande {
 }
 
 /**
- * Combien commander pour revenir à un niveau normal.
- *
- * LE DOUBLE DU SEUIL. C'est la règle que le client a fixée, et elle se
- * défend : le seuil est le point où il faut avoir commandé, donc le
- * niveau normal est celui qui laisse de quoi redescendre jusque-là.
- * Stock 5, seuil 3 : le niveau visé est 6, il manque 1.
- *
- * `stock_max` existe sur la fiche produit et dirait mieux les choses —
- * mais il n'est renseigné sur AUCUN des cinquante produits de la base.
- * S'en servir reviendrait à suggérer zéro partout. Le jour où des
- * boutiques le rempliront, c'est ici qu'il viendra.
- *
- * Jamais négative : un produit au-dessus du double de son seuil n'a
- * rien à commander, et « −4 » sur un bon de commande ne veut rien dire.
+ * Combien commander, réglage de réapprovisionnement éteint : le double
+ * du seuil, règle historique. Voir `reapprovisionnement.ts`.
  */
 export function quantiteSuggeree(stock: number, seuil: number): number {
   return Math.max(0, seuil * 2 - stock);
@@ -99,7 +90,7 @@ export function lignesDuBonDeCommande(
   return produits
     .filter((p) => estARecommander(p.stockActuel, p.seuilAlerte, reglages))
     .map((p) => {
-      const quantite = quantiteSuggeree(p.stockActuel, p.seuilAlerte);
+      const quantite = quantiteACommander(p.stockActuel, p.seuilAlerte, p.niveauCible, reglages);
       const prix = p.prixAchat && p.prixAchat > 0 ? p.prixAchat : null;
       return {
         id: p.id,
