@@ -3381,3 +3381,45 @@
     box-shadow: none;
   }
 }
+
+/* Raccourcis de période : Jour, Semaine, Mois. */
+.dash2 .seg {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+  height: 36px;
+  padding: 3px;
+  border: 1px solid var(--line);
+  border-radius: 99px;
+  background: var(--surface);
+}
+.dash2 .seg button {
+  height: 100%;
+  padding: 0 12px;
+  border: 0;
+  border-radius: 99px;
+  background: none;
+  color: var(--muted);
+  font-size: var(--t-petit);
+  font-weight: 500;
+  white-space: nowrap;
+}
+.dash2 .seg button:hover {
+  color: var(--ink);
+}
+.dash2 .seg button[aria-pressed="true"] {
+  background: var(--accent-soft);
+  color: var(--accent-ink);
+  font-weight: 600;
+}
+@media (max-width: 900px) {
+  .dash2 .tools > .seg {
+    order: 1;
+    flex: 1 1 100%;
+    height: 44px;
+  }
+  .dash2 .seg button {
+    flex: 1;
+    min-height: 0;
+  }
+}

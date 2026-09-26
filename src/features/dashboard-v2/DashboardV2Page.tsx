@@ -130,6 +130,13 @@ const ICONE_OEIL = (
  */
 const CLE_CONTROLE = "tantana.dash.controle";
 
+/** Les trois raccourcis de période, à côté du sélecteur complet. */
+const RACCOURCIS = [
+  ["today", "Jour"],
+  ["week", "Semaine"],
+  ["month", "Mois"],
+] as const;
+
 /**
  * Les mêmes props que l'ancien tableau de bord, à quelques près.
  *
@@ -717,6 +724,20 @@ export const DashboardV2Page: React.FC<DashboardV2PageProps> = ({
                 }
               </MenuPill>
             )}
+
+            <div className="seg" role="group" aria-label="Période rapide">
+              {RACCOURCIS.map(([c, nom]) => (
+                <button
+                  key={c}
+                  type="button"
+                  aria-pressed={periode.cle === c}
+                  title={apercus.find((a) => a.cle === c)?.libelle}
+                  onClick={() => choisir(c)}
+                >
+                  {nom}
+                </button>
+              ))}
+            </div>
 
             <MenuPill
               icon={ICONE_CALENDRIER}
