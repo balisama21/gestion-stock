@@ -16,6 +16,9 @@ import { usePersonnalisation } from "../../lib/personnalisation";
 import { lireReglagesDocuments } from "../../features/documents/lib/reglages";
 import { documentDAchat } from "../../features/documents/lib/buildDocument";
 import { DocumentPreview } from "../../features/documents/DocumentPreview";
+import { ModifierMiseEnPage } from "../settings/ModifierMiseEnPage";
+import { dispositionDuType } from "../../features/documents/lib/disposition";
+import { resoudreType } from "../../features/documents/lib/resolveur";
 import { dateDuJour } from "../../lib/dates";
 import { nomDeFichier } from "../../lib/documentExport";
 
@@ -68,6 +71,7 @@ export const BonDeCommande: React.FC<BonDeCommandeProps> = ({
   settings,
 }) => {
   const personnalisation = usePersonnalisation();
+  const [edition, setEdition] = useState(false);
   const reglagesDocuments = useMemo(
     () => lireReglagesDocuments(personnalisation.documents),
     [personnalisation.documents],
@@ -148,6 +152,7 @@ export const BonDeCommande: React.FC<BonDeCommandeProps> = ({
     <Modal
       open={ouvert}
       onClose={onFermer}
+      dismissible={!edition}
       size="3xl"
       icon={<FileText className="h-4 w-4" />}
       title="Bon de commande"
@@ -200,7 +205,18 @@ export const BonDeCommande: React.FC<BonDeCommandeProps> = ({
         /* Pas de choix de format : un bon de commande s'envoie ou
            s'imprime sur une feuille, il ne sort pas d'une imprimante de
            comptoir. C'est déjà le cas du devis. */
-        <DocumentPreview document={document} reglages={reglagesDocuments} format="a4" />
+        <>
+          <div className="mb-3 flex justify-end">
+            <ModifierMiseEnPage
+              document={document}
+              format="a4"
+              dispositionId={dispositionDuType(reglagesDocuments.libre, document.type)?.id ?? null}
+              modele={resoudreType(reglagesDocuments, document.type).modele}
+              onOuverture={setEdition}
+            />
+          </div>
+          <DocumentPreview document={document} reglages={reglagesDocuments} format="a4" />
+        </>
       )}
     </Modal>
   );

@@ -212,6 +212,7 @@ export const ActionsDocument: React.FC<ActionsDocumentProps> = ({
         <SortieDocument
           document={piece}
           reglages={fige?.reglages ?? reglages}
+          pieceFigee={fige !== null}
           formats={d.entite === "vente" ? ["a4", "t80", "t58"] : ["a4"]}
           onFermer={() => setSortie(null)}
         />

@@ -56,6 +56,7 @@ import { usePrealertesStock } from "./hooks/usePrealertesStock";
 import { BonDeCommande } from "./components/produits/BonDeCommande";
 import { useCaptureDuDrapeauDocuments, useDocumentsV2 } from "./features/documents/drapeau";
 import { lireReglagesDocuments } from "./features/documents/lib/reglages";
+import { ContexteReglagesDocuments } from "./features/documents/contexteReglages";
 import { useFacturation } from "./hooks/useFacturation";
 import { construireDocuments } from "./components/facturation/documents";
 import { compterLesRetards } from "./components/facturation/indicateurs";
@@ -491,6 +492,24 @@ function AppInner() {
   const facturation = useFacturation(
     workspace.activeStore?.id ?? null,
     voitLaFacturation && !moduleMasque(personnalisation, "facturation"),
+  );
+
+  const peutReglerLesDocuments =
+    workspace.isOwner || workspace.memberRole === "admin" || workspace.memberRole === "manager";
+  const reglagesModifiables = useMemo(
+    () => ({
+      peutRegler: peutReglerLesDocuments,
+      storeId: workspace.activeStore?.id,
+      reglages: reglagesDocuments,
+      enregistrer: async (documents: typeof reglagesDocuments) => {
+        if (!workspace.activeStore) return "Aucune boutique active.";
+        const { error } = await workspace.updateStore(workspace.activeStore.id, {
+          personnalisation: { ...personnalisation, documents } as unknown as Json,
+        });
+        return error;
+      },
+    }),
+    [peutReglerLesDocuments, workspace, reglagesDocuments, personnalisation],
   );
 
   const handleSavePersonnalisation = async (p: Personnalisation) => {
@@ -1828,6 +1847,7 @@ function AppInner() {
        transporter une donnée qui ne le concerne pas. */
     <contextePersonnalisation.Provider value={personnalisation}>
       <FournisseurDevises value={valeurDevises}>
+        <ContexteReglagesDocuments.Provider value={reglagesModifiables}>
         {/* Le décalage à gauche libère la place de la sidebar fixe (voir
           src/components/Sidebar.tsx : 16rem ouverte, 4.5rem repliée). Il
           est posé ici plutôt que sur .app-container, dont il écraserait
@@ -2665,6 +2685,7 @@ function AppInner() {
             settings={storeSettings}
           />
         </div>
+        </ContexteReglagesDocuments.Provider>
       </FournisseurDevises>
     </contextePersonnalisation.Provider>
   );

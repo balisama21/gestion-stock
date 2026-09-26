@@ -6,6 +6,7 @@ import { DocumentPreview, type FormatDocument } from "./DocumentPreview";
 import type { ModeleDocument, ReglagesDocuments } from "./lib/reglages";
 import { resoudreType } from "./lib/resolveur";
 import { dispositionDuType } from "./lib/disposition";
+import { ModifierMiseEnPage } from "../../components/settings/ModifierMiseEnPage";
 
 /**
  * LA FENÊTRE QUI SORT UN DOCUMENT
@@ -43,6 +44,8 @@ interface SortieDocumentProps {
   /** Un devis ne s'imprime pas sur un rouleau de caisse. */
   formats?: FormatDocument[];
   titre?: string;
+  /** Pièce déjà émise, affichée depuis sa copie figée. */
+  pieceFigee?: boolean;
 }
 
 export const SortieDocument: React.FC<SortieDocumentProps> = ({
@@ -51,7 +54,9 @@ export const SortieDocument: React.FC<SortieDocumentProps> = ({
   onFermer,
   formats = ["a4", "t80", "t58"],
   titre,
+  pieceFigee,
 }) => {
+  const [edition, setEdition] = useState(false);
   const [format, setFormat] = useState<FormatDocument>(formats[0] ?? "a4");
   // Le modèle de départ est celui du TYPE, qui suit la boutique à
   // défaut du sien. Le changer ici ne vaut que pour ce tirage.
@@ -75,6 +80,7 @@ export const SortieDocument: React.FC<SortieDocumentProps> = ({
       title={titre ?? doc.titre.charAt(0) + doc.titre.slice(1).toLowerCase()}
       description={doc.numero}
       bodyClassName="space-y-4"
+      dismissible={!edition}
       headerAside={
         <div className="flex flex-wrap items-center gap-2">
           {choix.length > 1 && (
@@ -117,9 +123,26 @@ export const SortieDocument: React.FC<SortieDocumentProps> = ({
               </select>
             </label>
           )}
+          <ModifierMiseEnPage
+            document={doc}
+            format={format}
+            dispositionId={dispositionId}
+            modele={
+              dispositionId ? resoudreType(reglages, doc.type).modele : (modele as ModeleDocument)
+            }
+            pieceFigee={pieceFigee}
+            onDisposition={(id) => setModele(`libre:${id}`)}
+            onOuverture={setEdition}
+          />
         </div>
       }
     >
+      {pieceFigee && (
+        <p className="text-xs leading-relaxed text-muted-foreground">
+          Pièce déjà émise : elle garde la présentation qu&apos;elle avait en partant. Une
+          modification de la mise en page vaudra pour les pièces suivantes.
+        </p>
+      )}
       <DocumentPreview
         document={doc}
         reglages={reglages}
