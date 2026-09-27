@@ -286,12 +286,12 @@ describe("ajouter sur la feuille", () => {
 describe("comme sur Canva : la barre, Suppr, Annuler", () => {
   it("la barre d'outils apparaît au-dessus du bloc choisi", () => {
     ouvrir();
-    expect(screen.queryByRole("toolbar")).toBeNull();
+    expect(screen.queryByRole("toolbar", { name: /^Outils/ })).toBeNull();
     fireEvent.pointerDown(document.querySelector('[data-cadre="titre"]')!, {
       pointerType: "mouse",
     });
     // Pendant le geste, la barre s'efface pour laisser voir la feuille.
-    expect(screen.queryByRole("toolbar")).toBeNull();
+    expect(screen.queryByRole("toolbar", { name: /^Outils/ })).toBeNull();
     fireEvent.pointerUp(document.querySelector('[data-cadre="titre"]')!);
     expect(screen.getByRole("toolbar", { name: "Outils : Titre du document" })).toBeTruthy();
   });
@@ -302,7 +302,11 @@ describe("comme sur Canva : la barre, Suppr, Annuler", () => {
     fireEvent.keyDown(window, { key: "Delete" });
     fireEvent.click(screen.getByRole("button", { name: "Totaux" }));
     fireEvent.keyDown(window, { key: "Delete" });
-    expect(within(screen.getByRole("toolbar")).getByLabelText("Mention obligatoire")).toBeTruthy();
+    expect(
+      within(screen.getByRole("toolbar", { name: /^Outils/ })).getByLabelText(
+        "Mention obligatoire",
+      ),
+    ).toBeTruthy();
     expect(screen.queryByRole("button", { name: "Supprimer" })).toBeNull();
     fireEvent.click(screen.getByRole("button", { name: /Enregistrer/ }));
     const blocs = blocsResolus(enregistre());
@@ -423,5 +427,88 @@ describe("écrire le mot visé, comme sur Canva", () => {
     fireEvent.change(zone, { target: { value: "FACTURE\nPROFORMA" } });
     fireEvent.blur(zone);
     expect(enregistrer().titre.textes).toEqual({ titre: "FACTURE\nPROFORMA" });
+  });
+});
+
+describe("chaque coordonnée se règle sur la feuille", () => {
+  const doc = documentDeVente({
+    ventes: TICKET_TROIS_LIGNES,
+    produits: PRODUITS,
+    client: CLIENT,
+    paiements: [PAIEMENT],
+    boutique: BOUTIQUE,
+    reglages: REGLAGES_DOCUMENTS_PAR_DEFAUT,
+  });
+
+  function ouvrirEtToucher(champ: string) {
+    const onEnregistrer = vi.fn();
+    render(
+      <EditeurLibre
+        disposition={creerDisposition("facture", "classique", "Essai")}
+        document={doc}
+        couleur="#0E7C5A"
+        enCours={false}
+        onEnregistrer={onEnregistrer}
+        onFermer={vi.fn()}
+      />,
+    );
+    const cible = document.querySelector(`.doc-libre [data-champ="${champ}"]`)!;
+    document.elementsFromPoint = vi.fn(() => [cible]);
+    const cadre = document.querySelector('[data-cadre="emetteur"]')!;
+    for (let i = 0; i < 2; i++) {
+      fireEvent.pointerDown(cadre, { pointerType: "mouse", pointerId: 1 });
+      fireEvent.pointerUp(cadre, { pointerId: 1 });
+    }
+    return () => {
+      fireEvent.click(screen.getByRole("button", { name: /^Enregistrer/ }));
+      return onEnregistrer.mock.calls.at(-1)?.[0] as Disposition;
+    };
+  }
+
+  afterEach(() => {
+    delete (document as { elementsFromPoint?: unknown }).elementsFromPoint;
+  });
+
+  it("toucher l'e-mail le choisit ; on le met sur sa ligne et on lui donne un libellé", () => {
+    const enregistrer = ouvrirEtToucher("entete.email");
+    expect(screen.getByRole("toolbar", { name: "Ligne : E-mail" })).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "Mettre sur sa propre ligne" }));
+    fireEvent.click(screen.getByRole("button", { name: "Libellé devant" }));
+    const zone = screen.getByLabelText(
+      "Écrire : Coordonnées de la boutique",
+    ) as HTMLTextAreaElement;
+    expect(zone.value).toBe("E-mail : ");
+    fireEvent.blur(zone);
+    const em = blocsResolus(enregistrer()).emetteur;
+    expect(em.coordonnees?.accole).toEqual({ "entete.email": false });
+    expect(em.textes).toEqual({ "libelle:entete.email": "E-mail : " });
+    expect(document.querySelector('.doc-libre [data-ligne="entete.email"]')?.textContent).toBe(
+      `E-mail : ${BOUTIQUE.email}`,
+    );
+  });
+
+  it("Suppr masque la ligne ; le panneau la rend", () => {
+    const enregistrer = ouvrirEtToucher("entete.telephone");
+    fireEvent.keyDown(window, { key: "Delete" });
+    expect(blocsResolus(enregistrer()).emetteur.coordonnees?.masques).toEqual(["entete.telephone"]);
+    // Le bloc reste choisi : seule la ligne est partie.
+    fireEvent.click(screen.getByRole("button", { name: "Afficher Téléphone" }));
+    expect(blocsResolus(enregistrer()).emetteur.coordonnees?.masques).toEqual([]);
+  });
+
+  it("le NIF/STAT ne se masque pas", () => {
+    const enregistrer = ouvrirEtToucher("entete.nifStat");
+    expect(screen.queryByRole("button", { name: "Masquer la ligne" })).toBeNull();
+    fireEvent.keyDown(window, { key: "Delete" });
+    expect(blocsResolus(enregistrer()).emetteur.coordonnees).toBeUndefined();
+  });
+
+  it("détacher le téléphone en fait un bloc à part", () => {
+    const enregistrer = ouvrirEtToucher("entete.telephone");
+    fireEvent.click(screen.getByRole("button", { name: "Détacher" }));
+    const d = enregistrer();
+    const detache = Object.values(d.blocs).find((b) => b?.element?.genre === "donnee");
+    expect(detache?.element?.source).toEqual({ bloc: "emetteur", champ: "entete.telephone" });
+    expect(blocsResolus(d).emetteur.coordonnees?.masques).toEqual(["entete.telephone"]);
   });
 });

@@ -1,5 +1,5 @@
 import React from "react";
-import type { Document, LigneDocument } from "../lib/buildDocument";
+import type { BlocTiers, Document, LigneDocument } from "../lib/buildDocument";
 import { montantOuTiret } from "../lib/format";
 import type { ModeleDocument } from "../lib/reglages";
 import {
@@ -13,7 +13,8 @@ import {
   type ClePosee,
 } from "../lib/disposition";
 import type { Cachet } from "../lib/cachets";
-import { appliquerTextes } from "../lib/textesLibres";
+import { appliquerTextes, libelleParDefaut } from "../lib/textesLibres";
+import { cleLibelle, lignesPresentees, type ChampTiers } from "../lib/coordonnees";
 import {
   BlocAdresse,
   CoordonneesPaiement,
@@ -46,7 +47,7 @@ export function contenuDuBloc(
   bloc?: BlocPose,
 ): React.ReactNode {
   const textes = bloc?.textes;
-  if (estCleElement(cle)) return contenuElement(bloc, cachets);
+  if (estCleElement(cle)) return contenuElement(bloc, cachets, d);
   if (estCleCachet(cle)) {
     const c = cachets?.cachets.find((x) => x.id === idDuCachet(cle));
     const src = c ? cachets?.images[c.chemin] : undefined;
@@ -69,6 +70,13 @@ export function contenuDuBloc(
         </>
       ) : null;
     case "emetteur": {
+      if (e.champs) {
+        const empile = base === "classique" || base === "epure";
+        if (!e.titre && lignesPresentees(e.champs, bloc?.coordonnees).length === 0) return null;
+        return (
+          <Coordonnees tiers={e} bloc={bloc} enLigne={!empile} titre={empile ? e.titre : ""} />
+        );
+      }
       if (base === "classique" || base === "epure") {
         return e.titre || e.lignes.length > 0 || e.nif ? <BlocAdresse bloc={e} /> : null;
       }
@@ -82,9 +90,12 @@ export function contenuDuBloc(
     case "tampon":
       return d.tampon ? <TamponPaiement tampon={d.tampon} /> : null;
     case "destinataire":
-      return d.destinataire.nom || d.destinataire.lignes.length > 0 ? (
+      if (!d.destinataire.nom && d.destinataire.lignes.length === 0) return null;
+      return d.destinataire.champs ? (
+        <Coordonnees tiers={d.destinataire} bloc={bloc} titre={d.destinataire.titre} />
+      ) : (
         <BlocAdresse bloc={d.destinataire} />
-      ) : null;
+      );
     case "tableau":
       return <TableauLignes lignes={lignes} colonnes={d.colonnes} devise={d.devise} />;
     case "totaux":
@@ -123,8 +134,83 @@ export function contenuDuBloc(
   }
 }
 
-function contenuElement(b: BlocPose | undefined, cachets?: ImagesCachets): React.ReactNode {
+/**
+ * Les coordonnées ligne par ligne. Même allure que `BlocAdresse` ; chaque
+ * ligne et chaque champ portent un repère, pour qu'on les touche sur la feuille.
+ */
+const Coordonnees: React.FC<{
+  tiers: BlocTiers;
+  bloc?: BlocPose;
+  titre: string;
+  /** Bandeau, compact : tout sur une ligne, séparé par un point médian. */
+  enLigne?: boolean;
+}> = ({ tiers, bloc, titre, enLigne }) => {
+  const lignes = lignesPresentees(tiers.champs ?? [], bloc?.coordonnees);
+  const libelle = (c: ChampTiers) => bloc?.textes?.[cleLibelle(c.cle)] ?? libelleParDefaut(c);
+  const champ = (c: ChampTiers) => {
+    const l = libelle(c);
+    return (
+      <span data-champ={c.cle} className={c.fiscal ? "doc-fiscal" : undefined}>
+        {l && <span className="doc-libelle-champ">{l}</span>}
+        {c.valeur}
+      </span>
+    );
+  };
+  const ligne = (l: ChampTiers[]) =>
+    l.map((c, j) => (
+      <React.Fragment key={c.cle}>
+        {j > 0 && " · "}
+        {champ(c)}
+      </React.Fragment>
+    ));
+  if (enLigne) {
+    return lignes.length > 0 ? (
+      <div className="coordonnees">
+        {lignes.map((l, i) => (
+          <React.Fragment key={l[0].cle}>
+            {i > 0 && " · "}
+            <span data-ligne={l.map((c) => c.cle).join(" ")}>{ligne(l)}</span>
+          </React.Fragment>
+        ))}
+      </div>
+    ) : null;
+  }
+  return (
+    <div className="doc-bloc">
+      {titre && <h4>{titre}</h4>}
+      {tiers.nom && <b>{tiers.nom}</b>}
+      {lignes.length > 0 && (
+        <p>
+          {lignes.map((l, i) => (
+            <React.Fragment key={l[0].cle}>
+              {i > 0 && <br />}
+              <span data-ligne={l.map((c) => c.cle).join(" ")}>{ligne(l)}</span>
+            </React.Fragment>
+          ))}
+        </p>
+      )}
+    </div>
+  );
+};
+
+function contenuElement(
+  b: BlocPose | undefined,
+  cachets: ImagesCachets | undefined,
+  d: Document,
+): React.ReactNode {
   switch (b?.element?.genre) {
+    case "donnee": {
+      const src = b.element.source;
+      const c = src ? d[src.bloc].champs?.find((x) => x.cle === src.champ) : undefined;
+      if (!c) return null;
+      const l = b.textes?.libelle ?? libelleParDefaut(c);
+      return (
+        <div className={`doc-libre-texte${c.fiscal ? " doc-fiscal" : ""}`} data-champ={c.cle}>
+          {l && <span className="doc-libelle-champ">{l}</span>}
+          {c.valeur}
+        </div>
+      );
+    }
     case "texte":
       return b.textes?.texte?.trim() ? (
         <div className="doc-libre-texte">{b.textes.texte}</div>

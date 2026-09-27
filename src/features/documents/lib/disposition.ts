@@ -1,4 +1,5 @@
 import type { ModeleDocument } from "./reglages";
+import { lirePresentation, type PresentationCoordonnees } from "./coordonnees";
 import { TYPES_DOCUMENT, type TypeDocumentV3 } from "./typesDocument";
 
 /**
@@ -69,14 +70,18 @@ export interface BlocPose {
   habillage?: Habillage;
   /** Élément ajouté sur la feuille : ce qu'il est. */
   element?: Element;
+  /** Émetteur et client : l'ordre, le regroupement et les lignes masquées. */
+  coordonnees?: PresentationCoordonnees;
 }
 
-export type GenreElement = "texte" | "trait" | "cadre" | "image";
+export type GenreElement = "texte" | "trait" | "cadre" | "image" | "donnee";
 
 export interface Element {
   genre: GenreElement;
   /** Image : fichier du seau `cachets`, jamais remplacé. */
   image?: { chemin: string; largeur: number; hauteur: number };
+  /** Coordonnée détachée : sa valeur vient toujours de la fiche. */
+  source?: { bloc: "emetteur" | "destinataire"; champ: string };
 }
 
 export interface Disposition {
@@ -474,6 +479,10 @@ function lireBloc(brut: unknown, cle: string): BlocPose | null {
   }
   const h = objet(brut.habillage) ? lireHabillage(brut.habillage) : undefined;
   if (h) b.habillage = h;
+  if (cle === "emetteur" || cle === "destinataire") {
+    const p = lirePresentation(brut.coordonnees);
+    if (p) b.coordonnees = p;
+  }
   if (estCleElement(cle)) {
     const e = objet(brut.element) ? lireElement(brut.element) : null;
     if (!e) return null;
@@ -482,11 +491,24 @@ function lireBloc(brut: unknown, cle: string): BlocPose | null {
   return contraindre(b);
 }
 
-const GENRES: GenreElement[] = ["texte", "trait", "cadre", "image"];
+const GENRES: GenreElement[] = ["texte", "trait", "cadre", "image", "donnee"];
 
 function lireElement(brut: Record<string, unknown>): Element | null {
   if (!GENRES.includes(brut.genre as GenreElement)) return null;
   const e: Element = { genre: brut.genre as GenreElement };
+  if (e.genre === "donnee") {
+    const src = brut.source;
+    if (
+      !objet(src) ||
+      (src.bloc !== "emetteur" && src.bloc !== "destinataire") ||
+      typeof src.champ !== "string" ||
+      !/^[\w.-]{1,60}$/.test(src.champ)
+    ) {
+      return null;
+    }
+    e.source = { bloc: src.bloc, champ: src.champ };
+    return e;
+  }
   if (e.genre !== "image") return e;
   const i = brut.image;
   if (
@@ -609,6 +631,7 @@ export function poserBloc(d: Disposition, cle: ClePosee, patch: Partial<BlocPose
   if (estVerrouille(cle)) delete suite.masque;
   if (!suite.habillage) delete suite.habillage;
   if (!suite.textes) delete suite.textes;
+  if (!suite.coordonnees) delete suite.coordonnees;
   return { ...d, blocs: { ...d.blocs, [cle]: suite } };
 }
 
@@ -657,7 +680,7 @@ export function retirerCachet(d: Disposition, id: string): Disposition {
 
 /* ── Éléments ajoutés : texte, trait, cadre, image ───────────────── */
 
-const cleElement = (): CleElement =>
+export const cleElement = (): CleElement =>
   `el:${nouvelId()
     .replace(/[^\w-]/g, "")
     .slice(0, 36)}`;
@@ -666,8 +689,9 @@ const cleElement = (): CleElement =>
 export function ajouterElement(
   d: Disposition,
   element: Element,
+  options: { cle?: CleElement; centre?: { x: number; y: number } } = {},
 ): { disposition: Disposition; cle: CleElement } {
-  const cle = cleElement();
+  const cle = options.cle ?? cleElement();
   let l = 80;
   let h = 12;
   const habillage = habillageDeDepart(element.genre);
@@ -685,9 +709,10 @@ export function ajouterElement(
       l = h / ratio;
     }
   }
+  const centre = options.centre ?? { x: FEUILLE.l / 2, y: FEUILLE.h / 2 };
   const b = contraindre({
-    x: (FEUILLE.l - l) / 2,
-    y: (FEUILLE.h - h) / 2,
+    x: centre.x - l / 2,
+    y: centre.y - h / 2,
     l,
     h,
     element,

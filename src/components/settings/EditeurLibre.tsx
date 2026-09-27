@@ -24,6 +24,19 @@ import { SettingsToggle } from "./primitives";
 import { useReglagesModifiables } from "../../features/documents/contexteReglages";
 import { ChoixCouleur } from "./ChoixCouleur";
 import { BarreBloc } from "./BarreBloc";
+import { BarreLigne } from "./BarreLigne";
+import {
+  accolerChamp,
+  champsOrdonnes,
+  cleLibelle,
+  deplacerChamp,
+  estAccolee,
+  LIBELLES_SUGGERES,
+  lignesPresentees,
+  masquerChamp,
+  type ChampTiers,
+  type PresentationCoordonnees,
+} from "../../features/documents/lib/coordonnees";
 import type { Document } from "../../features/documents/lib/buildDocument";
 import { variablesDeCouleur, type ReglagesDocuments } from "../../features/documents/lib/reglages";
 import { DocumentPreview } from "../../features/documents/DocumentPreview";
@@ -32,6 +45,7 @@ import {
   aimanterRedimension,
   ajouterElement,
   BLOCS,
+  cleElement,
   blocsResolus,
   cleCachet,
   clesPosees,
@@ -73,6 +87,7 @@ import {
 } from "../../features/documents/lib/traiterCachet";
 import {
   appliquerTextes,
+  libelleParDefaut,
   textesDuBloc,
   type TexteModifiable,
 } from "../../features/documents/lib/textesLibres";
@@ -157,6 +172,7 @@ const NOMS_ELEMENTS: Record<GenreElement, string> = {
   trait: "Trait",
   cadre: "Cadre",
   image: "Image",
+  donnee: "Coordonnée",
 };
 
 const boutonIcone =
@@ -183,6 +199,15 @@ export const EditeurLibre: React.FC<Props> = ({
   const courant = useRef(disposition);
   courant.current = d;
   const [enGeste, setEnGeste] = useState(false);
+  const [depot, setDepot] = useState(false);
+  /** Une seule coordonnée choisie dans le bloc : le téléphone, l'e-mail… */
+  const [ligne, setLigne] = useState<{ cle: ClePosee; champ: string } | null>(null);
+  const [rectLigne, setRectLigne] = useState<{
+    left: number;
+    top: number;
+    width: number;
+    height: number;
+  } | null>(null);
   const [apercu, setApercu] = useState(false);
   const [choisi, setChoisi] = useState<ClePosee | null>(null);
   const [echelle, setEchelle] = useState(1);
@@ -260,6 +285,34 @@ export const EditeurLibre: React.FC<Props> = ({
     setVersion((v) => v + 1);
   }, []);
   const annuler = useCallback(() => revenir(passe, futur), [revenir]);
+
+  useLayoutEffect(() => {
+    const vise = ligne && ligne.cle === choisi ? ligne : null;
+    const el = vise
+      ? feuille.current?.querySelector<HTMLElement>(
+          `.doc-libre [data-bloc="${vise.cle}"] [data-champ="${vise.champ}"]`,
+        )
+      : null;
+    const rb = el?.closest<HTMLElement>("[data-bloc]")?.getBoundingClientRect();
+    const r = el?.getBoundingClientRect();
+    const n =
+      r && rb
+        ? {
+            left: (r.left - rb.left) / echelle,
+            top: (r.top - rb.top) / echelle,
+            width: r.width / echelle,
+            height: r.height / echelle,
+          }
+        : null;
+    const change =
+      (n === null) !== (rectLigne === null) ||
+      (n &&
+        rectLigne &&
+        (["left", "top", "width", "height"] as const).some(
+          (k) => Math.abs(n[k] - rectLigne[k]) > 0.5,
+        ));
+    if (change) setRectLigne(n);
+  });
   const retablir = useCallback(() => revenir(futur, passe), [revenir]);
 
   /** Retire le bloc : un élément ou un cachet s'en va, un bloc du modèle se masque. */
@@ -334,8 +387,16 @@ export const EditeurLibre: React.FC<Props> = ({
         else annuler();
         return;
       }
-      if (e.key === "Escape") return setChoisi(null);
+      if (e.key === "Escape") {
+        if (ligneActive) return setLigne(null);
+        return setChoisi(null);
+      }
       if (!choisi) return;
+      if ((e.key === "Delete" || e.key === "Backspace") && ligneActive) {
+        e.preventDefault();
+        masquerLigne();
+        return;
+      }
       if (e.key === "Delete" || e.key === "Backspace") {
         e.preventDefault();
         supprimerBloc(choisi);
@@ -354,7 +415,20 @@ export const EditeurLibre: React.FC<Props> = ({
     };
     window.addEventListener("keydown", clavier);
     return () => window.removeEventListener("keydown", clavier);
-  }, [choisi, deplacer, annuler, retablir, supprimerBloc]);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [choisi, deplacer, annuler, retablir, supprimerBloc, ligne]);
+
+  useEffect(() => {
+    const coller = (e: ClipboardEvent) => {
+      if (e.target instanceof Element && e.target.closest("input, textarea, select")) return;
+      const f = [...(e.clipboardData?.files ?? [])].find((x) => x.type.startsWith("image/"));
+      if (!f || !storeId) return;
+      e.preventDefault();
+      void ajouterImageRef.current(f);
+    };
+    window.addEventListener("paste", coller);
+    return () => window.removeEventListener("paste", coller);
+  }, [storeId]);
 
   useEffect(() => {
     const avant = document.body.style.overflow;
@@ -366,6 +440,7 @@ export const EditeurLibre: React.FC<Props> = ({
 
   const saisir = (e: React.PointerEvent<HTMLElement>, cle: ClePosee, poignee: Poignee | null) => {
     e.stopPropagation();
+    if (cle !== choisi) setLigne(null);
     // Au doigt, le premier appui sélectionne : sans cela, on ne pourrait plus faire défiler l'écran.
     if (e.pointerType !== "mouse" && choisi !== cle) {
       setChoisi(cle);
@@ -417,7 +492,25 @@ export const EditeurLibre: React.FC<Props> = ({
     glisse.current = null;
     setEnGeste(false);
     setGuides([]);
-    if (e && g?.deja && !g.bouge) ouvrirEcriture(g.cle, { x: e.clientX, y: e.clientY }, true);
+    if (e && g?.deja && !g.bouge) toucherLeTexte(g.cle, { x: e.clientX, y: e.clientY }, true);
+  };
+
+  /** Un mot s'écrit ; une coordonnée se choisit ; ailleurs, rien. */
+  const toucherLeTexte = (cle: ClePosee, point: { x: number; y: number }, clic: boolean) => {
+    if (ouvrirEcriture(cle, point, clic)) return;
+    const champ = champSous(cle, point);
+    setLigne(champ ? { cle, champ } : null);
+  };
+
+  const champSous = (cle: ClePosee, point: { x: number; y: number }): string | null => {
+    if (!champsTiers(cle) || typeof document.elementsFromPoint !== "function") return null;
+    const el = feuille.current?.querySelector<HTMLElement>(`.doc-libre [data-bloc="${cle}"]`);
+    for (const touche of document.elementsFromPoint(point.x, point.y)) {
+      if (!(touche instanceof HTMLElement) || !el?.contains(touche)) continue;
+      const c = touche.closest<HTMLElement>("[data-champ]");
+      if (c && el.contains(c)) return c.dataset.champ ?? null;
+    }
+    return null;
   };
 
   const trop = new Set(debords ? debords.split(",") : []);
@@ -425,14 +518,25 @@ export const EditeurLibre: React.FC<Props> = ({
   const nomChoisi = choisi ? nomDe(choisi) : null;
   const docEcrit = doc ? appliquerTextes(doc, blocs) : null;
   /** Les mots qu'on écrit dans ce bloc. Un texte libre n'a pas de mot des réglages. */
-  const champsDe = (cle: ClePosee): TexteModifiable[] =>
-    estCleElement(cle)
-      ? blocs[cle]?.element?.genre === "texte"
-        ? [{ cle: "texte", nom: "Texte", valeur: "", long: true }]
-        : []
-      : doc
-        ? textesDuBloc(cle, doc, d.base)
+  /** Les coordonnées, champ par champ, du bloc de la boutique ou du client. */
+  const champsTiers = (cle: ClePosee | null): ChampTiers[] | undefined =>
+    cle === "emetteur"
+      ? doc?.emetteur.champs
+      : cle === "destinataire"
+        ? doc?.destinataire.champs
+        : undefined;
+  const champsDe = (cle: ClePosee): TexteModifiable[] => {
+    if (!estCleElement(cle)) return doc ? textesDuBloc(cle, doc, d.base) : [];
+    const e = blocs[cle]?.element;
+    if (e?.genre === "texte") return [{ cle: "texte", nom: "Texte", valeur: "", long: true }];
+    if (e?.genre === "donnee" && e.source) {
+      const c = champsTiers(e.source.bloc)?.find((x) => x.cle === e.source!.champ);
+      return c
+        ? [{ cle: "libelle", nom: `Libellé « ${c.nom} »`, valeur: libelleParDefaut(c) }]
         : [];
+    }
+    return [];
+  };
   const champsTexte = choisi ? champsDe(choisi) : [];
 
   const ajouter = (genre: Exclude<GenreElement, "image">) => {
@@ -446,7 +550,7 @@ export const EditeurLibre: React.FC<Props> = ({
     }
   };
 
-  const ajouterImage = async (fichier: File) => {
+  const ajouterImage = async (fichier: File, centre?: { x: number; y: number }) => {
     if (!storeId) return;
     setEnvoi({ enCours: true, erreur: null });
     try {
@@ -460,11 +564,9 @@ export const EditeurLibre: React.FC<Props> = ({
         lecteur.readAsDataURL(png.blob);
       });
       setImages((m) => ({ ...m, [chemin]: url }));
-      const { disposition: suite, cle } = ajouterElement(d, {
-        genre: "image",
-        image: { chemin, largeur: png.largeur, hauteur: png.hauteur },
-      });
-      setD(suite);
+      const cle = cleElement();
+      const image = { chemin, largeur: png.largeur, hauteur: png.hauteur };
+      setD((p) => ajouterElement(p, { genre: "image", image }, { cle, centre }).disposition);
       setChoisi(cle);
       setEnvoi({ enCours: false, erreur: null });
     } catch (e) {
@@ -474,6 +576,9 @@ export const EditeurLibre: React.FC<Props> = ({
       });
     }
   };
+
+  const ajouterImageRef = useRef(ajouterImage);
+  ajouterImageRef.current = ajouterImage;
 
   /** Un mot rendu à sa valeur des réglages n'est plus gardé : il suivra les réglages. */
   const ecrireTexte = (cle: ClePosee, k: string, valeur: string, defaut: string) =>
@@ -493,14 +598,17 @@ export const EditeurLibre: React.FC<Props> = ({
     cle: ClePosee,
     point: { x: number; y: number } | null,
     clic: boolean,
+    impose?: { c: TexteModifiable; el: HTMLElement; valeur: string },
   ): boolean => {
-    const champs = champsDe(cle);
+    const champs = impose ? [impose.c] : champsDe(cle);
     if (champs.length === 0) return false;
     const el =
       feuille.current?.querySelector<HTMLElement>(`.doc-libre [data-bloc="${cle}"]`) ?? null;
     const valeurDe = (c: TexteModifiable) => blocs[cle]?.textes?.[c.cle] ?? c.valeur;
-    let vise: { c: TexteModifiable; el: HTMLElement } | null = null;
-    if (el && point && typeof document.elementsFromPoint === "function") {
+    let vise: { c: TexteModifiable; el: HTMLElement } | null = impose
+      ? { c: impose.c, el: impose.el }
+      : null;
+    if (!vise && el && point && typeof document.elementsFromPoint === "function") {
       for (const touche of document.elementsFromPoint(point.x, point.y)) {
         if (!(touche instanceof HTMLElement) || !el.contains(touche)) continue;
         for (let n: HTMLElement | null = touche; n; n = n === el ? null : n.parentElement) {
@@ -518,7 +626,7 @@ export const EditeurLibre: React.FC<Props> = ({
         if (vise) break;
       }
     }
-    const tout = champs.length === 1 && (estCleElement(cle) || TOUT_TEXTE.has(cle));
+    const tout = !impose && champs.length === 1 && (estCleElement(cle) || TOUT_TEXTE.has(cle));
     if (!vise && !tout) {
       if (!clic) setChoisi(cle);
       return false;
@@ -547,7 +655,7 @@ export const EditeurLibre: React.FC<Props> = ({
     setEcrit({
       cle,
       k: c.cle,
-      valeur: valeurDe(c),
+      valeur: impose?.valeur ?? valeurDe(c),
       defaut: c.valeur,
       multiligne: c.long || c.multiligne,
       cadre,
@@ -584,6 +692,73 @@ export const EditeurLibre: React.FC<Props> = ({
     ecrireTexte(ecrit.cle, ecrit.k, ecrit.valeur, ecrit.defaut);
     setEcrit(null);
   };
+  const ligneActive = ligne && ligne.cle === choisi ? ligne : null;
+  const champsDuChoisi = champsTiers(choisi) ?? [];
+  const presentation = bloc?.coordonnees;
+  const champLigne = ligneActive
+    ? champsDuChoisi.find((c) => c.cle === ligneActive.champ)
+    : undefined;
+
+  const presenter = (
+    cle: ClePosee,
+    f: (p: PresentationCoordonnees | undefined) => PresentationCoordonnees,
+  ) => setD((p) => poserBloc(p, cle, { coordonnees: f(blocsResolus(p)[cle]?.coordonnees) }));
+
+  const masquerLigne = () => {
+    if (!ligneActive || champLigne?.obligatoire) return;
+    presenter(ligneActive.cle, (p) => masquerChamp(p, ligneActive.champ, true));
+    setLigne(null);
+  };
+
+  /** Le libellé s'écrit devant la valeur ; vide, on propose celui d'usage. */
+  const ecrireLibelle = () => {
+    if (!ligneActive || !champLigne) return;
+    const el = feuille.current?.querySelector<HTMLElement>(
+      `.doc-libre [data-bloc="${ligneActive.cle}"] [data-champ="${champLigne.cle}"]`,
+    );
+    if (!el) return;
+    const k = cleLibelle(champLigne.cle);
+    const actuel = bloc?.textes?.[k] ?? libelleParDefaut(champLigne);
+    ouvrirEcriture(ligneActive.cle, null, false, {
+      c: { cle: k, nom: `Libellé « ${champLigne.nom} »`, valeur: libelleParDefaut(champLigne) },
+      el,
+      valeur: actuel || LIBELLES_SUGGERES[champLigne.cle] || "",
+    });
+  };
+
+  /** La coordonnée quitte son bloc et devient un bloc à part, posé à l'endroit même. */
+  const detacherLigne = () => {
+    if (!ligneActive || !champLigne || !rectLigne || !bloc) return;
+    const source = ligneActive.cle as "emetteur" | "destinataire";
+    const cle = cleElement();
+    const l = Math.max(rectLigne.width / PX_MM + 4, 30);
+    const h = Math.max(rectLigne.height / PX_MM + 1, 6);
+    const centre = {
+      x: bloc.x + rectLigne.left / PX_MM + l / 2,
+      y: bloc.y + rectLigne.top / PX_MM + h / 2,
+    };
+    const libelle = bloc.textes?.[cleLibelle(champLigne.cle)];
+    setD((p) => {
+      const sans = poserBloc(p, source, {
+        coordonnees: masquerChamp(blocsResolus(p)[source]?.coordonnees, champLigne.cle, true),
+      });
+      const { disposition } = ajouterElement(
+        sans,
+        { genre: "donnee", source: { bloc: source, champ: champLigne.cle } },
+        { cle, centre },
+      );
+      return poserBloc(disposition, cle, {
+        l,
+        h,
+        x: centre.x - l / 2,
+        y: centre.y - h / 2,
+        ...(libelle !== undefined ? { textes: { libelle } } : {}),
+      });
+    });
+    setLigne(null);
+    setChoisi(cle);
+  };
+
   const choisiCachet = choisi !== null && estCleCachet(choisi);
   const genre = bloc?.element?.genre;
   /** Ce qui n'a pas de texte : ni police, ni alignement, ni texte clair. */
@@ -687,11 +862,87 @@ export const EditeurLibre: React.FC<Props> = ({
               sansActions
             />
           )}
+          {!apercu && (
+            <div
+              role="toolbar"
+              aria-label="Ajouter sur la feuille"
+              className="mx-auto mb-3 flex w-full flex-wrap items-center gap-2"
+              style={{ maxWidth: LARGEUR_PX }}
+            >
+              <button type="button" onClick={() => ajouter("texte")} className="app-btn-secondary">
+                <Type className="h-4 w-4" />
+                Texte
+              </button>
+              <button type="button" onClick={() => ajouter("trait")} className="app-btn-secondary">
+                <Minus className="h-4 w-4" />
+                Trait
+              </button>
+              <button type="button" onClick={() => ajouter("cadre")} className="app-btn-secondary">
+                <Square className="h-4 w-4" />
+                Cadre
+              </button>
+              <label
+                className={`app-btn-secondary cursor-pointer${
+                  !storeId || envoi.enCours ? " pointer-events-none opacity-50" : ""
+                }`}
+                title={
+                  storeId
+                    ? "Logo, photo, cachet : une image de votre téléphone ou de l'ordinateur. Elle se glisse aussi sur la feuille, ou se colle."
+                    : "Ouvrez l'éditeur depuis une boutique pour ajouter une image"
+                }
+              >
+                <ImagePlus className="h-4 w-4" />
+                {envoi.enCours ? "Envoi…" : "Image"}
+                <input
+                  type="file"
+                  accept="image/png,image/jpeg,image/webp"
+                  aria-label="Ajouter une image"
+                  disabled={!storeId || envoi.enCours}
+                  className="sr-only"
+                  onChange={(e) => {
+                    const f = e.target.files?.[0];
+                    e.target.value = "";
+                    if (f) void ajouterImage(f);
+                  }}
+                />
+              </label>
+              {envoi.erreur && (
+                <p role="alert" className="basis-full text-xs t-danger">
+                  {envoi.erreur}
+                </p>
+              )}
+            </div>
+          )}
           <div
             ref={scene}
-            className={`mx-auto w-full${apercu ? " hidden" : ""}`}
+            className={`relative mx-auto w-full${apercu ? " hidden" : ""}`}
             style={{ maxWidth: LARGEUR_PX }}
+            onDragOver={(e) => {
+              if (!storeId || !e.dataTransfer.types.includes("Files")) return;
+              e.preventDefault();
+              if (!depot) setDepot(true);
+            }}
+            onDragLeave={(e) => {
+              if (!e.currentTarget.contains(e.relatedTarget as Node | null)) setDepot(false);
+            }}
+            onDrop={(e) => {
+              setDepot(false);
+              const f = [...e.dataTransfer.files].find((x) => x.type.startsWith("image/"));
+              if (!f || !storeId) return;
+              e.preventDefault();
+              const r = e.currentTarget.getBoundingClientRect();
+              const k = echelle * PX_MM;
+              void ajouterImage(f, { x: (e.clientX - r.left) / k, y: (e.clientY - r.top) / k });
+            }}
           >
+            {depot && (
+              <div
+                aria-hidden="true"
+                className="pointer-events-none absolute inset-0 z-30 flex items-center justify-center rounded border-2 border-dashed border-primary bg-primary/5 text-sm font-medium text-primary"
+              >
+                Déposez l&apos;image sur la feuille
+              </div>
+            )}
             <div
               className="relative"
               style={{ width: LARGEUR_PX * echelle, height: HAUTEUR_PX * echelle }}
@@ -741,7 +992,7 @@ export const EditeurLibre: React.FC<Props> = ({
                         data-cadre={cle}
                         onPointerDown={(e) => saisir(e, cle, null)}
                         onDoubleClick={(e) =>
-                          ouvrirEcriture(cle, { x: e.clientX, y: e.clientY }, false)
+                          toucherLeTexte(cle, { x: e.clientX, y: e.clientY }, false)
                         }
                         onPointerMove={suivre}
                         onPointerUp={lacher}
@@ -798,6 +1049,19 @@ export const EditeurLibre: React.FC<Props> = ({
                             style={{ ...ecrit.style, ...placeDuMot(ecrit) }}
                           />
                         )}
+                        {actif && ligneActive && rectLigne && (
+                          <span
+                            aria-hidden="true"
+                            data-ligne-choisie
+                            className="pointer-events-none absolute rounded-sm bg-primary/10 outline outline-1 outline-primary"
+                            style={{
+                              left: rectLigne.left - 2,
+                              top: rectLigne.top - 1,
+                              width: rectLigne.width + 4,
+                              height: rectLigne.height + 2,
+                            }}
+                          />
+                        )}
                         {actif && (
                           <span className="absolute -top-[7mm] left-0 whitespace-nowrap rounded bg-primary px-[2mm] py-[0.5mm] text-[8pt] font-medium text-primary-foreground">
                             {nomChoisi}
@@ -849,33 +1113,65 @@ export const EditeurLibre: React.FC<Props> = ({
                   ))}
                 </div>
               </div>
-              {bloc && choisi && !enGeste && !ecrit && (
-                <BarreBloc
-                  nom={nomChoisi ?? ""}
-                  bloc={bloc}
-                  genre={choisiCachet ? "cachet" : (genre ?? null)}
-                  verrouille={estVerrouille(choisi)}
+              {bloc && choisi && !enGeste && !ecrit && ligneActive && champLigne && rectLigne && (
+                <BarreLigne
+                  nom={champLigne.nom}
                   cadre={{
-                    gauche: bloc.x * PX_MM * echelle,
-                    haut: bloc.y * PX_MM * echelle,
-                    bas: (bloc.y + bloc.h) * PX_MM * echelle,
+                    gauche: (bloc.x * PX_MM + rectLigne.left) * echelle,
+                    haut: (bloc.y * PX_MM + rectLigne.top) * echelle,
+                    bas: (bloc.y * PX_MM + rectLigne.top + rectLigne.height) * echelle,
                   }}
                   largeurScene={LARGEUR_PX * echelle}
-                  onHabiller={(patch) => habillerBloc(choisi, patch)}
-                  onAligner={(align) => poser(choisi, { align })}
-                  onDupliquer={
-                    estCleElement(choisi)
-                      ? () => {
-                          const copie = dupliquerElement(d, choisi);
-                          if (!copie) return;
-                          setD(copie.disposition);
-                          setChoisi(copie.cle);
-                        }
-                      : undefined
+                  accolee={estAccolee(presentation, champLigne.cle)}
+                  premiere={
+                    lignesPresentees(champsDuChoisi, presentation).flat()[0]?.cle === champLigne.cle
                   }
-                  onSupprimer={() => supprimerBloc(choisi)}
+                  derniere={
+                    lignesPresentees(champsDuChoisi, presentation).flat().at(-1)?.cle ===
+                    champLigne.cle
+                  }
+                  obligatoire={champLigne.obligatoire === true}
+                  onLibelle={ecrireLibelle}
+                  onAccoler={(v) => presenter(choisi, (p) => accolerChamp(p, champLigne.cle, v))}
+                  onDeplacer={(sens) =>
+                    presenter(choisi, (p) => deplacerChamp(champsDuChoisi, p, champLigne.cle, sens))
+                  }
+                  onMasquer={masquerLigne}
+                  onDetacher={detacherLigne}
+                  onFermer={() => setLigne(null)}
                 />
               )}
+              {bloc &&
+                choisi &&
+                !enGeste &&
+                !ecrit &&
+                !(ligneActive && champLigne && rectLigne) && (
+                  <BarreBloc
+                    nom={nomChoisi ?? ""}
+                    bloc={bloc}
+                    genre={choisiCachet ? "cachet" : (genre ?? null)}
+                    verrouille={estVerrouille(choisi)}
+                    cadre={{
+                      gauche: bloc.x * PX_MM * echelle,
+                      haut: bloc.y * PX_MM * echelle,
+                      bas: (bloc.y + bloc.h) * PX_MM * echelle,
+                    }}
+                    largeurScene={LARGEUR_PX * echelle}
+                    onHabiller={(patch) => habillerBloc(choisi, patch)}
+                    onAligner={(align) => poser(choisi, { align })}
+                    onDupliquer={
+                      estCleElement(choisi)
+                        ? () => {
+                            const copie = dupliquerElement(d, choisi);
+                            if (!copie) return;
+                            setD(copie.disposition);
+                            setChoisi(copie.cle);
+                          }
+                        : undefined
+                    }
+                    onSupprimer={() => supprimerBloc(choisi)}
+                  />
+                )}
             </div>
           </div>
           {lignesCachees > 0 && (
@@ -899,6 +1195,59 @@ export const EditeurLibre: React.FC<Props> = ({
                   Fermer
                 </button>
               </div>
+              {champsDuChoisi.length > 0 && (
+                <div className="space-y-1">
+                  <p className="text-xs font-medium text-foreground">Lignes</p>
+                  <ul className="divide-y divide-border">
+                    {champsOrdonnes(champsDuChoisi, presentation).map((c) => {
+                      const masquee =
+                        !c.obligatoire && (presentation?.masques ?? []).includes(c.cle);
+                      return (
+                        <li key={c.cle} className="flex items-center gap-2">
+                          <button
+                            type="button"
+                            disabled={masquee}
+                            onClick={() => setLigne({ cle: choisi, champ: c.cle })}
+                            className={`min-w-0 flex-1 truncate py-1.5 text-left text-sm ${
+                              masquee ? "text-muted-foreground" : "text-foreground"
+                            }`}
+                          >
+                            {c.nom}
+                          </button>
+                          {c.obligatoire ? (
+                            <span
+                              className={`${boutonIcone} cursor-help`}
+                              title="Exigé sur une facture : il ne se masque pas."
+                            >
+                              <Lock className="h-4 w-4" />
+                            </span>
+                          ) : (
+                            <button
+                              type="button"
+                              aria-label={masquee ? `Afficher ${c.nom}` : `Masquer ${c.nom}`}
+                              title={masquee ? "Afficher" : "Masquer"}
+                              onClick={() =>
+                                presenter(choisi, (p) => masquerChamp(p, c.cle, !masquee))
+                              }
+                              className={boutonIcone}
+                            >
+                              {masquee ? (
+                                <EyeOff className="h-4 w-4" />
+                              ) : (
+                                <Eye className="h-4 w-4" />
+                              )}
+                            </button>
+                          )}
+                        </li>
+                      );
+                    })}
+                  </ul>
+                  <p className="text-[11px] leading-relaxed text-muted-foreground">
+                    Touchez une ligne sur la feuille pour lui mettre un libellé, la déplacer ou la
+                    détacher.
+                  </p>
+                </div>
+              )}
               {champsTexte.length > 0 && (
                 <div className="space-y-2">
                   <p className="text-xs font-medium text-foreground">Textes</p>
@@ -1040,49 +1389,11 @@ export const EditeurLibre: React.FC<Props> = ({
           )}
 
           <section className="space-y-3 border-b border-border p-4">
-            <p className="text-sm font-semibold text-foreground">Ajouter</p>
-            <div className="grid grid-cols-2 gap-2">
-              <button type="button" onClick={() => ajouter("texte")} className="app-btn-secondary">
-                <Type className="h-4 w-4" />
-                Texte
-              </button>
-              <button type="button" onClick={() => ajouter("trait")} className="app-btn-secondary">
-                <Minus className="h-4 w-4" />
-                Trait
-              </button>
-              <button type="button" onClick={() => ajouter("cadre")} className="app-btn-secondary">
-                <Square className="h-4 w-4" />
-                Cadre
-              </button>
-              <label
-                className={`app-btn-secondary cursor-pointer${
-                  !storeId || envoi.enCours ? " pointer-events-none opacity-50" : ""
-                }`}
-                title={
-                  storeId
-                    ? "Une image de votre téléphone ou de l'ordinateur, posée telle quelle"
-                    : "Ouvrez l'éditeur depuis une boutique pour ajouter une image"
-                }
-              >
-                <ImagePlus className="h-4 w-4" />
-                {envoi.enCours ? "Envoi…" : "Image"}
-                <input
-                  type="file"
-                  accept="image/png,image/jpeg,image/webp"
-                  aria-label="Ajouter une image"
-                  disabled={!storeId || envoi.enCours}
-                  className="sr-only"
-                  onChange={(e) => {
-                    const f = e.target.files?.[0];
-                    e.target.value = "";
-                    if (f) void ajouterImage(f);
-                  }}
-                />
-              </label>
-            </div>
-            {envoi.erreur && (
-              <p role="alert" className="text-xs t-danger">
-                {envoi.erreur}
+            <p className="text-sm font-semibold text-foreground">Éléments ajoutés</p>
+            {elements.length === 0 && (
+              <p className="text-xs leading-relaxed text-muted-foreground">
+                Ajoutez un texte, un trait, un cadre ou une image avec la barre au-dessus de la
+                feuille. Une image se glisse aussi sur la feuille, ou se colle (Ctrl+V).
               </p>
             )}
             {elements.length > 0 && (

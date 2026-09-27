@@ -2,6 +2,7 @@ import type { Document } from "./buildDocument";
 import type { Blocs, ClePosee } from "./disposition";
 import type { ModeleDocument } from "./reglages";
 import { introMontantEnLettres, TITRE_PAIEMENT } from "../parts/blocs";
+import { cleLibelle, type ChampTiers } from "./coordonnees";
 
 /**
  * LES MOTS QU'ON RÉÉCRIT SUR LA FEUILLE
@@ -32,6 +33,16 @@ const LIBELLES_TOTAUX: { cle: keyof Document["totaux"]; nom: string }[] = [
   { cle: "libelleReste", nom: "Reste à payer" },
 ];
 
+/** Le libellé posé devant chaque coordonnée : rien, sauf « NIF/STAT » devant le numéro fiscal. */
+export const libelleParDefaut = (c: ChampTiers) => (c.fiscal ? "NIF/STAT " : "");
+
+const libellesDesChamps = (champs: ChampTiers[] | undefined): TexteModifiable[] =>
+  (champs ?? []).map((c) => ({
+    cle: cleLibelle(c.cle),
+    nom: `Libellé « ${c.nom} »`,
+    valeur: libelleParDefaut(c),
+  }));
+
 /** Ce qu'on peut réécrire dans ce bloc, pour ce document. */
 export function textesDuBloc(cle: ClePosee, d: Document, base: ModeleDocument): TexteModifiable[] {
   switch (cle) {
@@ -44,11 +55,17 @@ export function textesDuBloc(cle: ClePosee, d: Document, base: ModeleDocument): 
         valeur: m.libelle,
       }));
     case "emetteur":
-      return base === "classique" || base === "epure"
-        ? [{ cle: "titre", nom: "Intitulé", valeur: d.emetteur.titre }]
-        : [];
+      return [
+        ...(base === "classique" || base === "epure"
+          ? [{ cle: "titre", nom: "Intitulé", valeur: d.emetteur.titre }]
+          : []),
+        ...libellesDesChamps(d.emetteur.champs),
+      ];
     case "destinataire":
-      return [{ cle: "titre", nom: "Intitulé", valeur: d.destinataire.titre }];
+      return [
+        { cle: "titre", nom: "Intitulé", valeur: d.destinataire.titre },
+        ...libellesDesChamps(d.destinataire.champs),
+      ];
     case "tableau":
       return d.colonnes.map((c) => ({
         cle: c.cle,

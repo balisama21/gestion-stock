@@ -491,3 +491,13 @@ couleur, sa marge et le fond peint dessous. Un clic sur une donnée
 n'ouvre rien. Entrée passe à la ligne dans le titre, le mot de fin, les
 conditions, le pied et le texte libre (rendus en `pre-line`) ; ailleurs
 elle valide. Ctrl+Entrée ou un clic à côté valident toujours.
+
+**Coordonnées sur la feuille (D).** `BlocTiers.champs` donne, en plus des
+lignes du mode simple (inchangées), chaque coordonnée à part : adresse,
+téléphone, e-mail, contacts, NIF/STAT… Sur la feuille libre, la
+présentation vit dans le bloc (`BlocPose.coordonnees` : ordre, masques,
+accolé ou non) et les libellés dans `textes["libelle:<champ>"]`. Par
+défaut, téléphone et e-mail restent accolés comme avant ; le NIF/STAT ne
+se masque pas. Une coordonnée DÉTACHÉE devient un élément `donnee` qui
+lit toujours sa valeur dans la fiche. Au-dessus de la feuille, une barre
+Ajouter (texte, trait, cadre, image) ; une image se glisse ou se colle.

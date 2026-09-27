@@ -16,6 +16,7 @@ import {
 } from "./identite";
 import { deviseEnToutesLettres, montantEnLettres } from "./montantEnLettres";
 import type { ReglagesDocuments } from "./reglages";
+import type { ChampTiers } from "./coordonnees";
 import type { PageResolue } from "./miseEnPage";
 import { resoudreMiseEnPage, resoudreType } from "./resolveur";
 import { numeroDuDocument, type TypeDocumentV3 } from "./typesDocument";
@@ -80,6 +81,8 @@ export interface BlocTiers {
   lignes: string[];
   /** Numéro fiscal, montré à part parce qu'il se compose en chasse fixe. */
   nif: string | null;
+  /** Les mêmes coordonnées, champ par champ, pour la feuille libre. */
+  champs?: ChampTiers[];
 }
 
 export interface EnTeteBoutique extends BlocTiers {
@@ -242,6 +245,17 @@ const util = (v: string | null | undefined): string | null => {
   return s === "" ? null : s;
 };
 
+/** Un champ de coordonnées, ou rien quand la fiche ne le renseigne pas. */
+const champ = (
+  cle: string,
+  nom: string,
+  valeur: string | null | undefined,
+  extra?: Partial<ChampTiers>,
+): ChampTiers[] => {
+  const v = util(valeur);
+  return v ? [{ cle, nom, valeur: v, ...extra }] : [];
+};
+
 /** Les morceaux non vides, séparés par un point médian. */
 const joindre = (...parts: (string | null | undefined)[]): string | null =>
   util(parts.map(util).filter(Boolean).join(" · "));
@@ -302,6 +316,24 @@ export function enTeteBoutique(
     ),
   };
 
+  const champs: Record<string, ChampTiers[]> = {
+    "entete.adresse": champ("entete.adresse", "Adresse", boutique?.address),
+    "entete.telEmail": [
+      ...champ("entete.telephone", "Téléphone", boutique?.phone),
+      ...champ("entete.email", "E-mail", boutique?.email),
+    ],
+    "entete.contacts": lignesDesContacts(reglages.identite).flatMap((v, i) =>
+      champ(`entete.contact${i}`, `Contact ${i + 1}`, v),
+    ),
+    "entete.enLigne": champ("entete.enLigne", "Site et réseaux", ligneEnLigne(reglages.identite)),
+    "entete.identifiants": champ(
+      "entete.identifiants",
+      "Identifiants",
+      ligneDesIdentifiants(reglages.identite),
+    ),
+  };
+  const nif = page.visible("entete.nifStat") ? util(boutique?.nifStat) : null;
+
   return {
     titre: "Émetteur",
     nom: page.visible("entete.nom") ? nom : "",
@@ -309,9 +341,20 @@ export function enTeteBoutique(
     logoUrl: montreLogo ? logo : null,
     initiales: montreInitiales ? initiales(nom) || null : null,
     lignes: page.ordre("entete").flatMap((cle) => lignes[cle] ?? []),
-    nif: page.visible("entete.nifStat") ? util(boutique?.nifStat) : null,
+    nif,
+    champs: [
+      ...page.ordre("entete").flatMap((cle) => champs[cle] ?? []),
+      ...champ("entete.nifStat", "NIF/STAT", nif, { obligatoire: true, fiscal: true }),
+    ],
   };
 }
+
+const NOMS_TIERS: Record<string, string> = {
+  "tiers.contact": "Contact",
+  "tiers.adresse": "Adresse",
+  "tiers.ville": "Ville",
+  "tiers.telephone": "Téléphone",
+};
 
 /**
  * Le client d'une vente.
@@ -343,13 +386,13 @@ export function destinataireDeVente(
       "tiers.telephone": util(client.telephone),
     };
     const nom = entreprise ?? identite ?? "Client comptoir";
+    const ordre = page ? page.ordre("tiers") : Object.keys(lignes);
     return {
       titre: intitule,
       nom: montre("tiers.nom") ? nom : "",
-      lignes: (page ? page.ordre("tiers") : Object.keys(lignes))
-        .map((cle) => lignes[cle] ?? null)
-        .filter((l): l is string => l !== null),
+      lignes: ordre.map((cle) => lignes[cle] ?? null).filter((l): l is string => l !== null),
       nif: null,
+      champs: ordre.flatMap((cle) => champ(cle, NOMS_TIERS[cle] ?? cle, lignes[cle])),
     };
   }
 
@@ -1055,6 +1098,7 @@ function blocFournisseur(
     "tiers.ville": util(fournisseur?.ville),
     "tiers.telephone": util(fournisseur?.telephone),
   };
+  const nif = util(fournisseur?.numero_fiscal);
   return {
     titre: intitule,
     nom: page.visible("tiers.nom") ? nom : "",
@@ -1062,7 +1106,11 @@ function blocFournisseur(
       .ordre("tiers")
       .map((cle) => lignes[cle] ?? null)
       .filter((l): l is string => l !== null),
-    nif: util(fournisseur?.numero_fiscal),
+    nif,
+    champs: [
+      ...page.ordre("tiers").flatMap((cle) => champ(cle, NOMS_TIERS[cle] ?? cle, lignes[cle])),
+      ...champ("tiers.nif", "NIF/STAT", nif, { fiscal: true }),
+    ],
   };
 }
 
@@ -1410,9 +1458,7 @@ export function documentDAchat(source: SourceAchat): Document {
    */
   const destinataire: BlocTiers = {
     titre:
-      fournisseur && page.visible("tiers.titre")
-        ? page.libelle("tiers.titre", "Fournisseur")
-        : "",
+      fournisseur && page.visible("tiers.titre") ? page.libelle("tiers.titre", "Fournisseur") : "",
     nom: page.visible("tiers.nom") ? (util(fournisseur) ?? "") : "",
     lignes: [],
     nif: null,
@@ -1467,7 +1513,7 @@ export function documentDAchat(source: SourceAchat): Document {
         : null,
     mentions: !page.visible("bas.conditions")
       ? manquantes
-      : (joindre(util(regle.conditions), manquantes) || null),
+      : joindre(util(regle.conditions), manquantes) || null,
     /*
      * Il engage celui qui commande : sa signature y a sa place.
      *
