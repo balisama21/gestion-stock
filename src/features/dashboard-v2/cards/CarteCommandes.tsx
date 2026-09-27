@@ -1,6 +1,7 @@
 import React from "react";
 import { Card, CardHeader } from "../components/Card";
 import { EtatVide } from "../components/States";
+import { ChiffreCle } from "../components/ChiffreCle";
 import type { ChiffresCommandes } from "../lib/chiffres";
 
 /**
@@ -71,6 +72,14 @@ export const CarteCommandes: React.FC<{
           )
         }
       />
+
+      {commandes.total > 0 && (
+        <ChiffreCle
+          valeur={commandes.total}
+          libelle={commandes.total > 1 ? "commandes en cours" : "commande en cours"}
+          detail={commandes.aEncaisser > 0 ? `dont ${commandes.aEncaisser} à encaisser` : undefined}
+        />
+      )}
 
       <div className="track">
         {etapes.map((e, i) => (

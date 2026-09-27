@@ -1,6 +1,7 @@
 import React, { useId, useState } from "react";
 import { Card, CardHeader } from "../components/Card";
 import { Tag } from "../components/Tag";
+import { ChiffreCle } from "../components/ChiffreCle";
 import { EtatVide } from "../components/States";
 import { dateLocale, jourMoisChiffres, montant } from "../lib/format";
 import { dateDuJour } from "../../../lib/dates";
@@ -56,6 +57,10 @@ export const CarteTaches: React.FC<{
     })
     .slice(0, 6);
 
+  const nbOuvertes = taches.filter((t) => t.statut !== "termine").length;
+  const nbEnRetard = taches.filter(
+    (t) => t.statut !== "termine" && t.echeance && t.echeance < aujourdhui,
+  ).length;
   const faites = ouvertes.filter((t) => cochees.has(t.id)).length;
   const enAttente = devis.filter((d) => d.statut === "brouillon" || d.statut === "envoye");
   const totalDevis = enAttente.reduce((a, d) => a + d.total, 0);
@@ -91,6 +96,15 @@ export const CarteTaches: React.FC<{
           )
         }
       />
+
+      {nbOuvertes > 0 && (
+        <ChiffreCle
+          valeur={nbOuvertes}
+          libelle={nbOuvertes > 1 ? "tâches ouvertes" : "tâche ouverte"}
+          detail={nbEnRetard > 0 ? `dont ${nbEnRetard} en retard` : undefined}
+          ton={nbEnRetard > 0 ? "alerte" : undefined}
+        />
+      )}
 
       {ouvertes.length === 0 ? (
         <EtatVide titre="Rien à faire" detail="Aucune tâche ouverte pour le moment." />

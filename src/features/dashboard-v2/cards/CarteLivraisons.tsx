@@ -1,6 +1,7 @@
 import React from "react";
 import { Card, CardHeader } from "../components/Card";
 import { EtatVide } from "../components/States";
+import { ChiffreCle } from "../components/ChiffreCle";
 import { dateLocale, montant, montantMasque } from "../lib/format";
 import { dateDuJour } from "../../../lib/dates";
 
@@ -50,6 +51,8 @@ export const CarteLivraisons: React.FC<{
     .sort((a, b) => (a.date_prevue ?? "").localeCompare(b.date_prevue ?? ""))
     .slice(0, 3);
 
+  const aEncaisserDuJour = duJour.reduce((a, l) => a + (l.montant_a_encaisser ?? 0), 0);
+
   const arret = (l: LivraisonAffichee) => (
     <div className="stop" key={l.id}>
       <div className="dd">
@@ -94,6 +97,18 @@ export const CarteLivraisons: React.FC<{
           )
         }
       />
+
+      {duJour.length > 0 && (
+        <ChiffreCle
+          valeur={duJour.length}
+          libelle={duJour.length > 1 ? "livraisons aujourd'hui" : "livraison aujourd'hui"}
+          detail={
+            aEncaisserDuJour > 0
+              ? `${visible ? montant(aEncaisserDuJour) : montantMasque()} à encaisser`
+              : undefined
+          }
+        />
+      )}
 
       {duJour.length === 0 ? (
         <EtatVide

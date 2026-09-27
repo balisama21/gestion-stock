@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from "react";
 import { BoutonRepli } from "../components/BoutonRepli";
 import { Card } from "../components/Card";
+import { ChiffreCle } from "../components/ChiffreCle";
 import { dateLocale, pluriel } from "../lib/format";
 import { dateDuJour } from "../../../lib/dates";
 import { agendaDuMois, joursDuMois, prochainsDepuis, type SourcesAgenda } from "../lib/agenda";
@@ -75,6 +76,10 @@ export const CarteAgenda: React.FC<{
   const premier = dateLocale(jours[0]).getDay();
   const vides = (premier + 6) % 7;
 
+  const aVenir = [...table.entries()]
+    .filter(([jour]) => jour >= aujourdhui)
+    .reduce((n, [, items]) => n + items.length, 0);
+
   const prochains = prochainsDepuis(table, selection ?? aujourdhui, 3);
   const nomDuMois = dateLocale(jours[0]).toLocaleDateString("fr-FR", {
     month: "long",
@@ -108,6 +113,8 @@ export const CarteAgenda: React.FC<{
           )}
         </div>
       </div>
+
+      {aVenir > 0 && <ChiffreCle valeur={aVenir} libelle="à venir ce mois" />}
 
       {/* Retiree du DOM, et non masquee : `.cal` est un `display:
           grid` qui l'emporterait sur l'attribut `hidden`, et ses

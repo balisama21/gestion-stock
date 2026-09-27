@@ -3587,3 +3587,56 @@
     color: var(--ink-2);
   }
 }
+
+/* Le chiffre clé d'une carte opérationnelle : ordinateur seulement. */
+.dash2 .cle {
+  display: none;
+}
+
+@media (min-width: 901px) {
+  .dash2 .cle {
+    display: flex;
+    align-items: baseline;
+    flex-wrap: wrap;
+    gap: 4px 10px;
+  }
+  .dash2 .cle-v {
+    font-size: 28px;
+    font-weight: 700;
+    line-height: 1;
+    letter-spacing: -0.02em;
+    color: var(--ink);
+  }
+  .dash2 .cle-l {
+    font-size: var(--t-corps);
+    color: var(--muted);
+  }
+  .dash2 .cle-l small {
+    margin-left: 6px;
+    font-size: var(--t-corps);
+    font-weight: 600;
+    color: var(--ink-2);
+  }
+  .dash2 .cle-l small.cle-alerte {
+    color: var(--crit);
+  }
+
+  /* ── Opérations : la journée (agenda | à faire), puis les commandes (suivi | livraisons) ── */
+  .dash2 .groupe .bloc[data-bloc="operations"] {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+    background: none;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+    overflow: visible;
+  }
+  .dash2 .groupe .bloc[data-bloc="operations"] > .card {
+    border: 1px solid var(--line);
+    border-radius: var(--r-carte);
+    box-shadow: var(--shadow);
+  }
+  .dash2 .groupe .bloc[data-bloc="operations"] > :last-child:nth-child(odd) {
+    grid-column: 1 / -1;
+  }
+}
