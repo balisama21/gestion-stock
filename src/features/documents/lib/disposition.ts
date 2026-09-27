@@ -700,6 +700,18 @@ export function ajouterElement(
 export const habillageDeDepart = (genre: GenreElement | undefined): Habillage | undefined =>
   genre === "trait" || genre === "cadre" ? { bordure: BORDURES[0] } : undefined;
 
+/** Une copie décalée de 5 mm, pour la voir sortir de l'original. */
+export function dupliquerElement(
+  d: Disposition,
+  cle: CleElement,
+): { disposition: Disposition; cle: CleElement } | null {
+  const b = d.blocs[cle];
+  if (!b?.element) return null;
+  const copie = cleElement();
+  const pose = contraindre({ ...structuredClone(b), x: b.x + 5, y: b.y + 5 });
+  return { disposition: { ...d, blocs: { ...d.blocs, [copie]: pose } }, cle: copie };
+}
+
 export function retirerElement(d: Disposition, cle: CleElement): Disposition {
   const blocs = { ...d.blocs };
   delete blocs[cle];

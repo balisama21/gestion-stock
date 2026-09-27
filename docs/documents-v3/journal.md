@@ -474,3 +474,11 @@ vertical selon la forme de son cadre ; le cadre passe sous le texte
 (niveau 0, comme le bandeau) ; l'image, envoyée telle quelle dans le seau
 `cachets` (PNG réduit sous 2 Mo), passe au-dessus comme un cachet. Ils se
 paginent comme n'importe quel bloc et sont figés avec la disposition.
+
+**Comme sur Canva (C1).** Une barre d'outils flottante au-dessus du bloc
+choisi (`BarreBloc.tsx`) porte police, taille, gras, italique, alignement,
+couleurs, dupliquer et supprimer ; elle s'efface pendant un geste. Suppr
+retire tout bloc sauf les mentions obligatoires (masque pour un bloc du
+modèle, retrait pour un élément ou un cachet). Annuler / Rétablir
+(Ctrl+Z, Ctrl+Y) : un pas par geste, les changements espacés de moins de
+700 ms ne font qu'un pas.

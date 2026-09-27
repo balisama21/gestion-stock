@@ -1,32 +1,29 @@
 import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import {
-  AlignCenter,
-  AlignLeft,
-  AlignRight,
   ArrowDown,
   ArrowLeft,
   ArrowRight,
   ArrowUp,
-  Bold,
   Eye,
   EyeOff,
   FileText,
-  Italic,
   ImagePlus,
   Lock,
   Minus,
   Move,
-  Plus,
   RotateCcw,
   Save,
   Square,
+  Redo2,
   Trash2,
   Type,
+  Undo2,
 } from "lucide-react";
 import { SettingsToggle } from "./primitives";
 import { useReglagesModifiables } from "../../features/documents/contexteReglages";
 import { ChoixCouleur } from "./ChoixCouleur";
+import { BarreBloc } from "./BarreBloc";
 import type { Document } from "../../features/documents/lib/buildDocument";
 import { variablesDeCouleur, type ReglagesDocuments } from "../../features/documents/lib/reglages";
 import { DocumentPreview } from "../../features/documents/DocumentPreview";
@@ -35,14 +32,15 @@ import {
   aimanterRedimension,
   ajouterElement,
   BLOCS,
-  BORDURES,
   blocsResolus,
   cleCachet,
   clesPosees,
   ciblesAimant,
   contraindre,
+  dupliquerElement,
   estCleCachet,
   estCleElement,
+  estVerrouille,
   habiller,
   habillageDeDepart,
   idDuCachet,
@@ -53,8 +51,6 @@ import {
   retirerElement,
   redimensionner,
   reinitialiserDisposition,
-  TAILLE_TEXTE,
-  type Alignement,
   type BlocPose,
   type Cibles,
   type ClePosee,
@@ -63,7 +59,6 @@ import {
   type Guide,
   type Habillage,
   type Poignee,
-  type Police,
 } from "../../features/documents/lib/disposition";
 import {
   contenuDuBloc,
@@ -127,26 +122,6 @@ const CHAMPS: { cle: "x" | "y" | "l" | "h"; nom: string }[] = [
   { cle: "h", nom: "Hauteur" },
 ];
 
-const ALIGNEMENTS: { cle: Alignement; nom: string; Icone: typeof AlignLeft }[] = [
-  { cle: "gauche", nom: "Aligner à gauche", Icone: AlignLeft },
-  { cle: "centre", nom: "Centrer", Icone: AlignCenter },
-  { cle: "droite", nom: "Aligner à droite", Icone: AlignRight },
-];
-
-const POLICES: { cle: Police | ""; nom: string; famille?: string }[] = [
-  { cle: "", nom: "Celle du modèle" },
-  { cle: "sans", nom: "Onest", famille: "var(--doc-sans)" },
-  { cle: "serif", nom: "Source Serif", famille: "var(--doc-serif)" },
-  { cle: "mono", nom: "JetBrains Mono", famille: "var(--doc-mono)" },
-];
-
-const TRAITS: { valeur: number | undefined; nom: string }[] = [
-  { valeur: undefined, nom: "Aucune" },
-  { valeur: BORDURES[0], nom: "Fine" },
-  { valeur: BORDURES[1], nom: "Moyenne" },
-  { valeur: BORDURES[2], nom: "Épaisse" },
-];
-
 const NOMS_ELEMENTS: Record<GenreElement, string> = {
   texte: "Texte libre",
   trait: "Trait",
@@ -170,6 +145,14 @@ export const EditeurLibre: React.FC<Props> = ({
   const contexte = useReglagesModifiables();
   const storeId = storeIdPasse ?? contexte?.storeId;
   const [d, setD] = useState(disposition);
+  /** Annuler / Rétablir : un pas par geste, les changements rapprochés font un seul pas. */
+  const passe = useRef<Disposition[]>([]);
+  const futur = useRef<Disposition[]>([]);
+  const [, setVersion] = useState(0);
+  const suivi = useRef({ avant: disposition, t: 0, ignorer: false });
+  const courant = useRef(disposition);
+  courant.current = d;
+  const [enGeste, setEnGeste] = useState(false);
   const [apercu, setApercu] = useState(false);
   const [choisi, setChoisi] = useState<ClePosee | null>(null);
   const [echelle, setEchelle] = useState(1);
@@ -218,6 +201,47 @@ export const EditeurLibre: React.FC<Props> = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [chemins]);
   const modifie = JSON.stringify(d) !== JSON.stringify(disposition);
+
+  useEffect(() => {
+    const s = suivi.current;
+    if (s.avant === d) return;
+    const maintenant = Date.now();
+    if (s.ignorer) {
+      s.ignorer = false;
+    } else if (maintenant - s.t > 700) {
+      passe.current = [...passe.current.slice(-99), s.avant];
+      futur.current = [];
+      setVersion((v) => v + 1);
+    }
+    s.avant = d;
+    s.t = maintenant;
+  }, [d]);
+
+  const revenir = useCallback((de: typeof passe, vers: typeof passe) => {
+    const cible = de.current.at(-1);
+    if (!cible) return;
+    de.current = de.current.slice(0, -1);
+    vers.current = [...vers.current, courant.current];
+    suivi.current.ignorer = true;
+    suivi.current.t = 0;
+    setD(cible);
+    setVersion((v) => v + 1);
+  }, []);
+  const annuler = useCallback(() => revenir(passe, futur), [revenir]);
+  const retablir = useCallback(() => revenir(futur, passe), [revenir]);
+
+  /** Retire le bloc : un élément ou un cachet s'en va, un bloc du modèle se masque. */
+  const supprimerBloc = useCallback((cle: ClePosee) => {
+    if (estVerrouille(cle)) return;
+    setD((p) =>
+      estCleElement(cle)
+        ? retirerElement(p, cle)
+        : estCleCachet(cle)
+          ? retirerCachet(p, idDuCachet(cle))
+          : poserBloc(p, cle, { masque: true }),
+    );
+    setChoisi(null);
+  }, []);
 
   const poser = useCallback(
     (cle: ClePosee, patch: Partial<BlocPose>) => setD((p) => poserBloc(p, cle, patch)),
@@ -271,12 +295,18 @@ export const EditeurLibre: React.FC<Props> = ({
   useEffect(() => {
     const clavier = (e: KeyboardEvent) => {
       if (e.target instanceof Element && e.target.closest("input, textarea, select")) return;
+      const touche = e.key.toLowerCase();
+      if ((e.ctrlKey || e.metaKey) && (touche === "z" || touche === "y")) {
+        e.preventDefault();
+        if (touche === "y" || e.shiftKey) retablir();
+        else annuler();
+        return;
+      }
       if (e.key === "Escape") return setChoisi(null);
       if (!choisi) return;
-      if ((e.key === "Delete" || e.key === "Backspace") && estCleElement(choisi)) {
+      if (e.key === "Delete" || e.key === "Backspace") {
         e.preventDefault();
-        setD((p) => retirerElement(p, choisi));
-        setChoisi(null);
+        supprimerBloc(choisi);
         return;
       }
       const pas = e.shiftKey ? 5 : 1;
@@ -292,7 +322,7 @@ export const EditeurLibre: React.FC<Props> = ({
     };
     window.addEventListener("keydown", clavier);
     return () => window.removeEventListener("keydown", clavier);
-  }, [choisi, deplacer]);
+  }, [choisi, deplacer, annuler, retablir, supprimerBloc]);
 
   useEffect(() => {
     const avant = document.body.style.overflow;
@@ -315,6 +345,7 @@ export const EditeurLibre: React.FC<Props> = ({
     } catch {
       // Pointeur déjà relâché : le geste se suit quand même par les événements du cadre.
     }
+    setEnGeste(true);
     glisse.current = {
       id: e.pointerId,
       cle,
@@ -347,6 +378,7 @@ export const EditeurLibre: React.FC<Props> = ({
 
   const lacher = () => {
     glisse.current = null;
+    setEnGeste(false);
     setGuides([]);
   };
 
@@ -492,26 +524,50 @@ export const EditeurLibre: React.FC<Props> = ({
           className="app-field min-w-0 flex-1 sm:max-w-xs"
         />
         <div className="ml-auto flex flex-wrap items-center gap-2">
+          <div className="flex">
+            <button
+              type="button"
+              onClick={annuler}
+              disabled={passe.current.length === 0}
+              className={boutonIcone}
+              aria-label="Annuler"
+              title="Annuler (Ctrl+Z)"
+            >
+              <Undo2 className="h-5 w-5" />
+            </button>
+            <button
+              type="button"
+              onClick={retablir}
+              disabled={futur.current.length === 0}
+              className={boutonIcone}
+              aria-label="Rétablir"
+              title="Rétablir (Ctrl+Y)"
+            >
+              <Redo2 className="h-5 w-5" />
+            </button>
+          </div>
           {reglages && doc && (
             <button
               type="button"
               onClick={() => setApercu((a) => !a)}
               aria-pressed={apercu}
+              aria-label={apercu ? "Retour à la feuille" : "Aperçu"}
               className="app-btn-secondary"
               title="Les pages telles qu'elles s'imprimeront, pagination comprise"
             >
               {apercu ? <Move className="h-4 w-4" /> : <FileText className="h-4 w-4" />}
-              {apercu ? "Retour à la feuille" : "Aperçu"}
+              <span className="hidden sm:inline">{apercu ? "Retour à la feuille" : "Aperçu"}</span>
             </button>
           )}
           <button
             type="button"
             onClick={() => setD((p) => reinitialiserDisposition(p))}
+            aria-label="Revenir au modèle d'origine"
             className="app-btn-secondary"
             title="Remet chaque bloc à sa place dans le modèle de départ. Les autres réglages ne bougent pas."
           >
             <RotateCcw className="h-4 w-4" />
-            Revenir au modèle d&apos;origine
+            <span className="hidden sm:inline">Revenir au modèle d&apos;origine</span>
           </button>
           <button
             type="button"
@@ -696,6 +752,33 @@ export const EditeurLibre: React.FC<Props> = ({
                   ))}
                 </div>
               </div>
+              {bloc && choisi && !enGeste && !ecrit && (
+                <BarreBloc
+                  nom={nomChoisi ?? ""}
+                  bloc={bloc}
+                  genre={choisiCachet ? "cachet" : (genre ?? null)}
+                  verrouille={estVerrouille(choisi)}
+                  cadre={{
+                    gauche: bloc.x * PX_MM * echelle,
+                    haut: bloc.y * PX_MM * echelle,
+                    bas: (bloc.y + bloc.h) * PX_MM * echelle,
+                  }}
+                  largeurScene={LARGEUR_PX * echelle}
+                  onHabiller={(patch) => habillerBloc(choisi, patch)}
+                  onAligner={(align) => poser(choisi, { align })}
+                  onDupliquer={
+                    estCleElement(choisi)
+                      ? () => {
+                          const copie = dupliquerElement(d, choisi);
+                          if (!copie) return;
+                          setD(copie.disposition);
+                          setChoisi(copie.cle);
+                        }
+                      : undefined
+                  }
+                  onSupprimer={() => supprimerBloc(choisi)}
+                />
+              )}
             </div>
           </div>
           {lignesCachees > 0 && (
@@ -761,199 +844,16 @@ export const EditeurLibre: React.FC<Props> = ({
                   )}
                 </div>
               )}
-              {genre === "trait" && (
-                <div className="space-y-1.5">
-                  <label className="block text-xs text-muted-foreground">
-                    Épaisseur
-                    <select
-                      aria-label="Épaisseur"
-                      value={String(bloc.habillage?.bordure ?? BORDURES[0])}
-                      onChange={(e) => habillerBloc(choisi, { bordure: Number(e.target.value) })}
-                      className="app-field mt-1 w-full"
-                    >
-                      {TRAITS.filter((t) => t.valeur).map((t) => (
-                        <option key={t.nom} value={t.valeur}>
-                          {t.nom}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                  <p className="text-xs text-muted-foreground">Couleur du trait</p>
-                  <ChoixCouleur
-                    nom="Couleur du trait"
-                    aucun="Couleur du document"
-                    valeur={bloc.habillage?.bordureCouleur}
-                    onChange={(v) => habillerBloc(choisi, { bordureCouleur: v })}
-                  />
-                  <p className="text-[11px] leading-relaxed text-muted-foreground">
-                    Plus large que haut, le trait est horizontal ; plus haut que large, il est
-                    vertical.
-                  </p>
-                </div>
-              )}
-              {!choisiCachet && genre !== "trait" && genre !== "image" && (
-                <div className="space-y-3">
-                  <div className="flex items-center justify-between gap-2">
-                    <p className="text-xs font-medium text-foreground">Style</p>
-                    {bloc.habillage && (
-                      <button
-                        type="button"
-                        onClick={() => poser(choisi, { habillage: habillageDeDepart(genre) })}
-                        className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
-                        title="Reprendre l'allure du modèle"
-                      >
-                        <RotateCcw className="h-3.5 w-3.5" />
-                        Style du modèle
-                      </button>
-                    )}
-                  </div>
-                  {genre !== "cadre" && (
-                    <>
-                      <label className="block text-xs text-muted-foreground">
-                        Police
-                        <select
-                          aria-label="Police"
-                          value={bloc.habillage?.police ?? ""}
-                          onChange={(e) =>
-                            habillerBloc(choisi, {
-                              police: (e.target.value || undefined) as Police | undefined,
-                            })
-                          }
-                          className="app-field mt-1 w-full"
-                        >
-                          {POLICES.map((p) => (
-                            <option key={p.cle} value={p.cle} style={{ fontFamily: p.famille }}>
-                              {p.nom}
-                            </option>
-                          ))}
-                        </select>
-                      </label>
-                      <div className="flex items-center justify-between gap-2">
-                        <div
-                          className="flex items-center"
-                          role="group"
-                          aria-label="Taille du texte"
-                        >
-                          <button
-                            type="button"
-                            aria-label="Texte plus petit"
-                            title="Plus petit"
-                            disabled={(bloc.habillage?.taille ?? 100) <= TAILLE_TEXTE.min}
-                            onClick={() =>
-                              habillerBloc(choisi, {
-                                taille: (bloc.habillage?.taille ?? 100) - TAILLE_TEXTE.pas,
-                              })
-                            }
-                            className={boutonIcone}
-                          >
-                            <Minus className="h-4 w-4" />
-                          </button>
-                          <button
-                            type="button"
-                            onClick={() => habillerBloc(choisi, { taille: undefined })}
-                            title="Taille du modèle"
-                            className="min-w-[3.25rem] text-center text-sm tabular-nums text-foreground"
-                          >
-                            {bloc.habillage?.taille ?? 100} %
-                          </button>
-                          <button
-                            type="button"
-                            aria-label="Texte plus grand"
-                            title="Plus grand"
-                            disabled={(bloc.habillage?.taille ?? 100) >= TAILLE_TEXTE.max}
-                            onClick={() =>
-                              habillerBloc(choisi, {
-                                taille: (bloc.habillage?.taille ?? 100) + TAILLE_TEXTE.pas,
-                              })
-                            }
-                            className={boutonIcone}
-                          >
-                            <Plus className="h-4 w-4" />
-                          </button>
-                        </div>
-                        <div className="flex">
-                          <button
-                            type="button"
-                            aria-label="Gras"
-                            title="Gras"
-                            aria-pressed={bloc.habillage?.gras === true}
-                            onClick={() =>
-                              habillerBloc(choisi, {
-                                gras: bloc.habillage?.gras ? undefined : true,
-                              })
-                            }
-                            className={`${boutonIcone} ${bloc.habillage?.gras ? "text-primary" : ""}`}
-                          >
-                            <Bold className="h-4 w-4" />
-                          </button>
-                          <button
-                            type="button"
-                            aria-label="Italique"
-                            title="Italique"
-                            aria-pressed={bloc.habillage?.italique === true}
-                            onClick={() =>
-                              habillerBloc(choisi, {
-                                italique: bloc.habillage?.italique ? undefined : true,
-                              })
-                            }
-                            className={`${boutonIcone} ${bloc.habillage?.italique ? "text-primary" : ""}`}
-                          >
-                            <Italic className="h-4 w-4" />
-                          </button>
-                        </div>
-                      </div>
-                      <div className="space-y-1.5">
-                        <p className="text-xs text-muted-foreground">Couleur du texte</p>
-                        <ChoixCouleur
-                          nom="Couleur du texte"
-                          aucun="Celle du modèle"
-                          valeur={bloc.habillage?.encre}
-                          onChange={(v) => habillerBloc(choisi, { encre: v })}
-                        />
-                      </div>
-                    </>
-                  )}
-                  <div className="space-y-1.5">
-                    <p className="text-xs text-muted-foreground">
-                      {choisi === "fond" ? "Couleur du bandeau" : "Fond"}
-                    </p>
-                    <ChoixCouleur
-                      nom={choisi === "fond" ? "Couleur du bandeau" : "Fond"}
-                      aucun={choisi === "fond" ? "Celle du document" : "Sans fond"}
-                      valeur={bloc.habillage?.fond}
-                      onChange={(v) => habillerBloc(choisi, { fond: v })}
-                    />
-                  </div>
-                  <div className="space-y-1.5">
-                    <label className="block text-xs text-muted-foreground">
-                      Bordure
-                      <select
-                        aria-label="Bordure"
-                        value={String(bloc.habillage?.bordure ?? "")}
-                        onChange={(e) =>
-                          habillerBloc(choisi, {
-                            bordure: e.target.value ? Number(e.target.value) : undefined,
-                          })
-                        }
-                        className="app-field mt-1 w-full"
-                      >
-                        {TRAITS.map((t) => (
-                          <option key={t.nom} value={t.valeur ?? ""}>
-                            {t.nom}
-                          </option>
-                        ))}
-                      </select>
-                    </label>
-                    {bloc.habillage?.bordure && (
-                      <ChoixCouleur
-                        nom="Couleur de la bordure"
-                        aucun="Couleur du document"
-                        valeur={bloc.habillage.bordureCouleur}
-                        onChange={(v) => habillerBloc(choisi, { bordureCouleur: v })}
-                      />
-                    )}
-                  </div>
-                </div>
+              {bloc.habillage && genre !== "image" && !choisiCachet && (
+                <button
+                  type="button"
+                  onClick={() => poser(choisi, { habillage: habillageDeDepart(genre) })}
+                  className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
+                  title="Reprendre l'allure du modèle"
+                >
+                  <RotateCcw className="h-3.5 w-3.5" />
+                  Style du modèle
+                </button>
               )}
               {trop.has(choisi) && (
                 <p className="rounded-lg border border-warning-border bg-warning-soft px-3 py-2 text-xs text-warning">
@@ -977,22 +877,7 @@ export const EditeurLibre: React.FC<Props> = ({
                   </label>
                 ))}
               </div>
-              <div className="flex items-center justify-between gap-2">
-                <div className={`flex${sansTexte ? " invisible" : ""}`}>
-                  {ALIGNEMENTS.map(({ cle, nom, Icone }) => (
-                    <button
-                      key={cle}
-                      type="button"
-                      aria-label={nom}
-                      title={nom}
-                      aria-pressed={(bloc.align ?? "gauche") === cle}
-                      onClick={() => poser(choisi, { align: cle })}
-                      className={`${boutonIcone} ${(bloc.align ?? "gauche") === cle ? "text-primary" : ""}`}
-                    >
-                      <Icone className="h-4 w-4" />
-                    </button>
-                  ))}
-                </div>
+              <div className="flex items-center justify-end gap-2">
                 <div className="flex">
                   {(
                     [
@@ -1035,30 +920,7 @@ export const EditeurLibre: React.FC<Props> = ({
                     </p>
                   ) : null;
                 })()}
-              {estCleElement(choisi) ? (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setD((p) => retirerElement(p, choisi));
-                    setChoisi(null);
-                  }}
-                  className="app-btn-secondary w-full"
-                >
-                  <Trash2 className="h-4 w-4" />
-                  Supprimer de la feuille
-                </button>
-              ) : choisiCachet ? (
-                <button
-                  type="button"
-                  onClick={() => {
-                    setD((p) => retirerCachet(p, idDuCachet(choisi as `cachet:${string}`)));
-                    setChoisi(null);
-                  }}
-                  className="app-btn-secondary w-full"
-                >
-                  Retirer de la feuille
-                </button>
-              ) : (
+              {!estCleElement(choisi) && !choisiCachet && (
                 <div className="flex items-center justify-between gap-3">
                   <span className="text-xs text-foreground">Texte clair, sur fond de couleur</span>
                   <SettingsToggle

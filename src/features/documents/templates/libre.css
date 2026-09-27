@@ -161,3 +161,9 @@
   width: 100%;
   height: 100%;
 }
+
+/* Barre d'outils de l'éditeur : la hauteur tactile des boutons la doublerait. */
+[data-barre-bloc] button,
+[data-barre-bloc] select {
+  min-height: 0;
+}

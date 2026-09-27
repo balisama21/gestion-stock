@@ -166,9 +166,12 @@ describe("l'allure depuis la feuille", () => {
     fireEvent.click(screen.getByRole("button", { name: "Texte plus grand" }));
     fireEvent.click(screen.getByRole("button", { name: "Texte plus grand" }));
     fireEvent.click(screen.getByRole("button", { name: "Gras" }));
+    fireEvent.click(screen.getByRole("button", { name: "Couleurs" }));
     const encre = screen.getByRole("group", { name: "Couleur du texte" });
     fireEvent.click(within(encre).getByRole("button", { name: "Bordeaux" }));
-    fireEvent.change(screen.getByLabelText("Bordure"), { target: { value: "0.3" } });
+    fireEvent.click(
+      within(screen.getByRole("group", { name: "Bordure" })).getByRole("button", { name: "Fine" }),
+    );
     fireEvent.click(screen.getByRole("button", { name: /Enregistrer/ }));
     expect(blocsResolus(enregistre()).titre.habillage).toEqual({
       police: "serif",
@@ -236,14 +239,19 @@ describe("ajouter sur la feuille", () => {
       textes: { texte: "Livraison offerte" },
     });
 
-    fireEvent.click(screen.getByRole("button", { name: "Supprimer de la feuille" }));
+    fireEvent.click(screen.getByRole("button", { name: "Supprimer" }));
     expect(enregistrer()).toEqual([]);
   });
 
   it("un trait et un cadre s'ajoutent ; la touche Suppr retire l'élément choisi", () => {
     const enregistrer = ouvrirAvec();
     fireEvent.click(screen.getByRole("button", { name: "Trait" }));
-    fireEvent.change(screen.getByLabelText("Épaisseur"), { target: { value: "1" } });
+    fireEvent.click(screen.getByRole("button", { name: "Couleurs" }));
+    fireEvent.click(
+      within(screen.getByRole("group", { name: "Épaisseur" })).getByRole("button", {
+        name: "Épaisse",
+      }),
+    );
     fireEvent.click(screen.getByRole("button", { name: "Cadre" }));
     const ajoutes = enregistrer();
     expect(ajoutes.map(([, b]) => b?.element?.genre)).toEqual(["trait", "cadre"]);
@@ -272,5 +280,59 @@ describe("ajouter sur la feuille", () => {
   it("sans boutique, l'image n'est pas proposée", () => {
     ouvrirAvec();
     expect((screen.getByLabelText("Ajouter une image") as HTMLInputElement).disabled).toBe(true);
+  });
+});
+
+describe("comme sur Canva : la barre, Suppr, Annuler", () => {
+  it("la barre d'outils apparaît au-dessus du bloc choisi", () => {
+    ouvrir();
+    expect(screen.queryByRole("toolbar")).toBeNull();
+    fireEvent.pointerDown(document.querySelector('[data-cadre="titre"]')!, {
+      pointerType: "mouse",
+    });
+    // Pendant le geste, la barre s'efface pour laisser voir la feuille.
+    expect(screen.queryByRole("toolbar")).toBeNull();
+    fireEvent.pointerUp(document.querySelector('[data-cadre="titre"]')!);
+    expect(screen.getByRole("toolbar", { name: "Outils : Titre du document" })).toBeTruthy();
+  });
+
+  it("Suppr masque un bloc du modèle, jamais une mention obligatoire", () => {
+    const { enregistre } = ouvrir();
+    fireEvent.click(screen.getByRole("button", { name: "Mot de fin" }));
+    fireEvent.keyDown(window, { key: "Delete" });
+    fireEvent.click(screen.getByRole("button", { name: "Totaux" }));
+    fireEvent.keyDown(window, { key: "Delete" });
+    expect(within(screen.getByRole("toolbar")).getByLabelText("Mention obligatoire")).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Supprimer" })).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: /Enregistrer/ }));
+    const blocs = blocsResolus(enregistre());
+    expect(blocs.motDeFin.masque).toBe(true);
+    expect(blocs.totaux.masque).toBeUndefined();
+  });
+
+  it("Ctrl+Z annule une suppression, Ctrl+Y la refait", () => {
+    const { enregistre } = ouvrir();
+    fireEvent.click(screen.getByRole("button", { name: "Mot de fin" }));
+    fireEvent.click(screen.getByRole("button", { name: "Supprimer" }));
+    fireEvent.keyDown(window, { key: "z", ctrlKey: true });
+    fireEvent.click(screen.getByRole("button", { name: /Enregistrer/ }));
+    expect(blocsResolus(enregistre()).motDeFin.masque).toBeUndefined();
+
+    fireEvent.keyDown(window, { key: "y", ctrlKey: true });
+    fireEvent.click(screen.getByRole("button", { name: /Enregistrer/ }));
+    expect(blocsResolus(enregistre()).motDeFin.masque).toBe(true);
+    fireEvent.click(screen.getByRole("button", { name: "Annuler" }));
+    fireEvent.click(screen.getByRole("button", { name: /Enregistrer/ }));
+    expect(blocsResolus(enregistre()).motDeFin.masque).toBeUndefined();
+  });
+
+  it("un élément ajouté se duplique, décalé", () => {
+    const { enregistre } = ouvrir();
+    fireEvent.click(screen.getByRole("button", { name: "Cadre" }));
+    fireEvent.click(screen.getByRole("button", { name: "Dupliquer" }));
+    fireEvent.click(screen.getByRole("button", { name: /Enregistrer/ }));
+    const cadres = Object.entries(enregistre().blocs).filter(([c]) => c.startsWith("el:"));
+    expect(cadres).toHaveLength(2);
+    expect(cadres[1][1]!.x - cadres[0][1]!.x).toBe(5);
   });
 });
