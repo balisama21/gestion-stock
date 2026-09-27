@@ -106,6 +106,36 @@ interface Glisse {
   depart: BlocPose;
   poignee: Poignee | null;
   cibles: Cibles;
+  /** Le bloc était déjà choisi : un clic sans bouger ouvre l'écriture, comme sur Canva. */
+  deja: boolean;
+  bouge: boolean;
+}
+
+/** Au-delà, le doigt ou la souris déplace ; en deçà, c'est un clic. */
+const SEUIL_GESTE_PX = 4;
+/** Les blocs qui ne sont QUE leur texte : on l'écrit où que l'on touche. */
+const TOUT_TEXTE = new Set<string>(["titre", "motDeFin", "mentions", "pied"]);
+const normal = (t: string) => t.replace(/\s+/g, " ").trim().toLowerCase();
+
+/** Le fond réellement peint sous un élément : un texte blanc s'écrit sur son bandeau, pas sur du blanc. */
+function fondSous(el: HTMLElement | null): string {
+  for (let n = el; n && !n.classList.contains("doc-feuille"); n = n.parentElement) {
+    const f = getComputedStyle(n).backgroundColor;
+    if (f && f !== "transparent" && !/rgba\(.*,\s*0\)$/.test(f)) return f;
+  }
+  return "#ffffff";
+}
+
+/** La zone d'écriture posée sur le mot, un peu plus large pour qu'il puisse grandir. */
+function placeDuMot(e: {
+  cadre?: { left: number; top: number; width: number; height: number };
+  style: React.CSSProperties;
+}): React.CSSProperties {
+  if (!e.cadre) return {};
+  const { left, top, width, height } = e.cadre;
+  const l = Math.max(width + 16, 48);
+  const aDroite = e.style.textAlign === "right" || e.style.textAlign === "end";
+  return { left: aDroite ? left + width - l : left, top, width: l, minHeight: height };
 }
 
 const POIGNEES: { cle: Poignee; x: 0 | 1; y: 0 | 1; curseur: string }[] = [
@@ -165,7 +195,9 @@ export const EditeurLibre: React.FC<Props> = ({
     k: string;
     valeur: string;
     defaut: string;
-    long?: boolean;
+    multiligne?: boolean;
+    /** Le mot visé, en pixels dans le cadre du bloc ; absent, tout le bloc. */
+    cadre?: { left: number; top: number; width: number; height: number };
     style: React.CSSProperties;
   } | null>(null);
   const scene = useRef<HTMLDivElement>(null);
@@ -354,12 +386,16 @@ export const EditeurLibre: React.FC<Props> = ({
       depart: blocs[cle],
       poignee,
       cibles: ciblesAimant(blocs, cle, d.base),
+      deja: choisi === cle && poignee === null,
+      bouge: false,
     };
   };
 
   const suivre = (e: React.PointerEvent<HTMLDivElement>) => {
     const g = glisse.current;
     if (!g || g.id !== e.pointerId) return;
+    if (!g.bouge && Math.hypot(e.clientX - g.x0, e.clientY - g.y0) < SEUIL_GESTE_PX) return;
+    g.bouge = true;
     const k = echelle * PX_MM;
     const dx = (e.clientX - g.x0) / k;
     const dy = (e.clientY - g.y0) / k;
@@ -376,10 +412,12 @@ export const EditeurLibre: React.FC<Props> = ({
     setGuides(r.guides);
   };
 
-  const lacher = () => {
+  const lacher = (e?: React.PointerEvent<HTMLElement>) => {
+    const g = glisse.current;
     glisse.current = null;
     setEnGeste(false);
     setGuides([]);
+    if (e && g?.deja && !g.bouge) ouvrirEcriture(g.cle, { x: e.clientX, y: e.clientY }, true);
   };
 
   const trop = new Set(debords ? debords.split(",") : []);
@@ -446,47 +484,99 @@ export const EditeurLibre: React.FC<Props> = ({
       return poserBloc(p, cle, { textes: Object.keys(actuels).length ? actuels : undefined });
     });
 
-  /** Double-clic : un seul texte s'écrit sur place, plusieurs s'écrivent dans le panneau. */
-  const ecrireSurLaFeuille = (cle: ClePosee) => {
+  /**
+   * Écrire le mot touché, à l'endroit exact où il est. Le mot se reconnaît
+   * à son texte ; un bloc qui n'est que du texte s'écrit où que l'on touche.
+   * Un clic qui ne vise aucun mot ne fait rien : il reste un clic.
+   */
+  const ouvrirEcriture = (
+    cle: ClePosee,
+    point: { x: number; y: number } | null,
+    clic: boolean,
+  ): boolean => {
     const champs = champsDe(cle);
-    setChoisi(cle);
-    if (champs.length === 1) {
-      const c = champs[0];
-      const el = feuille.current?.querySelector<HTMLElement>(`.doc-libre [data-bloc="${cle}"]`);
-      const cible = (el?.querySelector<HTMLElement>(
-        ".doc-libre-texte, h4, h5, .doc-titre, .merci, p, footer",
-      ) ??
-        el?.querySelector<HTMLElement>("div:not(.doc-libre-echelle)") ??
-        el) as HTMLElement | null;
-      const cs = cible ? getComputedStyle(cible) : null;
-      const k = echelleDuTexte(blocs[cle]);
-      setEcrit({
-        cle,
-        k: c.cle,
-        valeur: blocs[cle]?.textes?.[c.cle] ?? c.valeur,
-        defaut: c.valeur,
-        long: c.long,
-        style: cs
-          ? {
-              fontFamily: cs.fontFamily,
-              fontSize: `${parseFloat(cs.fontSize) * k}px`,
-              fontWeight: cs.fontWeight,
-              fontStyle: cs.fontStyle,
-              letterSpacing: cs.letterSpacing,
-              lineHeight: cs.lineHeight.endsWith("px")
-                ? `${parseFloat(cs.lineHeight) * k}px`
-                : cs.lineHeight,
-              textTransform: cs.textTransform as React.CSSProperties["textTransform"],
-              textAlign: getComputedStyle(el!).textAlign as React.CSSProperties["textAlign"],
-              color: cs.color,
-            }
-          : {},
-      });
-    } else if (champs.length > 1) {
-      requestAnimationFrame(() =>
-        document.querySelector<HTMLElement>("[data-champ-texte]")?.focus(),
-      );
+    if (champs.length === 0) return false;
+    const el =
+      feuille.current?.querySelector<HTMLElement>(`.doc-libre [data-bloc="${cle}"]`) ?? null;
+    const valeurDe = (c: TexteModifiable) => blocs[cle]?.textes?.[c.cle] ?? c.valeur;
+    let vise: { c: TexteModifiable; el: HTMLElement } | null = null;
+    if (el && point && typeof document.elementsFromPoint === "function") {
+      for (const touche of document.elementsFromPoint(point.x, point.y)) {
+        if (!(touche instanceof HTMLElement) || !el.contains(touche)) continue;
+        for (let n: HTMLElement | null = touche; n; n = n === el ? null : n.parentElement) {
+          const premier = [...n.childNodes].find((x) => x.nodeType === 3 && x.textContent?.trim());
+          const lus = [normal(n.textContent ?? ""), normal(premier?.textContent ?? "")];
+          const c = champs.find((x) => {
+            const v = normal(valeurDe(x));
+            return v !== "" && lus.includes(v);
+          });
+          if (c) {
+            vise = { c, el: n };
+            break;
+          }
+        }
+        if (vise) break;
+      }
     }
+    const tout = champs.length === 1 && (estCleElement(cle) || TOUT_TEXTE.has(cle));
+    if (!vise && !tout) {
+      if (!clic) setChoisi(cle);
+      return false;
+    }
+    const c = vise?.c ?? champs[0];
+    const cible =
+      vise?.el ??
+      el?.querySelector<HTMLElement>(
+        ".doc-libre-texte, .doc-titre, .merci, .doc-mentions, footer",
+      ) ??
+      el;
+    const cs = cible ? getComputedStyle(cible) : null;
+    const k = echelleDuTexte(blocs[cle]);
+    let cadre: { left: number; top: number; width: number; height: number } | undefined;
+    if (vise && el) {
+      const r = vise.el.getBoundingClientRect();
+      const rb = el.getBoundingClientRect();
+      cadre = {
+        left: (r.left - rb.left) / echelle,
+        top: (r.top - rb.top) / echelle,
+        width: r.width / echelle,
+        height: r.height / echelle,
+      };
+    }
+    setChoisi(cle);
+    setEcrit({
+      cle,
+      k: c.cle,
+      valeur: valeurDe(c),
+      defaut: c.valeur,
+      multiligne: c.long || c.multiligne,
+      cadre,
+      style: cs
+        ? {
+            fontFamily: cs.fontFamily,
+            fontSize: `${parseFloat(cs.fontSize) * k}px`,
+            fontWeight: cs.fontWeight,
+            fontStyle: cs.fontStyle,
+            letterSpacing: cs.letterSpacing,
+            lineHeight: cs.lineHeight.endsWith("px")
+              ? `${parseFloat(cs.lineHeight) * k}px`
+              : cs.lineHeight,
+            textTransform: cs.textTransform as React.CSSProperties["textTransform"],
+            textAlign: cs.textAlign as React.CSSProperties["textAlign"],
+            color: cs.color,
+            background: fondSous(cible),
+            ...(vise
+              ? {
+                  padding: cs.padding
+                    .split(" ")
+                    .map((v) => `${(parseFloat(v) || 0) * k}px`)
+                    .join(" "),
+                }
+              : {}),
+          }
+        : {},
+    });
+    return true;
   };
 
   const validerEcrit = () => {
@@ -650,10 +740,12 @@ export const EditeurLibre: React.FC<Props> = ({
                         key={cle}
                         data-cadre={cle}
                         onPointerDown={(e) => saisir(e, cle, null)}
-                        onDoubleClick={() => ecrireSurLaFeuille(cle)}
+                        onDoubleClick={(e) =>
+                          ouvrirEcriture(cle, { x: e.clientX, y: e.clientY }, false)
+                        }
                         onPointerMove={suivre}
                         onPointerUp={lacher}
-                        onPointerCancel={lacher}
+                        onPointerCancel={() => lacher()}
                         className={`absolute cursor-move select-none ${
                           actif
                             ? "outline outline-2 outline-primary"
@@ -692,13 +784,18 @@ export const EditeurLibre: React.FC<Props> = ({
                               if (e.key === "Escape") {
                                 e.preventDefault();
                                 setEcrit(null);
-                              } else if (e.key === "Enter" && !ecrit.long && !e.shiftKey) {
+                              } else if (
+                                e.key === "Enter" &&
+                                (e.ctrlKey || e.metaKey || (!ecrit.multiligne && !e.shiftKey))
+                              ) {
                                 e.preventDefault();
                                 validerEcrit();
                               }
                             }}
-                            className="absolute left-0 top-0 z-10 min-h-full w-full resize-none overflow-hidden border-0 bg-white p-0 outline outline-2 outline-primary"
-                            style={ecrit.style}
+                            className={`absolute z-10 resize-none overflow-hidden border-0 p-0 outline outline-2 outline-primary${
+                              ecrit.cadre ? "" : " left-0 top-0 min-h-full w-full"
+                            }`}
+                            style={{ ...ecrit.style, ...placeDuMot(ecrit) }}
                           />
                         )}
                         {actif && (

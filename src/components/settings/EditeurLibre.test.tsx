@@ -121,7 +121,7 @@ describe("écrire sur la feuille", () => {
     fireEvent.doubleClick(document.querySelector('[data-cadre="titre"]')!);
     const zone = screen.getByLabelText("Écrire : Titre du document");
     fireEvent.change(zone, { target: { value: "DEVIS ESTIMATIF" } });
-    fireEvent.keyDown(zone, { key: "Enter" });
+    fireEvent.keyDown(zone, { key: "Enter", ctrlKey: true });
     expect(document.querySelector('.doc-libre [data-bloc="titre"]')?.textContent).toBe(
       "DEVIS ESTIMATIF",
     );
@@ -334,5 +334,94 @@ describe("comme sur Canva : la barre, Suppr, Annuler", () => {
     const cadres = Object.entries(enregistre().blocs).filter(([c]) => c.startsWith("el:"));
     expect(cadres).toHaveLength(2);
     expect(cadres[1][1]!.x - cadres[0][1]!.x).toBe(5);
+  });
+});
+
+describe("écrire le mot visé, comme sur Canva", () => {
+  const doc = documentDeVente({
+    ventes: TICKET_TROIS_LIGNES,
+    produits: PRODUITS,
+    client: CLIENT,
+    paiements: [PAIEMENT],
+    boutique: BOUTIQUE,
+    reglages: REGLAGES_DOCUMENTS_PAR_DEFAUT,
+  });
+
+  function ouvrirAvecDocument() {
+    const onEnregistrer = vi.fn();
+    render(
+      <EditeurLibre
+        disposition={creerDisposition("facture", "classique", "Essai")}
+        document={doc}
+        couleur="#0E7C5A"
+        enCours={false}
+        onEnregistrer={onEnregistrer}
+        onFermer={vi.fn()}
+      />,
+    );
+    return () => {
+      fireEvent.click(screen.getByRole("button", { name: /^Enregistrer/ }));
+      return blocsResolus(onEnregistrer.mock.calls.at(-1)?.[0] as Disposition);
+    };
+  }
+
+  /** jsdom ne sait pas ce qui est sous le pointeur : on le lui dit. */
+  function viser(selecteur: string) {
+    const cible = document.querySelector(selecteur)!;
+    document.elementsFromPoint = vi.fn(() => [cible]);
+    return cible;
+  }
+
+  afterEach(() => {
+    delete (document as { elementsFromPoint?: unknown }).elementsFromPoint;
+  });
+
+  it("un double-clic sur « Désignation » l'écrit là, dans le tableau", () => {
+    const enregistrer = ouvrirAvecDocument();
+    const th = [
+      ...document.querySelectorAll<HTMLElement>('.doc-libre [data-bloc="tableau"] th'),
+    ].find((t) => t.textContent === "Désignation")!;
+    document.elementsFromPoint = vi.fn(() => [th]);
+    fireEvent.doubleClick(document.querySelector('[data-cadre="tableau"]')!);
+    const zone = screen.getByLabelText("Écrire : Tableau des lignes") as HTMLTextAreaElement;
+    expect(zone.value).toBe("Désignation");
+    fireEvent.change(zone, { target: { value: "Article" } });
+    fireEvent.keyDown(zone, { key: "Enter" });
+    expect(screen.queryByLabelText(/^Écrire/)).toBeNull();
+    expect(enregistrer().tableau.textes).toEqual({ designation: "Article" });
+  });
+
+  it("un clic sur un chiffre n'ouvre rien : il vient de la base", () => {
+    ouvrirAvecDocument();
+    viser('.doc-libre [data-bloc="tableau"] tbody td:last-child');
+    const cadre = document.querySelector('[data-cadre="tableau"]')!;
+    fireEvent.doubleClick(cadre);
+    expect(screen.queryByLabelText(/^Écrire/)).toBeNull();
+  });
+
+  it("un second clic sur le bloc déjà choisi ouvre l'écriture", () => {
+    ouvrirAvecDocument();
+    viser('.doc-libre [data-bloc="totaux"] .encadre span');
+    const cadre = document.querySelector('[data-cadre="totaux"]')!;
+    fireEvent.pointerDown(cadre, { pointerType: "mouse", pointerId: 1 });
+    fireEvent.pointerUp(cadre, { pointerId: 1 });
+    expect(screen.queryByLabelText(/^Écrire/)).toBeNull();
+    fireEvent.pointerDown(cadre, { pointerType: "mouse", pointerId: 1 });
+    fireEvent.pointerUp(cadre, { pointerId: 1 });
+    expect((screen.getByLabelText("Écrire : Totaux") as HTMLTextAreaElement).value).toBe(
+      doc.totaux.libelleTotal,
+    );
+  });
+
+  it("Entrée passe à la ligne dans un titre ; cliquer à côté valide", () => {
+    const enregistrer = ouvrirAvecDocument();
+    fireEvent.doubleClick(document.querySelector('[data-cadre="titre"]')!);
+    const zone = screen.getByLabelText("Écrire : Titre du document");
+    fireEvent.change(zone, { target: { value: "FACTURE" } });
+    fireEvent.keyDown(zone, { key: "Enter" });
+    expect(screen.getByLabelText("Écrire : Titre du document")).toBeTruthy();
+    fireEvent.change(zone, { target: { value: "FACTURE\nPROFORMA" } });
+    fireEvent.blur(zone);
+    expect(enregistrer().titre.textes).toEqual({ titre: "FACTURE\nPROFORMA" });
   });
 });

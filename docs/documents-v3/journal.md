@@ -482,3 +482,12 @@ retire tout bloc sauf les mentions obligatoires (masque pour un bloc du
 modèle, retrait pour un élément ou un cachet). Annuler / Rétablir
 (Ctrl+Z, Ctrl+Y) : un pas par geste, les changements espacés de moins de
 700 ms ne font qu'un pas.
+
+**Écrire le mot visé (C2).** Double-clic sur un mot, ou second clic sur
+le bloc déjà choisi : le mot sous le pointeur se reconnaît à son texte
+(`document.elementsFromPoint`, puis remontée jusqu'au bloc) et la zone
+d'écriture se pose exactement sur lui, avec sa police, sa taille, sa
+couleur, sa marge et le fond peint dessous. Un clic sur une donnée
+n'ouvre rien. Entrée passe à la ligne dans le titre, le mot de fin, les
+conditions, le pied et le texte libre (rendus en `pre-line`) ; ailleurs
+elle valide. Ctrl+Entrée ou un clic à côté valident toujours.

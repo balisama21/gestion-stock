@@ -20,6 +20,8 @@ export interface TexteModifiable {
   /** Le mot des réglages, avant toute réécriture. */
   valeur: string;
   long?: boolean;
+  /** Entrée y passe à la ligne ; ailleurs, elle valide. */
+  multiligne?: boolean;
 }
 
 const LIBELLES_TOTAUX: { cle: keyof Document["totaux"]; nom: string }[] = [
@@ -34,7 +36,7 @@ const LIBELLES_TOTAUX: { cle: keyof Document["totaux"]; nom: string }[] = [
 export function textesDuBloc(cle: ClePosee, d: Document, base: ModeleDocument): TexteModifiable[] {
   switch (cle) {
     case "titre":
-      return [{ cle: "titre", nom: "Titre", valeur: d.titre }];
+      return [{ cle: "titre", nom: "Titre", valeur: d.titre, multiligne: true }];
     case "reperes":
       return d.meta.map((m) => ({
         cle: m.libelle,
@@ -93,9 +95,9 @@ export function textesDuBloc(cle: ClePosee, d: Document, base: ModeleDocument): 
           ]
         : [];
     case "motDeFin":
-      return [{ cle: "texte", nom: "Mot de fin", valeur: d.motDeFin ?? "" }];
+      return [{ cle: "texte", nom: "Mot de fin", valeur: d.motDeFin ?? "", multiligne: true }];
     case "pied":
-      return [{ cle: "texte", nom: "Pied de page", valeur: d.piedDePage ?? "" }];
+      return [{ cle: "texte", nom: "Pied de page", valeur: d.piedDePage ?? "", multiligne: true }];
     default:
       return [];
   }

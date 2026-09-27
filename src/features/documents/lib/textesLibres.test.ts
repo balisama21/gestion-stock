@@ -68,7 +68,7 @@ describe("réécrire les mots sur la feuille", () => {
       doc.colonnes.map((c) => c.cle),
     );
     expect(textesDuBloc("titre", doc, "classique")).toEqual([
-      { cle: "titre", nom: "Titre", valeur: doc.titre },
+      { cle: "titre", nom: "Titre", valeur: doc.titre, multiligne: true },
     ]);
   });
 });

@@ -167,3 +167,11 @@
 [data-barre-bloc] select {
   min-height: 0;
 }
+
+/* Un passage à la ligne écrit sur la feuille reste un passage à la ligne. */
+.doc-libre .doc-titre,
+.doc-libre .merci,
+.doc-libre .doc-mentions,
+.doc-libre footer {
+  white-space: pre-line;
+}
