@@ -575,3 +575,21 @@ describe("retirer une ligne d'un clic", () => {
     expect(enregistrer().reperes.masquees).toBeUndefined();
   });
 });
+
+describe("un petit bloc posé sur un grand reste attrapable", () => {
+  afterEach(() => {
+    delete (document as { elementsFromPoint?: unknown }).elementsFromPoint;
+  });
+
+  it("le tableau choisi, un clic sur le texte posé dessus choisit le texte", () => {
+    ouvrir();
+    fireEvent.click(screen.getByRole("button", { name: "Texte" }));
+    const texte = document.querySelector<HTMLElement>('[data-cadre^="el:"]')!;
+    fireEvent.click(screen.getByRole("button", { name: "Tableau des lignes" }));
+    const tableau = document.querySelector<HTMLElement>('[data-cadre="tableau"]')!;
+    document.elementsFromPoint = vi.fn(() => [tableau, texte]);
+    fireEvent.pointerDown(tableau, { pointerType: "mouse", pointerId: 1 });
+    fireEvent.pointerUp(tableau, { pointerId: 1 });
+    expect(screen.getByRole("toolbar", { name: "Outils : Texte libre" })).toBeTruthy();
+  });
+});

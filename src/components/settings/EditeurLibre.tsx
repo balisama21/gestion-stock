@@ -435,8 +435,13 @@ export const EditeurLibre: React.FC<Props> = ({
     };
   }, []);
 
-  const saisir = (e: React.PointerEvent<HTMLElement>, cle: ClePosee, poignee: Poignee | null) => {
+  const saisir = (
+    e: React.PointerEvent<HTMLElement>,
+    touche: ClePosee,
+    poignee: Poignee | null,
+  ) => {
     e.stopPropagation();
+    const cle = poignee === null ? plusPetitDessous(touche, e.clientX, e.clientY) : touche;
     if (cle !== choisi) setLigne(null);
     // Au doigt, le premier appui sélectionne : sans cela, on ne pourrait plus faire défiler l'écran.
     if (e.pointerType !== "mouse" && choisi !== cle) {
@@ -461,6 +466,21 @@ export const EditeurLibre: React.FC<Props> = ({
       deja: choisi === cle && poignee === null,
       bouge: false,
     };
+  };
+
+  /**
+   * Le bloc choisi passe devant les autres ; un petit bloc posé sur lui (un
+   * texte sur le tableau) resterait inaccessible. On le lui préfère.
+   */
+  const plusPetitDessous = (cle: ClePosee, x: number, y: number): ClePosee => {
+    if (cle !== choisi || typeof document.elementsFromPoint !== "function") return cle;
+    const aire = (k: ClePosee) => blocs[k].l * blocs[k].h;
+    let meilleur = cle;
+    for (const n of document.elementsFromPoint(x, y)) {
+      const k = (n as HTMLElement).dataset?.cadre as ClePosee | undefined;
+      if (k && k !== cle && blocs[k] && !blocs[k].masque && aire(k) < aire(meilleur)) meilleur = k;
+    }
+    return meilleur;
   };
 
   const suivre = (e: React.PointerEvent<HTMLDivElement>) => {
