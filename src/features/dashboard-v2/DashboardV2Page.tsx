@@ -892,13 +892,7 @@ export const DashboardV2Page: React.FC<DashboardV2PageProps> = ({
               <div className={`grid${droits.vue !== "dirigeant" ? " dense" : ""}`}>
                 {enBlocs(cles).map((b) =>
                   b.bloc ? (
-                    <div
-                      key={b.cles[0]}
-                      className="bloc"
-                      data-bloc={b.bloc}
-                      data-cols={colonnesDuBloc(b.cles)}
-                      style={{ ["--cols" as string]: colonnesDuBloc(b.cles) }}
-                    >
+                    <div key={b.cles[0]} className="bloc" data-bloc={b.bloc}>
                       {b.cles.map(rendreCarte)}
                     </div>
                   ) : (
@@ -1130,7 +1124,7 @@ export const DashboardV2Page: React.FC<DashboardV2PageProps> = ({
 
 /* ─── bandeaux unifiés (ordinateur) ─── */
 
-/** Sur ordinateur, les cartes d'un même bloc partagent une carte ; sur téléphone le bloc s'efface. */
+/** Sur ordinateur, un bloc range ses cartes en rangées (voir dashboard.css) ; sur téléphone il s'efface. */
 const BLOC_DE: Partial<Record<CleCarte, string>> = {
   agenda: "operations",
   taches: "operations",
@@ -1151,9 +1145,6 @@ const BLOC_DE: Partial<Record<CleCarte, string>> = {
   mouvements: "stock",
 };
 
-/** Cartes qui prennent toute la largeur de leur bloc. */
-const PLEINE_LARGEUR = new Set<CleCarte>(["tresorerie", "ventes", "fil", "mouvements"]);
-
 /** Regroupe les cartes consécutives d'un même bloc, sans jamais changer leur ordre. */
 function enBlocs(cles: CleCarte[]): { bloc?: string; cles: CleCarte[] }[] {
   const sortie: { bloc?: string; cles: CleCarte[] }[] = [];
@@ -1164,11 +1155,6 @@ function enBlocs(cles: CleCarte[]): { bloc?: string; cles: CleCarte[] }[] {
     else sortie.push({ bloc, cles: [cle] });
   }
   return sortie;
-}
-
-function colonnesDuBloc(cles: CleCarte[]): number {
-  const n = cles.filter((c) => !PLEINE_LARGEUR.has(c)).length;
-  return n === 4 ? 2 : Math.max(1, n);
 }
 
 /* ─── deux petites briques, propres à la table de contrôle ─── */

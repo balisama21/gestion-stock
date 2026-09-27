@@ -3307,7 +3307,7 @@
   }
 }
 
-/* B. Une famille = un bandeau : ses cartes partagent une carte, séparées d'un filet. */
+/* B. Une famille = des rangées : pleine largeur, ou deux cartes qui servent la même décision. */
 .dash2 .bloc {
   display: contents;
 }
@@ -3316,31 +3316,19 @@
   .dash2 .groupe .bloc {
     grid-column: 1 / -1;
     display: grid;
-    grid-template-columns: repeat(var(--cols, 1), minmax(0, 1fr));
+    grid-template-columns: repeat(2, minmax(0, 1fr));
     grid-auto-flow: row dense;
-    gap: 1px;
+    gap: 16px;
     min-width: 0;
-    background: var(--line);
-    border: 1px solid var(--line);
-    border-radius: var(--r-carte);
-    box-shadow: var(--shadow);
-    overflow: hidden;
   }
   .dash2 .groupe .bloc > * {
     grid-column: auto;
-    border: 0;
-    border-radius: 0;
-    box-shadow: none;
-    animation: none;
   }
   .dash2 .groupe .bloc > :is(#carte-tresorerie, #carte-ventes, #carte-fil, #carte-mouvements) {
     grid-column: 1 / -1;
   }
-  .dash2 .groupe .bloc > .card.flash {
-    animation: dash2-flash-dedans 1.2s ease;
-  }
 
-  /* La trésorerie en tête du bandeau Finance : le solde à gauche, d'où il vient à droite. */
+  /* La trésorerie en tête de L'argent : le solde à gauche, d'où il vient à droite. */
   .dash2 .groupe .bloc > .wallet {
     display: grid;
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
@@ -3361,27 +3349,6 @@
   .dash2 .groupe .bloc > .wallet > .flow {
     grid-row: 3;
     align-self: end;
-  }
-  /* Trois colonnes ne tiennent pas sous 960 px : deux, et la dernière carte prend la rangée. */
-  .dash2 .groupe {
-    container-type: inline-size;
-  }
-  @container (max-width: 960px) {
-    .dash2 .groupe .bloc[data-cols="3"] {
-      grid-template-columns: repeat(2, minmax(0, 1fr));
-    }
-    .dash2 .groupe .bloc[data-cols="3"] > :last-child {
-      grid-column: 1 / -1;
-    }
-  }
-}
-@keyframes dash2-flash-dedans {
-  0%,
-  40% {
-    box-shadow: inset 0 0 0 3px var(--accent);
-  }
-  100% {
-    box-shadow: none;
   }
 }
 
@@ -3450,22 +3417,6 @@
   }
 
   /* ── L'argent : des rangées selon la décision, chaque carte à part ── */
-  .dash2 .groupe .bloc[data-bloc="finance"] {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 16px;
-    background: none;
-    border: 0;
-    border-radius: 0;
-    box-shadow: none;
-    overflow: visible;
-  }
-  .dash2 .groupe .bloc[data-bloc="finance"] > * {
-    border-radius: var(--r-carte);
-  }
-  .dash2 .groupe .bloc[data-bloc="finance"] > .card:not(.wallet, .ticket-card) {
-    border: 1px solid var(--line);
-    box-shadow: var(--shadow);
-  }
   .dash2 .bloc[data-bloc="finance"] > #carte-tresorerie {
     order: 1;
   }
@@ -3622,20 +3573,6 @@
   }
 
   /* ── Opérations : la journée (agenda | à faire), puis les commandes (suivi | livraisons) ── */
-  .dash2 .groupe .bloc[data-bloc="operations"] {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 16px;
-    background: none;
-    border: 0;
-    border-radius: 0;
-    box-shadow: none;
-    overflow: visible;
-  }
-  .dash2 .groupe .bloc[data-bloc="operations"] > .card {
-    border: 1px solid var(--line);
-    border-radius: var(--r-carte);
-    box-shadow: var(--shadow);
-  }
   .dash2 .groupe .bloc[data-bloc="operations"] > :last-child:nth-child(odd) {
     grid-column: 1 / -1;
   }
@@ -3643,20 +3580,6 @@
 
 @media (min-width: 901px) {
   /* ── Les ventes : le chiffre d'affaires, le fil, les clients, puis produits | vendeurs ── */
-  .dash2 .groupe .bloc[data-bloc="ventes"] {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 16px;
-    background: none;
-    border: 0;
-    border-radius: 0;
-    box-shadow: none;
-    overflow: visible;
-  }
-  .dash2 .groupe .bloc[data-bloc="ventes"] > .card {
-    border: 1px solid var(--line);
-    border-radius: var(--r-carte);
-    box-shadow: var(--shadow);
-  }
   .dash2 .groupe .bloc[data-bloc="ventes"] > #carte-clients,
   .dash2 .groupe .bloc[data-bloc="ventes"] > #carte-top:last-child,
   .dash2 .groupe .bloc[data-bloc="ventes"] > #carte-clients + #carte-vendeurs {
@@ -3760,20 +3683,6 @@
   }
 
   /* ── Le stock : quoi recommander (étagère | ruptures), puis les mouvements ── */
-  .dash2 .groupe .bloc[data-bloc="stock"] {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    gap: 16px;
-    background: none;
-    border: 0;
-    border-radius: 0;
-    box-shadow: none;
-    overflow: visible;
-  }
-  .dash2 .groupe .bloc[data-bloc="stock"] > .card {
-    border: 1px solid var(--line);
-    border-radius: var(--r-carte);
-    box-shadow: var(--shadow);
-  }
   .dash2 .groupe .bloc[data-bloc="stock"] > #carte-stock:last-child,
   .dash2 .groupe .bloc[data-bloc="stock"] > #carte-ruptures:first-child {
     grid-column: 1 / -1;
@@ -3781,5 +3690,18 @@
   .dash2 .bloc[data-bloc="stock"] .mvtot b {
     font-size: 22px;
     font-weight: 700;
+  }
+}
+
+@media (min-width: 901px) {
+  /* Bandeau du jour : les ventes du jour dominent, les autres colonnes suivent. */
+  .dash2 .today .tile-valeur {
+    font-size: 26px;
+  }
+  .dash2 .today .tile[data-tile="ventes"] .tile-valeur {
+    font-size: 32px;
+  }
+  .dash2 .today .tile-note {
+    color: var(--muted);
   }
 }
