@@ -1801,6 +1801,9 @@
   font-weight: 700;
   letter-spacing: -0.02em;
 }
+.dash2 .kpi-row .v.v-moyen {
+  font-size: 24px;
+}
 .dash2 .kpi-row .c {
   color: var(--muted);
   font-size: var(--t-corps);
@@ -3421,5 +3424,166 @@
   .dash2 .seg button {
     flex: 1;
     min-height: 0;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   C. HIÉRARCHIE (ordinateur) — titre de section, chiffre clé, détails.
+   Un seul chiffre domine chaque carte ; le reste s'efface.
+   ═══════════════════════════════════════════════════════════════════ */
+
+@media (min-width: 901px) {
+  .dash2 .groupe {
+    margin-top: 40px;
+    gap: 14px;
+  }
+  .dash2 .groupe-titre {
+    font-size: 18px;
+    font-weight: 650;
+    letter-spacing: -0.015em;
+  }
+  .dash2 .cle-pos {
+    color: var(--accent-ink);
+  }
+  .dash2 .cle-alerte {
+    color: var(--crit);
+  }
+
+  /* ── L'argent : des rangées selon la décision, chaque carte à part ── */
+  .dash2 .groupe .bloc[data-bloc="finance"] {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+    background: none;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+    overflow: visible;
+  }
+  .dash2 .groupe .bloc[data-bloc="finance"] > * {
+    border-radius: var(--r-carte);
+  }
+  .dash2 .groupe .bloc[data-bloc="finance"] > .card:not(.wallet, .ticket-card) {
+    border: 1px solid var(--line);
+    box-shadow: var(--shadow);
+  }
+  .dash2 .bloc[data-bloc="finance"] > #carte-tresorerie {
+    order: 1;
+  }
+  .dash2 .bloc[data-bloc="finance"] > #carte-resultat {
+    order: 2;
+  }
+  .dash2 .bloc[data-bloc="finance"] > #carte-sorties {
+    order: 3;
+  }
+  .dash2 .bloc[data-bloc="finance"] > #carte-paiements {
+    order: 4;
+  }
+  .dash2 .bloc[data-bloc="finance"] > #carte-fournisseurs {
+    order: 5;
+  }
+  .dash2 .groupe .bloc[data-bloc="finance"] > :is(#carte-resultat, #carte-sorties),
+  .dash2 .groupe .bloc[data-bloc="finance"] > #carte-paiements:last-child,
+  .dash2 .groupe .bloc[data-bloc="finance"] > #carte-resultat + #carte-fournisseurs {
+    grid-column: 1 / -1;
+  }
+
+  /* Trésorerie : le chiffre de la page. */
+  .dash2 .bloc[data-bloc="finance"] .wallet .big {
+    font-size: 40px;
+  }
+  .dash2 .bloc[data-bloc="finance"] .wallet .big small {
+    font-size: 17px;
+  }
+
+  /* Résultat : le bénéfice à gauche, le calcul et la comparaison à droite. */
+  .dash2 .bloc[data-bloc="finance"] > #carte-resultat {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr) minmax(0, 1.1fr);
+    gap: 10px 40px;
+    align-items: start;
+  }
+  .dash2 #carte-resultat > .ch {
+    grid-column: 1 / -1;
+  }
+  .dash2 #carte-resultat > .res {
+    grid-column: 1;
+    grid-row: 2 / span 3;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+    border-top: 0;
+    padding: 0;
+  }
+  .dash2 #carte-resultat > .res.negatif {
+    padding: 12px 14px;
+    border-radius: var(--r-bloc);
+  }
+  .dash2 #carte-resultat .res b {
+    font-size: 36px;
+    line-height: 1.05;
+  }
+  .dash2 #carte-resultat .res b small {
+    font-size: 15px;
+  }
+  .dash2 #carte-resultat > .eq {
+    grid-column: 2;
+    grid-row: 2;
+  }
+  .dash2 #carte-resultat > .cmp {
+    grid-column: 3;
+    grid-row: 2;
+  }
+  .dash2 #carte-resultat > p,
+  .dash2 #carte-resultat > .link {
+    grid-column: 2 / -1;  }
+  .dash2 #carte-resultat > .link {
+    justify-self: start;
+  }
+
+  /* Sorties : le total à gauche, le détail en petit à droite. */
+  .dash2 #carte-sorties .ticket {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr) minmax(0, 1.1fr);
+    gap: 12px 40px;
+    align-content: start;
+    padding: 28px 24px;
+  }
+  .dash2 #carte-sorties .shopname {
+    grid-column: 1 / -1;
+    text-align: left;
+  }
+  .dash2 #carte-sorties .row.total {
+    grid-column: 1;
+    grid-row: 2 / span 3;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+    border-top: 0;
+    padding-top: 0;
+    margin-top: 0;
+  }
+  .dash2 #carte-sorties .row.total .lead {
+    display: none;
+  }
+  .dash2 #carte-sorties .row.total span:first-child {
+    font-size: var(--t-petit);
+    font-weight: 600;
+    color: var(--muted);
+    letter-spacing: 0.1em;
+  }
+  .dash2 #carte-sorties .row.total span:last-child {
+    font-size: 36px;
+    line-height: 1.05;
+    letter-spacing: -0.02em;
+    color: var(--ink);
+  }
+
+  /* Paiements et fournisseurs : encaisser, payer. */
+  .dash2 .bloc[data-bloc="finance"] .kpi-row .v {
+    font-size: 32px;
+  }
+  .dash2 .bloc[data-bloc="finance"] .lrow b {
+    font-weight: 500;
+    color: var(--ink-2);
   }
 }

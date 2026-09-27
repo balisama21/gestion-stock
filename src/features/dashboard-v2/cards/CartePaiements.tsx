@@ -73,9 +73,7 @@ export const CartePaiements: React.FC<{
       />
 
       <div className="kpi-row">
-        <span className="v num" style={{ fontSize: 24 }}>
-          {sous(encaisse)}
-        </span>
+        <span className="v num v-moyen cle-pos">{sous(encaisse)}</span>
         <span className="c">encaissés · {periode.libelle}</span>
       </div>
 

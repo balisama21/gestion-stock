@@ -47,7 +47,7 @@ export const CarteFournisseurs: React.FC<{
       />
 
       <div className="kpi-row">
-        <span className="v num" style={{ fontSize: 24 }}>
+        <span className={`v num v-moyen${echeancesDepassees > 0 ? " cle-alerte" : ""}`}>
           {montant(totalDu)}
         </span>
         {echeancesDepassees > 0 && (
