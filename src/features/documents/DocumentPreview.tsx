@@ -18,7 +18,13 @@ import { Compact } from "./templates/Compact";
 import { Epure } from "./templates/Epure";
 import { Ticket } from "./templates/Ticket";
 import { echelleDuTexte, Libre } from "./templates/Libre";
-import { blocsResolus, cachetsPlaces, colonneResolue, dispositionDuType } from "./lib/disposition";
+import {
+  blocsResolus,
+  cachetsPlaces,
+  colonneResolue,
+  dispositionDuType,
+  imagesPosees,
+} from "./lib/disposition";
 import { imageCachet } from "./lib/traiterCachet";
 import { feuilleLibre, paginerLibre, zonesLibres, type MesuresLibres } from "./lib/paginationLibre";
 import type { ProprietesModele } from "./parts/squelette";
@@ -222,7 +228,10 @@ export const DocumentPreview: React.FC<DocumentPreviewProps> = ({
     const ids = new Set(cachetsPlaces(libre));
     return reglages.cachets.filter((c) => ids.has(c.id));
   }, [libre, reglages.cachets]);
-  const clesImages = cachetsDuDocument.map((c) => c.chemin).join("|");
+  const clesImages = [
+    ...cachetsDuDocument.map((c) => c.chemin),
+    ...(libre ? imagesPosees(libre) : []),
+  ].join("|");
   const [images, setImages] = useState<{ cle: string; urls: Record<string, string> }>({
     cle: "",
     urls: {},

@@ -80,6 +80,33 @@ export async function versPng(
   return { blob, largeur: canvas.width, hauteur: canvas.height };
 }
 
+/** Seau limité à 2 Mo : une photo trop lourde en PNG est réduite jusqu'à passer. */
+const POIDS_MAX = 1_900_000;
+
+/** Une image telle quelle, sans détourage, prête pour le seau. */
+export async function imageVersPng(
+  fichier: File,
+): Promise<{ blob: Blob; largeur: number; hauteur: number }> {
+  const canvas = versCanvas(await lireImage(fichier));
+  let cote = COTE_ENREGISTRE;
+  for (;;) {
+    const k = Math.min(1, cote / Math.max(canvas.width, canvas.height));
+    const c = document.createElement("canvas");
+    c.width = Math.max(1, Math.round(canvas.width * k));
+    c.height = Math.max(1, Math.round(canvas.height * k));
+    const ctx = c.getContext("2d");
+    if (!ctx) throw new Error("Le navigateur ne sait pas produire l'image.");
+    ctx.imageSmoothingQuality = "high";
+    ctx.drawImage(canvas, 0, 0, c.width, c.height);
+    const blob = await new Promise<Blob | null>((ok) => c.toBlob(ok, "image/png"));
+    if (!blob) throw new Error("L'image n'a pas pu être produite.");
+    if (blob.size <= POIDS_MAX || cote <= 400) {
+      return { blob, largeur: c.width, hauteur: c.height };
+    }
+    cote = Math.round(cote * 0.75);
+  }
+}
+
 const nouvelId = () =>
   typeof crypto !== "undefined" && "randomUUID" in crypto
     ? crypto.randomUUID()
@@ -100,7 +127,7 @@ export async function envoyerCachet(
     id,
     chemin: null,
     error: refus
-      ? "Seuls le propriétaire, l'administrateur et le manager de la boutique peuvent ajouter un cachet."
+      ? "Seuls le propriétaire, l'administrateur et le manager de la boutique peuvent ajouter une image aux documents."
       : `L'image n'a pas pu être envoyée : ${error.message}`,
   };
 }

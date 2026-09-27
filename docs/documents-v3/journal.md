@@ -465,3 +465,12 @@ par les variables `--doc-sans`/`--doc-serif` du bloc, la taille par un
 multiplie les hauteurs relevées). Sur le bandeau et la barre de pied, le
 fond remplace la couleur du document. `Disposition.couleur` remplace
 celle des réglages pour les pièces qui utilisent la disposition.
+
+**Éléments ajoutés.** Texte libre, trait, cadre et image : des blocs de
+plus, sous des clés `el:<id>`, avec `BlocPose.element` pour ce qu'ils
+sont. Le texte vit dans `textes.texte` ; le trait prend son épaisseur et
+sa couleur dans `habillage.bordure`/`bordureCouleur`, horizontal ou
+vertical selon la forme de son cadre ; le cadre passe sous le texte
+(niveau 0, comme le bandeau) ; l'image, envoyée telle quelle dans le seau
+`cachets` (PNG réduit sous 2 Mo), passe au-dessus comme un cachet. Ils se
+paginent comme n'importe quel bloc et sont figés avec la disposition.

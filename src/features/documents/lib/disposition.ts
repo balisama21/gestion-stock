@@ -67,6 +67,16 @@ export interface BlocPose {
   /** Les mots réécrits sur la feuille, par élément du bloc. Jamais une donnée. */
   textes?: Record<string, string>;
   habillage?: Habillage;
+  /** Élément ajouté sur la feuille : ce qu'il est. */
+  element?: Element;
+}
+
+export type GenreElement = "texte" | "trait" | "cadre" | "image";
+
+export interface Element {
+  genre: GenreElement;
+  /** Image : fichier du seau `cachets`, jamais remplacé. */
+  image?: { chemin: string; largeur: number; hauteur: number };
 }
 
 export interface Disposition {
@@ -147,23 +157,36 @@ export const estVerrouille = (cle: string) => BLOCS.find((b) => b.cle === cle)?.
 /* ── Cachets et signatures : des blocs de plus, un par image placée ── */
 
 export type CleCachet = `cachet:${string}`;
-export type ClePosee = CleBloc | CleCachet;
-/** Les blocs du catalogue, toujours là, et les cachets placés. */
-export type Blocs = Record<CleBloc, BlocPose> & { [cle: CleCachet]: BlocPose };
+export type CleElement = `el:${string}`;
+export type ClePosee = CleBloc | CleCachet | CleElement;
+/** Les blocs du catalogue, toujours là, les cachets placés et les éléments ajoutés. */
+export type Blocs = Record<CleBloc, BlocPose> & {
+  [cle: CleCachet]: BlocPose;
+  [cle: CleElement]: BlocPose;
+};
 
 export const cleCachet = (id: string): CleCachet => `cachet:${id}`;
 export const estCleCachet = (cle: string): cle is CleCachet => /^cachet:[\w-]{1,64}$/.test(cle);
 export const idDuCachet = (cle: CleCachet) => cle.slice(7);
+export const estCleElement = (cle: string): cle is CleElement => /^el:[\w-]{1,64}$/.test(cle);
 
-/** Les clés posées, dans l'ordre : le catalogue, puis les cachets. */
+/** Les clés posées, dans l'ordre : le catalogue, les éléments, puis les cachets. */
 export const clesPosees = (blocs: Blocs): ClePosee[] => [
   ...BLOCS.map((b) => b.cle),
+  ...(Object.keys(blocs).filter(estCleElement) as CleElement[]),
   ...(Object.keys(blocs).filter(estCleCachet) as CleCachet[]),
 ];
 
-/** Au-dessus des blocs ordinaires, sous les mentions obligatoires. */
-export const niveauDuBloc = (cle: ClePosee): 1 | 2 | 3 =>
-  estVerrouille(cle) ? 3 : estCleCachet(cle) ? 2 : 1;
+/**
+ * Le bandeau et les cadres au fond, sous le texte ; les cachets et les images
+ * au-dessus des blocs ordinaires ; les mentions obligatoires devant tout.
+ */
+export function niveauDuBloc(cle: ClePosee, b?: BlocPose): 0 | 1 | 2 | 3 {
+  if (estVerrouille(cle)) return 3;
+  if (estCleCachet(cle) || b?.element?.genre === "image") return 2;
+  if (cle === "fond" || b?.element?.genre === "cadre") return 0;
+  return 1;
+}
 export const nomDuBloc = (cle: string) => BLOCS.find((b) => b.cle === cle)?.nom ?? cle;
 
 /* ── Positions de départ, relevées sur chaque modèle ─────────────── */
@@ -276,7 +299,7 @@ export function blocsResolus(d: Disposition): Blocs {
     sortie[cle] = b;
   }
   for (const [cle, b] of Object.entries(d.blocs)) {
-    if (estCleCachet(cle) && b) sortie[cle] = contraindre(b);
+    if ((estCleCachet(cle) || estCleElement(cle)) && b) sortie[cle] = contraindre(b);
   }
   return sortie;
 }
@@ -451,7 +474,34 @@ function lireBloc(brut: unknown, cle: string): BlocPose | null {
   }
   const h = objet(brut.habillage) ? lireHabillage(brut.habillage) : undefined;
   if (h) b.habillage = h;
+  if (estCleElement(cle)) {
+    const e = objet(brut.element) ? lireElement(brut.element) : null;
+    if (!e) return null;
+    b.element = e;
+  }
   return contraindre(b);
+}
+
+const GENRES: GenreElement[] = ["texte", "trait", "cadre", "image"];
+
+function lireElement(brut: Record<string, unknown>): Element | null {
+  if (!GENRES.includes(brut.genre as GenreElement)) return null;
+  const e: Element = { genre: brut.genre as GenreElement };
+  if (e.genre !== "image") return e;
+  const i = brut.image;
+  if (
+    !objet(i) ||
+    typeof i.chemin !== "string" ||
+    !/^[\w-]{1,64}\/[\w-]{1,64}\.png$/.test(i.chemin) ||
+    !nombre(i.largeur) ||
+    !nombre(i.hauteur) ||
+    i.largeur <= 0 ||
+    i.hauteur <= 0
+  ) {
+    return null;
+  }
+  e.image = { chemin: i.chemin, largeur: i.largeur, hauteur: i.hauteur };
+  return e;
 }
 
 export function lireHabillage(brut: Record<string, unknown>): Habillage | undefined {
@@ -479,7 +529,7 @@ function lireDisposition(brut: unknown, id: string): Disposition | null {
   const blocs: Disposition["blocs"] = {};
   if (objet(brut.blocs)) {
     for (const [cle, b] of Object.entries(brut.blocs)) {
-      if (!CLES.has(cle) && !estCleCachet(cle)) continue;
+      if (!CLES.has(cle) && !estCleCachet(cle) && !estCleElement(cle)) continue;
       const lu = lireBloc(b, cle);
       if (lu) blocs[cle] = lu;
     }
@@ -604,6 +654,63 @@ export function retirerCachet(d: Disposition, id: string): Disposition {
   delete blocs[cleCachet(id)];
   return { ...d, blocs };
 }
+
+/* ── Éléments ajoutés : texte, trait, cadre, image ───────────────── */
+
+const cleElement = (): CleElement =>
+  `el:${nouvelId()
+    .replace(/[^\w-]/g, "")
+    .slice(0, 36)}`;
+
+/** Pose un élément au milieu de la feuille ; une image garde ses proportions. */
+export function ajouterElement(
+  d: Disposition,
+  element: Element,
+): { disposition: Disposition; cle: CleElement } {
+  const cle = cleElement();
+  let l = 80;
+  let h = 12;
+  const habillage = habillageDeDepart(element.genre);
+  if (element.genre === "trait") {
+    l = 120;
+    h = 4;
+  } else if (element.genre === "cadre") {
+    h = 40;
+  } else if (element.genre === "image" && element.image) {
+    const ratio = element.image.hauteur / element.image.largeur;
+    l = 50;
+    h = l * ratio;
+    if (h > 50) {
+      h = 50;
+      l = h / ratio;
+    }
+  }
+  const b = contraindre({
+    x: (FEUILLE.l - l) / 2,
+    y: (FEUILLE.h - h) / 2,
+    l,
+    h,
+    element,
+    ...(habillage ? { habillage } : {}),
+  });
+  return { disposition: { ...d, blocs: { ...d.blocs, [cle]: b } }, cle };
+}
+
+/** Un trait et un cadre naissent avec un trait fin : sans lui, ils seraient invisibles. */
+export const habillageDeDepart = (genre: GenreElement | undefined): Habillage | undefined =>
+  genre === "trait" || genre === "cadre" ? { bordure: BORDURES[0] } : undefined;
+
+export function retirerElement(d: Disposition, cle: CleElement): Disposition {
+  const blocs = { ...d.blocs };
+  delete blocs[cle];
+  return { ...d, blocs };
+}
+
+/** Les images que la feuille affiche, à charger avant toute capture. */
+export const imagesPosees = (d: Disposition): string[] =>
+  Object.entries(d.blocs).flatMap(([cle, b]) =>
+    estCleElement(cle) && b?.element?.image && !b.masque ? [b.element.image.chemin] : [],
+  );
 
 /** Les cachets que cette disposition place. */
 export const cachetsPlaces = (d: Disposition): string[] =>

@@ -132,9 +132,32 @@
   padding: 1.5mm 2mm;
 }
 .doc-libre-bloc.bl-cadre.bl-fond,
-.doc-libre-bloc.bl-cadre.bl-cachet {
+.doc-libre-bloc.bl-cadre.bl-cachet,
+.doc-libre-bloc.bl-cadre.bl-el-image,
+.doc-libre-bloc.bl-cadre.bl-el-cadre {
   padding: 0;
 }
 .m-bandeau .doc-libre-bloc.bl-cadre.bl-pied {
   padding: 0;
+}
+
+/* ── Éléments ajoutés ── */
+
+.doc-libre-texte {
+  font-size: 10pt;
+  line-height: 1.35;
+  white-space: pre-wrap;
+  overflow-wrap: anywhere;
+}
+.bl-el-trait {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.doc-libre-trait {
+  flex: none;
+}
+.doc-libre-rect {
+  width: 100%;
+  height: 100%;
 }

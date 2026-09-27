@@ -13,14 +13,19 @@ import {
   EyeOff,
   FileText,
   Italic,
+  ImagePlus,
   Lock,
   Minus,
   Move,
   Plus,
   RotateCcw,
   Save,
+  Square,
+  Trash2,
+  Type,
 } from "lucide-react";
 import { SettingsToggle } from "./primitives";
+import { useReglagesModifiables } from "../../features/documents/contexteReglages";
 import { ChoixCouleur } from "./ChoixCouleur";
 import type { Document } from "../../features/documents/lib/buildDocument";
 import { variablesDeCouleur, type ReglagesDocuments } from "../../features/documents/lib/reglages";
@@ -28,6 +33,7 @@ import { DocumentPreview } from "../../features/documents/DocumentPreview";
 import {
   aimanterDeplacement,
   aimanterRedimension,
+  ajouterElement,
   BLOCS,
   BORDURES,
   blocsResolus,
@@ -36,11 +42,15 @@ import {
   ciblesAimant,
   contraindre,
   estCleCachet,
+  estCleElement,
   habiller,
+  habillageDeDepart,
   idDuCachet,
+  imagesPosees,
   placerCachet,
   poserBloc,
   retirerCachet,
+  retirerElement,
   redimensionner,
   reinitialiserDisposition,
   TAILLE_TEXTE,
@@ -49,6 +59,7 @@ import {
   type Cibles,
   type ClePosee,
   type Disposition,
+  type GenreElement,
   type Guide,
   type Habillage,
   type Poignee,
@@ -60,8 +71,16 @@ import {
   Libre,
   styleDuBloc,
 } from "../../features/documents/templates/Libre";
-import { imageCachet } from "../../features/documents/lib/traiterCachet";
-import { appliquerTextes, textesDuBloc } from "../../features/documents/lib/textesLibres";
+import {
+  envoyerCachet,
+  imageCachet,
+  imageVersPng,
+} from "../../features/documents/lib/traiterCachet";
+import {
+  appliquerTextes,
+  textesDuBloc,
+  type TexteModifiable,
+} from "../../features/documents/lib/textesLibres";
 import { PPP_MINIMUM, pppEffectif } from "../../features/documents/lib/cachets";
 import "../../features/documents/index.css";
 
@@ -77,6 +96,8 @@ interface Props {
   couleur: string;
   /** Les réglages de la boutique : l'aperçu montre les pages telles qu'elles sortiront. */
   reglages?: ReglagesDocuments;
+  /** La boutique : sans elle, on ne peut pas envoyer d'image. */
+  storeId?: string;
   enCours: boolean;
   onFermer: (d: Disposition) => void;
   onEnregistrer: (d: Disposition) => void;
@@ -126,6 +147,13 @@ const TRAITS: { valeur: number | undefined; nom: string }[] = [
   { valeur: BORDURES[2], nom: "Épaisse" },
 ];
 
+const NOMS_ELEMENTS: Record<GenreElement, string> = {
+  texte: "Texte libre",
+  trait: "Trait",
+  cadre: "Cadre",
+  image: "Image",
+};
+
 const boutonIcone =
   "inline-flex h-[34px] w-[34px] items-center justify-center text-muted-foreground hover:text-foreground disabled:opacity-40";
 
@@ -134,10 +162,13 @@ export const EditeurLibre: React.FC<Props> = ({
   document: doc,
   couleur,
   reglages,
+  storeId: storeIdPasse,
   enCours,
   onFermer,
   onEnregistrer,
 }) => {
+  const contexte = useReglagesModifiables();
+  const storeId = storeIdPasse ?? contexte?.storeId;
   const [d, setD] = useState(disposition);
   const [apercu, setApercu] = useState(false);
   const [choisi, setChoisi] = useState<ClePosee | null>(null);
@@ -162,24 +193,30 @@ export const EditeurLibre: React.FC<Props> = ({
   const visibles = clesPosees(blocs).filter((c) => !blocs[c].masque);
   const cachets = reglages?.cachets ?? [];
   const [images, setImages] = useState<Record<string, string>>({});
+  const [envoi, setEnvoi] = useState<{ enCours: boolean; erreur: string | null }>({
+    enCours: false,
+    erreur: null,
+  });
   const nomDe = (cle: ClePosee) =>
     estCleCachet(cle)
       ? (cachets.find((c) => c.id === idDuCachet(cle))?.nom ?? "Cachet")
-      : (BLOCS.find((b) => b.cle === cle)?.nom ?? cle);
+      : estCleElement(cle)
+        ? NOMS_ELEMENTS[blocs[cle]?.element?.genre ?? "texte"]
+        : (BLOCS.find((b) => b.cle === cle)?.nom ?? cle);
+  const elements = Object.keys(blocs).filter(estCleElement);
+  const chemins = [...cachets.map((c) => c.chemin), ...imagesPosees(d)].join("|");
 
   useEffect(() => {
     let actif = true;
-    for (const c of cachets) {
-      if (images[c.chemin]) continue;
-      void imageCachet(c.chemin).then(
-        (url) => actif && url && setImages((m) => ({ ...m, [c.chemin]: url })),
-      );
+    for (const c of chemins ? chemins.split("|") : []) {
+      if (images[c]) continue;
+      void imageCachet(c).then((url) => actif && url && setImages((m) => ({ ...m, [c]: url })));
     }
     return () => {
       actif = false;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [cachets]);
+  }, [chemins]);
   const modifie = JSON.stringify(d) !== JSON.stringify(disposition);
 
   const poser = useCallback(
@@ -236,6 +273,12 @@ export const EditeurLibre: React.FC<Props> = ({
       if (e.target instanceof Element && e.target.closest("input, textarea, select")) return;
       if (e.key === "Escape") return setChoisi(null);
       if (!choisi) return;
+      if ((e.key === "Delete" || e.key === "Backspace") && estCleElement(choisi)) {
+        e.preventDefault();
+        setD((p) => retirerElement(p, choisi));
+        setChoisi(null);
+        return;
+      }
       const pas = e.shiftKey ? 5 : 1;
       const v = {
         ArrowLeft: [-pas, 0],
@@ -311,7 +354,56 @@ export const EditeurLibre: React.FC<Props> = ({
   const bloc = choisi ? blocs[choisi] : null;
   const nomChoisi = choisi ? nomDe(choisi) : null;
   const docEcrit = doc ? appliquerTextes(doc, blocs) : null;
-  const champsTexte = doc && choisi ? textesDuBloc(choisi, doc, d.base) : [];
+  /** Les mots qu'on écrit dans ce bloc. Un texte libre n'a pas de mot des réglages. */
+  const champsDe = (cle: ClePosee): TexteModifiable[] =>
+    estCleElement(cle)
+      ? blocs[cle]?.element?.genre === "texte"
+        ? [{ cle: "texte", nom: "Texte", valeur: "", long: true }]
+        : []
+      : doc
+        ? textesDuBloc(cle, doc, d.base)
+        : [];
+  const champsTexte = choisi ? champsDe(choisi) : [];
+
+  const ajouter = (genre: Exclude<GenreElement, "image">) => {
+    const { disposition: suite, cle } = ajouterElement(d, { genre });
+    setD(suite);
+    setChoisi(cle);
+    if (genre === "texte") {
+      requestAnimationFrame(() =>
+        document.querySelector<HTMLElement>("[data-champ-texte]")?.focus(),
+      );
+    }
+  };
+
+  const ajouterImage = async (fichier: File) => {
+    if (!storeId) return;
+    setEnvoi({ enCours: true, erreur: null });
+    try {
+      const png = await imageVersPng(fichier);
+      const r = await envoyerCachet(storeId, png.blob);
+      if (!r.chemin) return setEnvoi({ enCours: false, erreur: r.error });
+      const chemin = r.chemin;
+      const url = await new Promise<string>((ok) => {
+        const lecteur = new FileReader();
+        lecteur.onload = () => ok(lecteur.result as string);
+        lecteur.readAsDataURL(png.blob);
+      });
+      setImages((m) => ({ ...m, [chemin]: url }));
+      const { disposition: suite, cle } = ajouterElement(d, {
+        genre: "image",
+        image: { chemin, largeur: png.largeur, hauteur: png.hauteur },
+      });
+      setD(suite);
+      setChoisi(cle);
+      setEnvoi({ enCours: false, erreur: null });
+    } catch (e) {
+      setEnvoi({
+        enCours: false,
+        erreur: e instanceof Error ? e.message : "L'image n'a pas pu être ajoutée.",
+      });
+    }
+  };
 
   /** Un mot rendu à sa valeur des réglages n'est plus gardé : il suivra les réglages. */
   const ecrireTexte = (cle: ClePosee, k: string, valeur: string, defaut: string) =>
@@ -324,13 +416,15 @@ export const EditeurLibre: React.FC<Props> = ({
 
   /** Double-clic : un seul texte s'écrit sur place, plusieurs s'écrivent dans le panneau. */
   const ecrireSurLaFeuille = (cle: ClePosee) => {
-    if (!doc) return;
-    const champs = textesDuBloc(cle, doc, d.base);
+    const champs = champsDe(cle);
     setChoisi(cle);
     if (champs.length === 1) {
       const c = champs[0];
       const el = feuille.current?.querySelector<HTMLElement>(`.doc-libre [data-bloc="${cle}"]`);
-      const cible = (el?.querySelector<HTMLElement>("h4, h5, .doc-titre, .merci, p, footer, div") ??
+      const cible = (el?.querySelector<HTMLElement>(
+        ".doc-libre-texte, h4, h5, .doc-titre, .merci, p, footer",
+      ) ??
+        el?.querySelector<HTMLElement>("div:not(.doc-libre-echelle)") ??
         el) as HTMLElement | null;
       const cs = cible ? getComputedStyle(cible) : null;
       const k = echelleDuTexte(blocs[cle]);
@@ -369,6 +463,9 @@ export const EditeurLibre: React.FC<Props> = ({
     setEcrit(null);
   };
   const choisiCachet = choisi !== null && estCleCachet(choisi);
+  const genre = bloc?.element?.genre;
+  /** Ce qui n'a pas de texte : ni police, ni alignement, ni texte clair. */
+  const sansTexte = choisiCachet || genre === "trait" || genre === "cadre" || genre === "image";
 
   const ecran = (
     <div
@@ -489,7 +586,7 @@ export const EditeurLibre: React.FC<Props> = ({
                         docEcrit.lignes,
                         null,
                         { cachets, images },
-                        b.textes,
+                        b,
                       ) === null;
                     const actif = choisi === cle;
                     return (
@@ -632,7 +729,7 @@ export const EditeurLibre: React.FC<Props> = ({
                       <label key={c.cle} className="block text-xs text-muted-foreground">
                         <span className="flex items-center justify-between gap-2">
                           {c.nom}
-                          {v !== undefined && (
+                          {v !== undefined && !estCleElement(choisi) && (
                             <button
                               type="button"
                               onClick={() => ecrireTexte(choisi, c.cle, c.valeur, c.valeur)}
@@ -656,20 +753,52 @@ export const EditeurLibre: React.FC<Props> = ({
                       </label>
                     );
                   })}
+                  {!estCleElement(choisi) && (
+                    <p className="text-[11px] leading-relaxed text-muted-foreground">
+                      Les chiffres, le client, les lignes et le nom de la boutique viennent de la
+                      base : ils ne s&apos;écrivent pas ici.
+                    </p>
+                  )}
+                </div>
+              )}
+              {genre === "trait" && (
+                <div className="space-y-1.5">
+                  <label className="block text-xs text-muted-foreground">
+                    Épaisseur
+                    <select
+                      aria-label="Épaisseur"
+                      value={String(bloc.habillage?.bordure ?? BORDURES[0])}
+                      onChange={(e) => habillerBloc(choisi, { bordure: Number(e.target.value) })}
+                      className="app-field mt-1 w-full"
+                    >
+                      {TRAITS.filter((t) => t.valeur).map((t) => (
+                        <option key={t.nom} value={t.valeur}>
+                          {t.nom}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <p className="text-xs text-muted-foreground">Couleur du trait</p>
+                  <ChoixCouleur
+                    nom="Couleur du trait"
+                    aucun="Couleur du document"
+                    valeur={bloc.habillage?.bordureCouleur}
+                    onChange={(v) => habillerBloc(choisi, { bordureCouleur: v })}
+                  />
                   <p className="text-[11px] leading-relaxed text-muted-foreground">
-                    Les chiffres, le client, les lignes et le nom de la boutique viennent de la base
-                    : ils ne s&apos;écrivent pas ici.
+                    Plus large que haut, le trait est horizontal ; plus haut que large, il est
+                    vertical.
                   </p>
                 </div>
               )}
-              {!choisiCachet && (
+              {!choisiCachet && genre !== "trait" && genre !== "image" && (
                 <div className="space-y-3">
                   <div className="flex items-center justify-between gap-2">
                     <p className="text-xs font-medium text-foreground">Style</p>
                     {bloc.habillage && (
                       <button
                         type="button"
-                        onClick={() => poser(choisi, { habillage: undefined })}
+                        onClick={() => poser(choisi, { habillage: habillageDeDepart(genre) })}
                         className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
                         title="Reprendre l'allure du modèle"
                       >
@@ -678,102 +807,112 @@ export const EditeurLibre: React.FC<Props> = ({
                       </button>
                     )}
                   </div>
-                  <label className="block text-xs text-muted-foreground">
-                    Police
-                    <select
-                      aria-label="Police"
-                      value={bloc.habillage?.police ?? ""}
-                      onChange={(e) =>
-                        habillerBloc(choisi, {
-                          police: (e.target.value || undefined) as Police | undefined,
-                        })
-                      }
-                      className="app-field mt-1 w-full"
-                    >
-                      {POLICES.map((p) => (
-                        <option key={p.cle} value={p.cle} style={{ fontFamily: p.famille }}>
-                          {p.nom}
-                        </option>
-                      ))}
-                    </select>
-                  </label>
-                  <div className="flex items-center justify-between gap-2">
-                    <div className="flex items-center" role="group" aria-label="Taille du texte">
-                      <button
-                        type="button"
-                        aria-label="Texte plus petit"
-                        title="Plus petit"
-                        disabled={(bloc.habillage?.taille ?? 100) <= TAILLE_TEXTE.min}
-                        onClick={() =>
-                          habillerBloc(choisi, {
-                            taille: (bloc.habillage?.taille ?? 100) - TAILLE_TEXTE.pas,
-                          })
-                        }
-                        className={boutonIcone}
-                      >
-                        <Minus className="h-4 w-4" />
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => habillerBloc(choisi, { taille: undefined })}
-                        title="Taille du modèle"
-                        className="min-w-[3.25rem] text-center text-sm tabular-nums text-foreground"
-                      >
-                        {bloc.habillage?.taille ?? 100} %
-                      </button>
-                      <button
-                        type="button"
-                        aria-label="Texte plus grand"
-                        title="Plus grand"
-                        disabled={(bloc.habillage?.taille ?? 100) >= TAILLE_TEXTE.max}
-                        onClick={() =>
-                          habillerBloc(choisi, {
-                            taille: (bloc.habillage?.taille ?? 100) + TAILLE_TEXTE.pas,
-                          })
-                        }
-                        className={boutonIcone}
-                      >
-                        <Plus className="h-4 w-4" />
-                      </button>
-                    </div>
-                    <div className="flex">
-                      <button
-                        type="button"
-                        aria-label="Gras"
-                        title="Gras"
-                        aria-pressed={bloc.habillage?.gras === true}
-                        onClick={() =>
-                          habillerBloc(choisi, { gras: bloc.habillage?.gras ? undefined : true })
-                        }
-                        className={`${boutonIcone} ${bloc.habillage?.gras ? "text-primary" : ""}`}
-                      >
-                        <Bold className="h-4 w-4" />
-                      </button>
-                      <button
-                        type="button"
-                        aria-label="Italique"
-                        title="Italique"
-                        aria-pressed={bloc.habillage?.italique === true}
-                        onClick={() =>
-                          habillerBloc(choisi, {
-                            italique: bloc.habillage?.italique ? undefined : true,
-                          })
-                        }
-                        className={`${boutonIcone} ${bloc.habillage?.italique ? "text-primary" : ""}`}
-                      >
-                        <Italic className="h-4 w-4" />
-                      </button>
-                    </div>
-                  </div>
-                  <div className="space-y-1.5">
-                    <p className="text-xs text-muted-foreground">Couleur du texte</p>
-                    <ChoixCouleur
-                      nom="Couleur du texte"
-                      aucun="Celle du modèle"
-                      valeur={bloc.habillage?.encre}
-                      onChange={(v) => habillerBloc(choisi, { encre: v })}
-                    />
-                  </div>
+                  {genre !== "cadre" && (
+                    <>
+                      <label className="block text-xs text-muted-foreground">
+                        Police
+                        <select
+                          aria-label="Police"
+                          value={bloc.habillage?.police ?? ""}
+                          onChange={(e) =>
+                            habillerBloc(choisi, {
+                              police: (e.target.value || undefined) as Police | undefined,
+                            })
+                          }
+                          className="app-field mt-1 w-full"
+                        >
+                          {POLICES.map((p) => (
+                            <option key={p.cle} value={p.cle} style={{ fontFamily: p.famille }}>
+                              {p.nom}
+                            </option>
+                          ))}
+                        </select>
+                      </label>
+                      <div className="flex items-center justify-between gap-2">
+                        <div
+                          className="flex items-center"
+                          role="group"
+                          aria-label="Taille du texte"
+                        >
+                          <button
+                            type="button"
+                            aria-label="Texte plus petit"
+                            title="Plus petit"
+                            disabled={(bloc.habillage?.taille ?? 100) <= TAILLE_TEXTE.min}
+                            onClick={() =>
+                              habillerBloc(choisi, {
+                                taille: (bloc.habillage?.taille ?? 100) - TAILLE_TEXTE.pas,
+                              })
+                            }
+                            className={boutonIcone}
+                          >
+                            <Minus className="h-4 w-4" />
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => habillerBloc(choisi, { taille: undefined })}
+                            title="Taille du modèle"
+                            className="min-w-[3.25rem] text-center text-sm tabular-nums text-foreground"
+                          >
+                            {bloc.habillage?.taille ?? 100} %
+                          </button>
+                          <button
+                            type="button"
+                            aria-label="Texte plus grand"
+                            title="Plus grand"
+                            disabled={(bloc.habillage?.taille ?? 100) >= TAILLE_TEXTE.max}
+                            onClick={() =>
+                              habillerBloc(choisi, {
+                                taille: (bloc.habillage?.taille ?? 100) + TAILLE_TEXTE.pas,
+                              })
+                            }
+                            className={boutonIcone}
+                          >
+                            <Plus className="h-4 w-4" />
+                          </button>
+                        </div>
+                        <div className="flex">
+                          <button
+                            type="button"
+                            aria-label="Gras"
+                            title="Gras"
+                            aria-pressed={bloc.habillage?.gras === true}
+                            onClick={() =>
+                              habillerBloc(choisi, {
+                                gras: bloc.habillage?.gras ? undefined : true,
+                              })
+                            }
+                            className={`${boutonIcone} ${bloc.habillage?.gras ? "text-primary" : ""}`}
+                          >
+                            <Bold className="h-4 w-4" />
+                          </button>
+                          <button
+                            type="button"
+                            aria-label="Italique"
+                            title="Italique"
+                            aria-pressed={bloc.habillage?.italique === true}
+                            onClick={() =>
+                              habillerBloc(choisi, {
+                                italique: bloc.habillage?.italique ? undefined : true,
+                              })
+                            }
+                            className={`${boutonIcone} ${bloc.habillage?.italique ? "text-primary" : ""}`}
+                          >
+                            <Italic className="h-4 w-4" />
+                          </button>
+                        </div>
+                      </div>
+                      <div className="space-y-1.5">
+                        <p className="text-xs text-muted-foreground">Couleur du texte</p>
+                        <ChoixCouleur
+                          nom="Couleur du texte"
+                          aucun="Celle du modèle"
+                          valeur={bloc.habillage?.encre}
+                          onChange={(v) => habillerBloc(choisi, { encre: v })}
+                        />
+                      </div>
+                    </>
+                  )}
                   <div className="space-y-1.5">
                     <p className="text-xs text-muted-foreground">
                       {choisi === "fond" ? "Couleur du bandeau" : "Fond"}
@@ -839,7 +978,7 @@ export const EditeurLibre: React.FC<Props> = ({
                 ))}
               </div>
               <div className="flex items-center justify-between gap-2">
-                <div className={`flex${choisiCachet ? " invisible" : ""}`}>
+                <div className={`flex${sansTexte ? " invisible" : ""}`}>
                   {ALIGNEMENTS.map(({ cle, nom, Icone }) => (
                     <button
                       key={cle}
@@ -896,7 +1035,19 @@ export const EditeurLibre: React.FC<Props> = ({
                     </p>
                   ) : null;
                 })()}
-              {choisiCachet ? (
+              {estCleElement(choisi) ? (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setD((p) => retirerElement(p, choisi));
+                    setChoisi(null);
+                  }}
+                  className="app-btn-secondary w-full"
+                >
+                  <Trash2 className="h-4 w-4" />
+                  Supprimer de la feuille
+                </button>
+              ) : choisiCachet ? (
                 <button
                   type="button"
                   onClick={() => {
@@ -928,6 +1079,84 @@ export const EditeurLibre: React.FC<Props> = ({
               cinq avec Maj.
             </p>
           )}
+
+          <section className="space-y-3 border-b border-border p-4">
+            <p className="text-sm font-semibold text-foreground">Ajouter</p>
+            <div className="grid grid-cols-2 gap-2">
+              <button type="button" onClick={() => ajouter("texte")} className="app-btn-secondary">
+                <Type className="h-4 w-4" />
+                Texte
+              </button>
+              <button type="button" onClick={() => ajouter("trait")} className="app-btn-secondary">
+                <Minus className="h-4 w-4" />
+                Trait
+              </button>
+              <button type="button" onClick={() => ajouter("cadre")} className="app-btn-secondary">
+                <Square className="h-4 w-4" />
+                Cadre
+              </button>
+              <label
+                className={`app-btn-secondary cursor-pointer${
+                  !storeId || envoi.enCours ? " pointer-events-none opacity-50" : ""
+                }`}
+                title={
+                  storeId
+                    ? "Une image de votre téléphone ou de l'ordinateur, posée telle quelle"
+                    : "Ouvrez l'éditeur depuis une boutique pour ajouter une image"
+                }
+              >
+                <ImagePlus className="h-4 w-4" />
+                {envoi.enCours ? "Envoi…" : "Image"}
+                <input
+                  type="file"
+                  accept="image/png,image/jpeg,image/webp"
+                  aria-label="Ajouter une image"
+                  disabled={!storeId || envoi.enCours}
+                  className="sr-only"
+                  onChange={(e) => {
+                    const f = e.target.files?.[0];
+                    e.target.value = "";
+                    if (f) void ajouterImage(f);
+                  }}
+                />
+              </label>
+            </div>
+            {envoi.erreur && (
+              <p role="alert" className="text-xs t-danger">
+                {envoi.erreur}
+              </p>
+            )}
+            {elements.length > 0 && (
+              <ul className="divide-y divide-border">
+                {elements.map((cle) => (
+                  <li key={cle} className="flex items-center gap-2 py-0.5">
+                    <button
+                      type="button"
+                      onClick={() => setChoisi(cle)}
+                      className={`min-w-0 flex-1 truncate py-1.5 text-left text-sm ${
+                        choisi === cle ? "font-medium text-primary" : "text-foreground"
+                      }`}
+                    >
+                      {nomDe(cle)}
+                      {blocs[cle].textes?.texte ? ` · ${blocs[cle].textes?.texte}` : ""}
+                    </button>
+                    <button
+                      type="button"
+                      aria-label={`Supprimer ${nomDe(cle)}`}
+                      title="Supprimer"
+                      onClick={() => {
+                        setD((p) => retirerElement(p, cle));
+                        if (choisi === cle) setChoisi(null);
+                      }}
+                      className={boutonIcone}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </section>
 
           <section className="space-y-2 border-b border-border p-4">
             <div className="flex items-center justify-between gap-2">

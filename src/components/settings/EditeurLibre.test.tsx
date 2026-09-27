@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { EditeurLibre } from "./EditeurLibre";
 import { documentDeVente } from "../../features/documents/lib/buildDocument";
 import {
@@ -15,6 +15,12 @@ import {
   creerDisposition,
   type Disposition,
 } from "../../features/documents/lib/disposition";
+
+vi.mock("../../features/documents/lib/traiterCachet", () => ({
+  imageCachet: vi.fn(async () => null),
+  imageVersPng: vi.fn(async () => ({ blob: new Blob(["x"]), largeur: 400, hauteur: 200 })),
+  envoyerCachet: vi.fn(async () => ({ id: "i", chemin: "boutique-1/image.png", error: null })),
+}));
 
 afterEach(cleanup);
 
@@ -196,5 +202,75 @@ describe("l'allure depuis la feuille", () => {
     ouvrir();
     fireEvent.click(screen.getByRole("button", { name: "Logo" }));
     expect(screen.getByLabelText("Police")).toBeTruthy();
+  });
+});
+
+describe("ajouter sur la feuille", () => {
+  function ouvrirAvec(storeId?: string) {
+    const onEnregistrer = vi.fn();
+    render(
+      <EditeurLibre
+        disposition={creerDisposition("facture", "classique", "Essai")}
+        document={null}
+        couleur="#0E7C5A"
+        storeId={storeId}
+        enCours={false}
+        onEnregistrer={onEnregistrer}
+        onFermer={vi.fn()}
+      />,
+    );
+    return () => {
+      fireEvent.click(screen.getByRole("button", { name: /^Enregistrer/ }));
+      const d = onEnregistrer.mock.calls.at(-1)?.[0] as Disposition;
+      return Object.entries(d.blocs).filter(([cle]) => cle.startsWith("el:"));
+    };
+  }
+
+  it("un texte libre s'ajoute, s'écrit et se supprime", () => {
+    const enregistrer = ouvrirAvec();
+    fireEvent.click(screen.getByRole("button", { name: "Texte" }));
+    fireEvent.change(screen.getByLabelText("Texte"), { target: { value: "Livraison offerte" } });
+    const [[, bloc]] = enregistrer();
+    expect(bloc).toMatchObject({
+      element: { genre: "texte" },
+      textes: { texte: "Livraison offerte" },
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "Supprimer de la feuille" }));
+    expect(enregistrer()).toEqual([]);
+  });
+
+  it("un trait et un cadre s'ajoutent ; la touche Suppr retire l'élément choisi", () => {
+    const enregistrer = ouvrirAvec();
+    fireEvent.click(screen.getByRole("button", { name: "Trait" }));
+    fireEvent.change(screen.getByLabelText("Épaisseur"), { target: { value: "1" } });
+    fireEvent.click(screen.getByRole("button", { name: "Cadre" }));
+    const ajoutes = enregistrer();
+    expect(ajoutes.map(([, b]) => b?.element?.genre)).toEqual(["trait", "cadre"]);
+    expect(ajoutes[0][1]?.habillage?.bordure).toBe(1);
+
+    fireEvent.keyDown(window, { key: "Delete" });
+    expect(enregistrer().map(([, b]) => b?.element?.genre)).toEqual(["trait"]);
+  });
+
+  it("une image s'envoie, puis se pose à ses proportions", async () => {
+    const enregistrer = ouvrirAvec("boutique-1");
+    const champ = screen.getByLabelText("Ajouter une image");
+    fireEvent.change(champ, {
+      target: { files: [new File(["x"], "logo.png", { type: "image/png" })] },
+    });
+    await waitFor(() => expect(enregistrer()).toHaveLength(1));
+    const [[, bloc]] = enregistrer();
+    expect(bloc?.element?.image).toEqual({
+      chemin: "boutique-1/image.png",
+      largeur: 400,
+      hauteur: 200,
+    });
+    expect(bloc!.h / bloc!.l).toBeCloseTo(0.5, 1);
+  });
+
+  it("sans boutique, l'image n'est pas proposée", () => {
+    ouvrirAvec();
+    expect((screen.getByLabelText("Ajouter une image") as HTMLInputElement).disabled).toBe(true);
   });
 });

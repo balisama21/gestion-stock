@@ -5,6 +5,7 @@ import type { ModeleDocument } from "../lib/reglages";
 import {
   clesPosees,
   estCleCachet,
+  estCleElement,
   idDuCachet,
   niveauDuBloc,
   type BlocPose,
@@ -41,9 +42,11 @@ export function contenuDuBloc(
   lignes: LigneDocument[],
   pagination: string | null,
   cachets?: ImagesCachets,
-  /** Les mots réécrits de ce bloc que le document ne porte pas lui-même. */
-  textes?: Record<string, string>,
+  /** Le bloc posé : ses mots réécrits, et ce qu'il est quand on l'a ajouté. */
+  bloc?: BlocPose,
 ): React.ReactNode {
+  const textes = bloc?.textes;
+  if (estCleElement(cle)) return contenuElement(bloc, cachets);
   if (estCleCachet(cle)) {
     const c = cachets?.cachets.find((x) => x.id === idDuCachet(cle));
     const src = c ? cachets?.images[c.chemin] : undefined;
@@ -120,6 +123,36 @@ export function contenuDuBloc(
   }
 }
 
+function contenuElement(b: BlocPose | undefined, cachets?: ImagesCachets): React.ReactNode {
+  switch (b?.element?.genre) {
+    case "texte":
+      return b.textes?.texte?.trim() ? (
+        <div className="doc-libre-texte">{b.textes.texte}</div>
+      ) : null;
+    case "trait": {
+      const horizontal = b.l >= b.h;
+      const e = `${b.habillage?.bordure ?? 0.3}mm`;
+      return (
+        <div
+          className="doc-libre-trait"
+          style={{
+            background: b.habillage?.bordureCouleur ?? "var(--doc)",
+            ...(horizontal ? { height: e, width: "100%" } : { width: e, height: "100%" }),
+          }}
+        />
+      );
+    }
+    case "cadre":
+      return <div className="doc-libre-rect" />;
+    case "image": {
+      const src = b.element.image ? cachets?.images[b.element.image.chemin] : undefined;
+      return src ? <img className="doc-libre-cachet" src={src} alt="" /> : null;
+    }
+    default:
+      return null;
+  }
+}
+
 export const styleDuBloc = (b: BlocPose, niveau: number): React.CSSProperties => ({
   left: `${b.x}mm`,
   top: `${b.y}mm`,
@@ -131,11 +164,15 @@ export const styleDuBloc = (b: BlocPose, niveau: number): React.CSSProperties =>
 
 export const classeDuBloc = (cle: ClePosee, b: BlocPose) => {
   const h = b.habillage;
-  return `doc-libre-bloc bl-${estCleCachet(cle) ? "cachet" : cle}${b.inverse ? " bl-inverse" : ""}${
+  const genre = b.element?.genre;
+  const nom = estCleCachet(cle) ? "cachet" : genre ? `el bl-el-${genre}` : cle;
+  return `doc-libre-bloc bl-${nom}${b.inverse ? " bl-inverse" : ""}${
     b.align === "droite" ? " bl-droite" : b.align === "centre" ? " bl-centre" : ""
   }${h?.police ? ` bl-police-${h.police}` : ""}${h?.gras ? " bl-gras" : ""}${
     h?.italique ? " bl-italique" : ""
-  }${h?.encre ? " bl-encre" : ""}${h?.fond || h?.bordure ? " bl-cadre" : ""}`;
+  }${h?.encre ? " bl-encre" : ""}${
+    (h?.fond || h?.bordure) && genre !== "trait" ? " bl-cadre" : ""
+  }`;
 };
 
 /** Le bandeau et la barre de pied peignent la couleur du document : leur fond la remplace. */
@@ -149,7 +186,8 @@ export function habillageDuBloc(
   base: ModeleDocument,
 ): React.CSSProperties {
   const h = b.habillage;
-  if (!h) return {};
+  // Un trait porte son épaisseur et sa couleur dans son contenu.
+  if (!h || b.element?.genre === "trait") return {};
   const s: Record<string, string> = {};
   if (h.encre) s["--bl-encre"] = h.encre;
   if (h.fond) {
@@ -194,7 +232,7 @@ export const Libre: React.FC<ProprietesLibre> = ({
         if (cle === "tableau" && cadreTableau && lignes.length === 0) return null;
         const b =
           cle === "tableau" && cadreTableau ? { ...blocs[cle], ...cadreTableau } : blocs[cle];
-        const contenu = contenuDuBloc(cle, d, base, lignes, pagination, cachets, b.textes);
+        const contenu = contenuDuBloc(cle, d, base, lignes, pagination, cachets, b);
         if (contenu === null) return null;
         const k = echelleDuTexte(b);
         return (
@@ -202,7 +240,7 @@ export const Libre: React.FC<ProprietesLibre> = ({
             key={cle}
             data-bloc={cle}
             className={classeDuBloc(cle, b)}
-            style={{ ...styleDuBloc(b, niveauDuBloc(cle)), ...habillageDuBloc(cle, b, base) }}
+            style={{ ...styleDuBloc(b, niveauDuBloc(cle, b)), ...habillageDuBloc(cle, b, base) }}
           >
             {k === 1 ? (
               contenu
