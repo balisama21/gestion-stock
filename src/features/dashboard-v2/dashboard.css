@@ -3640,3 +3640,106 @@
     grid-column: 1 / -1;
   }
 }
+
+@media (min-width: 901px) {
+  /* ── Les ventes : le chiffre d'affaires, le fil, les clients, puis produits | vendeurs ── */
+  .dash2 .groupe .bloc[data-bloc="ventes"] {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+    background: none;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+    overflow: visible;
+  }
+  .dash2 .groupe .bloc[data-bloc="ventes"] > .card {
+    border: 1px solid var(--line);
+    border-radius: var(--r-carte);
+    box-shadow: var(--shadow);
+  }
+  .dash2 .groupe .bloc[data-bloc="ventes"] > #carte-clients,
+  .dash2 .groupe .bloc[data-bloc="ventes"] > #carte-top:last-child,
+  .dash2 .groupe .bloc[data-bloc="ventes"] > #carte-clients + #carte-vendeurs {
+    grid-column: 1 / -1;
+  }
+
+  .dash2 #carte-fil .ch .link {
+    margin-left: auto;
+  }
+
+  /* Chiffre d'affaires : le deuxième chiffre de la page, après la trésorerie. */
+  .dash2 #carte-ventes .kpi-row .v {
+    font-size: 36px;
+  }
+
+  /* Clients : « à relancer » domine à gauche, nouveaux et actifs en petit, la liste à droite. */
+  .dash2 .bloc[data-bloc="ventes"] > #carte-clients {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) minmax(0, 2.2fr);
+    gap: 10px 40px;
+    align-items: start;
+  }
+  .dash2 #carte-clients > .ch {
+    grid-column: 1 / -1;
+  }
+  .dash2 #carte-clients > .facts3 {
+    grid-column: 1;
+    grid-row: 2 / span 3;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+  .dash2 #carte-clients > :not(.ch, .facts3) {
+    grid-column: 2;
+  }
+  .dash2 #carte-clients .fact {
+    background: none;
+    padding: 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: baseline;
+    gap: 12px;
+  }
+  .dash2 #carte-clients .fact b {
+    font-size: var(--t-corps);
+    font-weight: 600;
+    color: var(--ink-2);
+  }
+  .dash2 #carte-clients .fact:nth-child(3) {
+    order: -1;
+    flex-direction: column-reverse;
+    align-items: flex-start;
+    gap: 4px;
+    margin-bottom: 10px;
+  }
+  .dash2 #carte-clients .fact:nth-child(3) b {
+    font-size: 32px;
+    font-weight: 700;
+    line-height: 1;
+    color: var(--ink);
+  }
+  .dash2 #carte-clients .fact.warn b {
+    color: var(--warn-ink);
+  }
+  .dash2 #carte-clients .fact:nth-child(3) small {
+    font-size: var(--t-corps);
+  }
+
+  /* Produits et vendeurs : le premier du classement ressort, les suivants s'effacent. */
+  .dash2 .bloc[data-bloc="ventes"] .best .am,
+  .dash2 .bloc[data-bloc="ventes"] .seller .amt {
+    font-weight: 500;
+    color: var(--ink-2);
+  }
+  .dash2 .bloc[data-bloc="ventes"] .best li:first-child .nm,
+  .dash2 .bloc[data-bloc="ventes"] .seller:first-child .info b {
+    font-size: var(--t-moyen);
+    font-weight: 650;
+  }
+  .dash2 .bloc[data-bloc="ventes"] .best li:first-child .am,
+  .dash2 .bloc[data-bloc="ventes"] .seller:first-child .amt {
+    font-size: 22px;
+    font-weight: 700;
+    color: var(--ink);
+  }
+}
