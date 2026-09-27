@@ -501,3 +501,12 @@ défaut, téléphone et e-mail restent accolés comme avant ; le NIF/STAT ne
 se masque pas. Une coordonnée DÉTACHÉE devient un élément `donnee` qui
 lit toujours sa valeur dans la fiche. Au-dessus de la feuille, une barre
 Ajouter (texte, trait, cadre, image) ; une image se glisse ou se colle.
+
+**Retirer une ligne (C3).** `BlocPose.masquees` retire une ligne d'un
+bloc : un repère (« Vendeur », « Échéance » ; jamais N° ni Date), « Déjà
+payé » et « Reste à payer » (jamais le total), une ligne de paiement, une
+signature (sa place reste), l'activité sous le nom. Appliqué avec les
+textes (`appliquerTextes`) ; les lignes se reconnaissent sur la feuille à
+leur forme, sans repère ajouté aux composants partagés. Les poignées de
+coin débordent vers l'extérieur du bloc, pour laisser le texte du coin
+touchable.

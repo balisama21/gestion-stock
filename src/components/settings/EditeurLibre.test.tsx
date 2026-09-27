@@ -512,3 +512,66 @@ describe("chaque coordonnée se règle sur la feuille", () => {
     expect(blocsResolus(d).emetteur.coordonnees?.masques).toEqual(["entete.telephone"]);
   });
 });
+
+describe("retirer une ligne d'un clic", () => {
+  const doc = documentDeVente({
+    ventes: TICKET_TROIS_LIGNES,
+    produits: PRODUITS,
+    client: CLIENT,
+    paiements: [PAIEMENT],
+    boutique: BOUTIQUE,
+    reglages: REGLAGES_DOCUMENTS_PAR_DEFAUT,
+  });
+
+  function toucherLaLigne(texte: string) {
+    const onEnregistrer = vi.fn();
+    render(
+      <EditeurLibre
+        disposition={creerDisposition("facture", "classique", "Essai")}
+        document={doc}
+        couleur="#0E7C5A"
+        enCours={false}
+        onEnregistrer={onEnregistrer}
+        onFermer={vi.fn()}
+      />,
+    );
+    const rangee = [
+      ...document.querySelectorAll<HTMLElement>('.doc-libre [data-bloc="reperes"] .doc-meta > div'),
+    ].find((n) => n.textContent?.startsWith(texte))!;
+    // Le pointeur tombe sur la valeur, pas sur le libellé : on choisit la ligne.
+    document.elementsFromPoint = vi.fn(() => [(rangee.lastChild as Element) ?? rangee, rangee]);
+    const cadre = document.querySelector('[data-cadre="reperes"]')!;
+    for (let i = 0; i < 2; i++) {
+      fireEvent.pointerDown(cadre, { pointerType: "mouse", pointerId: 1 });
+      fireEvent.pointerUp(cadre, { pointerId: 1 });
+    }
+    return () => {
+      fireEvent.click(screen.getByRole("button", { name: /^Enregistrer/ }));
+      return blocsResolus(onEnregistrer.mock.calls.at(-1)?.[0] as Disposition);
+    };
+  }
+
+  afterEach(() => {
+    delete (document as { elementsFromPoint?: unknown }).elementsFromPoint;
+  });
+
+  it("« Vendeur » se choisit et part avec Suppr ; le panneau le rend", () => {
+    const enregistrer = toucherLaLigne("Vendeur");
+    expect(screen.getByRole("toolbar", { name: "Ligne : Vendeur" })).toBeTruthy();
+    expect(screen.queryByRole("button", { name: "Détacher" })).toBeNull();
+    fireEvent.keyDown(window, { key: "Delete" });
+    expect(enregistrer().reperes.masquees).toEqual(["Vendeur"]);
+    expect(document.querySelector('.doc-libre [data-bloc="reperes"]')?.textContent).not.toContain(
+      "Vendeur",
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Afficher Vendeur" }));
+    expect(enregistrer().reperes.masquees).toBeUndefined();
+  });
+
+  it("le numéro ne se retire pas", () => {
+    const enregistrer = toucherLaLigne("N°");
+    expect(screen.getByRole("toolbar", { name: "Ligne : N°" })).toBeTruthy();
+    fireEvent.keyDown(window, { key: "Delete" });
+    expect(enregistrer().reperes.masquees).toBeUndefined();
+  });
+});

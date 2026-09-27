@@ -175,3 +175,8 @@
 .doc-libre footer {
   white-space: pre-line;
 }
+
+/* Une signature retirée garde sa place : l'autre reste de son côté. */
+.doc-libre .doc-signatures .ligne:empty {
+  visibility: hidden;
+}

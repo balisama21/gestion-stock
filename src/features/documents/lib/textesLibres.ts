@@ -120,14 +120,59 @@ export function textesDuBloc(cle: ClePosee, d: Document, base: ModeleDocument): 
   }
 }
 
+export interface LigneSimple {
+  cle: string;
+  nom: string;
+  /** Exigée sur la pièce : elle ne se retire pas. */
+  obligatoire?: boolean;
+}
+
+/** Le numéro et la date d'une pièce ne se retirent jamais. */
+const REPERES_OBLIGATOIRES = new Set(["N°", "Date"]);
+
+/** Les lignes qu'on peut retirer d'un bloc, une à une. */
+export function lignesSimples(cle: ClePosee, d: Document): LigneSimple[] {
+  switch (cle) {
+    case "reperes":
+      return d.meta.map((m) => ({
+        cle: m.libelle,
+        nom: m.libelle,
+        obligatoire: REPERES_OBLIGATOIRES.has(m.libelle),
+      }));
+    case "totaux":
+      return [
+        ...(d.totaux.paye !== null ? [{ cle: "paye", nom: d.totaux.libellePaye }] : []),
+        ...(d.totaux.reste !== null && d.totaux.reste > 0
+          ? [{ cle: "reste", nom: d.totaux.libelleReste }]
+          : []),
+      ];
+    case "paiement":
+      return (d.coordonneesPaiement ?? []).map((l) => ({ cle: l, nom: l }));
+    case "signatures":
+      return d.signatures
+        ? [
+            { cle: "gauche", nom: d.signatures.gauche || "À gauche" },
+            { cle: "droite", nom: d.signatures.droite || "À droite" },
+          ]
+        : [];
+    case "nom":
+      return d.emetteur.sousTitre ? [{ cle: "sousTitre", nom: "Activité" }] : [];
+    default:
+      return [];
+  }
+}
+
 /** Le document tel que la feuille le dit, une fois les mots réécrits. Les chiffres ne bougent pas. */
 export function appliquerTextes(d: Document, blocs: Blocs): Document {
   const t = (cle: ClePosee, k: string) => blocs[cle]?.textes?.[k];
+  const retire = (cle: ClePosee, k: string) => blocs[cle]?.masquees?.includes(k) === true;
   const ou = (v: string | undefined, defaut: string) => (v === undefined ? defaut : v);
   const ouRien = (v: string | undefined, defaut: string | null) =>
     v === undefined ? defaut : v.trim() ? v : null;
 
   const totaux = { ...d.totaux };
+  if (retire("totaux", "paye")) totaux.paye = null;
+  if (retire("totaux", "reste")) totaux.reste = null;
   for (const { cle } of LIBELLES_TOTAUX) {
     const v = t("totaux", cle);
     if (v !== undefined) (totaux as Record<string, unknown>)[cle] = v;
@@ -146,8 +191,17 @@ export function appliquerTextes(d: Document, blocs: Blocs): Document {
   return {
     ...d,
     titre: ou(t("titre", "titre"), d.titre),
-    meta: d.meta.map((m) => ({ ...m, libelle: ou(t("reperes", m.libelle), m.libelle) })),
-    emetteur: { ...d.emetteur, titre: ou(t("emetteur", "titre"), d.emetteur.titre) },
+    meta: d.meta
+      .filter((m) => REPERES_OBLIGATOIRES.has(m.libelle) || !retire("reperes", m.libelle))
+      .map((m) => ({ ...m, libelle: ou(t("reperes", m.libelle), m.libelle) })),
+    emetteur: {
+      ...d.emetteur,
+      titre: ou(t("emetteur", "titre"), d.emetteur.titre),
+      sousTitre: retire("nom", "sousTitre") ? null : d.emetteur.sousTitre,
+    },
+    coordonneesPaiement: d.coordonneesPaiement
+      ? d.coordonneesPaiement.filter((l) => !retire("paiement", l))
+      : d.coordonneesPaiement,
     destinataire: {
       ...d.destinataire,
       titre: ou(t("destinataire", "titre"), d.destinataire.titre),
@@ -160,8 +214,12 @@ export function appliquerTextes(d: Document, blocs: Blocs): Document {
     mentions: ouRien(t("mentions", "texte"), d.mentions),
     signatures: d.signatures
       ? {
-          gauche: ou(t("signatures", "gauche"), d.signatures.gauche),
-          droite: ou(t("signatures", "droite"), d.signatures.droite),
+          gauche: retire("signatures", "gauche")
+            ? ""
+            : ou(t("signatures", "gauche"), d.signatures.gauche),
+          droite: retire("signatures", "droite")
+            ? ""
+            : ou(t("signatures", "droite"), d.signatures.droite),
         }
       : null,
     motDeFin: ouRien(t("motDeFin", "texte"), d.motDeFin),

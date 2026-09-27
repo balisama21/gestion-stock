@@ -72,6 +72,8 @@ export interface BlocPose {
   element?: Element;
   /** Émetteur et client : l'ordre, le regroupement et les lignes masquées. */
   coordonnees?: PresentationCoordonnees;
+  /** Les autres blocs : les lignes retirées (« Vendeur », « Déjà payé »…). */
+  masquees?: string[];
 }
 
 export type GenreElement = "texte" | "trait" | "cadre" | "image" | "donnee";
@@ -483,6 +485,12 @@ function lireBloc(brut: unknown, cle: string): BlocPose | null {
     const p = lirePresentation(brut.coordonnees);
     if (p) b.coordonnees = p;
   }
+  if (Array.isArray(brut.masquees)) {
+    const m = brut.masquees
+      .filter((x): x is string => typeof x === "string" && x.length > 0 && x.length <= 200)
+      .slice(0, 40);
+    if (m.length > 0) b.masquees = m;
+  }
   if (estCleElement(cle)) {
     const e = objet(brut.element) ? lireElement(brut.element) : null;
     if (!e) return null;
@@ -632,6 +640,7 @@ export function poserBloc(d: Disposition, cle: ClePosee, patch: Partial<BlocPose
   if (!suite.habillage) delete suite.habillage;
   if (!suite.textes) delete suite.textes;
   if (!suite.coordonnees) delete suite.coordonnees;
+  if (!suite.masquees?.length) delete suite.masquees;
   return { ...d, blocs: { ...d.blocs, [cle]: suite } };
 }
 

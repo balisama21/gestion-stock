@@ -9,15 +9,16 @@ interface Props {
   /** Le champ touché, en pixels dans la scène. */
   cadre: { gauche: number; haut: number; bas: number };
   largeurScene: number;
-  accolee: boolean;
-  premiere: boolean;
-  derniere: boolean;
+  accolee?: boolean;
+  premiere?: boolean;
+  derniere?: boolean;
   obligatoire: boolean;
-  onLibelle: () => void;
-  onAccoler: (accolee: boolean) => void;
-  onDeplacer: (sens: -1 | 1) => void;
+  /** Absents : une ligne qui ne fait que se retirer (« Vendeur », « Déjà payé »…). */
+  onLibelle?: () => void;
+  onAccoler?: (accolee: boolean) => void;
+  onDeplacer?: (sens: -1 | 1) => void;
+  onDetacher?: () => void;
   onMasquer: () => void;
-  onDetacher: () => void;
   onFermer: () => void;
 }
 
@@ -60,54 +61,58 @@ export const BarreLigne: React.FC<Props> = ({
       style={{ top, left, maxWidth: largeurScene }}
     >
       <span className="px-1.5 text-xs font-medium text-foreground">{nom}</span>
-      <button
-        type="button"
-        aria-label="Libellé devant"
-        title="Écrire un libellé devant (Tél. :, E-mail :…)"
-        onClick={onLibelle}
-        className={bouton}
-      >
-        <Tag className="h-4 w-4" />
-      </button>
-      <button
-        type="button"
-        aria-label={accolee ? "Mettre sur sa propre ligne" : "Accoler à la ligne précédente"}
-        title={accolee ? "Sur sa propre ligne" : "À la suite de la ligne précédente"}
-        disabled={premiere && !accolee}
-        onClick={() => onAccoler(!accolee)}
-        className={bouton}
-      >
-        {accolee ? <Unlink className="h-4 w-4" /> : <Link2 className="h-4 w-4" />}
-      </button>
-      <button
-        type="button"
-        aria-label="Monter"
-        title="Monter"
-        disabled={premiere}
-        onClick={() => onDeplacer(-1)}
-        className={bouton}
-      >
-        <ArrowUp className="h-4 w-4" />
-      </button>
-      <button
-        type="button"
-        aria-label="Descendre"
-        title="Descendre"
-        disabled={derniere}
-        onClick={() => onDeplacer(1)}
-        className={bouton}
-      >
-        <ArrowDown className="h-4 w-4" />
-      </button>
-      <button
-        type="button"
-        aria-label="Détacher"
-        title="En faire un bloc à part, à poser où l'on veut"
-        onClick={onDetacher}
-        className={bouton}
-      >
-        <Scissors className="h-4 w-4" />
-      </button>
+      {onLibelle && onAccoler && onDeplacer && onDetacher && (
+        <>
+          <button
+            type="button"
+            aria-label="Libellé devant"
+            title="Écrire un libellé devant (Tél. :, E-mail :…)"
+            onClick={onLibelle}
+            className={bouton}
+          >
+            <Tag className="h-4 w-4" />
+          </button>
+          <button
+            type="button"
+            aria-label={accolee ? "Mettre sur sa propre ligne" : "Accoler à la ligne précédente"}
+            title={accolee ? "Sur sa propre ligne" : "À la suite de la ligne précédente"}
+            disabled={premiere && !accolee}
+            onClick={() => onAccoler?.(!accolee)}
+            className={bouton}
+          >
+            {accolee ? <Unlink className="h-4 w-4" /> : <Link2 className="h-4 w-4" />}
+          </button>
+          <button
+            type="button"
+            aria-label="Monter"
+            title="Monter"
+            disabled={premiere}
+            onClick={() => onDeplacer?.(-1)}
+            className={bouton}
+          >
+            <ArrowUp className="h-4 w-4" />
+          </button>
+          <button
+            type="button"
+            aria-label="Descendre"
+            title="Descendre"
+            disabled={derniere}
+            onClick={() => onDeplacer?.(1)}
+            className={bouton}
+          >
+            <ArrowDown className="h-4 w-4" />
+          </button>
+          <button
+            type="button"
+            aria-label="Détacher"
+            title="En faire un bloc à part, à poser où l'on veut"
+            onClick={onDetacher}
+            className={bouton}
+          >
+            <Scissors className="h-4 w-4" />
+          </button>
+        </>
+      )}
       {obligatoire ? (
         <span
           className={`${bouton} cursor-help`}

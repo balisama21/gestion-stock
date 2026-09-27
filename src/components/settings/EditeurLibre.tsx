@@ -88,6 +88,7 @@ import {
 import {
   appliquerTextes,
   libelleParDefaut,
+  lignesSimples,
   textesDuBloc,
   type TexteModifiable,
 } from "../../features/documents/lib/textesLibres";
@@ -288,11 +289,7 @@ export const EditeurLibre: React.FC<Props> = ({
 
   useLayoutEffect(() => {
     const vise = ligne && ligne.cle === choisi ? ligne : null;
-    const el = vise
-      ? feuille.current?.querySelector<HTMLElement>(
-          `.doc-libre [data-bloc="${vise.cle}"] [data-champ="${vise.champ}"]`,
-        )
-      : null;
+    const el = vise ? rangees(vise.cle).find((x) => x.cle === vise.champ)?.el : null;
     const rb = el?.closest<HTMLElement>("[data-bloc]")?.getBoundingClientRect();
     const r = el?.getBoundingClientRect();
     const n =
@@ -502,13 +499,58 @@ export const EditeurLibre: React.FC<Props> = ({
     setLigne(champ ? { cle, champ } : null);
   };
 
-  const champSous = (cle: ClePosee, point: { x: number; y: number }): string | null => {
-    if (!champsTiers(cle) || typeof document.elementsFromPoint !== "function") return null;
+  /** Chaque ligne affichée du bloc, avec l'élément qui la porte sur la feuille. */
+  const rangees = (cle: ClePosee): { cle: string; el: HTMLElement }[] => {
     const el = feuille.current?.querySelector<HTMLElement>(`.doc-libre [data-bloc="${cle}"]`);
+    if (!el) return [];
+    if (champsTiers(cle)) {
+      return [...el.querySelectorAll<HTMLElement>("[data-champ]")].map((c) => ({
+        cle: c.dataset.champ ?? "",
+        el: c,
+      }));
+    }
+    if (!doc) return [];
+    const retirees = new Set(blocs[cle]?.masquees ?? []);
+    const lignes = lignesSimples(cle, doc);
+    const tous = (sel: string) => [...el.querySelectorAll<HTMLElement>(sel)];
+    switch (cle) {
+      case "reperes": {
+        const visibles = lignes.filter((l) => l.obligatoire || !retirees.has(l.cle));
+        return tous(".doc-meta > div").flatMap((n, i) =>
+          visibles[i] ? [{ cle: visibles[i].cle, el: n }] : [],
+        );
+      }
+      case "totaux":
+        return tous(".doc-totaux > .l").flatMap((n) =>
+          n.classList.contains("reste")
+            ? [{ cle: "reste", el: n }]
+            : normal(n.firstElementChild?.textContent ?? "").startsWith(
+                  normal(docEcrit?.totaux.libellePaye ?? "\u0000"),
+                )
+              ? [{ cle: "paye", el: n }]
+              : [],
+        );
+      case "paiement":
+        return tous(".doc-paiement > div").map((n) => ({ cle: n.textContent ?? "", el: n }));
+      case "signatures":
+        return tous(".doc-signatures > .ligne").map((n, i) => ({
+          cle: i === 0 ? "gauche" : "droite",
+          el: n,
+        }));
+      case "nom":
+        return tous(".doc-sous-titre").map((n) => ({ cle: "sousTitre", el: n }));
+      default:
+        return [];
+    }
+  };
+
+  const champSous = (cle: ClePosee, point: { x: number; y: number }): string | null => {
+    if (typeof document.elementsFromPoint !== "function") return null;
+    const lignes = rangees(cle);
+    if (lignes.length === 0) return null;
     for (const touche of document.elementsFromPoint(point.x, point.y)) {
-      if (!(touche instanceof HTMLElement) || !el?.contains(touche)) continue;
-      const c = touche.closest<HTMLElement>("[data-champ]");
-      if (c && el.contains(c)) return c.dataset.champ ?? null;
+      const l = lignes.find((x) => x.el === touche || x.el.contains(touche));
+      if (l) return l.cle;
     }
     return null;
   };
@@ -695,9 +737,20 @@ export const EditeurLibre: React.FC<Props> = ({
   const ligneActive = ligne && ligne.cle === choisi ? ligne : null;
   const champsDuChoisi = champsTiers(choisi) ?? [];
   const presentation = bloc?.coordonnees;
-  const champLigne = ligneActive
-    ? champsDuChoisi.find((c) => c.cle === ligneActive.champ)
+  const lignesDuChoisi = choisi && doc && !champsTiers(choisi) ? lignesSimples(choisi, doc) : [];
+  const champLigne: { cle: string; nom: string; obligatoire?: boolean } | undefined = ligneActive
+    ? (champsDuChoisi.find((c) => c.cle === ligneActive.champ) ??
+      lignesDuChoisi.find((l) => l.cle === ligneActive.champ))
     : undefined;
+  const ligneDeTiers = champsDuChoisi.some((c) => c.cle === ligneActive?.champ);
+
+  const retirerLigne = (cle: ClePosee, k: string, retiree: boolean) =>
+    setD((p) => {
+      const actuelles = new Set(blocsResolus(p)[cle]?.masquees ?? []);
+      if (retiree) actuelles.add(k);
+      else actuelles.delete(k);
+      return poserBloc(p, cle, { masquees: [...actuelles] });
+    });
 
   const presenter = (
     cle: ClePosee,
@@ -705,22 +758,27 @@ export const EditeurLibre: React.FC<Props> = ({
   ) => setD((p) => poserBloc(p, cle, { coordonnees: f(blocsResolus(p)[cle]?.coordonnees) }));
 
   const masquerLigne = () => {
-    if (!ligneActive || champLigne?.obligatoire) return;
-    presenter(ligneActive.cle, (p) => masquerChamp(p, ligneActive.champ, true));
+    if (!ligneActive || !champLigne || champLigne.obligatoire) return;
+    if (ligneDeTiers) presenter(ligneActive.cle, (p) => masquerChamp(p, ligneActive.champ, true));
+    else retirerLigne(ligneActive.cle, ligneActive.champ, true);
     setLigne(null);
   };
 
   /** Le libellé s'écrit devant la valeur ; vide, on propose celui d'usage. */
   const ecrireLibelle = () => {
-    if (!ligneActive || !champLigne) return;
+    if (!ligneActive || !champLigne || !ligneDeTiers) return;
     const el = feuille.current?.querySelector<HTMLElement>(
       `.doc-libre [data-bloc="${ligneActive.cle}"] [data-champ="${champLigne.cle}"]`,
     );
     if (!el) return;
     const k = cleLibelle(champLigne.cle);
-    const actuel = bloc?.textes?.[k] ?? libelleParDefaut(champLigne);
+    const actuel = bloc?.textes?.[k] ?? libelleParDefaut(champLigne as ChampTiers);
     ouvrirEcriture(ligneActive.cle, null, false, {
-      c: { cle: k, nom: `Libellé « ${champLigne.nom} »`, valeur: libelleParDefaut(champLigne) },
+      c: {
+        cle: k,
+        nom: `Libellé « ${champLigne.nom} »`,
+        valeur: libelleParDefaut(champLigne as ChampTiers),
+      },
       el,
       valeur: actuel || LIBELLES_SUGGERES[champLigne.cle] || "",
     });
@@ -728,7 +786,7 @@ export const EditeurLibre: React.FC<Props> = ({
 
   /** La coordonnée quitte son bloc et devient un bloc à part, posé à l'endroit même. */
   const detacherLigne = () => {
-    if (!ligneActive || !champLigne || !rectLigne || !bloc) return;
+    if (!ligneActive || !champLigne || !rectLigne || !bloc || !ligneDeTiers) return;
     const source = ligneActive.cle as "emetteur" | "destinataire";
     const cle = cleElement();
     const l = Math.max(rectLigne.width / PX_MM + 4, 30);
@@ -1076,18 +1134,21 @@ export const EditeurLibre: React.FC<Props> = ({
                               onPointerDown={(e) => saisir(e, cle, p.cle)}
                               className="absolute flex items-center justify-center"
                               style={{
-                                // Zone de prise de 28 px à l'écran, carré visible de 10 px.
+                                // Zone de prise de 28 px à l'écran, carré visible de 10 px, poussée
+                                // vers l'extérieur : le texte du coin reste touchable.
                                 width: 28 / echelle,
                                 height: 28 / echelle,
-                                left: `calc(${p.x * 100}% - ${14 / echelle}px)`,
-                                top: `calc(${p.y * 100}% - ${14 / echelle}px)`,
+                                left: `calc(${p.x * 100}% - ${(p.x ? 6 : 22) / echelle}px)`,
+                                top: `calc(${p.y * 100}% - ${(p.y ? 6 : 22) / echelle}px)`,
                                 cursor: p.curseur,
                                 touchAction: "none",
                               }}
                             >
                               <span
-                                className="block border-primary bg-card"
+                                className="absolute block border-primary bg-card"
                                 style={{
+                                  left: ((p.x ? 6 : 22) - 5) / echelle,
+                                  top: ((p.y ? 6 : 22) - 5) / echelle,
                                   width: 10 / echelle,
                                   height: 10 / echelle,
                                   borderWidth: 2 / echelle,
@@ -1122,7 +1183,7 @@ export const EditeurLibre: React.FC<Props> = ({
                     bas: (bloc.y * PX_MM + rectLigne.top + rectLigne.height) * echelle,
                   }}
                   largeurScene={LARGEUR_PX * echelle}
-                  accolee={estAccolee(presentation, champLigne.cle)}
+                  accolee={ligneDeTiers ? estAccolee(presentation, champLigne.cle) : undefined}
                   premiere={
                     lignesPresentees(champsDuChoisi, presentation).flat()[0]?.cle === champLigne.cle
                   }
@@ -1131,13 +1192,22 @@ export const EditeurLibre: React.FC<Props> = ({
                     champLigne.cle
                   }
                   obligatoire={champLigne.obligatoire === true}
-                  onLibelle={ecrireLibelle}
-                  onAccoler={(v) => presenter(choisi, (p) => accolerChamp(p, champLigne.cle, v))}
-                  onDeplacer={(sens) =>
-                    presenter(choisi, (p) => deplacerChamp(champsDuChoisi, p, champLigne.cle, sens))
+                  onLibelle={ligneDeTiers ? ecrireLibelle : undefined}
+                  onAccoler={
+                    ligneDeTiers
+                      ? (v) => presenter(choisi, (p) => accolerChamp(p, champLigne.cle, v))
+                      : undefined
+                  }
+                  onDeplacer={
+                    ligneDeTiers
+                      ? (sens) =>
+                          presenter(choisi, (p) =>
+                            deplacerChamp(champsDuChoisi, p, champLigne.cle, sens),
+                          )
+                      : undefined
                   }
                   onMasquer={masquerLigne}
-                  onDetacher={detacherLigne}
+                  onDetacher={ligneDeTiers ? detacherLigne : undefined}
                   onFermer={() => setLigne(null)}
                 />
               )}
@@ -1195,6 +1265,52 @@ export const EditeurLibre: React.FC<Props> = ({
                   Fermer
                 </button>
               </div>
+              {lignesDuChoisi.length > 0 && (
+                <div className="space-y-1">
+                  <p className="text-xs font-medium text-foreground">Lignes</p>
+                  <ul className="divide-y divide-border">
+                    {lignesDuChoisi.map((l) => {
+                      const retiree = !l.obligatoire && (bloc.masquees ?? []).includes(l.cle);
+                      return (
+                        <li key={l.cle} className="flex items-center gap-2">
+                          <span
+                            className={`min-w-0 flex-1 truncate py-1.5 text-sm ${
+                              retiree ? "text-muted-foreground" : "text-foreground"
+                            }`}
+                          >
+                            {l.nom}
+                          </span>
+                          {l.obligatoire ? (
+                            <span
+                              className={`${boutonIcone} cursor-help`}
+                              title="Exigé sur la pièce : il ne se retire pas."
+                            >
+                              <Lock className="h-4 w-4" />
+                            </span>
+                          ) : (
+                            <button
+                              type="button"
+                              aria-label={retiree ? `Afficher ${l.nom}` : `Masquer ${l.nom}`}
+                              title={retiree ? "Afficher" : "Masquer"}
+                              onClick={() => retirerLigne(choisi, l.cle, !retiree)}
+                              className={boutonIcone}
+                            >
+                              {retiree ? (
+                                <EyeOff className="h-4 w-4" />
+                              ) : (
+                                <Eye className="h-4 w-4" />
+                              )}
+                            </button>
+                          )}
+                        </li>
+                      );
+                    })}
+                  </ul>
+                  <p className="text-[11px] leading-relaxed text-muted-foreground">
+                    Touchez une ligne sur la feuille, puis Suppr pour la retirer.
+                  </p>
+                </div>
+              )}
               {champsDuChoisi.length > 0 && (
                 <div className="space-y-1">
                   <p className="text-xs font-medium text-foreground">Lignes</p>
@@ -1381,10 +1497,10 @@ export const EditeurLibre: React.FC<Props> = ({
           ) : (
             <p className="border-b border-border p-4 text-xs leading-relaxed text-muted-foreground">
               Touchez un bloc pour le choisir, puis faites-le glisser ; tirez un coin pour le
-              redimensionner. Double-cliquez sur un texte pour l&apos;écrire directement. Il
-              s&apos;aimante aux marges, au milieu de la feuille et aux autres blocs (Alt pour
-              s&apos;en affranchir). Les flèches du clavier le déplacent d&apos;un millimètre, de
-              cinq avec Maj.
+              redimensionner. Touchez-le une seconde fois sur un mot pour l&apos;écrire, sur une
+              ligne (téléphone, « Vendeur »…) pour la régler ou la retirer. Suppr retire, Ctrl+Z
+              annule. Les blocs s&apos;aimantent aux marges et entre eux (Alt pour s&apos;en
+              affranchir) ; les flèches du clavier déplacent d&apos;un millimètre, de cinq avec Maj.
             </p>
           )}
 
