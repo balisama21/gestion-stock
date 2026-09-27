@@ -17,7 +17,7 @@ import { Classique } from "./templates/Classique";
 import { Compact } from "./templates/Compact";
 import { Epure } from "./templates/Epure";
 import { Ticket } from "./templates/Ticket";
-import { Libre } from "./templates/Libre";
+import { echelleDuTexte, Libre } from "./templates/Libre";
 import { blocsResolus, cachetsPlaces, colonneResolue, dispositionDuType } from "./lib/disposition";
 import { imageCachet } from "./lib/traiterCachet";
 import { feuilleLibre, paginerLibre, zonesLibres, type MesuresLibres } from "./lib/paginationLibre";
@@ -143,14 +143,15 @@ function relever(feuille: HTMLElement): MesuresDuDocument | null {
 }
 
 /** Mode libre : l'en-tête et les lignes du tableau, en mm, relevés sur la feuille de mesure. */
-function releverLibre(feuille: HTMLElement): MesuresLibres | null {
+function releverLibre(feuille: HTMLElement, echelle: number): MesuresLibres | null {
   const tableau = feuille.querySelector<HTMLElement>('[data-bloc="tableau"]');
   const thead = tableau?.querySelector<HTMLElement>("thead");
   if (!tableau || !thead || thead.offsetHeight === 0) return null;
-  const mm = (n: number) => (n * 25.4) / 96;
+  // Sous un zoom, `offsetHeight` compte en pixels du bloc agrandi, pas de la feuille.
+  const mm = (n: number) => (n * echelle * 25.4) / 96;
   return {
     // Même garde que le mode simple : un pixel de trop fait déborder une ligne.
-    enTete: mm(thead.offsetHeight + 2),
+    enTete: mm(thead.offsetHeight) + (2 * 25.4) / 96,
     lignes: [...tableau.querySelectorAll<HTMLElement>("tbody tr")].map((l) => mm(l.offsetHeight)),
   };
 }
@@ -337,7 +338,9 @@ export const DocumentPreview: React.FC<DocumentPreviewProps> = ({
     }
 
     if (zones) {
-      const mesuresLibres = feuilles.current[0] ? releverLibre(feuilles.current[0]) : null;
+      const mesuresLibres = feuilles.current[0]
+        ? releverLibre(feuilles.current[0], blocs ? echelleDuTexte(blocs.tableau) : 1)
+        : null;
       poserLesPages(mesuresLibres ? paginerLibre(mesuresLibres, zones) : [toutesLesLignes]);
       return;
     }
@@ -361,7 +364,7 @@ export const DocumentPreview: React.FC<DocumentPreviewProps> = ({
       poserLesPages(seconde ? repartirLesPages(seconde) : [toutesLesLignes]);
     });
     return () => cancelAnimationFrame(image);
-  }, [rouleau, pages, mettreALEchelle, poserLesPages, toutesLesLignes, zones]);
+  }, [rouleau, pages, mettreALEchelle, poserLesPages, toutesLesLignes, zones, blocs]);
 
   /* La pagination est faite : les feuilles existent, et le photographe
      peut passer. Un rouleau n'a rien à découper, il est prêt d'emblée. */
@@ -410,7 +413,10 @@ export const DocumentPreview: React.FC<DocumentPreviewProps> = ({
 
   return (
     <ContexteEquivalents.Provider value={equivalents}>
-      <div className="doc-racine" style={variablesDeCouleur(regle.couleur) as React.CSSProperties}>
+      <div
+        className="doc-racine"
+        style={variablesDeCouleur(libre?.couleur ?? regle.couleur) as React.CSSProperties}
+      >
         {erreur && (
           <p
             role="alert"

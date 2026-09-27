@@ -8,15 +8,20 @@ import {
   ArrowLeft,
   ArrowRight,
   ArrowUp,
+  Bold,
   Eye,
   EyeOff,
   FileText,
+  Italic,
   Lock,
+  Minus,
   Move,
+  Plus,
   RotateCcw,
   Save,
 } from "lucide-react";
 import { SettingsToggle } from "./primitives";
+import { ChoixCouleur } from "./ChoixCouleur";
 import type { Document } from "../../features/documents/lib/buildDocument";
 import { variablesDeCouleur, type ReglagesDocuments } from "../../features/documents/lib/reglages";
 import { DocumentPreview } from "../../features/documents/DocumentPreview";
@@ -24,29 +29,34 @@ import {
   aimanterDeplacement,
   aimanterRedimension,
   BLOCS,
+  BORDURES,
   blocsResolus,
   cleCachet,
   clesPosees,
   ciblesAimant,
   contraindre,
   estCleCachet,
+  habiller,
   idDuCachet,
   placerCachet,
   poserBloc,
   retirerCachet,
   redimensionner,
   reinitialiserDisposition,
+  TAILLE_TEXTE,
   type Alignement,
   type BlocPose,
   type Cibles,
   type ClePosee,
   type Disposition,
   type Guide,
+  type Habillage,
   type Poignee,
+  type Police,
 } from "../../features/documents/lib/disposition";
 import {
-  classeDuBloc,
   contenuDuBloc,
+  echelleDuTexte,
   Libre,
   styleDuBloc,
 } from "../../features/documents/templates/Libre";
@@ -100,6 +110,20 @@ const ALIGNEMENTS: { cle: Alignement; nom: string; Icone: typeof AlignLeft }[] =
   { cle: "gauche", nom: "Aligner à gauche", Icone: AlignLeft },
   { cle: "centre", nom: "Centrer", Icone: AlignCenter },
   { cle: "droite", nom: "Aligner à droite", Icone: AlignRight },
+];
+
+const POLICES: { cle: Police | ""; nom: string; famille?: string }[] = [
+  { cle: "", nom: "Celle du modèle" },
+  { cle: "sans", nom: "Onest", famille: "var(--doc-sans)" },
+  { cle: "serif", nom: "Source Serif", famille: "var(--doc-serif)" },
+  { cle: "mono", nom: "JetBrains Mono", famille: "var(--doc-mono)" },
+];
+
+const TRAITS: { valeur: number | undefined; nom: string }[] = [
+  { valeur: undefined, nom: "Aucune" },
+  { valeur: BORDURES[0], nom: "Fine" },
+  { valeur: BORDURES[1], nom: "Moyenne" },
+  { valeur: BORDURES[2], nom: "Épaisse" },
 ];
 
 const boutonIcone =
@@ -162,6 +186,9 @@ export const EditeurLibre: React.FC<Props> = ({
     (cle: ClePosee, patch: Partial<BlocPose>) => setD((p) => poserBloc(p, cle, patch)),
     [],
   );
+  const habillerBloc = (cle: ClePosee, patch: Partial<Habillage>) =>
+    setD((p) => habiller(p, cle, patch));
+  const couleurDoc = d.couleur ?? couleur;
   const deplacer = useCallback(
     (cle: ClePosee, dx: number, dy: number) =>
       setD((p) => {
@@ -191,8 +218,9 @@ export const EditeurLibre: React.FC<Props> = ({
     racine.querySelectorAll<HTMLElement>(".doc-libre [data-bloc]").forEach((el) => {
       const cle = el.dataset.bloc!;
       if (cle === "tableau") {
+        const k = Number(el.querySelector<HTMLElement>(".doc-libre-echelle")?.style.zoom) || 1;
         el.querySelectorAll<HTMLElement>("tbody tr").forEach((tr) => {
-          if (tr.offsetTop + tr.offsetHeight > el.clientHeight + 1) cachees++;
+          if ((tr.offsetTop + tr.offsetHeight) * k > el.clientHeight + 1) cachees++;
         });
       } else if (el.scrollHeight > el.clientHeight + 2 || el.scrollWidth > el.clientWidth + 2) {
         trop.push(cle);
@@ -305,6 +333,7 @@ export const EditeurLibre: React.FC<Props> = ({
       const cible = (el?.querySelector<HTMLElement>("h4, h5, .doc-titre, .merci, p, footer, div") ??
         el) as HTMLElement | null;
       const cs = cible ? getComputedStyle(cible) : null;
+      const k = echelleDuTexte(blocs[cle]);
       setEcrit({
         cle,
         k: c.cle,
@@ -314,14 +343,16 @@ export const EditeurLibre: React.FC<Props> = ({
         style: cs
           ? {
               fontFamily: cs.fontFamily,
-              fontSize: cs.fontSize,
+              fontSize: `${parseFloat(cs.fontSize) * k}px`,
               fontWeight: cs.fontWeight,
               fontStyle: cs.fontStyle,
               letterSpacing: cs.letterSpacing,
-              lineHeight: cs.lineHeight,
+              lineHeight: cs.lineHeight.endsWith("px")
+                ? `${parseFloat(cs.lineHeight) * k}px`
+                : cs.lineHeight,
               textTransform: cs.textTransform as React.CSSProperties["textTransform"],
               textAlign: getComputedStyle(el!).textAlign as React.CSSProperties["textAlign"],
-              color: "#16181a",
+              color: cs.color,
             }
           : {},
       });
@@ -424,9 +455,9 @@ export const EditeurLibre: React.FC<Props> = ({
             >
               <div
                 ref={feuille}
-                className={`doc-feuille doc-feuille--libre m-${d.base}`}
+                className={`doc-racine doc-feuille doc-feuille--libre m-${d.base}`}
                 style={{
-                  ...(variablesDeCouleur(couleur) as React.CSSProperties),
+                  ...(variablesDeCouleur(couleurDoc) as React.CSSProperties),
                   transform: `scale(${echelle})`,
                   transformOrigin: "top left",
                   position: "absolute",
@@ -631,6 +662,160 @@ export const EditeurLibre: React.FC<Props> = ({
                   </p>
                 </div>
               )}
+              {!choisiCachet && (
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between gap-2">
+                    <p className="text-xs font-medium text-foreground">Style</p>
+                    {bloc.habillage && (
+                      <button
+                        type="button"
+                        onClick={() => poser(choisi, { habillage: undefined })}
+                        className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
+                        title="Reprendre l'allure du modèle"
+                      >
+                        <RotateCcw className="h-3.5 w-3.5" />
+                        Style du modèle
+                      </button>
+                    )}
+                  </div>
+                  <label className="block text-xs text-muted-foreground">
+                    Police
+                    <select
+                      aria-label="Police"
+                      value={bloc.habillage?.police ?? ""}
+                      onChange={(e) =>
+                        habillerBloc(choisi, {
+                          police: (e.target.value || undefined) as Police | undefined,
+                        })
+                      }
+                      className="app-field mt-1 w-full"
+                    >
+                      {POLICES.map((p) => (
+                        <option key={p.cle} value={p.cle} style={{ fontFamily: p.famille }}>
+                          {p.nom}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                  <div className="flex items-center justify-between gap-2">
+                    <div className="flex items-center" role="group" aria-label="Taille du texte">
+                      <button
+                        type="button"
+                        aria-label="Texte plus petit"
+                        title="Plus petit"
+                        disabled={(bloc.habillage?.taille ?? 100) <= TAILLE_TEXTE.min}
+                        onClick={() =>
+                          habillerBloc(choisi, {
+                            taille: (bloc.habillage?.taille ?? 100) - TAILLE_TEXTE.pas,
+                          })
+                        }
+                        className={boutonIcone}
+                      >
+                        <Minus className="h-4 w-4" />
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => habillerBloc(choisi, { taille: undefined })}
+                        title="Taille du modèle"
+                        className="min-w-[3.25rem] text-center text-sm tabular-nums text-foreground"
+                      >
+                        {bloc.habillage?.taille ?? 100} %
+                      </button>
+                      <button
+                        type="button"
+                        aria-label="Texte plus grand"
+                        title="Plus grand"
+                        disabled={(bloc.habillage?.taille ?? 100) >= TAILLE_TEXTE.max}
+                        onClick={() =>
+                          habillerBloc(choisi, {
+                            taille: (bloc.habillage?.taille ?? 100) + TAILLE_TEXTE.pas,
+                          })
+                        }
+                        className={boutonIcone}
+                      >
+                        <Plus className="h-4 w-4" />
+                      </button>
+                    </div>
+                    <div className="flex">
+                      <button
+                        type="button"
+                        aria-label="Gras"
+                        title="Gras"
+                        aria-pressed={bloc.habillage?.gras === true}
+                        onClick={() =>
+                          habillerBloc(choisi, { gras: bloc.habillage?.gras ? undefined : true })
+                        }
+                        className={`${boutonIcone} ${bloc.habillage?.gras ? "text-primary" : ""}`}
+                      >
+                        <Bold className="h-4 w-4" />
+                      </button>
+                      <button
+                        type="button"
+                        aria-label="Italique"
+                        title="Italique"
+                        aria-pressed={bloc.habillage?.italique === true}
+                        onClick={() =>
+                          habillerBloc(choisi, {
+                            italique: bloc.habillage?.italique ? undefined : true,
+                          })
+                        }
+                        className={`${boutonIcone} ${bloc.habillage?.italique ? "text-primary" : ""}`}
+                      >
+                        <Italic className="h-4 w-4" />
+                      </button>
+                    </div>
+                  </div>
+                  <div className="space-y-1.5">
+                    <p className="text-xs text-muted-foreground">Couleur du texte</p>
+                    <ChoixCouleur
+                      nom="Couleur du texte"
+                      aucun="Celle du modèle"
+                      valeur={bloc.habillage?.encre}
+                      onChange={(v) => habillerBloc(choisi, { encre: v })}
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <p className="text-xs text-muted-foreground">
+                      {choisi === "fond" ? "Couleur du bandeau" : "Fond"}
+                    </p>
+                    <ChoixCouleur
+                      nom={choisi === "fond" ? "Couleur du bandeau" : "Fond"}
+                      aucun={choisi === "fond" ? "Celle du document" : "Sans fond"}
+                      valeur={bloc.habillage?.fond}
+                      onChange={(v) => habillerBloc(choisi, { fond: v })}
+                    />
+                  </div>
+                  <div className="space-y-1.5">
+                    <label className="block text-xs text-muted-foreground">
+                      Bordure
+                      <select
+                        aria-label="Bordure"
+                        value={String(bloc.habillage?.bordure ?? "")}
+                        onChange={(e) =>
+                          habillerBloc(choisi, {
+                            bordure: e.target.value ? Number(e.target.value) : undefined,
+                          })
+                        }
+                        className="app-field mt-1 w-full"
+                      >
+                        {TRAITS.map((t) => (
+                          <option key={t.nom} value={t.valeur ?? ""}>
+                            {t.nom}
+                          </option>
+                        ))}
+                      </select>
+                    </label>
+                    {bloc.habillage?.bordure && (
+                      <ChoixCouleur
+                        nom="Couleur de la bordure"
+                        aucun="Couleur du document"
+                        valeur={bloc.habillage.bordureCouleur}
+                        onChange={(v) => habillerBloc(choisi, { bordureCouleur: v })}
+                      />
+                    )}
+                  </div>
+                </div>
+              )}
               {trop.has(choisi) && (
                 <p className="rounded-lg border border-warning-border bg-warning-soft px-3 py-2 text-xs text-warning">
                   Le contenu dépasse du cadre. Agrandissez-le pour que rien ne soit coupé.
@@ -743,6 +928,28 @@ export const EditeurLibre: React.FC<Props> = ({
               cinq avec Maj.
             </p>
           )}
+
+          <section className="space-y-2 border-b border-border p-4">
+            <div className="flex items-center justify-between gap-2">
+              <p className="text-sm font-semibold text-foreground">Couleur du document</p>
+              {d.couleur && (
+                <button
+                  type="button"
+                  onClick={() => setD(({ couleur: _, ...p }) => p)}
+                  className="inline-flex items-center gap-1 text-xs text-muted-foreground hover:text-foreground"
+                  title="Reprendre la couleur des réglages"
+                >
+                  <RotateCcw className="h-3.5 w-3.5" />
+                  Celle des réglages
+                </button>
+              )}
+            </div>
+            <ChoixCouleur
+              nom="Couleur du document"
+              valeur={couleurDoc}
+              onChange={(v) => setD((p) => ({ ...p, couleur: v }))}
+            />
+          </section>
 
           <ul className="divide-y divide-border">
             {BLOCS.map(({ cle, nom, verrouille }) => {

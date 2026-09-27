@@ -129,10 +129,39 @@ export const styleDuBloc = (b: BlocPose, niveau: number): React.CSSProperties =>
   zIndex: niveau,
 });
 
-export const classeDuBloc = (cle: ClePosee, b: BlocPose) =>
-  `doc-libre-bloc bl-${estCleCachet(cle) ? "cachet" : cle}${b.inverse ? " bl-inverse" : ""}${
+export const classeDuBloc = (cle: ClePosee, b: BlocPose) => {
+  const h = b.habillage;
+  return `doc-libre-bloc bl-${estCleCachet(cle) ? "cachet" : cle}${b.inverse ? " bl-inverse" : ""}${
     b.align === "droite" ? " bl-droite" : b.align === "centre" ? " bl-centre" : ""
-  }`;
+  }${h?.police ? ` bl-police-${h.police}` : ""}${h?.gras ? " bl-gras" : ""}${
+    h?.italique ? " bl-italique" : ""
+  }${h?.encre ? " bl-encre" : ""}${h?.fond || h?.bordure ? " bl-cadre" : ""}`;
+};
+
+/** Le bandeau et la barre de pied peignent la couleur du document : leur fond la remplace. */
+const peintLaCouleur = (cle: ClePosee, base: ModeleDocument) =>
+  cle === "fond" || (cle === "pied" && base === "bandeau");
+
+/** Couleurs, fond et trait du bloc. La géométrie reste dans `styleDuBloc`. */
+export function habillageDuBloc(
+  cle: ClePosee,
+  b: BlocPose,
+  base: ModeleDocument,
+): React.CSSProperties {
+  const h = b.habillage;
+  if (!h) return {};
+  const s: Record<string, string> = {};
+  if (h.encre) s["--bl-encre"] = h.encre;
+  if (h.fond) {
+    if (peintLaCouleur(cle, base)) s["--doc"] = h.fond;
+    else s.background = h.fond;
+  }
+  if (h.bordure) s.border = `${h.bordure}mm solid ${h.bordureCouleur ?? "var(--doc)"}`;
+  return s as React.CSSProperties;
+}
+
+/** La taille du texte du bloc, en facteur. */
+export const echelleDuTexte = (b: BlocPose) => (b.habillage?.taille ?? 100) / 100;
 
 interface ProprietesLibre {
   document: Document;
@@ -167,14 +196,21 @@ export const Libre: React.FC<ProprietesLibre> = ({
           cle === "tableau" && cadreTableau ? { ...blocs[cle], ...cadreTableau } : blocs[cle];
         const contenu = contenuDuBloc(cle, d, base, lignes, pagination, cachets, b.textes);
         if (contenu === null) return null;
+        const k = echelleDuTexte(b);
         return (
           <div
             key={cle}
             data-bloc={cle}
             className={classeDuBloc(cle, b)}
-            style={styleDuBloc(b, niveauDuBloc(cle))}
+            style={{ ...styleDuBloc(b, niveauDuBloc(cle)), ...habillageDuBloc(cle, b, base) }}
           >
-            {contenu}
+            {k === 1 ? (
+              contenu
+            ) : (
+              <div className="doc-libre-echelle" style={{ zoom: k }}>
+                {contenu}
+              </div>
+            )}
           </div>
         );
       })}

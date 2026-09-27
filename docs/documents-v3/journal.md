@@ -456,3 +456,12 @@ présence ; à la relecture, l'empreinte du fichier est contrôlée. Une
 pièce émise sans logo se réimprime avec ses initiales ; une copie qui ne
 dit rien du logo (antérieure, ou fichier introuvable) reprend celui du
 moment.
+
+**Allure des blocs.** Rangée dans la disposition (`BlocPose.habillage`),
+donc figée avec elle : police parmi les trois embarquées, taille en pour
+cent, gras, italique, couleur du texte, fond, bordure. La police passe
+par les variables `--doc-sans`/`--doc-serif` du bloc, la taille par un
+`zoom` sur le contenu (le cadre garde ses millimètres ; la pagination
+multiplie les hauteurs relevées). Sur le bandeau et la barre de pied, le
+fond remplace la couleur du document. `Disposition.couleur` remplace
+celle des réglages pour les pièces qui utilisent la disposition.

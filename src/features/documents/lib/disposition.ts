@@ -32,6 +32,27 @@ export type CleBloc =
 
 export type Alignement = "gauche" | "centre" | "droite";
 
+/** Les trois polices embarquées dans le document. */
+export type Police = "sans" | "serif" | "mono";
+
+/** L'allure d'un bloc. Une clé absente garde celle du modèle. */
+export interface Habillage {
+  police?: Police;
+  /** En pour cent de la taille du modèle. */
+  taille?: number;
+  gras?: boolean;
+  italique?: boolean;
+  /** Couleur du texte. */
+  encre?: string;
+  fond?: string;
+  /** Épaisseur du trait, en mm. */
+  bordure?: number;
+  bordureCouleur?: string;
+}
+
+export const TAILLE_TEXTE = { min: 60, max: 250, pas: 10 } as const;
+export const BORDURES = [0.3, 0.6, 1] as const;
+
 export interface BlocPose {
   x: number;
   y: number;
@@ -45,6 +66,7 @@ export interface BlocPose {
   inverse?: boolean;
   /** Les mots réécrits sur la feuille, par élément du bloc. Jamais une donnée. */
   textes?: Record<string, string>;
+  habillage?: Habillage;
 }
 
 export interface Disposition {
@@ -55,6 +77,8 @@ export interface Disposition {
   blocs: Partial<Record<string, BlocPose>>;
   /** Ticket de caisse : l'ordre des sections, de haut en bas. */
   colonne?: ColonneTicket;
+  /** La couleur du document pour cette disposition. Absente : celle des réglages. */
+  couleur?: string;
 }
 
 export type CleTicket = "entete" | "infos" | "articles" | "totaux" | "pied" | "codeBarres";
@@ -402,6 +426,9 @@ export function basculerSection(d: Disposition, cle: CleTicket): Disposition {
 
 const MODELES: ModeleDocument[] = ["classique", "bandeau", "epure", "compact"];
 const ALIGNS: Alignement[] = ["gauche", "centre", "droite"];
+const POLICES: Police[] = ["sans", "serif", "mono"];
+export const COULEUR_HEX = /^#[0-9a-fA-F]{6}$/;
+const couleur = (v: unknown): v is string => typeof v === "string" && COULEUR_HEX.test(v);
 const nombre = (v: unknown): v is number => typeof v === "number" && Number.isFinite(v);
 const objet = (v: unknown): v is Record<string, unknown> =>
   !!v && typeof v === "object" && !Array.isArray(v);
@@ -422,7 +449,26 @@ function lireBloc(brut: unknown, cle: string): BlocPose | null {
     }
     if (Object.keys(textes).length > 0) b.textes = textes;
   }
+  const h = objet(brut.habillage) ? lireHabillage(brut.habillage) : undefined;
+  if (h) b.habillage = h;
   return contraindre(b);
+}
+
+export function lireHabillage(brut: Record<string, unknown>): Habillage | undefined {
+  const h: Habillage = {};
+  if (POLICES.includes(brut.police as Police)) h.police = brut.police as Police;
+  if (nombre(brut.taille)) {
+    h.taille = Math.round(Math.min(TAILLE_TEXTE.max, Math.max(TAILLE_TEXTE.min, brut.taille)));
+  }
+  if (brut.gras === true) h.gras = true;
+  if (brut.italique === true) h.italique = true;
+  if (couleur(brut.encre)) h.encre = brut.encre;
+  if (couleur(brut.fond)) h.fond = brut.fond;
+  if (nombre(brut.bordure) && brut.bordure > 0) {
+    h.bordure = Math.min(3, Math.round(brut.bordure * 10) / 10);
+  }
+  if (couleur(brut.bordureCouleur)) h.bordureCouleur = brut.bordureCouleur;
+  return Object.keys(h).length > 0 ? h : undefined;
 }
 
 function lireDisposition(brut: unknown, id: string): Disposition | null {
@@ -440,6 +486,7 @@ function lireDisposition(brut: unknown, id: string): Disposition | null {
   }
   const nom = typeof brut.nom === "string" && brut.nom.trim() ? brut.nom : "Disposition";
   const lue: Disposition = { id, nom, type, base, blocs };
+  if (couleur(brut.couleur)) lue.couleur = brut.couleur;
   if (objet(brut.colonne)) {
     const liste = (v: unknown) =>
       Array.isArray(v) ? v.filter((c): c is CleTicket => typeof c === "string") : [];
@@ -497,11 +544,21 @@ export function reinitialiserDisposition(d: Disposition): Disposition {
   return { ...d, blocs: blocsDeDepart(d.base) };
 }
 
+/** Change une clé de l'allure d'un bloc ; `undefined` la rend au modèle. */
+export function habiller(d: Disposition, cle: ClePosee, patch: Partial<Habillage>): Disposition {
+  const actuel = blocsResolus(d)[cle]?.habillage ?? {};
+  const suite: Record<string, unknown> = { ...actuel, ...patch };
+  for (const k of Object.keys(suite)) if (suite[k] === undefined) delete suite[k];
+  return poserBloc(d, cle, { habillage: lireHabillage(suite) });
+}
+
 export function poserBloc(d: Disposition, cle: ClePosee, patch: Partial<BlocPose>): Disposition {
   const actuel = blocsResolus(d)[cle];
   if (!actuel) return d;
   const suite = contraindre({ ...actuel, ...patch });
   if (estVerrouille(cle)) delete suite.masque;
+  if (!suite.habillage) delete suite.habillage;
+  if (!suite.textes) delete suite.textes;
   return { ...d, blocs: { ...d.blocs, [cle]: suite } };
 }
 

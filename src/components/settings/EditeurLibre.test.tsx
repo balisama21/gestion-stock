@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { EditeurLibre } from "./EditeurLibre";
 import { documentDeVente } from "../../features/documents/lib/buildDocument";
 import {
@@ -149,5 +149,52 @@ describe("écrire sur la feuille", () => {
     fireEvent.doubleClick(document.querySelector('[data-cadre="nom"]')!);
     expect(screen.queryByLabelText(/^Écrire/)).toBeNull();
     expect(screen.queryByText("Textes")).toBeNull();
+  });
+});
+
+describe("l'allure depuis la feuille", () => {
+  it("police, taille, gras et couleurs se règlent sur le bloc choisi", () => {
+    const { enregistre } = ouvrir();
+    fireEvent.click(screen.getByRole("button", { name: "Titre du document" }));
+    fireEvent.change(screen.getByLabelText("Police"), { target: { value: "serif" } });
+    fireEvent.click(screen.getByRole("button", { name: "Texte plus grand" }));
+    fireEvent.click(screen.getByRole("button", { name: "Texte plus grand" }));
+    fireEvent.click(screen.getByRole("button", { name: "Gras" }));
+    const encre = screen.getByRole("group", { name: "Couleur du texte" });
+    fireEvent.click(within(encre).getByRole("button", { name: "Bordeaux" }));
+    fireEvent.change(screen.getByLabelText("Bordure"), { target: { value: "0.3" } });
+    fireEvent.click(screen.getByRole("button", { name: /Enregistrer/ }));
+    expect(blocsResolus(enregistre()).titre.habillage).toEqual({
+      police: "serif",
+      taille: 120,
+      gras: true,
+      encre: "#8E2F3C",
+      bordure: 0.3,
+    });
+
+    fireEvent.click(screen.getByRole("button", { name: "Style du modèle" }));
+    fireEvent.click(screen.getByRole("button", { name: /Enregistrer/ }));
+    expect(blocsResolus(enregistre()).titre.habillage).toBeUndefined();
+  });
+
+  it("la couleur du document se choisit ici, et se rend aux réglages", () => {
+    const { enregistre } = ouvrir();
+    const choix = screen.getByRole("group", { name: "Couleur du document" });
+    fireEvent.click(within(choix).getByRole("button", { name: "Bleu nuit" }));
+    expect(
+      document.querySelector<HTMLElement>(".doc-feuille")?.style.getPropertyValue("--doc"),
+    ).toBe("#1F4E79");
+    fireEvent.click(screen.getByRole("button", { name: /Enregistrer/ }));
+    expect(enregistre().couleur).toBe("#1F4E79");
+
+    fireEvent.click(screen.getByRole("button", { name: /Celle des réglages/ }));
+    fireEvent.click(screen.getByRole("button", { name: /Enregistrer/ }));
+    expect(enregistre()).not.toHaveProperty("couleur");
+  });
+
+  it("un bloc ordinaire propose son style", () => {
+    ouvrir();
+    fireEvent.click(screen.getByRole("button", { name: "Logo" }));
+    expect(screen.getByLabelText("Police")).toBeTruthy();
   });
 });
