@@ -3743,3 +3743,43 @@
     color: var(--ink);
   }
 }
+
+@media (min-width: 901px) {
+  .dash2 .cle-v.cle-alerte {
+    color: var(--crit);
+  }
+  .dash2 .cle-v.cle-attention {
+    color: var(--warn-ink);
+  }
+  .dash2 .cle-v.cle-pos {
+    color: var(--accent-ink);
+  }
+  /* Le badge d'en-tête redirait le chiffre clé. */
+  .dash2 :is(#carte-stock, #carte-ruptures):has(.cle) .ch .tag {
+    display: none;
+  }
+
+  /* ── Le stock : quoi recommander (étagère | ruptures), puis les mouvements ── */
+  .dash2 .groupe .bloc[data-bloc="stock"] {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 16px;
+    background: none;
+    border: 0;
+    border-radius: 0;
+    box-shadow: none;
+    overflow: visible;
+  }
+  .dash2 .groupe .bloc[data-bloc="stock"] > .card {
+    border: 1px solid var(--line);
+    border-radius: var(--r-carte);
+    box-shadow: var(--shadow);
+  }
+  .dash2 .groupe .bloc[data-bloc="stock"] > #carte-stock:last-child,
+  .dash2 .groupe .bloc[data-bloc="stock"] > #carte-ruptures:first-child {
+    grid-column: 1 / -1;
+  }
+  .dash2 .bloc[data-bloc="stock"] .mvtot b {
+    font-size: 22px;
+    font-weight: 700;
+  }
+}

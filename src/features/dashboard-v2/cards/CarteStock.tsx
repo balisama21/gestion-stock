@@ -1,5 +1,6 @@
 import React from "react";
 import { Card, CardHeader } from "../components/Card";
+import { ChiffreCle } from "../components/ChiffreCle";
 import { Tag } from "../components/Tag";
 import { montant, nombre } from "../lib/format";
 import { quantiteEnMots } from "../../../utils/formulas";
@@ -62,6 +63,16 @@ export const CarteStock: React.FC<{
           )
         }
       />
+
+      {aRecommander > 0 && (
+        <ChiffreCle
+          valeur={aRecommander}
+          libelle={aRecommander > 1 ? "produits à recommander" : "produit à recommander"}
+          detail={sousLeSeuil > 0 ? `dont ${sousLeSeuil} sous le seuil` : undefined}
+          ton={sousLeSeuil > 0 ? "alerte" : "attention"}
+          detailAlerte={sousLeSeuil > 0}
+        />
+      )}
 
       <div className="shelf">
         {stock.etagere.length === 0 ? (

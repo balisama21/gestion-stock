@@ -1,5 +1,6 @@
 import React from "react";
 import { Card, CardHeader } from "../components/Card";
+import { ChiffreCle } from "../components/ChiffreCle";
 import { Tag } from "../components/Tag";
 import { EtatVide } from "../components/States";
 import { nombre } from "../lib/format";
@@ -95,6 +96,19 @@ export const CarteRuptures: React.FC<{
           )
         }
       />
+
+      {stock.enRupture.length > 0 ? (
+        <ChiffreCle
+          valeur={stock.enRupture.length}
+          libelle={stock.enRupture.length > 1 ? "produits en rupture" : "produit en rupture"}
+          detail={bientot.length > 0 ? `${bientot.length} bientôt` : undefined}
+          ton="alerte"
+        />
+      ) : (
+        bientot.length > 0 && (
+          <ChiffreCle valeur={bientot.length} libelle="bientôt en rupture" ton="attention" />
+        )
+      )}
 
       {stock.enRupture.length === 0 ? (
         <EtatVide

@@ -102,7 +102,7 @@ export const CarteTaches: React.FC<{
           valeur={nbOuvertes}
           libelle={nbOuvertes > 1 ? "tâches ouvertes" : "tâche ouverte"}
           detail={nbEnRetard > 0 ? `dont ${nbEnRetard} en retard` : undefined}
-          ton={nbEnRetard > 0 ? "alerte" : undefined}
+          detailAlerte={nbEnRetard > 0}
         />
       )}
 
