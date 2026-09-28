@@ -57,6 +57,10 @@ import { BonDeCommande } from "./components/produits/BonDeCommande";
 import { useCaptureDuDrapeauDocuments, useDocumentsV2 } from "./features/documents/drapeau";
 import { lireReglagesDocuments } from "./features/documents/lib/reglages";
 import { ContexteReglagesDocuments } from "./features/documents/contexteReglages";
+import type {
+  ChampBoutique,
+  ModifsBoutique,
+} from "./features/documents/lib/boutiqueSurLaFeuille";
 import { useFacturation } from "./hooks/useFacturation";
 import { construireDocuments } from "./components/facturation/documents";
 import { compterLesRetards } from "./components/facturation/indicateurs";
@@ -506,6 +510,26 @@ function AppInner() {
         const { error } = await workspace.updateStore(workspace.activeStore.id, {
           personnalisation: { ...personnalisation, documents } as unknown as Json,
         });
+        return error;
+      },
+      enregistrerBoutique: async (m: ModifsBoutique) => {
+        if (!workspace.activeStore) return "Aucune boutique active.";
+        const colonnes: Record<ChampBoutique, string> = {
+          storeName: "name",
+          subtitle: "subtitle",
+          address: "address",
+          phone: "phone",
+          email: "email",
+          nifStat: "nif_stat",
+        };
+        const updates: Record<string, string | null> = {};
+        for (const [k, v] of Object.entries(m) as [ChampBoutique, string][]) {
+          // Le nom ne se vide pas : une boutique sans nom ne s'affiche plus nulle part.
+          if (k === "storeName" && !v.trim()) continue;
+          updates[colonnes[k]] = v.trim() || null;
+        }
+        if (Object.keys(updates).length === 0) return null;
+        const { error } = await workspace.updateStore(workspace.activeStore.id, updates);
         return error;
       },
     }),

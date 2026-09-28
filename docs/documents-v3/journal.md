@@ -510,3 +510,15 @@ textes (`appliquerTextes`) ; les lignes se reconnaissent sur la feuille à
 leur forme, sans repère ajouté aux composants partagés. Les poignées de
 coin débordent vers l'extérieur du bloc, pour laisser le texte du coin
 touchable.
+
+**La fiche de la boutique, écrite sur la feuille.** Double-clic sur le
+nom, l'activité, l'adresse, le téléphone, l'e-mail ou le NIF/STAT de la
+boutique (ou « Modifier » dans la barre de la ligne) : la valeur s'écrit
+sur place, reste en attente (`appliquerBoutique`) et part dans la fiche
+(`stores`) à « Enregistrer », avant la mise en page ; un refus arrête
+tout. Réservé à qui règle les documents (`enregistrerBoutique` du
+contexte). Le client reste en lecture : ses données sont les siennes.
+Bandeau et Compact : « tout sur une ligne » n'est plus qu'un défaut ;
+« Une coordonnée par ligne » dans la barre du bloc, et le bloc grandit
+à la mesure de son contenu (« Ajuster la hauteur » pour tout bloc qui
+déborde).

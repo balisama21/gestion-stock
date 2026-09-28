@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import {
   ArrowDown,
@@ -26,8 +26,18 @@ import { ChoixCouleur } from "./ChoixCouleur";
 import { BarreBloc } from "./BarreBloc";
 import { BarreLigne } from "./BarreLigne";
 import {
+  appliquerBoutique,
+  CHAMP_DE_COORDONNEE,
+  coordonneeDuChamp,
+  NOMS_CHAMPS_BOUTIQUE,
+  type ChampBoutique,
+  type ModifsBoutique,
+} from "../../features/documents/lib/boutiqueSurLaFeuille";
+import {
   accolerChamp,
   champsOrdonnes,
+  toutSurUneLigne,
+  uneParLigne,
   cleLibelle,
   deplacerChamp,
   estAccolee,
@@ -181,7 +191,7 @@ const boutonIcone =
 
 export const EditeurLibre: React.FC<Props> = ({
   disposition,
-  document: doc,
+  document: docFiche,
   couleur,
   reglages,
   storeId: storeIdPasse,
@@ -192,6 +202,14 @@ export const EditeurLibre: React.FC<Props> = ({
   const contexte = useReglagesModifiables();
   const storeId = storeIdPasse ?? contexte?.storeId;
   const [d, setD] = useState(disposition);
+  /** Le nom et les coordonnées de la boutique écrits sur la feuille, en attente d'enregistrement. */
+  const [boutique, setBoutique] = useState<ModifsBoutique>({});
+  const [envoiFiche, setEnvoiFiche] = useState(false);
+  const peutEcrireBoutique = !!contexte?.enregistrerBoutique;
+  const doc = useMemo(
+    () => (docFiche ? appliquerBoutique(docFiche, boutique) : null),
+    [docFiche, boutique],
+  );
   /** Annuler / Rétablir : un pas par geste, les changements rapprochés font un seul pas. */
   const passe = useRef<Disposition[]>([]);
   const futur = useRef<Disposition[]>([]);
@@ -201,6 +219,7 @@ export const EditeurLibre: React.FC<Props> = ({
   courant.current = d;
   const [enGeste, setEnGeste] = useState(false);
   const [depot, setDepot] = useState(false);
+  const [aAjuster, setAAjuster] = useState<ClePosee | null>(null);
   /** Une seule coordonnée choisie dans le bloc : le téléphone, l'e-mail… */
   const [ligne, setLigne] = useState<{ cle: ClePosee; champ: string } | null>(null);
   const [rectLigne, setRectLigne] = useState<{
@@ -258,7 +277,8 @@ export const EditeurLibre: React.FC<Props> = ({
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [chemins]);
-  const modifie = JSON.stringify(d) !== JSON.stringify(disposition);
+  const modifie =
+    JSON.stringify(d) !== JSON.stringify(disposition) || Object.keys(boutique).length > 0;
 
   useEffect(() => {
     const s = suivi.current;
@@ -286,6 +306,16 @@ export const EditeurLibre: React.FC<Props> = ({
     setVersion((v) => v + 1);
   }, []);
   const annuler = useCallback(() => revenir(passe, futur), [revenir]);
+
+  useLayoutEffect(() => {
+    if (!aAjuster) return;
+    const el = feuille.current?.querySelector<HTMLElement>(`.doc-libre [data-bloc="${aAjuster}"]`);
+    const b = blocsResolus(d)[aAjuster];
+    setAAjuster(null);
+    if (!el || !b) return;
+    const mm = el.scrollHeight / PX_MM;
+    if (mm > b.h + 0.2) setD((p) => poserBloc(p, aAjuster, { h: Math.ceil(mm * 2) / 2 + 0.5 }));
+  }, [aAjuster, d]);
 
   useLayoutEffect(() => {
     const vise = ligne && ligne.cle === choisi ? ligne : null;
@@ -515,6 +545,7 @@ export const EditeurLibre: React.FC<Props> = ({
   /** Un mot s'écrit ; une coordonnée se choisit ; ailleurs, rien. */
   const toucherLeTexte = (cle: ClePosee, point: { x: number; y: number }, clic: boolean) => {
     if (ouvrirEcriture(cle, point, clic)) return;
+    if (!clic && ecrireValeurSous(cle, point)) return;
     const champ = champSous(cle, point);
     setLigne(champ ? { cle, champ } : null);
   };
@@ -751,8 +782,76 @@ export const EditeurLibre: React.FC<Props> = ({
 
   const validerEcrit = () => {
     if (!ecrit) return;
-    ecrireTexte(ecrit.cle, ecrit.k, ecrit.valeur, ecrit.defaut);
+    if (ecrit.k.startsWith("valeur:")) {
+      const champ = ecrit.k.slice(7) as ChampBoutique;
+      const v = ecrit.valeur.trim();
+      setBoutique((m) => {
+        const suite = { ...m };
+        if (v === ecrit.defaut.trim() || (champ === "storeName" && !v)) delete suite[champ];
+        else suite[champ] = v;
+        return suite;
+      });
+    } else {
+      ecrireTexte(ecrit.cle, ecrit.k, ecrit.valeur, ecrit.defaut);
+    }
     setEcrit(null);
+  };
+
+  /** La valeur de la fiche telle qu'elle est en base, avant ce qu'on écrit ici. */
+  const valeurDeLaFiche = (champ: ChampBoutique): string => {
+    const e = docFiche?.emetteur;
+    if (!e) return "";
+    if (champ === "storeName") return e.nom;
+    if (champ === "subtitle") return e.sousTitre ?? "";
+    return e.champs?.find((c) => c.cle === coordonneeDuChamp(champ))?.valeur ?? "";
+  };
+
+  const ecrireValeur = (cle: ClePosee, champ: ChampBoutique, el: HTMLElement) =>
+    ouvrirEcriture(cle, null, false, {
+      c: {
+        cle: `valeur:${champ}`,
+        nom: NOMS_CHAMPS_BOUTIQUE[champ],
+        valeur: valeurDeLaFiche(champ),
+      },
+      el,
+      valeur: boutique[champ] ?? valeurDeLaFiche(champ),
+    });
+
+  /** Double-clic sur une valeur de la boutique : elle s'écrit sur place. */
+  const ecrireValeurSous = (cle: ClePosee, point: { x: number; y: number }): boolean => {
+    if (!peutEcrireBoutique || (cle !== "emetteur" && cle !== "nom")) return false;
+    if (typeof document.elementsFromPoint !== "function") return false;
+    const el = feuille.current?.querySelector<HTMLElement>(`.doc-libre [data-bloc="${cle}"]`);
+    for (const n of document.elementsFromPoint(point.x, point.y)) {
+      if (!(n instanceof HTMLElement) || !el?.contains(n)) continue;
+      const champ = n.closest<HTMLElement>("[data-champ]");
+      const k = champ ? CHAMP_DE_COORDONNEE[champ.dataset.champ ?? ""] : undefined;
+      if (champ && k) return ecrireValeur(cle, k, champ);
+      const nom = n.closest<HTMLElement>(".doc-nom, .doc-bloc > b");
+      if (nom) return ecrireValeur(cle, "storeName", nom);
+      const activite = n.closest<HTMLElement>(".doc-sous-titre");
+      if (activite) return ecrireValeur(cle, "subtitle", activite);
+    }
+    return false;
+  };
+
+  /** Le bloc grandit juste assez pour montrer tout son contenu, une fois la feuille redessinée. */
+  const ajusterHauteur = (cle: ClePosee) => setAAjuster(cle);
+
+  /** La fiche d'abord : si elle refuse, la mise en page attend. */
+  const enregistrerTout = async () => {
+    if (Object.keys(boutique).length > 0) {
+      if (!contexte?.enregistrerBoutique) return;
+      setEnvoiFiche(true);
+      const echec = await contexte.enregistrerBoutique(boutique);
+      setEnvoiFiche(false);
+      if (echec) {
+        window.alert(`Les coordonnées de la boutique n'ont pas été enregistrées : ${echec}`);
+        return;
+      }
+      setBoutique({});
+    }
+    onEnregistrer(d);
   };
   const ligneActive = ligne && ligne.cle === choisi ? ligne : null;
   const champsDuChoisi = champsTiers(choisi) ?? [];
@@ -852,7 +951,17 @@ export const EditeurLibre: React.FC<Props> = ({
       <header className="flex flex-wrap items-center gap-2 border-b border-border bg-card px-3 py-2 sm:px-4">
         <button
           type="button"
-          onClick={() => onFermer(d)}
+          onClick={() => {
+            if (
+              Object.keys(boutique).length > 0 &&
+              !window.confirm(
+                "Les coordonnées écrites sur la feuille ne sont pas enregistrées. Quitter ?",
+              )
+            ) {
+              return;
+            }
+            onFermer(d);
+          }}
           className={boutonIcone}
           aria-label="Revenir aux réglages"
           title="Revenir aux réglages"
@@ -914,12 +1023,12 @@ export const EditeurLibre: React.FC<Props> = ({
           </button>
           <button
             type="button"
-            onClick={() => onEnregistrer(d)}
-            disabled={enCours}
+            onClick={() => void enregistrerTout()}
+            disabled={enCours || envoiFiche}
             className="app-btn-primary"
           >
             <Save className="h-4 w-4" />
-            {enCours ? "Enregistrement…" : "Enregistrer"}
+            {enCours || envoiFiche ? "Enregistrement…" : "Enregistrer"}
           </button>
         </div>
       </header>
@@ -1203,13 +1312,22 @@ export const EditeurLibre: React.FC<Props> = ({
                     bas: (bloc.y * PX_MM + rectLigne.top + rectLigne.height) * echelle,
                   }}
                   largeurScene={LARGEUR_PX * echelle}
-                  accolee={ligneDeTiers ? estAccolee(presentation, champLigne.cle) : undefined}
+                  accolee={
+                    ligneDeTiers
+                      ? estAccolee(presentation, champLigne.cle, toutSurUneLigne(choisi, d.base))
+                      : undefined
+                  }
                   premiere={
-                    lignesPresentees(champsDuChoisi, presentation).flat()[0]?.cle === champLigne.cle
+                    lignesPresentees(
+                      champsDuChoisi,
+                      presentation,
+                      toutSurUneLigne(choisi, d.base),
+                    ).flat()[0]?.cle === champLigne.cle
                   }
                   derniere={
-                    lignesPresentees(champsDuChoisi, presentation).flat().at(-1)?.cle ===
-                    champLigne.cle
+                    lignesPresentees(champsDuChoisi, presentation, toutSurUneLigne(choisi, d.base))
+                      .flat()
+                      .at(-1)?.cle === champLigne.cle
                   }
                   obligatoire={champLigne.obligatoire === true}
                   onLibelle={ligneDeTiers ? ecrireLibelle : undefined}
@@ -1228,6 +1346,20 @@ export const EditeurLibre: React.FC<Props> = ({
                   }
                   onMasquer={masquerLigne}
                   onDetacher={ligneDeTiers ? detacherLigne : undefined}
+                  onModifier={
+                    peutEcrireBoutique &&
+                    ((choisi === "emetteur" && CHAMP_DE_COORDONNEE[champLigne.cle]) ||
+                      (choisi === "nom" && champLigne.cle === "sousTitre"))
+                      ? () => {
+                          const k =
+                            choisi === "nom"
+                              ? ("subtitle" as const)
+                              : CHAMP_DE_COORDONNEE[champLigne.cle];
+                          const el = rangees(choisi).find((x) => x.cle === champLigne.cle)?.el;
+                          if (el) ecrireValeur(choisi, k, el);
+                        }
+                      : undefined
+                  }
                   onFermer={() => setLigne(null)}
                 />
               )}
@@ -1260,6 +1392,19 @@ export const EditeurLibre: React.FC<Props> = ({
                         : undefined
                     }
                     onSupprimer={() => supprimerBloc(choisi)}
+                    {...(champsDuChoisi.length > 0
+                      ? {
+                          uneParLigne: lignesPresentees(
+                            champsDuChoisi,
+                            presentation,
+                            toutSurUneLigne(choisi, d.base),
+                          ).every((l) => l.length === 1),
+                          onUneParLigne: (v: boolean) => {
+                            presenter(choisi, (p) => uneParLigne(champsDuChoisi, p, v));
+                            ajusterHauteur(choisi);
+                          },
+                        }
+                      : {})}
                   />
                 )}
             </div>
@@ -1420,8 +1565,9 @@ export const EditeurLibre: React.FC<Props> = ({
                   })}
                   {!estCleElement(choisi) && (
                     <p className="text-[11px] leading-relaxed text-muted-foreground">
-                      Les chiffres, le client, les lignes et le nom de la boutique viennent de la
-                      base : ils ne s&apos;écrivent pas ici.
+                      {peutEcrireBoutique
+                        ? "Le nom et les coordonnées de la boutique s'écrivent sur la feuille (double-clic) et mettent à jour sa fiche à l'enregistrement. Le client et les chiffres viennent de la base."
+                        : "Les chiffres, le client et les coordonnées de la boutique viennent de la base : ils ne s'écrivent pas ici."}
                     </p>
                   )}
                 </div>
@@ -1438,9 +1584,16 @@ export const EditeurLibre: React.FC<Props> = ({
                 </button>
               )}
               {trop.has(choisi) && (
-                <p className="rounded-lg border border-warning-border bg-warning-soft px-3 py-2 text-xs text-warning">
-                  Le contenu dépasse du cadre. Agrandissez-le pour que rien ne soit coupé.
-                </p>
+                <div className="flex items-center justify-between gap-2 rounded-lg border border-warning-border bg-warning-soft px-3 py-2 text-xs text-warning">
+                  <span>Le contenu dépasse du cadre.</span>
+                  <button
+                    type="button"
+                    onClick={() => ajusterHauteur(choisi)}
+                    className="shrink-0 font-medium underline underline-offset-2"
+                  >
+                    Ajuster la hauteur
+                  </button>
+                </div>
               )}
               <div className="grid grid-cols-2 gap-2">
                 {CHAMPS.map((c) => (

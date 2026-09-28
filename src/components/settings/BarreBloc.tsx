@@ -6,6 +6,7 @@ import {
   Bold,
   Copy,
   Italic,
+  List,
   Lock,
   Minus,
   Palette,
@@ -60,6 +61,9 @@ interface Props {
   onAligner: (a: Alignement) => void;
   onDupliquer?: () => void;
   onSupprimer: () => void;
+  /** Coordonnées : une par ligne, ou à la suite. Absent : le bloc n'en a pas. */
+  uneParLigne?: boolean;
+  onUneParLigne?: (separees: boolean) => void;
 }
 
 /** La barre posée au-dessus du bloc choisi, comme celle de Canva. */
@@ -74,6 +78,8 @@ export const BarreBloc: React.FC<Props> = ({
   onAligner,
   onDupliquer,
   onSupprimer,
+  uneParLigne,
+  onUneParLigne,
 }) => {
   const ref = useRef<HTMLDivElement>(null);
   const [taille, setTaille] = useState({ l: 0, h: 0 });
@@ -180,6 +186,18 @@ export const BarreBloc: React.FC<Props> = ({
             <AlignActuel className="h-4 w-4" />
           </button>
         </>
+      )}
+      {onUneParLigne && (
+        <button
+          type="button"
+          aria-label={uneParLigne ? "Tout à la suite" : "Une coordonnée par ligne"}
+          title={uneParLigne ? "Mettre les coordonnées à la suite" : "Une coordonnée par ligne"}
+          aria-pressed={uneParLigne === true}
+          onClick={() => onUneParLigne(!uneParLigne)}
+          className={`${bouton} ${uneParLigne ? actif : ""}`}
+        >
+          <List className="h-4 w-4" />
+        </button>
       )}
       {genre !== "cachet" && genre !== "image" && (
         <button

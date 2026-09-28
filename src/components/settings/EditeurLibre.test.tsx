@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { EditeurLibre } from "./EditeurLibre";
+import { ContexteReglagesDocuments } from "../../features/documents/contexteReglages";
 import { documentDeVente } from "../../features/documents/lib/buildDocument";
 import {
   BOUTIQUE,
@@ -591,5 +592,99 @@ describe("un petit bloc posé sur un grand reste attrapable", () => {
     fireEvent.pointerDown(tableau, { pointerType: "mouse", pointerId: 1 });
     fireEvent.pointerUp(tableau, { pointerId: 1 });
     expect(screen.getByRole("toolbar", { name: "Outils : Texte libre" })).toBeTruthy();
+  });
+});
+
+describe("les coordonnées de la boutique s'écrivent sur la feuille", () => {
+  const doc = documentDeVente({
+    ventes: TICKET_TROIS_LIGNES,
+    produits: PRODUITS,
+    client: CLIENT,
+    paiements: [PAIEMENT],
+    boutique: BOUTIQUE,
+    reglages: REGLAGES_DOCUMENTS_PAR_DEFAUT,
+  });
+
+  afterEach(() => {
+    delete (document as { elementsFromPoint?: unknown }).elementsFromPoint;
+  });
+
+  function ouvrirAvecFiche(base: "classique" | "compact" = "classique") {
+    const onEnregistrer = vi.fn();
+    const enregistrerBoutique = vi.fn(async () => null);
+    render(
+      <ContexteReglagesDocuments.Provider
+        value={{
+          peutRegler: true,
+          reglages: REGLAGES_DOCUMENTS_PAR_DEFAUT,
+          enregistrer: async () => null,
+          enregistrerBoutique,
+        }}
+      >
+        <EditeurLibre
+          disposition={creerDisposition("facture", base, "Essai")}
+          document={doc}
+          couleur="#0E7C5A"
+          enCours={false}
+          onEnregistrer={onEnregistrer}
+          onFermer={vi.fn()}
+        />
+      </ContexteReglagesDocuments.Provider>,
+    );
+    return { onEnregistrer, enregistrerBoutique };
+  }
+
+  it("double-clic sur le téléphone : on l'écrit, la fiche est mise à jour à l'enregistrement", async () => {
+    const { onEnregistrer, enregistrerBoutique } = ouvrirAvecFiche();
+    const tel = document.querySelector('.doc-libre [data-champ="entete.telephone"]')!;
+    document.elementsFromPoint = vi.fn(() => [tel]);
+    fireEvent.doubleClick(document.querySelector('[data-cadre="emetteur"]')!);
+    const zone = screen.getByLabelText(
+      "Écrire : Coordonnées de la boutique",
+    ) as HTMLTextAreaElement;
+    expect(zone.value).toBe(BOUTIQUE.phone);
+    fireEvent.change(zone, { target: { value: "034 11 222 33" } });
+    fireEvent.keyDown(zone, { key: "Enter" });
+    expect(document.querySelector('.doc-libre [data-champ="entete.telephone"]')?.textContent).toBe(
+      "034 11 222 33",
+    );
+    expect(screen.getByText("Modifications non enregistrées.")).toBeTruthy();
+
+    fireEvent.click(screen.getByRole("button", { name: /^Enregistrer/ }));
+    await waitFor(() => expect(onEnregistrer).toHaveBeenCalled());
+    expect(enregistrerBoutique).toHaveBeenCalledWith({ phone: "034 11 222 33" });
+  });
+
+  it("sans droit sur la fiche, la valeur ne s'écrit pas", () => {
+    render(
+      <EditeurLibre
+        disposition={creerDisposition("facture", "classique", "Essai")}
+        document={doc}
+        couleur="#0E7C5A"
+        enCours={false}
+        onEnregistrer={vi.fn()}
+        onFermer={vi.fn()}
+      />,
+    );
+    const tel = document.querySelector('.doc-libre [data-champ="entete.telephone"]')!;
+    document.elementsFromPoint = vi.fn(() => [tel]);
+    fireEvent.doubleClick(document.querySelector('[data-cadre="emetteur"]')!);
+    expect(screen.queryByLabelText(/^Écrire/)).toBeNull();
+  });
+
+  it("Compact : « Une coordonnée par ligne » depuis la barre du bloc", () => {
+    const { onEnregistrer } = ouvrirAvecFiche("compact");
+    fireEvent.click(screen.getByRole("button", { name: "Coordonnées de la boutique" }));
+    fireEvent.click(screen.getByRole("button", { name: "Une coordonnée par ligne" }));
+    expect(
+      document.querySelectorAll('.doc-libre [data-bloc="emetteur"] [data-ligne]').length,
+    ).toBeGreaterThan(1);
+    fireEvent.click(screen.getByRole("button", { name: /^Enregistrer/ }));
+    return waitFor(() =>
+      expect(
+        blocsResolus(onEnregistrer.mock.calls.at(-1)?.[0] as Disposition).emetteur.coordonnees
+          ?.accole?.["entete.email"],
+      ).toBe(false),
+    );
   });
 });

@@ -1,5 +1,16 @@
 import React, { useLayoutEffect, useRef, useState } from "react";
-import { ArrowDown, ArrowUp, EyeOff, Lock, Tag, Unlink, Link2, X, Scissors } from "lucide-react";
+import {
+  Pencil,
+  ArrowDown,
+  ArrowUp,
+  EyeOff,
+  Lock,
+  Tag,
+  Unlink,
+  Link2,
+  X,
+  Scissors,
+} from "lucide-react";
 
 const bouton =
   "inline-flex h-[34px] min-h-0 w-[34px] shrink-0 items-center justify-center rounded text-muted-foreground hover:text-foreground disabled:opacity-40";
@@ -20,6 +31,8 @@ interface Props {
   onDetacher?: () => void;
   onMasquer: () => void;
   onFermer: () => void;
+  /** La valeur vient de la fiche de la boutique : on l'écrit ici, elle y retourne. */
+  onModifier?: () => void;
 }
 
 /** La barre d'une seule coordonnée : téléphone, e-mail, adresse… */
@@ -37,6 +50,7 @@ export const BarreLigne: React.FC<Props> = ({
   onMasquer,
   onDetacher,
   onFermer,
+  onModifier,
 }) => {
   const ref = useRef<HTMLDivElement>(null);
   const [taille, setTaille] = useState({ l: 0, h: 0 });
@@ -61,6 +75,17 @@ export const BarreLigne: React.FC<Props> = ({
       style={{ top, left, maxWidth: largeurScene }}
     >
       <span className="px-1.5 text-xs font-medium text-foreground">{nom}</span>
+      {onModifier && (
+        <button
+          type="button"
+          aria-label="Modifier la valeur"
+          title="Modifier : la fiche de la boutique sera mise à jour à l'enregistrement"
+          onClick={onModifier}
+          className={bouton}
+        >
+          <Pencil className="h-4 w-4" />
+        </button>
+      )}
       {onLibelle && onAccoler && onDeplacer && onDetacher && (
         <>
           <button

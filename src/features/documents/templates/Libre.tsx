@@ -72,7 +72,7 @@ export function contenuDuBloc(
     case "emetteur": {
       if (e.champs) {
         const empile = base === "classique" || base === "epure";
-        if (!e.titre && lignesPresentees(e.champs, bloc?.coordonnees).length === 0) return null;
+        if (!e.titre && e.champs.length === 0) return null;
         return (
           <Coordonnees tiers={e} bloc={bloc} enLigne={!empile} titre={empile ? e.titre : ""} />
         );
@@ -145,7 +145,7 @@ const Coordonnees: React.FC<{
   /** Bandeau, compact : tout sur une ligne, séparé par un point médian. */
   enLigne?: boolean;
 }> = ({ tiers, bloc, titre, enLigne }) => {
-  const lignes = lignesPresentees(tiers.champs ?? [], bloc?.coordonnees);
+  const lignes = lignesPresentees(tiers.champs ?? [], bloc?.coordonnees, enLigne);
   const libelle = (c: ChampTiers) => bloc?.textes?.[cleLibelle(c.cle)] ?? libelleParDefaut(c);
   const champ = (c: ChampTiers) => {
     const l = libelle(c);
@@ -168,7 +168,7 @@ const Coordonnees: React.FC<{
       <div className="coordonnees">
         {lignes.map((l, i) => (
           <React.Fragment key={l[0].cle}>
-            {i > 0 && " · "}
+            {i > 0 && <br />}
             <span data-ligne={l.map((c) => c.cle).join(" ")}>{ligne(l)}</span>
           </React.Fragment>
         ))}

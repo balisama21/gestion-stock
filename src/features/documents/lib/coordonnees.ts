@@ -40,8 +40,25 @@ export const LIBELLES_SUGGERES: Record<string, string> = {
 
 export const cleLibelle = (cle: string) => `libelle:${cle}`;
 
-export const estAccolee = (p: PresentationCoordonnees | undefined, cle: string) =>
-  p?.accole?.[cle] ?? ACCOLES_PAR_DEFAUT.has(cle);
+/** `toutAccole` : le modèle pose toutes les coordonnées sur une ligne (Bandeau, Compact). */
+export const estAccolee = (
+  p: PresentationCoordonnees | undefined,
+  cle: string,
+  toutAccole = false,
+) => p?.accole?.[cle] ?? (toutAccole || ACCOLES_PAR_DEFAUT.has(cle));
+
+/** L'émetteur des modèles Bandeau et Compact tient d'origine sur une seule ligne. */
+export const toutSurUneLigne = (cle: string, base: string) =>
+  cle === "emetteur" && (base === "bandeau" || base === "compact");
+
+/** Une coordonnée par ligne, ou toutes à la suite : le réglage d'un geste. */
+export function uneParLigne(
+  champs: ChampTiers[],
+  p: PresentationCoordonnees | undefined,
+  separees: boolean,
+): PresentationCoordonnees {
+  return { ...p, accole: Object.fromEntries(champs.map((c) => [c.cle, !separees])) };
+}
 
 /** Tous les champs, dans l'ordre choisi ; ceux que l'ordre ne connaît pas gardent leur rang. */
 export function champsOrdonnes(
@@ -63,13 +80,14 @@ export function champsOrdonnes(
 export function lignesPresentees(
   champs: ChampTiers[],
   p: PresentationCoordonnees | undefined,
+  toutAccole = false,
 ): ChampTiers[][] {
   const masques = new Set(p?.masques ?? []);
   const lignes: ChampTiers[][] = [];
   for (const c of champsOrdonnes(champs, p)) {
     if (masques.has(c.cle) && !c.obligatoire) continue;
     const derniere = lignes.at(-1);
-    if (derniere && estAccolee(p, c.cle)) derniere.push(c);
+    if (derniere && estAccolee(p, c.cle, toutAccole)) derniere.push(c);
     else lignes.push([c]);
   }
   return lignes;
