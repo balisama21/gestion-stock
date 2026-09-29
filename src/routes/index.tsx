@@ -1,11 +1,17 @@
 import { createFileRoute } from "@tanstack/react-router";
 import BalsamaApp from "../BalsamaApp";
 import { APP_NAME, APP_TAGLINE } from "../lib/appConfig";
+import { marqueCourante, titreDePage } from "../lib/marque";
 
 export const Route = createFileRoute("/")({
   head: () => ({
     meta: [
-      { title: `${APP_NAME} — Stock, ventes, clients, facturation & trésorerie` },
+      {
+        title: titreDePage(
+          marqueCourante(),
+          `${APP_NAME} — Stock, ventes, clients, facturation & trésorerie`,
+        ),
+      },
       {
         name: "description",
         content: APP_TAGLINE,

@@ -15,7 +15,12 @@ import { installerRepriseApresDeploiement } from "../lib/chunkRecovery";
 import { enregistrerServiceWorker } from "../lib/pwa";
 import { accorderLaBarreDEtat } from "../lib/couleurDeBarre";
 import { InstallPrompt } from "../components/shared/InstallPrompt";
-import { APP_NAME, APP_SHORT_NAME, APP_TAGLINE } from "../lib/appConfig";
+import { APP_NAME, APP_TAGLINE } from "../lib/appConfig";
+import { marqueCourante, scriptMarqueAvantRendu, titreDePage } from "../lib/marque";
+import { MarqueProvider } from "../hooks/useMarque";
+
+// Calculé une fois : le texte ne dépend d'aucune donnée de la requête.
+const SCRIPT_MARQUE = scriptMarqueAvantRendu();
 
 function NotFoundComponent() {
   return (
@@ -75,62 +80,74 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
 }
 
 export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
-  head: () => ({
-    meta: [
-      { charSet: "utf-8" },
-      // `viewport-fit=cover` : la page occupe TOUT l'ecran, y compris
-      // sous la barre d'etat et sous la barre de gestes. Sans lui, le
-      // systeme reserve ces bandes et les peint de sa propre couleur —
-      // un bandeau noir en haut du telephone — et, surtout, toutes les
-      // valeurs `env(safe-area-inset-*)` valent zero : le code qui les
-      // emploie deja pour ecarter la barre du bas ne servait a rien.
-      {
-        name: "viewport",
-        content: "width=device-width, initial-scale=1, viewport-fit=cover",
-      },
-      { title: APP_NAME },
-      {
-        name: "description",
-        content: APP_TAGLINE,
-      },
-      { name: "author", content: APP_NAME },
-      { property: "og:title", content: APP_NAME },
-      {
-        property: "og:description",
-        content: APP_TAGLINE,
-      },
+  // Côté client, les valeurs suivent la marque en cache : ce sont celles
+  // que le script du <head> a déjà posées, et React les retrouve telles
+  // quelles à l'hydratation au lieu de dupliquer icône et métas.
+  head: () => {
+    const marque = marqueCourante();
+    return {
+      meta: [
+        { charSet: "utf-8" },
+        // `viewport-fit=cover` : la page occupe TOUT l'ecran, y compris
+        // sous la barre d'etat et sous la barre de gestes. Sans lui, le
+        // systeme reserve ces bandes et les peint de sa propre couleur —
+        // un bandeau noir en haut du telephone — et, surtout, toutes les
+        // valeurs `env(safe-area-inset-*)` valent zero : le code qui les
+        // emploie deja pour ecarter la barre du bas ne servait a rien.
+        {
+          name: "viewport",
+          content: "width=device-width, initial-scale=1, viewport-fit=cover",
+        },
+        { title: titreDePage(marque, marque.nom) },
+        {
+          name: "description",
+          content: APP_TAGLINE,
+        },
+        // Métas d'aperçu : lues par les robots, donc dans le rendu serveur.
+        { name: "author", content: APP_NAME },
+        { property: "og:title", content: APP_NAME },
+        {
+          property: "og:description",
+          content: APP_TAGLINE,
+        },
 
-      { property: "og:type", content: "website" },
-      // La barre d'etat prend la couleur de ce qui se trouve JUSTE en
-      // dessous d'elle, c'est-a-dire l'en-tete de l'application. Le vert
-      // de la marque y ferait un bandeau colore la ou l'on veut
-      // justement n'en voir aucun.
-      //
-      // Cette valeur-ci n'est que la premiere, celle du mode clair,
-      // servie avant que le code ne s'execute ; `accorderLaBarreDEtat`
-      // prend le relais et la garde accordee au theme reellement
-      // affiche. Une seule balise ici, et c'est necessaire : le
-      // gestionnaire d'en-tete dedoublonne les metas par leur `name` et
-      // n'en garderait qu'une de toute facon.
-      { name: "theme-color", content: "#ffffff" },
-      { name: "mobile-web-app-capable", content: "yes" },
-      { name: "apple-mobile-web-app-capable", content: "yes" },
-      { name: "apple-mobile-web-app-status-bar-style", content: "default" },
-      { name: "apple-mobile-web-app-title", content: APP_SHORT_NAME },
-      { name: "twitter:card", content: "summary_large_image" },
-    ],
-    links: [
-      {
-        rel: "stylesheet",
-        href: appCss,
-      },
-      { rel: "icon", href: "/favicon.ico", type: "image/x-icon" },
-      { rel: "manifest", href: "/manifest.webmanifest" },
-      // iOS ignore le manifeste pour l icone de l ecran d accueil, et
-      // remplit de noir toute transparence : icone carree et opaque.
-      { rel: "apple-touch-icon", href: "/icon-apple-180.png" },
-    ],
-  }),
+        { property: "og:type", content: "website" },
+        // La barre d'etat prend la couleur de ce qui se trouve JUSTE en
+        // dessous d'elle, c'est-a-dire l'en-tete de l'application. Le vert
+        // de la marque y ferait un bandeau colore la ou l'on veut
+        // justement n'en voir aucun.
+        //
+        // Cette valeur-ci n'est que la premiere, celle du mode clair,
+        // servie avant que le code ne s'execute ; `accorderLaBarreDEtat`
+        // prend le relais et la garde accordee au theme reellement
+        // affiche. Une seule balise ici, et c'est necessaire : le
+        // gestionnaire d'en-tete dedoublonne les metas par leur `name` et
+        // n'en garderait qu'une de toute facon.
+        { name: "theme-color", content: "#ffffff" },
+        { name: "mobile-web-app-capable", content: "yes" },
+        { name: "apple-mobile-web-app-capable", content: "yes" },
+        { name: "apple-mobile-web-app-status-bar-style", content: "default" },
+        { name: "apple-mobile-web-app-title", content: marque.nomCourt },
+        { name: "twitter:card", content: "summary_large_image" },
+      ],
+      links: [
+        {
+          rel: "stylesheet",
+          href: appCss,
+        },
+        marque.parDefaut
+          ? { rel: "icon", href: "/favicon.ico", type: "image/x-icon" }
+          : { rel: "icon", href: marque.faviconUrl },
+        { rel: "manifest", href: "/manifest.webmanifest" },
+        // iOS ignore le manifeste pour l icone de l ecran d accueil, et
+        // remplit de noir toute transparence : icone carree et opaque.
+        {
+          rel: "apple-touch-icon",
+          href: marque.parDefaut ? "/icon-apple-180.png" : marque.faviconUrl,
+        },
+      ],
+    };
+  },
   shellComponent: RootShell,
   component: RootComponent,
   notFoundComponent: NotFoundComponent,
@@ -139,9 +156,13 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
 
 function RootShell({ children }: { children: ReactNode }) {
   return (
-    <html lang="fr">
+    // data-marque est posé avant l'hydratation par le script ci-dessous.
+    <html lang="fr" suppressHydrationWarning>
       <head>
         <HeadContent />
+        {/* Après HeadContent : titre, icône et feuille de style existent
+            déjà et sont modifiés sur place, avant le premier affichage. */}
+        <script suppressHydrationWarning dangerouslySetInnerHTML={{ __html: SCRIPT_MARQUE }} />
       </head>
       <body>
         {children}
@@ -168,10 +189,12 @@ function RootComponent() {
 
   return (
     <QueryClientProvider client={queryClient}>
-      <AuthProvider>
-        <Outlet />
-        <InstallPrompt />
-      </AuthProvider>
+      <MarqueProvider>
+        <AuthProvider>
+          <Outlet />
+          <InstallPrompt />
+        </AuthProvider>
+      </MarqueProvider>
     </QueryClientProvider>
   );
 }
