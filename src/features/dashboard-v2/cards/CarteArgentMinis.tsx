@@ -30,11 +30,11 @@ const Mini: React.FC<{
         <div className={`ib ${ton}`}>
           <Icone nom={icone} />
         </div>
-        <div className="mt">
-          <h4>{titre}</h4>
-          <div className={`v num${petit ? " petit" : ""}`}>{valeur}</div>
-          <small className={noteVerte ? "vert" : undefined}>{note}</small>
-        </div>
+        <h4>{titre}</h4>
+      </div>
+      <div className="mt">
+        <div className={`v num${petit ? " petit" : ""}`}>{valeur}</div>
+        <small className={noteVerte ? "vert" : undefined}>{note}</small>
       </div>
       {onClick && <Icone nom="chevright" className="chev" />}
     </Racine>

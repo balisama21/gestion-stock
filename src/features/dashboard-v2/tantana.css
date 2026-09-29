@@ -215,6 +215,18 @@
 }
 
 /* ── Cartes ── */
+/* ── Une seule échelle de texte pour toutes les sections ── */
+.tn {
+  --fs-titre: 17px; /* titre d'une carte */
+  --fs-tuile: 15px; /* libellé d'une tuile chiffrée */
+  --fs-xl: 34px; /* le montant principal d'une carte */
+  --fs-l: 26px; /* la valeur d'une tuile */
+  --fs-m: 22px; /* un compteur dans une carte */
+  --fs-liste: 15px; /* un montant dans une liste */
+  --fs-nom: 14.5px; /* un nom dans une liste */
+  --fs-sec: 13px; /* le texte secondaire, toujours gris */
+  --fs-micro: 11.5px; /* surtitres et légendes de graphique */
+}
 .tn .card {
   position: relative;
   background: var(--card);
@@ -234,43 +246,47 @@
 .tn .card-t {
   min-width: 0;
 }
+/* Les icônes du tableau de bord se posent seules, sans pastille ni
+   cadre : la couleur dit le sens (vert positif, rouge sortie ou alerte,
+   bleu, orange, violet pour le reste). */
 .tn .lead {
-  width: 46px;
-  height: 46px;
-  border-radius: 14px;
-  background: var(--gsoft);
   color: var(--g2);
   display: grid;
   place-items: center;
   flex: none;
 }
 .tn .lead .ico {
-  width: 24px;
-  height: 24px;
+  width: 26px;
+  height: 26px;
 }
-.tn .lead.plein {
-  background: var(--g2);
-  color: #fff;
-}
-.tn .lead.plein .ico svg {
-  stroke-width: 2.4;
+.tn .lead svg,
+.tn .pastille svg,
+.tn .mini .ib svg,
+.tn .cli .it .b svg,
+.tn .act .a .c svg,
+.tn .devis .ib svg,
+.tn .stk .foot .ib svg,
+.tn .result .big svg,
+.tn .okbar .c svg,
+.tn .deliv .c svg {
+  stroke-width: 2.1;
 }
 .tn .card-h h3 {
-  font-size: 17px;
+  font-size: var(--fs-titre);
   font-weight: 600;
   line-height: 1.25;
 }
 .tn .card-h h3.grand {
-  font-size: 22px;
+  font-size: var(--fs-titre);
 }
 .tn .card-h h3.petit {
-  font-size: 15px;
+  font-size: var(--fs-titre);
 }
 .tn .card-h.h20 h3 {
-  font-size: 20px;
+  font-size: var(--fs-titre);
 }
 .tn .card-h .sub {
-  font-size: 13px;
+  font-size: var(--fs-sec);
   color: var(--muted);
 }
 .tn .link {
@@ -397,10 +413,10 @@
   margin-top: 6px;
 }
 .tn .empty .s {
-  font-size: 12px;
+  font-size: var(--fs-sec);
 }
 .tn .sous-titre {
-  font-size: 11.5px;
+  font-size: var(--fs-micro);
   font-weight: 700;
   letter-spacing: 0.06em;
   text-transform: uppercase;
@@ -426,7 +442,7 @@
   font-weight: 500;
   padding: 10px 12px;
   background: var(--gsoft);
-  font-size: 12.5px;
+  font-size: var(--fs-sec);
   white-space: nowrap;
 }
 .tn .tbl th:first-child {
@@ -458,8 +474,12 @@
   color: var(--blue);
   font-weight: 600;
 }
+/* La description prend la place qui reste et se coupe : sans cela elle
+   repousse la colonne des montants hors de la carte. */
 .tn .tbl td.desc {
-  max-width: 260px;
+  width: 100%;
+  max-width: 0;
+  min-width: 96px;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -672,7 +692,7 @@
 }
 .tn .opt small {
   color: var(--muted);
-  font-size: 12px;
+  font-size: var(--fs-sec);
 }
 .tn .opt:hover {
   background: var(--gsoft);
@@ -763,63 +783,42 @@
   background: var(--blue);
 }
 
-/* ── Icônes teintées : une icône sur sa pastille ── */
-.tn .lead.rond {
-  width: 58px;
-  height: 58px;
-  border-radius: 50%;
-}
+/* ── Icônes teintées : la couleur seule porte le sens ── */
 .tn .lead.rond .ico {
-  width: 28px;
-  height: 28px;
-}
-.tn .lead.grand {
-  width: 62px;
-  height: 62px;
-  border-radius: 18px;
+  width: 32px;
+  height: 32px;
 }
 .tn .lead.grand .ico {
-  width: 30px;
-  height: 30px;
+  width: 34px;
+  height: 34px;
 }
 .tn .lead.rouge,
 .tn .pastille.rouge {
-  background: var(--danger-soft);
   color: var(--danger);
 }
 .tn .lead.bleu,
 .tn .pastille.bleu {
-  background: var(--info-soft);
   color: var(--info);
 }
 .tn .lead.orange,
 .tn .pastille.orange {
-  background: var(--warning-soft);
   color: var(--warning);
 }
 .tn .lead.violet,
 .tn .pastille.violet {
-  background: var(--violet-soft);
   color: var(--violet);
 }
 .tn .pastille {
   display: grid;
   place-items: center;
-  border-radius: 50%;
-  background: var(--gsoft);
   color: var(--g2);
 }
-.tn .pastille.carre {
-  border-radius: calc(14 * var(--u));
-}
 .tn .pastille.neutre {
-  background: var(--muted);
-  background: color-mix(in oklch, var(--muted-foreground) 12%, transparent);
   color: var(--muted-foreground);
 }
 .tn .pastille .ico {
-  width: 50%;
-  height: 50%;
+  width: 64%;
+  height: 64%;
 }
 .tn .kpetite {
   color: var(--g);
@@ -834,21 +833,17 @@
   color: var(--warning);
 }
 .tn .act .a .c {
-  width: 34px;
-  height: 34px;
-  border-radius: 50%;
+  width: 24px;
   display: grid;
   place-items: center;
-  background: var(--gsoft);
   color: var(--g2);
 }
 .tn .act .a .c.bleu {
-  background: var(--info-soft);
   color: var(--info);
 }
 .tn .act .a .c .ico {
-  width: 18px;
-  height: 18px;
+  width: 22px;
+  height: 22px;
 }
 
 /* ═══════════════ LE HAUT : bonjour, cartes du jour ═══════════════ */
@@ -1446,13 +1441,13 @@
   text-align: left;
 }
 .tn .evi b {
-  font-size: 15px;
+  font-size: var(--fs-nom);
   display: block;
 }
 .tn .evi .sub,
 .tn .stop span {
   color: var(--muted);
-  font-size: 13px;
+  font-size: var(--fs-sec);
 }
 .tn .evi .txt,
 .tn .stop .txt {
@@ -1482,7 +1477,7 @@
   font-size: 17px;
 }
 .tn .dash small {
-  font-size: 11px;
+  font-size: var(--fs-micro);
   font-weight: 600;
 }
 .tn .art-cal {
@@ -1571,6 +1566,7 @@
 }
 .tn .todo {
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 4px;
   margin-top: 4px;
 }
@@ -1614,18 +1610,14 @@
   background: var(--card);
 }
 .tn .devis .ib {
-  width: 48px;
-  height: 44px;
-  border-radius: 12px;
-  background: var(--gsoft);
   color: var(--g2);
   display: grid;
   place-items: center;
   flex: none;
 }
 .tn .devis .ib .ico {
-  width: 24px;
-  height: 24px;
+  width: 28px;
+  height: 28px;
 }
 .tn .devis b {
   display: block;
@@ -1655,7 +1647,7 @@
 .tn .step {
   text-align: center;
   position: relative;
-  font-size: 13px;
+  font-size: var(--fs-sec);
   color: var(--muted);
 }
 .tn .step i {
@@ -1712,28 +1704,16 @@
 }
 .tn .okbar .c,
 .tn .deliv .c {
-  width: 38px;
-  height: 38px;
-  border-radius: 50%;
-  background: var(--g);
-  color: #fff;
+  color: var(--g2);
   display: grid;
   place-items: center;
   flex: none;
   position: relative;
 }
-.tn .deliv .c {
-  background: var(--g2);
-}
 .tn .okbar .c .ico,
 .tn .deliv .c .ico {
-  width: 20px;
-  height: 20px;
-  color: #fff;
-}
-.tn .okbar .c .ico svg,
-.tn .deliv .c .ico svg {
-  stroke-width: 2.6;
+  width: 28px;
+  height: 28px;
 }
 .tn .okbar b,
 .tn .deliv b {
@@ -1741,7 +1721,7 @@
   display: block;
 }
 .tn .okbar span {
-  font-size: 12.5px;
+  font-size: var(--fs-sec);
   color: var(--muted);
 }
 .tn .deliv {
@@ -1751,7 +1731,7 @@
 }
 .tn .deliv span {
   color: var(--muted);
-  font-size: 13px;
+  font-size: var(--fs-sec);
 }
 .tn .art-camion {
   margin-left: auto;
@@ -1780,7 +1760,7 @@
 }
 .tn .stop .amt {
   font-weight: 700;
-  font-size: 13px;
+  font-size: var(--fs-liste);
   white-space: nowrap;
 }
 
@@ -1878,7 +1858,7 @@
 }
 .tn .feed .who > b {
   display: block;
-  font-size: 14.5px;
+  font-size: var(--fs-nom);
   font-weight: 700;
   line-height: 1.3;
   overflow: hidden;
@@ -1904,11 +1884,9 @@
   text-overflow: ellipsis;
   white-space: nowrap;
   color: var(--muted);
-  font-size: 12.5px;
+  font-size: var(--fs-sec);
 }
-.tn .feed .prod .pq {
-  font-size: 12px;
-}
+
 .tn .feed .fin {
   display: flex;
   align-items: center;
@@ -1916,7 +1894,7 @@
 }
 .tn .feed .amt {
   font-weight: 700;
-  font-size: 14.5px;
+  font-size: var(--fs-liste);
   white-space: nowrap;
   text-align: right;
 }
@@ -1956,27 +1934,21 @@
   border-color: var(--gsoft2);
 }
 .tn .cli .it .b {
-  width: 46px;
-  height: 46px;
-  border-radius: 50%;
   display: grid;
   place-items: center;
   flex: none;
 }
 .tn .cli .it .b .ico {
-  width: 24px;
-  height: 24px;
+  width: 28px;
+  height: 28px;
 }
 .tn .cli .it.orange .b {
-  background: var(--orangesoft);
   color: var(--orange);
 }
 .tn .cli .it.bleu .b {
-  background: var(--bluesoft);
   color: var(--blue);
 }
 .tn .cli .it.vert .b {
-  background: var(--gsoft);
   color: var(--g2);
 }
 .tn .cli .it.orange .v {
@@ -1991,10 +1963,10 @@
 .tn .cli .it small {
   color: var(--muted);
   display: block;
-  font-size: 13px;
+  font-size: var(--fs-sec);
 }
 .tn .cli .it b.v {
-  font-size: 22px;
+  font-size: var(--fs-m);
   line-height: 1.1;
 }
 .tn .cli .it .chev {
@@ -2026,7 +1998,7 @@
 }
 .tn .person small {
   color: var(--muted);
-  font-size: 12px;
+  font-size: var(--fs-sec);
 }
 .tn .top-card {
   display: flex;
@@ -2127,10 +2099,12 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  font-size: var(--fs-nom);
 }
 .tn .best .am {
   font-weight: 700;
   text-align: right;
+  font-size: var(--fs-liste);
 }
 .tn .best .bar,
 .tn .rank .bar {
@@ -2150,7 +2124,7 @@
 .tn .best small {
   grid-column: 2 / 4;
   color: var(--muted);
-  font-size: 12px;
+  font-size: var(--fs-sec);
 }
 .tn .best .bar {
   grid-column: 2 / 4;
@@ -2193,18 +2167,17 @@
   min-width: 0;
 }
 .tn .rank .nm b {
-  font-size: 14.5px;
+  font-size: var(--fs-nom);
 }
 .tn .rank .nm small {
   display: block;
   color: var(--muted);
-  font-size: 12px;
+  font-size: var(--fs-sec);
   margin-top: 2px;
 }
 .tn .rank .am {
-  font-family: ui-monospace, "SF Mono", Menlo, monospace;
   font-weight: 700;
-  font-size: 16px;
+  font-size: var(--fs-liste);
   text-align: right;
   white-space: nowrap;
 }
@@ -2229,7 +2202,7 @@
   display: grid;
   grid-template-columns: 1fr 1.2fr;
   gap: 26px;
-  align-items: center;
+  align-items: start;
   background: var(--card);
   overflow: hidden;
 }
@@ -2258,7 +2231,7 @@
   color: var(--muted);
 }
 .tn .tres .big {
-  font-size: 38px;
+  font-size: var(--fs-xl);
   font-weight: 700;
   line-height: 1.15;
   margin: 4px 0 2px;
@@ -2322,22 +2295,18 @@
   display: flex;
   align-items: center;
   gap: 10px;
-  font-size: 16px;
+  font-size: var(--fs-tuile);
   margin-bottom: 10px;
 }
-.tn .origin h4 .ic {
-  width: 34px;
-  height: 34px;
-  border-radius: 50%;
-  background: var(--g2);
-  color: #fff;
+.tn .origin h4 .oic {
+  color: var(--g2);
   display: grid;
   place-items: center;
   flex: none;
 }
-.tn .origin h4 .ic .ico {
-  width: 18px;
-  height: 18px;
+.tn .origin h4 .oic .ico {
+  width: 24px;
+  height: 24px;
 }
 .tn .compo-liste > div {
   display: flex;
@@ -2379,7 +2348,7 @@
 }
 .tn .compo-note {
   margin-top: 8px;
-  font-size: 12px;
+  font-size: var(--fs-sec);
   color: var(--muted);
 }
 .tn .origin .wallet {
@@ -2402,55 +2371,58 @@
     var(--shadow),
     inset 0 0 0 1px var(--gsoft2);
 }
+/* L'icône se range sur la ligne du titre : le montant a ainsi toute la
+   largeur de la tuile, même à quatre tuiles de front. */
 .tn .mini .h {
   display: flex;
-  gap: 14px;
-  align-items: flex-start;
+  gap: 10px;
+  align-items: center;
+  /* Deux lignes de titre au plus : les montants restent alignés d'une
+     tuile à l'autre, que le titre tienne sur une ligne ou deux. */
+  min-height: 40px;
   position: relative;
   z-index: 1;
   padding-right: 18px;
 }
 .tn .mini .mt {
+  position: relative;
+  z-index: 1;
   min-width: 0;
+  margin-top: 10px;
 }
 .tn .mini .ib {
-  width: 48px;
-  height: 48px;
-  border-radius: 14px;
   display: grid;
   place-items: center;
   flex: none;
 }
 .tn .mini .ib .ico {
-  width: 24px;
-  height: 24px;
+  width: 28px;
+  height: 28px;
 }
 .tn .mini .ib.vert {
-  background: var(--gsoft);
   color: var(--g2);
 }
 .tn .mini .ib.rouge {
-  background: var(--redsoft);
   color: var(--red);
 }
 .tn .mini h4 {
-  font-size: 15px;
+  font-size: var(--fs-tuile);
   font-weight: 600;
 }
 .tn .mini .v {
-  font-size: clamp(20px, 1.75vw, 28px);
+  font-size: var(--fs-l);
   font-weight: 700;
   line-height: 1.2;
   white-space: nowrap;
 }
+/* Une date, pas un montant : un cran plus bas, pour tenir sur une ligne. */
 .tn .mini .v.petit {
-  font-size: 17px;
-  font-weight: 600;
-  margin: 4px 0;
+  font-size: var(--fs-m);
+  line-height: 1.55;
 }
 .tn .mini small {
   color: var(--muted);
-  font-size: 12.5px;
+  font-size: var(--fs-sec);
 }
 .tn .mini small.vert {
   color: var(--g2);
@@ -2484,32 +2456,29 @@
   align-items: center;
 }
 .tn .result .big {
-  width: 70px;
-  height: 70px;
-  border-radius: 50%;
-  background: var(--gsoft2);
+  width: 44px;
   display: grid;
   place-items: center;
-  font-size: 26px;
+  font-size: 34px;
   font-weight: 700;
+  line-height: 1;
   color: var(--g2);
   flex: none;
 }
 .tn .result .big .ico {
-  width: 30px;
-  height: 30px;
+  width: 40px;
+  height: 40px;
 }
 .tn .result .rr.negatif .big {
-  background: var(--redsoft);
   color: var(--red);
 }
 .tn .result small {
   color: var(--muted);
-  font-size: 13px;
+  font-size: var(--fs-sec);
 }
 .tn .result .rr b.v {
   white-space: nowrap;
-  font-size: clamp(22px, 2.1vw, 30px);
+  font-size: var(--fs-l);
   font-weight: 700;
   display: block;
   line-height: 1.1;
@@ -2551,18 +2520,14 @@
   color: var(--muted);
 }
 .tn .result .note .i {
-  width: 26px;
-  height: 26px;
-  border-radius: 50%;
-  background: var(--g);
-  color: #fff;
+  color: var(--g2);
   display: grid;
   place-items: center;
   flex: none;
 }
 .tn .result .note .i .ico {
-  width: 15px;
-  height: 15px;
+  width: 20px;
+  height: 20px;
 }
 .tn .note-lien {
   color: var(--g2);
@@ -2581,7 +2546,7 @@
   margin-bottom: 12px;
 }
 .tn .kpi-row .v {
-  font-size: 26px;
+  font-size: var(--fs-l);
   font-weight: 700;
 }
 .tn .kpi-row .cle-pos {
@@ -2592,7 +2557,7 @@
 }
 .tn .kpi-row .c {
   color: var(--muted);
-  font-size: 13px;
+  font-size: var(--fs-sec);
 }
 .tn .stack {
   display: flex;
@@ -2636,7 +2601,7 @@
 .tn .lrow small {
   display: block;
   color: var(--muted);
-  font-size: 12px;
+  font-size: var(--fs-sec);
 }
 .tn .lrow b {
   white-space: nowrap;
@@ -2667,7 +2632,7 @@
   border-radius: 6px 6px 2px 2px;
 }
 .tn .semaines small {
-  font-size: 10.5px;
+  font-size: var(--fs-micro);
   color: var(--muted);
 }
 
@@ -2685,11 +2650,11 @@
   z-index: 1;
 }
 .tn .top3 h4 {
-  font-size: 15px;
+  font-size: var(--fs-tuile);
   font-weight: 600;
 }
 .tn .top3 .val {
-  font-size: 34px;
+  font-size: var(--fs-xl);
   font-weight: 700;
   display: flex;
   align-items: center;
@@ -2709,10 +2674,10 @@
 }
 .tn .top3 small {
   color: var(--muted);
-  font-size: 12.5px;
+  font-size: var(--fs-sec);
 }
 .tn .bignum {
-  font-size: 34px;
+  font-size: var(--fs-xl);
   font-weight: 700;
   line-height: 1.1;
 }
@@ -2720,7 +2685,7 @@
   color: var(--red);
 }
 .tn .bignum small {
-  font-size: 13px !important;
+  font-size: var(--fs-sec) !important;
   font-weight: 500;
   margin-left: 8px;
 }
@@ -2788,7 +2753,7 @@
 }
 .tn .stk .nm {
   font-weight: 700;
-  font-size: 14px;
+  font-size: var(--fs-nom);
   display: flex;
   align-items: center;
   flex-wrap: wrap;
@@ -2804,7 +2769,7 @@
 .tn .stk .nm em {
   font-style: normal;
   font-weight: 500;
-  font-size: 12.5px;
+  font-size: var(--fs-sec);
   display: inline-flex;
   align-items: center;
   gap: 4px;
@@ -2859,25 +2824,21 @@
   flex-wrap: wrap;
 }
 .tn .stk .foot .ib {
-  width: 40px;
-  height: 40px;
-  border-radius: 12px;
-  background: var(--gsoft2);
   color: var(--g2);
   display: grid;
   place-items: center;
 }
 .tn .stk .foot .ib .ico {
-  width: 22px;
-  height: 22px;
+  width: 26px;
+  height: 26px;
 }
 .tn .stk .foot small {
   display: block;
   color: var(--muted);
-  font-size: 12px;
+  font-size: var(--fs-sec);
 }
 .tn .stk .foot b {
-  font-size: 16px;
+  font-size: var(--fs-liste);
 }
 .tn .stock-actions {
   margin-left: auto;
@@ -2908,7 +2869,7 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 13px;
+  font-size: var(--fs-sec);
   color: var(--muted);
 }
 .tn .io i,
@@ -2928,7 +2889,7 @@
   background: var(--neutre);
 }
 .tn .io b {
-  font-size: 22px;
+  font-size: var(--fs-m);
   font-weight: 700;
   display: block;
   margin-top: 4px;
@@ -2997,7 +2958,6 @@
   gap: 12px;
   align-items: center;
   position: relative;
-  padding: 18px 16px;
   width: 100%;
   text-align: left;
 }
@@ -3010,17 +2970,17 @@
   min-width: 0;
 }
 .tn .f-top .stat h4 {
-  font-size: 14px;
+  font-size: var(--fs-tuile);
   font-weight: 600;
 }
 .tn .f-top .stat .n {
-  font-size: 28px;
+  font-size: var(--fs-l);
   font-weight: 700;
   line-height: 1.15;
 }
 .tn .f-top .stat small {
   color: var(--muted);
-  font-size: 11px;
+  font-size: var(--fs-sec);
   display: block;
 }
 .tn .f-top .stat .chev {
@@ -3039,9 +2999,6 @@
 }
 .tn .f-grid.une {
   grid-template-columns: minmax(0, 1fr) 272px;
-}
-.tn .f-grid .card {
-  padding: 18px 16px;
 }
 .tn .f-grid .right {
   display: grid;
@@ -3096,7 +3053,7 @@
   font-size: 12px;
 }
 .tn .f-grid .tbl {
-  font-size: 11.5px;
+  font-size: 13px;
 }
 .tn .f-grid .tbl th,
 .tn .f-grid .tbl td {
@@ -3104,27 +3061,13 @@
 }
 .tn .f-grid .pill {
   padding: 4px 10px;
-  font-size: 11px;
 }
 .tn .nmc {
   display: flex;
   align-items: center;
   gap: 8px;
   font-weight: 700;
-  font-size: 11.5px;
-}
-.tn .logo {
-  width: 32px;
-  height: 32px;
-  border-radius: 50%;
-  display: grid;
-  place-items: center;
-  color: #fff;
-  flex: none;
-}
-.tn .logo .ico {
-  width: 17px;
-  height: 17px;
+  font-size: inherit;
 }
 .tn .dots-b {
   color: var(--muted);
@@ -3148,7 +3091,7 @@
   justify-content: space-between;
   gap: 10px;
   margin-top: 14px;
-  font-size: 13px;
+  font-size: var(--fs-sec);
   color: var(--muted);
 }
 .tn .pager .p {
@@ -3164,7 +3107,7 @@
   border: 1px solid var(--line);
   display: grid;
   place-items: center;
-  font-size: 13px;
+  font-size: var(--fs-sec);
   background: var(--card);
 }
 .tn .pager button.on {
@@ -3220,17 +3163,18 @@
 }
 .tn .act .a b {
   display: block;
-  font-size: 12px;
+  font-size: var(--fs-nom);
 }
 .tn .act .a span {
   color: var(--muted);
   display: block;
   overflow: hidden;
   text-overflow: ellipsis;
+  font-size: var(--fs-sec);
 }
 .tn .act .a time {
   color: var(--muted);
-  font-size: 11px;
+  font-size: var(--fs-sec);
   white-space: nowrap;
 }
 

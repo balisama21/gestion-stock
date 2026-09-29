@@ -112,7 +112,7 @@ export const CarteTresorerie: React.FC<{
       {montantVisible && (
         <div className="origin compo">
           <h4>
-            <span className="ic">
+            <span className="oic">
               <Icone nom="pie" />
             </span>
             D&apos;où vient ce solde ?

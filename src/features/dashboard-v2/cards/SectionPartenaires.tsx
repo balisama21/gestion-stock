@@ -1,9 +1,9 @@
 import React, { useMemo, useState } from "react";
 import { Icone, type NomIcone } from "../../../components/shared/Icone";
+import { AvatarInitiale } from "../../../components/shared/AvatarInitiale";
 import { Lead, Lien, TeteCarte, Vide, type TonIcone } from "../components/Tn";
 import { dateLocale, montant, nombre } from "../lib/format";
 import { dateDuJour, dateDansNJours } from "../../../lib/dates";
-import { teinteDe } from "../../../lib/teintes";
 import type { ChiffresFournisseurs } from "../lib/chiffres";
 import type { Purchase } from "../../../types";
 import { illVideArgent } from "../assets/images";
@@ -71,12 +71,11 @@ const Annuaire: React.FC<{
   titre: string;
   lead: NomIcone;
   colonne: string;
-  icone: NomIcone;
   placeholder: string;
   ajouter: string;
   lignes: Ligne[];
   onOuvrir?: () => void;
-}> = ({ titre, lead, colonne, icone, placeholder, ajouter, lignes, onOuvrir }) => {
+}> = ({ titre, lead, colonne, placeholder, ajouter, lignes, onOuvrir }) => {
   const [texte, setTexte] = useState("");
   const [filtre, setFiltre] = useState<Filtre>("tous");
   const [page, setPage] = useState(0);
@@ -153,9 +152,7 @@ const Annuaire: React.FC<{
                 <tr key={l.id}>
                   <td>
                     <div className="nmc">
-                      <span className="logo" style={{ background: teinteDe(l.nom) }}>
-                        <Icone nom={icone} />
-                      </span>
+                      <AvatarInitiale nom={l.nom} taille={32} />
                       {l.nom}
                     </div>
                   </td>
@@ -433,7 +430,6 @@ export const SectionPartenaires: React.FC<{
             titre="Fournisseurs"
             lead="box"
             colonne="Produits / Services"
-            icone="box"
             placeholder="Rechercher un fournisseur..."
             ajouter="Ajouter un fournisseur"
             lignes={lignesF}
@@ -445,7 +441,6 @@ export const SectionPartenaires: React.FC<{
             titre="Prestataires"
             lead="users"
             colonne="Service"
-            icone="wrench"
             placeholder="Rechercher un prestataire..."
             ajouter="Ajouter un prestataire"
             lignes={lignesP}
