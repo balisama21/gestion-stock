@@ -21,8 +21,6 @@ import { HERO_PHOTOS, PLANTES, indexDuJour, inspirationFond } from "../assets/im
  * les cinq cartes défilent au doigt.
  */
 
-const u = (n: number) => `calc(${n} * var(--u))`;
-
 const CHEVRON = <ChevronRight className="kch-svg" aria-hidden="true" />;
 
 /** « 16 % », signé, ou rien quand il n'y a pas de quoi comparer. */
