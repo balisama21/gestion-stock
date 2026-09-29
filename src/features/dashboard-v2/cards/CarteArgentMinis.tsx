@@ -1,5 +1,5 @@
 import React from "react";
-import { IconeDuo, type NomIcone } from "../../../components/shared/IconeDuo";
+import { Icone, type NomIcone } from "../../../components/shared/Icone";
 import { dateLocale, montant, montantMasque } from "../lib/format";
 import { dateDuJour } from "../../../lib/dates";
 import type { ChiffresFlux } from "../lib/chiffres";
@@ -28,7 +28,7 @@ const Mini: React.FC<{
     >
       <div className="h">
         <div className={`ib ${ton}`}>
-          <IconeDuo nom={icone} />
+          <Icone nom={icone} />
         </div>
         <div className="mt">
           <h4>{titre}</h4>
@@ -36,7 +36,7 @@ const Mini: React.FC<{
           <small className={noteVerte ? "vert" : undefined}>{note}</small>
         </div>
       </div>
-      {onClick && <IconeDuo nom="chevright" className="chev" />}
+      {onClick && <Icone nom="chevright" className="chev" />}
     </Racine>
   );
 };

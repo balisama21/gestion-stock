@@ -1,5 +1,5 @@
 import React from "react";
-import { IconeDuo, type NomIcone } from "../../../components/shared/IconeDuo";
+import { Icone, type NomIcone } from "../../../components/shared/Icone";
 import { Initiale, Lead, Lien, TeteCarte, Vide } from "../components/Tn";
 import { montant, nombre, montantMasque } from "../lib/format";
 import type { ChiffresClients } from "../lib/chiffres";
@@ -28,13 +28,13 @@ export const CarteClients: React.FC<{
   ) => (
     <button type="button" className={`it ${ton}`} onClick={onClick} disabled={!onClick}>
       <span className="b">
-        <IconeDuo nom={icone} />
+        <Icone nom={icone} />
       </span>
       <div>
         <small>{libelle}</small>
         <b className="v num">{nombre(valeur)}</b>
       </div>
-      {onClick && <IconeDuo nom="chevright" className="chev" />}
+      {onClick && <Icone nom="chevright" className="chev" />}
     </button>
   );
 

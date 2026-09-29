@@ -1,5 +1,5 @@
 import React, { useId, useState } from "react";
-import { IconeDuo } from "../../../components/shared/IconeDuo";
+import { Icone } from "../../../components/shared/Icone";
 import { Lead, Lien } from "../components/Tn";
 import { Tag } from "../components/Tag";
 import { dateLocale, jourMoisChiffres, montant } from "../lib/format";
@@ -112,7 +112,7 @@ export const CarteTaches: React.FC<{
       {enAttente.length > 0 && (
         <div className="devis">
           <span className="ib">
-            <IconeDuo nom="mail" />
+            <Icone nom="mail" />
           </span>
           <div>
             <b>{enAttente.length} devis en attente</b>

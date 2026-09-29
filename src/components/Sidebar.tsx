@@ -1,5 +1,5 @@
 import React from "react";
-import { IconeDuo } from "./shared/IconeDuo";
+import { PanelLeftClose, PanelLeftOpen } from "lucide-react";
 import "./coquille.css";
 import type { ActiveTab } from "../types";
 import type { NavGroup } from "./navigation";
@@ -98,7 +98,7 @@ export const Sidebar: React.FC<SidebarProps> = ({
         aria-label={collapsed ? "Déplier le menu" : "Replier le menu"}
         className={`coq-lien${collapsed ? " seul" : ""}`}
       >
-        <IconeDuo nom={collapsed ? "sidebaropen" : "arrowleft"} className="nav-ico" />
+        {collapsed ? <PanelLeftOpen className="w-4 h-4" /> : <PanelLeftClose className="w-4 h-4" />}
         {!collapsed && <span className="truncate">Replier</span>}
       </button>
     </div>

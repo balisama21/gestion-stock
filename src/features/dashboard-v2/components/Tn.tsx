@@ -1,5 +1,5 @@
 import React from "react";
-import { IconeDuo, type NomIcone } from "../../../components/shared/IconeDuo";
+import { Icone, type NomIcone } from "../../../components/shared/Icone";
 
 /**
  * Les briques de la mise en page `docs/maquette/dashboard-tantana.html`.
@@ -37,7 +37,7 @@ export const Section: React.FC<{
 
 export type TonIcone = "vert" | "bleu" | "rouge" | "orange" | "violet" | "neutre";
 
-/** Le carré teinté à gauche d'un titre de carte, avec son icône duotone. */
+/** Le carré teinté à gauche d'un titre de carte, avec son icône. */
 export const Lead: React.FC<{
   nom: NomIcone;
   plein?: boolean;
@@ -49,7 +49,7 @@ export const Lead: React.FC<{
   <div
     className={`lead${plein ? " plein" : ""}${rond ? " rond" : ""}${ton ? ` ${ton}` : ""}${className ? ` ${className}` : ""}`}
   >
-    <IconeDuo nom={nom} />
+    <Icone nom={nom} />
   </div>
 );
 
@@ -100,7 +100,7 @@ export const Vide: React.FC<{
 
 /** Le chevron du coin d'une carte cliquable. */
 export const Chevron: React.FC<{ className?: string }> = ({ className = "chev" }) => (
-  <IconeDuo nom="chevright" className={className} />
+  <Icone nom="chevright" className={className} />
 );
 
 /** Une pastille d'initiale, colorée d'après le nom. */

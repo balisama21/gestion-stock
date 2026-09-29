@@ -1,5 +1,27 @@
 import React from "react";
-import { IconeDuo, type NomIcone } from "./shared/IconeDuo";
+import {
+  TrendingUp,
+  Wallet,
+  ShoppingBag,
+  CreditCard,
+  User as UserIcon,
+  Package,
+  ShoppingCart,
+  DollarSign,
+  FileText,
+  Users,
+  ArrowRightLeft,
+  Truck,
+  Wrench,
+  CalendarClock,
+  BellRing,
+  LayoutDashboard,
+  ListChecks,
+  CalendarRange,
+  History,
+  ReceiptText,
+  Receipt,
+} from "lucide-react";
 import type { ActiveTab } from "../types";
 import { libelleModule, moduleMasque, type Personnalisation } from "../lib/personnalisation";
 
@@ -11,9 +33,6 @@ import { libelleModule, moduleMasque, type Personnalisation } from "../lib/perso
  * mêmes onglets pour un même utilisateur. Dupliquer ces listes ferait
  * dériver les deux affichages à la première modification.
  */
-
-/** L'icône duotone d'un onglet, à la taille du menu. */
-const ico = (nom: NomIcone) => <IconeDuo nom={nom} className="nav-ico" />;
 
 export interface NavItem {
   id: ActiveTab;
@@ -35,9 +54,9 @@ export const NAV_GROUPS: NavGroup[] = [
   {
     title: "Pilotage",
     items: [
-      { id: "dashboard", label: "Tableau de bord", icon: ico("home") },
-      { id: "rapports", label: "Bilan", icon: ico("clipboard") },
-      { id: "historique", label: "Historique", icon: ico("history") },
+      { id: "dashboard", label: "Tableau de bord", icon: <TrendingUp className="w-4 h-4" /> },
+      { id: "rapports", label: "Bilan", icon: <CalendarRange className="w-4 h-4" /> },
+      { id: "historique", label: "Historique", icon: <History className="w-4 h-4" /> },
     ],
   },
   {
@@ -50,10 +69,10 @@ export const NAV_GROUPS: NavGroup[] = [
     // liste de choses à faire que son calendrier.
     title: "Organisation",
     items: [
-      { id: "vue_equipe", label: "Vue d'ensemble", icon: ico("grid") },
-      { id: "taches", label: "Tâches", icon: ico("tasks") },
-      { id: "agenda", label: "Agenda", icon: ico("calendar") },
-      { id: "rappels", label: "Rappels", icon: ico("bell") },
+      { id: "vue_equipe", label: "Vue d'ensemble", icon: <LayoutDashboard className="w-4 h-4" /> },
+      { id: "taches", label: "Tâches", icon: <ListChecks className="w-4 h-4" /> },
+      { id: "agenda", label: "Agenda", icon: <CalendarClock className="w-4 h-4" /> },
+      { id: "rappels", label: "Rappels", icon: <BellRing className="w-4 h-4" /> },
     ],
   },
   {
@@ -62,37 +81,37 @@ export const NAV_GROUPS: NavGroup[] = [
     // modules que toutes les boutiques n'activent pas à la fin.
     title: "Ventes & clients",
     items: [
-      { id: "ventes", label: "Ventes", icon: ico("dollar") },
-      { id: "facturation", label: "Facturation", icon: ico("receipt") },
-      { id: "clients", label: "Clients", icon: ico("user") },
-      { id: "paiements", label: "Paiements à recevoir", icon: ico("card") },
-      { id: "devis", label: "Devis", icon: ico("file") },
-      { id: "commandes", label: "Commandes", icon: ico("bag") },
-      { id: "livraisons", label: "Livraisons", icon: ico("truck") },
+      { id: "ventes", label: "Ventes", icon: <DollarSign className="w-4 h-4" /> },
+      { id: "facturation", label: "Facturation", icon: <ReceiptText className="w-4 h-4" /> },
+      { id: "clients", label: "Clients", icon: <UserIcon className="w-4 h-4" /> },
+      { id: "paiements", label: "Paiements à recevoir", icon: <CreditCard className="w-4 h-4" /> },
+      { id: "devis", label: "Devis", icon: <FileText className="w-4 h-4" /> },
+      { id: "commandes", label: "Commandes", icon: <ShoppingBag className="w-4 h-4" /> },
+      { id: "livraisons", label: "Livraisons", icon: <Truck className="w-4 h-4" /> },
     ],
   },
   {
     title: "Stock & achats",
     items: [
-      { id: "produits", label: "Produits", icon: ico("box") },
-      { id: "achats", label: "Achats", icon: ico("cart") },
-      { id: "fournisseurs", label: "Fournisseurs", icon: ico("truck") },
-      { id: "prestataires", label: "Prestataires", icon: ico("wrench") },
+      { id: "produits", label: "Produits", icon: <Package className="w-4 h-4" /> },
+      { id: "achats", label: "Achats", icon: <ShoppingCart className="w-4 h-4" /> },
+      { id: "fournisseurs", label: "Fournisseurs", icon: <Truck className="w-4 h-4" /> },
+      { id: "prestataires", label: "Prestataires", icon: <Wrench className="w-4 h-4" /> },
     ],
   },
   {
     title: "Argent",
     items: [
-      { id: "capital", label: "Capital", icon: ico("wallet") },
-      { id: "depenses", label: "Dépenses", icon: ico("swap") },
-      { id: "notes_frais", label: "Notes de frais", icon: ico("receipt") },
+      { id: "capital", label: "Capital", icon: <Wallet className="w-4 h-4" /> },
+      { id: "depenses", label: "Dépenses", icon: <ArrowRightLeft className="w-4 h-4" /> },
+      { id: "notes_frais", label: "Notes de frais", icon: <Receipt className="w-4 h-4" /> },
     ],
   },
   {
     title: "Équipe",
     items: [
-      { id: "vendeurs", label: "Vendeurs", icon: ico("users") },
-      { id: "salaires", label: "Salaires", icon: ico("banknote") },
+      { id: "vendeurs", label: "Vendeurs", icon: <Users className="w-4 h-4" /> },
+      { id: "salaires", label: "Salaires", icon: <Wallet className="w-4 h-4" /> },
     ],
   },
 ];
@@ -196,10 +215,10 @@ export function universDe(
  * l'univers Ventes, à un geste de la caisse.
  */
 export const BOTTOM_TABS: { id: ActiveTab; shortLabel: string; icon: React.ReactNode }[] = [
-  { id: "dashboard", shortLabel: "Accueil", icon: ico("home") },
-  { id: "ventes", shortLabel: "Ventes", icon: ico("dollar") },
-  { id: "produits", shortLabel: "Stock", icon: ico("box") },
-  { id: "clients", shortLabel: "Clients", icon: ico("user") },
+  { id: "dashboard", shortLabel: "Accueil", icon: <TrendingUp className="w-5 h-5" /> },
+  { id: "ventes", shortLabel: "Ventes", icon: <DollarSign className="w-5 h-5" /> },
+  { id: "produits", shortLabel: "Stock", icon: <Package className="w-5 h-5" /> },
+  { id: "clients", shortLabel: "Clients", icon: <UserIcon className="w-5 h-5" /> },
 ];
 
 export function visibleBottomTabs(

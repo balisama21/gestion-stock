@@ -1,5 +1,5 @@
 import React, { useMemo } from "react";
-import { IconeDuo } from "../../../components/shared/IconeDuo";
+import { Icone } from "../../../components/shared/Icone";
 import { BoutonRepli } from "../components/BoutonRepli";
 import { Initiale, Lead, Lien, TeteCarte, Vide } from "../components/Tn";
 import { LIGNES_EN_APERCU, useRepli } from "../lib/repli";
@@ -131,7 +131,7 @@ export const CarteFilVentes: React.FC<{
                       <Initiale nom={client} teinte={teinteDe(client)} />
                     ) : (
                       <span className="ava comptoir" aria-hidden="true">
-                        <IconeDuo nom="store" />
+                        <Icone nom="store" />
                       </span>
                     )}
                     <div className="who">

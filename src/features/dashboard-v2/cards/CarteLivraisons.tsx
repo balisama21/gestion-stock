@@ -1,5 +1,5 @@
 import React from "react";
-import { IconeDuo } from "../../../components/shared/IconeDuo";
+import { Icone } from "../../../components/shared/Icone";
 import { Lead, Lien, TeteCarte } from "../components/Tn";
 import { dateLocale, montant, montantMasque } from "../lib/format";
 import { dateDuJour } from "../../../lib/dates";
@@ -78,7 +78,7 @@ export const CarteLivraisons: React.FC<{
 
       <div className="deliv">
         <div className="c">
-          <IconeDuo nom={duJour.length === 0 ? "check" : "truck"} />
+          <Icone nom={duJour.length === 0 ? "check" : "truck"} />
         </div>
         <div>
           {duJour.length === 0 ? (

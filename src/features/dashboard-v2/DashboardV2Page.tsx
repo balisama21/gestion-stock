@@ -66,7 +66,7 @@ import {
 import { dateDuJour } from "../../lib/dates";
 import { useAuth } from "../../hooks/useAuth";
 import { REGLAGES_PAR_DEFAUT, type ReglagesAlertesStock } from "../../lib/prealerteStock";
-import { IconeDuo } from "../../components/shared/IconeDuo";
+import { Icone } from "../../components/shared/Icone";
 import { vignettesParProduit } from "../../components/shared/VignetteProduit";
 
 /**
@@ -468,7 +468,7 @@ export const DashboardV2Page: React.FC<DashboardV2PageProps> = ({
   /** Le choix de période, posé dans l'aperçu des ventes et dans le stock. */
   const selecteurPeriode = (
     <MenuPill
-      icon={<IconeDuo nom="calendar" />}
+      icon={<Icone nom="calendar" />}
       value={periode.nom}
       ariaLabel={`Période : ${periode.nom}, ${periode.libelle}`}
     >
@@ -532,7 +532,7 @@ export const DashboardV2Page: React.FC<DashboardV2PageProps> = ({
   const selecteurVue =
     droits.vuesDisponibles.length > 1 ? (
       <MenuPill
-        icon={<IconeDuo nom="eye" />}
+        icon={<Icone nom="eye" />}
         value={vueCourante?.nom ?? "Dirigeant"}
         alignLeft
         className="vue"
@@ -737,7 +737,7 @@ export const DashboardV2Page: React.FC<DashboardV2PageProps> = ({
 
       {droits.vue !== "dirigeant" && vueCourante && (
         <p className="rolenote">
-          <IconeDuo nom="eye" />
+          <Icone nom="eye" />
           Vue <b>{vueCourante.nom}</b> · {droits.cartes.length} cartes selon les permissions
         </p>
       )}

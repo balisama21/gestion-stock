@@ -1,5 +1,5 @@
 import React from "react";
-import { IconeDuo } from "../../../components/shared/IconeDuo";
+import { Icone } from "../../../components/shared/Icone";
 import { BoutonRepli } from "../components/BoutonRepli";
 import { useRepli } from "../lib/repli";
 import { argent, montant, nombre, montantMasque } from "../lib/format";
@@ -72,7 +72,7 @@ export const CarteTresorerie: React.FC<{
           <b className="t">
             Trésorerie actuelle{" "}
             <span title="Toutes caisses confondues, depuis l'ouverture de la boutique">
-              <IconeDuo nom="info" className="info" />
+              <Icone nom="info" className="info" />
             </span>
           </b>
           <div className={`big num${solde < 0 ? " negatif" : ""}`}>
@@ -113,7 +113,7 @@ export const CarteTresorerie: React.FC<{
         <div className="origin compo">
           <h4>
             <span className="ic">
-              <IconeDuo nom="pie" />
+              <Icone nom="pie" />
             </span>
             D&apos;où vient ce solde ?
             <BoutonRepli

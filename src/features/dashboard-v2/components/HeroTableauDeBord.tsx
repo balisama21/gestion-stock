@@ -1,5 +1,6 @@
+import { ChevronRight } from "lucide-react";
 import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
-import { IconeDuo, type NomIcone } from "../../../components/shared/IconeDuo";
+import { Icone, type NomIcone } from "../../../components/shared/Icone";
 import { dateCourte, dateLongue, heure, montant, nombre } from "../lib/format";
 import type { ChiffresDuJour, ChiffresStock } from "../lib/chiffres";
 import type { EvenementJournal } from "../lib/journal";
@@ -22,11 +23,7 @@ import { HERO_PHOTOS, PLANTES, indexDuJour, inspirationFond } from "../assets/im
 
 const u = (n: number) => `calc(${n} * var(--u))`;
 
-const CHEVRON = (
-  <svg className="kch-svg" viewBox="0 0 9 15" aria-hidden="true">
-    <path d="M1.5 1.5 7.5 7.5 1.5 13.5" />
-  </svg>
-);
+const CHEVRON = <ChevronRight className="kch-svg" aria-hidden="true" />;
 
 /** « 16 % », signé, ou rien quand il n'y a pas de quoi comparer. */
 function ecart(valeur: number, reference: number): string | null {
@@ -307,11 +304,11 @@ export const HeroTableauDeBord: React.FC<HeroProps> = ({
       className={`pastille ${ton}`}
       style={{ left: u(16), top: u(top + 4), width: u(50), height: u(50) }}
     >
-      <IconeDuo nom={nom} />
+      <Icone nom={nom} />
     </span>
   );
   const petite = (nom: NomIcone, ton: string, left: number, top: number, taille: number) => (
-    <IconeDuo
+    <Icone
       nom={nom}
       className={`kpetite ${ton}`}
       style={{ left: u(left), top: u(top), width: u(taille), height: u(taille) }}
@@ -466,7 +463,7 @@ export const HeroTableauDeBord: React.FC<HeroProps> = ({
               className="pastille neutre"
               style={{ left: `calc(50% - ${u(28)})`, top: u(72), width: u(56), height: u(56) }}
             >
-              <IconeDuo nom="clipboard" />
+              <Icone nom="clipboard" />
             </span>
             <div className="kx centre" style={{ top: u(156) }}>
               {"Rien d'enregistré\naujourd'hui pour l'instant."}
@@ -508,7 +505,7 @@ export const HeroTableauDeBord: React.FC<HeroProps> = ({
           <div className={`tb-hero${nuit ? " night" : ""}`}>
             <div className="tb-hero-bg" style={{ backgroundImage: `url(${photoDuJour})` }} />
             <div className="tb-when">
-              <IconeDuo nom="calendar" className="ic1" />
+              <Icone nom="calendar" className="ic1" />
               <span className="date-longue">{maintenant ? dateLongue(maintenant) : " "}</span>
               <span className="date-courte">{maintenant ? dateCourte(maintenant) : " "}</span>
               {maintenant && (
@@ -525,7 +522,7 @@ export const HeroTableauDeBord: React.FC<HeroProps> = ({
                 aria-label="Actualiser les données"
                 title={chargeA ? `Mis à jour à ${heure(chargeA)}` : "Actualiser"}
               >
-                <IconeDuo nom="refresh" />
+                <Icone nom="refresh" />
               </button>
               {vue}
             </div>
@@ -559,7 +556,7 @@ export const HeroTableauDeBord: React.FC<HeroProps> = ({
                   className="pastille vert carre"
                   style={{ left: u(18), top: u(14), width: u(46), height: u(46) }}
                 >
-                  <IconeDuo nom="chart" />
+                  <Icone nom="chart" />
                 </span>
                 <button type="button" className="ctitle" onClick={graphique.onDetails}>
                   Aperçu des ventes

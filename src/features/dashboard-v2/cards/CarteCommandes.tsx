@@ -1,5 +1,5 @@
 import React from "react";
-import { IconeDuo } from "../../../components/shared/IconeDuo";
+import { Icone } from "../../../components/shared/Icone";
 import { Lead, Lien, TeteCarte } from "../components/Tn";
 import type { ChiffresCommandes } from "../lib/chiffres";
 import { illCarton } from "../assets/images";
@@ -63,7 +63,7 @@ export const CarteCommandes: React.FC<{
           const fait = rien ? i === 0 : e.n > 0;
           return (
             <div className={`step${fait ? " done" : ""}`} key={i}>
-              <i>{rien && i === 0 ? <IconeDuo nom="check" /> : e.n > 0 ? e.n : "∅"}</i>
+              <i>{rien && i === 0 ? <Icone nom="check" /> : e.n > 0 ? e.n : "∅"}</i>
               {e.libelle}
             </div>
           );
@@ -73,7 +73,7 @@ export const CarteCommandes: React.FC<{
       <div className="okbar">
         {rien && <img className="art-carton" src={illCarton} alt="" />}
         <div className="c">
-          <IconeDuo nom={rien ? "check" : "bag"} />
+          <Icone nom={rien ? "check" : "bag"} />
         </div>
         <div>
           {rien ? (

@@ -1,5 +1,5 @@
 import React from "react";
-import { IconeDuo } from "../../../components/shared/IconeDuo";
+import { Icone } from "../../../components/shared/Icone";
 import { Lead, TeteCarte } from "../components/Tn";
 import { Trend } from "../components/Trend";
 import { montant, montantMasque } from "../lib/format";
@@ -30,7 +30,7 @@ export const CarteResultat: React.FC<{
         action={
           <>
             <span className="date-chip">
-              <IconeDuo nom="calendar" />
+              <Icone nom="calendar" />
               {periode.libelle}
             </span>
             {onHistorique && (
@@ -45,7 +45,7 @@ export const CarteResultat: React.FC<{
       <div className={`rr${benefice < 0 ? " negatif" : ""}`}>
         <div className="l">
           <div className="big" aria-hidden="true">
-            {benefice === 0 ? "Ø" : <IconeDuo nom={benefice > 0 ? "trend" : "arrowdown"} />}
+            {benefice === 0 ? "Ø" : <Icone nom={benefice > 0 ? "trend" : "arrowdown"} />}
           </div>
           <div>
             <small>
@@ -69,7 +69,7 @@ export const CarteResultat: React.FC<{
 
       <div className="note">
         <span className="i">
-          <IconeDuo nom="info" />
+          <Icone nom="info" />
         </span>
         <div>
           Les achats de stock ({sous(achatsNonDeduits)}) ne sont pas retirés&nbsp;: ils deviennent

@@ -1,5 +1,5 @@
 import React from "react";
-import { IconeDuo } from "../../../components/shared/IconeDuo";
+import { Icone } from "../../../components/shared/Icone";
 import { montant, nombre } from "../lib/format";
 import type { ChiffresStock } from "../lib/chiffres";
 import { Lead } from "../components/Tn";
@@ -35,7 +35,7 @@ export const CarteStockChiffres: React.FC<{
                 onClick={onRafraichir}
                 aria-label="Actualiser la valeur du stock"
               >
-                <IconeDuo nom="refresh" />
+                <Icone nom="refresh" />
               </button>
             )}
           </div>

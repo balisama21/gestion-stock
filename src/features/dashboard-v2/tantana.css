@@ -97,7 +97,7 @@
 .tn .nowrap {
   white-space: nowrap;
 }
-.tn .ico-duo {
+.tn .ico {
   width: 1.2em;
   height: 1.2em;
 }
@@ -244,7 +244,7 @@
   place-items: center;
   flex: none;
 }
-.tn .lead .ico-duo {
+.tn .lead .ico {
   width: 24px;
   height: 24px;
 }
@@ -252,7 +252,7 @@
   background: var(--g2);
   color: #fff;
 }
-.tn .lead.plein .ico-duo svg {
+.tn .lead.plein .ico svg {
   stroke-width: 2.4;
 }
 .tn .card-h h3 {
@@ -326,7 +326,7 @@
   font-size: 13.5px;
   white-space: nowrap;
 }
-.tn .btn .ico-duo {
+.tn .btn .ico {
   width: 16px;
   height: 16px;
 }
@@ -482,7 +482,7 @@
   align-items: center;
   white-space: nowrap;
 }
-.tn .date-chip .ico-duo {
+.tn .date-chip .ico {
   color: var(--g);
 }
 .tn .ava {
@@ -501,7 +501,7 @@
   background: var(--gsoft);
   color: var(--g2);
 }
-.tn .ava.comptoir .ico-duo {
+.tn .ava.comptoir .ico {
   width: 22px;
   height: 22px;
 }
@@ -633,7 +633,7 @@
   height: 15px;
   flex: none;
 }
-.tn .menu-holder > .pill .ico-duo {
+.tn .menu-holder > .pill .ico {
   width: 15px;
   height: 15px;
   color: var(--muted);
@@ -771,13 +771,13 @@
   background: var(--blue);
 }
 
-/* ── Icônes teintées : une icône du jeu duotone sur sa pastille ── */
+/* ── Icônes teintées : une icône sur sa pastille ── */
 .tn .lead.rond {
   width: 58px;
   height: 58px;
   border-radius: 50%;
 }
-.tn .lead.rond .ico-duo {
+.tn .lead.rond .ico {
   width: 28px;
   height: 28px;
 }
@@ -786,7 +786,7 @@
   height: 62px;
   border-radius: 18px;
 }
-.tn .lead.grand .ico-duo {
+.tn .lead.grand .ico {
   width: 30px;
   height: 30px;
 }
@@ -825,7 +825,7 @@
   background: color-mix(in oklch, var(--muted-foreground) 12%, transparent);
   color: var(--muted-foreground);
 }
-.tn .pastille .ico-duo {
+.tn .pastille .ico {
   width: 50%;
   height: 50%;
 }
@@ -854,7 +854,7 @@
   background: var(--info-soft);
   color: var(--info);
 }
-.tn .act .a .c .ico-duo {
+.tn .act .a .c .ico {
   width: 18px;
   height: 18px;
 }
@@ -912,7 +912,7 @@
   height: max(16px, calc(22 * var(--u)));
   color: var(--g);
 }
-.tn .tb-when span:not(.ico-duo) {
+.tn .tb-when span:not(.ico) {
   margin-left: calc(13 * var(--u));
 }
 .tn .tb-when .dot {
@@ -931,7 +931,7 @@
   height: max(26px, calc(28 * var(--u)));
   border-radius: 50%;
 }
-.tn .tb-when .ic2 .ico-duo {
+.tn .tb-when .ic2 .ico {
   width: max(15px, calc(19 * var(--u)));
   height: max(15px, calc(19 * var(--u)));
 }
@@ -944,7 +944,7 @@
 .tn .tb-hero.night .tb-when .ic2:hover {
   background: rgba(255, 255, 255, 0.12);
 }
-.tn .spin .ico-duo {
+.tn .spin .ico {
   animation: tn-tour 0.7s ease-out;
 }
 @keyframes tn-tour {
@@ -965,7 +965,7 @@
   background: rgba(10, 25, 45, 0.55);
   color: #eef7ff;
 }
-.tn .tb-hero.night .tb-when .menu-holder > .pill .ico-duo {
+.tn .tb-hero.night .tb-when .menu-holder > .pill .ico {
   color: #eef7ff;
 }
 .tn .tb-hero h1 {
@@ -1102,13 +1102,9 @@
   background: var(--gsoft);
 }
 .tn .kch-svg {
-  width: calc(9 * var(--u));
-  height: calc(15 * var(--u));
-  stroke: var(--muted);
-  fill: none;
-  stroke-width: 1.7;
-  stroke-linecap: round;
-  stroke-linejoin: round;
+  width: calc(18 * var(--u));
+  height: calc(18 * var(--u));
+  color: var(--muted);
 }
 .tn .kx {
   font-size: calc(11.6 * var(--u));
@@ -1430,7 +1426,7 @@
   display: grid;
   place-items: center;
 }
-.tn .nav2 button .ico-duo {
+.tn .nav2 button .ico {
   width: 18px;
   height: 18px;
 }
@@ -1635,7 +1631,7 @@
   place-items: center;
   flex: none;
 }
-.tn .devis .ib .ico-duo {
+.tn .devis .ib .ico {
   width: 24px;
   height: 24px;
 }
@@ -1682,7 +1678,7 @@
   font-style: normal;
   font-size: 12px;
 }
-.tn .step i .ico-duo {
+.tn .step i .ico {
   width: 16px;
   height: 16px;
 }
@@ -1693,7 +1689,7 @@
   font-weight: 700;
   font-size: 13px;
 }
-.tn .step.done i .ico-duo svg {
+.tn .step.done i .ico svg {
   stroke-width: 2.6;
 }
 .tn .step.done {
@@ -1737,14 +1733,14 @@
 .tn .deliv .c {
   background: var(--g2);
 }
-.tn .okbar .c .ico-duo,
-.tn .deliv .c .ico-duo {
+.tn .okbar .c .ico,
+.tn .deliv .c .ico {
   width: 20px;
   height: 20px;
   color: #fff;
 }
-.tn .okbar .c .ico-duo svg,
-.tn .deliv .c .ico-duo svg {
+.tn .okbar .c .ico svg,
+.tn .deliv .c .ico svg {
   stroke-width: 2.6;
 }
 .tn .okbar b,
@@ -1926,7 +1922,7 @@
   place-items: center;
   flex: none;
 }
-.tn .cli .it .b .ico-duo {
+.tn .cli .it .b .ico {
   width: 24px;
   height: 24px;
 }
@@ -2298,7 +2294,7 @@
   place-items: center;
   flex: none;
 }
-.tn .origin h4 .ic .ico-duo {
+.tn .origin h4 .ic .ico {
   width: 18px;
   height: 18px;
 }
@@ -2384,7 +2380,7 @@
   place-items: center;
   flex: none;
 }
-.tn .mini .ib .ico-duo {
+.tn .mini .ib .ico {
   width: 24px;
   height: 24px;
 }
@@ -2458,7 +2454,7 @@
   color: var(--g2);
   flex: none;
 }
-.tn .result .big .ico-duo {
+.tn .result .big .ico {
   width: 30px;
   height: 30px;
 }
@@ -2523,7 +2519,7 @@
   place-items: center;
   flex: none;
 }
-.tn .result .note .i .ico-duo {
+.tn .result .note .i .ico {
   width: 15px;
   height: 15px;
 }
@@ -2666,7 +2662,7 @@
   place-items: center;
   min-height: 0;
 }
-.tn .top3 .val .ico-duo {
+.tn .top3 .val .ico {
   width: 18px;
   height: 18px;
 }
@@ -2773,7 +2769,7 @@
   gap: 4px;
   white-space: nowrap;
 }
-.tn .stk .nm em .ico-duo {
+.tn .stk .nm em .ico {
   width: 14px;
   height: 14px;
 }
@@ -2830,7 +2826,7 @@
   display: grid;
   place-items: center;
 }
-.tn .stk .foot .ib .ico-duo {
+.tn .stk .foot .ib .ico {
   width: 22px;
   height: 22px;
 }
@@ -3085,7 +3081,7 @@
   color: #fff;
   flex: none;
 }
-.tn .logo .ico-duo {
+.tn .logo .ico {
   width: 17px;
   height: 17px;
 }
@@ -3102,7 +3098,7 @@
   background: var(--gsoft);
   color: var(--g2);
 }
-.tn .dots-b .ico-duo svg {
+.tn .dots-b .ico svg {
   stroke-width: 2.4;
 }
 .tn .pager {
@@ -3282,7 +3278,7 @@
     top: 34px;
     font-size: 13px;
   }
-  .tn .tb-when span:not(.ico-duo) {
+  .tn .tb-when span:not(.ico) {
     margin-left: 8px;
   }
   .tn .tb-when {
@@ -3627,7 +3623,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .tn .spin .ico-duo {
+  .tn .spin .ico {
     animation: none;
   }
   .tn .tb-hero-bg {

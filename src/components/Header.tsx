@@ -1,8 +1,23 @@
 import React, { useCallback, useRef, useState } from "react";
 import { ActiveTab, StoreSettings } from "../types";
-import { Store, CheckCheck, ChevronDown, Building, Plus, Copy, KeyRound } from "lucide-react";
+import {
+  Store,
+  Settings,
+  Bell,
+  Moon,
+  Sun,
+  HelpCircle,
+  Menu,
+  X,
+  CheckCheck,
+  ChevronDown,
+  Building,
+  Plus,
+  Copy,
+  KeyRound,
+} from "lucide-react";
 import { PanneauAide } from "./shared/PanneauAide";
-import { IconeDuo } from "./shared/IconeDuo";
+import { Icone } from "./shared/Icone";
 import { formatCurrency } from "../utils/formulas";
 import { Modal } from "./shared/Modal";
 import { Sidebar } from "./Sidebar";
@@ -558,7 +573,7 @@ export const Header: React.FC<HeaderProps> = ({
               lancerRecherche();
             }}
           >
-            <IconeDuo nom="search" />
+            <Icone nom="search" />
             <input
               type="search"
               value={recherche}
@@ -578,7 +593,7 @@ export const Header: React.FC<HeaderProps> = ({
               title="Aide sur cet écran"
               aria-label="Aide sur cet écran"
             >
-              <IconeDuo nom="help" />
+              <HelpCircle className="text-primary" />
             </button>
             <PanneauAide
               ouvert={aideOuverte}
@@ -594,7 +609,7 @@ export const Header: React.FC<HeaderProps> = ({
               title={sombre ? "Passer en mode clair" : "Passer en mode sombre"}
               aria-label={sombre ? "Passer en mode clair" : "Passer en mode sombre"}
             >
-              <IconeDuo nom={sombre ? "sun" : "moon"} />
+              {sombre ? <Sun className="text-primary" /> : <Moon className="text-primary" />}
             </button>
 
             {/* Notifications */}
@@ -606,7 +621,7 @@ export const Header: React.FC<HeaderProps> = ({
                 title="Notifications"
                 aria-label="Notifications"
               >
-                <IconeDuo nom="bell" />
+                <Bell className="text-primary" />
                 {nonLues > 0 && <span className="coq-badge">{nonLues > 9 ? "9+" : nonLues}</span>}
               </button>
 
@@ -634,7 +649,7 @@ export const Header: React.FC<HeaderProps> = ({
                 title="Paramètres"
                 aria-label="Paramètres"
               >
-                <IconeDuo nom="settings" />
+                <Settings className="t-success" />
               </button>
             )}
           </div>
@@ -694,7 +709,7 @@ export const Header: React.FC<HeaderProps> = ({
             {mobileMenuOpen && (
               <span className="absolute inset-x-4 top-0 h-0.5 rounded-full bg-primary" />
             )}
-            <IconeDuo nom={mobileMenuOpen ? "x" : "menu"} className="nav-ico" />
+            {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
             <span className="text-[9px] font-semibold">Plus</span>
           </button>
         </div>

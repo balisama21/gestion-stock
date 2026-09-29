@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from "react";
-import { IconeDuo } from "../../../components/shared/IconeDuo";
+import { Icone } from "../../../components/shared/Icone";
 import { BoutonRepli } from "../components/BoutonRepli";
 import { Lead, TeteCarte } from "../components/Tn";
 import { dateLocale, pluriel } from "../lib/format";
@@ -93,10 +93,10 @@ export const CarteAgenda: React.FC<{
         action={
           <div className="nav2">
             <button type="button" aria-label="Mois précédent" onClick={() => changer(-1)}>
-              <IconeDuo nom="chevleft" />
+              <Icone nom="chevleft" />
             </button>
             <button type="button" aria-label="Mois suivant" onClick={() => changer(1)}>
-              <IconeDuo nom="chevright" />
+              <Icone nom="chevright" />
             </button>
           </div>
         }

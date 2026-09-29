@@ -1,5 +1,5 @@
 import React from "react";
-import { IconeDuo } from "../../../components/shared/IconeDuo";
+import { Icone } from "../../../components/shared/Icone";
 import { Lead, TeteCarte } from "../components/Tn";
 import { montant, pourcent, montantMasque } from "../lib/format";
 import { quantiteEnMots } from "../../../utils/formulas";
@@ -30,7 +30,7 @@ export const CarteTopProduits: React.FC<{
         action={
           <>
             <span className="date-chip">
-              {periode.libelle} <IconeDuo nom="calendar" />
+              {periode.libelle} <Icone nom="calendar" />
             </span>
             {onToutes && (
               <button type="button" className="btn out rond" onClick={onToutes}>

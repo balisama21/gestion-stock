@@ -1,5 +1,5 @@
 import React from "react";
-import { IconeDuo } from "../../../components/shared/IconeDuo";
+import { Icone } from "../../../components/shared/Icone";
 import { Lead, TeteCarte } from "../components/Tn";
 import { Tag } from "../components/Tag";
 import { montant, nombre } from "../lib/format";
@@ -62,12 +62,12 @@ export const CarteStock: React.FC<{
                     <span>{p.nom}</span>
                     {p.sousLeSeuil ? (
                       <em className="bas">
-                        <IconeDuo nom="alert" />
+                        <Icone nom="alert" />
                         stock faible
                       </em>
                     ) : p.enPrealerte ? (
                       <em className="approche">
-                        <IconeDuo nom="alert" />
+                        <Icone nom="alert" />
                         approche du seuil
                       </em>
                     ) : null}
@@ -79,7 +79,7 @@ export const CarteStock: React.FC<{
                 <span className="q num">
                   {nombre(p.disponible)} / {nombre(p.seuil)}
                 </span>
-                {onProduit ? <IconeDuo nom="chevright" className="chev" /> : <span />}
+                {onProduit ? <Icone nom="chevright" className="chev" /> : <span />}
               </Ligne>
             );
           })
@@ -88,7 +88,7 @@ export const CarteStock: React.FC<{
 
       <div className="foot">
         <span className="ib">
-          <IconeDuo nom="box" />
+          <Icone nom="box" />
         </span>
         <div>
           {valeurVisible ? (
@@ -110,13 +110,13 @@ export const CarteStock: React.FC<{
           <div className="stock-actions">
             {onTelecharger && (
               <button className="btn out" type="button" onClick={onTelecharger}>
-                <IconeDuo nom="download" />
+                <Icone nom="download" />
                 Télécharger la liste
               </button>
             )}
             {onCommander && (
               <button className="btn pri" type="button" onClick={onCommander}>
-                <IconeDuo nom="cart" />
+                <Icone nom="cart" />
                 Préparer la commande
               </button>
             )}

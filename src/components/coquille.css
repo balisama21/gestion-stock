@@ -16,11 +16,6 @@
   --coq-shadow: var(--elev-2);
 }
 
-.nav-ico {
-  width: 22px;
-  height: 22px;
-}
-
 /* ── Barre latérale ── */
 .coq-side {
   background: var(--sidebar);
@@ -140,9 +135,6 @@
   font-weight: 600;
   box-shadow: inset 3px 0 0 var(--coq-g);
 }
-.coq-lien.on .ico-duo svg .f {
-  fill-opacity: 0.24;
-}
 .coq-lien.seul {
   justify-content: center;
   padding-left: 0;
@@ -179,7 +171,7 @@
   box-shadow: var(--coq-shadow);
   color: var(--coq-muted);
 }
-.coq-search .ico-duo {
+.coq-search .ico {
   width: 18px;
   height: 18px;
 }
@@ -215,16 +207,13 @@
   place-items: center;
   color: var(--coq-g);
 }
-.coq-tool .ico-duo {
-  width: 26px;
-  height: 26px;
+.coq-tool > svg {
+  width: 22px;
+  height: 22px;
 }
 .coq-tool:hover,
 .coq-tool.actif {
   background: var(--coq-gsoft);
-}
-.coq-tool .ico-duo {
-  color: var(--coq-g);
 }
 .coq-badge {
   position: absolute;
@@ -257,9 +246,9 @@
     width: 38px;
     height: 38px;
   }
-  .coq-tool .ico-duo {
-    width: 22px;
-    height: 22px;
+  .coq-tool > svg {
+    width: 20px;
+    height: 20px;
   }
   .coq-search {
     padding: 9px 14px;
@@ -270,9 +259,9 @@
     width: 34px;
     height: 34px;
   }
-  .coq-tool .ico-duo {
-    width: 20px;
-    height: 20px;
+  .coq-tool > svg {
+    width: 19px;
+    height: 19px;
   }
   .coq-search {
     padding: 9px 12px;

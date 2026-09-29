@@ -1,5 +1,5 @@
 import React, { useMemo, useState } from "react";
-import { IconeDuo, type NomIcone } from "../../../components/shared/IconeDuo";
+import { Icone, type NomIcone } from "../../../components/shared/Icone";
 import { Lead, Lien, TeteCarte, Vide, type TonIcone } from "../components/Tn";
 import { dateLocale, montant, nombre } from "../lib/format";
 import { dateDuJour, dateDansNJours } from "../../../lib/dates";
@@ -104,7 +104,7 @@ const Annuaire: React.FC<{
       />
       <div className="f-search">
         <label className="in">
-          <IconeDuo nom="search" />
+          <Icone nom="search" />
           <input
             value={texte}
             onChange={(e) => {
@@ -124,13 +124,13 @@ const Annuaire: React.FC<{
             aria-label={`Statut : ${LIBELLE_FILTRE[filtre]}. Afficher : ${LIBELLE_FILTRE[suivant]}`}
             title={`Statut : ${LIBELLE_FILTRE[filtre]}`}
           >
-            <IconeDuo nom="filter" />
+            <Icone nom="filter" />
             {filtre !== "tous" && <span>{LIBELLE_FILTRE[filtre]}</span>}
           </button>
         </label>
         {onOuvrir && (
           <button type="button" className="btn pri" onClick={onOuvrir}>
-            <IconeDuo nom="plus" />
+            <Icone nom="plus" />
             {ajouter}
           </button>
         )}
@@ -154,7 +154,7 @@ const Annuaire: React.FC<{
                   <td>
                     <div className="nmc">
                       <span className="logo" style={{ background: teinteDe(l.nom) }}>
-                        <IconeDuo nom={icone} />
+                        <Icone nom={icone} />
                       </span>
                       {l.nom}
                     </div>
@@ -174,7 +174,7 @@ const Annuaire: React.FC<{
                       disabled={!onOuvrir}
                       aria-label={`Ouvrir la fiche de ${l.nom}`}
                     >
-                      <IconeDuo nom="dots" />
+                      <Icone nom="dots" />
                     </button>
                   </td>
                 </tr>
@@ -214,7 +214,7 @@ const Annuaire: React.FC<{
               disabled={courante === 0}
               onClick={() => setPage(courante - 1)}
             >
-              <IconeDuo nom="chevleft" />
+              <Icone nom="chevleft" />
             </button>
             {Array.from({ length: pages }, (_, i) => i)
               .filter((i) => pages <= 5 || Math.abs(i - courante) <= 2)
@@ -235,7 +235,7 @@ const Annuaire: React.FC<{
               disabled={courante >= pages - 1}
               onClick={() => setPage(courante + 1)}
             >
-              <IconeDuo nom="chevright" />
+              <Icone nom="chevright" />
             </button>
           </div>
         )}
@@ -397,7 +397,7 @@ export const SectionPartenaires: React.FC<{
           <div className="n num">{valeur}</div>
           <small>{detail}</small>
         </div>
-        {onClick && <IconeDuo nom="chevright" className="chev" />}
+        {onClick && <Icone nom="chevright" className="chev" />}
       </Racine>
     );
   };
@@ -455,41 +455,41 @@ export const SectionPartenaires: React.FC<{
         <div className="right">
           <article className="card qa">
             <div className="card-h">
-              <IconeDuo nom="zap" className="qa-ic" />
+              <Icone nom="zap" className="qa-ic" />
               <h3>Actions rapides</h3>
             </div>
             {fournisseurs && onFournisseurs && (
               <button type="button" onClick={onFournisseurs}>
-                <IconeDuo nom="box" />
+                <Icone nom="box" />
                 Ajouter un fournisseur
-                <IconeDuo nom="chevright" className="chev" />
+                <Icone nom="chevright" className="chev" />
               </button>
             )}
             {prestataires && onPrestataires && (
               <button type="button" onClick={onPrestataires}>
-                <IconeDuo nom="users" />
+                <Icone nom="users" />
                 Ajouter un prestataire
-                <IconeDuo nom="chevright" className="chev" />
+                <Icone nom="chevright" className="chev" />
               </button>
             )}
             {onCreerCommande && (
               <button type="button" onClick={onCreerCommande}>
-                <IconeDuo nom="cart" />
+                <Icone nom="cart" />
                 Créer un bon de commande
-                <IconeDuo nom="chevright" className="chev" />
+                <Icone nom="chevright" className="chev" />
               </button>
             )}
             {onAchats && (
               <button type="button" onClick={onAchats}>
-                <IconeDuo nom="file" />
+                <Icone nom="file" />
                 Voir tous les achats
-                <IconeDuo nom="chevright" className="chev" />
+                <Icone nom="chevright" className="chev" />
               </button>
             )}
           </article>
           <article className="card">
             <div className="card-h">
-              <IconeDuo nom="clock" className="qa-ic" />
+              <Icone nom="clock" className="qa-ic" />
               <h3 className="petit">Dernières activités</h3>
               <Lien onClick={onAchats}>Voir tout</Lien>
             </div>
@@ -503,7 +503,7 @@ export const SectionPartenaires: React.FC<{
                 {activites.map((a) => (
                   <div className="a" key={a.cle}>
                     <span className={`c ${a.ton}`}>
-                      <IconeDuo nom={a.icone} />
+                      <Icone nom={a.icone} />
                     </span>
                     <div>
                       <b>{a.titre}</b>
