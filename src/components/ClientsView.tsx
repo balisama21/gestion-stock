@@ -758,21 +758,18 @@ export const ClientsView: React.FC<ClientsViewProps> = ({
                         )}
                       </span>
 
-                      <span className="flex shrink-0 items-center gap-2 sm:gap-3">
-                        <span className="text-right">
-                          <span className="app-list-amount block tabular-nums">
-                            {formatCurrency(compte.totalAchete)}
-                          </span>
-                          {compte.resteDu > 0 && (
-                            <span className="app-list-secondary block tabular-nums t-danger">
-                              {formatCurrency(compte.resteDu)} dû
-                            </span>
-                          )}
+                      {/* L'impayé et son montant tiennent dans un seul badge,
+                          sous le total : côte à côte, ils ne laissaient plus
+                          au nom du client que quelques lettres. */}
+                      <span className="flex shrink-0 flex-col items-end gap-1 text-right">
+                        <span className="app-list-amount block tabular-nums">
+                          {formatCurrency(compte.totalAchete)}
                         </span>
                         {compte.resteDu > 0 && (
-                          <span className="app-badge app-badge-danger shrink-0">
+                          <span className="app-badge app-badge-danger shrink-0 tabular-nums">
                             <AlertCircle className="h-3 w-3" aria-hidden="true" />
-                            Impayé
+                            <span className="sr-only">Impayé :</span>
+                            {formatCurrency(compte.resteDu)} dû
                           </span>
                         )}
                       </span>
