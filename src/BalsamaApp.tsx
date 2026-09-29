@@ -73,6 +73,7 @@ import {
 import { libelleEffectuePar, lireReglagesListes } from "./lib/listes";
 import { listerLesPersonnes } from "./lib/personnes";
 import { lirePrixAuto } from "./lib/prixAuto";
+import { FournisseurAvatarsPersonnes } from "./components/shared/FournisseurAvatarsPersonnes";
 
 /**
  * Les écrans internes arrivent à la demande.
@@ -2882,7 +2883,9 @@ export default function App() {
               d'`AppInner` tient dans un seul arbre de deux mille
               lignes, qu'une balise de plus décalerait en entier. */}
           <contexteCibleRecherche.Provider value={cibleRecherche}>
-            <AppInner />
+            <FournisseurAvatarsPersonnes>
+              <AppInner />
+            </FournisseurAvatarsPersonnes>
           </contexteCibleRecherche.Provider>
         </WorkspaceLoader>
       </div>

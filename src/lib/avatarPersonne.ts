@@ -5,10 +5,10 @@ import { cleDeNom, condense } from "./teintes";
  * cheveux, tenue, lunettes, barbe. Voir `components/shared/AvatarPersonne.tsx`.
  */
 
-const FONDS = ["#DCEBFF", "#FDE2E4", "#E3F4E8", "#FFF1D6", "#EDE4FF", "#DDF3F5", "#F3E8DC"];
-const PEAUX = ["#F4D5B5", "#E8BB90", "#D39C6C", "#B97B4F", "#94603E", "#6E452B"];
-const CHEVEUX = ["#1E1916", "#2E231E", "#3D2B21", "#58371F", "#7A4A28", "#141414"];
-const TENUES = [
+export const FONDS = ["#DCEBFF", "#FDE2E4", "#E3F4E8", "#FFF1D6", "#EDE4FF", "#DDF3F5", "#F3E8DC"];
+export const PEAUX = ["#F4D5B5", "#E8BB90", "#D39C6C", "#B97B4F", "#94603E", "#6E452B"];
+export const CHEVEUX = ["#1E1916", "#2E231E", "#3D2B21", "#58371F", "#7A4A28", "#141414"];
+export const TENUES = [
   "#2F6FDB",
   "#0B7F57",
   "#C23B70",
@@ -18,7 +18,7 @@ const TENUES = [
   "#4F5E7A",
   "#8B4FC9",
 ];
-const COIFFURES = ["courts", "raie", "longs", "chignon", "boucles", "ras", "carre"] as const;
+export const COIFFURES = ["courts", "raie", "longs", "chignon", "boucles", "ras", "carre"] as const;
 export type Coiffure = (typeof COIFFURES)[number];
 
 /** Assombrit une couleur #rrggbb : l'ombre du cou, le trait du nez. */
@@ -58,5 +58,39 @@ export function traitsDe(nom: string): Traits {
     lunettes: tirer(100) < 16,
     barbe: courte && tirer(100) < 30,
     sourire: tirer(2) === 0 ? "doux" : "ouvert",
+  };
+}
+
+/** Le nom de chaque coiffure, pour le choix du visage. */
+export const NOMS_COIFFURES: Record<Coiffure, string> = {
+  courts: "Courts",
+  raie: "Raie de côté",
+  longs: "Longs",
+  chignon: "Chignon",
+  boucles: "Bouclés",
+  ras: "Très courts",
+  carre: "Carré",
+};
+
+/**
+ * Les traits réglés à la main, posés sur ceux du nom. Ce qui vient de
+ * la base est relu champ par champ : une valeur inconnue (une version
+ * plus récente, une saisie abîmée) retombe sur le trait du nom au lieu
+ * de dessiner un visage cassé.
+ */
+export function fusionnerTraits(base: Traits, perso: unknown): Traits {
+  if (!perso || typeof perso !== "object") return base;
+  const p = perso as Record<string, unknown>;
+  const dans = <T>(liste: readonly T[], v: unknown, defaut: T): T =>
+    liste.includes(v as T) ? (v as T) : defaut;
+  return {
+    fond: dans(FONDS, p.fond, base.fond),
+    peau: dans(PEAUX, p.peau, base.peau),
+    cheveux: dans(CHEVEUX, p.cheveux, base.cheveux),
+    tenue: dans(TENUES, p.tenue, base.tenue),
+    coiffure: dans(COIFFURES, p.coiffure, base.coiffure),
+    lunettes: typeof p.lunettes === "boolean" ? p.lunettes : base.lunettes,
+    barbe: typeof p.barbe === "boolean" ? p.barbe : base.barbe,
+    sourire: p.sourire === "doux" || p.sourire === "ouvert" ? p.sourire : base.sourire,
   };
 }

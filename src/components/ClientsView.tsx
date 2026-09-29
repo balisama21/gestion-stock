@@ -32,6 +32,7 @@ import type { Sale, Payment } from "../types";
 import type { Database } from "../lib/database.types";
 import { useRechercheInitiale } from "../lib/cibleRecherche";
 import { AvatarPersonne } from "./shared/AvatarPersonne";
+import { AvatarModifiable } from "./shared/ChoixAvatar";
 
 type Client = Database["public"]["Tables"]["clients"]["Row"];
 type ClientInsert = Database["public"]["Tables"]["clients"]["Insert"];
@@ -786,7 +787,7 @@ export const ClientsView: React.FC<ClientsViewProps> = ({
           <div className="space-y-4 lg:col-span-2">
             <div className="app-card p-5">
               <div className="mb-4 flex items-start justify-between gap-3">
-                <AvatarPersonne nom={selection.nom} taille={52} />
+                <AvatarModifiable nom={selection.nom} taille={52} />
                 <div className="min-w-0 flex-1">
                   <h3 className="truncate text-lg font-bold text-foreground">
                     {selection.nom}

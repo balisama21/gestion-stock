@@ -488,8 +488,170 @@ html.dark {
   overflow: hidden;
   line-height: 0;
 }
-.avatar-personne svg {
+.avatar-personne svg,
+.avatar-personne img {
   display: block;
+}
+.avatar-personne img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+/* ── Changer un avatar (src/components/shared/ChoixAvatar.tsx) ── */
+.avatar-modifiable {
+  position: relative;
+  display: inline-grid;
+  flex: none;
+  border-radius: 50%;
+  line-height: 0;
+}
+.avatar-modifiable:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+.avatar-modifiable-crayon {
+  position: absolute;
+  right: -2px;
+  bottom: -2px;
+  width: 20px;
+  height: 20px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: var(--card);
+  color: var(--primary);
+  box-shadow: var(--elev-2);
+  border: 1px solid var(--border);
+}
+.avatar-modifiable-crayon svg {
+  width: 11px;
+  height: 11px;
+}
+.choix-avatar {
+  display: grid;
+  gap: 18px;
+}
+.choix-avatar-apercu {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 14px;
+}
+.choix-avatar-onglets {
+  display: inline-flex;
+  padding: 3px;
+  border-radius: 999px;
+  background: var(--muted);
+}
+.choix-avatar-onglets button {
+  padding: 6px 18px;
+  border-radius: 999px;
+  font-size: 13px;
+  font-weight: 600;
+  color: var(--muted-foreground);
+}
+.choix-avatar-onglets button[aria-selected="true"] {
+  background: var(--card);
+  color: var(--foreground);
+  box-shadow: var(--elev-2);
+}
+.choix-avatar-reglages {
+  display: grid;
+  gap: 14px;
+}
+.choix-avatar-ligne legend {
+  font-size: 12.5px;
+  font-weight: 600;
+  color: var(--muted-foreground);
+  margin-bottom: 8px;
+}
+.choix-avatar-pastilles,
+.choix-avatar-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+.choix-avatar-pastille {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  color: #fff;
+  box-shadow: inset 0 0 0 1px rgb(0 0 0 / 0.08);
+}
+.choix-avatar-pastille[aria-pressed="true"] {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+.choix-avatar-pastille svg {
+  width: 16px;
+  height: 16px;
+  filter: drop-shadow(0 0 1.5px rgb(0 0 0 / 0.6));
+}
+.choix-avatar-coiffures {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(76px, 1fr));
+  gap: 8px;
+}
+.choix-avatar-coiffure {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 5px;
+  padding: 8px 4px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  font-size: 11.5px;
+  color: var(--muted-foreground);
+}
+.choix-avatar-coiffure[aria-pressed="true"] {
+  border-color: var(--primary);
+  background: var(--success-soft);
+  color: var(--foreground);
+  font-weight: 600;
+}
+.choix-avatar-option {
+  padding: 7px 14px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  font-size: 13px;
+  font-weight: 500;
+}
+.choix-avatar-option.on {
+  border-color: var(--primary);
+  background: var(--success-soft);
+  color: var(--primary);
+  font-weight: 600;
+}
+.choix-avatar-photo {
+  display: grid;
+  gap: 12px;
+  justify-items: center;
+  text-align: center;
+  font-size: 13px;
+  color: var(--muted-foreground);
+}
+.choix-avatar-erreur {
+  font-size: 13px;
+  color: var(--danger);
+  text-align: center;
+}
+/* Sur un écran large, l'aperçu reste en vue pendant qu'on règle. */
+@media (min-width: 640px) {
+  .choix-avatar {
+    grid-template-columns: 150px minmax(0, 1fr);
+    align-items: start;
+    column-gap: 24px;
+  }
+  .choix-avatar-apercu {
+    position: sticky;
+    top: 0;
+  }
+  .choix-avatar-erreur {
+    grid-column: 1 / -1;
+  }
 }
 
 /* ── Vignette produit ronde (src/components/shared/VignetteProduit.tsx) ── */

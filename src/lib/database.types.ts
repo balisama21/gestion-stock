@@ -203,6 +203,47 @@ export type Database = {
           },
         ];
       };
+      avatars_personnes: {
+        Row: {
+          cle: string;
+          created_at: string;
+          created_by: string | null;
+          id: string;
+          photo_chemin: string | null;
+          store_id: string;
+          traits: Json | null;
+          updated_at: string;
+        };
+        Insert: {
+          cle: string;
+          created_at?: string;
+          created_by?: string | null;
+          id?: string;
+          photo_chemin?: string | null;
+          store_id: string;
+          traits?: Json | null;
+          updated_at?: string;
+        };
+        Update: {
+          cle?: string;
+          created_at?: string;
+          created_by?: string | null;
+          id?: string;
+          photo_chemin?: string | null;
+          store_id?: string;
+          traits?: Json | null;
+          updated_at?: string;
+        };
+        Relationships: [
+          {
+            foreignKeyName: "avatars_personnes_store_id_fkey";
+            columns: ["store_id"];
+            isOneToOne: false;
+            referencedRelation: "stores";
+            referencedColumns: ["id"];
+          },
+        ];
+      };
       avoir_items: {
         Row: {
           avoir_id: string;

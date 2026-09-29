@@ -1,5 +1,13 @@
-import React, { useId } from "react";
-import { ombre, traitsDe, type Coiffure, type Traits } from "../../lib/avatarPersonne";
+import React, { useContext, useId, useState } from "react";
+import {
+  fusionnerTraits,
+  ombre,
+  traitsDe,
+  type Coiffure,
+  type Traits,
+} from "../../lib/avatarPersonne";
+import { AvatarsPersonnesContext } from "../../lib/avatarsPersonnes";
+import { cleDeNom } from "../../lib/teintes";
 
 /**
  * L'AVATAR D'UNE PERSONNE : un buste illustré dans un rond.
@@ -11,6 +19,9 @@ import { ombre, traitsDe, type Coiffure, type Traits } from "../../lib/avatarPer
  *
  * Sans nom — une vente au comptoir — une silhouette neutre : on ne
  * prête pas un visage à un client qu'on ne connaît pas.
+ *
+ * Une personne peut aussi avoir un visage réglé à la main ou une photo
+ * (voir `ChoixAvatar`) : ils sont lus dans `AvatarsPersonnesContext`.
  */
 
 const CheveuxArriere: React.FC<{ t: Traits }> = ({ t }) => {
@@ -55,9 +66,16 @@ export const AvatarPersonne: React.FC<{
   nom?: string | null;
   taille?: number;
   className?: string;
-}> = ({ nom, taille = 40, className = "" }) => {
+  /** Aperçu du choix en cours : ces traits plutôt que ceux enregistrés. */
+  traits?: Traits;
+  /** Aperçu d'une photo, ou `null` pour forcer le dessin. */
+  photo?: string | null;
+}> = ({ nom, taille = 40, className = "", traits, photo }) => {
   const id = useId().replace(/:/g, "");
+  const { regles } = useContext(AvatarsPersonnesContext);
+  const [photoEnPanne, setPhotoEnPanne] = useState<string | null>(null);
   const nomPropre = nom?.trim() ?? "";
+  const regle = nomPropre ? regles.get(cleDeNom(nomPropre)) : undefined;
   const classes = `avatar-personne${className ? ` ${className}` : ""}`;
   const cadre = { width: taille, height: taille };
 
@@ -73,7 +91,24 @@ export const AvatarPersonne: React.FC<{
     );
   }
 
-  const t = traitsDe(nomPropre);
+  const adressePhoto = photo === undefined ? (regle?.photoUrl ?? null) : photo;
+  if (adressePhoto && adressePhoto !== photoEnPanne) {
+    return (
+      <span className={classes} style={cadre} aria-hidden="true" title={nomPropre}>
+        <img
+          src={adressePhoto}
+          alt=""
+          width={taille}
+          height={taille}
+          loading="lazy"
+          decoding="async"
+          onError={() => setPhotoEnPanne(adressePhoto)}
+        />
+      </span>
+    );
+  }
+
+  const t = traits ?? fusionnerTraits(traitsDe(nomPropre), regle?.traits);
   const peauOmbre = ombre(t.peau);
   return (
     <span className={classes} style={cadre} aria-hidden="true" title={nomPropre}>

@@ -22,18 +22,20 @@ import { supabase } from "./supabase";
  * la contourner en construisant un chemin à la main ailleurs.
  */
 
-export type Seau = "produits" | "documents";
+export type Seau = "produits" | "documents" | "avatars";
 
 /** Ce que le navigateur accepte d'envoyer, par seau. */
 const TYPES_ACCEPTES: Record<Seau, string[]> = {
   produits: ["image/jpeg", "image/png", "image/webp", "image/avif"],
   documents: ["image/jpeg", "image/png", "image/webp", "image/avif", "application/pdf"],
+  avatars: ["image/jpeg", "image/png", "image/webp"],
 };
 
 /** La même limite que celle posée sur le seau, en octets. */
 const TAILLE_MAX: Record<Seau, number> = {
   produits: 5 * 1024 * 1024,
   documents: 10 * 1024 * 1024,
+  avatars: 2 * 1024 * 1024,
 };
 
 /** Côté maximal d'une image de produit, avant envoi. */
@@ -145,7 +147,9 @@ export async function envoyerFichier(
       error:
         seau === "produits"
           ? "Seules les images JPEG, PNG, WebP ou AVIF sont acceptées."
-          : "Seules les images et les fichiers PDF sont acceptés.",
+          : seau === "avatars"
+            ? "Seules les images JPEG, PNG ou WebP sont acceptées."
+            : "Seules les images et les fichiers PDF sont acceptés.",
     };
   }
 
@@ -231,4 +235,49 @@ export async function adresseDocument(
     .from("documents")
     .createSignedUrl(chemin, secondes);
   return { url: data?.signedUrl ?? null, error: error?.message ?? null };
+}
+
+/** Côté de la photo d'un avatar : bien assez pour un rond de 64 pixels, même sur un écran dense. */
+const COTE_AVATAR = 320;
+
+/**
+ * La photo d'une personne, prête à partir : recadrée au carré sur son
+ * centre, réduite, en WebP (JPEG si le navigateur ne sait pas l'écrire).
+ * Une photo de téléphone de 4 Mo devient une vignette de quelques
+ * dizaines de kilo-octets.
+ */
+export async function preparerPhotoAvatar(fichier: File): Promise<File> {
+  const source = URL.createObjectURL(fichier);
+  try {
+    const img = await chargerImage(source);
+    const cote = Math.min(img.naturalWidth, img.naturalHeight);
+    const sortie = Math.min(COTE_AVATAR, cote);
+    const canvas = document.createElement("canvas");
+    canvas.width = sortie;
+    canvas.height = sortie;
+    const ctx = canvas.getContext("2d");
+    if (!ctx) return fichier;
+    ctx.drawImage(
+      img,
+      (img.naturalWidth - cote) / 2,
+      (img.naturalHeight - cote) / 2,
+      cote,
+      cote,
+      0,
+      0,
+      sortie,
+      sortie,
+    );
+    const ecrire = (type: string) =>
+      new Promise<Blob | null>((ok) => canvas.toBlob(ok, type, 0.85));
+    let blob = await ecrire("image/webp");
+    if (!blob || blob.type !== "image/webp") blob = await ecrire("image/jpeg");
+    if (!blob) return fichier;
+    const extension = blob.type === "image/webp" ? "webp" : "jpg";
+    return new File([blob], `avatar.${extension}`, { type: blob.type });
+  } catch {
+    return fichier;
+  } finally {
+    URL.revokeObjectURL(source);
+  }
 }
