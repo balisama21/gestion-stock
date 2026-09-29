@@ -1,4 +1,4 @@
-import React, { useCallback, useRef, useState } from "react";
+import React, { useCallback, useEffect, useRef, useState } from "react";
 import { ActiveTab, StoreSettings } from "../types";
 import {
   Store,
@@ -295,6 +295,20 @@ export const Header: React.FC<HeaderProps> = ({
   };
 
   const [recherche, setRecherche] = useState("");
+  const champRecherche = useRef<HTMLInputElement>(null);
+  // Ctrl+K (⌘K sur Mac) place le curseur dans la recherche, d'où qu'on soit.
+  const surMac = typeof navigator !== "undefined" && /Mac|iPhone|iPad/.test(navigator.platform);
+  useEffect(() => {
+    const raccourci = (e: KeyboardEvent) => {
+      if ((e.ctrlKey || e.metaKey) && e.key.toLowerCase() === "k") {
+        e.preventDefault();
+        champRecherche.current?.focus();
+        champRecherche.current?.select();
+      }
+    };
+    window.addEventListener("keydown", raccourci);
+    return () => window.removeEventListener("keydown", raccourci);
+  }, []);
   const lancerRecherche = () => {
     const texte = recherche.trim();
     if (!texte) return;
@@ -575,13 +589,20 @@ export const Header: React.FC<HeaderProps> = ({
           >
             <Icone nom="search" />
             <input
+              ref={champRecherche}
               type="search"
               value={recherche}
               onChange={(e) => setRecherche(e.target.value)}
-              placeholder="Rechercher..."
+              placeholder="Rechercher…"
               aria-label="Rechercher"
+              aria-keyshortcuts={surMac ? "Meta+K" : "Control+K"}
               enterKeyHint="search"
             />
+            {!recherche && (
+              <kbd className="coq-kbd" aria-hidden="true">
+                {surMac ? "⌘" : "Ctrl"} K
+              </kbd>
+            )}
           </form>
 
           <div className="coq-tools">
