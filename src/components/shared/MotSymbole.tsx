@@ -1,5 +1,6 @@
 import React from "react";
 import { APP_NAME } from "../../lib/appConfig";
+import { useMarque } from "../../hooks/useMarque";
 
 interface MotSymboleProps {
   /**
@@ -28,24 +29,41 @@ interface MotSymboleProps {
  *
  * Toute la mise en place découle de `hauteur` — voir `.mot-symbole` dans
  * la feuille de style.
+ *
+ * Marque blanche : le nom du client en texte simple, à la même hauteur —
+ * les polices réduites du mot-symbole n'en couvrent pas les lettres.
  */
-export const MotSymbole: React.FC<MotSymboleProps> = ({ hauteur, couleur, className = "" }) => (
-  <span
-    className={`mot-symbole ${className}`}
-    style={
-      {
-        "--ms-h": typeof hauteur === "number" ? `${hauteur}px` : hauteur,
-        ...(couleur ? { color: couleur } : null),
-      } as React.CSSProperties
-    }
-    role="img"
-    aria-label={APP_NAME}
-  >
-    <span className="ms-tantana" aria-hidden="true">
-      Tantana
+export const MotSymbole: React.FC<MotSymboleProps> = ({ hauteur, couleur, className = "" }) => {
+  const marque = useMarque();
+  if (!marque.parDefaut) {
+    const h = typeof hauteur === "number" ? `${hauteur}px` : hauteur;
+    return (
+      <span
+        className={`inline-block font-semibold leading-none tracking-tight ${className}`}
+        style={{ fontSize: `calc(${h} * 0.6)`, ...(couleur ? { color: couleur } : null) }}
+      >
+        {marque.nom}
+      </span>
+    );
+  }
+  return (
+    <span
+      className={`mot-symbole ${className}`}
+      style={
+        {
+          "--ms-h": typeof hauteur === "number" ? `${hauteur}px` : hauteur,
+          ...(couleur ? { color: couleur } : null),
+        } as React.CSSProperties
+      }
+      role="img"
+      aria-label={APP_NAME}
+    >
+      <span className="ms-tantana" aria-hidden="true">
+        Tantana
+      </span>
+      <span className="ms-boite" aria-hidden="true">
+        <span className="ms-suite">suite</span>
+      </span>
     </span>
-    <span className="ms-boite" aria-hidden="true">
-      <span className="ms-suite">suite</span>
-    </span>
-  </span>
-);
+  );
+};

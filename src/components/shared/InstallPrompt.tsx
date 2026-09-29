@@ -7,7 +7,7 @@ import {
   surEvenementInstallation,
   type EvenementInstallation,
 } from "../../lib/pwa";
-import { APP_NAME } from "../../lib/appConfig";
+import { useMarque } from "../../hooks/useMarque";
 
 const CLE_REFUS = "balsama-installation-refusee";
 const JOURS_AVANT_NOUVELLE_PROPOSITION = 7;
@@ -51,6 +51,7 @@ const memoriserRefus = () => {
  * un manque de l'application.
  */
 export const InstallPrompt: React.FC = () => {
+  const marque = useMarque();
   const [evenement, setEvenement] = useState<EvenementInstallation | null>(null);
   const [visible, setVisible] = useState(false);
   const [ios, setIos] = useState(false);
@@ -125,9 +126,7 @@ export const InstallPrompt: React.FC = () => {
         />
 
         <div className="min-w-0 flex-1">
-          <p className="text-sm font-semibold text-foreground">
-            Installer {APP_NAME}
-          </p>
+          <p className="text-sm font-semibold text-foreground">Installer {marque.nom}</p>
 
           {ios ? (
             <p className="mt-1 flex flex-wrap items-center gap-x-1.5 gap-y-1 text-xs leading-relaxed text-muted-foreground">

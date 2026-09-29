@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useCallback } from "react";
+import { useMarque } from "../hooks/useMarque";
 import { Delete, KeyRound, Lock, ShieldCheck, ArrowLeft, Eye, EyeOff } from "lucide-react";
 import { useAuth } from "../hooks/useAuth";
 import { supabase } from "../lib/supabase";
@@ -11,6 +12,7 @@ interface PinLockScreenProps {
 type ScreenMode = "pin" | "forgot";
 
 export const PinLockScreen: React.FC<PinLockScreenProps> = ({ onUnlock }) => {
+  const marque = useMarque();
   const { profile, user, signOut, reauthenticate, refreshProfile } = useAuth();
   const [mode, setMode] = useState<ScreenMode>("pin");
   const [pin, setPin] = useState("");
@@ -121,7 +123,7 @@ export const PinLockScreen: React.FC<PinLockScreenProps> = ({ onUnlock }) => {
                     on doit y reconnaître l'application au premier coup
                     d'oeil, pas une icône générique dans un carré. */}
                 <img
-                  src="/logo.svg"
+                  src={marque.logoUrl}
                   alt=""
                   width={71}
                   height={52}
@@ -221,8 +223,8 @@ export const PinLockScreen: React.FC<PinLockScreenProps> = ({ onUnlock }) => {
                   Réinitialiser le code PIN
                 </h1>
                 <p className="text-sm text-muted-foreground mt-2 leading-relaxed">
-                  Confirmez avec votre mot de passe pour supprimer le code PIN actuel. Vous
-                  pourrez en définir un nouveau depuis les Paramètres.
+                  Confirmez avec votre mot de passe pour supprimer le code PIN actuel. Vous pourrez
+                  en définir un nouveau depuis les Paramètres.
                 </p>
               </div>
 
@@ -255,11 +257,7 @@ export const PinLockScreen: React.FC<PinLockScreenProps> = ({ onUnlock }) => {
                   <p className="t-danger text-sm font-medium text-center">{resetError}</p>
                 )}
 
-                <button
-                  type="submit"
-                  disabled={resetLoading}
-                  className="app-btn-primary w-full"
-                >
+                <button type="submit" disabled={resetLoading} className="app-btn-primary w-full">
                   {resetLoading ? "Vérification..." : "Réinitialiser le code PIN"}
                 </button>
               </form>
