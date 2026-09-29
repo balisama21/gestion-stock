@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { act, cleanup, render } from "@testing-library/react";
 import { createRef } from "react";
 import { HeroTableauDeBord } from "./HeroTableauDeBord";
-import { HERO_PHOTOS, PLANTES, indexDuJour } from "../assets/images";
+import { HERO_PHOTOS, PHOTOS_PLANTES, indexDuJour, plantesDuJour } from "../assets/images";
 import type { ChiffresDuJour, ChiffresStock } from "../lib/chiffres";
 
 const JOUR = {
@@ -68,7 +68,6 @@ describe("le haut du tableau de bord", () => {
 
   it("sept catégories de photos, une par jour, lundi en premier", () => {
     expect(HERO_PHOTOS).toHaveLength(7);
-    expect(PLANTES).toHaveLength(7);
     expect(indexDuJour(new Date(2026, 8, 28))).toBe(0); // lundi
     expect(indexDuJour(new Date(2026, 9, 4))).toBe(6); // dimanche
   });
@@ -91,9 +90,20 @@ describe("le haut du tableau de bord", () => {
     expect(afficher("2026-09-28T10:00:00", true).hero.classList.contains("night")).toBe(true);
   });
 
-  it("l'inspiration du moment montre les trois photos de la catégorie du jour", () => {
-    const { plantes } = afficher("2026-10-04T10:00:00"); // dimanche
+  it("l'inspiration du moment montre les trois photos du jour", () => {
+    const { plantes } = afficher("2026-10-04T10:00:00");
     expect(plantes).toHaveLength(3);
-    expect(new Set(plantes)).toEqual(new Set(PLANTES[6]));
+    expect(new Set(plantes)).toEqual(new Set(plantesDuJour(new Date(2026, 9, 4))));
+    expect(PHOTOS_PLANTES.length).toBeGreaterThanOrEqual(3);
+  });
+
+  it("chaque jour prend les trois photos suivantes du dossier", () => {
+    const dossier = ["a", "b", "c", "d", "e", "f", "g"];
+    const lundi = plantesDuJour(new Date(2026, 8, 28), dossier);
+    const mardi = plantesDuJour(new Date(2026, 8, 29), dossier);
+    expect(new Set(lundi).size).toBe(3);
+    expect(lundi.filter((p) => mardi.includes(p))).toEqual([]);
+    // Le même jour donne toujours le même trio.
+    expect(plantesDuJour(new Date(2026, 8, 29, 23, 0), dossier)).toEqual(mardi);
   });
 });

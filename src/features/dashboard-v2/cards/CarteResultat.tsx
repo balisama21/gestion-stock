@@ -42,10 +42,10 @@ export const CarteResultat: React.FC<{
         }
       />
 
-      <div className={`rr${benefice < 0 ? " negatif" : ""}`}>
+      <div className={`rr${benefice < 0 ? " negatif" : benefice === 0 ? " nul" : ""}`}>
         <div className="l">
           <div className="big" aria-hidden="true">
-            {benefice === 0 ? "Ø" : <Icone nom={benefice > 0 ? "trend" : "arrowdown"} />}
+            <Icone nom={benefice > 0 ? "trend" : benefice < 0 ? "arrowdown" : "minus"} />
           </div>
           <div>
             <small>

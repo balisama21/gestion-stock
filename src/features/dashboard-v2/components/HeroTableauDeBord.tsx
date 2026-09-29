@@ -5,7 +5,8 @@ import { dateCourte, dateLongue, heure, montant, nombre } from "../lib/format";
 import type { ChiffresDuJour, ChiffresStock } from "../lib/chiffres";
 import type { EvenementJournal } from "../lib/journal";
 import type { CleTuile } from "../registry";
-import { HERO_PHOTOS, PLANTES, indexDuJour, inspirationFond } from "../assets/images";
+import { HERO_PHOTOS, indexDuJour } from "../assets/images";
+import { InspirationDuMoment } from "./InspirationDuMoment";
 
 /**
  * LE HAUT DU TABLEAU DE BORD
@@ -280,7 +281,6 @@ export const HeroTableauDeBord: React.FC<HeroProps> = ({
   const nuit = sombre || h < 6 || h >= 18;
   const idx = indexDuJour(maintenant ?? new Date(2026, 0, 5));
   const photo = HERO_PHOTOS[idx];
-  const plantes = PLANTES[idx];
   const salutation = h >= 18 || h < 4 ? "Bonsoir" : "Bonjour";
 
   const bientotEnRupture = stock.aRecommander.length + stock.enRupture.length;
@@ -567,36 +567,7 @@ export const HeroTableauDeBord: React.FC<HeroProps> = ({
               </article>
             )}
 
-            <article
-              className="tc ic"
-              id="tcInsp"
-              style={{ backgroundImage: `url(${inspirationFond})` }}
-            >
-              <div className="ic-texte">
-                <div className="ititle">
-                  <Icone nom="leaf" className="kpetite vert" />
-                  Inspiration du moment
-                </div>
-                <div className="isub">Découvrez nos sélections du jour</div>
-                <button type="button" className="ibtn" onClick={() => onNaviguer?.("produits")}>
-                  Voir plus
-                </button>
-              </div>
-              <div className="pf" id="pf1">
-                <img alt="" src={plantes[0]} />
-              </div>
-              <div className="pf" id="pf3">
-                <img alt="" src={plantes[2]} />
-              </div>
-              <div className="pf" id="pf2">
-                <img alt="" src={plantes[1]} />
-              </div>
-              <div className="pdots" aria-hidden="true">
-                <i className="on" />
-                <i />
-                <i />
-              </div>
-            </article>
+            <InspirationDuMoment maintenant={maintenant} />
           </div>
         </div>
       </div>

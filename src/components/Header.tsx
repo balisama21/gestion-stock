@@ -598,11 +598,6 @@ export const Header: React.FC<HeaderProps> = ({
               aria-keyshortcuts={surMac ? "Meta+K" : "Control+K"}
               enterKeyHint="search"
             />
-            {!recherche && (
-              <kbd className="coq-kbd" aria-hidden="true">
-                {surMac ? "⌘" : "Ctrl"} K
-              </kbd>
-            )}
           </form>
 
           <div className="coq-tools">

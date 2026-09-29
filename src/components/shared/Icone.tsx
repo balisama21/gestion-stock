@@ -1,5 +1,6 @@
 import React from "react";
 import {
+  Minus,
   AlertCircle,
   CheckCircle2,
   Activity,
@@ -97,6 +98,7 @@ const ICONES = {
   alertcircle: AlertCircle,
   mail: Mail,
   plus: Plus,
+  minus: Minus,
   filter: Filter,
   alert: AlertTriangle,
   refresh: RefreshCw,

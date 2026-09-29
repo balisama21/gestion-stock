@@ -641,6 +641,44 @@ html.dark {
   }
 }
 
+/* ── Galerie « Inspiration du moment » ── */
+.insp-grille {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+  gap: 12px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+.insp-grille li {
+  position: relative;
+  aspect-ratio: 3 / 4;
+  border-radius: 12px;
+  overflow: hidden;
+  background: var(--muted);
+  box-shadow: var(--elev-2);
+}
+.insp-grille li.du-jour {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+.insp-grille img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+.insp-grille span {
+  position: absolute;
+  left: 8px;
+  bottom: 8px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--primary);
+  color: var(--primary-foreground);
+  font-size: 11px;
+  font-weight: 600;
+}
+
 /* ── Vignette produit ronde (src/components/shared/VignetteProduit.tsx) ── */
 .vignette-produit {
   display: inline-grid;

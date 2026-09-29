@@ -8,7 +8,7 @@ import { illCarton } from "../assets/images";
  * SUIVI DES COMMANDES — où en sont les commandes clients, étape par étape.
  *
  * Une étape qui porte des commandes affiche leur nombre ; une étape vide,
- * le signe ∅. Quand rien n'est en cours, la première étape est cochée :
+ * un cercle vide. Quand rien n'est en cours, la première étape est cochée :
  * tout ce qui a été reçu est parti.
  */
 export const CarteCommandes: React.FC<{
@@ -63,7 +63,7 @@ export const CarteCommandes: React.FC<{
           const fait = rien ? i === 0 : e.n > 0;
           return (
             <div className={`step${fait ? " done" : ""}`} key={i}>
-              <i>{rien && i === 0 ? <Icone nom="check" /> : e.n > 0 ? e.n : "∅"}</i>
+              <i>{rien && i === 0 ? <Icone nom="check" /> : e.n > 0 ? e.n : null}</i>
               {e.libelle}
             </div>
           );

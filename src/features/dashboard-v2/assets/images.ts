@@ -4,9 +4,6 @@
  */
 import heroJour from "./hero-jour.jpg";
 import heroNuit from "./hero-nuit.jpg";
-import plante1 from "./plante-1.jpg";
-import plante2 from "./plante-2.jpg";
-import plante3 from "./plante-3.jpg";
 
 export { default as inspirationFond } from "./inspiration-fond.jpg";
 
@@ -45,18 +42,29 @@ export const HERO_PHOTOS: { jour: string; nuit: string }[] = [
 ];
 
 /**
- * « Inspiration du moment » : trois photos par catégorie, une catégorie par
- * jour (lundi = 0 … dimanche = 6). Même principe que `HERO_PHOTOS`.
+ * « Inspiration du moment » : toutes les photos du dossier `plantes/`,
+ * dans l'ordre de leur nom. Il suffit d'y déposer une photo (JPG, PNG ou
+ * WebP) pour qu'elle entre dans la rotation, sans rien toucher d'autre.
  */
-export const PLANTES: [string, string, string][] = [
-  [plante1, plante2, plante3], // LUNDI    - catégorie 1
-  [plante1, plante2, plante3], // MARDI    - catégorie 2 (à remplacer)
-  [plante1, plante2, plante3], // MERCREDI - catégorie 3 (à remplacer)
-  [plante1, plante2, plante3], // JEUDI    - catégorie 4 (à remplacer)
-  [plante1, plante2, plante3], // VENDREDI - catégorie 5 (à remplacer)
-  [plante1, plante2, plante3], // SAMEDI   - catégorie 6 (à remplacer)
-  [plante1, plante2, plante3], // DIMANCHE - catégorie 7 (à remplacer)
-];
+const fichiersPlantes = import.meta.glob("./plantes/*.{jpg,jpeg,png,webp}", {
+  eager: true,
+  import: "default",
+}) as Record<string, string>;
+export const PHOTOS_PLANTES: string[] = Object.keys(fichiersPlantes)
+  .sort()
+  .map((k) => fichiersPlantes[k]);
 
-/** Lundi = 0 … dimanche = 6, l'index des deux tableaux ci-dessus. */
+/**
+ * Les trois photos du jour : chaque jour prend les trois suivantes du
+ * dossier, et la série recommence une fois le dossier parcouru. Avec
+ * vingt et une photos, aucun trio ne revient avant trois semaines.
+ */
+export function plantesDuJour(d: Date, photos: string[] = PHOTOS_PLANTES): string[] {
+  if (photos.length === 0) return [];
+  const jour = Math.floor(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()) / 86_400_000);
+  const depart = (jour * 3) % photos.length;
+  return [0, 1, 2].map((k) => photos[(depart + k) % photos.length]);
+}
+
+/** Lundi = 0 … dimanche = 6, l'index de `HERO_PHOTOS`. */
 export const indexDuJour = (d: Date): number => (d.getDay() + 6) % 7;
