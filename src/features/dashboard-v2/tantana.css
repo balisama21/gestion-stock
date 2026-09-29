@@ -3057,8 +3057,9 @@
 .tn .f-grid .tbl td {
   hyphens: auto;
 }
-/* Le numéro tient sur une ligne ; il ne se coupe en son milieu que
-   quand la carte de l'annuaire est étroite. */
+/* Le numéro tient toujours sur une ligne. Dans une carte étroite, sa
+   fin laisse place à « … » : le numéro entier reste au survol et dans
+   la fiche. */
 .tn .f-grid .annuaire {
   container: annuaire / inline-size;
 }
@@ -3066,8 +3067,11 @@
   white-space: nowrap;
 }
 @container annuaire (max-width: 520px) {
-  .tn .f-grid .tbl td.contact {
-    white-space: normal;
+  .tn .f-grid .tbl td.contact span {
+    display: block;
+    width: 64px;
+    overflow: hidden;
+    text-overflow: ellipsis;
   }
 }
 .tn .f-grid .pill {

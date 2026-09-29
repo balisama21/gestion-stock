@@ -65,17 +65,6 @@ interface Ligne {
   statut: "actif" | "inactif";
 }
 
-/**
- * Un numéro qui ne peut se couper qu'en son milieu : « 034 10 » puis
- * « 345 67 », jamais « 034 10 345 » puis « 67 ».
- */
-const enDeuxMoities = (texte: string): string => {
-  const groupes = texte.trim().split(/\s+/);
-  if (groupes.length < 2) return texte;
-  const milieu = Math.ceil(groupes.length / 2);
-  return `${groupes.slice(0, milieu).join("\u00a0")} ${groupes.slice(milieu).join("\u00a0")}`;
-};
-
 /** Un annuaire : recherche, filtre de statut, tableau paginé. */
 const Annuaire: React.FC<{
   titre: string;
@@ -164,7 +153,9 @@ const Annuaire: React.FC<{
                     <div className="nmc">{l.nom}</div>
                   </td>
                   <td>{l.activite || "—"}</td>
-                  <td className="contact">{l.contact ? enDeuxMoities(l.contact) : "—"}</td>
+                  <td className="contact">
+                    <span title={l.contact || undefined}>{l.contact || "—"}</span>
+                  </td>
                   <td>
                     <span className={`pill${l.statut === "inactif" ? " off" : ""}`}>
                       {l.statut === "inactif" ? "Inactif" : "Actif"}
