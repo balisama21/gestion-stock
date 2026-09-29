@@ -3057,11 +3057,18 @@
 .tn .f-grid .tbl td {
   hyphens: auto;
 }
-/* Ancré ici : sans cela, le libellé masqué « Actions », placé en
-   absolu, sortirait du tableau défilant et élargirait la page. */
-.tn .f-grid .tbl th.actions {
-  position: relative;
-  width: 36px;
+/* Le numéro tient sur une ligne ; il ne se coupe en son milieu que
+   quand la carte de l'annuaire est étroite. */
+.tn .f-grid .annuaire {
+  container: annuaire / inline-size;
+}
+.tn .f-grid .tbl td.contact {
+  white-space: nowrap;
+}
+@container annuaire (max-width: 520px) {
+  .tn .f-grid .tbl td.contact {
+    white-space: normal;
+  }
 }
 .tn .f-grid .pill {
   padding: 4px 8px;
