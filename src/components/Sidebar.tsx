@@ -1,5 +1,6 @@
 import React from "react";
-import { PanelLeftClose, PanelLeftOpen } from "lucide-react";
+import { IconeDuo } from "./shared/IconeDuo";
+import "./coquille.css";
 import type { ActiveTab } from "../types";
 import type { NavGroup } from "./navigation";
 import { BadgeNav } from "./shared/BadgeNav";
@@ -25,7 +26,7 @@ interface SidebarProps {
  * qu'une boutique avait accès à plus de huit onglets. Sur mobile, cette
  * sidebar n'est jamais montée : la navigation basse reste la seule.
  *
- * La largeur (16rem ouverte / 4.5rem repliée) est reprise côté contenu
+ * La largeur (268 px ouverte / 4.5rem repliée) est reprise côté contenu
  * par les classes de décalage dans BalsamaApp.tsx — les deux doivent
  * rester cohérentes.
  */
@@ -40,91 +41,64 @@ export const Sidebar: React.FC<SidebarProps> = ({
   brandCompact,
 }) => (
   <aside
-    className={`fixed inset-y-0 left-0 z-50 hidden shrink-0 flex-col border-r border-sidebar-border bg-sidebar lg:flex ${
-      collapsed ? "w-18" : "w-64"
+    className={`coq-side fixed inset-y-0 left-0 z-50 hidden shrink-0 flex-col lg:flex ${
+      collapsed ? "w-18 replie" : "w-[268px]"
     } transition-[width] duration-200`}
   >
-    {/* Marque */}
-    <div
-      className={`flex min-h-16 items-center border-b border-sidebar-border ${
-        collapsed ? "justify-center px-2" : "px-3"
-      }`}
-    >
+    {/* Marque : logo rond, nom de la boutique, trésorerie */}
+    <div className={`coq-shop ${collapsed ? "justify-center" : ""}`}>
       {collapsed ? brandCompact : brand}
     </div>
 
-    {/* Navigation */}
-    <nav className="flex-1 overflow-y-auto overflow-x-hidden px-4 py-4">
+    <nav className="coq-nav flex-1 overflow-y-auto overflow-x-hidden">
       {groups.map((group) => (
-        <div key={group.title} className="mb-5 last:mb-0">
+        <div key={group.title} className="coq-groupe">
           {collapsed ? (
-            <div className="mx-auto mb-2 h-px w-6 bg-sidebar-border" />
+            <div className="mx-auto my-3 h-px w-6 bg-sidebar-border" />
           ) : (
-            <div className="px-1 pb-2 text-[10px] font-medium uppercase tracking-widest text-muted-foreground/70">
-              {group.title}
-            </div>
+            <div className="coq-nav-h">{group.title}</div>
           )}
 
-          <div className="space-y-1">
-            {group.items.map((item) => {
-              const isActive = activeTab === item.id;
-              const badge = badges?.[item.id] ?? 0;
-              return (
-                <button
-                  key={item.id}
-                  onClick={() => onTabClick(item.id)}
-                  title={collapsed ? item.label : undefined}
-                  aria-current={isActive ? "page" : undefined}
-                  className={`relative flex w-full items-center gap-3 rounded-md py-2.5 text-sm transition-colors ${
-                    collapsed ? "justify-center px-0" : "px-3"
-                  } ${
-                    isActive
-                      ? "font-medium text-foreground"
-                      : "text-muted-foreground hover:bg-sidebar-accent/60 hover:text-sidebar-foreground"
-                  }`}
-                >
-                  {/* L'état actif se marque par un filet vertical et un
-                      texte plus contrasté, pas par un aplat de couleur :
-                      douze entrées surlignées en plein feraient une
-                      colonne bariolée. */}
-                  {isActive && (
-                    <span className="absolute -left-2 top-1/2 h-5 w-0.5 -translate-y-1/2 rounded-full bg-primary" />
+          {group.items.map((item) => {
+            const isActive = activeTab === item.id;
+            const badge = badges?.[item.id] ?? 0;
+            return (
+              <button
+                key={item.id}
+                type="button"
+                onClick={() => onTabClick(item.id)}
+                title={collapsed ? item.label : undefined}
+                aria-current={isActive ? "page" : undefined}
+                className={`coq-lien${isActive ? " on" : ""}${collapsed ? " seul" : ""}`}
+              >
+                <span className="relative flex">
+                  {item.icon}
+                  {collapsed && badge > 0 && (
+                    <span className="absolute -right-1.5 -top-1.5 h-2 w-2 rounded-full bg-red-500" />
                   )}
-                  <span className={`relative ${isActive ? "text-primary" : "opacity-80"}`}>
-                    {item.icon}
-                    {collapsed && badge > 0 && (
-                      <span className="absolute -right-1.5 -top-1.5 h-2 w-2 rounded-full bg-red-500" />
-                    )}
-                  </span>
-                  {!collapsed && <span className="truncate">{item.label}</span>}
-                  {!collapsed && badge > 0 && (
-                    <BadgeNav compte={badge} libelle={`${item.label} en retard`} />
-                  )}
-                </button>
-              );
-            })}
-          </div>
+                </span>
+                {!collapsed && <span className="truncate">{item.label}</span>}
+                {!collapsed && badge > 0 && (
+                  <BadgeNav compte={badge} libelle={`${item.label} en retard`} />
+                )}
+              </button>
+            );
+          })}
         </div>
       ))}
     </nav>
 
-    {/* Pied : repli en mode icônes.
-        Les paramètres ne sont volontairement pas repris ici : ils vivent
-        dans la barre du haut, aux côtés du thème et des notifications. */}
-    <div className="border-t border-sidebar-border p-2">
+    {/* Pied : repli en mode icônes. Les paramètres vivent dans la barre
+        du haut, aux côtés du thème et des notifications. */}
+    <div className="coq-fold">
       <button
+        type="button"
         onClick={onToggleCollapsed}
         title={collapsed ? "Déplier le menu" : "Replier le menu"}
         aria-label={collapsed ? "Déplier le menu" : "Replier le menu"}
-        className={`flex w-full items-center gap-3 rounded-xl py-2.5 text-sm font-medium text-muted-foreground transition-colors hover:bg-sidebar-accent/60 hover:text-sidebar-foreground ${
-          collapsed ? "justify-center px-0" : "px-3"
-        }`}
+        className={`coq-lien${collapsed ? " seul" : ""}`}
       >
-        {collapsed ? (
-          <PanelLeftOpen className="w-4 h-4" />
-        ) : (
-          <PanelLeftClose className="w-4 h-4" />
-        )}
+        <IconeDuo nom={collapsed ? "sidebaropen" : "arrowleft"} className="nav-ico" />
         {!collapsed && <span className="truncate">Replier</span>}
       </button>
     </div>

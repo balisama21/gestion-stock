@@ -1,22 +1,8 @@
 import React, { useCallback, useRef, useState } from "react";
 import { ActiveTab, StoreSettings } from "../types";
-import {
-  Settings,
-  Store,
-  Menu,
-  X,
-  Bell,
-  Moon,
-  Sun,
-  CheckCheck,
-  ChevronDown,
-  Building,
-  Plus,
-  Copy,
-  KeyRound,
-  HelpCircle,
-} from "lucide-react";
+import { Store, CheckCheck, ChevronDown, Building, Plus, Copy, KeyRound } from "lucide-react";
 import { PanneauAide } from "./shared/PanneauAide";
+import { IconeDuo } from "./shared/IconeDuo";
 import { formatCurrency } from "../utils/formulas";
 import { Modal } from "./shared/Modal";
 import { Sidebar } from "./Sidebar";
@@ -32,6 +18,23 @@ import { useClicExterieur } from "../hooks/useClicExterieur";
 import { supabase } from "../lib/supabase";
 import { APP_NAME } from "../lib/appConfig";
 import { usePersonnalisation } from "../lib/personnalisation";
+
+/**
+ * Les écrans dont la liste sait recevoir une recherche toute faite
+ * (`useRechercheInitiale`). Depuis un autre écran, la recherche de la
+ * barre du haut ouvre le premier d'entre eux auquel on a accès.
+ */
+const ECRANS_RECHERCHABLES: ActiveTab[] = [
+  "produits",
+  "ventes",
+  "clients",
+  "achats",
+  "commandes",
+  "depenses",
+  "devis",
+  "livraisons",
+  "paiements",
+];
 
 /**
  * Ce que la barre du haut reçoit — et rien de plus.
@@ -276,6 +279,17 @@ export const Header: React.FC<HeaderProps> = ({
     setNotifOpen(false);
   };
 
+  const [recherche, setRecherche] = useState("");
+  const lancerRecherche = () => {
+    const texte = recherche.trim();
+    if (!texte) return;
+    const visibles = navGroups.flatMap((g) => g.items.map((i) => i.id));
+    const cible = [activeTab, ...ECRANS_RECHERCHABLES].find(
+      (t) => ECRANS_RECHERCHABLES.includes(t) && visibles.includes(t),
+    );
+    if (cible) handleTabClick(cible, texte);
+  };
+
   // Les deux barres s'effacent ensemble quand on descend. Tant qu'un
   // panneau est ouvert, elles restent en place : la barre du bas porte
   // le bouton qui referme le menu « Plus », et les deux menus déroulants
@@ -297,7 +311,7 @@ export const Header: React.FC<HeaderProps> = ({
   // pour le changer il fallait passer par la roue dentée, puis « Ma
   // boutique ». C'est pourtant là qu'on pense d'abord à cliquer.
   const vignetteLogo = (
-    <span className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-xl border border-emerald-500/40 bg-muted">
+    <span className="coq-logo">
       {settings.logoUrl ? (
         <img
           src={settings.logoUrl}
@@ -305,11 +319,123 @@ export const Header: React.FC<HeaderProps> = ({
           className="h-full w-full object-cover"
         />
       ) : (
-        <span className="flex h-full w-full items-center justify-center bg-gradient-to-br from-emerald-500 to-teal-700 text-xs font-bold uppercase tracking-tight text-white">
-          {(settings.storeName || "BA").slice(0, 2)}
-        </span>
+        <span className="coq-logo-initiales">{(settings.storeName || "BA").slice(0, 2)}</span>
       )}
     </span>
+  );
+
+  // Le choix d'espace de travail, ouvert depuis le nom de la boutique
+  // (sidebar) ou depuis le logo (barre du haut, sur téléphone).
+  const menuEspaces = workspaceMenuOpen && (
+    <>
+      <div className="fixed inset-0 z-40" onClick={() => setWorkspaceMenuOpen(false)} />
+      <div className="absolute left-0 top-full mt-2 w-64 bg-card border border-border rounded-xl shadow-2xl z-50 overflow-hidden animate-in fade-in slide-in-from-top-2">
+        <div className="px-3 py-2 border-b border-border bg-muted/30">
+          {/* Sur téléphone, la barre du haut ne montre que le logo : le
+                nom et la trésorerie se retrouvent ici. */}
+          <div className="lg:hidden pb-1.5">
+            <div className="truncate text-sm font-bold text-foreground">
+              {settings.storeName || APP_NAME}
+            </div>
+            {hasCapitalAccess && (
+              <div className="text-xs text-muted-foreground">
+                Trésorerie{" "}
+                <span className="font-semibold tabular-nums t-success">
+                  {formatCurrency(tresorerie)}
+                </span>
+              </div>
+            )}
+          </div>
+          <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
+            Espaces de travail
+          </div>
+        </div>
+        <div className="max-h-60 overflow-y-auto py-1">
+          {workspace.accessibleStores.map((w) => (
+            <button
+              key={w.id}
+              onClick={() => {
+                workspace.switchStore(w.id);
+                setWorkspaceMenuOpen(false);
+              }}
+              className={`w-full flex items-center gap-3 px-3 py-2.5 hover:bg-muted transition-colors text-left ${w.id === workspace.activeStore?.id ? "bg-success-soft t-success" : "text-foreground"}`}
+            >
+              <Building className="w-4 h-4 shrink-0" />
+              <div className="truncate flex-1">
+                <div className="text-sm font-semibold truncate">{w.name}</div>
+                <div className="text-[10px] opacity-80">
+                  {w.owner_id === user?.id ? "Propriétaire" : "Collaborateur"}
+                </div>
+              </div>
+              {w.id === workspace.activeStore?.id && <CheckCheck className="w-4 h-4 shrink-0" />}
+            </button>
+          ))}
+        </div>
+        {workspace.isOwner ? (
+          <div className="border-t border-border py-1">
+            <button
+              onClick={() => {
+                setWorkspaceMenuOpen(false);
+                setCopyStoreName(
+                  workspace.activeStore ? `${workspace.activeStore.name} (copie)` : "",
+                );
+                setShowCopyStoreModal(true);
+              }}
+              className="w-full flex items-center gap-3 px-3 py-2.5 hover:bg-muted transition-colors text-left t-success"
+            >
+              <Copy className="w-4 h-4 shrink-0" />
+              <span className="text-sm font-semibold">Créer une boutique</span>
+            </button>
+          </div>
+        ) : (
+          <div className="border-t border-border py-1">
+            <button
+              onClick={() => {
+                setWorkspaceMenuOpen(false);
+                setNewStoreName("");
+                setCreateStoreError(null);
+                setShowCreateStoreModal(true);
+              }}
+              className="w-full flex items-center gap-3 px-3 py-2.5 hover:bg-muted transition-colors text-left t-success"
+            >
+              <Plus className="w-4 h-4 shrink-0" />
+              <span className="text-sm font-semibold">Créer une boutique</span>
+            </button>
+          </div>
+        )}
+        <div className="border-t border-border py-1">
+          <button
+            onClick={() => {
+              setWorkspaceMenuOpen(false);
+              setJoinCodeError(null);
+              setJoinCode("");
+              setShowJoinCodeModal(true);
+            }}
+            className="w-full flex items-center gap-3 px-3 py-2.5 hover:bg-muted transition-colors text-left text-foreground"
+          >
+            <KeyRound className="w-4 h-4 shrink-0 text-muted-foreground" />
+            <span className="text-sm font-semibold">Rejoindre avec un code</span>
+          </button>
+        </div>
+      </div>
+    </>
+  );
+
+  // Sur téléphone la barre du haut ne garde que le logo, à gauche de la
+  // recherche : il ouvre le même menu que le nom de la boutique.
+  const brandMobile = (
+    <div className="relative shrink-0">
+      <button
+        type="button"
+        onClick={() => setWorkspaceMenuOpen(!workspaceMenuOpen)}
+        aria-label="Changer d'espace de travail"
+        aria-expanded={workspaceMenuOpen}
+        className="coq-logo-bouton"
+      >
+        {vignetteLogo}
+      </button>
+      {menuEspaces}
+    </div>
   );
 
   const brandBlock = (
@@ -362,20 +488,16 @@ export const Header: React.FC<HeaderProps> = ({
               action. La couleur ne paraît que lorsqu'elle dit quelque
               chose — orange sous le seuil d'alerte, rouge à découvert. */}
           <div className="min-w-0 flex-1">
-            <h1 className="flex min-w-0 items-center gap-1.5 text-base font-semibold tracking-tight text-foreground md:text-lg">
+            <h1 className="coq-nom">
               <span className="truncate">{settings.storeName || APP_NAME}</span>
               <ChevronDown className="w-4 h-4 shrink-0 text-muted-foreground group-hover:text-foreground transition-colors" />
             </h1>
             {hasCapitalAccess && (
-              <p className="mt-0.5 flex min-w-0 items-baseline gap-1.5 text-[11px] leading-none">
-                <span className="shrink-0 text-muted-foreground">Trésorerie</span>
+              <p className="coq-treso">
+                <span className="shrink-0">Trésorerie</span>
                 <span
-                  className={`truncate font-mono font-medium tabular-nums ${
-                    tresorerie < 0
-                      ? "t-danger"
-                      : tresorerie < seuilAlerte
-                        ? "t-warning"
-                        : "text-foreground"
+                  className={`truncate tabular-nums ${
+                    tresorerie < 0 ? "t-danger" : tresorerie < seuilAlerte ? "t-warning" : "ok"
                   }`}
                 >
                   {formatCurrency(tresorerie)}
@@ -385,108 +507,13 @@ export const Header: React.FC<HeaderProps> = ({
           </div>
         </button>
 
-        {/* Workspace Dropdown */}
-        {workspaceMenuOpen && (
-          <>
-            <div className="fixed inset-0 z-40" onClick={() => setWorkspaceMenuOpen(false)} />
-            <div className="absolute left-0 top-full mt-2 w-64 bg-card border border-border rounded-xl shadow-2xl z-50 overflow-hidden animate-in fade-in slide-in-from-top-2">
-              <div className="px-3 py-2 border-b border-border bg-muted/30">
-                <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
-                  Espaces de travail
-                </div>
-              </div>
-              <div className="max-h-60 overflow-y-auto py-1">
-                {workspace.accessibleStores.map((w) => (
-                  <button
-                    key={w.id}
-                    onClick={() => {
-                      workspace.switchStore(w.id);
-                      setWorkspaceMenuOpen(false);
-                    }}
-                    className={`w-full flex items-center gap-3 px-3 py-2.5 hover:bg-muted transition-colors text-left ${w.id === workspace.activeStore?.id ? "bg-success-soft t-success" : "text-foreground"}`}
-                  >
-                    <Building className="w-4 h-4 shrink-0" />
-                    <div className="truncate flex-1">
-                      <div className="text-sm font-semibold truncate">{w.name}</div>
-                      <div className="text-[10px] opacity-80">
-                        {w.owner_id === user?.id ? "Propriétaire" : "Collaborateur"}
-                      </div>
-                    </div>
-                    {w.id === workspace.activeStore?.id && (
-                      <CheckCheck className="w-4 h-4 shrink-0" />
-                    )}
-                  </button>
-                ))}
-              </div>
-              {workspace.isOwner ? (
-                <div className="border-t border-border py-1">
-                  <button
-                    onClick={() => {
-                      setWorkspaceMenuOpen(false);
-                      setCopyStoreName(
-                        workspace.activeStore ? `${workspace.activeStore.name} (copie)` : "",
-                      );
-                      setShowCopyStoreModal(true);
-                    }}
-                    className="w-full flex items-center gap-3 px-3 py-2.5 hover:bg-muted transition-colors text-left t-success"
-                  >
-                    <Copy className="w-4 h-4 shrink-0" />
-                    <span className="text-sm font-semibold">Créer une boutique</span>
-                  </button>
-                </div>
-              ) : (
-                <div className="border-t border-border py-1">
-                  <button
-                    onClick={() => {
-                      setWorkspaceMenuOpen(false);
-                      setNewStoreName("");
-                      setCreateStoreError(null);
-                      setShowCreateStoreModal(true);
-                    }}
-                    className="w-full flex items-center gap-3 px-3 py-2.5 hover:bg-muted transition-colors text-left t-success"
-                  >
-                    <Plus className="w-4 h-4 shrink-0" />
-                    <span className="text-sm font-semibold">Créer une boutique</span>
-                  </button>
-                </div>
-              )}
-              <div className="border-t border-border py-1">
-                <button
-                  onClick={() => {
-                    setWorkspaceMenuOpen(false);
-                    setJoinCodeError(null);
-                    setJoinCode("");
-                    setShowJoinCodeModal(true);
-                  }}
-                  className="w-full flex items-center gap-3 px-3 py-2.5 hover:bg-muted transition-colors text-left text-foreground"
-                >
-                  <KeyRound className="w-4 h-4 shrink-0 text-muted-foreground" />
-                  <span className="text-sm font-semibold">Rejoindre avec un code</span>
-                </button>
-              </div>
-            </div>
-          </>
-        )}
+        {menuEspaces}
       </div>
     </div>
   );
 
   // Version réduite affichée quand la sidebar est en mode icônes.
-  const brandCompact = (
-    <div className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-xl border border-emerald-500/40 bg-muted">
-      {settings.logoUrl ? (
-        <img
-          src={settings.logoUrl}
-          alt={settings.storeName || "Logo"}
-          className="h-full w-full object-cover"
-        />
-      ) : (
-        <div className="flex h-full w-full items-center justify-center bg-gradient-to-br from-emerald-500 to-teal-700 text-xs font-bold uppercase tracking-tight text-white">
-          {(settings.storeName || "BA").slice(0, 2)}
-        </div>
-      )}
-    </div>
-  );
+  const brandCompact = vignetteLogo;
 
   return (
     <>
@@ -512,105 +539,106 @@ export const Header: React.FC<HeaderProps> = ({
           premier défilement. */}
       <header
         data-masquee={barresMasquees}
-        className="app-bar-auto app-bar-haut bg-card border-b border-border sticky top-0 z-40 shadow-sm"
+        className="app-bar-auto app-bar-haut coq-top sticky top-0 z-40"
       >
-        {/* Top Banner */}
-        <div className="app-container py-2.5 sm:py-3">
-          <div className="flex items-center gap-2 sm:gap-3">
-            {/* Marque : uniquement sur mobile — sur desktop elle vit dans la sidebar */}
-            <div className="flex min-w-0 flex-1 lg:hidden">{brandBlock}</div>
+        <div className="coq-top-in">
+          {/* Sur téléphone : le logo seul, qui ouvre le choix d'espace. Sur
+              ordinateur, la marque vit dans la sidebar. */}
+          <div className="lg:hidden">{brandMobile}</div>
 
-            {/* Ce que la barre du haut garde : de quoi changer de thème,
-                de quoi être averti, et de quoi aller aux réglages. Le
-                badge Trésorerie en est parti — le raisonnement est en
-                tête de ce fichier. */}
-            <div className="flex shrink-0 items-center gap-1 sm:gap-2 lg:ml-auto">
-              {/* Aide de l'écran affiché, toujours au même endroit. */}
+          {/* La recherche ouvre l'écran courant — ou le catalogue depuis
+              un écran qui n'a pas de liste — avec sa recherche déjà
+              remplie : c'est le mécanisme des notifications
+              (src/lib/cibleRecherche.ts), rien de plus. */}
+          <form
+            className="coq-search"
+            role="search"
+            onSubmit={(e) => {
+              e.preventDefault();
+              lancerRecherche();
+            }}
+          >
+            <IconeDuo nom="search" />
+            <input
+              type="search"
+              value={recherche}
+              onChange={(e) => setRecherche(e.target.value)}
+              placeholder="Rechercher..."
+              aria-label="Rechercher"
+              enterKeyHint="search"
+            />
+          </form>
+
+          <div className="coq-tools">
+            {/* Aide de l'écran affiché, toujours au même endroit. */}
+            <button
+              type="button"
+              onClick={() => setAideOuverte(true)}
+              className="coq-tool"
+              title="Aide sur cet écran"
+              aria-label="Aide sur cet écran"
+            >
+              <IconeDuo nom="help" />
+            </button>
+            <PanneauAide
+              ouvert={aideOuverte}
+              onFermer={() => setAideOuverte(false)}
+              ecran={activeTab}
+            />
+
+            {/* Clair / sombre. L'icône annonce ce que le clic FERA. */}
+            <button
+              type="button"
+              onClick={() => setTheme(sombre ? "light" : "dark")}
+              className="coq-tool"
+              title={sombre ? "Passer en mode clair" : "Passer en mode sombre"}
+              aria-label={sombre ? "Passer en mode clair" : "Passer en mode sombre"}
+            >
+              <IconeDuo nom={sombre ? "sun" : "moon"} />
+            </button>
+
+            {/* Notifications */}
+            <div className="relative" ref={zoneNotif}>
               <button
-                onClick={() => setAideOuverte(true)}
-                className="app-btn-icon"
-                title="Aide sur cet écran"
-                aria-label="Aide sur cet écran"
+                type="button"
+                onClick={() => setNotifOpen(!notifOpen)}
+                className={`coq-tool${notifOpen ? " actif" : ""}`}
+                title="Notifications"
+                aria-label="Notifications"
               >
-                <HelpCircle className="h-4 w-4 text-primary" />
-              </button>
-              <PanneauAide
-                ouvert={aideOuverte}
-                onFermer={() => setAideOuverte(false)}
-                ecran={activeTab}
-              />
-
-              {/* Clair / sombre. L'icône et le libellé annoncent ce que
-                  le clic FERA, et non l'état courant : sur un écran
-                  clair on voit une lune, qui promet le mode sombre. Un
-                  soleil y voudrait dire « vous êtes en clair », ce que
-                  l'écran dit déjà tout seul. */}
-              <button
-                onClick={() => setTheme(sombre ? "light" : "dark")}
-                className="app-btn-icon"
-                title={sombre ? "Passer en mode clair" : "Passer en mode sombre"}
-                aria-label={sombre ? "Passer en mode clair" : "Passer en mode sombre"}
-              >
-                {sombre ? (
-                  <Sun className="h-4 w-4 text-primary" />
-                ) : (
-                  <Moon className="h-4 w-4 text-primary" />
-                )}
+                <IconeDuo nom="bell" />
+                {nonLues > 0 && <span className="coq-badge">{nonLues > 9 ? "9+" : nonLues}</span>}
               </button>
 
-              {/* Notifications */}
-              <div className="relative" ref={zoneNotif}>
-                <button
-                  onClick={() => setNotifOpen(!notifOpen)}
-                  className={`app-btn-icon relative ${
-                    notifOpen ? "border-primary/40 bg-success-soft" : ""
-                  }`}
-                  title="Notifications"
-                  aria-label="Notifications"
-                >
-                  <Bell className="h-4 w-4 text-primary" />
-                  {nonLues > 0 && (
-                    <span className="absolute -top-1 -right-1 flex h-[18px] min-w-[18px] items-center justify-center rounded-full border-2 border-card bg-danger px-1 text-[10px] font-bold text-white">
-                      {nonLues > 9 ? "9+" : nonLues}
-                    </span>
-                  )}
-                </button>
-
-                {notifOpen && (
-                  <PanneauNotifications
-                    alertes={alertes}
-                    activites={activites}
-                    lues={lues}
-                    nonLues={nonLues}
-                    onToutMarquerLu={toutMarquerLu}
-                    onOuvrirEcran={handleTabClick}
-                    onAction={onActionNotification}
-                    onFermer={fermerNotif}
-                  />
-                )}
-              </div>
-
-              {/* Settings - visible pour les owners et les collaborateurs avec
-              la permission "settings" */}
-              {showSettings && (
-                <button
-                  onClick={() => handleTabClick("settings")}
-                  className={`app-btn-icon ${
-                    activeTab === "settings" ? "border-success-border bg-success-soft" : ""
-                  }`}
-                  title="Paramètres"
-                  aria-label="Paramètres"
-                >
-                  <Settings className="w-4 h-4 t-success" />
-                </button>
+              {notifOpen && (
+                <PanneauNotifications
+                  alertes={alertes}
+                  activites={activites}
+                  lues={lues}
+                  nonLues={nonLues}
+                  onToutMarquerLu={toutMarquerLu}
+                  onOuvrirEcran={handleTabClick}
+                  onAction={onActionNotification}
+                  onFermer={fermerNotif}
+                />
               )}
             </div>
+
+            {/* Paramètres : propriétaires et collaborateurs qui ont la
+                permission « settings ». */}
+            {showSettings && (
+              <button
+                type="button"
+                onClick={() => handleTabClick("settings")}
+                className={`coq-tool${activeTab === "settings" ? " actif" : ""}`}
+                title="Paramètres"
+                aria-label="Paramètres"
+              >
+                <IconeDuo nom="settings" />
+              </button>
+            )}
           </div>
         </div>
-
-        {/* La barre d'onglets horizontale desktop est remplacée par la
-          sidebar : à douze onglets elle débordait de son conteneur sans
-          aucun indicateur de défilement. */}
       </header>
 
       {mobileMenuOpen && (
@@ -666,7 +694,7 @@ export const Header: React.FC<HeaderProps> = ({
             {mobileMenuOpen && (
               <span className="absolute inset-x-4 top-0 h-0.5 rounded-full bg-primary" />
             )}
-            {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+            <IconeDuo nom={mobileMenuOpen ? "x" : "menu"} className="nav-ico" />
             <span className="text-[9px] font-semibold">Plus</span>
           </button>
         </div>

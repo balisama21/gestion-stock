@@ -1,0 +1,281 @@
+/* ═══════════════════════════════════════════════════════════════════
+   LA COQUILLE : barre latérale et barre du haut
+   D'après `docs/maquette/dashboard-tantana.html`.
+   ═══════════════════════════════════════════════════════════════════ */
+
+:root {
+  --coq-g: #0f9f6e;
+  --coq-g2: #0a7f58;
+  --coq-gsoft: #e5f6ed;
+  --coq-ink: #0c3a3a;
+  --coq-muted: #5d7b78;
+  --coq-line: #e0eee8;
+  --coq-shadow: 0 1px 2px rgba(12, 58, 58, 0.05), 0 6px 22px rgba(15, 159, 110, 0.07);
+}
+.dark {
+  --coq-g: var(--primary);
+  --coq-g2: var(--success);
+  --coq-gsoft: var(--success-soft);
+  --coq-ink: var(--foreground);
+  --coq-muted: var(--muted-foreground);
+  --coq-line: var(--border);
+  --coq-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+}
+
+.nav-ico {
+  width: 22px;
+  height: 22px;
+}
+
+/* ── Barre latérale ── */
+.coq-side {
+  background: var(--sidebar);
+  border-right: 1px solid var(--coq-line);
+  padding: 18px 14px 16px;
+}
+.coq-shop {
+  display: flex;
+  align-items: center;
+  min-height: 62px;
+  padding: 0 6px 16px;
+  border-bottom: 1px solid var(--coq-line);
+  margin-bottom: 8px;
+}
+.coq-side.replie {
+  padding-left: 8px;
+  padding-right: 8px;
+}
+.coq-side.replie .coq-shop {
+  padding-left: 0;
+  padding-right: 0;
+}
+.coq-logo {
+  display: flex;
+  width: 46px;
+  height: 46px;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  border-radius: 50%;
+  border: 1px solid var(--coq-line);
+  background: var(--muted);
+  flex: none;
+}
+.coq-logo-initiales {
+  display: flex;
+  width: 100%;
+  height: 100%;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, #10b981, #0f766e);
+  color: #fff;
+  font-size: 13px;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+.coq-logo-bouton {
+  display: flex;
+  border-radius: 50%;
+}
+.coq-logo-bouton .coq-logo {
+  width: 40px;
+  height: 40px;
+}
+.coq-nom {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 6px;
+  font-size: 17px;
+  font-weight: 700;
+  color: var(--coq-ink);
+  letter-spacing: -0.005em;
+}
+.coq-treso {
+  display: flex;
+  min-width: 0;
+  align-items: baseline;
+  gap: 6px;
+  margin-top: 2px;
+  font-size: 13px;
+  color: var(--coq-muted);
+}
+.coq-treso .ok {
+  color: var(--coq-g);
+  font-weight: 700;
+}
+.coq-treso .t-danger,
+.coq-treso .t-warning {
+  font-weight: 700;
+}
+.coq-nav {
+  margin: 0 -4px;
+  padding: 0 4px;
+}
+.coq-nav-h {
+  font-size: 12px;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--coq-muted);
+  font-weight: 600;
+  margin: 20px 8px 8px;
+}
+.coq-lien {
+  position: relative;
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: 14px;
+  padding: 10px 12px;
+  border-radius: 12px;
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--coq-ink);
+  margin-bottom: 2px;
+  text-align: left;
+  transition: background 0.15s;
+}
+.coq-lien:hover {
+  background: var(--coq-gsoft);
+}
+.coq-lien.on {
+  background: var(--coq-gsoft);
+  color: var(--coq-g2);
+  font-weight: 700;
+  box-shadow: inset 3px 0 0 var(--coq-g);
+}
+.coq-lien.on .ico-duo svg .f {
+  fill-opacity: 0.24;
+}
+.coq-lien.seul {
+  justify-content: center;
+  padding-left: 0;
+  padding-right: 0;
+}
+.coq-fold {
+  margin-top: 8px;
+  border-top: 1px solid var(--coq-line);
+  padding-top: 12px;
+}
+
+/* ── Barre du haut ── */
+.coq-top {
+  background: color-mix(in srgb, var(--background) 88%, transparent);
+  backdrop-filter: blur(10px);
+  -webkit-backdrop-filter: blur(10px);
+}
+.coq-top-in {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  padding: 14px 28px;
+}
+.coq-search {
+  flex: 1;
+  min-width: 0;
+  max-width: 560px;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--card);
+  border-radius: 999px;
+  padding: 11px 18px;
+  box-shadow: var(--coq-shadow);
+  color: var(--coq-muted);
+}
+.coq-search .ico-duo {
+  width: 18px;
+  height: 18px;
+}
+.coq-search input {
+  border: 0;
+  background: none;
+  outline: 0;
+  font: inherit;
+  font-size: 14px;
+  color: var(--coq-ink);
+  width: 100%;
+  min-width: 0;
+}
+.coq-search input::placeholder {
+  color: var(--coq-muted);
+}
+.coq-search:focus-within {
+  outline: 2px solid var(--coq-g);
+  outline-offset: 2px;
+}
+.coq-tools {
+  margin-left: auto;
+  display: flex;
+  gap: 6px;
+  flex: none;
+}
+.coq-tool {
+  position: relative;
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  color: var(--coq-g);
+}
+.coq-tool .ico-duo {
+  width: 26px;
+  height: 26px;
+}
+.coq-tool:hover,
+.coq-tool.actif {
+  background: var(--coq-gsoft);
+}
+.coq-badge {
+  position: absolute;
+  top: 2px;
+  right: 0;
+  background: #e5484d;
+  color: #fff;
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1.4;
+  border-radius: 999px;
+  padding: 1px 6px;
+}
+
+@media (max-width: 1023px) {
+  .coq-top-in {
+    gap: 10px;
+    padding: 12px 16px;
+  }
+}
+@media (max-width: 640px) {
+  .coq-top-in {
+    gap: 8px;
+    padding: 10px 14px;
+  }
+  .coq-tools {
+    gap: 2px;
+  }
+  .coq-tool {
+    width: 38px;
+    height: 38px;
+  }
+  .coq-tool .ico-duo {
+    width: 22px;
+    height: 22px;
+  }
+  .coq-search {
+    padding: 9px 14px;
+  }
+}
+@media (max-width: 380px) {
+  .coq-tool {
+    width: 34px;
+    height: 34px;
+  }
+  .coq-tool .ico-duo {
+    width: 20px;
+    height: 20px;
+  }
+  .coq-search {
+    padding: 9px 12px;
+  }
+}

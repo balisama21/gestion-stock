@@ -1,23 +1,12 @@
 import React from "react";
-import { Card, CardHeader } from "../components/Card";
-import { EtatVide } from "../components/States";
-import { ChiffreCle } from "../components/ChiffreCle";
+import { IconeDuo } from "../../../components/shared/IconeDuo";
+import { Lead, Lien, TeteCarte } from "../components/Tn";
 import { dateLocale, montant, montantMasque } from "../lib/format";
 import { dateDuJour } from "../../../lib/dates";
+import { illCamion } from "../assets/images";
 
 /**
- * 18. LIVRAISONS
- *
- * Ce qui part aujourd'hui, puis ce qui est prévu. Une tournée se lit
- * dans l'ordre où on la fait, pas par ordre de création.
- *
- * LES RÉCEPTIONS FOURNISSEURS N'Y SONT PAS. La maquette annonçait une
- * « Réception fournisseur 18/09 · 09:00 » ; aucune table ne porte de
- * date de réception prévue — `purchases` n'a qu'une date d'achat et une
- * date d'échéance de paiement. Inventer cette ligne reviendrait à
- * afficher une donnée qui n'existe pas. Le titre de la carte a donc
- * perdu sa seconde moitié : il dit « Livraisons », et rien d'autre.
- * Voir `docs/dashboard-v2/audit.md`, § 7.
+ * LIVRAISONS — la tournée du jour, puis les trois suivantes.
  */
 
 export interface LivraisonAffichee {
@@ -55,7 +44,7 @@ export const CarteLivraisons: React.FC<{
 
   const arret = (l: LivraisonAffichee) => (
     <div className="stop" key={l.id}>
-      <div className="dd">
+      <div className="dash">
         <b>{l.date_prevue ? Number(l.date_prevue.slice(8)) : "—"}</b>
         <small>
           {l.date_prevue
@@ -63,15 +52,15 @@ export const CarteLivraisons: React.FC<{
             : ""}
         </small>
       </div>
-      <div>
-        <span>{l.destinataire}</span>
-        <em>
+      <div className="txt">
+        <b>{l.destinataire}</b>
+        <span>
           {ETATS[l.statut] ?? l.statut}
           {l.adresse ? ` · ${l.adresse}` : ""}
-        </em>
+        </span>
       </div>
       {(l.montant_a_encaisser ?? 0) > 0 && (
-        <span className="num" style={{ fontSize: 13, fontWeight: 600 }}>
+        <span className="num amt">
           {visible ? montant(l.montant_a_encaisser ?? 0) : montantMasque()}
         </span>
       )}
@@ -79,45 +68,43 @@ export const CarteLivraisons: React.FC<{
   );
 
   return (
-    <Card span={6} id="carte-livraisons">
-      <CardHeader
-        title="Livraisons"
-        icon={
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <path d="M1 4h14v12H1zM15 9h4l3 3v4h-7" />
-            <circle cx="5.5" cy="18.5" r="2" />
-            <circle cx="18.5" cy="18.5" r="2" />
-          </svg>
-        }
-        action={
-          onOuvrir && (
-            <button className="link" type="button" onClick={onOuvrir}>
-              Tout voir
-            </button>
-          )
-        }
+    <article className="card" id="carte-livraisons">
+      <TeteCarte
+        lead={<Lead nom="truck" />}
+        titre="Livraisons"
+        className="h20"
+        action={<Lien onClick={onOuvrir}>Tout voir</Lien>}
       />
 
-      {duJour.length > 0 && (
-        <ChiffreCle
-          valeur={duJour.length}
-          libelle={duJour.length > 1 ? "livraisons aujourd'hui" : "livraison aujourd'hui"}
-          detail={
-            aEncaisserDuJour > 0
-              ? `${visible ? montant(aEncaisserDuJour) : montantMasque()} à encaisser`
-              : undefined
-          }
-        />
-      )}
+      <div className="deliv">
+        <div className="c">
+          <IconeDuo nom={duJour.length === 0 ? "check" : "truck"} />
+        </div>
+        <div>
+          {duJour.length === 0 ? (
+            <>
+              <b>Aucune livraison aujourd&apos;hui</b>
+              <span>Aucune commande client à livrer dans la journée.</span>
+            </>
+          ) : (
+            <>
+              <b>
+                {duJour.length} livraison{duJour.length > 1 ? "s" : ""} aujourd&apos;hui
+              </b>
+              <span>
+                {aEncaisserDuJour > 0
+                  ? `${visible ? montant(aEncaisserDuJour) : montantMasque()} à encaisser`
+                  : "Rien à encaisser à la livraison."}
+              </span>
+            </>
+          )}
+        </div>
+        {duJour.length === 0 && aVenir.length === 0 && (
+          <img className="art-camion" src={illCamion} alt="" />
+        )}
+      </div>
 
-      {duJour.length === 0 ? (
-        <EtatVide
-          titre="Aucune livraison aujourd'hui"
-          detail="Aucune commande client à livrer dans la journée."
-        />
-      ) : (
-        <div className="route">{duJour.map(arret)}</div>
-      )}
+      {duJour.length > 0 && <div className="route">{duJour.map(arret)}</div>}
 
       {aVenir.length > 0 && (
         <>
@@ -125,6 +112,6 @@ export const CarteLivraisons: React.FC<{
           <div className="route">{aVenir.map(arret)}</div>
         </>
       )}
-    </Card>
+    </article>
   );
 };

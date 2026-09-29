@@ -1,22 +1,16 @@
 import React, { useId, useState } from "react";
-import { Card, CardHeader } from "../components/Card";
+import { IconeDuo } from "../../../components/shared/IconeDuo";
+import { Lead, Lien } from "../components/Tn";
 import { Tag } from "../components/Tag";
-import { ChiffreCle } from "../components/ChiffreCle";
-import { EtatVide } from "../components/States";
 import { dateLocale, jourMoisChiffres, montant } from "../lib/format";
 import { dateDuJour } from "../../../lib/dates";
+import { illFeuille } from "../assets/images";
 
 /**
- * 6. À FAIRE — la liste, et les devis sans réponse
+ * À FAIRE — les tâches ouvertes, et les devis qui attendent une réponse.
  *
- * COCHER UNE TÂCHE APPELLE LA FONCTION DE L'APPLICATION, celle de
- * `useTaches` — pas une écriture réinventée ici. Quand cette fonction
- * n'est pas fournie (droits manquants), la case est désactivée et le
- * titre reste un lien vers la page Tâches : mieux vaut un geste
- * impossible et visible qu'un geste qui échoue en silence.
- *
- * L'ORDRE EST CELUI DE L'URGENCE : échues d'abord, puis par échéance,
- * et les tâches sans date en dernier — elles n'attendent personne.
+ * Cocher une tâche la termine, par la fonction de l'application ; sans
+ * ce droit la case est désactivée plutôt que d'échouer en silence.
  */
 
 export interface TacheAffichee {
@@ -29,23 +23,12 @@ export interface TacheAffichee {
 export const CarteTaches: React.FC<{
   taches: TacheAffichee[];
   devis: { statut: string; total: number }[];
-  /**
-   * Termine une tâche. Absent : la case est désactivée.
-   *
-   * Le retour n'est pas typé : la fonction de l'application rend un
-   * `{ error }` dont la carte n'a que faire — le rechargement dira la
-   * vérité. L'exiger ici accrocherait cette carte à la forme exacte
-   * d'un hook qu'elle n'a pas à connaître.
-   */
   onTerminer?: (id: string) => unknown;
   onVoirTaches?: () => void;
   onVoirDevis?: () => void;
 }> = ({ taches, devis, onTerminer, onVoirTaches, onVoirDevis }) => {
   const aujourdhui = dateDuJour();
   const prefixe = useId();
-  // Coche optimiste : la ligne se barre tout de suite, sans attendre le
-  // retour de la base. Le rechargement remettra les choses en place si
-  // l'écriture échoue.
   const [cochees, setCochees] = useState<Set<string>>(new Set());
 
   const ouvertes = taches
@@ -61,7 +44,6 @@ export const CarteTaches: React.FC<{
   const nbEnRetard = taches.filter(
     (t) => t.statut !== "termine" && t.echeance && t.echeance < aujourdhui,
   ).length;
-  const faites = ouvertes.filter((t) => cochees.has(t.id)).length;
   const enAttente = devis.filter((d) => d.statut === "brouillon" || d.statut === "envoye");
   const totalDevis = enAttente.reduce((a, d) => a + d.total, 0);
 
@@ -74,41 +56,34 @@ export const CarteTaches: React.FC<{
   };
 
   return (
-    <Card span={4} id="carte-taches">
-      <CardHeader
-        title="À faire"
-        icon={
-          <svg
-            viewBox="0 0 24 24"
-            fill="none"
-            stroke="currentColor"
-            strokeWidth="2"
-            strokeLinecap="round"
-          >
-            <path d="M4 6l2 2 3-3M4 14l2 2 3-3M13 7h7M13 15h7" />
-          </svg>
-        }
-        action={
-          ouvertes.length > 0 && (
-            <span className="progress-line">
-              {faites} / {ouvertes.length} fait
-            </span>
-          )
-        }
-      />
+    <article className="card afaire" id="carte-taches">
+      {nbOuvertes === 0 && <img className="art-feuille" src={illFeuille} alt="" />}
+      <div className="card-h">
+        <Lead nom="check" plein />
+        <div className="todo-ok">
+          <h3 className="grand">À faire</h3>
+          {nbOuvertes === 0 ? (
+            <>
+              <b>Rien à faire</b>
+              <span>Aucune tâche urgente pour le moment.</span>
+            </>
+          ) : (
+            <>
+              <b>
+                {nbOuvertes} tâche{nbOuvertes > 1 ? "s" : ""} ouverte{nbOuvertes > 1 ? "s" : ""}
+              </b>
+              <span className={nbEnRetard > 0 ? "alerte" : undefined}>
+                {nbEnRetard > 0
+                  ? `dont ${nbEnRetard} en retard`
+                  : "Aucune n'est en retard pour le moment."}
+              </span>
+            </>
+          )}
+        </div>
+        <Lien onClick={onVoirTaches}>Voir toutes les tâches</Lien>
+      </div>
 
-      {nbOuvertes > 0 && (
-        <ChiffreCle
-          valeur={nbOuvertes}
-          libelle={nbOuvertes > 1 ? "tâches ouvertes" : "tâche ouverte"}
-          detail={nbEnRetard > 0 ? `dont ${nbEnRetard} en retard` : undefined}
-          detailAlerte={nbEnRetard > 0}
-        />
-      )}
-
-      {ouvertes.length === 0 ? (
-        <EtatVide titre="Rien à faire" detail="Aucune tâche ouverte pour le moment." />
-      ) : (
+      {ouvertes.length > 0 && (
         <div className="todo">
           {ouvertes.map((t) => {
             const id = `${prefixe}-${t.id}`;
@@ -136,31 +111,20 @@ export const CarteTaches: React.FC<{
 
       {enAttente.length > 0 && (
         <div className="devis">
-          <div className="env" aria-hidden="true" />
+          <span className="ib">
+            <IconeDuo nom="mail" />
+          </span>
           <div>
-            <b>
-              {enAttente.length} devis {enAttente.length > 1 ? "en attente" : "en attente"}
-            </b>
-            <small className="num">{montant(totalDevis)}</small>
+            <b>{enAttente.length} devis en attente</b>
+            <em className="num">{montant(totalDevis)}</em>
           </div>
           {onVoirDevis && (
-            <button className="btn ghost" type="button" onClick={onVoirDevis}>
+            <button className="btn soft" type="button" onClick={onVoirDevis}>
               Relancer
             </button>
           )}
         </div>
       )}
-
-      {onVoirTaches && ouvertes.length > 0 && (
-        <button
-          className="link"
-          type="button"
-          onClick={onVoirTaches}
-          style={{ alignSelf: "flex-start" }}
-        >
-          Toutes les tâches
-        </button>
-      )}
-    </Card>
+    </article>
   );
 };

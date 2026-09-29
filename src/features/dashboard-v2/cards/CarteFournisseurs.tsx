@@ -1,6 +1,6 @@
 import React from "react";
-import { Card, CardHeader } from "../components/Card";
-import { EtatVide } from "../components/States";
+import { Lead, Lien, TeteCarte, Vide } from "../components/Tn";
+import { illVideArgent } from "../assets/images";
 import { dateLocale, jourMoisChiffres, montant, nombre } from "../lib/format";
 import type { ChiffresFournisseurs } from "../lib/chiffres";
 import type { Periode } from "../hooks/useDashboardPeriod";
@@ -28,22 +28,11 @@ export const CarteFournisseurs: React.FC<{
   const lignes = aPayer.slice(0, 3);
 
   return (
-    <Card span={6} id="carte-fournisseurs">
-      <CardHeader
-        title="Fournisseurs à payer"
-        icon={
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <path d="M3 21V8l9-5 9 5v13" />
-            <path d="M9 21v-7h6v7" />
-          </svg>
-        }
-        action={
-          onOuvrir && (
-            <button className="link" type="button" onClick={onOuvrir}>
-              Tout voir
-            </button>
-          )
-        }
+    <article className="card" id="carte-fournisseurs">
+      <TeteCarte
+        lead={<Lead nom="truck" />}
+        titre="Fournisseurs à payer"
+        action={<Lien onClick={onOuvrir}>Tout voir</Lien>}
       />
 
       <div className="kpi-row">
@@ -51,7 +40,7 @@ export const CarteFournisseurs: React.FC<{
           {montant(totalDu)}
         </span>
         {echeancesDepassees > 0 && (
-          <span className="trend" style={{ color: "var(--crit)", background: "var(--crit-soft)" }}>
+          <span className="trend" style={{ color: "var(--red)", background: "var(--redsoft)" }}>
             {nombre(echeancesDepassees)} échéance{echeancesDepassees > 1 ? "s" : ""} dépassée
             {echeancesDepassees > 1 ? "s" : ""}
           </span>
@@ -59,12 +48,17 @@ export const CarteFournisseurs: React.FC<{
       </div>
 
       {lignes.length === 0 ? (
-        <EtatVide titre="Rien à payer" detail="Tous les achats enregistrés sont réglés." />
+        <Vide
+          image={illVideArgent}
+          largeur={124}
+          titre="Rien à payer"
+          detail="Tous les achats enregistrés sont réglés."
+        />
       ) : (
         <div className="lignes">
           {lignes.map((f, i) => (
             <div className={`lrow${f.retard > 0 ? " late" : ""}`} key={`${f.nom}-${i}`}>
-              <i style={{ background: f.retard > 0 ? "var(--crit)" : "var(--info)" }} />
+              <i style={{ background: f.retard > 0 ? "var(--red)" : "var(--blue)" }} />
               <span>
                 {f.nom} · {f.designation}
                 <small>
@@ -75,7 +69,7 @@ export const CarteFournisseurs: React.FC<{
                     : "Sans échéance"}
                 </small>
               </span>
-              <b className="num" style={f.retard > 0 ? { color: "var(--crit)" } : undefined}>
+              <b className="num" style={f.retard > 0 ? { color: "var(--red)" } : undefined}>
                 {montant(f.du)}
               </b>
             </div>
@@ -86,7 +80,7 @@ export const CarteFournisseurs: React.FC<{
       {payeSurLaPeriode > 0 && (
         <div className="lignes">
           <div className="lrow">
-            <i style={{ background: "var(--accent)" }} />
+            <i style={{ background: "var(--g)" }} />
             <span>
               Déjà payé · {periode.libelle}
               <small>Règlements versés aux fournisseurs</small>
@@ -95,6 +89,6 @@ export const CarteFournisseurs: React.FC<{
           </div>
         </div>
       )}
-    </Card>
+    </article>
   );
 };

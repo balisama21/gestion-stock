@@ -1,5 +1,5 @@
 import React from "react";
-import { Card, CardHeader } from "../components/Card";
+import { Lead, TeteCarte } from "../components/Tn";
 import { montant, pluriel, montantMasque } from "../lib/format";
 import type { ChiffresPaiements } from "../lib/chiffres";
 import type { Periode } from "../hooks/useDashboardPeriod";
@@ -61,16 +61,8 @@ export const CartePaiements: React.FC<{
   };
 
   return (
-    <Card span={4} id="carte-paiements">
-      <CardHeader
-        title="Paiements"
-        icon={
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <rect x="2" y="5" width="20" height="14" rx="2" />
-            <path d="M2 10h20M6 15h4" />
-          </svg>
-        }
-      />
+    <article className="card" id="carte-paiements">
+      <TeteCarte lead={<Lead nom="card" />} titre="Paiements" />
 
       <div className="kpi-row">
         <span className="v num v-moyen cle-pos">{sous(encaisse)}</span>
@@ -81,14 +73,14 @@ export const CartePaiements: React.FC<{
         className="stack"
         aria-label={`Encaissé ${Math.round(part(encaisse))} %, à recevoir ${Math.round(part(aRecevoir))} %, en retard ${Math.round(part(enRetard))} %`}
       >
-        <i style={{ width: `${part(encaisse)}%`, background: "var(--accent)" }} />
-        <i style={{ width: `${part(aRecevoir)}%`, background: "var(--info)" }} />
-        <i style={{ width: `${part(enRetard)}%`, background: "var(--warn)" }} />
+        <i style={{ width: `${part(encaisse)}%`, background: "var(--g)" }} />
+        <i style={{ width: `${part(aRecevoir)}%`, background: "var(--blue)" }} />
+        <i style={{ width: `${part(enRetard)}%`, background: "var(--orange)" }} />
       </div>
 
       <div className="lignes">
         {ligne(
-          "var(--accent)",
+          "var(--g)",
           "Encaissé",
           `Règlements reçus · ${periode.libelle}`,
           encaisse,
@@ -96,7 +88,7 @@ export const CartePaiements: React.FC<{
           onEncaisse,
         )}
         {ligne(
-          "var(--info)",
+          "var(--blue)",
           "À recevoir",
           `${pluriel(aRecevoirClients, "client")} · moins de 30 jours`,
           aRecevoir,
@@ -104,7 +96,7 @@ export const CartePaiements: React.FC<{
           onRecevoir,
         )}
         {ligne(
-          "var(--warn)",
+          "var(--orange)",
           "En retard",
           `${pluriel(enRetardClients, "client")} · plus de 30 jours`,
           enRetard,
@@ -131,6 +123,6 @@ export const CartePaiements: React.FC<{
           </div>
         </div>
       )}
-    </Card>
+    </article>
   );
 };

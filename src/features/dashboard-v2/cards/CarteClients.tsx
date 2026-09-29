@@ -1,79 +1,77 @@
 import React from "react";
-import { Card, CardHeader } from "../components/Card";
-import { EtatVide } from "../components/States";
+import { IconeDuo, type NomIcone } from "../../../components/shared/IconeDuo";
+import { Initiale, Lead, Lien, TeteCarte, Vide } from "../components/Tn";
 import { montant, nombre, montantMasque } from "../lib/format";
 import type { ChiffresClients } from "../lib/chiffres";
 import { teinteDe } from "../../../lib/teintes";
+import { illClients } from "../assets/images";
 
 /**
- * 13. CLIENTS
- *
- * Trois nombres, puis ceux qu'il faut rappeler.
- *
- * « RELANCER » N'ENVOIE RIEN. Le bouton ouvre le panneau, qui propose un
- * appel, un SMS ou WhatsApp déjà rédigés — et c'est la personne qui
- * appuie sur envoyer, dans son application de messages. Un logiciel de
- * gestion qui enverrait des relances tout seul finirait par en envoyer
- * une de trop.
+ * CLIENTS — trois compteurs, et ceux qui doivent encore de l'argent.
  */
-
 export const CarteClients: React.FC<{
   clients: ChiffresClients;
   visible: boolean;
   onRelancer?: (client: ChiffresClients["aRelancer"][number]) => void;
+  /** Le panneau de tous les clients à relancer. */
+  onTousARelancer?: () => void;
   onTous?: () => void;
-}> = ({ clients, visible, onRelancer, onTous }) => {
+}> = ({ clients, visible, onRelancer, onTousARelancer, onTous }) => {
   const aRelancer = clients.aRelancer.slice(0, 3);
 
+  const compteur = (
+    libelle: string,
+    valeur: number,
+    icone: NomIcone,
+    ton: "orange" | "bleu" | "vert",
+    onClick?: () => void,
+  ) => (
+    <button type="button" className={`it ${ton}`} onClick={onClick} disabled={!onClick}>
+      <span className="b">
+        <IconeDuo nom={icone} />
+      </span>
+      <div>
+        <small>{libelle}</small>
+        <b className="v num">{nombre(valeur)}</b>
+      </div>
+      {onClick && <IconeDuo nom="chevright" className="chev" />}
+    </button>
+  );
+
   return (
-    <Card span={4} id="carte-clients">
-      <CardHeader
-        title="Clients"
-        icon={
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <circle cx="9" cy="8" r="3.5" />
-            <path d="M2.5 20a6.5 6.5 0 0 1 13 0" />
-            <path d="M16 4.5a3.5 3.5 0 0 1 0 7M21.5 20a6.5 6.5 0 0 0-4-6" />
-          </svg>
-        }
-        action={
-          onTous && (
-            <button className="link" type="button" onClick={onTous}>
-              Tous
-            </button>
-          )
-        }
+    <article className="card" id="carte-clients">
+      <TeteCarte
+        lead={<Lead nom="users" />}
+        titre="Clients"
+        action={<Lien onClick={onTous}>Tout voir</Lien>}
       />
 
-      <div className="facts3">
-        <div className="fact">
-          <small>Nouveaux</small>
-          <b>{nombre(clients.nouveaux)}</b>
+      <div className="cli">
+        <div className="list">
+          {compteur(
+            "À relancer",
+            clients.aRelancer.length,
+            "clock",
+            "orange",
+            clients.aRelancer.length > 0 ? onTousARelancer : undefined,
+          )}
+          {compteur("Nouveaux", clients.nouveaux, "userplus", "bleu", onTous)}
+          {compteur("Actifs", clients.actifs, "usercheck", "vert", onTous)}
         </div>
-        <div className="fact">
-          <small>Actifs</small>
-          <b>{nombre(clients.actifs)}</b>
-        </div>
-        <div className={`fact${clients.aRelancer.length > 0 ? " warn" : ""}`}>
-          <small>À relancer</small>
-          <b>{nombre(clients.aRelancer.length)}</b>
-        </div>
-      </div>
 
-      {aRelancer.length === 0 ? (
-        <EtatVide
-          titre="Aucun client à relancer"
-          detail="Toutes les ventes à crédit ont été réglées."
-        />
-      ) : (
-        <>
-          <div className="sous-titre">À relancer</div>
+        {aRelancer.length === 0 ? (
+          <Vide
+            image={illClients}
+            largeur={260}
+            titre="Aucun client à relancer"
+            detail="Toutes les ventes et clients sont à jour."
+          />
+        ) : (
           <div className="people">
+            <div className="sous-titre">À relancer</div>
             {aRelancer.map((c) => (
               <div className="person" key={c.id ?? c.nom}>
-                <div className="av" style={{ background: teinteDe(c.nom) }}>
-                  {c.nom.charAt(0).toUpperCase()}
-                </div>
+                <Initiale nom={c.nom} teinte={teinteDe(c.nom)} taille={38} />
                 <div className="info">
                   <b>{c.nom}</b>
                   <small>
@@ -82,15 +80,15 @@ export const CarteClients: React.FC<{
                   </small>
                 </div>
                 {onRelancer && (
-                  <button className="btn ghost" type="button" onClick={() => onRelancer(c)}>
+                  <button className="btn soft petit" type="button" onClick={() => onRelancer(c)}>
                     Relancer
                   </button>
                 )}
               </div>
             ))}
           </div>
-        </>
-      )}
-    </Card>
+        )}
+      </div>
+    </article>
   );
 };

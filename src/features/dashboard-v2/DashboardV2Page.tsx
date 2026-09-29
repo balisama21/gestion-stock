@@ -1,28 +1,22 @@
 import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import "./dashboard.css";
-import { useDashboardPeriod } from "./hooks/useDashboardPeriod";
+import "./tantana.css";
+import { useDashboardPeriod, decalerJours, nombreDeJours } from "./hooks/useDashboardPeriod";
 import { useDashboardPermissions } from "./hooks/useDashboardPermissions";
 import { useDashboardData } from "./hooks/useDashboardData";
-import {
-  dateCourte,
-  dateLongue,
-  heure,
-  montant,
-  nombre,
-  pluriel,
-  pourcent,
-  montantMasque,
-} from "./lib/format";
+import { dateLocale, montant, nombre, pluriel, pourcent, montantMasque } from "./lib/format";
 import { MenuOption, MenuPill } from "./components/Pill";
 import { Card, CardHeader } from "./components/Card";
-import { CarteSquelette, EtatErreur } from "./components/States";
-import { Chip, ChipRienDUrgent } from "./components/Chip";
-import { BandeauAujourdhui } from "./components/BandeauAujourdhui";
+import { EtatErreur } from "./components/States";
+import { Chip } from "./components/Chip";
+import { Section } from "./components/Tn";
+import { HeroTableauDeBord, type PointVentes } from "./components/HeroTableauDeBord";
 import { CarteTresorerie } from "./cards/CarteTresorerie";
-import { CarteVentes } from "./cards/CarteVentes";
+import { CarteArgentMinis } from "./cards/CarteArgentMinis";
+import { CarteMouvementsArgent } from "./cards/CarteMouvementsArgent";
 import { CarteAgenda } from "./cards/CarteAgenda";
 import { CarteStock } from "./cards/CarteStock";
-import { CarteSorties } from "./cards/CarteSorties";
+import { CarteStockChiffres } from "./cards/CarteStockChiffres";
 import { CarteTaches } from "./cards/CarteTaches";
 import { CarteVendeurs } from "./cards/CarteVendeurs";
 import { CarteCommandes } from "./cards/CarteCommandes";
@@ -30,15 +24,20 @@ import { CarteFilVentes } from "./cards/CarteFilVentes";
 import { CarteResultat } from "./cards/CarteResultat";
 import { CartePaiements } from "./cards/CartePaiements";
 import { CarteClients } from "./cards/CarteClients";
-import { CarteRuptures } from "./cards/CarteRuptures";
 import { CarteMouvements } from "./cards/CarteMouvements";
+import { CarteMouvementsStock } from "./cards/CarteMouvementsStock";
 import { CarteTopProduits } from "./cards/CarteTopProduits";
 import { CarteLivraisons } from "./cards/CarteLivraisons";
 import { CarteFournisseurs } from "./cards/CarteFournisseurs";
+import {
+  SectionPartenaires,
+  type FicheFournisseur,
+  type FichePrestataire,
+  type ReglementFournisseur,
+} from "./cards/SectionPartenaires";
 import { PanneauDetail, type VueDetail } from "./components/PanneauDetail";
 import { Trend } from "./components/Trend";
 import { allerALaCarte } from "./lib/defilement";
-import { phraseDeSynthese, syntheseCompacte } from "./lib/summary";
 import {
   chiffresClients,
   chiffresCommandes,
@@ -56,10 +55,19 @@ import {
 import { lireJournal } from "./lib/journal";
 import { agendaDuMois } from "./lib/agenda";
 import { VUES, VUE_PAR_CLE } from "./roles";
-import { CARTE_PAR_CLE, GROUPES, type CleCarte, type CleTuile } from "./registry";
+import { CARTE_PAR_CLE, type CleCarte, type CleTuile } from "./registry";
+import {
+  banniereArgent,
+  banniereFournisseurs,
+  banniereOperations,
+  banniereStock,
+  banniereVentes,
+} from "./assets/images";
 import { dateDuJour } from "../../lib/dates";
 import { useAuth } from "../../hooks/useAuth";
 import { REGLAGES_PAR_DEFAUT, type ReglagesAlertesStock } from "../../lib/prealerteStock";
+import { IconeDuo } from "../../components/shared/IconeDuo";
+import { vignettesParProduit } from "../../components/shared/VignetteProduit";
 
 /**
  * LE TABLEAU DE BORD v2
@@ -79,40 +87,6 @@ import { REGLAGES_PAR_DEFAUT, type ReglagesAlertesStock } from "../../lib/preale
  * ELLE NE FAIT AUCUNE ÉCRITURE. Ni au chargement, ni au rafraîchissement.
  */
 
-const ICONE_CALENDRIER = (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
-    <rect x="3" y="5" width="18" height="16" rx="2" />
-    <path d="M3 10h18M8 3v4M16 3v4" />
-  </svg>
-);
-
-const ICONE_PERSONNE = (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
-    <circle cx="12" cy="8" r="4" />
-    <path d="M4 21a8 8 0 0 1 16 0" />
-  </svg>
-);
-
-const ICONE_RAFRAICHIR = (
-  <svg
-    viewBox="0 0 24 24"
-    fill="none"
-    stroke="currentColor"
-    strokeWidth="2.2"
-    strokeLinecap="round"
-  >
-    <path d="M21 12a9 9 0 1 1-2.6-6.4L21 8" />
-    <path d="M21 3v5h-5" />
-  </svg>
-);
-
-const ICONE_OEIL = (
-  <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
-    <circle cx="12" cy="12" r="3" />
-    <path d="M2 12s3.6-7 10-7 10 7 10 7-3.6 7-10 7S2 12 2 12z" />
-  </svg>
-);
-
 /**
  * L'interrupteur de la table de contrôle.
  *
@@ -129,13 +103,6 @@ const ICONE_OEIL = (
  *   localStorage.setItem('tantana.dash.controle', '1')
  */
 const CLE_CONTROLE = "tantana.dash.controle";
-
-/** Les trois raccourcis de période, à côté du sélecteur complet. */
-const RACCOURCIS = [
-  ["today", "Jour"],
-  ["week", "Semaine"],
-  ["month", "Mois"],
-] as const;
 
 /**
  * Les mêmes props que l'ancien tableau de bord, à quelques près.
@@ -193,7 +160,12 @@ export interface DashboardV2PageProps {
   /** Le nom de la boutique, en tête du ticket des sorties. */
   nomBoutique: string;
   /** Les règlements versés aux fournisseurs, pour la carte du même nom. */
-  supplierPayments: { date: string; montant: number }[];
+  supplierPayments: ReglementFournisseur[];
+  /** Les deux annuaires, pour la section Fournisseurs & Prestataires. */
+  suppliers?: FicheFournisseur[];
+  providers?: FichePrestataire[];
+  /** Le thème sombre de l'application : le ciel du bonjour passe en nuit. */
+  sombre?: boolean;
   /**
    * Termine une tâche, par la fonction de l'application.
    *
@@ -249,6 +221,9 @@ export const DashboardV2Page: React.FC<DashboardV2PageProps> = ({
   rappels,
   nomBoutique,
   supplierPayments,
+  suppliers = [],
+  providers = [],
+  sombre = false,
   onTerminerTache,
   onRafraichir,
   onNavigateTab,
@@ -353,15 +328,6 @@ export const DashboardV2Page: React.FC<DashboardV2PageProps> = ({
     activite: { cle: "ventes" },
   };
 
-  const synthese = useMemo(
-    () => phraseDeSynthese(chiffres.ventes, periode, chiffres.attention),
-    [chiffres.ventes, chiffres.attention, periode],
-  );
-  const compacte = useMemo(
-    () => syntheseCompacte(chiffres.ventes, periode),
-    [chiffres.ventes, periode],
-  );
-
   /**
    * L'heure du dernier chargement.
    *
@@ -427,9 +393,6 @@ export const DashboardV2Page: React.FC<DashboardV2PageProps> = ({
       .flatMap(([, items]) => items);
   }, [evenements, taches, deliveries, rappels, aujourdhui]);
 
-  const heureLocale = chargeA ? chargeA.getHours() : 12;
-  const salutation = heureLocale >= 18 || heureLocale < 4 ? "Bonsoir" : "Bonjour";
-  const jour = new Date();
   const vueCourante = VUE_PAR_CLE.get(droits.vue);
 
   /** Un montant que cette personne n'a pas le droit de voir. */
@@ -455,178 +418,149 @@ export const DashboardV2Page: React.FC<DashboardV2PageProps> = ({
    */
   const portee = droits.portee("ventes");
   const aSoi = portee === "own";
-  const cartes: Partial<Record<CleCarte, React.ReactNode>> = {
-    tresorerie: (
-      <CarteTresorerie
-        capital={capital}
-        flux={chiffres.flux}
-        periode={periode.libelle}
-        /* Crédits récents et retards confondus : pour le lecteur du
-           solde, c'est le même argent — celui qui n'est pas rentré. */
-        duParLesClients={chiffres.paiements.aRecevoir + chiffres.paiements.enRetard}
-        montantVisible={droits.champVisible("capital", "montant")}
-      />
-    ),
-    ventes: (
-      <CarteVentes
-        ventes={chiffres.ventes}
-        periode={periode}
-        titre={aSoi ? `Mes ventes · ${periode.libelle}` : undefined}
-        montantVisible={droits.champVisible("ventes", "montant")}
-        onDetails={() => setPanneau({ cle: "ventes" })}
-      />
-    ),
-    agenda: (
-      <CarteAgenda
-        sources={{ evenements, taches, deliveries, rappels }}
-        onOuvrir={() => setPanneau({ cle: "agenda" })}
-      />
-    ),
-    stock: (
-      <CarteStock
-        stock={chiffres.stock}
-        valeurVisible={droits.champVisible("produits", "valeur_stock")}
-        onProduit={(produit) => setPanneau({ cle: "produit", produit })}
-        onCommander={() => setPanneau({ cle: "ruptures" })}
-        onTelecharger={onTelechargerLaListe}
-      />
-    ),
-    sorties: (
-      <CarteSorties
-        flux={chiffres.flux}
-        periode={periode}
-        achatsVisibles={droits.champVisible("achats", "prix_achat")}
-      />
-    ),
-    taches: (
-      <CarteTaches
-        taches={taches}
-        devis={quotes}
-        onTerminer={onTerminerTache}
-        onVoirTaches={onNavigateTab ? () => onNavigateTab("taches") : undefined}
-        onVoirDevis={onNavigateTab ? () => onNavigateTab("devis") : undefined}
-      />
-    ),
-    vendeurs: (
-      <CarteVendeurs
-        vendeurs={sellers}
-        montantsVisibles={droits.champVisible("vendeurs", "montant")}
-        onGerer={onNavigateTab ? () => onNavigateTab("vendeurs") : undefined}
-      />
-    ),
-    commandes: (
-      <CarteCommandes
-        commandes={chiffres.commandes}
-        onOuvrir={onNavigateTab ? () => onNavigateTab("commandes") : undefined}
-      />
-    ),
-    resultat: (
-      <CarteResultat
-        resultat={chiffres.resultat}
-        periode={periode}
-        visible={droits.champVisible("ventes", "marge")}
-        onDetail={() => setPanneau({ cle: "resultat" })}
-      />
-    ),
-    paiements: (
-      <CartePaiements
-        paiements={chiffres.paiements}
-        periode={periode}
-        visible={droits.champVisible("paiements", "montant")}
-        onEncaisse={() => setPanneau({ cle: "encaisse" })}
-        onRecevoir={() => setPanneau({ cle: "recevoir" })}
-        onRetard={() => setPanneau({ cle: "retard" })}
-      />
-    ),
-    clients: (
-      <CarteClients
-        clients={chiffres.clients}
-        visible={droits.champVisible("clients", "montant")}
-        onRelancer={(client) => setPanneau({ cle: "client", client })}
-        onTous={onNavigateTab ? () => onNavigateTab("clients") : undefined}
-      />
-    ),
-    ruptures: (
-      <CarteRuptures
-        stock={chiffres.stock}
-        onProduit={(produit) => setPanneau({ cle: "produit", produit })}
-      />
-    ),
-    mouvements: (
-      <CarteMouvements
-        stock={chiffres.stock}
-        periode={periode}
-        erreur={donnees.erreurs.mouvements}
-        onReessayer={donnees.recharger}
-      />
-    ),
-    top: (
-      <CarteTopProduits
-        top={chiffres.top}
-        totalPeriode={chiffres.ventes.total}
-        periode={periode}
-        visible={droits.champVisible("ventes", "montant")}
-        onToutes={onNavigateTab ? () => onNavigateTab("ventes") : undefined}
-      />
-    ),
-    livraisons: (
-      <CarteLivraisons
-        livraisons={deliveries}
-        visible={droits.champVisible("livraisons", "montant")}
-        onOuvrir={onNavigateTab ? () => onNavigateTab("livraisons") : undefined}
-      />
-    ),
-    fournisseurs: (
-      <CarteFournisseurs
-        fournisseurs={chiffres.fournisseurs}
-        periode={periode}
-        onOuvrir={() => setPanneau({ cle: "fournisseurs" })}
-      />
-    ),
-    fil: (
-      <CarteFilVentes
-        ventes={sales}
-        produits={products}
-        images={productImages}
-        montantsVisibles={droits.champVisible("ventes", "montant")}
-        titre={aSoi ? "Mes ventes" : "Fil des ventes"}
-        onToutVoir={onNavigateTab ? () => onNavigateTab("ventes") : undefined}
-      />
-    ),
-  };
+  const voit = (cle: CleCarte) => droits.cartes.includes(cle);
+
+  /** Les photos de produits, par identifiant, pour l'étagère de stock. */
+  const vignettes = useMemo(() => vignettesParProduit(productImages), [productImages]);
 
   /**
-   * Les cartes de chaque famille, dans l'ordre du registre.
-   *
-   * On part de `droits.cartes`, qui est DEJA filtre par les permissions
-   * et par la vue metier : un groupe ne peut donc pas faire reapparaitre
-   * une carte que quelqu'un n'a pas le droit de voir.
+   * L'aperçu des ventes : un point par jour de la période, et au moins
+   * sept — une période d'un jour ne ferait pas une courbe. Au-delà de
+   * soixante-deux jours, on garde les derniers.
    */
-  const { enTete, parGroupe } = useMemo(() => {
-    const tete: CleCarte[] = [];
-    const table = new Map<string, CleCarte[]>();
-    for (const cle of droits.cartes) {
-      const groupe = CARTE_PAR_CLE.get(cle)?.groupe;
-      if (!groupe) continue;
-      if (groupe === "tete") tete.push(cle);
-      else table.set(groupe, [...(table.get(groupe) ?? []), cle]);
+  const pointsVentes = useMemo<PointVentes[]>(() => {
+    const { fin } = periode.intervalle;
+    const n = nombreDeJours(periode.intervalle);
+    const debut =
+      n < 7 ? decalerJours(fin, -6) : n > 62 ? decalerJours(fin, -61) : periode.intervalle.debut;
+    const parJour = new Map<string, number>();
+    for (const v of sales) {
+      if (v.date >= debut && v.date <= fin)
+        parJour.set(v.date, (parJour.get(v.date) ?? 0) + v.totalVente);
     }
-    return { enTete: tete, parGroupe: table };
-  }, [droits.cartes]);
+    const points: PointVentes[] = [];
+    for (let j = debut; j <= fin; j = decalerJours(j, 1)) {
+      points.push({
+        jour: j,
+        libelle: dateLocale(j).toLocaleDateString("fr-FR", { day: "numeric", month: "short" }),
+        montant: parJour.get(j) ?? 0,
+      });
+    }
+    return points;
+  }, [sales, periode.intervalle]);
+  const sousTitreVentes = `Évolution de vos ventes ${
+    nombreDeJours(periode.intervalle) < 7 ? "sur les 7 derniers jours" : periode.phrase
+  }`;
 
-  /** Une carte, ou son squelette tant qu'elle reste a construire. */
-  const rendreCarte = (cle: CleCarte) => {
-    const rendue = cartes[cle];
-    if (rendue) return <React.Fragment key={cle}>{rendue}</React.Fragment>;
-    const def = CARTE_PAR_CLE.get(cle);
-    return <CarteSquelette key={cle} span={def?.span ?? 4} lignes={def?.span === 8 ? 5 : 3} />;
-  };
+  /** La dernière opération d'argent connue, et combien aujourd'hui. */
+  const derniereOperation = useMemo(() => {
+    const jours = [
+      ...sales.map((v) => v.date),
+      ...purchases.map((a) => a.date),
+      ...expenses.map((d) => d.date),
+    ];
+    return {
+      jour: jours.length ? jours.reduce((a, b) => (a > b ? a : b)) : null,
+      aujourdhui: jours.filter((j) => j === aujourdhui).length,
+    };
+  }, [sales, purchases, expenses, aujourdhui]);
 
-  /** Les puces d'attention : dans l'en-tête sur téléphone, dans le bandeau du jour sur ordinateur. */
+  /** Le choix de période, posé dans l'aperçu des ventes et dans le stock. */
+  const selecteurPeriode = (
+    <MenuPill
+      icon={<IconeDuo nom="calendar" />}
+      value={periode.nom}
+      ariaLabel={`Période : ${periode.nom}, ${periode.libelle}`}
+    >
+      {(fermer) => (
+        <>
+          {apercus.map((a) => (
+            <MenuOption
+              key={a.cle}
+              checked={periode.cle === a.cle}
+              hint={a.libelle}
+              onClick={() => {
+                choisir(a.cle);
+                fermer();
+              }}
+            >
+              {a.nom}
+            </MenuOption>
+          ))}
+          <form
+            className="custom"
+            onSubmit={(e) => {
+              e.preventDefault();
+              if (!du || !au || du > au) {
+                setErreurDates(true);
+                return;
+              }
+              setErreurDates(false);
+              choisirIntervalle(du, au);
+              fermer();
+            }}
+          >
+            <label>
+              Du
+              <input
+                type="date"
+                value={du}
+                max={aujourdhui}
+                onChange={(e) => setDu(e.target.value)}
+              />
+            </label>
+            <label>
+              Au
+              <input
+                type="date"
+                value={au}
+                max={aujourdhui}
+                onChange={(e) => setAu(e.target.value)}
+              />
+            </label>
+            {erreurDates && <p className="err">La date de début doit être avant la date de fin.</p>}
+            <button className="btn pri" type="submit">
+              Appliquer la période
+            </button>
+          </form>
+        </>
+      )}
+    </MenuPill>
+  );
+
+  /** Le choix de la vue métier, offert au propriétaire. */
+  const selecteurVue =
+    droits.vuesDisponibles.length > 1 ? (
+      <MenuPill
+        icon={<IconeDuo nom="eye" />}
+        value={vueCourante?.nom ?? "Dirigeant"}
+        alignLeft
+        className="vue"
+        ariaLabel={`Vue : ${vueCourante?.nom ?? "Dirigeant"}`}
+      >
+        {(fermer) =>
+          VUES.filter((v) => droits.vuesDisponibles.includes(v.cle)).map((v) => (
+            <MenuOption
+              key={v.cle}
+              checked={droits.vue === v.cle}
+              onClick={() => {
+                droits.changerDeVue(v.cle);
+                fermer();
+              }}
+            >
+              <span className="two-lines">
+                {v.nom}
+                <small>{v.resume}</small>
+              </span>
+            </MenuOption>
+          ))
+        }
+      </MenuPill>
+    ) : null;
+
+  /** Ce qui est urgent, en puces sous le bonjour. Rien quand tout va bien. */
   const puces =
-    chiffres.attention.total === 0 ? (
-      <ChipRienDUrgent />
-    ) : (
+    chiffres.attention.total === 0 ? null : (
       <>
         {chiffres.attention.tachesEnRetard > 0 && (
           <Chip
@@ -644,12 +578,7 @@ export const DashboardV2Page: React.FC<DashboardV2PageProps> = ({
             singulier="produit à recommander"
             pluriel="produits à recommander"
             ton="warn"
-            /* « Ruptures à venir » ne montre que ce qui est
-             déjà sous le seuil. Dès que la préalerte ajoute
-             des produits au compte, la pastille mène à
-             l'étagère, qui les montre tous les deux — et
-             porte les boutons pour agir. */
-            cible={chiffres.stock.enPrealerte.length > 0 ? "carte-stock" : "carte-ruptures"}
+            cible="carte-stock"
             onAller={allerALaCarte}
           />
         )}
@@ -666,440 +595,503 @@ export const DashboardV2Page: React.FC<DashboardV2PageProps> = ({
       </>
     );
 
+  const aller = onNavigateTab;
+  const vers = (onglet: string) => (aller ? () => aller(onglet) : undefined);
+
+  /* ── Les sections, dans l'ordre de la maquette ── */
+
+  const operations = (["agenda", "taches", "commandes", "livraisons"] as CleCarte[]).filter(voit);
+  const ventesCartes = (["fil", "clients", "top", "vendeurs"] as CleCarte[]).filter(voit);
+  const argent = {
+    tresorerie: voit("tresorerie"),
+    sorties: voit("sorties"),
+    resultat: voit("resultat"),
+    paiements: voit("paiements"),
+    fournisseurs: voit("fournisseurs"),
+  };
+  const avecArgent = Object.values(argent).some(Boolean);
+  const stockCartes = {
+    stock: voit("stock"),
+    ruptures: voit("ruptures"),
+    mouvements: voit("mouvements"),
+  };
+  const avecStock = Object.values(stockCartes).some(Boolean);
+  const partenaires = {
+    fournisseurs: voit("annuaireFournisseurs"),
+    prestataires: voit("annuairePrestataires"),
+    aPayer: voit("fournisseurs"),
+  };
+  const avecPartenaires = partenaires.fournisseurs || partenaires.prestataires;
+
+  const carteOperation: Record<string, React.ReactNode> = {
+    agenda: (
+      <CarteAgenda
+        sources={{ evenements, taches, deliveries, rappels }}
+        onOuvrir={() => setPanneau({ cle: "agenda" })}
+      />
+    ),
+    taches: (
+      <CarteTaches
+        taches={taches}
+        devis={quotes}
+        onTerminer={onTerminerTache}
+        onVoirTaches={vers("taches")}
+        onVoirDevis={vers("devis")}
+      />
+    ),
+    commandes: <CarteCommandes commandes={chiffres.commandes} onOuvrir={vers("commandes")} />,
+    livraisons: (
+      <CarteLivraisons
+        livraisons={deliveries}
+        visible={droits.champVisible("livraisons", "montant")}
+        onOuvrir={vers("livraisons")}
+      />
+    ),
+  };
+
+  const carteVente: Record<string, React.ReactNode> = {
+    fil: (
+      <CarteFilVentes
+        ventes={sales}
+        produits={products}
+        images={productImages}
+        clients={clients}
+        montantsVisibles={droits.champVisible("ventes", "montant")}
+        titre={aSoi ? "Mes ventes" : "Fil des ventes"}
+        onToutVoir={vers("ventes")}
+      />
+    ),
+    clients: (
+      <CarteClients
+        clients={chiffres.clients}
+        visible={droits.champVisible("clients", "montant")}
+        onRelancer={(client) => setPanneau({ cle: "client", client })}
+        onTousARelancer={() => setPanneau({ cle: "relancer" })}
+        onTous={vers("clients")}
+      />
+    ),
+    top: (
+      <CarteTopProduits
+        top={chiffres.top}
+        totalPeriode={chiffres.ventes.total}
+        periode={periode}
+        visible={droits.champVisible("ventes", "montant")}
+        onToutes={vers("ventes")}
+      />
+    ),
+    vendeurs: (
+      <CarteVendeurs
+        vendeurs={sellers}
+        montantsVisibles={droits.champVisible("vendeurs", "montant")}
+        onGerer={vers("vendeurs")}
+      />
+    ),
+  };
+
+  const grille = (cles: CleCarte[], rendu: Record<string, React.ReactNode>) => (
+    <div className="g2">
+      {cles.map((c) => (
+        <React.Fragment key={c}>{rendu[c]}</React.Fragment>
+      ))}
+    </div>
+  );
+
   return (
-    <div className="dash2">
-      <div className="dash2-wrap">
-        <header className="top">
-          <div className="hello">
-            <div className="eyebrow">
-              {/* La date longue sur ordinateur, courte dès la tablette :
-                  « Mercredi 16 septembre 2026 » mange toute la ligne. */}
-              <span className="date-longue">{dateLongue(jour)}</span>
-              <span className="date-courte">{dateCourte(jour)}</span>
-              <span className="fresh">
-                <i aria-hidden="true" />
-                <span>{chargeA ? `Mis à jour à ${heure(chargeA)}` : "Chargement…"}</span>
-                <button
-                  ref={boutonRafraichir}
-                  className="icon-btn"
-                  type="button"
-                  onClick={rafraichir}
-                  aria-label="Actualiser les données"
-                >
-                  {ICONE_RAFRAICHIR}
-                </button>
-              </span>
-            </div>
-            <h1>
-              {salutation}
-              {prenom ? `, ${prenom}` : ""}
-            </h1>
-          </div>
+    <div className="tn">
+      <HeroTableauDeBord
+        prenom={prenom}
+        sombre={sombre}
+        chargeA={chargeA}
+        onRafraichir={rafraichir}
+        boutonRafraichir={boutonRafraichir}
+        vue={selecteurVue}
+        alertes={puces}
+        tuiles={droits.tuiles}
+        jour={chiffres.duJour}
+        stock={chiffres.stock}
+        journal={journalDuJour}
+        erreurJournal={donnees.erreurs.journal}
+        onReessayerJournal={donnees.recharger}
+        valeurStockVisible={droits.champVisible("produits", "valeur_stock")}
+        montantsAchatVisibles={droits.champVisible("achats", "prix_achat")}
+        montantsVentesVisibles={droits.champVisible("ventes", "montant")}
+        onOuvrir={(cle) => {
+          if (cle === "activite") {
+            onNavigateTab?.("historique");
+            return;
+          }
+          setPanneau(DETAIL_TUILE[cle]);
+        }}
+        onNaviguer={onNavigateTab}
+        graphique={
+          voit("ventes") || droits.tuiles.includes("ventes")
+            ? {
+                points: pointsVentes,
+                sousTitre: sousTitreVentes,
+                selecteur: selecteurPeriode,
+                onDetails: () => setPanneau({ cle: "ventes" }),
+              }
+            : undefined
+        }
+      />
 
-          <div className="tools">
-            {droits.vuesDisponibles.length > 1 && (
-              <MenuPill
-                icon={ICONE_PERSONNE}
-                label="Vue"
-                value={vueCourante?.nom ?? "Dirigeant"}
-                alignLeft
-                ariaLabel={`Vue : ${vueCourante?.nom ?? "Dirigeant"}`}
-              >
-                {(fermer) =>
-                  VUES.filter((v) => droits.vuesDisponibles.includes(v.cle)).map((v) => (
-                    <MenuOption
-                      key={v.cle}
-                      checked={droits.vue === v.cle}
-                      onClick={() => {
-                        droits.changerDeVue(v.cle);
-                        fermer();
-                      }}
-                    >
-                      <span className="two-lines">
-                        {v.nom}
-                        <small>{v.resume}</small>
-                      </span>
-                    </MenuOption>
-                  ))
-                }
-              </MenuPill>
-            )}
+      {droits.vue !== "dirigeant" && vueCourante && (
+        <p className="rolenote">
+          <IconeDuo nom="eye" />
+          Vue <b>{vueCourante.nom}</b> · {droits.cartes.length} cartes selon les permissions
+        </p>
+      )}
 
-            <div className="seg" role="group" aria-label="Période rapide">
-              {RACCOURCIS.map(([c, nom]) => (
-                <button
-                  key={c}
-                  type="button"
-                  aria-pressed={periode.cle === c}
-                  title={apercus.find((a) => a.cle === c)?.libelle}
-                  onClick={() => choisir(c)}
-                >
-                  {nom}
-                </button>
-              ))}
-            </div>
+      {operations.length > 0 && (
+        <Section id="operations" image={banniereOperations} titre="Opérations">
+          {grille(operations, carteOperation)}
+        </Section>
+      )}
 
-            <MenuPill
-              icon={ICONE_CALENDRIER}
-              label={periode.nom}
-              value={periode.libelle}
-              ariaLabel={`Période : ${periode.nom}, ${periode.libelle}`}
+      {ventesCartes.length > 0 && (
+        <Section id="ventes" image={banniereVentes} titre={aSoi ? "Mes ventes" : "Ventes"}>
+          {grille(ventesCartes, carteVente)}
+        </Section>
+      )}
+
+      {avecArgent && (
+        <Section id="argent" image={banniereArgent} titre="L'argent">
+          {argent.tresorerie && (
+            <CarteTresorerie
+              capital={capital}
+              flux={chiffres.flux}
+              periode={periode.libelle}
+              /* Crédits récents et retards confondus : pour le lecteur du
+                 solde, c'est le même argent — celui qui n'est pas rentré. */
+              duParLesClients={chiffres.paiements.aRecevoir + chiffres.paiements.enRetard}
+              montantVisible={droits.champVisible("capital", "montant")}
+            />
+          )}
+          {(argent.tresorerie || argent.sorties) && (
+            <CarteArgentMinis
+              flux={chiffres.flux}
+              periode={periode.libelle}
+              solde={capital.tresorerieGlobaleActuelle}
+              derniere={derniereOperation}
+              montantVisible={droits.champVisible("capital", "montant")}
+              avec={{
+                entrees: argent.tresorerie,
+                sorties: argent.sorties,
+                solde: argent.tresorerie,
+                derniere: argent.tresorerie,
+              }}
+              onEntrees={() => setPanneau({ cle: "encaisse" })}
+              onSorties={() => setPanneau({ cle: "sorties" })}
+              onSolde={vers("capital")}
+              onDerniere={vers("historique")}
+            />
+          )}
+          {(argent.resultat || argent.tresorerie) && (
+            <div
+              className={`g2 gap argent-bas${argent.resultat && argent.tresorerie ? "" : " une"}`}
             >
-              {(fermer) => (
-                <>
-                  {apercus.map((a) => (
-                    <MenuOption
-                      key={a.cle}
-                      checked={periode.cle === a.cle}
-                      hint={a.libelle}
-                      onClick={() => {
-                        choisir(a.cle);
-                        fermer();
-                      }}
-                    >
-                      {a.nom}
-                    </MenuOption>
-                  ))}
-                  <form
-                    className="custom"
-                    onSubmit={(e) => {
-                      e.preventDefault();
-                      if (!du || !au || du > au) {
-                        setErreurDates(true);
-                        return;
-                      }
-                      setErreurDates(false);
-                      choisirIntervalle(du, au);
-                      fermer();
-                    }}
-                  >
-                    <label>
-                      Du
-                      <input
-                        type="date"
-                        value={du}
-                        max={aujourdhui}
-                        onChange={(e) => setDu(e.target.value)}
-                      />
-                    </label>
-                    <label>
-                      Au
-                      <input
-                        type="date"
-                        value={au}
-                        max={aujourdhui}
-                        onChange={(e) => setAu(e.target.value)}
-                      />
-                    </label>
-                    {erreurDates && (
-                      <p className="err">La date de début doit être avant la date de fin.</p>
-                    )}
-                    <button className="btn" type="submit">
-                      Appliquer la période
-                    </button>
-                  </form>
-                </>
+              {argent.resultat && (
+                <CarteResultat
+                  resultat={chiffres.resultat}
+                  periode={periode}
+                  visible={droits.champVisible("ventes", "marge")}
+                  onDetail={() => setPanneau({ cle: "resultat" })}
+                  onHistorique={vers("historique")}
+                />
               )}
-            </MenuPill>
-          </div>
-
-          <div className="brief">
-            <p className="synthese" aria-live="polite">
-              {synthese.map((m, i) =>
-                m.fort ? (
-                  <b key={i}>{m.texte}</b>
-                ) : (
-                  <React.Fragment key={i}>{m.texte}</React.Fragment>
-                ),
-              )}
-            </p>
-
-            {/* Sous neuf cents pixels, la phrase cède la place au bandeau :
-                le montant, la comparaison, la période de référence. */}
-            <div className="pulse" aria-live="polite">
-              <div className="pulse-main">
-                <small>Ventes · {periode.libelle}</small>
-                <b className="num">{compacte.montant}</b>
-              </div>
-              {(compacte.comparaison || compacte.reference) && (
-                <div className="pulse-cmp">
-                  {compacte.comparaison && (
-                    <span className={`trend ${compacte.ton}`}>{compacte.comparaison}</span>
-                  )}
-                  {compacte.reference && <small>{compacte.reference}</small>}
-                </div>
+              {argent.tresorerie && (
+                <CarteMouvementsArgent
+                  ventes={sales}
+                  achats={purchases}
+                  depenses={expenses}
+                  produits={products}
+                  achatsVisibles={droits.champVisible("achats", "prix_achat")}
+                  ventesVisibles={droits.champVisible("ventes", "montant")}
+                  onToutVoir={vers("historique")}
+                />
               )}
             </div>
-
-            <div className="attn-label">
-              {chiffres.attention.total > 0
-                ? `À regarder aujourd'hui · ${chiffres.attention.total}`
-                : "Aujourd'hui"}
+          )}
+          {(argent.paiements || argent.fournisseurs) && (
+            <div className={`g2 gap${argent.paiements && argent.fournisseurs ? "" : " une"}`}>
+              {argent.paiements && (
+                <CartePaiements
+                  paiements={chiffres.paiements}
+                  periode={periode}
+                  visible={droits.champVisible("paiements", "montant")}
+                  onEncaisse={() => setPanneau({ cle: "encaisse" })}
+                  onRecevoir={() => setPanneau({ cle: "recevoir" })}
+                  onRetard={() => setPanneau({ cle: "retard" })}
+                />
+              )}
+              {argent.fournisseurs && (
+                <CarteFournisseurs
+                  fournisseurs={chiffres.fournisseurs}
+                  periode={periode}
+                  onOuvrir={() => setPanneau({ cle: "fournisseurs" })}
+                />
+              )}
             </div>
-            <div className="attn" aria-label="Points d'attention">
-              {puces}
-            </div>
+          )}
+        </Section>
+      )}
 
-            {droits.vue !== "dirigeant" && vueCourante && (
-              <div className="rolenote">
-                {ICONE_OEIL}
-                Vue <b>{vueCourante.nom}</b> · {droits.cartes.length} cartes selon les permissions
-              </div>
-            )}
-          </div>
-        </header>
-
-        <BandeauAujourdhui
-          tuiles={droits.tuiles}
-          jour={chiffres.duJour}
-          stock={chiffres.stock}
-          journal={journalDuJour}
-          erreurJournal={donnees.erreurs.journal}
-          onReessayerJournal={donnees.recharger}
-          valeurStockVisible={droits.champVisible("produits", "valeur_stock")}
-          montantsAchatVisibles={droits.champVisible("achats", "prix_achat")}
-          onOuvrir={(cle) => {
-            if (cle === "activite") {
-              onNavigateTab?.("historique");
-              return;
-            }
-            setPanneau(DETAIL_TUILE[cle]);
-          }}
-          onVendre={peutVendre && onNavigateTab ? () => onNavigateTab("ventes") : undefined}
-          alertes={puces}
-        />
-
-        {/* Cartes « tete » du registre, hors famille. Aucune pour l'instant :
-            le chiffre d'affaires a rejoint la famille « Les ventes ». */}
-        {enTete.length > 0 && (
-          <section className="grid" aria-label="Chiffre d'affaires">
-            {enTete.map(rendreCarte)}
-          </section>
-        )}
-
-        {/* ── Les quatre familles ──
-            Un groupe vide ne se rend pas du tout, titre compris : une
-            vue metier ou une permission peut retirer toutes ses cartes,
-            et un intitule seul au-dessus du vide inquiete pour rien. */}
-        {GROUPES.map((groupe) => {
-          const cles = parGroupe.get(groupe.cle) ?? [];
-          if (cles.length === 0) return null;
-          return (
-            <section className="groupe" key={groupe.cle} aria-labelledby={`g-${groupe.cle}`}>
-              <h2 className="groupe-titre" id={`g-${groupe.cle}`}>
-                {groupe.titre}
-              </h2>
-              <div className={`grid${droits.vue !== "dirigeant" ? " dense" : ""}`}>
-                {enBlocs(cles).map((b) =>
-                  b.bloc ? (
-                    <div key={b.cles[0]} className="bloc" data-bloc={b.bloc}>
-                      {b.cles.map(rendreCarte)}
-                    </div>
-                  ) : (
-                    b.cles.map(rendreCarte)
-                  ),
-                )}
-              </div>
-            </section>
-          );
-        })}
-
-        {/* La table de controle ne merite une rangee que si elle est
-            allumee : une section vide laisserait un ecart dans le
-            rythme des groupes. */}
-        {controle && (
-          <section className="grid" aria-label="Outils">
-            {/* ── Table de contrôle ──
-              Outil de recette, pas element du tableau de bord : la
-              maquette n en contient pas, et un commercant n a rien a en
-              faire. Il reste a portee derriere son interrupteur, parce
-              que la comparaison des chiffres ne peut se faire que sur
-              une vraie boutique. Voir CLE_CONTROLE. */}
-            <Card span={12} id="carte-controle">
-              <CardHeader
-                title="Table de contrôle"
-                action={<span className="tag neutre">provisoire</span>}
-              />
-              <p style={{ margin: 0, color: "var(--ink-2)" }}>
-                Les chiffres ci-dessous sont ceux que les cartes afficheront. Comparez-les à
-                l&apos;ancien tableau de bord et aux pages Ventes, Stock, Bilan et Paiements sur la
-                même période&nbsp;: ils doivent coïncider.
-              </p>
-
-              {(donnees.erreurs.mouvements || donnees.erreurs.journal) && (
-                <EtatErreur
-                  message={
-                    donnees.erreurs.mouvements
-                      ? `Mouvements de stock : ${donnees.erreurs.mouvements}`
-                      : `Journal : ${donnees.erreurs.journal}`
-                  }
+      {avecStock && (
+        <Section id="stock" image={banniereStock} titre="Le stock">
+          {(stockCartes.stock || stockCartes.ruptures) && (
+            <CarteStockChiffres
+              stock={chiffres.stock}
+              valeurVisible={droits.champVisible("produits", "valeur_stock")}
+              avecRuptures={stockCartes.ruptures}
+              onRafraichir={rafraichir}
+              onVoirLaListe={onTelechargerLaListe}
+              onVoirRuptures={() => setPanneau({ cle: "ruptures" })}
+            />
+          )}
+          {(stockCartes.stock || stockCartes.mouvements) && (
+            <div
+              className={`g2 gap stock-milieu${stockCartes.stock && stockCartes.mouvements ? "" : " une"}`}
+            >
+              {stockCartes.stock && (
+                <CarteStock
+                  stock={chiffres.stock}
+                  valeurVisible={droits.champVisible("produits", "valeur_stock")}
+                  vignettes={vignettes}
+                  onProduit={(produit) => setPanneau({ cle: "produit", produit })}
+                  onCommander={() => setPanneau({ cle: "ruptures" })}
+                  onTelecharger={onTelechargerLaListe}
+                />
+              )}
+              {stockCartes.mouvements && (
+                <CarteMouvements
+                  stock={chiffres.stock}
+                  periode={periode}
+                  selecteur={selecteurPeriode}
+                  erreur={donnees.erreurs.mouvements}
                   onReessayer={donnees.recharger}
                 />
               )}
+            </div>
+          )}
+          {stockCartes.mouvements && (
+            <CarteMouvementsStock
+              mouvements={donnees.mouvements}
+              produits={products}
+              prixVisibles={droits.champVisible("achats", "prix_achat")}
+              onToutVoir={vers("produits")}
+            />
+          )}
+        </Section>
+      )}
 
-              <div className="controle">
-                <Bloc titre="Ventes">
-                  <L
-                    nom="Total de la période"
-                    valeur={sous("ventes", "montant", chiffres.ventes.total)}
-                  />
-                  <L
-                    nom="Période précédente"
-                    valeur={sous("ventes", "montant", chiffres.ventes.totalPrecedent)}
-                  />
-                  <L nom="Tickets" valeur={nombre(chiffres.ventes.tickets)} />
-                  <L nom="Lignes de vente" valeur={nombre(chiffres.ventes.lignes)} />
-                  <L
-                    nom="Panier moyen"
-                    valeur={sous("ventes", "montant", chiffres.ventes.panierMoyen)}
-                  />
-                  <L nom="Marge brute" valeur={sous("ventes", "marge", chiffres.ventes.marge)} />
-                  <L
-                    nom="Évolution"
-                    valeur={
-                      <Trend
-                        data={{
-                          valeur: chiffres.ventes.total,
-                          reference: chiffres.ventes.totalPrecedent,
-                        }}
-                      />
-                    }
-                  />
-                </Bloc>
+      {avecPartenaires && (
+        <Section
+          id="fournisseurs"
+          image={banniereFournisseurs}
+          titre="Fournisseurs & Prestataires"
+          sousTitre="Gérez vos fournisseurs de produits et vos prestataires de services facilement."
+        >
+          <SectionPartenaires
+            fournisseurs={partenaires.fournisseurs ? suppliers : null}
+            prestataires={partenaires.prestataires ? providers : null}
+            aPayer={partenaires.aPayer ? chiffres.fournisseurs : null}
+            achats={droits.champVisible("achats", "prix_achat") ? purchases : []}
+            reglements={droits.champVisible("achats", "prix_achat") ? supplierPayments : []}
+            onFournisseurs={vers("fournisseurs")}
+            onPrestataires={vers("prestataires")}
+            onAchats={vers("achats")}
+            onCreerCommande={onTelechargerLaListe}
+          />
+        </Section>
+      )}
 
-                <Bloc titre="Trésorerie et flux">
-                  <L
-                    nom="Trésorerie (calcul existant)"
-                    valeur={sous("capital", "montant", capital.tresorerieGlobaleActuelle)}
-                  />
-                  <L nom="Encaissé sur la période" valeur={montant(chiffres.flux.encaisse)} />
-                  <L nom="Achats" valeur={sous("achats", "prix_achat", chiffres.flux.achats)} />
-                  <L nom="Dépenses" valeur={montant(chiffres.flux.depenses)} />
-                  <L nom="Sorties totales" valeur={montant(chiffres.flux.sorties)} />
-                  <L nom="Sorties par jour" valeur={montant(chiffres.flux.sortiesParJour)} />
-                  <L nom="Part des ventes" valeur={pourcent(chiffres.flux.partDesVentes)} />
-                </Bloc>
+      {controle && (
+        <section className="dash2 controle-zone grid" aria-label="Outils">
+          {/* ── Table de contrôle ──
+            Outil de recette, pas element du tableau de bord : la
+            maquette n en contient pas, et un commercant n a rien a en
+            faire. Il reste a portee derriere son interrupteur, parce
+            que la comparaison des chiffres ne peut se faire que sur
+            une vraie boutique. Voir CLE_CONTROLE. */}
+          <Card span={12} id="carte-controle">
+            <CardHeader
+              title="Table de contrôle"
+              action={<span className="tag neutre">provisoire</span>}
+            />
+            <p style={{ margin: 0, color: "var(--ink-2)" }}>
+              Les chiffres ci-dessous sont ceux que les cartes afficheront. Comparez-les à
+              l&apos;ancien tableau de bord et aux pages Ventes, Stock, Bilan et Paiements sur la
+              même période&nbsp;: ils doivent coïncider.
+            </p>
 
-                <Bloc titre="Résultat (nouveau)">
-                  <L nom="Marge brute" valeur={montant(chiffres.resultat.marge)} />
-                  <L nom="− Dépenses" valeur={montant(chiffres.resultat.depenses)} />
-                  <L nom="= Bénéfice" valeur={montant(chiffres.resultat.benefice)} />
-                  <L
-                    nom="Période précédente"
-                    valeur={montant(chiffres.resultat.beneficePrecedent)}
-                  />
-                  <L
-                    nom="Achats non déduits"
-                    valeur={montant(chiffres.resultat.achatsNonDeduits)}
-                    note="Ils deviennent un coût quand les produits se vendent"
-                  />
-                </Bloc>
+            {(donnees.erreurs.mouvements || donnees.erreurs.journal) && (
+              <EtatErreur
+                message={
+                  donnees.erreurs.mouvements
+                    ? `Mouvements de stock : ${donnees.erreurs.mouvements}`
+                    : `Journal : ${donnees.erreurs.journal}`
+                }
+                onReessayer={donnees.recharger}
+              />
+            )}
 
-                <Bloc titre="Stock">
-                  <L
-                    nom="Valeur du stock"
-                    valeur={sous("produits", "valeur_stock", chiffres.stock.valeur)}
-                  />
-                  <L nom="À recommander" valeur={nombre(chiffres.stock.aRecommander.length)} />
-                  <L nom="En rupture" valeur={nombre(chiffres.stock.enRupture.length)} />
-                  <L nom="Entrées du jour" valeur={`${nombre(chiffres.stock.entreesDuJour)} u.`} />
-                  <L nom="Sorties du jour" valeur={`${nombre(chiffres.stock.sortiesDuJour)} u.`} />
-                  <L
-                    nom="Source des mouvements"
-                    valeur={
-                      chiffres.stock.mouvementsEnRepli ? "achats et ventes" : "stock_movements"
-                    }
-                    note={
-                      chiffres.stock.mouvementsEnRepli
-                        ? "La table n'a rien rendu : repli sur les quantités"
-                        : `${donnees.mouvements.length} lignes lues`
-                    }
-                  />
-                </Bloc>
+            <div className="controle">
+              <Bloc titre="Ventes">
+                <L
+                  nom="Total de la période"
+                  valeur={sous("ventes", "montant", chiffres.ventes.total)}
+                />
+                <L
+                  nom="Période précédente"
+                  valeur={sous("ventes", "montant", chiffres.ventes.totalPrecedent)}
+                />
+                <L nom="Tickets" valeur={nombre(chiffres.ventes.tickets)} />
+                <L nom="Lignes de vente" valeur={nombre(chiffres.ventes.lignes)} />
+                <L
+                  nom="Panier moyen"
+                  valeur={sous("ventes", "montant", chiffres.ventes.panierMoyen)}
+                />
+                <L nom="Marge brute" valeur={sous("ventes", "marge", chiffres.ventes.marge)} />
+                <L
+                  nom="Évolution"
+                  valeur={
+                    <Trend
+                      data={{
+                        valeur: chiffres.ventes.total,
+                        reference: chiffres.ventes.totalPrecedent,
+                      }}
+                    />
+                  }
+                />
+              </Bloc>
 
-                <Bloc titre="Paiements">
-                  <L nom="Encaissé" valeur={montant(chiffres.paiements.encaisse)} />
-                  <L
-                    nom="À recevoir (moins de 30 j)"
-                    valeur={montant(chiffres.paiements.aRecevoir)}
-                    note={pluriel(chiffres.paiements.aRecevoirClients, "client")}
-                  />
-                  <L
-                    nom="En retard (plus de 30 j)"
-                    valeur={montant(chiffres.paiements.enRetard)}
-                    note={pluriel(chiffres.paiements.enRetardClients, "client")}
-                  />
-                </Bloc>
+              <Bloc titre="Trésorerie et flux">
+                <L
+                  nom="Trésorerie (calcul existant)"
+                  valeur={sous("capital", "montant", capital.tresorerieGlobaleActuelle)}
+                />
+                <L nom="Encaissé sur la période" valeur={montant(chiffres.flux.encaisse)} />
+                <L nom="Achats" valeur={sous("achats", "prix_achat", chiffres.flux.achats)} />
+                <L nom="Dépenses" valeur={montant(chiffres.flux.depenses)} />
+                <L nom="Sorties totales" valeur={montant(chiffres.flux.sorties)} />
+                <L nom="Sorties par jour" valeur={montant(chiffres.flux.sortiesParJour)} />
+                <L nom="Part des ventes" valeur={pourcent(chiffres.flux.partDesVentes)} />
+              </Bloc>
 
-                <Bloc titre="Clients, commandes, fournisseurs">
-                  <L nom="Nouveaux clients" valeur={nombre(chiffres.clients.nouveaux)} />
-                  <L nom="Clients actifs" valeur={nombre(chiffres.clients.actifs)} />
-                  <L nom="À relancer" valeur={nombre(chiffres.clients.aRelancer.length)} />
-                  <L nom="Commandes reçues" valeur={nombre(chiffres.commandes.recues)} />
-                  <L nom="En préparation" valeur={nombre(chiffres.commandes.enPreparation)} />
-                  <L nom="En livraison" valeur={nombre(chiffres.commandes.enLivraison)} />
-                  <L nom="À encaisser" valeur={nombre(chiffres.commandes.aEncaisser)} />
-                  <L nom="Dû aux fournisseurs" valeur={montant(chiffres.fournisseurs.totalDu)} />
-                  <L
-                    nom="Échéances dépassées"
-                    valeur={nombre(chiffres.fournisseurs.echeancesDepassees)}
-                  />
-                  <L
-                    nom="Payé sur la période"
-                    valeur={montant(chiffres.fournisseurs.payeSurLaPeriode)}
-                  />
-                </Bloc>
+              <Bloc titre="Résultat (nouveau)">
+                <L nom="Marge brute" valeur={montant(chiffres.resultat.marge)} />
+                <L nom="− Dépenses" valeur={montant(chiffres.resultat.depenses)} />
+                <L nom="= Bénéfice" valeur={montant(chiffres.resultat.benefice)} />
+                <L nom="Période précédente" valeur={montant(chiffres.resultat.beneficePrecedent)} />
+                <L
+                  nom="Achats non déduits"
+                  valeur={montant(chiffres.resultat.achatsNonDeduits)}
+                  note="Ils deviennent un coût quand les produits se vendent"
+                />
+              </Bloc>
 
-                <Bloc titre="Produits les plus vendus">
-                  {chiffres.top.length === 0 ? (
-                    <L nom="Aucune vente sur la période" valeur="—" />
-                  ) : (
-                    chiffres.top.map((p) => (
-                      <L
-                        key={p.id}
-                        nom={p.nom}
-                        valeur={montant(p.montant)}
-                        note={`${pourcent(p.part)} · ${nombre(p.quantite)} ${p.unite ?? "unité"}`}
-                      />
-                    ))
-                  )}
-                </Bloc>
+              <Bloc titre="Stock">
+                <L
+                  nom="Valeur du stock"
+                  valeur={sous("produits", "valeur_stock", chiffres.stock.valeur)}
+                />
+                <L nom="À recommander" valeur={nombre(chiffres.stock.aRecommander.length)} />
+                <L nom="En rupture" valeur={nombre(chiffres.stock.enRupture.length)} />
+                <L nom="Entrées du jour" valeur={`${nombre(chiffres.stock.entreesDuJour)} u.`} />
+                <L nom="Sorties du jour" valeur={`${nombre(chiffres.stock.sortiesDuJour)} u.`} />
+                <L
+                  nom="Source des mouvements"
+                  valeur={chiffres.stock.mouvementsEnRepli ? "achats et ventes" : "stock_movements"}
+                  note={
+                    chiffres.stock.mouvementsEnRepli
+                      ? "La table n'a rien rendu : repli sur les quantités"
+                      : `${donnees.mouvements.length} lignes lues`
+                  }
+                />
+              </Bloc>
 
-                <Bloc titre="Lectures et permissions">
-                  <L nom="Vue" valeur={vueCourante?.nom ?? "—"} />
-                  <L
-                    nom="Cartes retenues"
-                    valeur={nombre(droits.cartes.length)}
-                    note={droits.cartes.map((c) => CARTE_PAR_CLE.get(c)?.titre ?? c).join(" · ")}
-                  />
-                  <L nom="Tuiles retenues" valeur={nombre(droits.tuiles.length)} />
-                  <L
-                    nom="Sources demandées"
-                    valeur={nombre(droits.besoins.size)}
-                    note={[...droits.besoins].sort().join(", ")}
-                  />
-                  <L
-                    nom="Lignes de journal"
-                    valeur={nombre(donnees.journal.length)}
-                    note="Créations comprises, contrairement à la cloche"
-                  />
-                  <L nom="Lecture en cours" valeur={donnees.chargement ? "oui" : "non"} />
-                </Bloc>
-              </div>
+              <Bloc titre="Paiements">
+                <L nom="Encaissé" valeur={montant(chiffres.paiements.encaisse)} />
+                <L
+                  nom="À recevoir (moins de 30 j)"
+                  valeur={montant(chiffres.paiements.aRecevoir)}
+                  note={pluriel(chiffres.paiements.aRecevoirClients, "client")}
+                />
+                <L
+                  nom="En retard (plus de 30 j)"
+                  valeur={montant(chiffres.paiements.enRetard)}
+                  note={pluriel(chiffres.paiements.enRetardClients, "client")}
+                />
+              </Bloc>
 
-              <div>
-                <button
-                  type="button"
-                  className="btn ghost"
-                  onClick={() => setPanneau({ cle: "resultat" })}
-                >
-                  Voir le détail du calcul du résultat
-                </button>
-              </div>
-            </Card>
-          </section>
-        )}
-      </div>
+              <Bloc titre="Clients, commandes, fournisseurs">
+                <L nom="Nouveaux clients" valeur={nombre(chiffres.clients.nouveaux)} />
+                <L nom="Clients actifs" valeur={nombre(chiffres.clients.actifs)} />
+                <L nom="À relancer" valeur={nombre(chiffres.clients.aRelancer.length)} />
+                <L nom="Commandes reçues" valeur={nombre(chiffres.commandes.recues)} />
+                <L nom="En préparation" valeur={nombre(chiffres.commandes.enPreparation)} />
+                <L nom="En livraison" valeur={nombre(chiffres.commandes.enLivraison)} />
+                <L nom="À encaisser" valeur={nombre(chiffres.commandes.aEncaisser)} />
+                <L nom="Dû aux fournisseurs" valeur={montant(chiffres.fournisseurs.totalDu)} />
+                <L
+                  nom="Échéances dépassées"
+                  valeur={nombre(chiffres.fournisseurs.echeancesDepassees)}
+                />
+                <L
+                  nom="Payé sur la période"
+                  valeur={montant(chiffres.fournisseurs.payeSurLaPeriode)}
+                />
+              </Bloc>
+
+              <Bloc titre="Produits les plus vendus">
+                {chiffres.top.length === 0 ? (
+                  <L nom="Aucune vente sur la période" valeur="—" />
+                ) : (
+                  chiffres.top.map((p) => (
+                    <L
+                      key={p.id}
+                      nom={p.nom}
+                      valeur={montant(p.montant)}
+                      note={`${pourcent(p.part)} · ${nombre(p.quantite)} ${p.unite ?? "unité"}`}
+                    />
+                  ))
+                )}
+              </Bloc>
+
+              <Bloc titre="Lectures et permissions">
+                <L nom="Vue" valeur={vueCourante?.nom ?? "—"} />
+                <L
+                  nom="Cartes retenues"
+                  valeur={nombre(droits.cartes.length)}
+                  note={droits.cartes.map((c) => CARTE_PAR_CLE.get(c)?.titre ?? c).join(" · ")}
+                />
+                <L nom="Tuiles retenues" valeur={nombre(droits.tuiles.length)} />
+                <L
+                  nom="Sources demandées"
+                  valeur={nombre(droits.besoins.size)}
+                  note={[...droits.besoins].sort().join(", ")}
+                />
+                <L
+                  nom="Lignes de journal"
+                  valeur={nombre(donnees.journal.length)}
+                  note="Créations comprises, contrairement à la cloche"
+                />
+                <L nom="Lecture en cours" valeur={donnees.chargement ? "oui" : "non"} />
+              </Bloc>
+            </div>
+
+            <div>
+              <button
+                type="button"
+                className="btn ghost"
+                onClick={() => setPanneau({ cle: "resultat" })}
+              >
+                Voir le détail du calcul du résultat
+              </button>
+            </div>
+          </Card>
+        </section>
+      )}
 
       <PanneauDetail
         vue={panneau}
@@ -1121,41 +1113,6 @@ export const DashboardV2Page: React.FC<DashboardV2PageProps> = ({
     </div>
   );
 };
-
-/* ─── bandeaux unifiés (ordinateur) ─── */
-
-/** Sur ordinateur, un bloc range ses cartes en rangées (voir dashboard.css) ; sur téléphone il s'efface. */
-const BLOC_DE: Partial<Record<CleCarte, string>> = {
-  agenda: "operations",
-  taches: "operations",
-  commandes: "operations",
-  livraisons: "operations",
-  tresorerie: "finance",
-  sorties: "finance",
-  resultat: "finance",
-  paiements: "finance",
-  fournisseurs: "finance",
-  ventes: "ventes",
-  fil: "ventes",
-  clients: "ventes",
-  top: "ventes",
-  vendeurs: "ventes",
-  stock: "stock",
-  ruptures: "stock",
-  mouvements: "stock",
-};
-
-/** Regroupe les cartes consécutives d'un même bloc, sans jamais changer leur ordre. */
-function enBlocs(cles: CleCarte[]): { bloc?: string; cles: CleCarte[] }[] {
-  const sortie: { bloc?: string; cles: CleCarte[] }[] = [];
-  for (const cle of cles) {
-    const bloc = BLOC_DE[cle];
-    const dernier = sortie[sortie.length - 1];
-    if (bloc && dernier?.bloc === bloc) dernier.cles.push(cle);
-    else sortie.push({ bloc, cles: [cle] });
-  }
-  return sortie;
-}
 
 /* ─── deux petites briques, propres à la table de contrôle ─── */
 

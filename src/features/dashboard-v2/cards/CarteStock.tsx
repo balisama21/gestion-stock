@@ -1,62 +1,39 @@
 import React from "react";
-import { Card, CardHeader } from "../components/Card";
-import { ChiffreCle } from "../components/ChiffreCle";
+import { IconeDuo } from "../../../components/shared/IconeDuo";
+import { LeadImage, TeteCarte } from "../components/Tn";
 import { Tag } from "../components/Tag";
 import { montant, nombre } from "../lib/format";
 import { quantiteEnMots } from "../../../utils/formulas";
+import { VignetteProduit } from "../../../components/shared/VignetteProduit";
 import type { ChiffresStock, LigneStock } from "../lib/chiffres";
+import { leadEtatStock } from "../assets/images";
 
 /**
- * 4. ÉTAGÈRE DE STOCK
+ * ÉTAT DU STOCK — l'étagère : chaque produit, sa jauge et son seuil.
  *
- * Une jauge par produit, remplie à proportion du stock disponible sur
- * son seuil d'alerte. Une jauge et non un chiffre : « 2 / 20 » demande
- * une division mentale, un trait au quart plein se voit sans y penser.
- *
- * UN TRAIT CONTINU, ET NON DIX CASIERS. Elle était découpée en dix
- * blocs : cinq produits faisaient cinquante petits rectangles alignés,
- * et cette répétition fatigue l'œil. Le découpage prétendait aider à
- * compter, mais on ne compte pas des casiers — le chiffre exact est
- * déjà écrit juste au-dessus. Un trait fin dit la même proportion sans
- * ce bruit.
- *
- * ROUGE SOUS LE SEUIL, et seulement là. C'est la règle de la page
- * Produits, reprise telle quelle (`stockActuel <= seuilAlerte`) : deux
- * écrans qui ne s'accorderaient pas sur ce qui est bas feraient douter
- * des deux.
- *
- * LES CINQ PLUS PROCHES DU SEUIL, pas les cinq premiers du catalogue.
- * Une étagère sert à voir ce qui va manquer.
+ * Deux niveaux d'alerte qui s'excluent : sous le seuil (rouge, « stock
+ * faible ») et, avec la préalerte, dans la bande juste au-dessus (orange,
+ * « approche du seuil »). Le mot dit l'état ; la couleur le renforce.
  */
 export const CarteStock: React.FC<{
   stock: ChiffresStock;
   valeurVisible: boolean;
+  /** La photo de chaque produit, par identifiant. */
+  vignettes?: Map<string, string>;
   onProduit?: (produit: LigneStock) => void;
   onCommander?: () => void;
-  /** Ouvre le bon de commande : la liste prête à envoyer au fournisseur. */
   onTelecharger?: () => void;
-}> = ({ stock, valeurVisible, onProduit, onCommander, onTelecharger }) => {
-  // Le compte DOIT correspondre à la liste que les boutons produisent :
-  // « 3 à recommander » au-dessus d'un bon de commande de quatre lignes
-  // ferait douter des deux.
+}> = ({ stock, valeurVisible, vignettes, onProduit, onCommander, onTelecharger }) => {
   const sousLeSeuil = stock.aRecommander.length + stock.enRupture.length;
   const aRecommander = sousLeSeuil + stock.enPrealerte.length;
 
   return (
-    <Card span={4} id="carte-stock">
-      <CardHeader
-        title="Étagère de stock"
-        icon={
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <path d="M21 8l-9-5-9 5 9 5 9-5z" />
-            <path d="M3 8v8l9 5 9-5V8" />
-          </svg>
-        }
+    <article className="card stk" id="carte-stock">
+      <TeteCarte
+        lead={<LeadImage src={leadEtatStock} largeur={38} />}
+        titre="État du stock"
         action={
           aRecommander > 0 ? (
-            // Le ton suit le pire des deux états : tant que rien n'est
-            // passé sous le seuil, une préalerte est une attention et
-            // non un problème.
             <Tag ton={sousLeSeuil > 0 ? "crit" : "warn"}>{aRecommander} à recommander</Tag>
           ) : (
             <Tag ton="ok">Tout est au-dessus du seuil</Tag>
@@ -64,65 +41,56 @@ export const CarteStock: React.FC<{
         }
       />
 
-      {aRecommander > 0 && (
-        <ChiffreCle
-          valeur={aRecommander}
-          libelle={aRecommander > 1 ? "produits à recommander" : "produit à recommander"}
-          detail={sousLeSeuil > 0 ? `dont ${sousLeSeuil} sous le seuil` : undefined}
-          ton={sousLeSeuil > 0 ? "alerte" : "attention"}
-          detailAlerte={sousLeSeuil > 0}
-        />
-      )}
-
       <div className="shelf">
         {stock.etagere.length === 0 ? (
-          <p style={{ margin: 0, color: "var(--muted)", fontSize: 13 }}>
-            Aucun produit au catalogue.
-          </p>
+          <p className="rien">Aucun produit au catalogue.</p>
         ) : (
           stock.etagere.map((p) => {
-            // La part du disponible sur le seuil, bornée à 100 %. Un
-            // stock non nul garde un trait visible : une jauge vide et
-            // une jauge presque vide ne disent pas la même chose.
             const part = p.seuil > 0 ? p.disponible / p.seuil : 1;
-            const rempli = p.disponible > 0 ? Math.max(4, Math.min(100, part * 100)) : 0;
+            const rempli = p.disponible > 0 ? Math.max(4, Math.min(100, part * 100)) : 2;
             const Ligne = onProduit ? "button" : "div";
             return (
               <Ligne
                 key={p.id}
                 {...(onProduit ? { type: "button" as const, onClick: () => onProduit(p) } : {})}
-                className={`item${p.sousLeSeuil ? " low" : p.enPrealerte ? " prealerte" : ""}`}
+                className={`row item${p.sousLeSeuil ? " low" : p.enPrealerte ? " prealerte" : ""}`}
               >
-                <div className="nm">
-                  <span>{p.nom}</span>
-                  {/* Le rail coloré ne suffit pas : un statut doit se lire
-                      sans distinguer les couleurs. La fleche et le mot le
-                      disent, la couleur ne fait que le renforcer.
-                      Les deux états s'excluent — un produit déjà sous son
-                      seuil n'« approche » plus de rien. */}
-                  {p.sousLeSeuil ? (
-                    <small className="bas">
-                      <span aria-hidden="true">↓</span> stock faible
-                    </small>
-                  ) : p.enPrealerte ? (
-                    <small className="approche">
-                      <span aria-hidden="true">↘</span> approche du seuil
-                    </small>
-                  ) : null}
+                <span className="th">
+                  <VignetteProduit nom={p.nom} chemin={vignettes?.get(p.id) ?? null} taille={40} />
+                </span>
+                <div className="corps">
+                  <div className="nm">
+                    <span>{p.nom}</span>
+                    {p.sousLeSeuil ? (
+                      <em className="bas">
+                        <IconeDuo nom="alert" />
+                        stock faible
+                      </em>
+                    ) : p.enPrealerte ? (
+                      <em className="approche">
+                        <IconeDuo nom="alert" />
+                        approche du seuil
+                      </em>
+                    ) : null}
+                  </div>
+                  <div className="pr" aria-hidden="true">
+                    <i style={{ width: `${rempli}%` }} />
+                  </div>
                 </div>
-                <span className="qty num">
+                <span className="q num">
                   {nombre(p.disponible)} / {nombre(p.seuil)}
                 </span>
-                <div className="jauge" aria-hidden="true">
-                  <i style={{ width: `${rempli}%` }} />
-                </div>
+                {onProduit ? <IconeDuo nom="chevright" className="chev" /> : <span />}
               </Ligne>
             );
           })
         )}
       </div>
 
-      <div className="stock-foot">
+      <div className="foot">
+        <span className="ib">
+          <IconeDuo nom="box" />
+        </span>
         <div>
           {valeurVisible ? (
             <>
@@ -142,18 +110,20 @@ export const CarteStock: React.FC<{
         {aRecommander > 0 && (
           <div className="stock-actions">
             {onTelecharger && (
-              <button className="btn ghost" type="button" onClick={onTelecharger}>
+              <button className="btn out" type="button" onClick={onTelecharger}>
+                <IconeDuo nom="download" />
                 Télécharger la liste
               </button>
             )}
             {onCommander && (
-              <button className="btn" type="button" onClick={onCommander}>
+              <button className="btn pri" type="button" onClick={onCommander}>
+                <IconeDuo nom="cart" />
                 Préparer la commande
               </button>
             )}
           </div>
         )}
       </div>
-    </Card>
+    </article>
   );
 };

@@ -1,57 +1,29 @@
 import React from "react";
-import { Card } from "../components/Card";
+import { IconeDuo } from "../../../components/shared/IconeDuo";
 import { BoutonRepli } from "../components/BoutonRepli";
 import { useRepli } from "../lib/repli";
-import { argent, montant, montantEnDeux, nombre, montantMasque } from "../lib/format";
+import { argent, montant, nombre, montantMasque } from "../lib/format";
 import type { CapitalSummary } from "../../../types";
 import type { ChiffresFlux } from "../lib/chiffres";
+import { illPortefeuille, leadTresorerie } from "../assets/images";
 
 /**
- * 1. TRÉSORERIE — le portefeuille
+ * TRÉSORERIE ACTUELLE — l'argent disponible, et d'où il vient.
  *
- * LE CHIFFRE N'EST PAS RECALCULÉ. Il vient de `computedCapital`
- * (`BalsamaApp.tsx`), celui-là même qu'affiche la barre latérale. Deux
- * calculs pour un seul solde finiraient par diverger d'un arrondi, et
- * personne ne saurait lequel croire.
- *
- * LA BARRE ENTRÉES / SORTIES est une PART, pas une échelle. Elle dit
- * quelle proportion du mouvement de la période est entrée et quelle
- * proportion est sortie ; elle ne dit rien du solde, qui est écrit
- * au-dessus en toutes lettres.
- *
- * ── LE DÉTAIL DU SOLDE, ajouté parce que le solde seul ne s'explique pas ──
- *
- * Le gros chiffre sort d'une addition de six postes dont aucun
- * n'apparaissait à l'écran. On les pose donc dans l'ORDRE EXACT du
- * calcul, avec les libellés de l'écran Capital : deux endroits qui
- * expliquent le même chiffre doivent le dire avec les mêmes mots.
- *
- * IL ARRIVE OUVERT, contrairement au calendrier et au journal. Ceux-là
- * sont des contenus qu'on déplie à l'occasion ; celui-ci est la réponse
- * à la question que pose la carte. Le replier reste un clic, et le
- * choix se retient.
- *
- * DEUX HORIZONS COHABITENT sur cette carte, et c'était le second piège :
- * le solde court depuis l'ouverture de la boutique, la barre ne couvre
- * que la période choisie. Chacun le dit maintenant sous son chiffre.
+ * Le solde est celui de toute la boutique, depuis l'ouverture ; la barre
+ * et ses deux montants, eux, suivent la période choisie. Le détail
+ * reprend les six postes du calcul de `BalsamaApp` (capital initial,
+ * apports, ventes encaissées, achats, dépenses, remboursements) : ils
+ * retombent exactement sur le total affiché.
  */
 
-/** Se souvient que le détail a été replié. Ouvert par défaut. */
 const CLE_DETAIL = "tantana.dash.tresorerie-detail";
 
 export const CarteTresorerie: React.FC<{
   capital: CapitalSummary;
   flux: ChiffresFlux;
-  /** Le libellé de la période, pour dater les flux de la barre. */
   periode: string;
-  /**
-   * Ce que les clients doivent encore, crédits récents et retards
-   * confondus. Ce n'est PAS un poste du solde — cet argent n'est
-   * justement pas en caisse — mais c'est la question qu'on se pose en
-   * voyant une trésorerie plus basse que ses ventes.
-   */
   duParLesClients: number;
-  /** « ••• Ar » quand la personne n'a pas le droit de voir le solde. */
   montantVisible: boolean;
 }> = ({ capital, flux, periode, duParLesClients, montantVisible }) => {
   const solde = capital.tresorerieGlobaleActuelle;
@@ -61,8 +33,6 @@ export const CarteTresorerie: React.FC<{
   const partEntrees = total > 0 ? (entrees / total) * 100 : 0;
 
   const { replie, basculer } = useRepli(CLE_DETAIL, false);
-
-  const { chiffres, unite } = montantEnDeux(montantVisible ? solde : montantMasque());
 
   const sousLeSeuil = capital.seuilAlerteTresorerie > 0 && solde < capital.seuilAlerteTresorerie;
 
@@ -94,21 +64,44 @@ export const CarteTresorerie: React.FC<{
   ];
 
   return (
-    <Card span={5} id="carte-tresorerie" className="wallet">
-      <div className="ch">
-        <h2>Trésorerie · argent disponible</h2>
-        <div className="puce" aria-hidden="true" />
-      </div>
-
-      <div>
-        <div className="big num">
-          {chiffres}
-          {unite && <small>{unite}</small>}
-        </div>
-        <div className={`sub${sousLeSeuil ? " alerte" : ""}`}>
-          {sousLeSeuil
-            ? `Sous le seuil d'alerte de ${montant(capital.seuilAlerteTresorerie)}`
-            : "Toutes caisses, depuis l'ouverture"}
+    <article className="card tres" id="carte-tresorerie">
+      <div className="in">
+        <img className="lead" src={leadTresorerie} alt="" width={62} height={62} />
+        <div className="in-t">
+          <b className="t">
+            Trésorerie actuelle{" "}
+            <span title="Toutes caisses confondues, depuis l'ouverture de la boutique">
+              <IconeDuo nom="info" className="info" />
+            </span>
+          </b>
+          <div className={`big num${solde < 0 ? " negatif" : ""}`}>
+            {montantVisible ? montant(solde) : montantMasque()}
+          </div>
+          <div className={`st${sousLeSeuil ? " alerte" : ""}`}>
+            {sousLeSeuil
+              ? `Sous le seuil d'alerte de ${montant(capital.seuilAlerteTresorerie)}`
+              : "Toutes caisses, depuis l'ouverture"}
+          </div>
+          <div
+            className="prog"
+            aria-label={`Entrées ${nombre(partEntrees)} %, sorties ${nombre(100 - partEntrees)} %`}
+          >
+            <i style={{ width: `${partEntrees}%` }} />
+          </div>
+          <div className="row2">
+            <span>
+              <i />
+              Entrées {periode} <b>+{argent(entrees)}</b>
+            </span>
+            <span>
+              <i className="r" />
+              Sorties {periode}{" "}
+              <b>
+                {"−"}
+                {argent(sorties)}
+              </b>
+            </span>
+          </div>
         </div>
       </div>
 
@@ -116,18 +109,29 @@ export const CarteTresorerie: React.FC<{
           le masquer au-dessus et le détailler en dessous reviendrait à le
           donner quand même. */}
       {montantVisible && (
-        <div className="compo">
-          <div className="compo-tete">
-            <h3>D&apos;où vient ce solde ?</h3>
-            <BoutonRepli replie={replie} onBasculer={basculer} quoi="le détail du solde" />
-          </div>
+        <div className="origin compo">
+          <h4>
+            <span className="ic">
+              <IconeDuo nom="pie" />
+            </span>
+            D&apos;où vient ce solde ?
+            <BoutonRepli
+              replie={replie}
+              onBasculer={basculer}
+              quoi="le détail du solde"
+              className="plier-mini"
+            />
+          </h4>
 
           {!replie && (
             <>
               <dl className="compo-liste">
                 {postes.map((p) => (
-                  <div key={p.cle}>
-                    <dt>{p.libelle}</dt>
+                  <div key={p.cle} className={p.signe === "−" ? "moins" : undefined}>
+                    <dt>
+                      <i />
+                      {p.libelle}
+                    </dt>
                     <dd className="num">
                       {p.signe} {montant(p.valeur)}
                     </dd>
@@ -135,10 +139,10 @@ export const CarteTresorerie: React.FC<{
                 ))}
               </dl>
 
-              <div className="compo-total">
+              <p className="compo-total">
                 <span>Trésorerie disponible</span>
                 <b className="num">{montant(solde)}</b>
-              </div>
+              </p>
 
               {duParLesClients > 0 && (
                 <p className="compo-note">
@@ -148,32 +152,9 @@ export const CarteTresorerie: React.FC<{
               )}
             </>
           )}
+          <img className="wallet" src={illPortefeuille} alt="" />
         </div>
       )}
-
-      <div className="flow">
-        <div
-          className="flowbar"
-          aria-label={`Entrées ${nombre(partEntrees)} %, sorties ${nombre(100 - partEntrees)} %`}
-        >
-          <i style={{ width: `${partEntrees}%`, background: "var(--flux-entrees)" }} />
-          <i style={{ width: `${100 - partEntrees}%`, background: "var(--flux-sorties)" }} />
-        </div>
-        <div className="flowleg">
-          <span>
-            <i className="dot" style={{ background: "var(--flux-entrees)" }} />
-            Entrées {periode} <b>+{argent(entrees)}</b>
-          </span>
-          <span>
-            <i className="dot" style={{ background: "var(--flux-sorties)" }} />
-            Sorties {periode}{" "}
-            <b>
-              {"−"}
-              {argent(sorties)}
-            </b>
-          </span>
-        </div>
-      </div>
-    </Card>
+    </article>
   );
 };

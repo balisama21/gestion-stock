@@ -59,7 +59,9 @@ export type CleCarte =
   | "mouvements"
   | "top"
   | "livraisons"
-  | "fournisseurs";
+  | "fournisseurs"
+  | "annuaireFournisseurs"
+  | "annuairePrestataires";
 
 export type CleTuile = "ventes" | "entrees" | "sorties" | "stock" | "activite";
 
@@ -76,7 +78,7 @@ export type CleTuile = "ventes" | "entrees" | "sorties" | "stock" | "activite";
  * d'affaires, seule au-dessus des autres et sans titre. C'est le seul
  * gros chiffre de l'écran, et rien ne doit lui disputer la place.
  */
-export type GroupeCarte = "tete" | "aujourdhui" | "argent" | "ventes" | "stock";
+export type GroupeCarte = "tete" | "aujourdhui" | "argent" | "ventes" | "stock" | "partenaires";
 
 /** Dans l'ordre d'affichage. La tête n'y figure pas : elle n'a pas de titre. */
 export const GROUPES: { cle: Exclude<GroupeCarte, "tete">; titre: string }[] = [
@@ -84,6 +86,7 @@ export const GROUPES: { cle: Exclude<GroupeCarte, "tete">; titre: string }[] = [
   { cle: "ventes", titre: "Les ventes" },
   { cle: "argent", titre: "L’argent" },
   { cle: "stock", titre: "Le stock" },
+  { cle: "partenaires", titre: "Fournisseurs & Prestataires" },
 ];
 
 export interface DefinitionCarte {
@@ -273,6 +276,22 @@ export const CARTES: DefinitionCarte[] = [
     widget: "montants_a_payer",
     champRequis: { module: "achats", champ: "prix_achat" },
     donnees: ["achats", "fournisseurs"],
+  },
+  {
+    cle: "annuaireFournisseurs",
+    groupe: "partenaires",
+    titre: "Fournisseurs",
+    span: 6,
+    module: "fournisseurs",
+    donnees: ["fournisseurs", "achats"],
+  },
+  {
+    cle: "annuairePrestataires",
+    groupe: "partenaires",
+    titre: "Prestataires",
+    span: 6,
+    module: "prestataires",
+    donnees: ["fournisseurs"],
   },
 ];
 

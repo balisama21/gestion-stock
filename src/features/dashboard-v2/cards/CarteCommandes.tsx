@@ -1,20 +1,15 @@
 import React from "react";
-import { Card, CardHeader } from "../components/Card";
-import { EtatVide } from "../components/States";
-import { ChiffreCle } from "../components/ChiffreCle";
+import { IconeDuo } from "../../../components/shared/IconeDuo";
+import { Lead, Lien, TeteCarte } from "../components/Tn";
 import type { ChiffresCommandes } from "../lib/chiffres";
+import { illCarton } from "../assets/images";
 
 /**
- * 8. SUIVI DES COMMANDES
+ * SUIVI DES COMMANDES — où en sont les commandes clients, étape par étape.
  *
- * Quatre étapes sur une ligne pointillée : reçue, en préparation, en
- * livraison, à encaisser. Ce n'est pas un entonnoir — une commande peut
- * être livrée et rester à encaisser — mais l'ordre de lecture suit
- * celui du travail, ce qui suffit à s'y retrouver.
- *
- * QUAND TOUT EST À ZÉRO, LA CARTE LE DIT AUTREMENT. Quatre ronds vides
- * ressemblent à un écran cassé ; une phrase verte dit que le travail
- * est fait. C'est la bonne nouvelle, elle mérite d'être lisible.
+ * Une étape qui porte des commandes affiche leur nombre ; une étape vide,
+ * le signe ∅. Quand rien n'est en cours, la première étape est cochée :
+ * tout ce qui a été reçu est parti.
  */
 export const CarteCommandes: React.FC<{
   commandes: ChiffresCommandes;
@@ -52,50 +47,56 @@ export const CarteCommandes: React.FC<{
       ),
     },
   ];
+  const rien = commandes.total === 0;
 
   return (
-    <Card span={4} id="carte-commandes">
-      <CardHeader
-        title="Suivi des commandes"
-        icon={
-          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-            <path d="M1 4h14v12H1zM15 9h4l3 3v4h-7" />
-            <circle cx="5.5" cy="18.5" r="2" />
-            <circle cx="18.5" cy="18.5" r="2" />
-          </svg>
-        }
-        action={
-          onOuvrir && (
-            <button className="link" type="button" onClick={onOuvrir}>
-              Tout voir
-            </button>
-          )
-        }
+    <article className="card" id="carte-commandes">
+      <TeteCarte
+        lead={<Lead nom="truck" />}
+        titre="Suivi des commandes"
+        className="h20"
+        action={<Lien onClick={onOuvrir}>Tout voir</Lien>}
       />
 
-      {commandes.total > 0 && (
-        <ChiffreCle
-          valeur={commandes.total}
-          libelle={commandes.total > 1 ? "commandes en cours" : "commande en cours"}
-          detail={commandes.aEncaisser > 0 ? `dont ${commandes.aEncaisser} à encaisser` : undefined}
-        />
-      )}
-
-      <div className="track">
-        {etapes.map((e, i) => (
-          <div className={`stage${e.n > 0 ? " actif" : ""}`} key={i}>
-            <div className="bub">{e.n}</div>
-            <small>{e.libelle}</small>
-          </div>
-        ))}
+      <div className="steps">
+        {etapes.map((e, i) => {
+          const fait = rien ? i === 0 : e.n > 0;
+          return (
+            <div className={`step${fait ? " done" : ""}`} key={i}>
+              <i>{rien && i === 0 ? <IconeDuo nom="check" /> : e.n > 0 ? e.n : "∅"}</i>
+              {e.libelle}
+            </div>
+          );
+        })}
       </div>
 
-      {commandes.total === 0 && (
-        <EtatVide
-          titre="Aucune commande en cours"
-          detail="Tout est livré. Les nouvelles commandes apparaîtront ici, étape par étape."
-        />
-      )}
-    </Card>
+      <div className="okbar">
+        {rien && <img className="art-carton" src={illCarton} alt="" />}
+        <div className="c">
+          <IconeDuo nom={rien ? "check" : "bag"} />
+        </div>
+        <div>
+          {rien ? (
+            <>
+              <b>Aucune commande en cours</b>
+              <span>
+                Tout est livré. Les nouvelles commandes apparaîtront ici, étape par étape.
+              </span>
+            </>
+          ) : (
+            <>
+              <b>
+                {commandes.total} commande{commandes.total > 1 ? "s" : ""} en cours
+              </b>
+              <span>
+                {commandes.aEncaisser > 0
+                  ? `dont ${commandes.aEncaisser} à encaisser`
+                  : "Suivez chaque commande jusqu'à son encaissement."}
+              </span>
+            </>
+          )}
+        </div>
+      </div>
+    </article>
   );
 };
