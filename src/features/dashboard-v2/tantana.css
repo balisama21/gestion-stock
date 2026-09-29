@@ -212,28 +212,62 @@
 .tn .blk-corps {
   position: relative;
   z-index: 1;
+  /* Tout texte sans taille propre prend celle du texte courant du haut. */
+  font-size: var(--fs-corps);
+}
+/* Le menu de période d'une section, à l'échelle des sections ; celui du
+   haut de page garde la sienne. */
+.tn .blk-corps .menu-holder > .pill {
+  font-size: var(--fs-lien);
 }
 
 /* ── Cartes ── */
-/* ── Une seule échelle de texte pour toutes les sections ── */
+/* ── Une seule échelle pour toutes les sections : celle du haut de page ──
+   Le haut de page mesure tout en `--u`, sa largeur divisée par 1546. Les
+   sections reprennent exactement la même unité, `--us`, et les mêmes
+   valeurs : un titre, un montant ou un sous-texte a la même taille dans
+   une section que dans les cartes du haut, à toutes les largeurs.
+   Déclarée comme longueur : elle se calcule une fois, ici, et les
+   conteneurs imbriqués (fil des ventes, annuaires) ne la faussent pas. */
+@property --us {
+  syntax: "<length>";
+  inherits: true;
+  initial-value: 1px;
+}
 .tn {
-  --fs-titre: 17px; /* titre d'une carte */
-  --fs-tuile: 15px; /* libellé d'une tuile chiffrée */
-  --fs-xl: 34px; /* le montant principal d'une carte */
-  --fs-l: 26px; /* la valeur d'une tuile */
-  --fs-m: 22px; /* un compteur dans une carte */
-  --fs-liste: 15px; /* un montant dans une liste */
-  --fs-nom: 14.5px; /* un nom dans une liste */
-  --fs-sec: 13px; /* le texte secondaire, toujours gris */
-  --fs-micro: 11.5px; /* surtitres et légendes de graphique */
+  container: tableau / inline-size;
+}
+.tn > * {
+  /* Le haut de page déborde de la gouttière des deux côtés. */
+  --us: calc((100cqw + 2 * var(--gut)) / 1546);
+}
+/* Déclarés au même niveau que `--us` : un `var()` se résout là où la
+   variable est déclarée, et sur `.tn` l'unité ne vaut pas encore. */
+.tn > * {
+  --fs-titre: calc(15.1 * var(--us)); /* titre d'une carte (.kt) */
+  --fs-tuile: calc(15.1 * var(--us)); /* libellé d'une tuile chiffrée (.kt) */
+  --fs-xl: calc(26.4 * var(--us)); /* le montant clé (.kv) */
+  --fs-l: calc(26.4 * var(--us)); /* la valeur d'une tuile (.kv) */
+  --fs-m: calc(20.6 * var(--us)); /* un compteur (.kv.moyen) */
+  --fs-liste: calc(13.8 * var(--us)); /* un montant dans une liste (.kb) */
+  --fs-nom: calc(13.8 * var(--us)); /* un nom dans une liste (.kb) */
+  --fs-corps: calc(13.7 * var(--us)); /* le texte courant (.kd) */
+  --fs-sec: calc(13.7 * var(--us)); /* le texte secondaire, gris (.kd) */
+  --fs-micro: calc(11.6 * var(--us)); /* mentions et légendes (.kx) */
+  --fs-lien: calc(11.6 * var(--us)); /* liens, badges, boutons (.kl) */
+  --rayon: calc(18 * var(--us)); /* coins d'une carte (.tc) */
+  --marge: calc(20 * var(--us)); /* marge intérieure d'une carte */
+  --ecart: calc(16.2 * var(--us)); /* écart entre deux cartes */
+  --ico: calc(32 * var(--us)); /* icône de titre (.pastille) */
+  --ico-p: calc(22 * var(--us)); /* petite icône */
 }
 .tn .card {
   position: relative;
   background: var(--card);
   border: 1px solid var(--line);
-  border-radius: 20px;
+  border-radius: var(--rayon);
   box-shadow: var(--shadow);
-  padding: 20px 22px;
+  padding: var(--marge);
   min-width: 0;
 }
 .tn .card-h {
@@ -256,8 +290,8 @@
   flex: none;
 }
 .tn .lead .ico {
-  width: 26px;
-  height: 26px;
+  width: var(--ico);
+  height: var(--ico);
 }
 .tn .lead svg,
 .tn .pastille svg,
@@ -293,7 +327,7 @@
   margin-left: auto;
   color: var(--g2);
   font-weight: 600;
-  font-size: 13px;
+  font-size: var(--fs-lien);
   white-space: nowrap;
 }
 .tn .link:hover {
@@ -309,7 +343,7 @@
   gap: 6px;
   padding: 5px 14px;
   border-radius: 999px;
-  font-size: 12.5px;
+  font-size: var(--fs-lien);
   font-weight: 600;
   background: var(--gsoft);
   color: var(--g2);
@@ -339,7 +373,7 @@
   padding: 10px 16px;
   border-radius: 12px;
   font-weight: 600;
-  font-size: 13.5px;
+  font-size: var(--fs-lien);
   white-space: nowrap;
 }
 .tn .btn .ico {
@@ -364,35 +398,35 @@
 .tn .btn.rond {
   border-radius: 999px;
   padding: 7px 14px;
-  font-size: 12.5px;
+  font-size: var(--fs-lien);
 }
 .tn .btn.out.rond {
   color: var(--g2);
 }
 .tn .btn.petit {
   padding: 7px 12px;
-  font-size: 12.5px;
+  font-size: var(--fs-lien);
 }
 .tn .g2 {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 18px;
+  gap: var(--ecart);
 }
 .tn .g3 {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 18px;
+  gap: var(--ecart);
 }
 .tn .g4 {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
-  gap: 18px;
+  gap: var(--ecart);
 }
 .tn .g2.une {
   grid-template-columns: minmax(0, 1fr);
 }
 .tn .gap {
-  margin-top: 18px;
+  margin-top: var(--ecart);
 }
 .tn .empty {
   display: flex;
@@ -409,7 +443,7 @@
 }
 .tn .empty b {
   color: var(--ink);
-  font-size: 13.5px;
+  font-size: var(--fs-nom);
   margin-top: 6px;
 }
 .tn .empty .s {
@@ -426,7 +460,7 @@
 .tn .tbl {
   width: 100%;
   border-collapse: collapse;
-  font-size: 13px;
+  font-size: var(--fs-corps);
 }
 .tn .tbl {
   border-spacing: 0;
@@ -496,7 +530,7 @@
 .tn .date-chip {
   margin-left: auto;
   color: var(--muted);
-  font-size: 12.5px;
+  font-size: var(--fs-lien);
   display: inline-flex;
   gap: 6px;
   align-items: center;
@@ -545,7 +579,7 @@
   align-items: center;
   padding: 3px 10px;
   border-radius: 999px;
-  font-size: 12px;
+  font-size: var(--fs-lien);
   font-weight: 600;
   white-space: nowrap;
   background: var(--line);
@@ -575,7 +609,7 @@
   display: inline-flex;
   padding: 2px 8px;
   border-radius: 999px;
-  font-size: 12px;
+  font-size: var(--fs-lien);
   font-weight: 700;
   margin-top: 4px;
 }
@@ -601,7 +635,7 @@
   border-radius: 14px;
   padding: 10px 14px;
   margin-bottom: 12px;
-  font-size: 13px;
+  font-size: var(--fs-sec);
 }
 .tn .card-err small {
   color: var(--muted);
@@ -785,12 +819,12 @@
 
 /* ── Icônes teintées : la couleur seule porte le sens ── */
 .tn .lead.rond .ico {
-  width: 32px;
-  height: 32px;
+  width: var(--ico);
+  height: var(--ico);
 }
 .tn .lead.grand .ico {
-  width: 34px;
-  height: 34px;
+  width: var(--ico);
+  height: var(--ico);
 }
 .tn .lead.rouge,
 .tn .pastille.rouge {
@@ -842,8 +876,8 @@
   color: var(--info);
 }
 .tn .act .a .c .ico {
-  width: 22px;
-  height: 22px;
+  width: var(--ico-p);
+  height: var(--ico-p);
 }
 
 /* ═══════════════ LE HAUT : bonjour, cartes du jour ═══════════════ */
@@ -1474,7 +1508,7 @@
 }
 .tn .dash b {
   color: var(--ink);
-  font-size: 17px;
+  font-size: var(--fs-titre);
 }
 .tn .dash small {
   font-size: var(--fs-micro);
@@ -1494,7 +1528,7 @@
   text-align: center;
 }
 .tn .cal .dow {
-  font-size: 11px;
+  font-size: var(--fs-micro);
   font-weight: 700;
   color: var(--muted);
   padding: 4px 0;
@@ -1503,7 +1537,7 @@
   position: relative;
   min-height: 34px;
   border-radius: 10px;
-  font-size: 13px;
+  font-size: var(--fs-sec);
   text-align: center;
 }
 .tn .cal .d:hover {
@@ -1547,12 +1581,12 @@
 .tn .todo-ok b {
   color: var(--g2);
   display: block;
-  font-size: 15px;
+  font-size: var(--fs-titre);
   margin-top: 6px;
 }
 .tn .todo-ok span {
   color: var(--muted);
-  font-size: 13px;
+  font-size: var(--fs-sec);
 }
 .tn .todo-ok span.alerte {
   color: var(--red);
@@ -1576,7 +1610,7 @@
   gap: 10px;
   padding: 8px 10px;
   border-radius: 12px;
-  font-size: 13.5px;
+  font-size: var(--fs-corps);
 }
 .tn .task:hover {
   background: var(--gsoft);
@@ -1616,8 +1650,8 @@
   flex: none;
 }
 .tn .devis .ib .ico {
-  width: 28px;
-  height: 28px;
+  width: var(--ico);
+  height: var(--ico);
 }
 .tn .devis b {
   display: block;
@@ -1660,7 +1694,7 @@
   background: var(--card);
   border: 2px solid var(--line);
   font-style: normal;
-  font-size: 12px;
+  font-size: var(--fs-micro);
 }
 .tn .step i .ico {
   width: 16px;
@@ -1671,7 +1705,7 @@
   border-color: var(--g2);
   color: #fff;
   font-weight: 700;
-  font-size: 13px;
+  font-size: var(--fs-micro);
 }
 .tn .step.done i .ico svg {
   stroke-width: 2.6;
@@ -1712,8 +1746,8 @@
 }
 .tn .okbar .c .ico,
 .tn .deliv .c .ico {
-  width: 28px;
-  height: 28px;
+  width: var(--ico);
+  height: var(--ico);
 }
 .tn .okbar b,
 .tn .deliv b {
@@ -1803,14 +1837,14 @@
 .tn .feed .d {
   display: flex;
   flex-direction: column;
-  font-size: 12.5px;
+  font-size: var(--fs-sec);
   line-height: 1.35;
   color: var(--muted);
   white-space: nowrap;
 }
 .tn .feed .d b {
   color: var(--ink);
-  font-size: 14px;
+  font-size: var(--fs-nom);
   font-weight: 700;
 }
 .tn .feed .d .jc {
@@ -1939,8 +1973,8 @@
   flex: none;
 }
 .tn .cli .it .b .ico {
-  width: 28px;
-  height: 28px;
+  width: var(--ico);
+  height: var(--ico);
 }
 .tn .cli .it.orange .b {
   color: var(--orange);
@@ -1968,6 +2002,7 @@
 .tn .cli .it b.v {
   font-size: var(--fs-m);
   line-height: 1.1;
+  font-weight: 500;
 }
 .tn .cli .it .chev {
   margin-left: auto;
@@ -2029,12 +2064,12 @@
 }
 .tn .top-empty b {
   color: var(--ink);
-  font-size: 15px;
+  font-size: var(--fs-titre);
   display: block;
   margin-top: 8px;
 }
 .tn .top-empty span {
-  font-size: 12.5px;
+  font-size: var(--fs-sec);
   display: block;
   max-width: 300px;
   margin: 4px auto 0;
@@ -2137,7 +2172,7 @@
   margin-top: 12px;
   padding-top: 10px;
   color: var(--muted);
-  font-size: 13px;
+  font-size: var(--fs-sec);
 }
 .tn .autres b {
   color: var(--ink);
@@ -2184,7 +2219,7 @@
 .tn .rank .pc span {
   color: var(--g2);
   font-weight: 700;
-  font-size: 12.5px;
+  font-size: var(--fs-lien);
 }
 
 /* ═══════════════ L'ARGENT ═══════════════ */
@@ -2210,7 +2245,7 @@
   min-width: 0;
 }
 .tn .tres .t {
-  font-size: 14px;
+  font-size: var(--fs-tuile);
   display: inline-flex;
   align-items: center;
   gap: 6px;
@@ -2253,7 +2288,7 @@
 .tn .tres .row2 {
   display: flex;
   justify-content: space-between;
-  font-size: 12.5px;
+  font-size: var(--fs-sec);
   color: var(--muted);
   margin-top: 12px;
   gap: 10px;
@@ -2295,8 +2330,8 @@
   flex: none;
 }
 .tn .origin h4 .oic .ico {
-  width: 24px;
-  height: 24px;
+  width: var(--ico-p);
+  height: var(--ico-p);
 }
 .tn .compo-liste > div {
   display: flex;
@@ -2304,7 +2339,7 @@
   gap: 10px;
   padding: 7px 0;
   border-bottom: 1px solid var(--line);
-  font-size: 13.5px;
+  font-size: var(--fs-corps);
 }
 .tn .compo-liste dt {
   display: flex;
@@ -2333,7 +2368,7 @@
   justify-content: space-between;
   gap: 10px;
   padding-top: 8px;
-  font-size: 13.5px;
+  font-size: var(--fs-corps);
   font-weight: 700;
 }
 .tn .compo-note {
@@ -2386,8 +2421,8 @@
   flex: none;
 }
 .tn .mini .ib .ico {
-  width: 28px;
-  height: 28px;
+  width: var(--ico);
+  height: var(--ico);
 }
 .tn .mini .ib.vert {
   color: var(--g2);
@@ -2449,15 +2484,15 @@
   width: 44px;
   display: grid;
   place-items: center;
-  font-size: 34px;
+  font-size: var(--fs-xl);
   font-weight: 700;
   line-height: 1;
   color: var(--g2);
   flex: none;
 }
 .tn .result .big .ico {
-  width: 40px;
-  height: 40px;
+  width: var(--ico);
+  height: var(--ico);
 }
 .tn .result .rr.negatif .big {
   color: var(--red);
@@ -2486,7 +2521,7 @@
   display: flex;
   align-items: center;
   gap: 8px;
-  font-size: 13.5px;
+  font-size: var(--fs-corps);
 }
 .tn .result dl div::after {
   content: "";
@@ -2506,7 +2541,7 @@
   border-radius: 14px;
   padding: 12px 14px;
   margin-top: 14px;
-  font-size: 12.5px;
+  font-size: var(--fs-sec);
   color: var(--muted);
 }
 .tn .result .note .i {
@@ -2516,8 +2551,8 @@
   flex: none;
 }
 .tn .result .note .i .ico {
-  width: 20px;
-  height: 20px;
+  width: var(--ico-p);
+  height: var(--ico-p);
 }
 .tn .note-lien {
   color: var(--g2);
@@ -2573,7 +2608,7 @@
   padding: 9px 8px;
   border-radius: 12px;
   text-align: left;
-  font-size: 13.5px;
+  font-size: var(--fs-corps);
 }
 .tn button.lrow:hover {
   background: var(--gsoft);
@@ -2691,7 +2726,7 @@
   border: 1px solid var(--line);
   border-radius: 999px;
   padding: 5px 14px;
-  font-size: 12.5px;
+  font-size: var(--fs-lien);
   font-weight: 600;
   color: var(--g2);
   background: var(--card);
@@ -2718,7 +2753,7 @@
 }
 .tn .stk .rien {
   color: var(--muted);
-  font-size: 13px;
+  font-size: var(--fs-sec);
 }
 .tn .stk .row {
   display: grid;
@@ -2795,7 +2830,7 @@
   background: var(--orange);
 }
 .tn .stk .q {
-  font-size: 12.5px;
+  font-size: var(--fs-sec);
   color: var(--muted);
   white-space: nowrap;
 }
@@ -2819,8 +2854,8 @@
   place-items: center;
 }
 .tn .stk .foot .ib .ico {
-  width: 26px;
-  height: 26px;
+  width: var(--ico);
+  height: var(--ico);
 }
 .tn .stk .foot small {
   display: block;
@@ -2838,7 +2873,7 @@
 }
 .tn .stock-actions .btn {
   padding: 9px 12px;
-  font-size: 12.5px;
+  font-size: var(--fs-lien);
 }
 .tn .io {
   display: grid;
@@ -2880,7 +2915,7 @@
 }
 .tn .io b {
   font-size: var(--fs-m);
-  font-weight: 700;
+  font-weight: 500;
   display: block;
   margin-top: 4px;
   white-space: nowrap;
@@ -2892,7 +2927,7 @@
   display: flex;
   gap: 16px;
   flex-wrap: wrap;
-  font-size: 12.5px;
+  font-size: var(--fs-sec);
   color: var(--muted);
   margin: 14px 0 4px;
 }
@@ -2915,7 +2950,7 @@
   stroke-width: 1;
 }
 .tn .mvchart .axe {
-  font-size: 11px;
+  font-size: var(--fs-micro);
   fill: var(--muted);
 }
 .tn .mvchart polyline {
@@ -2983,8 +3018,8 @@
 .tn .f-grid {
   display: grid;
   grid-template-columns: minmax(0, 1.12fr) minmax(0, 1fr) 272px;
-  gap: 18px;
-  margin-top: 18px;
+  gap: var(--ecart);
+  margin-top: var(--ecart);
   align-items: start;
 }
 .tn .f-grid.une {
@@ -3021,7 +3056,7 @@
   color: var(--ink);
   width: 100%;
   min-width: 0;
-  font-size: 12px;
+  font-size: var(--fs-sec);
 }
 .tn .f-search .filtre {
   display: inline-flex;
@@ -3029,7 +3064,7 @@
   gap: 4px;
   padding: 4px 6px;
   border-radius: 8px;
-  font-size: 11.5px;
+  font-size: var(--fs-micro);
   font-weight: 600;
   min-height: 0;
   flex: none;
@@ -3040,10 +3075,10 @@
 }
 .tn .f-search .btn {
   padding: 9px 11px;
-  font-size: 12px;
+  font-size: var(--fs-lien);
 }
 .tn .f-grid .tbl {
-  font-size: 13px;
+  font-size: var(--fs-corps);
 }
 .tn .f-grid .tbl th,
 .tn .f-grid .tbl td {
@@ -3057,22 +3092,9 @@
 .tn .f-grid .tbl td {
   hyphens: auto;
 }
-/* Le numéro tient toujours sur une ligne. Dans une carte étroite, sa
-   fin laisse place à « … » : le numéro entier reste au survol et dans
-   la fiche. */
-.tn .f-grid .annuaire {
-  container: annuaire / inline-size;
-}
+/* Le numéro tient toujours sur une ligne. */
 .tn .f-grid .tbl td.contact {
   white-space: nowrap;
-}
-@container annuaire (max-width: 520px) {
-  .tn .f-grid .tbl td.contact span {
-    display: block;
-    width: 64px;
-    overflow: hidden;
-    text-overflow: ellipsis;
-  }
 }
 .tn .f-grid .pill {
   padding: 4px 8px;
@@ -3152,7 +3174,7 @@
   font-weight: 600;
   color: var(--g2);
   margin-bottom: 8px;
-  font-size: 12.5px;
+  font-size: var(--fs-lien);
   text-align: left;
 }
 .tn .qa > button:last-child {
@@ -3174,7 +3196,7 @@
   grid-template-columns: 34px minmax(0, 1fr) auto;
   gap: 12px;
   align-items: flex-start;
-  font-size: 11.5px;
+  font-size: var(--fs-micro);
 }
 .tn .act .a b {
   display: block;
@@ -3240,6 +3262,9 @@
 @media (max-width: 999px) {
   .tn .tbi {
     --u: 0.82px;
+  }
+  .tn > * {
+    --us: 0.82px;
   }
   /* Le hero : la photo garde ses proportions et se cale à droite. */
   .tn .tb-hero {
@@ -3544,9 +3569,6 @@
     border: 0;
     padding: 6px 12px;
   }
-  .tn .tres .big {
-    font-size: clamp(26px, 9vw, 36px);
-  }
   .tn .tres .in {
     flex-wrap: wrap;
   }
@@ -3630,7 +3652,6 @@
   }
   .tn .feed .statut {
     width: 76px;
-    font-size: 12px;
   }
 }
 @container fil (max-width: 440px) {
@@ -3647,26 +3668,13 @@
   .tn .feed .d .jc {
     display: inline;
   }
-  .tn .feed .who > b {
-    font-size: 13.5px;
-  }
   .tn .feed .ava {
     width: 34px !important;
     height: 34px !important;
     font-size: 14px !important;
   }
-  .tn .feed .d {
-    font-size: 11px;
-  }
-  .tn .feed .d b {
-    font-size: 12.5px;
-  }
-  .tn .feed .amt {
-    font-size: 13px;
-  }
   .tn .feed .statut {
     width: 70px;
-    font-size: 11px;
     gap: 4px;
   }
   .tn .feed .prod .vignette-produit {
