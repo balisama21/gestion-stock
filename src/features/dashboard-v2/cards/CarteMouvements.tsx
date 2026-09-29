@@ -1,10 +1,9 @@
 import React, { useState } from "react";
-import { LeadImage, TeteCarte } from "../components/Tn";
+import { Lead, TeteCarte } from "../components/Tn";
 import { EtatErreur } from "../components/States";
 import { dateLocale, jourEtMois, nombre } from "../lib/format";
 import type { ChiffresStock } from "../lib/chiffres";
 import type { Periode } from "../hooks/useDashboardPeriod";
-import { leadEntreesSorties } from "../assets/images";
 
 /**
  * ENTRÉES & SORTIES DE STOCK — les unités entrées, sorties, et leur solde,
@@ -56,7 +55,7 @@ export const CarteMouvements: React.FC<{
   return (
     <article className="card" id="carte-mouvements">
       <TeteCarte
-        lead={<LeadImage src={leadEntreesSorties} largeur={38} />}
+        lead={<Lead nom="swap" />}
         titre="Entrées & sorties de stock"
         sous={stock.mouvementsEnRepli ? "D'après les achats et les ventes" : undefined}
         action={selecteur}

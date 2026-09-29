@@ -1,23 +1,12 @@
 import React, { useMemo, useState } from "react";
 import { IconeDuo, type NomIcone } from "../../../components/shared/IconeDuo";
-import { LeadImage, Lien, TeteCarte, Vide } from "../components/Tn";
+import { Lead, Lien, TeteCarte, Vide, type TonIcone } from "../components/Tn";
 import { dateLocale, montant, nombre } from "../lib/format";
 import { dateDuJour, dateDansNJours } from "../../../lib/dates";
 import { teinteDe } from "../../../lib/teintes";
 import type { ChiffresFournisseurs } from "../lib/chiffres";
 import type { Purchase } from "../../../types";
-import {
-  actCommande,
-  actPaiement,
-  actPrestataire,
-  leadCommandes,
-  leadFournisseurs,
-  leadFournisseursCarte,
-  leadPaiements,
-  leadPrestataires,
-  leadPrestatairesCarte,
-  illVideArgent,
-} from "../assets/images";
+import { illVideArgent } from "../assets/images";
 
 /**
  * FOURNISSEURS & PRESTATAIRES
@@ -80,7 +69,7 @@ interface Ligne {
 /** Un annuaire : recherche, filtre de statut, tableau paginé. */
 const Annuaire: React.FC<{
   titre: string;
-  lead: string;
+  lead: NomIcone;
   colonne: string;
   icone: NomIcone;
   placeholder: string;
@@ -109,7 +98,7 @@ const Annuaire: React.FC<{
   return (
     <article className="card annuaire">
       <TeteCarte
-        lead={<LeadImage src={lead} largeur={38} />}
+        lead={<Lead nom={lead} />}
         titre={titre}
         action={<Lien onClick={onOuvrir}>Voir tout</Lien>}
       />
@@ -331,7 +320,8 @@ export const SectionPartenaires: React.FC<{
     const tout: {
       cle: string;
       tri: string;
-      image: string;
+      icone: NomIcone;
+      ton: TonIcone;
       titre: string;
       detail: string;
       quand: string;
@@ -340,7 +330,8 @@ export const SectionPartenaires: React.FC<{
       tout.push({
         cle: `a${a.id}`,
         tri: a.date,
-        image: actCommande,
+        icone: "cart",
+        ton: "vert",
         titre: `Achat${a.fournisseur ? ` chez ${a.fournisseur}` : ""}`,
         detail: `${a.designation} × ${nombre(a.quantite)} · ${montant(a.totalAchat)}`,
         quand: quand(a.date),
@@ -351,7 +342,8 @@ export const SectionPartenaires: React.FC<{
       tout.push({
         cle: `r${r.purchase_id}${r.created_at ?? r.date}${r.montant}`,
         tri: r.created_at ?? r.date,
-        image: actPaiement,
+        icone: "banknote",
+        ton: "vert",
         titre: "Paiement effectué",
         detail: `${achat?.fournisseur ? `${achat.fournisseur} · ` : ""}${montant(r.montant)}`,
         quand: quand(r.date, r.created_at),
@@ -361,7 +353,8 @@ export const SectionPartenaires: React.FC<{
       tout.push({
         cle: `f${f.id}`,
         tri: f.created_at,
-        image: actPrestataire,
+        icone: "userplus",
+        ton: "bleu",
         titre: "Nouveau fournisseur ajouté",
         detail: [f.nom, (f.produits_fournis ?? []).join(", ") || f.categorie]
           .filter(Boolean)
@@ -373,7 +366,8 @@ export const SectionPartenaires: React.FC<{
       tout.push({
         cle: `p${p.id}`,
         tri: p.created_at,
-        image: actPrestataire,
+        icone: "userplus",
+        ton: "bleu",
         titre: "Nouveau prestataire ajouté",
         detail: [p.nom, p.type_service].filter(Boolean).join(" · "),
         quand: quand(dateDuJour(new Date(p.created_at)), p.created_at),
@@ -383,7 +377,7 @@ export const SectionPartenaires: React.FC<{
   }, [achats, reglements, fournisseurs, prestataires]);
 
   const stat = (
-    lead: string,
+    lead: NomIcone,
     titre: string,
     valeur: string,
     detail: string,
@@ -397,7 +391,7 @@ export const SectionPartenaires: React.FC<{
           ? { type: "button" as const, onClick, "aria-label": `${titre} : ${valeur}` }
           : {})}
       >
-        <img className="lead" src={lead} alt="" width={54} height={54} />
+        <Lead nom={lead} rond />
         <div>
           <h4>{titre}</h4>
           <div className="n num">{valeur}</div>
@@ -412,24 +406,12 @@ export const SectionPartenaires: React.FC<{
     <>
       <div className="g4 f-top">
         {fournisseurs &&
-          stat(
-            leadFournisseurs,
-            "Fournisseurs",
-            nombre(lignesF.length),
-            compte(lignesF),
-            onFournisseurs,
-          )}
+          stat("box", "Fournisseurs", nombre(lignesF.length), compte(lignesF), onFournisseurs)}
         {prestataires &&
-          stat(
-            leadPrestataires,
-            "Prestataires",
-            nombre(lignesP.length),
-            compte(lignesP),
-            onPrestataires,
-          )}
+          stat("users", "Prestataires", nombre(lignesP.length), compte(lignesP), onPrestataires)}
         {aPayer &&
           stat(
-            leadCommandes,
+            "file",
             "Achats à régler",
             nombre(aPayer.aPayer.length),
             `Total : ${montant(aPayer.totalDu)}`,
@@ -437,7 +419,7 @@ export const SectionPartenaires: React.FC<{
           )}
         {aPayer &&
           stat(
-            leadPaiements,
+            "clock",
             "Prochains paiements",
             nombre(prochains.length),
             "Dans les 7 prochains jours",
@@ -449,7 +431,7 @@ export const SectionPartenaires: React.FC<{
         {fournisseurs && (
           <Annuaire
             titre="Fournisseurs"
-            lead={leadFournisseursCarte}
+            lead="box"
             colonne="Produits / Services"
             icone="box"
             placeholder="Rechercher un fournisseur..."
@@ -461,7 +443,7 @@ export const SectionPartenaires: React.FC<{
         {prestataires && (
           <Annuaire
             titre="Prestataires"
-            lead={leadPrestatairesCarte}
+            lead="users"
             colonne="Service"
             icone="wrench"
             placeholder="Rechercher un prestataire..."
@@ -520,7 +502,9 @@ export const SectionPartenaires: React.FC<{
               <div className="act">
                 {activites.map((a) => (
                   <div className="a" key={a.cle}>
-                    <img className="c" src={a.image} alt="" />
+                    <span className={`c ${a.ton}`}>
+                      <IconeDuo nom={a.icone} />
+                    </span>
                     <div>
                       <b>{a.titre}</b>
                       <span>{a.detail}</span>

@@ -35,20 +35,22 @@ export const Section: React.FC<{
   </section>
 );
 
+export type TonIcone = "vert" | "bleu" | "rouge" | "orange" | "violet" | "neutre";
+
 /** Le carré teinté à gauche d'un titre de carte, avec son icône duotone. */
-export const Lead: React.FC<{ nom: NomIcone; plein?: boolean; className?: string }> = ({
-  nom,
-  plein,
-  className = "",
-}) => (
-  <div className={`lead${plein ? " plein" : ""}${className ? ` ${className}` : ""}`}>
+export const Lead: React.FC<{
+  nom: NomIcone;
+  plein?: boolean;
+  /** Rond plutôt que carré arrondi : les chiffres clés d'une section. */
+  rond?: boolean;
+  ton?: TonIcone;
+  className?: string;
+}> = ({ nom, plein, rond, ton, className = "" }) => (
+  <div
+    className={`lead${plein ? " plein" : ""}${rond ? " rond" : ""}${ton ? ` ${ton}` : ""}${className ? ` ${className}` : ""}`}
+  >
     <IconeDuo nom={nom} />
   </div>
-);
-
-/** L'illustration posée à gauche d'un titre de carte, en lieu et place de l'icône. */
-export const LeadImage: React.FC<{ src: string; largeur?: number }> = ({ src, largeur = 40 }) => (
-  <img className="lead" src={src} alt="" width={largeur} height={largeur} />
 );
 
 export const TeteCarte: React.FC<{

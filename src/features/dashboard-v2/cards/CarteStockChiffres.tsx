@@ -2,7 +2,8 @@ import React from "react";
 import { IconeDuo } from "../../../components/shared/IconeDuo";
 import { montant, nombre } from "../lib/format";
 import type { ChiffresStock } from "../lib/chiffres";
-import { illRupture, leadRecommander, leadRuptures, leadValeurStock } from "../assets/images";
+import { Lead } from "../components/Tn";
+import { illRupture } from "../assets/images";
 
 /**
  * LES TROIS CHIFFRES DU STOCK, en tête de la section : sa valeur, ce
@@ -23,7 +24,7 @@ export const CarteStockChiffres: React.FC<{
   return (
     <div className="g3 top3">
       <article className="card">
-        <img className="lead" src={leadValeurStock} alt="" width={60} height={60} />
+        <Lead nom="wallet" rond />
         <div className="tt">
           <h4>{valeurVisible ? "Valeur du stock" : "Produits suivis"}</h4>
           <div className="val num">
@@ -47,7 +48,7 @@ export const CarteStockChiffres: React.FC<{
       </article>
 
       <article className={`card${aRecommander > 0 ? " warn" : ""}`}>
-        <img className="lead" src={leadRecommander} alt="" width={60} height={60} />
+        <Lead nom="cart" rond ton={aRecommander > 0 ? "rouge" : undefined} />
         <div className="tt">
           <h4>Produits à recommander</h4>
           <div className="bignum num">
@@ -65,7 +66,7 @@ export const CarteStockChiffres: React.FC<{
 
       {avecRuptures && (
         <article className={`card${ruptures > 0 ? " warn" : ""}`}>
-          <img className="lead" src={leadRuptures} alt="" width={60} height={60} />
+          <Lead nom="alert" rond ton={ruptures > 0 ? "rouge" : undefined} />
           <div className="tt">
             <h4>Ruptures à venir</h4>
             <div className="bignum num">

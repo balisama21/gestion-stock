@@ -9,18 +9,6 @@ import plante2 from "./plante-2.jpg";
 import plante3 from "./plante-3.jpg";
 
 export { default as inspirationFond } from "./inspiration-fond.jpg";
-export { default as kpiVentes } from "./kpi-ventes.png";
-export { default as kpiEntrees } from "./kpi-entrees.png";
-export { default as kpiSorties } from "./kpi-sorties.png";
-export { default as kpiStock } from "./kpi-stock.png";
-export { default as kpiActivite } from "./kpi-activite.png";
-export { default as tendanceVerte } from "./tendance-verte.png";
-export { default as tendanceBleue } from "./tendance-bleue.png";
-export { default as alerteOrange } from "./alerte-orange.png";
-export { default as pressePapiers } from "./presse-papiers.png";
-export { default as calendrierMini } from "./calendrier-mini.png";
-export { default as apercuVentes } from "./apercu-ventes.png";
-export { default as feuille } from "./feuille.png";
 
 export { default as banniereOperations } from "./banniere-operations.webp";
 export { default as banniereVentes } from "./banniere-ventes.webp";
@@ -40,30 +28,6 @@ export { default as illPortefeuille } from "./ill-portefeuille.png";
 export { default as illRupture } from "./ill-rupture.png";
 export { default as illVideStock } from "./ill-vide-stock.png";
 export { default as illVideArgent } from "./ill-vide-argent.png";
-
-export { default as sparkEntrees } from "./spark-entrees.png";
-export { default as sparkSorties } from "./spark-sorties.png";
-export { default as sparkSolde } from "./spark-solde.png";
-export { default as sparkCalendrier } from "./spark-calendrier.png";
-
-export { default as leadValeurStock } from "./lead-valeur-stock.png";
-export { default as leadRecommander } from "./lead-recommander.png";
-export { default as leadRuptures } from "./lead-ruptures.png";
-export { default as leadEtatStock } from "./lead-etat-stock.png";
-export { default as leadEntreesSorties } from "./lead-entrees-sorties.png";
-export { default as leadMouvements } from "./lead-mouvements.png";
-export { default as leadTresorerie } from "./lead-tresorerie.png";
-export { default as leadFournisseurs } from "./lead-fournisseurs.png";
-export { default as leadPrestataires } from "./lead-prestataires.png";
-export { default as leadCommandes } from "./lead-commandes.png";
-export { default as leadPaiements } from "./lead-paiements.png";
-export { default as leadFournisseursCarte } from "./lead-fournisseurs-carte.png";
-export { default as leadPrestatairesCarte } from "./lead-prestataires-carte.png";
-
-export { default as actCommande } from "./act-commande.png";
-export { default as actPrestataire } from "./act-prestataire.png";
-export { default as actPaiement } from "./act-paiement.png";
-export { default as actAttente } from "./act-attente.png";
 
 /**
  * Photo de fond du hero : une catégorie par jour (lundi = 0 … dimanche = 6),

@@ -1,9 +1,9 @@
 import React, { useMemo } from "react";
-import { LeadImage, Lien, TeteCarte, Vide } from "../components/Tn";
+import { Lead, Lien, TeteCarte, Vide } from "../components/Tn";
 import { montant, montantMasque, nombre } from "../lib/format";
 import type { MouvementStock } from "../hooks/useDashboardData";
 import type { Product } from "../../../types";
-import { illVideStock, leadMouvements } from "../assets/images";
+import { illVideStock } from "../assets/images";
 
 /**
  * MOUVEMENTS DE STOCK — les derniers mouvements de la période, tels
@@ -41,7 +41,7 @@ export const CarteMouvementsStock: React.FC<{
   return (
     <article className="card gap" id="carte-mouvements-stock">
       <TeteCarte
-        lead={<LeadImage src={leadMouvements} largeur={32} />}
+        lead={<Lead nom="history" />}
         titre="Mouvements de stock"
         action={<Lien onClick={onToutVoir}>Voir tout</Lien>}
       />

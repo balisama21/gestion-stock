@@ -5,7 +5,8 @@ import { useRepli } from "../lib/repli";
 import { argent, montant, nombre, montantMasque } from "../lib/format";
 import type { CapitalSummary } from "../../../types";
 import type { ChiffresFlux } from "../lib/chiffres";
-import { illPortefeuille, leadTresorerie } from "../assets/images";
+import { Lead } from "../components/Tn";
+import { illPortefeuille } from "../assets/images";
 
 /**
  * TRÉSORERIE ACTUELLE — l'argent disponible, et d'où il vient.
@@ -66,7 +67,7 @@ export const CarteTresorerie: React.FC<{
   return (
     <article className="card tres" id="carte-tresorerie">
       <div className="in">
-        <img className="lead" src={leadTresorerie} alt="" width={62} height={62} />
+        <Lead nom="wallet" className="grand" />
         <div className="in-t">
           <b className="t">
             Trésorerie actuelle{" "}

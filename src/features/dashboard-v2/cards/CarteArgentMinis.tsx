@@ -3,7 +3,6 @@ import { IconeDuo, type NomIcone } from "../../../components/shared/IconeDuo";
 import { dateLocale, montant, montantMasque } from "../lib/format";
 import { dateDuJour } from "../../../lib/dates";
 import type { ChiffresFlux } from "../lib/chiffres";
-import { sparkCalendrier, sparkEntrees, sparkSolde, sparkSorties } from "../assets/images";
 
 /**
  * LES QUATRE CHIFFRES DE L'ARGENT, sous la trésorerie : entrées et
@@ -18,11 +17,9 @@ const Mini: React.FC<{
   noteVerte?: boolean;
   icone: NomIcone;
   ton: "vert" | "rouge";
-  spark: string;
-  largeurSpark: number;
   petit?: boolean;
   onClick?: () => void;
-}> = ({ titre, valeur, note, noteVerte, icone, ton, spark, largeurSpark, petit, onClick }) => {
+}> = ({ titre, valeur, note, noteVerte, icone, ton, petit, onClick }) => {
   const Racine = onClick ? "button" : "article";
   return (
     <Racine
@@ -40,7 +37,6 @@ const Mini: React.FC<{
         </div>
       </div>
       {onClick && <IconeDuo nom="chevright" className="chev" />}
-      <img className="spark" src={spark} alt="" style={{ width: largeurSpark }} />
     </Racine>
   );
 };
@@ -89,8 +85,6 @@ export const CarteArgentMinis: React.FC<{
           note={periode}
           icone="trend"
           ton="vert"
-          spark={sparkEntrees}
-          largeurSpark={91}
           onClick={onEntrees}
         />
       )}
@@ -101,8 +95,6 @@ export const CarteArgentMinis: React.FC<{
           note={periode}
           icone="arrowdown"
           ton="rouge"
-          spark={sparkSorties}
-          largeurSpark={91}
           onClick={onSorties}
         />
       )}
@@ -113,8 +105,6 @@ export const CarteArgentMinis: React.FC<{
           note="Toutes caisses"
           icone="wallet"
           ton="vert"
-          spark={sparkSolde}
-          largeurSpark={51}
           onClick={onSolde}
         />
       )}
@@ -133,8 +123,6 @@ export const CarteArgentMinis: React.FC<{
           noteVerte
           icone="calendar"
           ton="vert"
-          spark={sparkCalendrier}
-          largeurSpark={43}
           onClick={onDerniere}
         />
       )}

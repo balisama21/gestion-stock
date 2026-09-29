@@ -6,37 +6,42 @@
    reprennent les jetons de l'application (`src/styles.css`) sous `.dark`.
    ═══════════════════════════════════════════════════════════════════ */
 
+/* Les couleurs viennent toutes du thème de l'application
+   (`src/styles.css`) : le vert de la marque (`--primary`, `--success`),
+   les gris, les couleurs d'état. Elles basculent donc seules en sombre. */
 .tn {
-  --g: #0f9f6e;
-  --g2: #0a7f58;
-  --gsoft: #e5f6ed;
-  --gsoft2: #d3efe1;
-  --ink: #0c3a3a;
-  --muted: #5d7b78;
-  --bg: #f1f8f5;
-  --card: #ffffff;
-  --line: #e0eee8;
-  --red: #e5484d;
-  --redsoft: #fdecec;
-  --orange: #f59e0b;
-  --orange-ink: #b46a00;
-  --orangesoft: #fff1d6;
-  --blue: #2f80ed;
-  --bluesoft: #e3eeff;
-  --shadow: 0 1px 2px rgba(12, 58, 58, 0.05), 0 6px 22px rgba(15, 159, 110, 0.07);
+  --g: var(--primary);
+  --g2: var(--success);
+  --gsoft: var(--success-soft);
+  --gsoft2: var(--success-border);
+  --ink: var(--foreground);
+  --muted: var(--muted-foreground);
+  --bg: var(--background);
+  --line: var(--border);
+  --red: var(--danger);
+  --redsoft: var(--danger-soft);
+  --orange: var(--warning);
+  --orange-ink: var(--warning);
+  --orangesoft: var(--warning-soft);
+  --blue: var(--info);
+  --bluesoft: var(--info-soft);
+  --neutre: var(--muted-foreground);
+  --shadow: 0 1px 2px oklch(0.2 0.03 260 / 5%), 0 6px 20px oklch(0.2 0.03 260 / 5%);
   /* Cartes du jour */
-  --kc-bg: #fbfdfe;
-  --kc-line: #e5f0f1;
-  --k-ink: #10303f;
-  --k-ink2: #0b2b3c;
-  --k-muted: #7f94a9;
-  --k-vert: #13a56b;
-  --k-bleu: #1f8fff;
-  --k-rouge: #ee4b3d;
-  --k-violet: #6d5fe0;
-  --chart-g: #17a46d;
-  --chart-grid: #edf3f4;
-  --chart-axe: #4d687b;
+  --kc-bg: var(--card);
+  --kc-line: var(--border);
+  --k-ink: var(--foreground);
+  --k-muted: var(--muted-foreground);
+  --k-vert: var(--success);
+  --k-bleu: var(--info);
+  --k-rouge: var(--danger);
+  --k-violet: var(--violet);
+  --chart-g: var(--primary);
+  --chart-grid: var(--border);
+  --chart-axe: var(--muted-foreground);
+  /* Le texte posé sur la photo du bonjour */
+  --hero-ink: oklch(0.2 0.03 240);
+  --hero-ink-2: oklch(0.38 0.04 240);
   --gut: 16px;
 
   color: var(--ink);
@@ -50,35 +55,7 @@
   }
 }
 .dark .tn {
-  --g: var(--primary);
-  --g2: var(--success);
-  --gsoft: var(--success-soft);
-  --gsoft2: oklch(0.7 0.17 162 / 24%);
-  --ink: var(--foreground);
-  --muted: var(--muted-foreground);
-  --bg: var(--background);
-  --card: var(--card);
-  --line: var(--border);
-  --red: #f06a6e;
-  --redsoft: rgba(240, 106, 110, 0.14);
-  --orange: #f5b045;
-  --orange-ink: #f5b045;
-  --orangesoft: rgba(245, 176, 69, 0.14);
-  --blue: #6aa8ff;
-  --bluesoft: rgba(106, 168, 255, 0.14);
   --shadow: 0 1px 2px rgba(0, 0, 0, 0.35);
-  --kc-bg: var(--card);
-  --kc-line: var(--border);
-  --k-ink: var(--foreground);
-  --k-ink2: var(--foreground);
-  --k-muted: var(--muted-foreground);
-  --k-vert: #3fd09a;
-  --k-bleu: #6aa8ff;
-  --k-rouge: #ff8a7e;
-  --k-violet: #a79cff;
-  --chart-g: #3fd09a;
-  --chart-grid: rgba(255, 255, 255, 0.07);
-  --chart-axe: var(--muted-foreground);
 }
 
 .tn *,
@@ -139,8 +116,8 @@
 }
 .tn .blk-h h2 {
   font-size: 32px;
-  font-weight: 800;
-  letter-spacing: -0.01em;
+  font-weight: 700;
+  letter-spacing: -0.015em;
   line-height: 1.15;
   padding-bottom: 9px;
   position: relative;
@@ -198,18 +175,9 @@
 .dark .tn .art-rupt,
 .dark .tn .empty img,
 .dark .tn .top-empty img,
-.dark .tn .origin .wallet,
-.dark .tn .mini .spark,
-.dark .tn .act img.c,
-.dark .tn .kc img,
-.dark .tn .tc > img {
+.dark .tn .origin .wallet {
   background: #eef6f2;
   border-radius: 12px;
-}
-.dark .tn .kc img,
-.dark .tn .tc > img,
-.dark .tn .act img.c {
-  border-radius: 50%;
 }
 .dark .tn .top-empty .bars,
 .dark .tn .top-empty .vleft,
@@ -250,6 +218,7 @@
 .tn .card {
   position: relative;
   background: var(--card);
+  border: 1px solid var(--line);
   border-radius: 20px;
   box-shadow: var(--shadow);
   padding: 20px 22px;
@@ -286,17 +255,9 @@
 .tn .lead.plein .ico-duo svg {
   stroke-width: 2.4;
 }
-.tn img.lead {
-  width: 40px;
-  height: 40px;
-  background: none;
-  border-radius: 0;
-  object-fit: contain;
-  display: block;
-}
 .tn .card-h h3 {
   font-size: 17px;
-  font-weight: 700;
+  font-weight: 600;
   line-height: 1.25;
 }
 .tn .card-h h3.grand {
@@ -654,7 +615,7 @@
   display: inline-flex;
   align-items: center;
   gap: 8px;
-  border: 1px solid #dbe7ee;
+  border: 1px solid var(--line);
   background: var(--card);
   border-radius: 10px;
   padding: 0 10px 0 12px;
@@ -675,7 +636,7 @@
 .tn .menu-holder > .pill .ico-duo {
   width: 15px;
   height: 15px;
-  color: #4c6d80;
+  color: var(--muted);
 }
 .tn .menu-holder > .pill .chev {
   width: 11px;
@@ -698,7 +659,7 @@
   background: var(--card);
   border: 1px solid var(--line);
   border-radius: 14px;
-  box-shadow: 0 18px 40px -16px rgba(10, 30, 20, 0.35);
+  box-shadow: var(--elev-3);
   padding: 6px;
   text-align: left;
 }
@@ -777,9 +738,9 @@
   border-radius: 999px;
   font-size: 12.5px;
   font-weight: 600;
-  background: rgba(255, 255, 255, 0.86);
+  background: var(--card);
   color: var(--ink);
-  box-shadow: 0 2px 10px rgba(12, 58, 58, 0.1);
+  box-shadow: var(--elev-2);
   backdrop-filter: blur(6px);
 }
 .dark .tn .chip {
@@ -804,10 +765,98 @@
   background: var(--red);
 }
 .tn .chip.warn .n {
-  background: #f4801f;
+  background: var(--warning);
 }
 .tn .chip.info .n {
   background: var(--blue);
+}
+
+/* ── Icônes teintées : une icône du jeu duotone sur sa pastille ── */
+.tn .lead.rond {
+  width: 58px;
+  height: 58px;
+  border-radius: 50%;
+}
+.tn .lead.rond .ico-duo {
+  width: 28px;
+  height: 28px;
+}
+.tn .lead.grand {
+  width: 62px;
+  height: 62px;
+  border-radius: 18px;
+}
+.tn .lead.grand .ico-duo {
+  width: 30px;
+  height: 30px;
+}
+.tn .lead.rouge,
+.tn .pastille.rouge {
+  background: var(--danger-soft);
+  color: var(--danger);
+}
+.tn .lead.bleu,
+.tn .pastille.bleu {
+  background: var(--info-soft);
+  color: var(--info);
+}
+.tn .lead.orange,
+.tn .pastille.orange {
+  background: var(--warning-soft);
+  color: var(--warning);
+}
+.tn .lead.violet,
+.tn .pastille.violet {
+  background: var(--violet-soft);
+  color: var(--violet);
+}
+.tn .pastille {
+  display: grid;
+  place-items: center;
+  border-radius: 50%;
+  background: var(--gsoft);
+  color: var(--g2);
+}
+.tn .pastille.carre {
+  border-radius: calc(14 * var(--u));
+}
+.tn .pastille.neutre {
+  background: var(--muted);
+  background: color-mix(in oklch, var(--muted-foreground) 12%, transparent);
+  color: var(--muted-foreground);
+}
+.tn .pastille .ico-duo {
+  width: 50%;
+  height: 50%;
+}
+.tn .kpetite {
+  color: var(--g);
+}
+.tn .kpetite.bleu {
+  color: var(--info);
+}
+.tn .kpetite.violet {
+  color: var(--violet);
+}
+.tn .kpetite.orange {
+  color: var(--warning);
+}
+.tn .act .a .c {
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: var(--gsoft);
+  color: var(--g2);
+}
+.tn .act .a .c.bleu {
+  background: var(--info-soft);
+  color: var(--info);
+}
+.tn .act .a .c .ico-duo {
+  width: 18px;
+  height: 18px;
 }
 
 /* ═══════════════ LE HAUT : bonjour, cartes du jour ═══════════════ */
@@ -822,12 +871,12 @@
 .tn .tbi {
   --u: calc(100cqw / 1546);
   width: 100%;
-  color: #0d2f40;
+  color: var(--hero-ink);
 }
 .tn .tb-hero {
   position: relative;
   height: calc(250 * var(--u));
-  color: #062a3a;
+  color: var(--hero-ink);
 }
 .tn .tb-hero-bg {
   position: absolute;
@@ -861,7 +910,7 @@
 .tn .tb-when .ic1 {
   width: max(16px, calc(22 * var(--u)));
   height: max(16px, calc(22 * var(--u)));
-  color: #10a06b;
+  color: var(--g);
 }
 .tn .tb-when span:not(.ico-duo) {
   margin-left: calc(13 * var(--u));
@@ -874,7 +923,7 @@
 }
 .tn .tb-when .ic2 {
   margin-left: calc(19 * var(--u));
-  color: #173c4f;
+  color: var(--hero-ink);
   display: grid;
   place-items: center;
   min-height: 0;
@@ -938,7 +987,7 @@
   z-index: 2;
   transform: translateY(-50%);
   font-size: max(13px, calc(17.9 * var(--u)));
-  color: #4f7590;
+  color: var(--hero-ink-2);
   white-space: nowrap;
 }
 .tn .tb-hero.night p {
@@ -980,7 +1029,7 @@
   border-radius: calc(18 * var(--u));
   background: var(--kc-bg);
   border: 1px solid var(--kc-line);
-  box-shadow: 0 calc(3 * var(--u)) calc(14 * var(--u)) rgba(72, 130, 118, 0.07);
+  box-shadow: var(--shadow);
   min-width: 0;
 }
 .tn .kc {
@@ -1006,7 +1055,7 @@
 .tn .kv {
   font-size: calc(26.4 * var(--u));
   font-weight: 700;
-  color: var(--k-ink2);
+  color: var(--k-ink);
   white-space: nowrap;
   transform: translateY(-50%);
   letter-spacing: -0.01em;
@@ -1055,7 +1104,7 @@
 .tn .kch-svg {
   width: calc(9 * var(--u));
   height: calc(15 * var(--u));
-  stroke: #98a9bb;
+  stroke: var(--muted);
   fill: none;
   stroke-width: 1.7;
   stroke-linecap: round;
@@ -1101,7 +1150,7 @@
   height: calc(28 * var(--u));
   min-height: 0;
   border-radius: calc(9 * var(--u));
-  background: #fdf8f2;
+  background: var(--warning-soft);
 }
 .dark .tn .pill4 {
   background: rgba(244, 128, 31, 0.12);
@@ -1112,7 +1161,7 @@
   transform: translateY(-50%);
   font-size: calc(11.5 * var(--u));
   font-weight: 600;
-  color: #ee7d20;
+  color: var(--warning);
   white-space: nowrap;
 }
 .tn .pill4.ok {
@@ -1130,7 +1179,7 @@
   height: calc(18 * var(--u));
   padding: 0 calc(4 * var(--u));
   border-radius: 999px;
-  background: #f4801f;
+  background: var(--warning);
   color: #fff;
   font-size: calc(10.5 * var(--u));
   font-weight: 700;
@@ -1229,7 +1278,7 @@
   stroke-width: 1;
 }
 .tn svg.chart .tige {
-  stroke: #bfe3d1;
+  stroke: var(--gsoft2);
   stroke-width: 1;
   opacity: 0.55;
 }
@@ -1252,12 +1301,12 @@
   font-weight: 600;
 }
 .tn .ic {
-  background-color: #f7fcfa;
+  background-color: var(--card);
   background-position: center;
   background-size: 100% 100%;
   background-repeat: no-repeat;
   overflow: hidden;
-  border-color: #e4f2ec;
+  border-color: var(--line);
 }
 .dark .tn .ic {
   background-color: var(--card);
@@ -1275,7 +1324,7 @@
   transform: translateY(-50%);
   font-size: calc(14.3 * var(--u));
   font-weight: 600;
-  color: #0d3040;
+  color: var(--ink);
   white-space: nowrap;
 }
 .tn .ic .isub {
@@ -1283,7 +1332,7 @@
   top: calc(80 * var(--u));
   transform: translateY(-50%);
   font-size: calc(12.2 * var(--u));
-  color: #7f9db0;
+  color: var(--muted);
   white-space: nowrap;
 }
 .dark .tn .ic .ititle {
@@ -1299,21 +1348,21 @@
   height: calc(33 * var(--u));
   min-height: 0;
   border-radius: 999px;
-  background: linear-gradient(90deg, #0f9a66, #16ae75);
-  color: #fff;
+  background: var(--primary);
+  color: var(--primary-foreground);
   font-size: calc(11.5 * var(--u));
   font-weight: 600;
   display: flex;
   align-items: center;
   justify-content: center;
-  box-shadow: 0 calc(3 * var(--u)) calc(8 * var(--u)) rgba(15, 158, 103, 0.25);
+  box-shadow: var(--elev-2);
 }
 .tn .pf {
   overflow: hidden;
   background: #fff;
   border: calc(3 * var(--u)) solid #fff;
   border-radius: calc(11 * var(--u));
-  box-shadow: 0 calc(3 * var(--u)) calc(10 * var(--u)) rgba(28, 84, 62, 0.16);
+  box-shadow: var(--elev-3);
 }
 .tn .pf img {
   width: 100%;
@@ -1352,11 +1401,11 @@
   width: calc(11 * var(--u));
   height: calc(11 * var(--u));
   border-radius: 50%;
-  background: #b8ddcb;
+  background: var(--gsoft2);
   display: block;
 }
 .tn .pdots i.on {
-  background: #17a46d;
+  background: var(--g);
 }
 
 /* ═══════════════ OPÉRATIONS ═══════════════ */
@@ -2024,17 +2073,17 @@
   display: grid;
   place-items: center;
   color: #fff;
-  font-weight: 800;
-  background: #93a4a2;
+  font-weight: 700;
+  background: var(--neutre);
 }
 .tn .best .rk.r1 {
-  background: #f2b31c;
+  background: var(--warning);
 }
 .tn .best .rk.r2 {
-  background: #b7c0c4;
+  background: var(--neutre);
 }
 .tn .best .rk.r3 {
-  background: #c8804a;
+  background: oklch(0.6 0.1 55);
 }
 .tn .best .nm {
   font-weight: 700;
@@ -2100,7 +2149,7 @@
   display: grid;
   place-items: center;
   color: #fff;
-  font-weight: 800;
+  font-weight: 700;
   font-size: 16px;
 }
 .tn .rank .nm {
@@ -2144,7 +2193,7 @@
   grid-template-columns: 1fr 1.2fr;
   gap: 26px;
   align-items: center;
-  background: linear-gradient(100deg, var(--card) 0%, #f2faf6 100%);
+  background: var(--card);
   overflow: hidden;
 }
 .dark .tn .tres {
@@ -2160,10 +2209,6 @@
   flex: 1;
   min-width: 0;
 }
-.tn .tres img.lead {
-  width: 62px;
-  height: 62px;
-}
 .tn .tres .t {
   font-size: 14px;
   display: inline-flex;
@@ -2177,7 +2222,7 @@
 }
 .tn .tres .big {
   font-size: 38px;
-  font-weight: 800;
+  font-weight: 700;
   line-height: 1.15;
   margin: 4px 0 2px;
   overflow-wrap: anywhere;
@@ -2353,11 +2398,11 @@
 }
 .tn .mini h4 {
   font-size: 15px;
-  font-weight: 700;
+  font-weight: 600;
 }
 .tn .mini .v {
   font-size: clamp(20px, 1.75vw, 28px);
-  font-weight: 800;
+  font-weight: 700;
   line-height: 1.2;
   white-space: nowrap;
 }
@@ -2377,13 +2422,6 @@
   position: absolute;
   top: 22px;
   right: 20px;
-}
-.tn .mini .spark {
-  position: absolute;
-  right: 12px;
-  bottom: 10px;
-  height: auto;
-  opacity: 0.9;
 }
 .tn .argent-bas {
   grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr);
@@ -2416,7 +2454,7 @@
   display: grid;
   place-items: center;
   font-size: 26px;
-  font-weight: 800;
+  font-weight: 700;
   color: var(--g2);
   flex: none;
 }
@@ -2435,7 +2473,7 @@
 .tn .result .rr b.v {
   white-space: nowrap;
   font-size: clamp(22px, 2.1vw, 30px);
-  font-weight: 800;
+  font-weight: 700;
   display: block;
   line-height: 1.1;
 }
@@ -2507,7 +2545,7 @@
 }
 .tn .kpi-row .v {
   font-size: 26px;
-  font-weight: 800;
+  font-weight: 700;
 }
 .tn .kpi-row .cle-pos {
   color: var(--g2);
@@ -2603,11 +2641,6 @@
   align-items: flex-start;
   overflow: hidden;
 }
-.tn .top3 img.lead {
-  width: 60px;
-  height: 60px;
-  margin-top: 2px;
-}
 .tn .top3 .tt {
   min-width: 0;
   flex: 1;
@@ -2616,11 +2649,11 @@
 }
 .tn .top3 h4 {
   font-size: 15px;
-  font-weight: 700;
+  font-weight: 600;
 }
 .tn .top3 .val {
   font-size: 34px;
-  font-weight: 800;
+  font-weight: 700;
   display: flex;
   align-items: center;
   gap: 10px;
@@ -2643,7 +2676,7 @@
 }
 .tn .bignum {
   font-size: 34px;
-  font-weight: 800;
+  font-weight: 700;
   line-height: 1.1;
 }
 .tn .top3 .warn .bignum {
@@ -2764,7 +2797,7 @@
   background: var(--g);
 }
 .tn .stk .low .pr i {
-  background: #ff7f6b;
+  background: var(--red);
 }
 .tn .stk .prealerte .pr i {
   background: var(--orange);
@@ -2855,11 +2888,11 @@
   background: var(--blue);
 }
 .tn i.gris {
-  background: #93a4a2;
+  background: var(--neutre);
 }
 .tn .io b {
   font-size: 22px;
-  font-weight: 800;
+  font-weight: 700;
   display: block;
   margin-top: 4px;
   white-space: nowrap;
@@ -2909,7 +2942,7 @@
   stroke: var(--blue);
 }
 .tn .mvchart .l-gris {
-  stroke: #5aa9a0;
+  stroke: var(--neutre);
 }
 .tn .mvchart .p-vert {
   fill: var(--g);
@@ -2918,7 +2951,7 @@
   fill: var(--blue);
 }
 .tn .mvchart .p-gris {
-  fill: #5aa9a0;
+  fill: var(--neutre);
 }
 
 /* ═══════════════ FOURNISSEURS & PRESTATAIRES ═══════════════ */
@@ -2936,20 +2969,16 @@
     var(--shadow),
     inset 0 0 0 1px var(--gsoft2);
 }
-.tn .f-top .stat img.lead {
-  width: 54px;
-  height: 54px;
-}
 .tn .f-top .stat > div {
   min-width: 0;
 }
 .tn .f-top .stat h4 {
   font-size: 14px;
-  font-weight: 700;
+  font-weight: 600;
 }
 .tn .f-top .stat .n {
   font-size: 28px;
-  font-weight: 800;
+  font-weight: 700;
   line-height: 1.15;
 }
 .tn .f-top .stat small {
@@ -3152,11 +3181,6 @@
   align-items: flex-start;
   font-size: 11.5px;
 }
-.tn .act .a img.c {
-  width: 34px;
-  height: 34px;
-  border-radius: 50%;
-}
 .tn .act .a b {
   display: block;
   font-size: 12px;
@@ -3278,7 +3302,7 @@
     right: var(--gut);
   }
   .tn .tb-hero:not(.night) p {
-    color: #24485f;
+    color: var(--hero-ink);
     text-shadow: 0 1px 8px rgba(255, 255, 255, 0.7);
   }
   .tn .tb-hero p {
@@ -3543,9 +3567,6 @@
   }
   .tn .tres .in {
     flex-wrap: wrap;
-  }
-  .tn .mini .spark {
-    width: 72px !important;
   }
   .tn .stk .foot {
     flex-direction: column;

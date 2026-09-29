@@ -1,27 +1,10 @@
 import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
-import { IconeDuo } from "../../../components/shared/IconeDuo";
+import { IconeDuo, type NomIcone } from "../../../components/shared/IconeDuo";
 import { dateCourte, dateLongue, heure, montant, nombre } from "../lib/format";
 import type { ChiffresDuJour, ChiffresStock } from "../lib/chiffres";
 import type { EvenementJournal } from "../lib/journal";
 import type { CleTuile } from "../registry";
-import {
-  HERO_PHOTOS,
-  PLANTES,
-  alerteOrange,
-  apercuVentes,
-  calendrierMini,
-  feuille,
-  indexDuJour,
-  inspirationFond,
-  kpiActivite,
-  kpiEntrees,
-  kpiSorties,
-  kpiStock,
-  kpiVentes,
-  pressePapiers,
-  tendanceBleue,
-  tendanceVerte,
-} from "../assets/images";
+import { HERO_PHOTOS, PLANTES, indexDuJour, inspirationFond } from "../assets/images";
 
 /**
  * LE HAUT DU TABLEAU DE BORD
@@ -319,14 +302,26 @@ export const HeroTableauDeBord: React.FC<HeroProps> = ({
       {CHEVRON}
     </button>
   );
-  const icone = (src: string, top = 11) => (
-    <img src={src} alt="" style={{ left: u(12), top: u(top), width: u(58), height: u(58) }} />
+  const icone = (nom: NomIcone, ton: string, top = 11) => (
+    <span
+      className={`pastille ${ton}`}
+      style={{ left: u(16), top: u(top + 4), width: u(50), height: u(50) }}
+    >
+      <IconeDuo nom={nom} />
+    </span>
+  );
+  const petite = (nom: NomIcone, ton: string, left: number, top: number, taille: number) => (
+    <IconeDuo
+      nom={nom}
+      className={`kpetite ${ton}`}
+      style={{ left: u(left), top: u(top), width: u(taille), height: u(taille) }}
+    />
   );
 
   const cartes: Record<CleTuile, React.ReactNode> = {
     ventes: (
       <>
-        {icone(kpiVentes, 9)}
+        {icone("cart", "vert", 9)}
         <div className="kt" style={{ left: u(83), top: u(37) }}>
           Ventes du jour
         </div>
@@ -339,11 +334,7 @@ export const HeroTableauDeBord: React.FC<HeroProps> = ({
             ? "Aucune vente enregistrée\npour l'instant."
             : `${nombre(jour.tickets)} ticket${jour.tickets > 1 ? "s" : ""}\naujourd'hui.`}
         </div>
-        <img
-          src={tendanceVerte}
-          alt=""
-          style={{ left: u(25), top: u(176), width: u(24), height: u(22) }}
-        />
+        {petite("trend", "vert", 25, 176, 22)}
         <div className="kx" style={{ left: u(63), top: u(187) }}>
           {montantsVentesVisibles && comparaisonVentes ? comparaisonVentes : "–"}
         </div>
@@ -352,7 +343,7 @@ export const HeroTableauDeBord: React.FC<HeroProps> = ({
     ),
     entrees: (
       <>
-        {icone(kpiEntrees)}
+        {icone("download", "bleu")}
         <div className="kt" style={{ left: u(84), top: u(40) }}>
           Entrées d&apos;argent
         </div>
@@ -363,11 +354,7 @@ export const HeroTableauDeBord: React.FC<HeroProps> = ({
         <div className="kd" style={{ left: u(20), top: u(111.5) }}>
           {jour.encaisse === 0 ? "Aucun encaissement\naujourd'hui." : "Encaissements\ndu jour."}
         </div>
-        <img
-          src={tendanceBleue}
-          alt=""
-          style={{ left: u(25), top: u(176), width: u(24), height: u(22) }}
-        />
+        {petite("trend", "bleu", 25, 176, 22)}
         <div className="kx" style={{ left: u(63), top: u(187) }}>
           {jour.encaisseDuMois > 0 ? `Ce mois ${montant(jour.encaisseDuMois)}` : "–"}
         </div>
@@ -383,7 +370,7 @@ export const HeroTableauDeBord: React.FC<HeroProps> = ({
     ),
     sorties: (
       <>
-        {icone(kpiSorties)}
+        {icone("arrowup", "rouge")}
         <div className="kt" style={{ left: u(84), top: u(40) }}>
           Sorties d&apos;argent
         </div>
@@ -415,7 +402,7 @@ export const HeroTableauDeBord: React.FC<HeroProps> = ({
     ),
     stock: (
       <>
-        {icone(kpiStock)}
+        {icone("box", "vert")}
         <div className="kt" style={{ left: u(86), top: u(40) }}>
           Stock du jour
         </div>
@@ -435,11 +422,7 @@ export const HeroTableauDeBord: React.FC<HeroProps> = ({
         </div>
         {bientotEnRupture > 0 ? (
           <button type="button" className="pill4" onClick={() => onOuvrir("stock")}>
-            <img
-              src={alerteOrange}
-              alt=""
-              style={{ left: u(10), top: u(1), width: u(26), height: u(26) }}
-            />
+            {petite("alert", "orange", 13, 5, 18)}
             <span className="pt">Produit{bientotEnRupture > 1 ? "s" : ""} bientôt en rupture</span>
             <span className="pb">{bientotEnRupture}</span>
           </button>
@@ -463,7 +446,7 @@ export const HeroTableauDeBord: React.FC<HeroProps> = ({
     ),
     activite: (
       <>
-        {icone(kpiActivite, 9)}
+        {icone("pulse", "violet", 9)}
         <div className="kt" style={{ left: u(84), top: u(37) }}>
           Activité aujourd&apos;hui
         </div>
@@ -479,11 +462,12 @@ export const HeroTableauDeBord: React.FC<HeroProps> = ({
           </div>
         ) : journal.length === 0 ? (
           <>
-            <img
-              src={pressePapiers}
-              alt=""
-              style={{ left: `calc(50% - ${u(33)})`, top: u(67), width: u(66), height: u(66) }}
-            />
+            <span
+              className="pastille neutre"
+              style={{ left: `calc(50% - ${u(28)})`, top: u(72), width: u(56), height: u(56) }}
+            >
+              <IconeDuo nom="clipboard" />
+            </span>
             <div className="kx centre" style={{ top: u(156) }}>
               {"Rien d'enregistré\naujourd'hui pour l'instant."}
             </div>
@@ -501,11 +485,7 @@ export const HeroTableauDeBord: React.FC<HeroProps> = ({
             ))}
           </ol>
         )}
-        <img
-          src={calendrierMini}
-          alt=""
-          style={{ left: u(20), top: u(194), width: u(20), height: u(20) }}
-        />
+        {petite("calendar", "violet", 20, 194, 20)}
         <div className="kx" style={{ left: u(50), top: u(204) }}>
           {`${journal.length} événement${journal.length > 1 ? "s" : ""}\u2002·\u2002${jour.tickets} vente${jour.tickets > 1 ? "s" : ""}`}
         </div>
@@ -575,11 +555,12 @@ export const HeroTableauDeBord: React.FC<HeroProps> = ({
           <div className={`tb-bottom${graphique ? "" : " seule"}`}>
             {graphique && (
               <article className="tc" id="tcChart">
-                <img
-                  src={apercuVentes}
-                  alt=""
-                  style={{ left: u(14), top: u(10), width: u(54), height: u(54) }}
-                />
+                <span
+                  className="pastille vert carre"
+                  style={{ left: u(18), top: u(14), width: u(46), height: u(46) }}
+                >
+                  <IconeDuo nom="chart" />
+                </span>
                 <button type="button" className="ctitle" onClick={graphique.onDetails}>
                   Aperçu des ventes
                 </button>
@@ -597,11 +578,7 @@ export const HeroTableauDeBord: React.FC<HeroProps> = ({
               id="tcInsp"
               style={{ backgroundImage: `url(${inspirationFond})` }}
             >
-              <img
-                src={feuille}
-                alt=""
-                style={{ left: u(24), top: u(40), width: u(24), height: u(24) }}
-              />
+              {petite("leaf", "vert", 24, 40, 24)}
               <div className="ititle">Inspiration du moment</div>
               <div className="isub">Découvrez nos sélections du jour</div>
               <button type="button" className="ibtn" onClick={() => onNaviguer?.("produits")}>

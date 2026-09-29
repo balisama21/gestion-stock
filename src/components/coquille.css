@@ -3,23 +3,17 @@
    D'après `docs/maquette/dashboard-tantana.html`.
    ═══════════════════════════════════════════════════════════════════ */
 
-:root {
-  --coq-g: #0f9f6e;
-  --coq-g2: #0a7f58;
-  --coq-gsoft: #e5f6ed;
-  --coq-ink: #0c3a3a;
-  --coq-muted: #5d7b78;
-  --coq-line: #e0eee8;
-  --coq-shadow: 0 1px 2px rgba(12, 58, 58, 0.05), 0 6px 22px rgba(15, 159, 110, 0.07);
-}
+:root,
 .dark {
+  /* Tout vient du thème (src/styles.css) : le vert de la marque, ses
+     teintes douces et les gris, en clair comme en sombre. */
   --coq-g: var(--primary);
   --coq-g2: var(--success);
   --coq-gsoft: var(--success-soft);
   --coq-ink: var(--foreground);
   --coq-muted: var(--muted-foreground);
-  --coq-line: var(--border);
-  --coq-shadow: 0 1px 2px rgba(0, 0, 0, 0.3);
+  --coq-line: var(--sidebar-border);
+  --coq-shadow: var(--elev-2);
 }
 
 .nav-ico {
@@ -67,10 +61,10 @@
   height: 100%;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, #10b981, #0f766e);
-  color: #fff;
+  background: var(--primary);
+  color: var(--primary-foreground);
   font-size: 13px;
-  font-weight: 700;
+  font-weight: 600;
   text-transform: uppercase;
 }
 .coq-logo-bouton {
@@ -86,8 +80,8 @@
   min-width: 0;
   align-items: center;
   gap: 6px;
-  font-size: 17px;
-  font-weight: 700;
+  font-size: 1rem;
+  font-weight: 600;
   color: var(--coq-ink);
   letter-spacing: -0.005em;
 }
@@ -97,27 +91,28 @@
   align-items: baseline;
   gap: 6px;
   margin-top: 2px;
-  font-size: 13px;
+  font-size: 12px;
   color: var(--coq-muted);
 }
 .coq-treso .ok {
-  color: var(--coq-g);
-  font-weight: 700;
+  color: var(--coq-g2);
+  font-weight: 600;
 }
 .coq-treso .t-danger,
 .coq-treso .t-warning {
-  font-weight: 700;
+  font-weight: 600;
 }
 .coq-nav {
   margin: 0 -4px;
   padding: 0 4px;
 }
 .coq-nav-h {
-  font-size: 12px;
-  letter-spacing: 0.06em;
+  font-size: 10px;
+  letter-spacing: 0.1em;
   text-transform: uppercase;
   color: var(--coq-muted);
-  font-weight: 600;
+  opacity: 0.8;
+  font-weight: 500;
   margin: 20px 8px 8px;
 }
 .coq-lien {
@@ -128,20 +123,21 @@
   gap: 14px;
   padding: 10px 12px;
   border-radius: 12px;
-  font-size: 15px;
-  font-weight: 500;
-  color: var(--coq-ink);
+  font-size: 0.875rem;
+  font-weight: 400;
+  color: var(--coq-muted);
   margin-bottom: 2px;
   text-align: left;
   transition: background 0.15s;
 }
 .coq-lien:hover {
-  background: var(--coq-gsoft);
+  background: var(--sidebar-accent);
+  color: var(--coq-ink);
 }
 .coq-lien.on {
   background: var(--coq-gsoft);
   color: var(--coq-g2);
-  font-weight: 700;
+  font-weight: 600;
   box-shadow: inset 3px 0 0 var(--coq-g);
 }
 .coq-lien.on .ico-duo svg .f {
@@ -192,7 +188,7 @@
   background: none;
   outline: 0;
   font: inherit;
-  font-size: 14px;
+  font-size: 0.875rem;
   color: var(--coq-ink);
   width: 100%;
   min-width: 0;
@@ -227,11 +223,14 @@
 .coq-tool.actif {
   background: var(--coq-gsoft);
 }
+.coq-tool .ico-duo {
+  color: var(--coq-g);
+}
 .coq-badge {
   position: absolute;
   top: 2px;
   right: 0;
-  background: #e5484d;
+  background: var(--danger);
   color: #fff;
   font-size: 10px;
   font-weight: 700;

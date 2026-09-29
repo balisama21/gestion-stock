@@ -113,9 +113,7 @@
   /* Canevas gris très clair et cartes blanches par-dessus — c'est ce
      contraste discret qui structure la page sans une seule bordure
      appuyée, plutôt que du blanc sur blanc séparé par des ombres. */
-  /* Le fond menthe très pâle de la maquette `dashboard-tantana.html`
-     (#f1f8f5) : les cartes blanches s'y détachent sans filet. */
-  --background: oklch(0.977 0.009 165);
+  --background: oklch(0.976 0.0015 250);
   --foreground: oklch(0.129 0.042 264.695);
   --card: oklch(1 0 0);
   --card-foreground: oklch(0.129 0.042 264.695);
@@ -164,14 +162,13 @@
   --chart-3: oklch(0.398 0.07 227.392);
   --chart-4: oklch(0.828 0.189 84.429);
   --chart-5: oklch(0.769 0.188 70.08);
-  --sidebar: oklch(1 0 0);
-  --sidebar-foreground: oklch(0.32 0.05 195);
+  --sidebar: oklch(0.984 0.003 247.858);
+  --sidebar-foreground: oklch(0.129 0.042 264.695);
   --sidebar-primary: oklch(0.545 0.13 160);
   --sidebar-primary-foreground: oklch(1 0 0);
-  /* Le vert très doux de l'entrée active (#e5f6ed). */
-  --sidebar-accent: oklch(0.96 0.025 162);
+  --sidebar-accent: oklch(0.96 0.005 250);
   --sidebar-accent-foreground: oklch(0.208 0.042 265.755);
-  --sidebar-border: oklch(0.93 0.015 165);
+  --sidebar-border: oklch(0.91 0.01 256);
   --sidebar-ring: oklch(0.58 0.13 160 / 40%);
 
   /* Palette sémantique — mode clair.

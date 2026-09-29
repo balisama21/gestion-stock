@@ -1,12 +1,11 @@
 import React from "react";
 import { IconeDuo } from "../../../components/shared/IconeDuo";
-import { LeadImage, TeteCarte } from "../components/Tn";
+import { Lead, TeteCarte } from "../components/Tn";
 import { Tag } from "../components/Tag";
 import { montant, nombre } from "../lib/format";
 import { quantiteEnMots } from "../../../utils/formulas";
 import { VignetteProduit } from "../../../components/shared/VignetteProduit";
 import type { ChiffresStock, LigneStock } from "../lib/chiffres";
-import { leadEtatStock } from "../assets/images";
 
 /**
  * ÉTAT DU STOCK — l'étagère : chaque produit, sa jauge et son seuil.
@@ -30,7 +29,7 @@ export const CarteStock: React.FC<{
   return (
     <article className="card stk" id="carte-stock">
       <TeteCarte
-        lead={<LeadImage src={leadEtatStock} largeur={38} />}
+        lead={<Lead nom="box" />}
         titre="État du stock"
         action={
           aRecommander > 0 ? (
