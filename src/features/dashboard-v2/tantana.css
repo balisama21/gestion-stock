@@ -1075,19 +1075,34 @@
 .tn .tc img {
   display: block;
 }
-/* Cinq cartes de front tant qu'elles ont la place ; en dessous, trois
-   par rangée, pour que montants et titres ne débordent pas. */
-@container (max-width: 1060px) {
-  .tn .tb-kpis {
-    grid-template-columns: repeat(6, minmax(0, 1fr)) !important;
+/* Les cinq cartes restent toujours sur une seule ligne. Quand elles
+   sont étroites, leur marge se resserre, les deux chiffres côte à côte
+   passent l'un sous l'autre et le montant se réduit juste assez pour
+   tenir : jamais plus grand que dans les sections. */
+.tn .kc {
+  container: carte-jour / inline-size;
+}
+@container (max-width: 1200px) {
+  .tn .kc {
+    padding: 14px 12px;
   }
-  .tn .tb-kpis .kc {
-    grid-column: span 2;
+}
+.tn .kc .kv {
+  font-size: min(var(--fs-xl), 14cqw);
+}
+.tn .kc .kv.moyen {
+  font-size: min(var(--fs-m), 12cqw);
+}
+@container carte-jour (max-width: 200px) {
+  .tn .kc .kc-duo {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 6px;
   }
-  /* Avec cinq cartes, les deux dernières se partagent la seconde rangée. */
-  .tn .tb-kpis .kc:nth-child(4):nth-last-child(2),
-  .tn .tb-kpis .kc:nth-child(5):nth-last-child(1) {
-    grid-column: span 3;
+  .tn .kc .kc-duo .kdiv {
+    display: none;
+  }
+  .tn .kc .kc-h {
+    gap: 6px;
   }
 }
 .tn .kc-h {
