@@ -142,7 +142,9 @@ export const CarteMouvements: React.FC<{
               fill="transparent"
               onMouseEnter={() => setSurvol(i)}
             />
-            {(i % pasLibelle === 0 || i === jours.length - 1) && (
+            {(i === jours.length - 1 ||
+              // Une date trop près de la dernière la chevaucherait.
+              (i % pasLibelle === 0 && jours.length - 1 - i >= pasLibelle * 0.7)) && (
               <text x={X(i)} y={H - 20} textAnchor="middle" className="axe">
                 {jourEtMois(dateLocale(j.jour))}
               </text>
