@@ -467,19 +467,6 @@ html.dark {
   height: 100%;
 }
 
-/* ── Avatar à initiale (src/components/shared/AvatarInitiale.tsx) ── */
-.avatar-initiale {
-  display: inline-grid;
-  place-items: center;
-  flex: none;
-  border-radius: 50%;
-  color: #fff;
-  font-weight: 700;
-  line-height: 1;
-  letter-spacing: 0;
-  user-select: none;
-}
-
 /* ── Avatar illustré d'une personne (src/components/shared/AvatarPersonne.tsx) ── */
 .avatar-personne {
   display: inline-block;

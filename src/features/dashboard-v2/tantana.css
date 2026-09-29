@@ -2144,7 +2144,7 @@
 }
 .tn .rank .rw {
   display: grid;
-  grid-template-columns: 38px 54px minmax(0, 1fr) auto;
+  grid-template-columns: 54px minmax(0, 1fr) auto;
   gap: 12px;
   align-items: center;
   padding: 12px 10px;
@@ -2152,16 +2152,6 @@
 }
 .tn .rank .rw.first {
   background: var(--gsoft);
-}
-.tn .medal {
-  width: 36px;
-  height: 36px;
-  border-radius: 50%;
-  display: grid;
-  place-items: center;
-  color: #fff;
-  font-weight: 700;
-  font-size: 16px;
 }
 .tn .rank .nm {
   min-width: 0;
@@ -2182,7 +2172,7 @@
   white-space: nowrap;
 }
 .tn .rank .pc {
-  grid-column: 3 / 5;
+  grid-column: 2 / 4;
   display: flex;
   align-items: center;
   gap: 10px;
@@ -3057,10 +3047,24 @@
 }
 .tn .f-grid .tbl th,
 .tn .f-grid .tbl td {
-  padding: 8px 6px;
+  padding: 8px 4px;
+}
+/* Des en-têtes qui passent à la ligne plutôt qu'un tableau qui défile :
+   la colonne est étroite dès que les deux annuaires sont côte à côte. */
+.tn .f-grid .tbl th {
+  white-space: normal;
+}
+.tn .f-grid .tbl td {
+  hyphens: auto;
+}
+/* Ancré ici : sans cela, le libellé masqué « Actions », placé en
+   absolu, sortirait du tableau défilant et élargirait la page. */
+.tn .f-grid .tbl th.actions {
+  position: relative;
+  width: 36px;
 }
 .tn .f-grid .pill {
-  padding: 4px 10px;
+  padding: 4px 8px;
 }
 .tn .nmc {
   display: flex;
@@ -3440,7 +3444,7 @@
     grid-template-columns: 44px minmax(0, 1fr) auto 14px;
   }
   .tn .rank .rw {
-    grid-template-columns: 34px 46px minmax(0, 1fr) auto;
+    grid-template-columns: 46px minmax(0, 1fr) auto;
   }
   .tn .result .rr {
     grid-template-columns: 1fr;

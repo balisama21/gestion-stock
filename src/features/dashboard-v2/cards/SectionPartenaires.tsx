@@ -1,6 +1,5 @@
 import React, { useMemo, useState } from "react";
 import { Icone, type NomIcone } from "../../../components/shared/Icone";
-import { AvatarInitiale } from "../../../components/shared/AvatarInitiale";
 import { Lead, Lien, TeteCarte, Vide, type TonIcone } from "../components/Tn";
 import { dateLocale, montant, nombre } from "../lib/format";
 import { dateDuJour, dateDansNJours } from "../../../lib/dates";
@@ -143,7 +142,9 @@ const Annuaire: React.FC<{
               <th>{colonne}</th>
               <th>Contact</th>
               <th>Statut</th>
-              <th className="centre">Actions</th>
+              <th className="centre actions">
+                <span className="sr-only">Actions</span>
+              </th>
             </tr>
           </thead>
           {tranche.length > 0 && (
@@ -151,10 +152,7 @@ const Annuaire: React.FC<{
               {tranche.map((l) => (
                 <tr key={l.id}>
                   <td>
-                    <div className="nmc">
-                      <AvatarInitiale nom={l.nom} taille={32} />
-                      {l.nom}
-                    </div>
+                    <div className="nmc">{l.nom}</div>
                   </td>
                   <td>{l.activite || "—"}</td>
                   <td className="nowrap">{l.contact || "—"}</td>

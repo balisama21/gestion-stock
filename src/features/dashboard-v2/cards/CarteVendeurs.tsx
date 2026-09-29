@@ -11,8 +11,6 @@ import { illTrophee } from "../assets/images";
  * La barre donne la part de chacun dans le total des soldes positifs.
  */
 
-const MEDAILLES = ["#f2b31c", "#b7c0c4", "#c8804a"];
-
 export const CarteVendeurs: React.FC<{
   vendeurs: Seller[];
   montantsVisibles: boolean;
@@ -45,9 +43,6 @@ export const CarteVendeurs: React.FC<{
           const part = total > 0 ? Math.round((Math.max(0, v.soldeNetEnPoche) / total) * 100) : 0;
           return (
             <div className={`rw${i === 0 ? " first" : ""}`} key={v.id}>
-              <span className="medal" style={{ background: MEDAILLES[i] ?? "#93a4a2" }}>
-                {i + 1}
-              </span>
               <AvatarPersonne nom={v.nom} taille={50} className="ava" />
               <div className="nm">
                 <b>{v.nom}</b>
