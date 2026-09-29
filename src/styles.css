@@ -467,6 +467,47 @@ html.dark {
   height: 100%;
 }
 
+/* ── Avatar à initiale (src/components/shared/AvatarInitiale.tsx) ── */
+.avatar-initiale {
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  border-radius: 50%;
+  color: #fff;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: 0;
+  user-select: none;
+}
+
+/* ── Vignette produit ronde (src/components/shared/VignetteProduit.tsx) ── */
+.vignette-produit {
+  display: inline-grid;
+  place-items: center;
+  flex: none;
+  border-radius: 50%;
+  overflow: hidden;
+  font-weight: 700;
+  line-height: 1;
+  user-select: none;
+}
+.vignette-produit img {
+  width: 100%;
+  height: 100%;
+  padding: 17%;
+  object-fit: contain;
+}
+.vignette-produit.fondue img {
+  mix-blend-mode: multiply;
+}
+.vignette-produit.detouree img {
+  filter: drop-shadow(0 1px 1.5px rgb(0 0 0 / 0.14));
+}
+.vignette-produit.pleine img {
+  padding: 0;
+  object-fit: cover;
+}
+
 /* Cibles tactiles — jusqu'à 1023px, c'est-à-dire tant que l'interface est
    en mode compact. Les liens stylés en bouton (.app-btn*) sont inclus :
    un <a> sans role="button" échappait à cette règle et retombait à

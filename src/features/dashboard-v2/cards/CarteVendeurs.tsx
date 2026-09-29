@@ -1,8 +1,8 @@
 import React from "react";
-import { Initiale, Lead, Lien, TeteCarte, Vide } from "../components/Tn";
+import { AvatarInitiale } from "../../../components/shared/AvatarInitiale";
+import { Lead, Lien, TeteCarte, Vide } from "../components/Tn";
 import { montant, montantMasque } from "../lib/format";
 import type { Seller } from "../../../types";
-import { teinteDe } from "../../../lib/teintes";
 import { illTrophee } from "../assets/images";
 
 /**
@@ -48,7 +48,7 @@ export const CarteVendeurs: React.FC<{
               <span className="medal" style={{ background: MEDAILLES[i] ?? "#93a4a2" }}>
                 {i + 1}
               </span>
-              <Initiale nom={v.nom} teinte={teinteDe(v.nom)} taille={50} />
+              <AvatarInitiale nom={v.nom} taille={50} className="ava" />
               <div className="nm">
                 <b>{v.nom}</b>
                 <small>

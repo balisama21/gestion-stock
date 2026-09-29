@@ -1,5 +1,7 @@
 import React from "react";
 import {
+  AlertCircle,
+  CheckCircle2,
   Activity,
   ArrowDown,
   ArrowLeft,
@@ -91,6 +93,8 @@ const ICONES = {
   chart: BarChart3,
   truck: Truck,
   check: Check,
+  checkcircle: CheckCircle2,
+  alertcircle: AlertCircle,
   mail: Mail,
   plus: Plus,
   filter: Filter,

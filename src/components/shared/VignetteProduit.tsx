@@ -1,6 +1,11 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { adresseVignetteProduit } from "../../lib/stockageFichiers";
-import { teinteDe } from "../../lib/teintes";
+import {
+  pastelDe,
+  preparerVignette,
+  vignetteConnue,
+  type VignettePreparee,
+} from "../../lib/vignetteDetouree";
 
 /**
  * Quelle photo sert de vignette, pour chaque produit.
@@ -23,80 +28,6 @@ export const vignettesParProduit = (
   return table;
 };
 
-interface VignetteProduitProps {
-  /** Le nom du produit, porte en infobulle sur la photo. */
-  nom: string;
-  /** Le chemin de la photo dans le stockage. Nul = pas de photo. */
-  chemin?: string | null;
-  /** Côté en pixels. 36 dans une liste, plus grand dans une fiche. */
-  taille?: number;
-  className?: string;
-}
-
-/**
- * La vignette d'un produit — la photo seule, ou rien.
- *
- * ── Ni cadre, ni fond ──
- *
- * La photo se pose directement sur la page. Pas de filet, pas d'aplat
- * gris derriere, pas de coin arrondi : rien qui dise « ceci est une
- * miniature ». Un produit detoure flotte alors sur le blanc, comme sur
- * les catalogues en ligne ; une photo ordinaire se montre telle
- * qu'elle est, sans qu'on lui ait dessine une boite autour.
- *
- * `object-contain` et non `cover` : sans cadre, plus rien ne delimite
- * la zone dans laquelle recadrer, et un produit ampute de ses bords se
- * verrait d'autant plus. L'adresse demandee au stockage porte le meme
- * `resize=contain`, pour que le rognage ne revienne pas par le serveur.
- *
- * ── Sans photo, l'INITIALE sur sa pastille ──
- *
- * Un produit sans photo porte la premiere lettre de son nom, en blanc,
- * sur un fond colore a coins arrondis. La place n'est plus laissee
- * vide : une colonne de blancs ne disait pas « ce produit n'a pas de
- * photo », elle donnait l'impression que l'ecran n'avait pas fini de
- * charger.
- *
- * LA COULEUR VIENT DU NOM, par `teinteDe`, la meme fonction qui colore
- * les avatars des vendeurs et des clients. Un article garde donc sa
- * teinte d'un chargement a l'autre et d'un ecran a l'autre, ce qui en
- * fait un repere utilisable. Elle ne dit RIEN de l'etat de la ligne :
- * ce n'est pas une couleur de statut, seulement de reconnaissance.
- *
- * UN CERCLE, comme les avatars des vendeurs et des clients. J'avais
- * d'abord pose un carre a coins arrondis, en me disant qu'un objet ne
- * se represente pas comme une personne et que la difference de forme
- * aiderait a les distinguer. L'utilisateur a tranche pour le cercle :
- * une seule forme de vignette dans toute l'application se retient
- * mieux qu'une regle a deux cas, et les rapports de taille de `.av`
- * sont deja calibres pour un disque.
- *
- * LA PLACE RESTE LA MEME, et cela porte tout : la pastille occupe
- * exactement les dimensions de la photo qu'elle remplace. Sans cela,
- * les lignes sans photo verraient leur texte glisser vers la gauche et
- * la liste cesserait de s'aligner — l'oeil trebuche a chaque saut, et
- * une colonne de noms en dents de scie se lit mal.
- *
- * LA PHOTO, ELLE, N'EST PAS ENCADREE. Quand elle existe, elle se pose
- * toujours nue sur la page, sans fond ni coin arrondi. Ce n'est pas un
- * oubli : une pastille est une convention qui remplace une image
- * absente, pas un cadre qu'on imposerait a une image presente.
- *
- * ── Le poids ──
- *
- * L'adresse demandee porte la taille voulue : le serveur renvoie une
- * miniature, pas la photo d'origine. Sur un cliche reel de la
- * boutique, 132 631 octets deviennent 1 927 — soixante-neuf fois
- * moins. Cela compte pour une liste de vingt lignes ouverte en donnees
- * mobiles.
- *
- * ── Quand l'image ne vient pas ──
- *
- * Fichier efface du stockage, reseau coupe, adresse perimee : on
- * retombe sur l'initiale plutot que sur la petite icone d'image brisee
- * du navigateur.
- */
-
 /**
  * La lettre a montrer, ou rien quand le nom n'en donne aucune.
  *
@@ -106,6 +37,33 @@ interface VignetteProduitProps {
  * reste un reperage utile.
  */
 const initialeDe = (nom: string): string => nom.trim().charAt(0).toUpperCase();
+interface VignetteProduitProps {
+  /** Le nom du produit, porte en infobulle sur la photo. */
+  nom: string;
+  /** Le chemin de la photo dans le stockage. Nul = pas de photo. */
+  chemin?: string | null;
+  /** Diamètre en pixels. 36 dans une liste, plus grand dans une fiche. */
+  taille?: number;
+  className?: string;
+}
+
+/**
+ * La vignette d'un produit : un disque, le produit posé dedans.
+ *
+ * AVEC UNE PHOTO, le produit est détouré (voir `vignetteDetouree.ts`)
+ * et posé sur un fond pâle tiré de sa propre couleur. Tant que le
+ * détourage n'est pas prêt, ou si le stockage refuse la lecture, la
+ * photo se fond dans le disque par un mélange « produit » : un fond
+ * blanc prend la couleur du disque au lieu de dessiner un carré. Une
+ * photo au fond trop chargé pour être retiré remplit le disque.
+ *
+ * SANS PHOTO, ou quand elle ne vient pas, l'initiale du produit sur le
+ * même disque pâle, dans une encre de sa teinte. Le disque garde
+ * exactement la place de la photo : la liste reste alignée.
+ *
+ * La couleur de secours vient du NOM, jamais du hasard : un article
+ * garde sa teinte d'un écran et d'un chargement à l'autre.
+ */
 export const VignetteProduit: React.FC<VignetteProduitProps> = ({
   nom,
   chemin,
@@ -113,49 +71,62 @@ export const VignetteProduit: React.FC<VignetteProduitProps> = ({
   className = "",
 }) => {
   const [echec, setEchec] = useState(false);
-  const cote = { width: taille, height: taille };
+  // Le double de la taille d'affichage : sur un écran dense, une
+  // miniature à l'échelle exacte paraît floue.
+  const url = chemin ? adresseVignetteProduit(chemin, Math.max(96, taille * 2)) : null;
+  const [prete, setPrete] = useState<VignettePreparee | null | undefined>(() =>
+    url ? vignetteConnue(url) : undefined,
+  );
 
-  if (!chemin || echec) {
+  useEffect(() => {
+    if (!url) return;
+    let actif = true;
+    setPrete(vignetteConnue(url));
+    void preparerVignette(url).then((r) => {
+      if (actif) setPrete(r);
+    });
+    return () => {
+      actif = false;
+    };
+  }, [url]);
+
+  const secours = pastelDe(nom);
+  const disque: React.CSSProperties = {
+    width: taille,
+    height: taille,
+    background: prete?.fond ?? secours.fond,
+  };
+  const classes = `vignette-produit${className ? ` ${className}` : ""}`;
+
+  if (!url || echec) {
     return (
       <span
+        className={classes}
         style={{
-          ...cote,
-          background: teinteDe(nom),
-          borderRadius: "50%",
-          // La taille suit le cote : la meme vignette sert a 36 pixels
-          // dans une liste et bien plus grand dans une fiche. Le
-          // rapport est celui de `.av` — 13 px de texte pour 36 de
-          // cote — pour que les deux vignettes soient de la meme
-          // famille.
-          fontSize: Math.round(taille * 0.36),
-          lineHeight: 1,
+          ...disque,
+          color: secours.encre,
+          fontSize: Math.round(taille * 0.4),
         }}
         title={nom}
-        // Decoratif : le nom du produit est ecrit juste a cote, et une
-        // lecture d'ecran qui annoncerait « H » avant « Huile » ne
-        // ferait que begayer.
+        // Décoratif : le nom du produit est écrit juste à côté.
         aria-hidden="true"
-        className={`flex shrink-0 select-none items-center justify-center font-bold text-white ${className}`}
       >
         {initialeDe(nom)}
       </span>
     );
   }
 
+  const mode = prete ? (prete.detouree ? "detouree" : "pleine") : "fondue";
   return (
-    <img
-      // Le double de la taille d'affichage : sur un ecran dense, une
-      // miniature a l'echelle exacte parait floue.
-      src={adresseVignetteProduit(chemin, taille * 2)}
-      alt=""
-      title={nom}
-      width={taille}
-      height={taille}
-      style={cote}
-      loading="lazy"
-      decoding="async"
-      onError={() => setEchec(true)}
-      className={`shrink-0 object-contain ${className}`}
-    />
+    <span className={`${classes} ${mode}`} style={disque} title={nom}>
+      <img
+        src={prete?.src ?? url}
+        alt=""
+        crossOrigin="anonymous"
+        loading="lazy"
+        decoding="async"
+        onError={() => setEchec(true)}
+      />
+    </span>
   );
 };

@@ -64,7 +64,11 @@ const distance = (d: Uint8ClampedArray, i: number, r: number, v: number, b: numb
  * une moyenne vers une couleur qui n'existe nulle part dans l'image,
  * et la comparaison se ferait alors contre un fond imaginaire.
  */
-const couleurDuBord = (d: Uint8ClampedArray, l: number, h: number): [number, number, number] => {
+export const couleurDuBord = (
+  d: Uint8ClampedArray,
+  l: number,
+  h: number,
+): [number, number, number] => {
   const rs: number[] = [];
   const vs: number[] = [];
   const bs: number[] = [];
@@ -89,25 +93,17 @@ const couleurDuBord = (d: Uint8ClampedArray, l: number, h: number): [number, num
   return [med(rs), med(vs), med(bs)];
 };
 
-export async function detourerFondUni(
-  fichier: File,
+/**
+ * Rend transparent le fond uni qui touche les bords, en place dans
+ * `d`. Rend le nombre de pixels effacés. Partagé par le détourage de la
+ * fiche produit et par les vignettes rondes des listes.
+ */
+export function effacerFondDepuisBords(
+  d: Uint8ClampedArray,
+  l: number,
+  h: number,
   tolerance: number,
-): Promise<ResultatDetourage> {
-  const bitmap = await createImageBitmap(fichier);
-  const reduction = Math.min(1, COTE_MAX / Math.max(bitmap.width, bitmap.height));
-  const l = Math.max(1, Math.round(bitmap.width * reduction));
-  const h = Math.max(1, Math.round(bitmap.height * reduction));
-
-  const canvas = document.createElement("canvas");
-  canvas.width = l;
-  canvas.height = h;
-  const ctx = canvas.getContext("2d", { willReadFrequently: true });
-  if (!ctx) throw new Error("Le navigateur n'a pas pu lire cette image.");
-  ctx.drawImage(bitmap, 0, 0, l, h);
-  bitmap.close?.();
-
-  const image = ctx.getImageData(0, 0, l, h);
-  const d = image.data;
+): number {
   const [r, v, b] = couleurDuBord(d, l, h);
 
   // ── La diffusion depuis les bords ──
@@ -169,6 +165,28 @@ export async function detourerFondUni(
     const part = Math.max(0, Math.min(1, (ecart - tolerance) / marge));
     d[i + 3] = Math.round(d[i + 3] * part);
   }
+  return effaces;
+}
+
+export async function detourerFondUni(
+  fichier: File,
+  tolerance: number,
+): Promise<ResultatDetourage> {
+  const bitmap = await createImageBitmap(fichier);
+  const reduction = Math.min(1, COTE_MAX / Math.max(bitmap.width, bitmap.height));
+  const l = Math.max(1, Math.round(bitmap.width * reduction));
+  const h = Math.max(1, Math.round(bitmap.height * reduction));
+
+  const canvas = document.createElement("canvas");
+  canvas.width = l;
+  canvas.height = h;
+  const ctx = canvas.getContext("2d", { willReadFrequently: true });
+  if (!ctx) throw new Error("Le navigateur n'a pas pu lire cette image.");
+  ctx.drawImage(bitmap, 0, 0, l, h);
+  bitmap.close?.();
+
+  const image = ctx.getImageData(0, 0, l, h);
+  const effaces = effacerFondDepuisBords(image.data, l, h, tolerance);
 
   ctx.putImageData(image, 0, 0);
 

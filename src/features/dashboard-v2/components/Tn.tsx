@@ -102,18 +102,3 @@ export const Vide: React.FC<{
 export const Chevron: React.FC<{ className?: string }> = ({ className = "chev" }) => (
   <Icone nom="chevright" className={className} />
 );
-
-/** Une pastille d'initiale, colorée d'après le nom. */
-export const Initiale: React.FC<{ nom: string; teinte: string; taille?: number }> = ({
-  nom,
-  teinte,
-  taille = 46,
-}) => (
-  <span
-    className="ava ini"
-    style={{ background: teinte, width: taille, height: taille, fontSize: taille * 0.4 }}
-    aria-hidden="true"
-  >
-    {(nom.trim().charAt(0) || "?").toUpperCase()}
-  </span>
-);

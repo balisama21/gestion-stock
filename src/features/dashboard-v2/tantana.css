@@ -497,14 +497,6 @@
   color: #fff;
   font-weight: 700;
 }
-.tn .ava.comptoir {
-  background: var(--gsoft);
-  color: var(--g2);
-}
-.tn .ava.comptoir .ico {
-  width: 22px;
-  height: 22px;
-}
 .tn .plier-mini {
   width: 28px;
   height: 28px;
@@ -1797,7 +1789,12 @@
   margin-left: 4px;
 }
 .tn .feed {
+  --fd: 64px;
+  --fr: 14px;
+  --fa: 42px;
+  --fg: 14px;
   position: relative;
+  container: fil / inline-size;
 }
 .tn .feed .day {
   display: contents;
@@ -1805,60 +1802,85 @@
 .tn .feed .r {
   position: relative;
   display: grid;
-  grid-template-columns: 78px 14px 44px minmax(0, 1fr) auto auto;
-  gap: 12px;
+  grid-template-columns: var(--fd) var(--fr) var(--fa) minmax(0, 1fr) auto;
+  column-gap: var(--fg);
   align-items: center;
-  padding: 14px 0;
-  border-bottom: 1px solid var(--line);
+  height: 84px;
 }
-.tn .feed .day:last-child .r:last-child {
-  border-bottom: 0;
-}
-.tn .feed .r::before {
+/* Le filet entre deux ventes part de l'avatar, comme sur la maquette. */
+.tn .feed .r::after {
   content: "";
   position: absolute;
-  left: 71px;
-  top: 0;
-  width: 2px;
-  height: 100%;
-  background: var(--g);
-  opacity: 0.6;
+  left: calc(var(--fd) + var(--fr) + var(--fg) * 2);
+  right: 0;
+  bottom: 0;
+  height: 1px;
+  background: var(--line);
 }
-.tn .feed .day:first-child .r:first-child::before {
-  top: 50%;
-  height: 50%;
-}
-.tn .feed .day:last-child .r:last-child::before {
-  height: 50%;
-}
-.tn .feed .day:only-child .r:only-child::before {
+.tn .feed .day:last-child .r:last-child::after {
   display: none;
 }
 .tn .feed .d {
-  font-size: 13px;
-  line-height: 1.25;
+  display: flex;
+  flex-direction: column;
+  font-size: 12.5px;
+  line-height: 1.35;
   color: var(--muted);
+  white-space: nowrap;
 }
 .tn .feed .d b {
   color: var(--ink);
   font-size: 14px;
-  display: block;
+  font-weight: 700;
+}
+.tn .feed .d .jc {
+  display: none;
+}
+/* La frise : un trait continu d'une ligne à l'autre, le point au centre
+   exact de la ligne, donc à la hauteur du centre de l'avatar. */
+.tn .feed .rail {
+  position: relative;
+  align-self: stretch;
+  display: grid;
+  place-items: center;
+}
+.tn .feed .rail::before {
+  content: "";
+  position: absolute;
+  left: 50%;
+  top: 0;
+  bottom: 0;
+  width: 2px;
+  margin-left: -1px;
+  background: var(--g);
+  opacity: 0.55;
+}
+.tn .feed .day:first-child .r:first-child .rail::before {
+  top: 50%;
+}
+.tn .feed .day:last-child .r:last-child .rail::before {
+  bottom: 50%;
+}
+.tn .feed .day:only-child .r:only-child .rail::before {
+  display: none;
 }
 .tn .feed .dot {
-  width: 12px;
-  height: 12px;
-  border: 3px solid var(--g);
-  border-radius: 50%;
-  background: var(--card);
   position: relative;
   z-index: 1;
+  width: 12px;
+  height: 12px;
+  border: 2.5px solid var(--g);
+  border-radius: 50%;
+  background: var(--card);
 }
 .tn .feed .who {
   min-width: 0;
 }
-.tn .feed .who b {
+.tn .feed .who > b {
   display: block;
   font-size: 14.5px;
+  font-weight: 700;
+  line-height: 1.3;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -1866,28 +1888,47 @@
 .tn .feed .prod {
   display: flex;
   align-items: center;
-  gap: 8px;
-  color: var(--muted);
-  font-size: 12.5px;
-  margin-top: 4px;
+  gap: 10px;
+  margin-top: 5px;
   min-width: 0;
 }
-.tn .feed .prod .th {
-  width: 30px;
-  height: 30px;
-  flex: none;
-  display: grid;
-  place-items: center;
-}
 .tn .feed .prod .pl {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  line-height: 1.3;
+}
+.tn .feed .prod .pn,
+.tn .feed .prod .pq {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  color: var(--muted);
+  font-size: 12.5px;
+}
+.tn .feed .prod .pq {
+  font-size: 12px;
+}
+.tn .feed .fin {
+  display: flex;
+  align-items: center;
+  gap: 18px;
 }
 .tn .feed .amt {
   font-weight: 700;
   font-size: 14.5px;
   white-space: nowrap;
+  text-align: right;
+}
+.tn .feed .statut {
+  width: 84px;
+  justify-content: center;
+  gap: 5px;
+  padding: 5px 0;
+}
+.tn .feed .statut .ico {
+  width: 14px;
+  height: 14px;
 }
 .tn .cli {
   display: grid;
@@ -3464,20 +3505,6 @@
     border-left: 0;
     padding-left: 0;
   }
-  .tn .feed .r {
-    grid-template-columns: 62px 12px 42px minmax(0, 1fr) auto;
-  }
-  .tn .feed .r::before {
-    left: 79px;
-  }
-  .tn .feed .r .pill {
-    grid-column: 4 / 6;
-    justify-self: start;
-  }
-  .tn .feed .r .amt {
-    grid-column: 5;
-    grid-row: 1;
-  }
 }
 
 @media (max-width: 640px) {
@@ -3575,28 +3602,6 @@
   .tn .stock-actions .btn {
     width: 100%;
   }
-  .tn .feed .r {
-    grid-template-columns: 58px 12px 40px minmax(0, 1fr);
-    row-gap: 6px;
-  }
-  .tn .feed .r::before {
-    left: 75px;
-  }
-  .tn .feed .d {
-    font-size: 12px;
-  }
-  .tn .feed .r .amt,
-  .tn .feed .r .pill {
-    grid-column: 4;
-    grid-row: auto;
-  }
-  .tn .feed .r .amt {
-    margin-top: -2px;
-  }
-  .tn .feed .ava {
-    width: 40px !important;
-    height: 40px !important;
-  }
   .tn .f-search {
     flex-wrap: wrap;
   }
@@ -3649,5 +3654,64 @@
 @media (prefers-reduced-motion: reduce) {
   .tn .card.flash {
     animation: none;
+  }
+}
+
+/* La disposition suit la largeur de la carte, pas celle de l'écran :
+   en demi-colonne sur un portable, elle est déjà étroite. */
+@container fil (max-width: 600px) {
+  .tn .feed .r {
+    --fd: 54px;
+    --fg: 12px;
+  }
+  .tn .feed .fin {
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 6px;
+  }
+  .tn .feed .statut {
+    width: 76px;
+    font-size: 12px;
+  }
+}
+@container fil (max-width: 440px) {
+  .tn .feed .r {
+    --fd: 38px;
+    --fr: 10px;
+    --fa: 34px;
+    --fg: 8px;
+    height: 88px;
+  }
+  .tn .feed .d .jl {
+    display: none;
+  }
+  .tn .feed .d .jc {
+    display: inline;
+  }
+  .tn .feed .who > b {
+    font-size: 13.5px;
+  }
+  .tn .feed .ava {
+    width: 34px !important;
+    height: 34px !important;
+    font-size: 14px !important;
+  }
+  .tn .feed .d {
+    font-size: 11px;
+  }
+  .tn .feed .d b {
+    font-size: 12.5px;
+  }
+  .tn .feed .amt {
+    font-size: 13px;
+  }
+  .tn .feed .statut {
+    width: 70px;
+    font-size: 11px;
+    gap: 4px;
+  }
+  .tn .feed .prod .vignette-produit {
+    width: 28px !important;
+    height: 28px !important;
   }
 }

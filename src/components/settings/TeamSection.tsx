@@ -19,6 +19,7 @@ import {
   type PermissionsMap,
   type RoleKey,
 } from "../../lib/permissions";
+import { AvatarInitiale } from "../shared/AvatarInitiale";
 
 export interface TeamMember {
   id: string;
@@ -373,9 +374,7 @@ export const TeamSection: React.FC<TeamSectionProps> = ({
               ) : (
                 <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
                   <div className="flex min-w-0 items-center gap-3">
-                    <span className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full border border-border bg-muted text-sm font-bold uppercase text-muted-foreground">
-                      {(member.full_name || member.email).charAt(0)}
-                    </span>
+                    <AvatarInitiale nom={member.full_name || member.email} taille={40} />
                     <div className="min-w-0">
                       <p className="truncate text-sm font-semibold text-foreground">
                         {member.full_name || member.email}

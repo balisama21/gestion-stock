@@ -1,9 +1,9 @@
 import React from "react";
+import { AvatarInitiale } from "../../../components/shared/AvatarInitiale";
 import { Icone, type NomIcone } from "../../../components/shared/Icone";
-import { Initiale, Lead, Lien, TeteCarte, Vide } from "../components/Tn";
+import { Lead, Lien, TeteCarte, Vide } from "../components/Tn";
 import { montant, nombre, montantMasque } from "../lib/format";
 import type { ChiffresClients } from "../lib/chiffres";
-import { teinteDe } from "../../../lib/teintes";
 import { illClients } from "../assets/images";
 
 /**
@@ -71,7 +71,7 @@ export const CarteClients: React.FC<{
             <div className="sous-titre">À relancer</div>
             {aRelancer.map((c) => (
               <div className="person" key={c.id ?? c.nom}>
-                <Initiale nom={c.nom} teinte={teinteDe(c.nom)} taille={38} />
+                <AvatarInitiale nom={c.nom} taille={38} className="ava" />
                 <div className="info">
                   <b>{c.nom}</b>
                   <small>

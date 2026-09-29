@@ -31,6 +31,7 @@ import {
 import type { Sale, Payment } from "../types";
 import type { Database } from "../lib/database.types";
 import { useRechercheInitiale } from "../lib/cibleRecherche";
+import { AvatarInitiale } from "./shared/AvatarInitiale";
 
 type Client = Database["public"]["Tables"]["clients"]["Row"];
 type ClientInsert = Database["public"]["Tables"]["clients"]["Insert"];
@@ -740,6 +741,7 @@ export const ClientsView: React.FC<ClientsViewProps> = ({
                         choisi ? "bg-muted" : ""
                       }`}
                     >
+                      <AvatarInitiale nom={client.nom} taille={32} />
                       <span className="min-w-0 flex-1">
                         <span className="app-list-primary block">
                           {client.nom}
@@ -787,7 +789,8 @@ export const ClientsView: React.FC<ClientsViewProps> = ({
           <div className="space-y-4 lg:col-span-2">
             <div className="app-card p-5">
               <div className="mb-4 flex items-start justify-between gap-3">
-                <div className="min-w-0">
+                <AvatarInitiale nom={selection.nom} taille={52} />
+                <div className="min-w-0 flex-1">
                   <h3 className="truncate text-lg font-bold text-foreground">
                     {selection.nom}
                     {selection.prenom ? ` ${selection.prenom}` : ""}

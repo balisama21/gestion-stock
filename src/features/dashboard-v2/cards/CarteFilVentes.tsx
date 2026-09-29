@@ -1,12 +1,12 @@
 import React, { useMemo } from "react";
-import { Icone } from "../../../components/shared/Icone";
+import { Icone, type NomIcone } from "../../../components/shared/Icone";
+import { AvatarInitiale } from "../../../components/shared/AvatarInitiale";
 import { BoutonRepli } from "../components/BoutonRepli";
-import { Initiale, Lead, Lien, TeteCarte, Vide } from "../components/Tn";
+import { Lead, Lien, TeteCarte, Vide } from "../components/Tn";
 import { LIGNES_EN_APERCU, useRepli } from "../lib/repli";
 import { dateLocale, montant, montantMasque } from "../lib/format";
 import { dateDuJour } from "../../../lib/dates";
 import { getSaleLabel } from "../../../utils/formulas";
-import { teinteDe } from "../../../lib/teintes";
 import { VignetteProduit, vignettesParProduit } from "../../../components/shared/VignetteProduit";
 import type { Product, Sale } from "../../../types";
 import { illVideArgent } from "../assets/images";
@@ -18,10 +18,10 @@ import { illVideArgent } from "../assets/images";
  * la question qu'on se pose en ouvrant l'écran. Le choix est retenu.
  */
 
-const BADGE: Record<string, { texte: string; classe: string }> = {
-  Payé: { texte: "✓ Payé", classe: "" },
-  Partiel: { texte: "Partiel", classe: "wait" },
-  Impayé: { texte: "Crédit", classe: "crit" },
+const BADGE: Record<string, { texte: string; classe: string; icone: NomIcone }> = {
+  Payé: { texte: "Payé", classe: "", icone: "checkcircle" },
+  Partiel: { texte: "Partiel", classe: "wait", icone: "clock" },
+  Impayé: { texte: "Crédit", classe: "crit", icone: "alertcircle" },
 };
 
 /** « 09:42 », seulement quand la saisie a eu lieu le jour même de la vente. */
@@ -112,49 +112,50 @@ export const CarteFilVentes: React.FC<{
                 const h = heureDeVente(v);
                 const d = dateLocale(jour);
                 return (
-                  <div className="r sale" key={v.id}>
+                  <div
+                    className="r sale"
+                    key={v.id}
+                    title={v.vendeur ? `Vendu par ${v.vendeur}` : undefined}
+                  >
                     <div className="d">
                       <b>
                         {String(d.getDate()).padStart(2, "0")}/
                         {String(d.getMonth() + 1).padStart(2, "0")}
                       </b>
-                      {nomDuJour(jour)}
-                      {h && (
-                        <>
-                          <br />
-                          {h}
-                        </>
-                      )}
+                      <span className="jl">{nomDuJour(jour)}</span>
+                      <span className="jc">{nomDuJour(jour).slice(0, 3)}.</span>
+                      {h && <span>{h}</span>}
                     </div>
-                    <span className="dot" />
-                    {client ? (
-                      <Initiale nom={client} teinte={teinteDe(client)} />
-                    ) : (
-                      <span className="ava comptoir" aria-hidden="true">
-                        <Icone nom="store" />
-                      </span>
-                    )}
+                    <span className="rail" aria-hidden="true">
+                      <span className="dot" />
+                    </span>
+                    <AvatarInitiale nom={qui} taille={42} className="ava" />
                     <div className="who">
                       <b>{qui}</b>
                       <div className="prod">
-                        <span className="th">
-                          <VignetteProduit
-                            nom={libelle}
-                            chemin={v.productId ? vignettes.get(v.productId) : null}
-                            taille={30}
-                          />
-                        </span>
+                        <VignetteProduit
+                          nom={libelle}
+                          chemin={v.productId ? vignettes.get(v.productId) : null}
+                          taille={32}
+                        />
                         <span className="pl">
-                          {libelle} · x{v.quantite}
-                          {produit?.unite ? ` ${produit.unite}` : ""}
-                          {v.vendeur ? ` · ${v.vendeur}` : ""}
+                          <span className="pn">{libelle}</span>
+                          <span className="pq">
+                            x{v.quantite}
+                            {produit?.unite ? ` ${produit.unite}` : ""}
+                          </span>
                         </span>
                       </div>
                     </div>
-                    <span className="amt num">
-                      {montantsVisibles ? montant(v.totalVente) : montantMasque()}
-                    </span>
-                    <span className={`pill ${badge.classe}`}>{badge.texte}</span>
+                    <div className="fin">
+                      <span className="amt num">
+                        {montantsVisibles ? montant(v.totalVente) : montantMasque()}
+                      </span>
+                      <span className={`pill statut ${badge.classe}`}>
+                        <Icone nom={badge.icone} />
+                        {badge.texte}
+                      </span>
+                    </div>
                   </div>
                 );
               })}

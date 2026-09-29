@@ -63,3 +63,41 @@ export function teinteDe(nom: string): string {
   for (let i = 0; i < nom.length; i++) somme = (somme + nom.charCodeAt(i)) % 997;
   return TEINTES[somme % TEINTES.length];
 }
+
+/**
+ * Les couleurs des avatars de personnes : clients, vendeurs, équipe.
+ * Plus franches que `TEINTES`, pour qu'on reconnaisse quelqu'un d'un
+ * coup d'œil, et toutes lisibles en blanc (contraste de 4,4 à 7).
+ */
+const TEINTES_AVATAR = [
+  "#5B5BD6", // bleu-violet
+  "#2F6FDB", // bleu
+  "#C23B70", // rose
+  "#0B7F57", // vert
+  "#B5530F", // orange
+  "#8B4FC9", // violet
+  "#0B7C8A", // sarcelle
+  "#7A4E3A", // brun
+  "#C8473B", // brique
+  "#4F5E7A", // ardoise
+  "#3E7B2E", // olive
+];
+
+/** Un nom ramené à sa forme stable : sans accents, casse ni espaces parasites. */
+export const cleDeNom = (nom: string): string =>
+  nom.normalize("NFD").replace(/[̀-ͯ]/g, "").trim().replace(/\s+/g, " ").toLowerCase();
+
+/** Un condensé FNV-1a : deux noms voisins tombent rarement sur la même case. */
+export function condense(texte: string): number {
+  let h = 0x811c9dc5;
+  for (let i = 0; i < texte.length; i++) {
+    h ^= texte.charCodeAt(i);
+    h = Math.imul(h, 0x01000193);
+  }
+  return h >>> 0;
+}
+
+/** La couleur d'avatar d'une personne, la même sur tous les écrans. */
+export function teinteAvatar(nom: string): string {
+  return TEINTES_AVATAR[condense(cleDeNom(nom)) % TEINTES_AVATAR.length];
+}

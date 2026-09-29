@@ -35,6 +35,7 @@ import {
   type StatutPaiement,
   type TypePaiement,
 } from "../lib/salaires";
+import { AvatarInitiale } from "./shared/AvatarInitiale";
 
 interface SalairesViewProps {
   salaires: Salaire[];
@@ -299,9 +300,7 @@ export const SalairesView: React.FC<SalairesViewProps> = ({
           <div className="app-list">
             {liste.map((s) => (
               <div key={s.employe} className="app-list-row gap-3">
-                <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg border border-border bg-muted text-sm font-medium text-muted-foreground">
-                  {s.employe.charAt(0).toUpperCase()}
-                </span>
+                <AvatarInitiale nom={s.employe} taille={36} />
 
                 <button
                   type="button"

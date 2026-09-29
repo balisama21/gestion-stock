@@ -82,3 +82,23 @@ describe("le fil des ventes arrive replié, mais pas muet", () => {
     expect(lignes(container)).toBe(VENTES.length);
   });
 });
+
+describe("chaque ligne du fil porte un avatar à initiale", () => {
+  beforeEach(() => window.localStorage.setItem("tantana.dash.fil-replie", "0"));
+  afterEach(cleanup);
+
+  it("y compris une vente au comptoir, sans client", () => {
+    const { container } = afficher();
+    const ventes = [...container.querySelectorAll(".sale")];
+    expect(ventes.length).toBe(VENTES.length);
+    for (const v of ventes) expect(v.querySelector(".avatar-initiale")?.textContent).toBe("V");
+  });
+
+  it("met le produit rond et la quantité sous le nom", () => {
+    const { container } = afficher();
+    const ligne = container.querySelector(".sale")!;
+    expect(ligne.querySelector(".prod .vignette-produit")).toBeTruthy();
+    expect(ligne.querySelector(".prod .pq")?.textContent).toBe("x2");
+    expect(ligne.querySelector(".statut")?.textContent).toBe("Payé");
+  });
+});

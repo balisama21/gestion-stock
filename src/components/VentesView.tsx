@@ -66,6 +66,7 @@ import { documentDeVente } from "../features/documents/lib/buildDocument";
 import { Equivalents, texteEquivalents, useDevisesAffichees } from "../lib/contexteDevises";
 import type { ReglagesDocuments } from "../features/documents/lib/reglages";
 import { symboleDeSaisie } from "../lib/affichageDevise";
+import { AvatarInitiale } from "./shared/AvatarInitiale";
 
 type Client = Database["public"]["Tables"]["clients"]["Row"];
 
@@ -690,7 +691,18 @@ export const VentesView: React.FC<VentesViewProps> = ({
             ]
           : []),
         { label: "Vendeur", value: s.vendeur },
-        { label: "Client", value: s.clientCredit || "-", hideIfEmpty: true },
+        {
+          label: "Client",
+          value: s.clientCredit ? (
+            <span className="inline-flex items-center gap-2">
+              <AvatarInitiale nom={s.clientCredit} taille={24} />
+              {s.clientCredit}
+            </span>
+          ) : (
+            "-"
+          ),
+          hideIfEmpty: true,
+        },
         ...(showPaiement ? [{ label: "Payé", value: formatCurrency(s.montantPaye) }] : []),
         ...(showSolde && s.soldeDu > 0
           ? [
@@ -864,7 +876,18 @@ export const VentesView: React.FC<VentesViewProps> = ({
       details: [
         { label: "Date", value: formatDateLocale(premiere.date, locale) },
         { label: "Vendeur", value: premiere.vendeur },
-        { label: "Client", value: premiere.clientCredit || "-", hideIfEmpty: true },
+        {
+          label: "Client",
+          value: premiere.clientCredit ? (
+            <span className="inline-flex items-center gap-2">
+              <AvatarInitiale nom={premiere.clientCredit} taille={24} />
+              {premiere.clientCredit}
+            </span>
+          ) : (
+            "-"
+          ),
+          hideIfEmpty: true,
+        },
         ...(showMontant ? [{ label: "Total", value: formatCurrency(total) }] : []),
         ...(showMargeLigne
           ? [
