@@ -8,6 +8,7 @@ import {
   type PermissionsMap,
 } from "../lib/permissions";
 import { lireBoutiqueActive, retenirBoutiqueActive } from "../lib/boutiqueActive";
+import { boutiqueDuDomaineCourant } from "../lib/domaines";
 import { boutiqueEstVerrouillee } from "../lib/verrouillage";
 
 type Store = Database["public"]["Tables"]["stores"]["Row"];
@@ -134,21 +135,27 @@ export function useWorkspaceState(): WorkspaceContext {
     setError(null);
 
     try {
-      const { owned, memberStoreList, roles, permissionsDetailed } = await fetchAllStores();
+      const [{ owned, memberStoreList, roles, permissionsDetailed }, boutiqueDuDomaine] =
+        await Promise.all([fetchAllStores(), boutiqueDuDomaineCourant()]);
       setOwnedStores(owned);
       setMemberStores(memberStoreList);
       setMemberRoles(roles);
       setMemberPermissionsDetailedByStore(permissionsDetailed);
 
       if (!hasInitializedActiveStore) {
-        // Priorité : dernière boutique active mémorisée (localStorage) si
+        // Priorité : boutique du domaine visité (marque blanche), puis
+        // dernière boutique active mémorisée (localStorage) si
         // elle est toujours accessible, sinon la première boutique
         // possédée, sinon la première boutique où l'utilisateur est
         // collaborateur.
         const allIds = new Set([...owned.map((s) => s.id), ...memberStoreList.map((s) => s.id)]);
         const stored = lireBoutiqueActive(user.id);
         const defaultId =
-          stored && allIds.has(stored) ? stored : (owned[0]?.id ?? memberStoreList[0]?.id ?? null);
+          boutiqueDuDomaine && allIds.has(boutiqueDuDomaine)
+            ? boutiqueDuDomaine
+            : stored && allIds.has(stored)
+              ? stored
+              : (owned[0]?.id ?? memberStoreList[0]?.id ?? null);
 
         setActiveStoreIdState(defaultId);
         setHasInitializedActiveStore(true);
