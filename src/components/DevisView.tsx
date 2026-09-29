@@ -35,7 +35,7 @@ import {
 import { dateDuJour, dateDansNJours } from "../lib/dates";
 import { useRechercheInitiale } from "../lib/cibleRecherche";
 import { AideLigneLibre, LIBELLE_LIGNE_LIBRE } from "./shared/LigneLibre";
-import { AvatarInitiale } from "./shared/AvatarInitiale";
+import { AvatarPersonne } from "./shared/AvatarPersonne";
 
 type Client = Database["public"]["Tables"]["clients"]["Row"];
 
@@ -382,7 +382,7 @@ export const DevisView: React.FC<DevisViewProps> = ({
     const fige = devis.statut === "accepte";
     return {
       id: devis.id,
-      leading: <AvatarInitiale nom={devis.client_nom || "Sans nom"} taille={36} />,
+      leading: <AvatarPersonne nom={devis.client_nom} taille={36} />,
       primary: <span className="block truncate">{devis.client_nom || "Sans nom"}</span>,
       meta: [
         typeDe(devis) === "proforma" ? "Proforma" : null,

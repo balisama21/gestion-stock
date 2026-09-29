@@ -480,6 +480,18 @@ html.dark {
   user-select: none;
 }
 
+/* ── Avatar illustré d'une personne (src/components/shared/AvatarPersonne.tsx) ── */
+.avatar-personne {
+  display: inline-block;
+  flex: none;
+  border-radius: 50%;
+  overflow: hidden;
+  line-height: 0;
+}
+.avatar-personne svg {
+  display: block;
+}
+
 /* ── Vignette produit ronde (src/components/shared/VignetteProduit.tsx) ── */
 .vignette-produit {
   display: inline-grid;

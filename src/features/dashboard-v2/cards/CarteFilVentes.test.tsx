@@ -83,7 +83,7 @@ describe("le fil des ventes arrive replié, mais pas muet", () => {
   });
 });
 
-describe("chaque ligne du fil porte un avatar à initiale", () => {
+describe("chaque ligne du fil porte un avatar de personne", () => {
   beforeEach(() => window.localStorage.setItem("tantana.dash.fil-replie", "0"));
   afterEach(cleanup);
 
@@ -91,7 +91,7 @@ describe("chaque ligne du fil porte un avatar à initiale", () => {
     const { container } = afficher();
     const ventes = [...container.querySelectorAll(".sale")];
     expect(ventes.length).toBe(VENTES.length);
-    for (const v of ventes) expect(v.querySelector(".avatar-initiale")?.textContent).toBe("V");
+    for (const v of ventes) expect(v.querySelector(".avatar-personne svg")).toBeTruthy();
   });
 
   it("met le produit rond et la quantité sous le nom", () => {

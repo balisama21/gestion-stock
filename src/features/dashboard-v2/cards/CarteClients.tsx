@@ -1,5 +1,5 @@
 import React from "react";
-import { AvatarInitiale } from "../../../components/shared/AvatarInitiale";
+import { AvatarPersonne } from "../../../components/shared/AvatarPersonne";
 import { Icone, type NomIcone } from "../../../components/shared/Icone";
 import { Lead, Lien, TeteCarte, Vide } from "../components/Tn";
 import { montant, nombre, montantMasque } from "../lib/format";
@@ -71,7 +71,7 @@ export const CarteClients: React.FC<{
             <div className="sous-titre">À relancer</div>
             {aRelancer.map((c) => (
               <div className="person" key={c.id ?? c.nom}>
-                <AvatarInitiale nom={c.nom} taille={38} className="ava" />
+                <AvatarPersonne nom={c.nom} taille={38} className="ava" />
                 <div className="info">
                   <b>{c.nom}</b>
                   <small>

@@ -1,5 +1,5 @@
 import React from "react";
-import { AvatarInitiale } from "../../../components/shared/AvatarInitiale";
+import { AvatarPersonne } from "../../../components/shared/AvatarPersonne";
 import { Lead, Lien, TeteCarte, Vide } from "../components/Tn";
 import { montant, montantMasque } from "../lib/format";
 import type { Seller } from "../../../types";
@@ -48,7 +48,7 @@ export const CarteVendeurs: React.FC<{
               <span className="medal" style={{ background: MEDAILLES[i] ?? "#93a4a2" }}>
                 {i + 1}
               </span>
-              <AvatarInitiale nom={v.nom} taille={50} className="ava" />
+              <AvatarPersonne nom={v.nom} taille={50} className="ava" />
               <div className="nm">
                 <b>{v.nom}</b>
                 <small>

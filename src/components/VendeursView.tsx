@@ -40,7 +40,7 @@ import {
 } from "../lib/paperFormats";
 import { dateDuJour } from "../lib/dates";
 import { symboleDeSaisie } from "../lib/affichageDevise";
-import { AvatarInitiale } from "./shared/AvatarInitiale";
+import { AvatarPersonne } from "./shared/AvatarPersonne";
 
 interface VendeursViewProps {
   sellers: Seller[];
@@ -440,7 +440,7 @@ export const VendeursView: React.FC<VendeursViewProps> = ({
           <div className="app-list">
             {sellers.map((v) => (
               <div key={v.id} className="app-list-row gap-3">
-                <AvatarInitiale nom={v.nom} taille={36} />
+                <AvatarPersonne nom={v.nom} taille={36} />
 
                 <button
                   type="button"

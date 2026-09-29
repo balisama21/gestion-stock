@@ -1,6 +1,6 @@
 import React, { useMemo } from "react";
 import { Icone, type NomIcone } from "../../../components/shared/Icone";
-import { AvatarInitiale } from "../../../components/shared/AvatarInitiale";
+import { AvatarPersonne } from "../../../components/shared/AvatarPersonne";
 import { BoutonRepli } from "../components/BoutonRepli";
 import { Lead, Lien, TeteCarte, Vide } from "../components/Tn";
 import { LIGNES_EN_APERCU, useRepli } from "../lib/repli";
@@ -129,7 +129,7 @@ export const CarteFilVentes: React.FC<{
                     <span className="rail" aria-hidden="true">
                       <span className="dot" />
                     </span>
-                    <AvatarInitiale nom={qui} taille={42} className="ava" />
+                    <AvatarPersonne nom={client} taille={42} className="ava" />
                     <div className="who">
                       <b>{qui}</b>
                       <div className="prod">

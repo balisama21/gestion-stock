@@ -66,7 +66,7 @@ import { documentDeVente } from "../features/documents/lib/buildDocument";
 import { Equivalents, texteEquivalents, useDevisesAffichees } from "../lib/contexteDevises";
 import type { ReglagesDocuments } from "../features/documents/lib/reglages";
 import { symboleDeSaisie } from "../lib/affichageDevise";
-import { AvatarInitiale } from "./shared/AvatarInitiale";
+import { AvatarPersonne } from "./shared/AvatarPersonne";
 
 type Client = Database["public"]["Tables"]["clients"]["Row"];
 
@@ -695,7 +695,7 @@ export const VentesView: React.FC<VentesViewProps> = ({
           label: "Client",
           value: s.clientCredit ? (
             <span className="inline-flex items-center gap-2">
-              <AvatarInitiale nom={s.clientCredit} taille={24} />
+              <AvatarPersonne nom={s.clientCredit} taille={24} />
               {s.clientCredit}
             </span>
           ) : (
@@ -880,7 +880,7 @@ export const VentesView: React.FC<VentesViewProps> = ({
           label: "Client",
           value: premiere.clientCredit ? (
             <span className="inline-flex items-center gap-2">
-              <AvatarInitiale nom={premiere.clientCredit} taille={24} />
+              <AvatarPersonne nom={premiere.clientCredit} taille={24} />
               {premiere.clientCredit}
             </span>
           ) : (

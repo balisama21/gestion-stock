@@ -21,7 +21,7 @@ import {
 } from "../lib/livraisons";
 import { dateDuJour } from "../lib/dates";
 import { useRechercheInitiale } from "../lib/cibleRecherche";
-import { AvatarInitiale } from "./shared/AvatarInitiale";
+import { AvatarPersonne } from "./shared/AvatarPersonne";
 
 /** Un membre de l'équipe, tel que l'écran a besoin de le connaître. */
 interface Membre {
@@ -305,7 +305,7 @@ export const LivraisonsView: React.FC<LivraisonsViewProps> = ({
     const livreur = aQui(l);
     return {
       id: l.id,
-      leading: <AvatarInitiale nom={l.destinataire || "Sans destinataire"} taille={36} />,
+      leading: <AvatarPersonne nom={l.destinataire} taille={36} />,
       primary: <span className="block truncate">{l.destinataire || "Sans destinataire"}</span>,
       meta: [
         l.numero,
