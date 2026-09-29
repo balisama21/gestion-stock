@@ -1529,6 +1529,9 @@
   object-fit: cover;
   user-select: none;
   pointer-events: none;
+  /* Cadrage un peu plus serré : la plante remplit mieux la vignette. */
+  transform: scale(1.16);
+  transform-origin: 50% 76%;
 }
 .tn .pf.gauche {
   left: calc(266 * var(--u));
