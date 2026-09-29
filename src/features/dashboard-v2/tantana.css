@@ -1048,6 +1048,8 @@
   position: relative;
   z-index: 3;
 }
+/* Les cartes du jour : le contenu se range en colonne, aux mêmes
+   tailles de texte que les cartes des sections. */
 .tn .kc,
 .tn .tc {
   position: relative;
@@ -1058,54 +1060,97 @@
   min-width: 0;
 }
 .tn .kc {
-  height: calc(260 * var(--u));
+  min-height: calc(260 * var(--u));
+  padding: var(--marge);
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
   overflow: hidden;
 }
-.tn .kc > *,
-.tn .tc > *,
-.tn .pill4 > * {
+.tn .tc > .pf,
+.tn .tc > .pdots {
   position: absolute;
 }
 .tn .kc img,
 .tn .tc img {
   display: block;
 }
+/* Cinq cartes de front tant qu'elles ont la place ; en dessous, trois
+   par rangée, pour que montants et titres ne débordent pas. */
+@container (max-width: 1060px) {
+  .tn .tb-kpis {
+    grid-template-columns: repeat(6, minmax(0, 1fr)) !important;
+  }
+  .tn .tb-kpis .kc {
+    grid-column: span 2;
+  }
+  /* Avec cinq cartes, les deux dernières se partagent la seconde rangée. */
+  .tn .tb-kpis .kc:nth-child(4):nth-last-child(2),
+  .tn .tb-kpis .kc:nth-child(5):nth-last-child(1) {
+    grid-column: span 3;
+  }
+}
+.tn .kc-h {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 6px;
+  min-width: 0;
+}
+.tn .kc-h .pastille,
+.tn .tc-h .pastille {
+  width: var(--ico);
+  height: var(--ico);
+  flex: none;
+}
+.tn .kc-h .pastille .ico,
+.tn .tc-h .pastille .ico {
+  width: 100%;
+  height: 100%;
+}
 .tn .kt {
-  font-size: calc(15.1 * var(--u));
+  flex: 1;
+  min-width: 0;
+  font-size: var(--fs-titre);
   font-weight: 600;
   color: var(--k-ink);
-  white-space: nowrap;
-  transform: translateY(-50%);
+  line-height: 1.25;
 }
 .tn .kv {
-  font-size: calc(26.4 * var(--u));
+  font-size: var(--fs-xl);
   font-weight: 700;
+  line-height: 1.15;
   color: var(--k-ink);
   white-space: nowrap;
-  transform: translateY(-50%);
   letter-spacing: -0.01em;
   font-variant-numeric: tabular-nums;
 }
 .tn .kv.moyen {
-  font-size: calc(20.6 * var(--u));
+  font-size: var(--fs-m);
   font-weight: 500;
 }
 .tn .kv.pos {
   color: var(--k-vert);
 }
 .tn .kd {
-  white-space: pre-line;
-  font-size: calc(13.7 * var(--u));
-  line-height: calc(21 * var(--u));
+  font-size: var(--fs-sec);
+  line-height: 1.4;
   color: var(--k-muted);
-  width: calc(210 * var(--u));
+}
+/* Le pied de carte descend tout en bas : tendance ou chiffres du mois,
+   puis le lien, aligné à droite. */
+.tn .kc-pied {
+  margin-top: auto;
+  padding-top: 8px;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
 }
 .tn .kl {
-  font-size: calc(11.6 * var(--u));
+  align-self: flex-end;
+  font-size: var(--fs-lien);
   font-weight: 600;
   white-space: nowrap;
-  transform: translateY(-50%);
-  right: calc(20 * var(--u));
   min-height: 0;
   padding: 2px 0;
 }
@@ -1113,12 +1158,11 @@
   text-decoration: underline;
 }
 .tn .kch {
-  right: calc(12 * var(--u));
-  top: calc(31 * var(--u));
-  width: calc(26 * var(--u));
-  height: calc(26 * var(--u));
+  flex: none;
+  width: 28px;
+  height: 28px;
   min-height: 0;
-  transform: translateY(-50%);
+  margin-right: -6px;
   display: grid;
   place-items: center;
   border-radius: 50%;
@@ -1127,24 +1171,49 @@
   background: var(--gsoft);
 }
 .tn .kch-svg {
-  width: calc(18 * var(--u));
-  height: calc(18 * var(--u));
+  width: 18px;
+  height: 18px;
   color: var(--muted);
 }
+.tn .kc-ligne {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+.tn .kc-ligne .kpetite {
+  width: var(--ico-p);
+  height: var(--ico-p);
+  flex: none;
+}
 .tn .kx {
-  font-size: calc(11.6 * var(--u));
+  font-size: var(--fs-micro);
   color: var(--k-muted);
+  line-height: 1.35;
+}
+.tn .kc-ligne .kx {
+  overflow: hidden;
+  text-overflow: ellipsis;
   white-space: nowrap;
-  transform: translateY(-50%);
 }
 .tn .kx.centre {
-  left: 50%;
-  transform: translate(-50%, -50%);
   text-align: center;
-  font-size: calc(12.6 * var(--u));
-  line-height: calc(19 * var(--u));
-  white-space: pre-line;
-  width: calc(220 * var(--u));
+  font-size: var(--fs-sec);
+}
+.tn .kc-vide {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  margin: auto 0;
+}
+.tn .kc-vide .pastille {
+  width: var(--ico);
+  height: var(--ico);
+}
+.tn .kc-vide .pastille .ico {
+  width: 100%;
+  height: 100%;
 }
 .tn .kre {
   display: block;
@@ -1154,55 +1223,63 @@
   min-height: 0;
 }
 .tn .kb {
-  font-size: calc(13.8 * var(--u));
+  font-size: var(--fs-liste);
   font-weight: 700;
   color: var(--k-ink);
   white-space: nowrap;
-  transform: translateY(-50%);
+}
+/* Deux chiffres côte à côte, séparés d'un filet. */
+.tn .kc-duo {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 1px minmax(0, 1fr);
+  gap: 12px;
+  align-items: stretch;
 }
 .tn .kdiv {
   width: 1px;
   background: var(--kc-line);
 }
 .tn .pill4 {
-  left: calc(20 * var(--u));
-  right: calc(20 * var(--u));
-  top: calc(142 * var(--u));
-  height: calc(28 * var(--u));
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 10px;
+  padding: 6px 8px 6px 10px;
   min-height: 0;
-  border-radius: calc(9 * var(--u));
+  border-radius: 9px;
   background: var(--warning-soft);
+  text-align: left;
 }
 .dark .tn .pill4 {
   background: rgba(244, 128, 31, 0.12);
 }
+.tn .pill4 .kpetite {
+  width: 16px;
+  height: 16px;
+  flex: none;
+}
 .tn .pill4 .pt {
-  left: calc(43 * var(--u));
-  top: 50%;
-  transform: translateY(-50%);
-  font-size: calc(11.5 * var(--u));
+  flex: 1;
+  min-width: 0;
+  font-size: var(--fs-lien);
   font-weight: 600;
   color: var(--warning);
-  white-space: nowrap;
 }
 .tn .pill4.ok {
   background: var(--gsoft);
 }
 .tn .pill4.ok .pt {
-  left: calc(14 * var(--u));
   color: var(--g2);
 }
 .tn .pill4 .pb {
-  right: calc(9 * var(--u));
-  top: 50%;
-  transform: translateY(-50%);
-  min-width: calc(18 * var(--u));
-  height: calc(18 * var(--u));
-  padding: 0 calc(4 * var(--u));
+  flex: none;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 5px;
   border-radius: 999px;
   background: var(--warning);
   color: #fff;
-  font-size: calc(10.5 * var(--u));
+  font-size: var(--fs-lien);
   font-weight: 700;
   display: grid;
   place-items: center;
@@ -1210,14 +1287,15 @@
 .tn .kjournal {
   list-style: none;
   padding: 0;
+  margin: 0;
   display: grid;
-  gap: calc(8 * var(--u));
-  font-size: calc(12 * var(--u));
+  gap: 6px;
+  font-size: var(--fs-sec);
   color: var(--k-ink);
 }
 .tn .kjournal li {
   display: flex;
-  gap: calc(8 * var(--u));
+  gap: 8px;
   min-width: 0;
 }
 .tn .kjournal time {
@@ -1244,47 +1322,64 @@
   grid-template-columns: 556fr 922fr;
 }
 .tn .tc {
-  height: calc(234 * var(--u));
+  min-height: calc(234 * var(--u));
+}
+#tcChart {
+  display: flex;
+  flex-direction: column;
+  padding: var(--marge) var(--marge) 8px;
+}
+/* Le sélecteur de période passe sous le titre quand la place manque. */
+.tn .tc-h {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 10px;
+  min-width: 0;
+}
+.tn .tc-t {
+  flex: 1 1 170px;
+  min-width: 0;
 }
 .tn .ctitle {
-  left: calc(82 * var(--u));
-  top: calc(25 * var(--u));
-  font-size: calc(14.2 * var(--u));
+  display: block;
+  font-size: var(--fs-titre);
   font-weight: 600;
   color: var(--k-ink);
-  transform: translateY(-50%);
-  white-space: nowrap;
   min-height: 0;
+  text-align: left;
 }
 .tn .ctitle:hover {
   text-decoration: underline;
 }
 .tn .csub {
-  left: calc(82 * var(--u));
-  top: calc(48 * var(--u));
-  right: calc(180 * var(--u));
-  font-size: calc(11.7 * var(--u));
+  font-size: var(--fs-sec);
   color: var(--k-muted);
-  transform: translateY(-50%);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
 .tn .csel {
-  right: calc(16 * var(--u));
-  top: calc(22 * var(--u));
+  flex: none;
+  position: relative;
   z-index: 5;
 }
 .tn .csel .menu-holder > .pill {
-  min-width: calc(151 * var(--u));
-  height: calc(33 * var(--u));
+  min-width: 130px;
+  height: 34px;
   min-height: 0;
-  font-size: max(11px, calc(11.5 * var(--u)));
-  border-radius: calc(10 * var(--u));
+  font-size: var(--fs-lien);
+  border-radius: 10px;
   justify-content: flex-start;
 }
 .tn .csel .menu-holder > .pill .chev {
   margin-left: auto;
+}
+.tn .tc-graph {
+  position: relative;
+  flex: 1;
+  min-height: max(130px, calc(150 * var(--u)));
+  margin-top: 4px;
 }
 .tn .tc svg.chart {
   position: absolute;
@@ -1313,7 +1408,6 @@
   fill: var(--chart-g);
 }
 .tn svg.chart .axe {
-  font-size: 11.4px;
   font-weight: 500;
   fill: var(--chart-axe);
   font-family: inherit;
@@ -1339,22 +1433,35 @@
   inset: 0;
   background: rgba(10, 20, 35, 0.3);
 }
+.tn .ic-texte {
+  position: absolute;
+  z-index: 2;
+  left: calc(27 * var(--u));
+  top: calc(34 * var(--u));
+  width: calc(226 * var(--u));
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 8px;
+}
 .tn .ic .ititle {
-  left: calc(58 * var(--u));
-  top: calc(52 * var(--u));
-  transform: translateY(-50%);
-  font-size: calc(14.3 * var(--u));
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  font-size: var(--fs-titre);
   font-weight: 600;
+  line-height: 1.25;
   color: var(--ink);
-  white-space: nowrap;
+}
+.tn .ic .ititle .kpetite {
+  width: var(--ico-p);
+  height: var(--ico-p);
+  flex: none;
 }
 .tn .ic .isub {
-  left: calc(27 * var(--u));
-  top: calc(80 * var(--u));
-  transform: translateY(-50%);
-  font-size: calc(12.2 * var(--u));
+  font-size: var(--fs-sec);
+  line-height: 1.4;
   color: var(--muted);
-  white-space: nowrap;
 }
 .dark .tn .ic .ititle {
   color: var(--foreground);
@@ -1363,19 +1470,14 @@
   color: #d5e6ee;
 }
 .tn .ic .ibtn {
-  left: calc(27 * var(--u));
-  top: calc(118 * var(--u));
-  width: calc(94 * var(--u));
-  height: calc(33 * var(--u));
+  margin-top: 6px;
+  padding: 8px 20px;
   min-height: 0;
   border-radius: 999px;
   background: var(--primary);
   color: var(--primary-foreground);
-  font-size: calc(11.5 * var(--u));
+  font-size: var(--fs-lien);
   font-weight: 600;
-  display: flex;
-  align-items: center;
-  justify-content: center;
   box-shadow: var(--elev-2);
 }
 .tn .pf {
@@ -3376,29 +3478,30 @@
     gap: 16px;
   }
   .tn .tc.ic {
-    height: calc(336 * var(--u));
+    min-height: calc(410 * var(--u));
+  }
+  .tn .ic-texte {
+    width: auto;
+    right: calc(27 * var(--u));
   }
   .tn #tcInsp .pf {
     left: auto;
   }
   .tn #pf1 {
-    top: calc(158 * var(--u));
+    top: calc(232 * var(--u));
     right: calc(206 * var(--u));
   }
   .tn #pf3 {
-    top: calc(158 * var(--u));
+    top: calc(232 * var(--u));
     right: calc(25 * var(--u));
   }
   .tn #pf2 {
-    top: calc(142 * var(--u));
+    top: calc(216 * var(--u));
     right: calc(104 * var(--u));
   }
   .tn #tcInsp .pdots {
     left: calc(27 * var(--u));
-    top: calc(318 * var(--u));
-  }
-  .tn .csub {
-    right: calc(180 * var(--u));
+    top: calc(392 * var(--u));
   }
 
   /* Les bannières gardent leurs proportions, calées à droite. */

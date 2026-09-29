@@ -113,11 +113,12 @@ const GraphiqueVentes: React.FC<{ points: PointVentes[]; montantsVisibles: boole
 
   if (!taille || !taille.h || points.length === 0) return <svg className="chart" ref={carte} />;
 
-  const pu = taille.h / 234;
+  // Le tracé occupe sa propre zone, sous l'en-tête de la carte.
+  const pu = taille.h / 150;
   const W = taille.w / pu;
-  const H = 234;
-  const base = 186;
-  const plein = 103;
+  const H = 150;
+  const base = 112;
+  const plein = 92;
   const max = Math.max(...points.map((p) => p.montant), 0);
   const pas = pasRond(Math.max(max, 1));
   const axe = Math.max(pas * 4, Math.ceil(max / pas) * pas);
@@ -130,9 +131,12 @@ const GraphiqueVentes: React.FC<{ points: PointVentes[]; montantsVisibles: boole
   const chemin = monotone(P);
   const graduations: number[] = [];
   for (let g = 0; g <= axe + 1e-9; g += pas) graduations.push(g);
-  // Sept libellés au plus, moins sur un écran étroit : au-delà, ils se
-  // chevaucheraient. Ils partent du dernier jour, toujours affiché.
-  const place = Math.max(2, Math.min(7, Math.floor((x1 - x0) / 62) + 1));
+  // Les légendes gardent leur taille à l'écran, quelle que soit celle du
+  // dessin : on divise par l'échelle. Autant de libellés que la place en
+  // laisse, sept au plus ; ils partent du dernier jour, toujours affiché.
+  const texte = { fontSize: `calc(var(--fs-micro) / ${pu})` };
+  const largeurLibelle = 62 / pu;
+  const place = Math.max(2, Math.min(7, Math.floor((x1 - x0) / largeurLibelle) + 1));
   const pasLibelle = Math.ceil(points.length / place);
   const ancre = (points.length - 1) % pasLibelle;
 
@@ -156,9 +160,9 @@ const GraphiqueVentes: React.FC<{ points: PointVentes[]; montantsVisibles: boole
       </defs>
       {graduations.map((g) => (
         <g key={g}>
-          <line x1="71" x2={W - 20} y1={Y(g)} y2={Y(g)} className="grille" />
+          <line x1={x0 + 1} x2={W - 20} y1={Y(g)} y2={Y(g)} className="grille" />
           {montantsVisibles && (
-            <text x="51" y={Y(g) + 4} textAnchor="end" className="axe fort">
+            <text x={x0 - 12} y={Y(g) + 4 / pu} textAnchor="end" className="axe fort" style={texte}>
               {graduation(g)}
             </text>
           )}
@@ -179,7 +183,7 @@ const GraphiqueVentes: React.FC<{ points: PointVentes[]; montantsVisibles: boole
       ))}
       {points.map((p, i) =>
         i % pasLibelle === ancre ? (
-          <text key={`l${i}`} x={X(i)} y="213" textAnchor="middle" className="axe">
+          <text key={`l${i}`} x={X(i)} y={H - 6} textAnchor="middle" className="axe" style={texte}>
             {p.libelle}
           </text>
         ) : null,
@@ -288,139 +292,131 @@ export const HeroTableauDeBord: React.FC<HeroProps> = ({
     <button
       type="button"
       className="kl"
-      style={{ color: couleur, top: u(233) }}
+      style={{ color: couleur }}
       onClick={() => onNaviguer?.(onglet)}
     >
       {texte}
     </button>
   );
-  const chevron = (cle: CleTuile, libelle: string) => (
-    <button type="button" className="kch" onClick={() => onOuvrir(cle)} aria-label={libelle}>
-      {CHEVRON}
-    </button>
+  const tete = (
+    nom: NomIcone,
+    ton: string,
+    titre: React.ReactNode,
+    cle: CleTuile,
+    aide: string,
+  ) => (
+    <div className="kc-h">
+      <span className={`pastille ${ton}`}>
+        <Icone nom={nom} />
+      </span>
+      <div className="kt">{titre}</div>
+      <button type="button" className="kch" onClick={() => onOuvrir(cle)} aria-label={aide}>
+        {CHEVRON}
+      </button>
+    </div>
   );
-  const icone = (nom: NomIcone, ton: string, top = 11) => (
-    <span
-      className={`pastille ${ton}`}
-      style={{ left: u(16), top: u(top + 4), width: u(50), height: u(50) }}
-    >
-      <Icone nom={nom} />
-    </span>
+  const tendance = (nom: NomIcone, ton: string, texte: React.ReactNode) => (
+    <div className="kc-ligne">
+      <Icone nom={nom} className={`kpetite ${ton}`} />
+      <span className="kx">{texte}</span>
+    </div>
   );
-  const petite = (nom: NomIcone, ton: string, left: number, top: number, taille: number) => (
-    <Icone
-      nom={nom}
-      className={`kpetite ${ton}`}
-      style={{ left: u(left), top: u(top), width: u(taille), height: u(taille) }}
-    />
+  const duo = (
+    gauche: [React.ReactNode, React.ReactNode],
+    droite: [React.ReactNode, React.ReactNode],
+    classeValeur: string,
+  ) => (
+    <div className="kc-duo">
+      <div>
+        <div className="kx">{gauche[0]}</div>
+        <div className={classeValeur}>{gauche[1]}</div>
+      </div>
+      <div className="kdiv" />
+      <div>
+        <div className="kx">{droite[0]}</div>
+        <div className={classeValeur.replace(" pos", "")}>{droite[1]}</div>
+      </div>
+    </div>
   );
 
   const cartes: Record<CleTuile, React.ReactNode> = {
     ventes: (
       <>
-        {icone("cart", "vert", 9)}
-        <div className="kt" style={{ left: u(83), top: u(37) }}>
-          Ventes du jour
-        </div>
-        {chevron("ventes", "Détail des ventes du jour")}
-        <div className="kv" style={{ left: u(20), top: u(90) }}>
-          {montantsVentesVisibles ? montant(jour.ventes) : "•••"}
-        </div>
-        <div className="kd" style={{ left: u(20), top: u(111.5) }}>
+        {tete("cart", "vert", "Ventes du jour", "ventes", "Détail des ventes du jour")}
+        <div className="kv">{montantsVentesVisibles ? montant(jour.ventes) : "•••"}</div>
+        <div className="kd">
           {jour.tickets === 0
-            ? "Aucune vente enregistrée\npour l'instant."
-            : `${nombre(jour.tickets)} ticket${jour.tickets > 1 ? "s" : ""}\naujourd'hui.`}
+            ? "Aucune vente enregistrée pour l'instant."
+            : `${nombre(jour.tickets)} ticket${jour.tickets > 1 ? "s" : ""} aujourd'hui.`}
         </div>
-        {petite("trend", "vert", 25, 176, 22)}
-        <div className="kx" style={{ left: u(63), top: u(187) }}>
-          {montantsVentesVisibles && comparaisonVentes ? comparaisonVentes : "–"}
+        <div className="kc-pied">
+          {tendance(
+            "trend",
+            "vert",
+            montantsVentesVisibles && comparaisonVentes ? comparaisonVentes : "–",
+          )}
+          {lien("ventes", "Voir les ventes", "var(--k-vert)")}
         </div>
-        {lien("ventes", "Voir les ventes", "var(--k-vert)")}
       </>
     ),
     entrees: (
       <>
-        {icone("download", "bleu")}
-        <div className="kt" style={{ left: u(84), top: u(40) }}>
-          Entrées d&apos;argent
+        {tete("download", "bleu", "Entrées d'argent", "entrees", "Détail des encaissements")}
+        <div className="kv">+{montant(jour.encaisse)}</div>
+        <div className="kd">
+          {jour.encaisse === 0 ? "Aucun encaissement aujourd'hui." : "Encaissements du jour."}
         </div>
-        {chevron("entrees", "Détail des encaissements")}
-        <div className="kv" style={{ left: u(20), top: u(90) }}>
-          +{montant(jour.encaisse)}
+        <div className="kc-pied">
+          {tendance(
+            "trend",
+            "bleu",
+            jour.encaisseDuMois > 0 ? `Ce mois ${montant(jour.encaisseDuMois)}` : "–",
+          )}
+          <button
+            type="button"
+            className="kl"
+            style={{ color: "var(--k-bleu)" }}
+            onClick={() => onOuvrir("entrees")}
+          >
+            Voir le détail
+          </button>
         </div>
-        <div className="kd" style={{ left: u(20), top: u(111.5) }}>
-          {jour.encaisse === 0 ? "Aucun encaissement\naujourd'hui." : "Encaissements\ndu jour."}
-        </div>
-        {petite("trend", "bleu", 25, 176, 22)}
-        <div className="kx" style={{ left: u(63), top: u(187) }}>
-          {jour.encaisseDuMois > 0 ? `Ce mois ${montant(jour.encaisseDuMois)}` : "–"}
-        </div>
-        <button
-          type="button"
-          className="kl"
-          style={{ color: "var(--k-bleu)", top: u(233) }}
-          onClick={() => onOuvrir("entrees")}
-        >
-          Voir le détail
-        </button>
       </>
     ),
     sorties: (
       <>
-        {icone("arrowup", "rouge")}
-        <div className="kt" style={{ left: u(84), top: u(40) }}>
-          Sorties d&apos;argent
-        </div>
-        {chevron("sorties", "Détail des sorties")}
-        <div className="kv" style={{ left: u(20), top: u(90) }}>
+        {tete("arrowup", "rouge", "Sorties d'argent", "sorties", "Détail des sorties")}
+        <div className="kv">
           {jour.sorties > 0 ? "−" : ""}
           {montant(jour.sorties)}
         </div>
-        <div className="kd" style={{ left: u(20), top: u(111.5) }}>
+        <div className="kd">
           {jour.sorties === 0
-            ? "Aucune dépense ni achat\naujourd'hui."
-            : "Dépenses et achats\ndu jour."}
+            ? "Aucune dépense ni achat aujourd'hui."
+            : "Dépenses et achats du jour."}
         </div>
-        <div className="kx" style={{ left: u(20), top: u(172) }}>
-          Achats du mois
+        <div className="kc-pied">
+          {duo(
+            ["Achats du mois", montantsAchatVisibles ? montant(jour.achatsDuMois) : "•••"],
+            ["Dépenses du mois", montant(jour.depensesDuMois)],
+            "kb",
+          )}
+          {lien("depenses", "Voir les dépenses", "var(--k-rouge)")}
         </div>
-        <div className="kb" style={{ left: u(20), top: u(192) }}>
-          {montantsAchatVisibles ? montant(jour.achatsDuMois) : "•••"}
-        </div>
-        <div className="kdiv" style={{ left: u(140), top: u(164), height: u(42) }} />
-        <div className="kx" style={{ left: u(155), top: u(172) }}>
-          Dépenses du mois
-        </div>
-        <div className="kb" style={{ left: u(155), top: u(192) }}>
-          {montant(jour.depensesDuMois)}
-        </div>
-        {lien("depenses", "Voir les dépenses", "var(--k-rouge)")}
       </>
     ),
     stock: (
       <>
-        {icone("box", "vert")}
-        <div className="kt" style={{ left: u(86), top: u(40) }}>
-          Stock du jour
-        </div>
-        {chevron("stock", "Produits bientôt en rupture")}
-        <div className="kx" style={{ left: u(22), top: u(86) }}>
-          Entrées
-        </div>
-        <div className="kv moyen pos" style={{ left: u(22), top: u(110) }}>
-          +{nombre(jour.entreesStock)} u.
-        </div>
-        <div className="kdiv" style={{ left: u(139), top: u(80), height: u(44) }} />
-        <div className="kx" style={{ left: u(161), top: u(86) }}>
-          Sorties
-        </div>
-        <div className="kv moyen" style={{ left: u(161), top: u(110) }}>
-          −{nombre(jour.sortiesStock)} u.
-        </div>
+        {tete("box", "vert", "Stock du jour", "stock", "Produits bientôt en rupture")}
+        {duo(
+          ["Entrées", `+${nombre(jour.entreesStock)} u.`],
+          ["Sorties", `−${nombre(jour.sortiesStock)} u.`],
+          "kv moyen pos",
+        )}
         {bientotEnRupture > 0 ? (
           <button type="button" className="pill4" onClick={() => onOuvrir("stock")}>
-            {petite("alert", "orange", 13, 5, 18)}
-            <span className="pt">Produit{bientotEnRupture > 1 ? "s" : ""} bientôt en rupture</span>
+            <Icone nom="alert" className="kpetite orange" />
+            <span className="pt">Bientôt en rupture</span>
             <span className="pb">{bientotEnRupture}</span>
           </button>
         ) : (
@@ -428,28 +424,28 @@ export const HeroTableauDeBord: React.FC<HeroProps> = ({
             <span className="pt">Aucun produit sous le seuil</span>
           </div>
         )}
-        {valeurStockVisible && (
-          <>
-            <div className="kx" style={{ left: u(22), top: u(192) }}>
-              Valeur du stock
+        <div className="kc-pied">
+          {valeurStockVisible && (
+            <div>
+              <div className="kx">Valeur du stock</div>
+              <div className="kb">{montant(stock.valeur)}</div>
             </div>
-            <div className="kb" style={{ left: u(22), top: u(212) }}>
-              {montant(stock.valeur)}
-            </div>
-          </>
-        )}
-        {lien("produits", "Voir le stock", "var(--k-vert)")}
+          )}
+          {lien("produits", "Voir le stock", "var(--k-vert)")}
+        </div>
       </>
     ),
     activite: (
       <>
-        {icone("pulse", "violet", 9)}
-        <div className="kt" style={{ left: u(84), top: u(37) }}>
-          Activité aujourd&apos;hui
-        </div>
-        {chevron("activite", "Voir l'activité du jour dans l'historique")}
+        {tete(
+          "pulse",
+          "violet",
+          "Activité aujourd'hui",
+          "activite",
+          "Voir l'activité du jour dans l'historique",
+        )}
         {erreurJournal ? (
-          <div className="kx centre" style={{ top: u(120) }}>
+          <div className="kx centre">
             Lecture impossible.
             {onReessayerJournal && (
               <button type="button" className="kre" onClick={onReessayerJournal}>
@@ -458,19 +454,16 @@ export const HeroTableauDeBord: React.FC<HeroProps> = ({
             )}
           </div>
         ) : journal.length === 0 ? (
-          <>
-            <span
-              className="pastille neutre"
-              style={{ left: `calc(50% - ${u(28)})`, top: u(72), width: u(56), height: u(56) }}
-            >
+          <div className="kc-vide">
+            <span className="pastille neutre">
               <Icone nom="clipboard" />
             </span>
-            <div className="kx centre" style={{ top: u(156) }}>
-              {"Rien d'enregistré\naujourd'hui pour l'instant."}
+            <div className="kx centre">
+              Rien d&apos;enregistré aujourd&apos;hui pour l&apos;instant.
             </div>
-          </>
+          </div>
         ) : (
-          <ol className="kjournal" style={{ left: u(20), right: u(20), top: u(78) }}>
+          <ol className="kjournal">
             {journal.slice(0, 3).map((e) => (
               <li key={e.id}>
                 <time>{e.heure}</time>
@@ -482,11 +475,14 @@ export const HeroTableauDeBord: React.FC<HeroProps> = ({
             ))}
           </ol>
         )}
-        {petite("calendar", "violet", 20, 194, 20)}
-        <div className="kx" style={{ left: u(50), top: u(204) }}>
-          {`${journal.length} événement${journal.length > 1 ? "s" : ""}\u2002·\u2002${jour.tickets} vente${jour.tickets > 1 ? "s" : ""}`}
+        <div className="kc-pied">
+          {tendance(
+            "calendar",
+            "violet",
+            `${journal.length} événement${journal.length > 1 ? "s" : ""}\u2002·\u2002${jour.tickets} vente${jour.tickets > 1 ? "s" : ""}`,
+          )}
+          {lien("agenda", "Voir l'agenda", "var(--k-violet)")}
         </div>
-        {lien("agenda", "Voir l'agenda", "var(--k-violet)")}
       </>
     ),
   };
@@ -552,21 +548,24 @@ export const HeroTableauDeBord: React.FC<HeroProps> = ({
           <div className={`tb-bottom${graphique ? "" : " seule"}`}>
             {graphique && (
               <article className="tc" id="tcChart">
-                <span
-                  className="pastille vert carre"
-                  style={{ left: u(18), top: u(14), width: u(46), height: u(46) }}
-                >
-                  <Icone nom="chart" />
-                </span>
-                <button type="button" className="ctitle" onClick={graphique.onDetails}>
-                  Aperçu des ventes
-                </button>
-                <div className="csub">{graphique.sousTitre}</div>
-                <div className="csel">{graphique.selecteur}</div>
-                <GraphiqueVentes
-                  points={graphique.points}
-                  montantsVisibles={montantsVentesVisibles}
-                />
+                <div className="tc-h">
+                  <span className="pastille vert">
+                    <Icone nom="chart" />
+                  </span>
+                  <div className="tc-t">
+                    <button type="button" className="ctitle" onClick={graphique.onDetails}>
+                      Aperçu des ventes
+                    </button>
+                    <div className="csub">{graphique.sousTitre}</div>
+                  </div>
+                  <div className="csel">{graphique.selecteur}</div>
+                </div>
+                <div className="tc-graph">
+                  <GraphiqueVentes
+                    points={graphique.points}
+                    montantsVisibles={montantsVentesVisibles}
+                  />
+                </div>
               </article>
             )}
 
@@ -575,12 +574,16 @@ export const HeroTableauDeBord: React.FC<HeroProps> = ({
               id="tcInsp"
               style={{ backgroundImage: `url(${inspirationFond})` }}
             >
-              {petite("leaf", "vert", 24, 40, 24)}
-              <div className="ititle">Inspiration du moment</div>
-              <div className="isub">Découvrez nos sélections du jour</div>
-              <button type="button" className="ibtn" onClick={() => onNaviguer?.("produits")}>
-                Voir plus
-              </button>
+              <div className="ic-texte">
+                <div className="ititle">
+                  <Icone nom="leaf" className="kpetite vert" />
+                  Inspiration du moment
+                </div>
+                <div className="isub">Découvrez nos sélections du jour</div>
+                <button type="button" className="ibtn" onClick={() => onNaviguer?.("produits")}>
+                  Voir plus
+                </button>
+              </div>
               <div className="pf" id="pf1">
                 <img alt="" src={plantes[0]} />
               </div>
