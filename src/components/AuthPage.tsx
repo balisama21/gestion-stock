@@ -1,13 +1,14 @@
 import React, { useEffect, useRef, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { useAuth } from "../hooks/useAuth";
-import { APP_NAME, APP_SUPPORT_PHONE, APP_TAGLINE } from "../lib/appConfig";
+import { APP_SUPPORT_PHONE } from "../lib/appConfig";
+import { useMarque } from "../hooks/useMarque";
 import { supabase } from "../lib/supabase";
 import { HeroAccueil } from "./landing/HeroAccueil";
 import { SectionTicket } from "./landing/SectionTicket";
 import { RegistreModules } from "./landing/RegistreModules";
 import { InventaireApplication } from "./landing/InventaireApplication";
-import { PanneauMarque } from "./landing/PanneauMarque";
+import { PanneauMarque, PanneauMarqueClient } from "./landing/PanneauMarque";
 import { SectionTarif } from "./landing/SectionTarif";
 import { SectionQuestions } from "./landing/SectionQuestions";
 import { MotSymbole } from "./shared/MotSymbole";
@@ -44,6 +45,10 @@ export const AuthPage: React.FC = () => {
     profileError,
     resetPasswordForEmail,
   } = useAuth();
+  const marque = useMarque();
+  // Sur un domaine client : connexion seule, à sa marque. La vitrine
+  // commerciale (offres, tarifs, questions) est celle de Tantana.
+  const vitrine = marque.parDefaut;
   const [mode, setMode] = useState<AuthMode>(() => {
     return "login";
   });
@@ -176,7 +181,7 @@ export const AuthPage: React.FC = () => {
     if (activateError) {
       setError(traduireErreurAuth(activateError));
     } else {
-      setSuccess(`Compte activé avec succès ! Bienvenue sur ${APP_NAME}.`);
+      setSuccess(`Compte activé avec succès ! Bienvenue sur ${marque.nom}.`);
     }
   };
 
@@ -219,54 +224,60 @@ export const AuthPage: React.FC = () => {
 
   return (
     <div className="page-accueil min-h-screen">
-      {/* Barre d'accès permanente.
+      {vitrine && (
+        <>
+          {/* Barre d'accès permanente.
           La page d'accueil est faite pour qui découvre le logiciel ; celui
           qui revient chaque matin, lui, veut son formulaire. Sans ce
           raccourci il lui faudrait parcourir toute la présentation à
           chaque connexion. */}
-      <div
-        className="sticky top-0 z-40 border-b backdrop-blur-md"
-        style={{
-          borderColor: "var(--reglure)",
-          background: "color-mix(in srgb, var(--papier) 88%, transparent)",
-        }}
-      >
-        <div className="mx-auto flex max-w-5xl items-center justify-between gap-3 px-4 py-2.5">
-          <span className="flex items-center gap-2.5">
-            <img src="/logo.svg" alt="" width={38} height={28} className="h-7 w-auto" />
-            <MotSymbole hauteur={26} couleur="var(--carbone)" />
-          </span>
-          <button
-            type="button"
-            onClick={allerAuFormulaire}
-            className="rounded-lg border px-3.5 py-1.5 text-xs font-semibold transition-colors"
-            style={{ borderColor: "var(--reglure)", color: "var(--carbone)" }}
+          <div
+            className="sticky top-0 z-40 border-b backdrop-blur-md"
+            style={{
+              borderColor: "var(--reglure)",
+              background: "color-mix(in srgb, var(--papier) 88%, transparent)",
+            }}
           >
-            Se connecter
-          </button>
-        </div>
-      </div>
+            <div className="mx-auto flex max-w-5xl items-center justify-between gap-3 px-4 py-2.5">
+              <span className="flex items-center gap-2.5">
+                <img src="/logo.svg" alt="" width={38} height={28} className="h-7 w-auto" />
+                <MotSymbole hauteur={26} couleur="var(--carbone)" />
+              </span>
+              <button
+                type="button"
+                onClick={allerAuFormulaire}
+                className="rounded-lg border px-3.5 py-1.5 text-xs font-semibold transition-colors"
+                style={{ borderColor: "var(--reglure)", color: "var(--carbone)" }}
+              >
+                Se connecter
+              </button>
+            </div>
+          </div>
 
-      <HeroAccueil onRejoindreConnexion={allerAuFormulaire} />
+          <HeroAccueil onRejoindreConnexion={allerAuFormulaire} />
 
-      <SectionTicket />
+          <SectionTicket />
 
-      <RegistreModules />
+          <RegistreModules />
 
-      <InventaireApplication />
+          <InventaireApplication />
 
-      {/* Le prix, puis les questions : on annonce ce que ca coute avant
+          {/* Le prix, puis les questions : on annonce ce que ca coute avant
           de repondre aux objections, et les deux avant le formulaire —
           personne ne remplit un champ sans savoir ou il met les pieds. */}
-      <SectionTarif onCommencer={allerAuFormulaire} />
+          <SectionTarif onCommencer={allerAuFormulaire} />
 
-      <SectionQuestions />
+          <SectionQuestions />
+        </>
+      )}
 
       {/* Formulaire — inchangé, seulement replacé dans la page. */}
       <section
         id="connexion"
         ref={ancreConnexion}
-        className="reglure relative scroll-mt-14 overflow-hidden px-4 py-20 sm:px-8 sm:py-28"
+        className={`reglure relative scroll-mt-14 overflow-hidden px-4 py-20 sm:px-8 sm:py-28 ${
+          vitrine ? "" : "flex min-h-screen items-center"
+        }`}
       >
         {/* Pas de cadre autour : la maquette pose le contenu à même le
             papier, et les courbes traversent la section entière sans être
@@ -281,7 +292,7 @@ export const AuthPage: React.FC = () => {
 
         <div className="relative mx-auto w-full max-w-6xl">
           <div className="grid gap-12 lg:grid-cols-[1fr_minmax(0,26rem)] lg:items-center lg:gap-20">
-            <PanneauMarque />
+            {vitrine ? <PanneauMarque /> : <PanneauMarqueClient marque={marque} />}
 
             <div className="w-full">
               <CarteConnexion>
@@ -606,9 +617,8 @@ export const AuthPage: React.FC = () => {
                       <p className="font-semibold t-info mb-2">Comment obtenir votre code ?</p>
                       <p className="text-muted-foreground text-xs mb-2">
                         Virement de <strong className="text-foreground">{prixMensuel()}</strong>{" "}
-                        pour un mois, ou{" "}
-                        <strong className="text-foreground">{prixAVie()}</strong> une seule fois
-                        à vie, par Orange Money au :
+                        pour un mois, ou <strong className="text-foreground">{prixAVie()}</strong>{" "}
+                        une seule fois à vie, par Orange Money au :
                       </p>
                       <p className="font-bold text-center py-2.5 rounded-lg bg-info-soft t-info tracking-wide">
                         +261 38 97 234 12
@@ -697,20 +707,22 @@ export const AuthPage: React.FC = () => {
           </div>
 
           <p className="mt-10 text-center text-[11px]" style={{ color: "var(--carbone-doux)" }}>
-            {APP_NAME} — {APP_TAGLINE}
+            {marque.slogan ? `${marque.nom} — ${marque.slogan}` : marque.nom}
           </p>
         </div>
       </section>
 
-      <footer className="reglure px-5 py-10 text-center">
-        <div className="mx-auto flex max-w-3xl flex-col items-center gap-2">
-          <img src="/logo.svg" alt="" width={49} height={36} className="h-9 w-auto" />
-          <MotSymbole hauteur={34} couleur="var(--carbone)" className="mt-1" />
-          <p className="mt-1 text-xs" style={{ color: "var(--carbone-doux)" }}>
-            {APP_TAGLINE}
-          </p>
-        </div>
-      </footer>
+      {vitrine && (
+        <footer className="reglure px-5 py-10 text-center">
+          <div className="mx-auto flex max-w-3xl flex-col items-center gap-2">
+            <img src="/logo.svg" alt="" width={49} height={36} className="h-9 w-auto" />
+            <MotSymbole hauteur={34} couleur="var(--carbone)" className="mt-1" />
+            <p className="mt-1 text-xs" style={{ color: "var(--carbone-doux)" }}>
+              {marque.slogan}
+            </p>
+          </div>
+        </footer>
+      )}
     </div>
   );
 };

@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { APP_NAME, APP_TAGLINE } from "../../lib/appConfig";
+import { useMarque } from "../../hooks/useMarque";
 import { MotSymbole } from "./MotSymbole";
 
 interface AppLoaderProps {
@@ -33,19 +34,25 @@ interface AppLoaderProps {
  *
  * L'animation respecte `prefers-reduced-motion` : qui a désactivé les
  * animations voit le nom posé d'emblée.
+ *
+ * Marque blanche : les deux variantes sont rendues, `html[data-marque]`
+ * choisit laquelle se voit. Logo, nom et slogan du client viennent de
+ * variables CSS posées avant React — aucun flash de Tantana, aucun écart
+ * d'hydratation.
  */
 export const AppLoader: React.FC<AppLoaderProps> = ({ etape }) => {
   // Le libellé n'apparaît qu'après un instant : sur une connexion rapide
   // le chargement est déjà fini, et un texte qui clignote au passage est
   // plus gênant qu'utile.
   const [libelleVisible, setLibelleVisible] = useState(false);
+  const marque = useMarque();
   useEffect(() => {
     const t = setTimeout(() => setLibelleVisible(true), 600);
     return () => clearTimeout(t);
   }, []);
 
   return (
-    <div className="flex min-h-screen flex-col items-center justify-center gap-5 bg-background px-6">
+    <div className="gs-ecran-chargement flex min-h-screen flex-col items-center justify-center gap-5 bg-background px-6">
       <style>{`
         .gs-mot {
           position: relative;
@@ -101,7 +108,7 @@ export const AppLoader: React.FC<AppLoaderProps> = ({ etape }) => {
         }
       `}</style>
 
-      <div className="gs-mot" role="img" aria-label={APP_NAME}>
+      <div className="gs-marque-defaut gs-mot" role="img" aria-label={APP_NAME}>
         <span className="gs-contour" aria-hidden="true">
           <MotSymbole hauteur="clamp(2.6rem, 15vw, 3.4rem)" />
         </span>
@@ -111,9 +118,22 @@ export const AppLoader: React.FC<AppLoaderProps> = ({ etape }) => {
         <span className="gs-plume" aria-hidden="true" />
       </div>
 
-      <p className="max-w-xs text-center text-xs leading-relaxed text-muted-foreground">
+      <p className="gs-marque-defaut max-w-xs text-center text-xs leading-relaxed text-muted-foreground">
         {APP_TAGLINE}
       </p>
+
+      <div
+        className="gs-marque-client flex-col items-center gap-3"
+        role="img"
+        aria-label={marque.nom}
+      >
+        <span className="gs-logo-client" aria-hidden="true" />
+        <span className="gs-nom-client text-2xl font-semibold text-foreground" aria-hidden="true" />
+        <span
+          className="gs-slogan-client max-w-xs text-center text-xs leading-relaxed text-muted-foreground"
+          aria-hidden="true"
+        />
+      </div>
 
       <div className="gs-barre h-0.5 w-40 overflow-hidden rounded-full bg-border">
         <span className="block h-full w-1/3 rounded-full bg-primary" />

@@ -8,7 +8,7 @@ import {
   surEvenementInstallation,
   type EvenementInstallation,
 } from "../../lib/pwa";
-import { APP_NAME } from "../../lib/appConfig";
+import { useMarque } from "../../hooks/useMarque";
 
 /**
  * Installer l'application depuis les réglages.
@@ -28,6 +28,7 @@ import { APP_NAME } from "../../lib/appConfig";
  * que de montrer un bouton sans effet.
  */
 export const InstallationSection: React.FC = () => {
+  const marque = useMarque();
   const [evenement, setEvenement] = useState<EvenementInstallation | null>(null);
   const [installee, setInstallee] = useState(false);
   const [ios, setIos] = useState(false);
@@ -63,7 +64,7 @@ export const InstallationSection: React.FC = () => {
   return (
     <SettingsSection
       title="Application"
-      description={`Installer ${APP_NAME} sur cet appareil, pour l'ouvrir depuis l'écran d'accueil.`}
+      description={`Installer ${marque.nom} sur cet appareil, pour l'ouvrir depuis l'écran d'accueil.`}
       icon={<Smartphone className="h-4 w-4" />}
     >
       {installee ? (
@@ -84,8 +85,8 @@ export const InstallationSection: React.FC = () => {
             <span>« Sur l'écran d'accueil ».</span>
           </p>
           <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
-            iOS ne permet pas de lancer l'installation depuis une page : ce
-            passage par le menu de partage est imposé par le système.
+            iOS ne permet pas de lancer l'installation depuis une page : ce passage par le menu de
+            partage est imposé par le système.
           </p>
         </SettingsBlock>
       ) : evenement ? (
@@ -102,14 +103,13 @@ export const InstallationSection: React.FC = () => {
         <SettingsBlock>
           <p className="text-sm font-semibold text-foreground">Depuis le menu du navigateur</p>
           <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-            Ouvrez le menu <span className="font-semibold">⋮</span> en haut à
-            droite, puis choisissez « Installer l'application » ou « Ajouter à
-            l'écran d'accueil ».
+            Ouvrez le menu <span className="font-semibold">⋮</span> en haut à droite, puis
+            choisissez « Installer l'application » ou « Ajouter à l'écran d'accueil ».
           </p>
           <p className="mt-2 text-xs leading-relaxed text-muted-foreground">
-            Ce chemin apparaît ici quand le navigateur ne nous laisse plus
-            proposer l'installation nous-mêmes — après un refus dans sa propre
-            fenêtre, notamment. Il reste toujours disponible.
+            Ce chemin apparaît ici quand le navigateur ne nous laisse plus proposer l'installation
+            nous-mêmes — après un refus dans sa propre fenêtre, notamment. Il reste toujours
+            disponible.
           </p>
         </SettingsBlock>
       )}

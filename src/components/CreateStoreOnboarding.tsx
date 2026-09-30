@@ -1,4 +1,5 @@
 import React, { useState } from "react";
+import { useMarque } from "../hooks/useMarque";
 import { Link } from "@tanstack/react-router";
 import { Store, Sparkles, UserPlus, LogOut, KeyRound } from "lucide-react";
 import { useAuth } from "../hooks/useAuth";
@@ -18,6 +19,7 @@ import { ESSAI_JOURS } from "../lib/offres";
  *      domaine pro configuré).
  */
 export const CreateStoreOnboarding: React.FC = () => {
+  const marque = useMarque();
   const { profile, signOut } = useAuth();
   const { createStore, refreshStores, switchStore } = useWorkspace();
 
@@ -80,7 +82,13 @@ export const CreateStoreOnboarding: React.FC = () => {
         <div className="mb-8 text-center">
           {/* Le logo lui-même, plutôt qu'un carré dégradé et une icône
               générique : c'est la marque que l'on doit reconnaître ici. */}
-          <img src="/logo.svg" alt="" width={71} height={52} className="mx-auto mb-4 h-13 w-auto" />
+          <img
+            src={marque.logoUrl}
+            alt=""
+            width={71}
+            height={52}
+            className="mx-auto mb-4 h-13 w-auto"
+          />
           <MotSymbole hauteur={34} className="mb-3 text-foreground" />
           <h1 className="text-2xl font-bold tracking-tight text-foreground">
             Bienvenue{profile?.full_name ? `, ${profile.full_name.split(" ")[0]}` : ""} !

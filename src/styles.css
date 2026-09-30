@@ -2051,3 +2051,42 @@ td {
   line-height: 1;
   letter-spacing: 0.01em;
 }
+
+/* ── Marque blanche : écran de chargement ──
+   `html[data-marque="client"]` et les variables --marque-* sont posés
+   par le script du <head> (lib/marque.ts) avant le rendu React. */
+.gs-marque-client {
+  display: none;
+}
+html[data-marque="client"] .gs-marque-defaut {
+  display: none;
+}
+html[data-marque="client"] .gs-marque-client {
+  display: flex;
+  animation: gs-marque-apparait 0.5s ease-out both;
+}
+html[data-marque="client"] .gs-ecran-chargement {
+  background: var(--marque-splash-fond, var(--background));
+}
+.gs-logo-client {
+  width: 4.5rem;
+  height: 4.5rem;
+  background: var(--marque-logo) center / contain no-repeat;
+}
+.gs-nom-client::before {
+  content: var(--marque-nom);
+}
+.gs-slogan-client::before {
+  content: var(--marque-slogan);
+}
+@keyframes gs-marque-apparait {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  html[data-marque="client"] .gs-marque-client {
+    animation: none;
+  }
+}

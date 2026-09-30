@@ -1,5 +1,6 @@
 import React from "react";
 import { APP_NAME } from "../../lib/appConfig";
+import type { Marque } from "../../lib/marque";
 import { MotSymbole } from "../shared/MotSymbole";
 
 /**
@@ -46,5 +47,44 @@ export const PanneauMarque: React.FC = () => (
         Ce que {APP_NAME} remplace
       </footer>
     </blockquote>
+  </div>
+);
+
+/**
+ * Le même emplacement sur un domaine client : son logo, son nom, sa
+ * phrase d'accueil. Rien de Tantana — ni citation, ni mot-symbole.
+ */
+export const PanneauMarqueClient: React.FC<{ marque: Marque }> = ({ marque }) => (
+  <div className="relative text-center lg:text-left">
+    <div className="flex items-center justify-center gap-4 lg:justify-start">
+      <img src={marque.logoUrl} alt="" className="h-[3.6rem] w-auto max-w-[8rem] object-contain" />
+      <span
+        className="text-[clamp(1.6rem,4vw,2.2rem)] font-semibold tracking-tight"
+        style={{ color: "var(--carbone)" }}
+      >
+        {marque.nom}
+      </span>
+    </div>
+
+    {(marque.connexionTitre || marque.slogan) && (
+      <p
+        className="mt-9 text-[clamp(1.35rem,3.2vw,2rem)] leading-[1.32]"
+        style={{ color: "var(--carbone)" }}
+      >
+        {marque.connexionTitre || marque.slogan}
+      </p>
+    )}
+    {marque.connexionSousTitre && (
+      <p className="mt-4 text-[1rem]" style={{ color: "var(--carbone-doux)" }}>
+        {marque.connexionSousTitre}
+      </p>
+    )}
+    {marque.connexionImageUrl && (
+      <img
+        src={marque.connexionImageUrl}
+        alt=""
+        className="mx-auto mt-8 max-h-64 w-auto max-w-full rounded-xl object-contain lg:mx-0"
+      />
+    )}
   </div>
 );
