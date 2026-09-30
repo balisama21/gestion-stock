@@ -1,7 +1,7 @@
 import React, { useRef, useState } from "react";
 import { Download, FileText, Image as ImageIcon, Printer } from "lucide-react";
 import type { StoreSettings } from "../../types";
-import { APP_NAME } from "../../lib/appConfig";
+import { useMarque } from "../../hooks/useMarque";
 import { formatCurrency, formatDateLocale } from "../../utils/formulas";
 import { Modal } from "../shared/Modal";
 import { useInvoicePrefs } from "../../lib/invoicePrefs";
@@ -55,6 +55,7 @@ export const DocumentDevis: React.FC<DocumentDevisProps> = ({
   documentsV2 = false,
   reglagesDocuments,
 }) => {
+  const marque = useMarque();
   /*
    * Le repli automatique : si la v2 tombe, l'ancien devis reprend sa
    * place sans que personne n'ait rien à faire.
@@ -185,7 +186,7 @@ export const DocumentDevis: React.FC<DocumentDevisProps> = ({
               )}
               <div className="space-y-0.5">
                 <p className="text-base font-bold uppercase tracking-tight text-slate-900">
-                  {settings?.storeName || APP_NAME}
+                  {settings?.storeName || marque.nom}
                 </p>
                 {settings?.subtitle && (
                   <p className="text-[11px] text-slate-500">{settings.subtitle}</p>

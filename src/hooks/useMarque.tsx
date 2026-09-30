@@ -8,6 +8,7 @@ import {
   estHoteParDefaut,
   marqueCourante,
   marqueDepuisLigne,
+  marqueDuRendu,
   type LigneMarquePublique,
   type Marque,
 } from "../lib/marque";
@@ -17,12 +18,11 @@ const ContexteMarque = createContext<Marque>(MARQUE_PAR_DEFAUT);
 export const useMarque = (): Marque => useContext(ContexteMarque);
 
 /**
- * Premier rendu : Tantana, comme le serveur (pas d'écart d'hydratation ;
- * le script du `<head>` a déjà peint la bonne marque). Ensuite : cache,
- * puis réseau si le cache a plus de cinq minutes.
+ * Premier rendu : la marque du rendu serveur (pas d'écart d'hydratation).
+ * Ensuite : cache, puis réseau si le cache a plus de cinq minutes.
  */
 export function MarqueProvider({ children }: { children: ReactNode }) {
-  const [marque, setMarque] = useState<Marque>(MARQUE_PAR_DEFAUT);
+  const [marque, setMarque] = useState<Marque>(marqueDuRendu);
 
   useEffect(() => {
     const enCache = marqueCourante();

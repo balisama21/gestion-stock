@@ -26,6 +26,9 @@ export interface Marque {
   parDefaut: boolean;
 }
 
+/** Icône vide : aucune requête, et surtout pas l'icône de Tantana. */
+export const SANS_ICONE = "data:,";
+
 export const MARQUE_PAR_DEFAUT: Marque = {
   nom: APP_NAME,
   nomCourt: APP_SHORT_NAME,
@@ -103,8 +106,9 @@ export function marqueDepuisLigne(l: LigneMarquePublique): Marque {
     nomCourt: l.short_name || l.app_name,
     slogan: l.tagline ?? "",
     titre: l.page_title,
-    logoUrl: url(l.logo_url) ?? MARQUE_PAR_DEFAUT.logoUrl,
-    faviconUrl: url(l.favicon_url) ?? url(l.logo_url) ?? MARQUE_PAR_DEFAUT.faviconUrl,
+    // Sans image fournie : rien, plutôt que le logo de Tantana.
+    logoUrl: url(l.logo_url) ?? "",
+    faviconUrl: url(l.favicon_url) ?? url(l.logo_url) ?? SANS_ICONE,
     splashLogoUrl: url(l.splash_logo_url),
     splashFond: hex(l.splash_background),
     connexionImageUrl: url(l.login_image_url),
@@ -150,18 +154,38 @@ export function cacheMarqueFrais(): boolean {
 
 let memo: Marque | null = null;
 
+/** Posé par `server.ts` : la marque de l'hôte de la requête en cours. */
+type LecteurMarqueServeur = () => Marque | null | undefined;
+const lecteurServeur = (): LecteurMarqueServeur | undefined =>
+  (globalThis as { __marqueDeLaRequete?: LecteurMarqueServeur }).__marqueDeLaRequete;
+
 /**
- * La marque connue à cet instant. Serveur : toujours Tantana (le script
- * du `<head>` corrige avant affichage). Client : celle du cache.
+ * La marque connue à cet instant. Serveur : celle de l'hôte de la
+ * requête (Tantana par défaut). Client : celle du cache.
  */
 export function marqueCourante(): Marque {
-  if (typeof window === "undefined") return MARQUE_PAR_DEFAUT;
+  if (typeof window === "undefined") return lecteurServeur()?.() ?? MARQUE_PAR_DEFAUT;
   if (memo) return memo;
   memo = estHoteParDefaut(window.location.hostname)
     ? MARQUE_PAR_DEFAUT
     : (lireCache()?.marque ?? MARQUE_PAR_DEFAUT);
   return memo;
 }
+
+/**
+ * La marque avec laquelle le serveur a rendu la page, transmise par le
+ * script du `<head>` : l'état initial qui hydrate sans écart.
+ */
+export function marqueDuRendu(): Marque {
+  if (typeof window === "undefined") return marqueCourante();
+  return (window as { __marqueRendu?: Marque | null }).__marqueRendu ?? MARQUE_PAR_DEFAUT;
+}
+
+/** Manifeste PWA : fichier statique pour Tantana, généré par hôte sinon. */
+export const MANIFESTE_PAR_DEFAUT = "/manifest.webmanifest";
+export const MANIFESTE_DE_MARQUE = "/marque.webmanifest";
+export const manifesteDe = (m: Marque): string =>
+  m.parDefaut ? MANIFESTE_PAR_DEFAUT : MANIFESTE_DE_MARQUE;
 
 /** Titre d'onglet ; `titreTantana` ne sert que pour la marque d'origine. */
 export const titreDePage = (m: Marque, titreTantana: string): string =>
@@ -216,13 +240,16 @@ export function appliquerMarqueAuDocument(m: Marque | null): void {
   lien("apple-touch-icon").href = m.faviconUrl;
   const metaApple = d.querySelector<HTMLMetaElement>('meta[name="apple-mobile-web-app-title"]');
   if (metaApple) metaApple.content = m.nomCourt;
+  const manifeste = "/marque.webmanifest";
+  const lienManifeste = lien("manifest");
+  if (lienManifeste.getAttribute("href") !== manifeste) lienManifeste.href = manifeste;
 
   // Couleurs et splash, par variables CSS : aucun nœud React touché.
   const regles: string[] = [];
   const vars: string[] = [
     `--marque-nom:"${echapCss(m.nom)}"`,
     `--marque-slogan:"${echapCss(m.slogan)}"`,
-    `--marque-logo:url("${m.splashLogoUrl || m.logoUrl}")`,
+    `--marque-logo:${m.splashLogoUrl || m.logoUrl ? `url("${m.splashLogoUrl || m.logoUrl}")` : "none"}`,
   ];
   if (m.splashFond) vars.push(`--marque-splash-fond:${m.splashFond}`);
   const c = m.couleurPrimaire;
@@ -258,16 +285,22 @@ export function appliquerMarqueAuDocument(m: Marque | null): void {
 }
 
 /**
- * Script à placer en tête de `<head>` : lit le cache et applique la
- * marque avant le premier rendu. Aucune donnée n'est injectée côté
- * serveur — tout vient du localStorage du visiteur.
+ * Script à placer en tête de `<head>` : applique la marque avant le
+ * premier rendu. `graine` est celle que le serveur a trouvée pour
+ * l'hôte ; elle prime sur le cache et l'amorce dès la première visite.
  */
-export function scriptMarqueAvantRendu(): string {
+export function scriptMarqueAvantRendu(graine: Marque | null = null): string {
+  // `<` échappé : le JSON ne peut pas fermer la balise <script>.
+  const g = graine && !graine.parDefaut ? JSON.stringify(graine).replace(/</g, "\\u003c") : "null";
   return `(function(){try{
+var g=${g};window.__marqueRendu=g;
 var h=location.hostname.toLowerCase().replace(/:\\d+$/,"").replace(/\\.$/,"").replace(/^www\\./,"");
 if(h==="localhost"||h==="[::1]"||/\\.localhost$/.test(h)||/^\\d{1,3}(\\.\\d{1,3}){3}$/.test(h)||/\\.netlify\\.(app|live)$/.test(h))return;
-var c=JSON.parse(localStorage.getItem(${JSON.stringify(CLE_CACHE_MARQUE)})||"null");
-if(!c||c.hote!==h||!c.marque)return;
+var k=${JSON.stringify(CLE_CACHE_MARQUE)};
+var c=JSON.parse(localStorage.getItem(k)||"null");
+if(c&&c.hote!==h)c=null;
+if(g){c={hote:h,marque:g,t:c?c.t:0};try{localStorage.setItem(k,JSON.stringify(c))}catch(e){}}
+if(!c||!c.marque)return;
 (${appliquerMarqueAuDocument.toString()})(c.marque);
 }catch(e){}})();`;
 }

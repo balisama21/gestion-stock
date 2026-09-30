@@ -1,7 +1,8 @@
 import * as XLSX from "xlsx";
 import { Product, Purchase, Sale, Expense, Seller, CapitalSummary } from "../types";
 import { getProductLabel, getPurchaseLabel, getSaleLabel } from "./formulas";
-import { CODE_APPS_SCRIPT_V3 } from "../data/appsScriptCode";
+import { codeAppsScriptV3 } from "../data/appsScriptCode";
+import { APP_NAME } from "../lib/appConfig";
 
 export function downloadExcelWorkbook(
   capital: CapitalSummary,
@@ -10,6 +11,7 @@ export function downloadExcelWorkbook(
   sales: Sale[],
   sellers: Seller[],
   expenses: Expense[],
+  nomApp: string = APP_NAME,
 ) {
   const wb = XLSX.utils.book_new();
 
@@ -187,7 +189,7 @@ export function downloadExcelWorkbook(
     ['5. Rechargez votre feuille Google Sheets : Le menu "📦 Stock & Gestion" apparaîtra !'],
     [""],
     ["CODE APPS SCRIPT COMPLET (Code_Apps_Script_v3.gs) :"],
-    [CODE_APPS_SCRIPT_V3],
+    [codeAppsScriptV3(nomApp)],
   ];
   const wsCodeGS = XLSX.utils.aoa_to_sheet(gsInstructions);
   XLSX.utils.book_append_sheet(wb, wsCodeGS, "Code_Apps_Script_GS");

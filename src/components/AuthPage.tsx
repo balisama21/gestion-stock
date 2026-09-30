@@ -46,8 +46,8 @@ export const AuthPage: React.FC = () => {
     resetPasswordForEmail,
   } = useAuth();
   const marque = useMarque();
-  // Sur un domaine client : connexion seule, à sa marque. La vitrine
-  // commerciale (offres, tarifs, questions) est celle de Tantana.
+  // Sur un domaine client : connexion seule, à sa marque. Offres, tarifs,
+  // questions et inscription libre n'appartiennent qu'à la vitrine.
   const vitrine = marque.parDefaut;
   const [mode, setMode] = useState<AuthMode>(() => {
     return "login";
@@ -158,6 +158,7 @@ export const AuthPage: React.FC = () => {
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!vitrine) return;
     setError(null);
     setLoading(true);
     const { error: signUpError } = await signUp(email, password, fullName);
@@ -685,8 +686,17 @@ export const AuthPage: React.FC = () => {
 
               {/* Bascule entre les deux parcours, à la place des
                     onglets : un lien de plus bas de carte, un contrôle de
-                    moins en haut. */}
-              {(mode === "login" || mode === "register") && (
+                    moins en haut. Domaine client : pas d'inscription
+                    libre, on y entre sur invitation. */}
+              {!vitrine && mode === "login" && (
+                <p
+                  className="mt-5 text-center text-[0.8125rem]"
+                  style={{ color: "var(--carbone-doux)" }}
+                >
+                  Pas encore de compte ? Demandez une invitation au responsable de votre boutique.
+                </p>
+              )}
+              {vitrine && (mode === "login" || mode === "register") && (
                 <p
                   className="mt-5 text-center text-[0.8125rem]"
                   style={{ color: "var(--carbone-doux)" }}

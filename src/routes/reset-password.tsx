@@ -2,7 +2,7 @@ import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { useAuth } from "../hooks/useAuth";
 import { traduireErreurAuth } from "../lib/messagesAuth";
-import { APP_NAME } from "../lib/appConfig";
+import { useMarque } from "../hooks/useMarque";
 import { AlertCircle, ArrowLeft, CheckCircle2, Eye, EyeOff, KeyRound, Lock } from "lucide-react";
 
 export const Route = createFileRoute("/reset-password")({
@@ -13,6 +13,7 @@ type Status = "verifying" | "ready" | "submitting" | "success" | "error";
 
 function ResetPasswordPage() {
   const navigate = useNavigate();
+  const marque = useMarque();
   const { session, loading: authLoading, updatePassword, clearPasswordRecovery } = useAuth();
 
   const [status, setStatus] = useState<Status>("verifying");
@@ -87,7 +88,7 @@ function ResetPasswordPage() {
               <div className="w-11 h-11 rounded-xl bg-white/15 backdrop-blur border border-white/20 flex items-center justify-center">
                 <KeyRound className="w-6 h-6" />
               </div>
-              <span className="font-bold text-lg tracking-wide">{APP_NAME}</span>
+              <span className="font-bold text-lg tracking-wide">{marque.nom}</span>
             </div>
             <h1 className="text-3xl font-bold leading-tight mb-4">Nouveau mot de passe</h1>
             <p className="text-emerald-50 text-base leading-relaxed max-w-sm">
@@ -116,7 +117,7 @@ function ResetPasswordPage() {
             <h1 className="text-2xl font-bold text-foreground mb-1">
               Réinitialiser le mot de passe
             </h1>
-            <p className="text-sm text-muted-foreground mb-8">{APP_NAME}</p>
+            <p className="text-sm text-muted-foreground mb-8">{marque.nom}</p>
 
             {status === "verifying" && (
               <div className="flex items-center gap-3 text-muted-foreground">

@@ -45,7 +45,7 @@ import { boutiqueEstVerrouillee, vueAffichee, VUE_VERROUILLEE } from "./lib/verr
 import { PinLockScreen } from "./components/PinLockScreen";
 import { AppLoader } from "./components/shared/AppLoader";
 import { LimiteChargement } from "./components/shared/LimiteChargement";
-import { APP_NAME, APP_TAGLINE } from "./lib/appConfig";
+import { useMarque } from "./hooks/useMarque";
 import { useAuth } from "./hooks/useAuth";
 import { useSessionTimeout } from "./hooks/useSessionTimeout";
 import { workspaceContext, useWorkspaceState, useWorkspace } from "./hooks/useWorkspace";
@@ -205,6 +205,7 @@ const EcranQuiArrive = () => <SquelettePage />;
 function AppInner() {
   const { user, isFounder, profile, signOut } = useAuth();
   const workspace = useWorkspace();
+  const marque = useMarque();
 
   /**
    * Un livreur ne charge pas les données de la boutique.
@@ -794,8 +795,8 @@ function AppInner() {
 
   const storeSettings: StoreSettings = useMemo(
     () => ({
-      storeName: workspace.activeStore?.name || APP_NAME,
-      subtitle: workspace.activeStore?.subtitle || APP_TAGLINE,
+      storeName: workspace.activeStore?.name || marque.nom,
+      subtitle: workspace.activeStore?.subtitle || marque.slogan,
       suppliers: workspace.activeStore?.suppliers || [],
       currencySymbol: workspace.activeStore?.currency_symbol || "Ar",
       enablePinSecurity: workspace.activeStore?.enable_pin_security ?? true,
@@ -811,7 +812,7 @@ function AppInner() {
       logoUrl: workspace.activeStore?.logo_url || undefined,
       receiptFooter: workspace.activeStore?.receipt_footer || "",
     }),
-    [workspace.activeStore],
+    [workspace.activeStore, marque],
   );
 
   // Écriture réelle des paramètres de la boutique (onglet "Ma boutique" /
@@ -1774,7 +1775,15 @@ function AppInner() {
   };
 
   const handleDownloadExcel = () => {
-    downloadExcelWorkbook(computedCapital, products, purchases, sales, computedSellers, expenses);
+    downloadExcelWorkbook(
+      computedCapital,
+      products,
+      purchases,
+      sales,
+      computedSellers,
+      expenses,
+      marque.nom,
+    );
   };
 
   // ─── Suppression réelle d'un collaborateur (store_members) ───
@@ -1969,7 +1978,7 @@ function AppInner() {
                             productImages={storeData.productImages}
                             evenements={calendrier.evenements}
                             rappels={memos.rappels}
-                            nomBoutique={workspace.activeStore?.name || APP_NAME}
+                            nomBoutique={workspace.activeStore?.name || marque.nom}
                             supplierPayments={storeData.supplierPayments}
                             suppliers={storeData.suppliers}
                             providers={storeData.providers}

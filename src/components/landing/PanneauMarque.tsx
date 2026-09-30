@@ -57,7 +57,13 @@ export const PanneauMarque: React.FC = () => (
 export const PanneauMarqueClient: React.FC<{ marque: Marque }> = ({ marque }) => (
   <div className="relative text-center lg:text-left">
     <div className="flex items-center justify-center gap-4 lg:justify-start">
-      <img src={marque.logoUrl} alt="" className="h-[3.6rem] w-auto max-w-[8rem] object-contain" />
+      {marque.logoUrl && (
+        <img
+          src={marque.logoUrl}
+          alt=""
+          className="h-[3.6rem] w-auto max-w-[8rem] object-contain"
+        />
+      )}
       <span
         className="text-[clamp(1.6rem,4vw,2.2rem)] font-semibold tracking-tight"
         style={{ color: "var(--carbone)" }}

@@ -1,7 +1,15 @@
 import "./lib/error-capture";
 
+import { AsyncLocalStorage } from "node:async_hooks";
 import { consumeLastCapturedError } from "./lib/error-capture";
 import { renderErrorPage } from "./lib/error-page";
+import { MANIFESTE_DE_MARQUE, MANIFESTE_PAR_DEFAUT, type Marque } from "./lib/marque";
+import { manifesteDeMarque, marqueDeLHote } from "./lib/marqueServeur";
+
+// Marque de l'hôte, lue par `marqueCourante()` pendant le rendu.
+const marqueDeLaRequete = new AsyncLocalStorage<Marque | null>();
+(globalThis as { __marqueDeLaRequete?: () => Marque | null | undefined }).__marqueDeLaRequete =
+  () => marqueDeLaRequete.getStore();
 
 type ServerEntry = {
   fetch: (request: Request, env: unknown, ctx: unknown) => Promise<Response> | Response;
@@ -47,8 +55,21 @@ function isH3SwallowedErrorBody(body: string): boolean {
 export default {
   async fetch(request: Request, env: unknown, ctx: unknown) {
     try {
+      const url = new URL(request.url);
+      const marque = await marqueDeLHote(url.hostname);
+
+      if (url.pathname === MANIFESTE_DE_MARQUE) {
+        if (!marque) return Response.redirect(new URL(MANIFESTE_PAR_DEFAUT, url), 302);
+        return new Response(JSON.stringify(manifesteDeMarque(marque)), {
+          headers: {
+            "content-type": "application/manifest+json; charset=utf-8",
+            "cache-control": "public, max-age=300",
+          },
+        });
+      }
+
       const handler = await getServerEntry();
-      const response = await handler.fetch(request, env, ctx);
+      const response = await marqueDeLaRequete.run(marque, () => handler.fetch(request, env, ctx));
       return await normalizeCatastrophicSsrResponse(response);
     } catch (error) {
       console.error(error);
