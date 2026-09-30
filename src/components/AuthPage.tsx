@@ -47,8 +47,8 @@ export const AuthPage: React.FC = () => {
     resetPasswordForEmail,
   } = useAuth();
   const marque = useMarque();
-  // Sur un domaine client : connexion seule, à sa marque. Offres, tarifs,
-  // questions et inscription libre n'appartiennent qu'à la vitrine.
+  // Sur un domaine client : sa marque, sans offres, tarifs ni questions.
+  // L'inscription reste ouverte ; la création de boutique, non.
   const vitrine = marque.parDefaut;
   // Marque cliente avec sa propre page d'accueil (branding.landing).
   const landing = vitrine ? null : (marque.landing ?? null);
@@ -161,7 +161,6 @@ export const AuthPage: React.FC = () => {
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!vitrine) return;
     setError(null);
     setLoading(true);
     const { error: signUpError } = await signUp(email, password, fullName);
@@ -170,7 +169,9 @@ export const AuthPage: React.FC = () => {
       setError(traduireErreurAuth(signUpError));
     } else {
       setSuccess(
-        "Compte créé ! Vérifiez votre e-mail puis connectez-vous pour créer votre boutique.",
+        vitrine
+          ? "Compte créé ! Vérifiez votre e-mail puis connectez-vous pour créer votre boutique."
+          : "Compte créé ! Vérifiez votre e-mail, puis connectez-vous et rejoignez votre boutique avec votre code d'invitation.",
       );
       setMode("login");
     }
@@ -338,7 +339,9 @@ export const AuthPage: React.FC = () => {
                   <div className="mb-6">
                     <h2 className="text-xl font-bold text-foreground">Créer un compte</h2>
                     <p className="text-sm text-muted-foreground mt-1">
-                      Commencez à gérer votre stock en quelques minutes
+                      {vitrine
+                        ? "Commencez à gérer votre stock en quelques minutes"
+                        : "Créez votre accès, puis rejoignez votre boutique avec votre code d'invitation."}
                     </p>
                   </div>
                 )}
@@ -700,17 +703,9 @@ export const AuthPage: React.FC = () => {
 
               {/* Bascule entre les deux parcours, à la place des
                     onglets : un lien de plus bas de carte, un contrôle de
-                    moins en haut. Domaine client : pas d'inscription
-                    libre, on y entre sur invitation. */}
-              {!vitrine && mode === "login" && (
-                <p
-                  className="mt-5 text-center text-[0.8125rem]"
-                  style={{ color: "var(--carbone-doux)" }}
-                >
-                  Pas encore de compte ? Demandez une invitation au responsable de votre boutique.
-                </p>
-              )}
-              {vitrine && (mode === "login" || mode === "register") && (
+                    moins en haut. Domaine client : le compte se crée
+                    librement, la boutique se rejoint sur invitation. */}
+              {(mode === "login" || mode === "register") && (
                 <p
                   className="mt-5 text-center text-[0.8125rem]"
                   style={{ color: "var(--carbone-doux)" }}
