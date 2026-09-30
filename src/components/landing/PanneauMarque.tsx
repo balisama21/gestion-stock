@@ -2,6 +2,7 @@ import React from "react";
 import { APP_NAME } from "../../lib/appConfig";
 import type { Marque } from "../../lib/marque";
 import { MotSymbole } from "../shared/MotSymbole";
+import { LogoMarque } from "./LogoMarque";
 
 /**
  * Le bloc de marque, à gauche du formulaire.
@@ -57,13 +58,7 @@ export const PanneauMarque: React.FC = () => (
 export const PanneauMarqueClient: React.FC<{ marque: Marque }> = ({ marque }) => (
   <div className="relative text-center lg:text-left">
     <div className="flex items-center justify-center gap-4 lg:justify-start">
-      {marque.logoUrl && (
-        <img
-          src={marque.logoUrl}
-          alt=""
-          className="h-[3.6rem] w-auto max-w-[8rem] object-contain"
-        />
-      )}
+      <LogoMarque marque={marque} taille={58} />
       <span
         className="text-[clamp(1.6rem,4vw,2.2rem)] font-semibold tracking-tight"
         style={{ color: "var(--carbone)" }}

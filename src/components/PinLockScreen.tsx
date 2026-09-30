@@ -4,6 +4,7 @@ import { Delete, KeyRound, Lock, ShieldCheck, ArrowLeft, Eye, EyeOff } from "luc
 import { useAuth } from "../hooks/useAuth";
 import { supabase } from "../lib/supabase";
 import { MotSymbole } from "./shared/MotSymbole";
+import { LogoMarque } from "./landing/LogoMarque";
 
 interface PinLockScreenProps {
   onUnlock: () => void;
@@ -122,7 +123,7 @@ export const PinLockScreen: React.FC<PinLockScreenProps> = ({ onUnlock }) => {
                 {/* Le logo lui-même : c'est l'écran qui garde la session,
                     on doit y reconnaître l'application au premier coup
                     d'oeil, pas une icône générique dans un carré. */}
-                {marque.logoUrl && (
+                {marque.logoUrl ? (
                   <img
                     src={marque.logoUrl}
                     alt=""
@@ -130,6 +131,8 @@ export const PinLockScreen: React.FC<PinLockScreenProps> = ({ onUnlock }) => {
                     height={52}
                     className="mx-auto mb-4 h-13 w-auto"
                   />
+                ) : (
+                  <LogoMarque marque={marque} taille={52} className="mx-auto mb-4" />
                 )}
                 <MotSymbole hauteur={34} className="mb-3 text-foreground" />
                 <h1 className="text-2xl font-bold tracking-tight text-foreground">

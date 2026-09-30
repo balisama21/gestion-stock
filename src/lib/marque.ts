@@ -1,4 +1,5 @@
 import { APP_NAME, APP_SHORT_NAME, APP_TAGLINE } from "./appConfig";
+import { landingDepuisJson, type LandingMarque } from "./landingMarque";
 
 /**
  * Marque blanche : l'identité affichée dépend du domaine visité.
@@ -22,6 +23,8 @@ export interface Marque {
   connexionSousTitre: string | null;
   couleurPrimaire: string | null;
   couleurPrimaireSombre: string | null;
+  /** Page d'accueil propre à la marque ; `null` : connexion seule. */
+  landing: LandingMarque | null;
   /** Vrai pour Tantana : le rendu d'origine s'applique tel quel. */
   parDefaut: boolean;
 }
@@ -43,6 +46,7 @@ export const MARQUE_PAR_DEFAUT: Marque = {
   connexionSousTitre: null,
   couleurPrimaire: null,
   couleurPrimaireSombre: null,
+  landing: null,
   parDefaut: true,
 };
 
@@ -61,6 +65,8 @@ export interface LigneMarquePublique {
   primary_color: string | null;
   primary_color_dark: string | null;
   splash_background: string | null;
+  /** Absent tant que la migration `marque_blanche_landing` n'est pas passée. */
+  landing?: unknown;
 }
 
 export const CLE_CACHE_MARQUE = "tantana.marque.v1";
@@ -116,6 +122,7 @@ export function marqueDepuisLigne(l: LigneMarquePublique): Marque {
     connexionSousTitre: l.login_subtitle,
     couleurPrimaire: hex(l.primary_color),
     couleurPrimaireSombre: hex(l.primary_color_dark),
+    landing: landingDepuisJson(l.landing),
     parDefaut: false,
   };
 }

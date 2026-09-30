@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { APP_NAME, APP_TAGLINE } from "../../lib/appConfig";
+import { APP_TAGLINE } from "../../lib/appConfig";
 import { useMarque } from "../../hooks/useMarque";
 import { MotSymbole } from "./MotSymbole";
 
@@ -108,7 +108,7 @@ export const AppLoader: React.FC<AppLoaderProps> = ({ etape }) => {
         }
       `}</style>
 
-      <div className="gs-marque-defaut gs-mot" role="img" aria-label={APP_NAME}>
+      <div className="gs-marque-defaut gs-mot" role="img" aria-label={marque.nom}>
         <span className="gs-contour" aria-hidden="true">
           <MotSymbole hauteur="clamp(2.6rem, 15vw, 3.4rem)" />
         </span>
@@ -119,7 +119,7 @@ export const AppLoader: React.FC<AppLoaderProps> = ({ etape }) => {
       </div>
 
       <p className="gs-marque-defaut max-w-xs text-center text-xs leading-relaxed text-muted-foreground">
-        {APP_TAGLINE}
+        {marque.parDefaut ? APP_TAGLINE : marque.slogan}
       </p>
 
       <div

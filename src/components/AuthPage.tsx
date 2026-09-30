@@ -9,6 +9,7 @@ import { SectionTicket } from "./landing/SectionTicket";
 import { RegistreModules } from "./landing/RegistreModules";
 import { InventaireApplication } from "./landing/InventaireApplication";
 import { PanneauMarque, PanneauMarqueClient } from "./landing/PanneauMarque";
+import { PageAccueilMarque, PanneauEspaceEquipe, PiedMarque } from "./landing/PageAccueilMarque";
 import { SectionTarif } from "./landing/SectionTarif";
 import { SectionQuestions } from "./landing/SectionQuestions";
 import { MotSymbole } from "./shared/MotSymbole";
@@ -49,6 +50,8 @@ export const AuthPage: React.FC = () => {
   // Sur un domaine client : connexion seule, à sa marque. Offres, tarifs,
   // questions et inscription libre n'appartiennent qu'à la vitrine.
   const vitrine = marque.parDefaut;
+  // Marque cliente avec sa propre page d'accueil (branding.landing).
+  const landing = vitrine ? null : (marque.landing ?? null);
   const [mode, setMode] = useState<AuthMode>(() => {
     return "login";
   });
@@ -224,7 +227,7 @@ export const AuthPage: React.FC = () => {
   };
 
   return (
-    <div className="page-accueil min-h-screen">
+    <div className={`page-accueil min-h-screen${landing ? " vitrine-marque" : ""}`}>
       {vitrine && (
         <>
           {/* Barre d'accès permanente.
@@ -272,12 +275,16 @@ export const AuthPage: React.FC = () => {
         </>
       )}
 
+      {landing && (
+        <PageAccueilMarque marque={marque} landing={landing} onEspaceEquipe={allerAuFormulaire} />
+      )}
+
       {/* Formulaire — inchangé, seulement replacé dans la page. */}
       <section
         id="connexion"
         ref={ancreConnexion}
         className={`reglure relative scroll-mt-14 overflow-hidden px-4 py-20 sm:px-8 sm:py-28 ${
-          vitrine ? "" : "flex min-h-screen items-center"
+          vitrine || landing ? "" : "flex min-h-screen items-center"
         }`}
       >
         {/* Pas de cadre autour : la maquette pose le contenu à même le
@@ -288,12 +295,19 @@ export const AuthPage: React.FC = () => {
           className="pointer-events-none absolute inset-0"
           style={{ color: "var(--primary)" }}
         >
-          <CourbesSiVisible />
+          {/* Domaine client : page sobre, sans les courbes animées. */}
+          {vitrine && <CourbesSiVisible />}
         </div>
 
         <div className="relative mx-auto w-full max-w-6xl">
           <div className="grid gap-12 lg:grid-cols-[1fr_minmax(0,26rem)] lg:items-center lg:gap-20">
-            {vitrine ? <PanneauMarque /> : <PanneauMarqueClient marque={marque} />}
+            {vitrine ? (
+              <PanneauMarque />
+            ) : landing ? (
+              <PanneauEspaceEquipe marque={marque} />
+            ) : (
+              <PanneauMarqueClient marque={marque} />
+            )}
 
             <div className="w-full">
               <CarteConnexion>
@@ -716,11 +730,15 @@ export const AuthPage: React.FC = () => {
             </div>
           </div>
 
-          <p className="mt-10 text-center text-[11px]" style={{ color: "var(--carbone-doux)" }}>
-            {marque.slogan ? `${marque.nom} — ${marque.slogan}` : marque.nom}
-          </p>
+          {!landing && (
+            <p className="mt-10 text-center text-[11px]" style={{ color: "var(--carbone-doux)" }}>
+              {marque.slogan ? `${marque.nom} — ${marque.slogan}` : marque.nom}
+            </p>
+          )}
         </div>
       </section>
+
+      {landing && <PiedMarque marque={marque} />}
 
       {vitrine && (
         <footer className="reglure px-5 py-10 text-center">
