@@ -6,6 +6,7 @@ import { useAuth } from "../hooks/useAuth";
 import { useWorkspace } from "../hooks/useWorkspace";
 import { supabase } from "../lib/supabase";
 import { MotSymbole } from "./shared/MotSymbole";
+import { LogoMarque } from "./landing/LogoMarque";
 import { ESSAI_JOURS } from "../lib/offres";
 
 /**
@@ -84,7 +85,7 @@ export const CreateStoreOnboarding: React.FC = () => {
         <div className="mb-8 text-center">
           {/* Le logo lui-même, plutôt qu'un carré dégradé et une icône
               générique : c'est la marque que l'on doit reconnaître ici. */}
-          {marque.logoUrl && (
+          {marque.logoUrl ? (
             <img
               src={marque.logoUrl}
               alt=""
@@ -92,6 +93,8 @@ export const CreateStoreOnboarding: React.FC = () => {
               height={52}
               className="mx-auto mb-4 h-13 w-auto"
             />
+          ) : (
+            <LogoMarque marque={marque} taille={52} className="mx-auto mb-4" />
           )}
           <MotSymbole hauteur={34} className="mb-3 text-foreground" />
           <h1 className="text-2xl font-bold tracking-tight text-foreground">

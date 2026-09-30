@@ -2090,3 +2090,65 @@ html[data-marque="client"] .gs-ecran-chargement {
     animation: none;
   }
 }
+
+/* ═══════════════════════════════════════════════════════════════════
+   MARQUE BLANCHE : PAGE D'ACCUEIL D'UNE MARQUE CLIENTE
+   Béton clair, étiquette blanche, encre de pochoir, kraft pour le seul
+   ruban. Le vert (ou la couleur de la marque) reste aux actions.
+   ═══════════════════════════════════════════════════════════════════ */
+.page-accueil.vitrine-marque {
+  --papier-fond: #ecedea;
+  --papier: #ffffff;
+  --carbone: #17191b;
+  --carbone-doux: #5e6266;
+  --reglure: #d6d8d4;
+  --vm-kraft: #b98a55;
+}
+.vitrine-marque .vm-condense {
+  font-family: "Barlow Condensed", "Arial Narrow", "Roboto Condensed", sans-serif;
+  letter-spacing: 0.005em;
+}
+.vitrine-marque .vm-titre {
+  font-weight: 700;
+  line-height: 0.95;
+  text-transform: uppercase;
+  color: var(--carbone);
+}
+.vitrine-marque .vm-titre-section {
+  font-weight: 600;
+  line-height: 1.05;
+  color: var(--carbone);
+}
+
+/* L'étiquette de colis : bord d'encre, champs séparés par des filets,
+   un ruban kraft qui la tient au carton. */
+.vitrine-marque .vm-etiquette {
+  position: relative;
+  background: var(--papier);
+  border: 2px solid var(--carbone);
+  border-radius: 4px;
+  color: var(--carbone);
+}
+.vitrine-marque .vm-etiquette::before {
+  content: "";
+  position: absolute;
+  top: -14px;
+  left: 50%;
+  width: 42%;
+  height: 26px;
+  transform: translateX(-50%) rotate(-2deg);
+  background: color-mix(in srgb, var(--vm-kraft) 78%, transparent);
+}
+.vitrine-marque .vm-champ + .vm-champ {
+  border-top: 1px solid var(--carbone);
+}
+.vitrine-marque .vm-repere {
+  width: 10px;
+  height: 10px;
+  flex-shrink: 0;
+  margin-top: 0.45em;
+  background: var(--vm-kraft);
+}
+.vitrine-marque .vm-argument {
+  border-top: 3px solid var(--carbone);
+}
