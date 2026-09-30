@@ -168,6 +168,8 @@ export function useAuthState(): AuthState & AuthActions {
       password,
       options: {
         data: { full_name: fullName },
+        // Le lien de confirmation ramène au domaine d'inscription (marque blanche).
+        emailRedirectTo: `${window.location.origin}/`,
       },
     });
     return { error: error?.message ?? null };

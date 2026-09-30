@@ -287,6 +287,133 @@ export const PageAccueilMarque: React.FC<PageAccueilMarqueProps> = ({
   </>
 );
 
+// Projection oblique des cartons : profondeur vers la droite et le haut.
+const DX = 30;
+const DY = -20;
+const pts = (...p: [number, number][]) => p.map(([x, y]) => `${x},${y}`).join(" ");
+
+interface CartonProps {
+  x: number;
+  y: number;
+  l: number;
+  h: number;
+  titre: string;
+  detail: string;
+  children?: React.ReactNode;
+}
+
+/** Un carton kraft, scotché, avec son étiquette de contenu. */
+function Carton({ x, y, l, h, titre, detail, children }: CartonProps) {
+  const milieu = x + l / 2;
+  return (
+    <g stroke="var(--carbone)" strokeWidth={1.5} strokeLinejoin="round">
+      <polygon
+        points={pts([x + l, y], [x + l + DX, y + DY], [x + l + DX, y + h + DY], [x + l, y + h])}
+        fill="#a98053"
+      />
+      <polygon
+        points={pts([x, y], [x + l, y], [x + l + DX, y + DY], [x + DX, y + DY])}
+        fill="#dcb88c"
+      />
+      <rect x={x} y={y} width={l} height={h} fill="#c89f6e" />
+      {/* Ruban : sur le dessus, puis rabattu sur la face. */}
+      <polygon
+        points={pts(
+          [milieu - 11, y],
+          [milieu + 11, y],
+          [milieu + 11 + DX, y + DY],
+          [milieu - 11 + DX, y + DY],
+        )}
+        fill="#9c7446"
+        stroke="none"
+        opacity={0.85}
+      />
+      <rect
+        x={milieu - 11}
+        y={y}
+        width={22}
+        height={14}
+        fill="#9c7446"
+        stroke="none"
+        opacity={0.85}
+      />
+      <rect x={x + 16} y={y + 22} width={l - 32} height={56} rx={2} fill="#ffffff" />
+      <text
+        x={x + 28}
+        y={y + 52}
+        className="vm-condense"
+        fontSize={24}
+        fontWeight={700}
+        fill="var(--carbone)"
+        stroke="none"
+      >
+        {titre}
+      </text>
+      <text x={x + 28} y={y + 69} fontSize={11} fill="var(--carbone-doux)" stroke="none">
+        {detail}
+      </text>
+      {children}
+    </g>
+  );
+}
+
+/** Flèches « haut » des consignes de manutention. */
+function FlechesHaut({ x, y }: { x: number; y: number }) {
+  return (
+    <g fill="none" stroke="var(--carbone)" strokeWidth={2} strokeLinecap="round">
+      {[0, 14].map((d) => (
+        <path
+          key={d}
+          d={`M${x + d} ${y + 20} V${y} M${x + d - 5} ${y + 6} L${x + d} ${y} L${x + d + 5} ${y + 6}`}
+        />
+      ))}
+    </g>
+  );
+}
+
+/**
+ * La palette de l'entrepôt : ventes, stock et clients rangés au même
+ * endroit. Dessin fixe, sans animation.
+ */
+function PaletteCartons({ marque }: { marque: Marque }) {
+  return (
+    <svg viewBox="10 20 450 330" className="h-auto w-full max-w-lg" aria-hidden="true">
+      <ellipse cx={235} cy={343} rx={215} ry={9} fill="var(--carbone)" opacity={0.08} />
+      {/* Palette */}
+      <g stroke="var(--carbone)" strokeWidth={1.5} strokeLinejoin="round">
+        <polygon
+          points={pts([30, 300], [410, 300], [410 + DX, 300 + DY], [30 + DX, 300 + DY])}
+          fill="#b39064"
+        />
+        <rect x={30} y={300} width={380} height={12} fill="#9a7a52" />
+        {[40, 205, 370].map((bx) => (
+          <rect key={bx} x={bx} y={312} width={32} height={22} fill="#8a6a45" />
+        ))}
+        <rect x={30} y={334} width={380} height={8} fill="#9a7a52" />
+      </g>
+      <Carton x={40} y={180} l={180} h={120} titre="STOCK" detail="Au carton près">
+        <text
+          x={56}
+          y={284}
+          className="vm-condense"
+          fontSize={15}
+          fontWeight={700}
+          letterSpacing={3}
+          fill="var(--carbone)"
+          stroke="none"
+          opacity={0.75}
+        >
+          {marque.nom.toUpperCase()}
+        </text>
+      </Carton>
+      <Carton x={220} y={180} l={180} h={120} titre="CLIENTS" detail="Fiches et créances">
+        <FlechesHaut x={362} y={268} />
+      </Carton>
+      <Carton x={110} y={60} l={200} h={120} titre="VENTES" detail="Du devis à la facture" />
+    </svg>
+  );
+}
+
 /** À côté du formulaire : ce que l'équipe trouve derrière. */
 export const PanneauEspaceEquipe: React.FC<{ marque: Marque }> = ({ marque }) => (
   <div className="text-center lg:text-left">
@@ -297,6 +424,10 @@ export const PanneauEspaceEquipe: React.FC<{ marque: Marque }> = ({ marque }) =>
     >
       Connectez-vous pour suivre les ventes, le stock et les clients de {marque.nom}.
     </p>
+    {/* Sur mobile, le formulaire passe avant le dessin. */}
+    <div className="mt-10 hidden lg:block">
+      <PaletteCartons marque={marque} />
+    </div>
   </div>
 );
 
