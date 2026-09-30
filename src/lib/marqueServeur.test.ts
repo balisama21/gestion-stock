@@ -71,9 +71,26 @@ describe("manifesteDeMarque", () => {
     expect(JSON.stringify(m)).not.toMatch(/tantana/i);
   });
 
-  it("n'annonce pas d'icône vide", () => {
+  it("sans logo, annonce les PNG de repli qui rendent l'application installable", () => {
     const m = manifesteDeMarque(marqueDepuisLigne({ ...ligne, logo_url: null }));
-    expect(m.icons).toEqual([]);
+    const icones = m.icons as { src: string; sizes: string; type: string; purpose: string }[];
+    expect(icones.map((i) => `${i.purpose} ${i.sizes} ${i.type}`)).toEqual([
+      "any 192x192 image/png",
+      "any 512x512 image/png",
+      "maskable 192x192 image/png",
+      "maskable 512x512 image/png",
+    ]);
+    expect(icones.every((i) => i.src.startsWith("/marque-icone-"))).toBe(true);
+    expect(m).toMatchObject({ start_url: "/", scope: "/", display: "standalone" });
+    expect(JSON.stringify(m)).not.toContain(SANS_ICONE);
+    expect(JSON.stringify(m)).not.toMatch(/tantana|\/icon-\d/i);
+  });
+
+  it("une marque en cache d'avant le repli n'annonce pas d'icône vide", () => {
+    const m = manifesteDeMarque({
+      ...marqueDepuisLigne({ ...ligne, logo_url: null }),
+      faviconUrl: SANS_ICONE,
+    });
     expect(JSON.stringify(m)).not.toContain(SANS_ICONE);
   });
 });

@@ -2,7 +2,6 @@
 import { afterEach, describe, expect, it } from "vitest";
 import {
   CLE_CACHE_MARQUE,
-  SANS_ICONE,
   appliquerMarqueAuDocument,
   estHoteParDefaut,
   marqueDepuisLigne,
@@ -60,7 +59,12 @@ describe("marqueDepuisLigne", () => {
   it("sans image fournie, ne retombe pas sur le logo de Tantana", () => {
     const m = marqueDepuisLigne({ ...ligne, logo_url: null, favicon_url: null });
     expect(m.logoUrl).toBe("");
-    expect(m.faviconUrl).toBe(SANS_ICONE);
+    expect(m.faviconUrl).toMatch(/^\/marque-icone-any-192\.png\?v=/);
+    expect(m.iconeAppleUrl).toMatch(/^\/marque-icone-apple-180\.png\?v=/);
+  });
+
+  it("avec un logo, l'icône d'écran d'accueil est ce logo", () => {
+    expect(marqueDepuisLigne(ligne).iconeAppleUrl).toBe("https://cdn.kinvest.mg/logo.png");
   });
 });
 

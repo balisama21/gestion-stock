@@ -5,6 +5,8 @@ import { consumeLastCapturedError } from "./lib/error-capture";
 import { renderErrorPage } from "./lib/error-page";
 import { MANIFESTE_DE_MARQUE, MANIFESTE_PAR_DEFAUT, type Marque } from "./lib/marque";
 import { manifesteDeMarque, marqueDeLHote } from "./lib/marqueServeur";
+import { initialeDeMarque, lireCheminIconeRepli } from "./lib/iconeRepli";
+import { pngIconeRepli } from "./lib/iconeRepliRendu";
 
 // Marque de l'hôte, lue par `marqueCourante()` pendant le rendu.
 const marqueDeLaRequete = new AsyncLocalStorage<Marque | null>();
@@ -64,6 +66,24 @@ export default {
           headers: {
             "content-type": "application/manifest+json; charset=utf-8",
             "cache-control": "public, max-age=300",
+          },
+        });
+      }
+
+      const icone = lireCheminIconeRepli(url.pathname);
+      if (icone) {
+        if (!marque) return new Response(null, { status: 404 });
+        const png = pngIconeRepli(
+          initialeDeMarque(marque.nom),
+          marque.couleurPrimaire,
+          icone.variante,
+          icone.taille,
+        );
+        return new Response(png as BodyInit, {
+          headers: {
+            "content-type": "image/png",
+            // Versionnée par `?v=` : un changement de nom ou de couleur change l'URL.
+            "cache-control": "public, max-age=86400",
           },
         });
       }

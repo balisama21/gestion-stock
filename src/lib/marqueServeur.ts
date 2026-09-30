@@ -6,6 +6,7 @@ import {
   type LigneMarquePublique,
   type Marque,
 } from "./marque";
+import { estIconeRepli, urlIconeRepli } from "./iconeRepli";
 
 /**
  * Marque blanche côté serveur : la marque de l'hôte demandé, pour le
@@ -71,7 +72,11 @@ function typeImage(src: string): string | undefined {
  */
 export function manifesteDeMarque(m: Marque): Record<string, unknown> {
   const sources = [
-    ...new Set([m.faviconUrl, m.logoUrl, m.splashLogoUrl].filter((u) => u && u !== SANS_ICONE)),
+    ...new Set(
+      [m.faviconUrl, m.logoUrl, m.splashLogoUrl].filter(
+        (u) => u && u !== SANS_ICONE && !estIconeRepli(u),
+      ),
+    ),
   ] as string[];
   return {
     name: m.nom,
@@ -86,9 +91,23 @@ export function manifesteDeMarque(m: Marque): Record<string, unknown> {
     // Blanc comme Tantana : la barre d'état suit l'en-tête, qui est blanc.
     theme_color: "#ffffff",
     background_color: m.splashFond ?? "#f6f7f8",
-    icons: sources.map((src) => {
-      const type = typeImage(src);
-      return { src, sizes: "any", purpose: "any", ...(type ? { type } : null) };
-    }),
+    // Sans icône fournie, le repli : Chrome n'installe rien sans PNG 192 et 512.
+    icons: sources.length
+      ? sources.map((src) => {
+          const type = typeImage(src);
+          return { src, sizes: "any", purpose: "any", ...(type ? { type } : null) };
+        })
+      : iconesDeRepli(m),
   };
+}
+
+function iconesDeRepli(m: Marque): Record<string, string>[] {
+  return (["any", "maskable"] as const).flatMap((purpose) =>
+    ([192, 512] as const).map((t) => ({
+      src: urlIconeRepli(m.nom, m.couleurPrimaire, purpose, t),
+      sizes: `${t}x${t}`,
+      type: "image/png",
+      purpose,
+    })),
+  );
 }

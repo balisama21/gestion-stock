@@ -145,7 +145,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         // remplit de noir toute transparence : icone carree et opaque.
         {
           rel: "apple-touch-icon",
-          href: marque.parDefaut ? "/icon-apple-180.png" : marque.faviconUrl,
+          href: marque.iconeAppleUrl,
         },
       ],
     };

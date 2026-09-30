@@ -1,5 +1,6 @@
 import { APP_NAME, APP_SHORT_NAME, APP_TAGLINE } from "./appConfig";
 import { landingDepuisJson, type LandingMarque } from "./landingMarque";
+import { urlIconeRepli } from "./iconeRepli";
 
 /**
  * Marque blanche : l'identité affichée dépend du domaine visité.
@@ -16,6 +17,8 @@ export interface Marque {
   titre: string | null;
   logoUrl: string;
   faviconUrl: string;
+  /** Icône d'écran d'accueil iOS : carrée et opaque. */
+  iconeAppleUrl: string;
   splashLogoUrl: string | null;
   splashFond: string | null;
   connexionImageUrl: string | null;
@@ -29,7 +32,7 @@ export interface Marque {
   parDefaut: boolean;
 }
 
-/** Icône vide : aucune requête, et surtout pas l'icône de Tantana. */
+/** Icône vide des caches antérieurs à l'icône de repli. */
 export const SANS_ICONE = "data:,";
 
 export const MARQUE_PAR_DEFAUT: Marque = {
@@ -39,6 +42,7 @@ export const MARQUE_PAR_DEFAUT: Marque = {
   titre: null,
   logoUrl: "/logo.svg",
   faviconUrl: "/favicon.ico",
+  iconeAppleUrl: "/icon-apple-180.png",
   splashLogoUrl: null,
   splashFond: null,
   connexionImageUrl: null,
@@ -107,6 +111,9 @@ const url = (v: string | null): string | null => (v && URL_SURE.test(v) ? v : nu
 const hex = (v: string | null): string | null => (v && HEX.test(v) ? v : null);
 
 export function marqueDepuisLigne(l: LigneMarquePublique): Marque {
+  const couleur = hex(l.primary_color);
+  // Sans image fournie : l'initiale sur la couleur de la marque, jamais Tantana.
+  const icone = url(l.favicon_url) ?? url(l.logo_url);
   return {
     nom: l.app_name,
     nomCourt: l.short_name || l.app_name,
@@ -114,13 +121,14 @@ export function marqueDepuisLigne(l: LigneMarquePublique): Marque {
     titre: l.page_title,
     // Sans image fournie : rien, plutôt que le logo de Tantana.
     logoUrl: url(l.logo_url) ?? "",
-    faviconUrl: url(l.favicon_url) ?? url(l.logo_url) ?? SANS_ICONE,
+    faviconUrl: icone ?? urlIconeRepli(l.app_name, couleur, "any", 192),
+    iconeAppleUrl: icone ?? urlIconeRepli(l.app_name, couleur, "apple", 180),
     splashLogoUrl: url(l.splash_logo_url),
     splashFond: hex(l.splash_background),
     connexionImageUrl: url(l.login_image_url),
     connexionTitre: l.login_title,
     connexionSousTitre: l.login_subtitle,
-    couleurPrimaire: hex(l.primary_color),
+    couleurPrimaire: couleur,
     couleurPrimaireSombre: hex(l.primary_color_dark),
     landing: landingDepuisJson(l.landing),
     parDefaut: false,
@@ -244,7 +252,8 @@ export function appliquerMarqueAuDocument(m: Marque | null): void {
   const icone = lien("icon");
   icone.removeAttribute("type");
   icone.href = m.faviconUrl;
-  lien("apple-touch-icon").href = m.faviconUrl;
+  // Absente d'un cache antérieur à ce champ.
+  lien("apple-touch-icon").href = m.iconeAppleUrl || m.faviconUrl;
   const metaApple = d.querySelector<HTMLMetaElement>('meta[name="apple-mobile-web-app-title"]');
   if (metaApple) metaApple.content = m.nomCourt;
   const manifeste = "/marque.webmanifest";
