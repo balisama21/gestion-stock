@@ -1,9 +1,10 @@
-export const CODE_APPS_SCRIPT_V3 = `/**
+/** Le script Apps Script joint à l'export Excel, signé du nom de la marque. */
+export const codeAppsScriptV3 = (nomApp: string): string => `/**
  * ==============================================================================
- * TANTANA SUITE - SCRIPT APPS SCRIPT v3 REFACTORISÉ
+ * ${nomApp.toUpperCase()} - SCRIPT APPS SCRIPT v3 REFACTORISÉ
  * Fichier : Code_Apps_Script_v3.gs
  * Compatibilité : France (;) & USA (,), Paramètres Régionaux Universels
- * Auteur : Équipe Tantana Suite
+ * Auteur : Équipe ${nomApp}
  * ==============================================================================
  */
 

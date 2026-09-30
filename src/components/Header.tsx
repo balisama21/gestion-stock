@@ -31,7 +31,7 @@ import { useAuth } from "../hooks/useAuth";
 import { useBarresAuDefilement } from "../hooks/useBarresAuDefilement";
 import { useClicExterieur } from "../hooks/useClicExterieur";
 import { supabase } from "../lib/supabase";
-import { APP_NAME } from "../lib/appConfig";
+import { useMarque } from "../hooks/useMarque";
 import { usePersonnalisation } from "../lib/personnalisation";
 
 /**
@@ -161,6 +161,7 @@ export const Header: React.FC<HeaderProps> = ({
   onToggleSidebar,
   badgesNav,
 }) => {
+  const marque = useMarque();
   const sombre = theme === "dark";
 
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
@@ -364,7 +365,7 @@ export const Header: React.FC<HeaderProps> = ({
                 nom et la trésorerie se retrouvent ici. */}
           <div className="lg:hidden pb-1.5">
             <div className="truncate text-sm font-bold text-foreground">
-              {settings.storeName || APP_NAME}
+              {settings.storeName || marque.nom}
             </div>
             {hasCapitalAccess && (
               <div className="text-xs text-muted-foreground">
@@ -518,7 +519,7 @@ export const Header: React.FC<HeaderProps> = ({
               chose — orange sous le seuil d'alerte, rouge à découvert. */}
           <div className="min-w-0 flex-1">
             <h1 className="coq-nom">
-              <span className="truncate">{settings.storeName || APP_NAME}</span>
+              <span className="truncate">{settings.storeName || marque.nom}</span>
               <ChevronDown className="w-4 h-4 shrink-0 text-muted-foreground group-hover:text-foreground transition-colors" />
             </h1>
             {hasCapitalAccess && (

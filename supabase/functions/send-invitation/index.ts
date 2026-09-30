@@ -98,6 +98,21 @@ serve(async (req: Request) => {
       );
     }
 
+    // Marque blanche : nom affiché dans l'e-mail, celui de la marque du
+    // client s'il en a une.
+    const { data: marque } = await supabase
+      .from("branding")
+      .select("app_name, short_name")
+      .eq("store_id", store_id)
+      .maybeSingle();
+    const nomApp = (marque?.app_name ?? "Balsama Auto Gestion").replace(/[<>"]/g, "");
+    const nomCourt = marque
+      ? (marque.short_name || marque.app_name).replace(/[<>"]/g, "")
+      : "Balsama";
+    const piedDePage = marque
+      ? nomApp
+      : "Balsama Auto Gestion — Système professionnel de gestion de stock & trésorerie";
+
     // Generate token, short code and expiry
     const token = crypto.randomUUID();
     const codeChars = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789"; // sans 0/O/1/I ambigus
@@ -156,7 +171,7 @@ serve(async (req: Request) => {
         <strong style="color:#fff;">${invited_by_name ?? "Un utilisateur"}</strong> vous invite à rejoindre 
         <strong style="color:#10b981;">${store_name ?? "sa boutique"}</strong> en tant que 
         <strong style="color:#fff;">${role === "seller" ? "Vendeur" : role === "collaborator" ? "Collaborateur" : role}</strong> 
-        sur <strong style="color:#fff;">Balsama Auto Gestion</strong>.
+        sur <strong style="color:#fff;">${nomApp}</strong>.
       </p>
 
       <!-- CTA Button -->
@@ -185,7 +200,7 @@ serve(async (req: Request) => {
     <!-- Footer -->
     <div style="border-top:1px solid #1e293b;padding:20px 40px;background:#0f172a;">
       <p style="color:#334155;font-size:12px;text-align:center;margin:0;">
-        Balsama Auto Gestion — Système professionnel de gestion de stock & trésorerie
+        ${piedDePage}
       </p>
     </div>
   </div>
@@ -199,9 +214,9 @@ serve(async (req: Request) => {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        from: "Balsama Auto Gestion <noreply@balsama.app>",
+        from: `${nomApp} <noreply@balsama.app>`,
         to: [invited_email],
-        subject: `Invitation à rejoindre ${store_name ?? "une boutique"} sur Balsama`,
+        subject: `Invitation à rejoindre ${store_name ?? "une boutique"} sur ${nomCourt}`,
         html: emailHtml,
       }),
     });

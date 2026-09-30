@@ -20,6 +20,8 @@ import { ESSAI_JOURS } from "../lib/offres";
  */
 export const CreateStoreOnboarding: React.FC = () => {
   const marque = useMarque();
+  // Domaine client : on n'y crée pas de boutique, on rejoint la sienne.
+  const creationOuverte = marque.parDefaut;
   const { profile, signOut } = useAuth();
   const { createStore, refreshStores, switchStore } = useWorkspace();
 
@@ -35,7 +37,7 @@ export const CreateStoreOnboarding: React.FC = () => {
 
   const handleCreateStore = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!storeName.trim() || creating) return;
+    if (!creationOuverte || !storeName.trim() || creating) return;
 
     setCreating(true);
     setError(null);
@@ -82,65 +84,75 @@ export const CreateStoreOnboarding: React.FC = () => {
         <div className="mb-8 text-center">
           {/* Le logo lui-même, plutôt qu'un carré dégradé et une icône
               générique : c'est la marque que l'on doit reconnaître ici. */}
-          <img
-            src={marque.logoUrl}
-            alt=""
-            width={71}
-            height={52}
-            className="mx-auto mb-4 h-13 w-auto"
-          />
+          {marque.logoUrl && (
+            <img
+              src={marque.logoUrl}
+              alt=""
+              width={71}
+              height={52}
+              className="mx-auto mb-4 h-13 w-auto"
+            />
+          )}
           <MotSymbole hauteur={34} className="mb-3 text-foreground" />
           <h1 className="text-2xl font-bold tracking-tight text-foreground">
             Bienvenue{profile?.full_name ? `, ${profile.full_name.split(" ")[0]}` : ""} !
           </h1>
           <p className="mt-2 text-sm text-muted-foreground">
-            Créez votre boutique pour commencer — ou rejoignez-en une si vous avez été invité.
+            {creationOuverte
+              ? "Créez votre boutique pour commencer — ou rejoignez-en une si vous avez été invité."
+              : "Rejoignez votre boutique avec le lien ou le code d'invitation reçu de son responsable."}
           </p>
         </div>
 
         <div className="app-card p-6 sm:p-8" style={{ boxShadow: "var(--elev-3)" }}>
-          <div className="mb-5 flex items-center gap-2.5">
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg border border-success-border bg-success-soft">
-              <Store className="h-4 w-4 t-success" />
-            </div>
-            <h2 className="font-bold text-foreground">Créer ma boutique</h2>
-          </div>
+          {creationOuverte && (
+            <>
+              <div className="mb-5 flex items-center gap-2.5">
+                <div className="flex h-9 w-9 items-center justify-center rounded-lg border border-success-border bg-success-soft">
+                  <Store className="h-4 w-4 t-success" />
+                </div>
+                <h2 className="font-bold text-foreground">Créer ma boutique</h2>
+              </div>
 
-          <form onSubmit={handleCreateStore} className="space-y-4">
-            <div>
-              <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-muted-foreground">
-                Nom de la boutique
-              </label>
-              <input
-                type="text"
-                required
-                autoFocus
-                value={storeName}
-                onChange={(e) => setStoreName(e.target.value)}
-                placeholder="Ex: Ma Quincaillerie"
-                className="app-field"
-              />
-            </div>
+              <form onSubmit={handleCreateStore} className="space-y-4">
+                <div>
+                  <label className="mb-1.5 block text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                    Nom de la boutique
+                  </label>
+                  <input
+                    type="text"
+                    required
+                    autoFocus
+                    value={storeName}
+                    onChange={(e) => setStoreName(e.target.value)}
+                    placeholder="Ex: Ma Quincaillerie"
+                    className="app-field"
+                  />
+                </div>
 
-            <div className="flex items-center gap-2 rounded-xl border border-success-border bg-success-soft px-3.5 py-2.5 text-xs t-success">
-              <Sparkles className="w-3.5 h-3.5 shrink-0" />
-              <span>
-                {ESSAI_JOURS} jours d'essai gratuit inclus, sans paiement à l'inscription.
-              </span>
-            </div>
+                <div className="flex items-center gap-2 rounded-xl border border-success-border bg-success-soft px-3.5 py-2.5 text-xs t-success">
+                  <Sparkles className="w-3.5 h-3.5 shrink-0" />
+                  <span>
+                    {ESSAI_JOURS} jours d'essai gratuit inclus, sans paiement à l'inscription.
+                  </span>
+                </div>
 
-            {error && <p className="text-center text-sm font-medium t-danger">{error}</p>}
+                {error && <p className="text-center text-sm font-medium t-danger">{error}</p>}
 
-            <button type="submit" disabled={creating} className="app-btn-primary w-full">
-              {creating ? "Création..." : "Créer ma boutique"}
-            </button>
-          </form>
+                <button type="submit" disabled={creating} className="app-btn-primary w-full">
+                  {creating ? "Création..." : "Créer ma boutique"}
+                </button>
+              </form>
 
-          <div className="my-6 flex items-center gap-3">
-            <div className="h-px flex-1 bg-border" />
-            <span className="text-[11px] uppercase tracking-wide text-muted-foreground">ou</span>
-            <div className="h-px flex-1 bg-border" />
-          </div>
+              <div className="my-6 flex items-center gap-3">
+                <div className="h-px flex-1 bg-border" />
+                <span className="text-[11px] uppercase tracking-wide text-muted-foreground">
+                  ou
+                </span>
+                <div className="h-px flex-1 bg-border" />
+              </div>
+            </>
+          )}
 
           <Link
             to="/accept-invite"

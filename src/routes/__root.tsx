@@ -15,12 +15,14 @@ import { installerRepriseApresDeploiement } from "../lib/chunkRecovery";
 import { enregistrerServiceWorker } from "../lib/pwa";
 import { accorderLaBarreDEtat } from "../lib/couleurDeBarre";
 import { InstallPrompt } from "../components/shared/InstallPrompt";
-import { APP_NAME, APP_TAGLINE } from "../lib/appConfig";
-import { marqueCourante, scriptMarqueAvantRendu, titreDePage } from "../lib/marque";
+import {
+  manifesteDe,
+  marqueCourante,
+  marqueDuRendu,
+  scriptMarqueAvantRendu,
+  titreDePage,
+} from "../lib/marque";
 import { MarqueProvider } from "../hooks/useMarque";
-
-// Calculé une fois : le texte ne dépend d'aucune donnée de la requête.
-const SCRIPT_MARQUE = scriptMarqueAvantRendu();
 
 function NotFoundComponent() {
   return (
@@ -80,9 +82,9 @@ function ErrorComponent({ error, reset }: { error: Error; reset: () => void }) {
 }
 
 export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()({
-  // Côté client, les valeurs suivent la marque en cache : ce sont celles
-  // que le script du <head> a déjà posées, et React les retrouve telles
-  // quelles à l'hydratation au lieu de dupliquer icône et métas.
+  // Serveur : la marque de l'hôte demandé. Client : celle du cache, que
+  // le script du <head> a déjà posée ; React la retrouve telle quelle à
+  // l'hydratation au lieu de dupliquer icône et métas.
   head: () => {
     const marque = marqueCourante();
     return {
@@ -101,14 +103,14 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         { title: titreDePage(marque, marque.nom) },
         {
           name: "description",
-          content: APP_TAGLINE,
+          content: marque.slogan,
         },
         // Métas d'aperçu : lues par les robots, donc dans le rendu serveur.
-        { name: "author", content: APP_NAME },
-        { property: "og:title", content: APP_NAME },
+        { name: "author", content: marque.nom },
+        { property: "og:title", content: marque.nom },
         {
           property: "og:description",
-          content: APP_TAGLINE,
+          content: marque.slogan,
         },
 
         { property: "og:type", content: "website" },
@@ -138,7 +140,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         marque.parDefaut
           ? { rel: "icon", href: "/favicon.ico", type: "image/x-icon" }
           : { rel: "icon", href: marque.faviconUrl },
-        { rel: "manifest", href: "/manifest.webmanifest" },
+        { rel: "manifest", href: manifesteDe(marque) },
         // iOS ignore le manifeste pour l icone de l ecran d accueil, et
         // remplit de noir toute transparence : icone carree et opaque.
         {
@@ -162,7 +164,10 @@ function RootShell({ children }: { children: ReactNode }) {
         <HeadContent />
         {/* Après HeadContent : titre, icône et feuille de style existent
             déjà et sont modifiés sur place, avant le premier affichage. */}
-        <script suppressHydrationWarning dangerouslySetInnerHTML={{ __html: SCRIPT_MARQUE }} />
+        <script
+          suppressHydrationWarning
+          dangerouslySetInnerHTML={{ __html: scriptMarqueAvantRendu(marqueDuRendu()) }}
+        />
       </head>
       <body>
         {children}

@@ -1,6 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import BalsamaApp from "../BalsamaApp";
-import { APP_NAME, APP_TAGLINE } from "../lib/appConfig";
+import { APP_NAME } from "../lib/appConfig";
 import { marqueCourante, titreDePage } from "../lib/marque";
 
 export const Route = createFileRoute("/")({
@@ -14,12 +14,18 @@ export const Route = createFileRoute("/")({
       },
       {
         name: "description",
-        content: APP_TAGLINE,
+        content: marqueCourante().slogan,
       },
-      { property: "og:title", content: `${APP_NAME} — La gestion tout-en-un de votre entreprise` },
+      {
+        property: "og:title",
+        content: titreDePage(
+          marqueCourante(),
+          `${APP_NAME} — La gestion tout-en-un de votre entreprise`,
+        ),
+      },
       {
         property: "og:description",
-        content: APP_TAGLINE,
+        content: marqueCourante().slogan,
       },
       { property: "og:type", content: "website" },
       { name: "twitter:card", content: "summary_large_image" },

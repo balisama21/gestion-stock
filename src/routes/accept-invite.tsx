@@ -2,7 +2,7 @@ import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { supabase } from "../lib/supabase";
 import { useAuth } from "../hooks/useAuth";
-import { APP_NAME } from "../lib/appConfig";
+import { useMarque } from "../hooks/useMarque";
 import {
   AlertCircle,
   ArrowLeft,
@@ -24,6 +24,7 @@ export const Route = createFileRoute("/accept-invite")({
 
 function AcceptInvitePage() {
   const { token } = Route.useSearch();
+  const marque = useMarque();
   const { user, refreshProfile, signOut } = useAuth();
 
   const [status, setStatus] = useState<
@@ -147,7 +148,7 @@ function AcceptInvitePage() {
               <div className="w-11 h-11 rounded-xl bg-white/15 backdrop-blur border border-white/20 flex items-center justify-center">
                 <Users className="w-6 h-6" />
               </div>
-              <span className="font-bold text-lg tracking-wide">{APP_NAME}</span>
+              <span className="font-bold text-lg tracking-wide">{marque.nom}</span>
             </div>
             <h1 className="text-3xl font-bold leading-tight mb-4">Rejoignez une équipe</h1>
             <p className="text-emerald-50 text-base leading-relaxed max-w-sm">
@@ -175,7 +176,7 @@ function AcceptInvitePage() {
             </div>
 
             <h1 className="text-2xl font-bold text-foreground mb-1">Invitation équipe</h1>
-            <p className="text-sm text-muted-foreground mb-8">{APP_NAME}</p>
+            <p className="text-sm text-muted-foreground mb-8">{marque.nom}</p>
 
             {status === "loading" && (
               <div className="flex items-center gap-3 text-muted-foreground">

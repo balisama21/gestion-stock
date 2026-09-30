@@ -122,13 +122,15 @@ export const PinLockScreen: React.FC<PinLockScreenProps> = ({ onUnlock }) => {
                 {/* Le logo lui-même : c'est l'écran qui garde la session,
                     on doit y reconnaître l'application au premier coup
                     d'oeil, pas une icône générique dans un carré. */}
-                <img
-                  src={marque.logoUrl}
-                  alt=""
-                  width={71}
-                  height={52}
-                  className="mx-auto mb-4 h-13 w-auto"
-                />
+                {marque.logoUrl && (
+                  <img
+                    src={marque.logoUrl}
+                    alt=""
+                    width={71}
+                    height={52}
+                    className="mx-auto mb-4 h-13 w-auto"
+                  />
+                )}
                 <MotSymbole hauteur={34} className="mb-3 text-foreground" />
                 <h1 className="text-2xl font-bold tracking-tight text-foreground">
                   Session verrouillée

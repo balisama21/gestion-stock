@@ -2,6 +2,7 @@
 import { afterEach, describe, expect, it } from "vitest";
 import {
   CLE_CACHE_MARQUE,
+  SANS_ICONE,
   appliquerMarqueAuDocument,
   estHoteParDefaut,
   marqueDepuisLigne,
@@ -55,6 +56,12 @@ describe("marqueDepuisLigne", () => {
     expect(m.nomCourt).toBe(ligne.app_name);
     expect(m.parDefaut).toBe(false);
   });
+
+  it("sans image fournie, ne retombe pas sur le logo de Tantana", () => {
+    const m = marqueDepuisLigne({ ...ligne, logo_url: null, favicon_url: null });
+    expect(m.logoUrl).toBe("");
+    expect(m.faviconUrl).toBe(SANS_ICONE);
+  });
 });
 
 describe("application au document", () => {
@@ -66,6 +73,18 @@ describe("application au document", () => {
     expect(style?.textContent).toContain("--primary:#1D4ED8");
     expect(style?.textContent).not.toContain("</style>");
     expect(style?.textContent).not.toContain('Kin"');
+  });
+
+  it("pointe le manifeste vers celui de la marque", () => {
+    appliquerMarqueAuDocument(marqueDepuisLigne(ligne));
+    const lien = document.querySelector<HTMLLinkElement>('link[rel="manifest"]');
+    expect(lien?.getAttribute("href")).toBe("/marque.webmanifest");
+    lien?.remove();
+  });
+
+  it("sans logo, le splash n'affiche aucune image", () => {
+    appliquerMarqueAuDocument(marqueDepuisLigne({ ...ligne, logo_url: null }));
+    expect(document.getElementById("tantana-marque")?.textContent).toContain("--marque-logo:none");
   });
 
   it("rétablit Tantana avec null", () => {

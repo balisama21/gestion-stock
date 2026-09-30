@@ -1,6 +1,6 @@
 import React, { useState, useMemo, useRef } from "react";
 import { Seller, Sale, Expense, Purchase, LocaleSetting, StoreSettings, Product } from "../types";
-import { APP_NAME, APP_TAGLINE } from "../lib/appConfig";
+import { useMarque } from "../hooks/useMarque";
 import { supabase } from "../lib/supabase";
 import { useWorkspace } from "../hooks/useWorkspace";
 import { useAuth } from "../hooks/useAuth";
@@ -89,6 +89,7 @@ export const VendeursView: React.FC<VendeursViewProps> = ({
   onEditExpense,
   onDeleteExpense,
 }) => {
+  const marque = useMarque();
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [newNom, setNewNom] = useState("");
   const [activeSellerModal, setActiveSellerModal] = useState<Seller | null>(null);
@@ -964,10 +965,10 @@ export const VendeursView: React.FC<VendeursViewProps> = ({
                       />
                     )}
                     <h2 className="font-bold text-sm tracking-wide text-slate-950 uppercase">
-                      {settings?.storeName || APP_NAME}
+                      {settings?.storeName || marque.nom}
                     </h2>
                     <p className="text-[10px] text-slate-600">
-                      {settings?.subtitle || APP_TAGLINE}
+                      {settings?.subtitle || marque.slogan}
                     </p>
                     <p className="text-[10px] text-slate-600">
                       {settings?.address || "Lot IVG 124, Antananarivo 101"}
@@ -1101,7 +1102,7 @@ export const VendeursView: React.FC<VendeursViewProps> = ({
 
                   {/* Footer */}
                   <div className="text-center text-[9px] text-slate-600 italic">
-                    Émis le {new Date().toLocaleString()} - {APP_NAME}
+                    Émis le {new Date().toLocaleString()} - {marque.nom}
                   </div>
                 </div>
               ) : (
@@ -1122,7 +1123,7 @@ export const VendeursView: React.FC<VendeursViewProps> = ({
                       )}
                       <div className="space-y-0.5">
                         <p className="text-base font-bold uppercase tracking-tight text-slate-900">
-                          {settings?.storeName || APP_NAME}
+                          {settings?.storeName || marque.nom}
                         </p>
                         {settings?.subtitle && (
                           <p className="text-[11px] text-slate-500">{settings.subtitle}</p>

@@ -102,6 +102,14 @@ serve(async (req: Request) => {
 
     if (!boutique) return json({ error: "Boutique introuvable." }, 404);
 
+    // Marque blanche : l'expéditeur porte le nom de la marque du client.
+    const { data: marque } = await supabase
+      .from("branding")
+      .select("app_name")
+      .eq("store_id", store_id)
+      .maybeSingle();
+    const nomExpediteur = (marque?.app_name ?? "Tantana Suite").replace(/[<>"]/g, "");
+
     const { data: abonnes } = await supabase
       .from("abonnements_alertes_stock")
       .select("user_id, canaux")
@@ -199,7 +207,7 @@ serve(async (req: Request) => {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        from: "Tantana Suite <noreply@balsama.app>",
+        from: `${nomExpediteur} <noreply@balsama.app>`,
         // Un seul envoi pour toute l'équipe abonnée : c'est atomique,
         // donc aucun risque qu'un destinataire reçoive deux fois le
         // même résumé parce qu'un autre a échoué. Ils travaillent dans

@@ -8,6 +8,7 @@ import {
   type EvenementInstallation,
 } from "../../lib/pwa";
 import { useMarque } from "../../hooks/useMarque";
+import { SANS_ICONE } from "../../lib/marque";
 
 const CLE_REFUS = "balsama-installation-refusee";
 const JOURS_AVANT_NOUVELLE_PROPOSITION = 7;
@@ -52,6 +53,11 @@ const memoriserRefus = () => {
  */
 export const InstallPrompt: React.FC = () => {
   const marque = useMarque();
+  const icone = marque.parDefaut
+    ? "/icon-192.png"
+    : marque.faviconUrl !== SANS_ICONE
+      ? marque.faviconUrl
+      : null;
   const [evenement, setEvenement] = useState<EvenementInstallation | null>(null);
   const [visible, setVisible] = useState(false);
   const [ios, setIos] = useState(false);
@@ -117,13 +123,15 @@ export const InstallPrompt: React.FC = () => {
         className="app-card flex items-start gap-3 p-3.5 sm:p-4"
         style={{ boxShadow: "var(--elev-3)" }}
       >
-        <img
-          src="/icon-192.png"
-          alt=""
-          width={40}
-          height={40}
-          className="h-10 w-10 shrink-0 rounded-xl"
-        />
+        {icone && (
+          <img
+            src={icone}
+            alt=""
+            width={40}
+            height={40}
+            className="h-10 w-10 shrink-0 rounded-xl"
+          />
+        )}
 
         <div className="min-w-0 flex-1">
           <p className="text-sm font-semibold text-foreground">Installer {marque.nom}</p>
