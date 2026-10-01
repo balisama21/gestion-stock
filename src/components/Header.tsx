@@ -31,6 +31,7 @@ import { useAuth } from "../hooks/useAuth";
 import { useBarresAuDefilement } from "../hooks/useBarresAuDefilement";
 import { useClicExterieur } from "../hooks/useClicExterieur";
 import { supabase } from "../lib/supabase";
+import { hoteVisite, peutCreerUneBoutique } from "../lib/marquesBoutiques";
 import { useMarque } from "../hooks/useMarque";
 import { usePersonnalisation } from "../lib/personnalisation";
 
@@ -198,8 +199,9 @@ export const Header: React.FC<HeaderProps> = ({
     if (!joinCode.trim() || joiningWithCode) return;
     setJoiningWithCode(true);
     setJoinCodeError(null);
-    const { data, error } = await supabase.rpc("accept_invitation_by_code", {
+    const { data, error } = await supabase.rpc("rejoindre_par_code_sur_marque", {
       p_code: joinCode.trim(),
+      p_hote: hoteVisite(),
     });
     setJoiningWithCode(false);
     if (error) {
@@ -401,7 +403,7 @@ export const Header: React.FC<HeaderProps> = ({
             </button>
           ))}
         </div>
-        {workspace.isOwner ? (
+        {!peutCreerUneBoutique(workspace.accesMarque) ? null : workspace.isOwner ? (
           <div className="border-t border-border py-1">
             <button
               onClick={() => {
@@ -774,15 +776,17 @@ export const Header: React.FC<HeaderProps> = ({
             indépendante.
           </p>
 
-          <p
-            className={`mt-3 text-sm font-medium ${
-              workspace.activeStore.activation_status === "active" ? "t-success" : "t-warning"
-            }`}
-          >
-            {workspace.activeStore.activation_status === "active"
-              ? "Cette boutique est active à vie : la copie le sera aussi, immédiatement."
-              : "Cette boutique est en essai : la copie héritera de la même date de fin d'essai, pas d'un nouvel essai de 30 jours."}
-          </p>
+          {!workspace.activeStore.marque_id && (
+            <p
+              className={`mt-3 text-sm font-medium ${
+                workspace.activeStore.activation_status === "active" ? "t-success" : "t-warning"
+              }`}
+            >
+              {workspace.activeStore.activation_status === "active"
+                ? "Cette boutique est active à vie : la copie le sera aussi, immédiatement."
+                : "Cette boutique est en essai : la copie héritera de la même date de fin d'essai, pas d'un nouvel essai de 30 jours."}
+            </p>
+          )}
 
           <form onSubmit={handleCopyStore} id="copy-store-form" className="mt-4 space-y-3">
             <input
@@ -811,7 +815,11 @@ export const Header: React.FC<HeaderProps> = ({
         size="sm"
         icon={<Store className="h-4 w-4" />}
         title="Créer une boutique"
-        description="Vous en devenez propriétaire, avec son propre essai gratuit de 30 jours."
+        description={
+          workspace.accesMarque.marqueId
+            ? "Vous en devenez propriétaire."
+            : "Vous en devenez propriétaire, avec son propre essai gratuit de 30 jours."
+        }
         dismissible={!creatingStore}
         footer={
           <>

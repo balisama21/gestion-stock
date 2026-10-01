@@ -98,12 +98,17 @@ serve(async (req: Request) => {
       );
     }
 
-    // Marque blanche : nom affiché dans l'e-mail, celui de la marque du
-    // client s'il en a une.
+    // Marque blanche : celle de la boutique (stores.marque_id), sinon la
+    // fiche branding posée sur la boutique elle-même.
+    const { data: etiquette } = await supabase
+      .from("stores")
+      .select("marque_id")
+      .eq("id", store_id)
+      .maybeSingle();
     const { data: marque } = await supabase
       .from("branding")
       .select("app_name, short_name")
-      .eq("store_id", store_id)
+      .eq(etiquette?.marque_id ? "id" : "store_id", etiquette?.marque_id ?? store_id)
       .maybeSingle();
     const nomApp = (marque?.app_name ?? "Balsama Auto Gestion").replace(/[<>"]/g, "");
     const nomCourt = marque

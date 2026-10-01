@@ -192,6 +192,8 @@ interface SettingsLayoutProps {
   onTabChange: (tab: SettingsTab) => void;
   children: React.ReactNode;
   isOwner: boolean;
+  /** Boutique d'une marque cliente : aucun onglet d'abonnement. */
+  sansAbonnement?: boolean;
 }
 
 export const SettingsLayout: React.FC<SettingsLayoutProps> = ({
@@ -199,12 +201,15 @@ export const SettingsLayout: React.FC<SettingsLayoutProps> = ({
   onTabChange,
   children,
   isOwner,
+  sansAbonnement = false,
 }) => {
   const { signOut, profile } = useAuth();
 
   const groups = GROUPS.map((g) => ({
     ...g,
-    tabs: g.tabs.filter((t) => isOwner || !t.ownerOnly),
+    tabs: g.tabs.filter(
+      (t) => (isOwner || !t.ownerOnly) && !(sansAbonnement && t.id === "paiement"),
+    ),
   })).filter((g) => g.tabs.length > 0);
 
   const flatTabs = groups.flatMap((g) => g.tabs);

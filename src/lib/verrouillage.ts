@@ -27,8 +27,11 @@ type Store = Database["public"]["Tables"]["stores"]["Row"];
  * compte de son hôte.
  */
 export function boutiqueEstVerrouillee(
-  boutique: Pick<Store, "activation_status" | "trial_ends_at" | "abonnement_jusqu_au">,
+  boutique: Pick<Store, "activation_status" | "trial_ends_at" | "abonnement_jusqu_au"> &
+    Partial<Pick<Store, "marque_id">>,
 ): boolean {
+  // Boutique d'une marque cliente : ni essai ni abonnement, jamais fermée.
+  if (boutique.marque_id) return false;
   if (boutique.activation_status === "locked") return true;
 
   // Au mois : ouverte tant que l'échéance n'est pas passée. Une
