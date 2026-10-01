@@ -98,6 +98,9 @@ AS $$
 $$;
 
 -- E-mail du COMPTE (auth.users), confirmé, présent dans la liste.
+-- ATTENTION : « Confirm email » est désactivé, email_confirmed_at est donc
+-- rempli d'office. La protection réelle tient à la liste : n'y inscrire
+-- que des e-mails dont le compte existe déjà (voir supabase/donnees/).
 CREATE OR REPLACE FUNCTION public.est_proprietaire_de_marque(p_marque_id uuid)
 RETURNS boolean
 LANGUAGE sql
