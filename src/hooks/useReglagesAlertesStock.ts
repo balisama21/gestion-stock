@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { supabase } from "../lib/supabase";
+import { useMarque } from "./useMarque";
 import {
   REGLAGES_PAR_DEFAUT,
   ecrireReglages,
@@ -28,6 +29,7 @@ import {
  * jusqu'au rechargement. `BalsamaApp` le tient donc, et le distribue.
  */
 export function useReglagesAlertesStock(storeId: string | null) {
+  const { parDefaut } = useMarque();
   const [reglages, setReglages] = useState<ReglagesAlertesStock>(REGLAGES_PAR_DEFAUT);
   const [chargement, setChargement] = useState(true);
   const [erreur, setErreur] = useState<string | null>(null);
@@ -80,15 +82,17 @@ export function useReglagesAlertesStock(storeId: string | null) {
       if (error) return { error: error.message };
       if (!data) {
         return {
-          error:
-            "Ces réglages n'ont pas pu être enregistrés. Une boutique dont l'abonnement a expiré ne se modifie plus.",
+          // Domaine client : aucune boutique n'y expire.
+          error: parDefaut
+            ? "Ces réglages n'ont pas pu être enregistrés. Une boutique dont l'abonnement a expiré ne se modifie plus."
+            : "Ces réglages n'ont pas pu être enregistrés. Réessayez dans un instant.",
         };
       }
 
       setReglages(lireReglages(data));
       return { error: null };
     },
-    [storeId],
+    [storeId, parDefaut],
   );
 
   return { reglages, chargement, erreur, enregistrer, recharger: charger };

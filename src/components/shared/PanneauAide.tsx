@@ -2,6 +2,7 @@ import React from "react";
 import * as Dialog from "@radix-ui/react-dialog";
 import { HelpCircle, X } from "lucide-react";
 import { ficheAide, LANGUES_AIDE, type LangueAide } from "../../lib/aide";
+import { useMarque } from "../../hooks/useMarque";
 
 const CLE_LANGUE = "tantana.aide.langue";
 
@@ -23,7 +24,8 @@ interface Props {
 
 export const PanneauAide: React.FC<Props> = ({ ouvert, onFermer, ecran }) => {
   const [langue, setLangue] = React.useState<LangueAide>(lireLangue);
-  const fiche = ficheAide(ecran, langue);
+  const marque = useMarque();
+  const fiche = ficheAide(ecran, langue, !marque.parDefaut);
   const langues = LANGUES_AIDE.filter((l) => l.disponible);
 
   const changerLangue = (l: LangueAide) => {
