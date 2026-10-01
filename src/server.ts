@@ -4,7 +4,7 @@ import { AsyncLocalStorage } from "node:async_hooks";
 import { consumeLastCapturedError } from "./lib/error-capture";
 import { renderErrorPage } from "./lib/error-page";
 import { MANIFESTE_DE_MARQUE, MANIFESTE_PAR_DEFAUT, type Marque } from "./lib/marque";
-import { manifesteDeMarque, marqueDeLHote } from "./lib/marqueServeur";
+import { lireMarqueDeLHote, manifesteDeMarque } from "./lib/marqueServeur";
 import { initialeDeMarque, lireCheminIconeRepli } from "./lib/iconeRepli";
 import { pngIconeRepli } from "./lib/iconeRepliRendu";
 
@@ -12,6 +12,9 @@ import { pngIconeRepli } from "./lib/iconeRepliRendu";
 const marqueDeLaRequete = new AsyncLocalStorage<Marque | null>();
 (globalThis as { __marqueDeLaRequete?: () => Marque | null | undefined }).__marqueDeLaRequete =
   () => marqueDeLaRequete.getStore();
+const hoteDeLaRequete = new AsyncLocalStorage<string>();
+(globalThis as { __hoteDeLaRequete?: () => string | undefined }).__hoteDeLaRequete = () =>
+  hoteDeLaRequete.getStore();
 
 type ServerEntry = {
   fetch: (request: Request, env: unknown, ctx: unknown) => Promise<Response> | Response;
@@ -58,7 +61,16 @@ export default {
   async fetch(request: Request, env: unknown, ctx: unknown) {
     try {
       const url = new URL(request.url);
-      const marque = await marqueDeLHote(url.hostname);
+      const { marque, sure } = await lireMarqueDeLHote(url.hostname);
+      const icone = lireCheminIconeRepli(url.pathname);
+
+      // Lecture en échec : une erreur passagère, jamais le manifeste de Tantana.
+      if (!sure && (url.pathname === MANIFESTE_DE_MARQUE || icone)) {
+        return new Response(null, {
+          status: 503,
+          headers: { "cache-control": "no-store", "retry-after": "30" },
+        });
+      }
 
       if (url.pathname === MANIFESTE_DE_MARQUE) {
         if (!marque) return Response.redirect(new URL(MANIFESTE_PAR_DEFAUT, url), 302);
@@ -70,7 +82,6 @@ export default {
         });
       }
 
-      const icone = lireCheminIconeRepli(url.pathname);
       if (icone) {
         if (!marque) return new Response(null, { status: 404 });
         const png = pngIconeRepli(
@@ -89,7 +100,9 @@ export default {
       }
 
       const handler = await getServerEntry();
-      const response = await marqueDeLaRequete.run(marque, () => handler.fetch(request, env, ctx));
+      const response = await hoteDeLaRequete.run(url.hostname, () =>
+        marqueDeLaRequete.run(marque, () => handler.fetch(request, env, ctx)),
+      );
       return await normalizeCatastrophicSsrResponse(response);
     } catch (error) {
       console.error(error);

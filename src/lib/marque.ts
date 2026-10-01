@@ -199,8 +199,20 @@ export function marqueDuRendu(): Marque {
 /** Manifeste PWA : fichier statique pour Tantana, généré par hôte sinon. */
 export const MANIFESTE_PAR_DEFAUT = "/manifest.webmanifest";
 export const MANIFESTE_DE_MARQUE = "/marque.webmanifest";
+/**
+ * Hors des hôtes Tantana, toujours le manifeste de marque : si la marque
+ * n'a pu être lue, c'est lui qui répond « indisponible », pas Tantana.
+ */
 export const manifesteDe = (m: Marque): string =>
-  m.parDefaut ? MANIFESTE_PAR_DEFAUT : MANIFESTE_DE_MARQUE;
+  m.parDefaut && estHoteParDefaut(hoteDuRendu()) ? MANIFESTE_PAR_DEFAUT : MANIFESTE_DE_MARQUE;
+
+/** Hôte de la page : celui de la requête côté serveur (posé par `server.ts`). */
+function hoteDuRendu(): string {
+  if (typeof window !== "undefined") return window.location.hostname;
+  return (
+    (globalThis as { __hoteDeLaRequete?: () => string | undefined }).__hoteDeLaRequete?.() ?? ""
+  );
+}
 
 /** Titre d'onglet ; `titreTantana` ne sert que pour la marque d'origine. */
 export const titreDePage = (m: Marque, titreTantana: string): string =>

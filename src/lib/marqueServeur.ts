@@ -14,23 +14,32 @@ import { estIconeRepli, urlIconeRepli } from "./iconeRepli";
  *
  * Hôtes Tantana : aucune requête. Autres : `get_public_branding` en
  * appel REST anonyme, gardé cinq minutes par instance. Une erreur rend
- * la dernière valeur connue, sinon Tantana — comme le client.
+ * la dernière valeur connue ; sans elle, `sure` vaut faux.
  */
 
 const DUREE_MS = 5 * 60 * 1000;
 const DELAI_MS = 1500;
 const cache = new Map<string, { marque: Marque | null; t: number }>();
 
-export async function marqueDeLHote(hoteBrut: string): Promise<Marque | null> {
+export interface LectureMarque {
+  marque: Marque | null;
+  /** Faux : lecture en échec et rien en mémoire — `null` ne prouve pas « Tantana ». */
+  sure: boolean;
+}
+
+export async function lireMarqueDeLHote(hoteBrut: string): Promise<LectureMarque> {
   const hote = normaliserHote(hoteBrut);
-  if (estHoteParDefaut(hote)) return null;
+  if (estHoteParDefaut(hote)) return { marque: null, sure: true };
 
   const enCache = cache.get(hote);
-  if (enCache && Date.now() - enCache.t < DUREE_MS) return enCache.marque;
+  if (enCache && Date.now() - enCache.t < DUREE_MS) return { marque: enCache.marque, sure: true };
+  const repli: LectureMarque = enCache
+    ? { marque: enCache.marque, sure: true }
+    : { marque: null, sure: false };
 
   const url = import.meta.env.VITE_SUPABASE_URL as string | undefined;
   const cle = import.meta.env.VITE_SUPABASE_ANON_KEY as string | undefined;
-  if (!url || !cle) return enCache?.marque ?? null;
+  if (!url || !cle) return repli;
 
   try {
     const reponse = await fetch(`${url}/rest/v1/rpc/get_public_branding`, {
@@ -43,11 +52,16 @@ export async function marqueDeLHote(hoteBrut: string): Promise<Marque | null> {
     const lignes = (await reponse.json()) as LigneMarquePublique[] | null;
     const marque = lignes?.[0] ? marqueDepuisLigne(lignes[0]) : null;
     cache.set(hote, { marque, t: Date.now() });
-    return marque;
+    return { marque, sure: true };
   } catch (erreur) {
     console.error("Marque du domaine illisible :", hote, erreur);
-    return enCache?.marque ?? null;
+    return repli;
   }
+}
+
+/** Pour le rendu HTML : à défaut de marque connue, Tantana. */
+export async function marqueDeLHote(hoteBrut: string): Promise<Marque | null> {
+  return (await lireMarqueDeLHote(hoteBrut)).marque;
 }
 
 /** Type d'image déduit de l'extension ; `undefined` si inconnu. */

@@ -1,6 +1,6 @@
 // @vitest-environment node
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { manifesteDeMarque, marqueDeLHote } from "./marqueServeur";
+import { lireMarqueDeLHote, manifesteDeMarque, marqueDeLHote } from "./marqueServeur";
 import { SANS_ICONE, marqueDepuisLigne, type LigneMarquePublique } from "./marque";
 
 const ligne: LigneMarquePublique = {
@@ -56,6 +56,30 @@ describe("marqueDeLHote", () => {
     );
     vi.spyOn(console, "error").mockImplementation(() => {});
     expect(await marqueDeLHote("inconnu.mg")).toBeNull();
+    expect(await lireMarqueDeLHote("inconnu.mg")).toEqual({ marque: null, sure: false });
+  });
+
+  it("garde la dernière marque connue quand la lecture expire", async () => {
+    vi.useFakeTimers();
+    vi.stubEnv("VITE_SUPABASE_URL", "https://x.supabase.co");
+    vi.stubEnv("VITE_SUPABASE_ANON_KEY", "anon");
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => new Response(JSON.stringify([ligne]))),
+    );
+    await lireMarqueDeLHote("memoire.mg");
+    vi.advanceTimersByTime(6 * 60 * 1000);
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => {
+        throw new Error("délai dépassé");
+      }),
+    );
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    const lecture = await lireMarqueDeLHote("memoire.mg");
+    expect(lecture.sure).toBe(true);
+    expect(lecture.marque?.nom).toBe("Kinvest Gestion");
+    vi.useRealTimers();
   });
 });
 
