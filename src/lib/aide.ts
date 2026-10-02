@@ -12,8 +12,8 @@ export interface FicheAide {
   resume: string;
   /** Les gestes les plus courants, dans l'ordre. */
   etapes?: { titre: string; texte: string }[];
-  /** Les questions qu'on se pose quand on bloque. */
-  questions?: { q: string; r: string }[];
+  /** Les questions qu'on se pose quand on bloque. `offre` : essai et abonnement. */
+  questions?: { q: string; r: string; offre?: boolean }[];
 }
 
 type Dictionnaire = Record<string, FicheAide>;
@@ -31,6 +31,7 @@ const fr: Dictionnaire = {
       {
         q: "L'application est bloquée en lecture seule",
         r: "La période d'essai ou l'abonnement est terminé. Le propriétaire peut le renouveler dans Paramètres → Abonnement.",
+        offre: true,
       },
     ],
   },
@@ -305,8 +306,11 @@ const mg: Dictionnaire = {};
 
 const DICTIONNAIRES: Record<LangueAide, Dictionnaire> = { fr, mg };
 
-export function ficheAide(ecran: string, langue: LangueAide = "fr"): FicheAide {
-  return DICTIONNAIRES[langue][ecran] ?? fr[ecran] ?? fr.general;
+/** `sansOffre` : domaine client, aucune question d'essai ni d'abonnement. */
+export function ficheAide(ecran: string, langue: LangueAide = "fr", sansOffre = false): FicheAide {
+  const fiche = DICTIONNAIRES[langue][ecran] ?? fr[ecran] ?? fr.general;
+  if (!sansOffre || !fiche.questions) return fiche;
+  return { ...fiche, questions: fiche.questions.filter((q) => !q.offre) };
 }
 
 export const LANGUES_AIDE: { cle: LangueAide; libelle: string; disponible: boolean }[] = [

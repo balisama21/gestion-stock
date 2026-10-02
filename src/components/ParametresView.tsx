@@ -910,10 +910,12 @@ export const ParametresView: React.FC<ParametresViewProps> = ({
   // Ces deux calculs reproduisent store_is_locked() en base. S'ils en
   // divergeaient, l'écran annoncerait « active » là où le serveur refuse
   // déjà d'écrire.
+  const boutiqueDeMarque = !!workspace.activeStore?.marque_id;
   const storeIsLocked =
-    storeActivationStatus === "locked" ||
-    (storeActivationStatus === "trial" && isTrialExpired) ||
-    (storeActivationStatus === "active" && moisEchu);
+    !boutiqueDeMarque &&
+    (storeActivationStatus === "locked" ||
+      (storeActivationStatus === "trial" && isTrialExpired) ||
+      (storeActivationStatus === "active" && moisEchu));
   const storeIsActive = storeActivationStatus === "active" && !moisEchu;
   const daysRemaining = trialEndsAt
     ? Math.max(0, Math.ceil((trialEndsAt.getTime() - Date.now()) / (1000 * 60 * 60 * 24)))
@@ -948,7 +950,12 @@ export const ParametresView: React.FC<ParametresViewProps> = ({
   };
 
   return (
-    <SettingsLayout activeTab={activeTab} onTabChange={setActiveTab} isOwner={workspace.isOwner}>
+    <SettingsLayout
+      activeTab={activeTab}
+      onTabChange={setActiveTab}
+      isOwner={workspace.isOwner}
+      sansAbonnement={boutiqueDeMarque}
+    >
       {activeTab === "metier" && (
         <ReglagesMetierSection
           devises={devises}
@@ -1148,7 +1155,7 @@ export const ParametresView: React.FC<ParametresViewProps> = ({
         />
       )}
 
-      {activeTab === "paiement" && (
+      {activeTab === "paiement" && !boutiqueDeMarque && (
         <BillingSection
           storeName={workspace.activeStore?.name}
           activatedAt={workspace.activeStore?.activated_at}

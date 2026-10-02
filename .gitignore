@@ -46,3 +46,6 @@ supabase/.temp/
 /src/features/documents/banc-app.tsx
 # Réglages locaux de l'outil de développement : propres à ce poste.
 /.claude/
+
+# Sauvegardes locales de la base (jamais versionnées)
+.sauvegardes/

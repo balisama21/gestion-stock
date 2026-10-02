@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from "react";
 import { supabase } from "../lib/supabase";
+import { useMarque } from "./useMarque";
 
 /**
  * MON abonnement au résumé de préalerte, et le mien seulement.
@@ -24,6 +25,7 @@ import { supabase } from "../lib/supabase";
  * les deux autres tables de cette fonctionnalité.
  */
 export function useAbonnementAlertesStock(storeId: string | null, userId: string | null) {
+  const { parDefaut } = useMarque();
   const [abonne, setAbonne] = useState(false);
   const [chargement, setChargement] = useState(true);
 
@@ -82,13 +84,15 @@ export function useAbonnementAlertesStock(storeId: string | null, userId: string
       if (error) {
         setAbonne(avant);
         return {
-          error:
-            "Ce réglage n'a pas pu être enregistré. Une boutique dont l'abonnement a expiré ne se modifie plus.",
+          // Domaine client : aucune boutique n'y expire.
+          error: parDefaut
+            ? "Ce réglage n'a pas pu être enregistré. Une boutique dont l'abonnement a expiré ne se modifie plus."
+            : "Ce réglage n'a pas pu être enregistré. Réessayez dans un instant.",
         };
       }
       return { error: null };
     },
-    [storeId, userId, abonne],
+    [storeId, userId, abonne, parDefaut],
   );
 
   return { abonne, chargement, basculer };

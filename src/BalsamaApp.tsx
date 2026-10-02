@@ -45,7 +45,7 @@ import { boutiqueEstVerrouillee, vueAffichee, VUE_VERROUILLEE } from "./lib/verr
 import { PinLockScreen } from "./components/PinLockScreen";
 import { AppLoader } from "./components/shared/AppLoader";
 import { LimiteChargement } from "./components/shared/LimiteChargement";
-import { useMarque } from "./hooks/useMarque";
+import { MarqueDeLaBoutique, useMarque } from "./hooks/useMarque";
 import { useAuth } from "./hooks/useAuth";
 import { useSessionTimeout } from "./hooks/useSessionTimeout";
 import { workspaceContext, useWorkspaceState, useWorkspace } from "./hooks/useWorkspace";
@@ -1347,18 +1347,20 @@ function AppInner() {
         rappels: memos.rappels,
         alertesStock: notificationPrefs.stockAlerts,
         prealertes,
-        boutique: workspace.activeStore
-          ? {
-              statut: workspace.activeStore.activation_status,
-              finEssai: workspace.activeStore.trial_ends_at
-                ? new Date(workspace.activeStore.trial_ends_at)
-                : null,
-              finAbonnement: workspace.activeStore.abonnement_jusqu_au
-                ? new Date(workspace.activeStore.abonnement_jusqu_au)
-                : null,
-              jeSuisProprietaire: workspace.isOwner,
-            }
-          : null,
+        // Boutique de marque : aucune échéance d'essai ni d'abonnement à annoncer.
+        boutique:
+          workspace.activeStore && !workspace.activeStore.marque_id
+            ? {
+                statut: workspace.activeStore.activation_status,
+                finEssai: workspace.activeStore.trial_ends_at
+                  ? new Date(workspace.activeStore.trial_ends_at)
+                  : null,
+                finAbonnement: workspace.activeStore.abonnement_jusqu_au
+                  ? new Date(workspace.activeStore.abonnement_jusqu_au)
+                  : null,
+                jeSuisProprietaire: workspace.isOwner,
+              }
+            : null,
         // Les règles de lecture ont déjà fait le tri : un employé ne
         // reçoit que ses propres lignes, et n'aura donc jamais sous les
         // yeux la demande d'un collègue.
@@ -2765,6 +2767,16 @@ function WorkspaceLoader({ children }: { children: React.ReactNode }) {
   return <workspaceContext.Provider value={workspaceState}>{children}</workspaceContext.Provider>;
 }
 
+/** Documents et exports à la marque de la boutique ouverte. */
+function MarqueDeLaBoutiqueActive({ children }: { children: React.ReactNode }) {
+  const { activeStore } = useWorkspace();
+  return (
+    <MarqueDeLaBoutique storeId={activeStore?.id ?? null} marqueId={activeStore?.marque_id}>
+      {children}
+    </MarqueDeLaBoutique>
+  );
+}
+
 // ─── Root App ───
 // Note: authContext is now provided once at the root level (see src/routes/__root.tsx),
 // so this component simply consumes it via useAuth() instead of creating its own instance.
@@ -2893,7 +2905,9 @@ export default function App() {
               lignes, qu'une balise de plus décalerait en entier. */}
           <contexteCibleRecherche.Provider value={cibleRecherche}>
             <FournisseurAvatarsPersonnes>
-              <AppInner />
+              <MarqueDeLaBoutiqueActive>
+                <AppInner />
+              </MarqueDeLaBoutiqueActive>
             </FournisseurAvatarsPersonnes>
           </contexteCibleRecherche.Provider>
         </WorkspaceLoader>

@@ -2981,6 +2981,7 @@ export type Database = {
           enable_pin_security: boolean;
           id: string;
           logo_url: string | null;
+          marque_id: string | null;
           name: string;
           nif_stat: string | null;
           owner_id: string;
@@ -3006,6 +3007,7 @@ export type Database = {
           enable_pin_security?: boolean;
           id?: string;
           logo_url?: string | null;
+          marque_id?: string | null;
           name: string;
           nif_stat?: string | null;
           owner_id: string;
@@ -3031,6 +3033,7 @@ export type Database = {
           enable_pin_security?: boolean;
           id?: string;
           logo_url?: string | null;
+          marque_id?: string | null;
           name?: string;
           nif_stat?: string | null;
           owner_id?: string;

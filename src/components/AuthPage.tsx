@@ -312,7 +312,7 @@ export const AuthPage: React.FC = () => {
 
             <div className="w-full">
               <CarteConnexion>
-                {mode === "activate" && (
+                {vitrine && mode === "activate" && (
                   <div className="flex items-center gap-2 mb-6">
                     <div className="w-9 h-9 rounded-lg bg-emerald-500/10 flex items-center justify-center">
                       <KeyRound className="w-4 h-4 t-success" />
@@ -502,15 +502,22 @@ export const AuthPage: React.FC = () => {
                       </div>
                     </Field>
 
-                    <div className="rounded-xl border border-success-border bg-success-soft p-4 text-sm">
-                      <p className="font-semibold t-success mb-1">
-                        {ESSAI_JOURS} jours d'essai gratuit
+                    {vitrine ? (
+                      <div className="rounded-xl border border-success-border bg-success-soft p-4 text-sm">
+                        <p className="font-semibold t-success mb-1">
+                          {ESSAI_JOURS} jours d'essai gratuit
+                        </p>
+                        <p className="t-success text-xs leading-relaxed">
+                          Créez votre boutique et utilisez-la immédiatement. Aucun paiement requis
+                          pour commencer.
+                        </p>
+                      </div>
+                    ) : (
+                      <p className="text-xs leading-relaxed text-muted-foreground">
+                        Après votre inscription, rejoignez votre boutique avec le code d'invitation
+                        de votre responsable.
                       </p>
-                      <p className="t-success text-xs leading-relaxed">
-                        Créez votre boutique et utilisez-la immédiatement. Aucun paiement requis
-                        pour commencer.
-                      </p>
-                    </div>
+                    )}
 
                     <SubmitButton
                       loading={loading}
@@ -615,7 +622,7 @@ export const AuthPage: React.FC = () => {
                     </form>
                   ))}
 
-                {mode === "activate" && (
+                {vitrine && mode === "activate" && (
                   <>
                     <div className="rounded-xl bg-muted/50 border border-border p-3.5 mb-5 text-sm">
                       <p className="text-muted-foreground">

@@ -102,11 +102,17 @@ serve(async (req: Request) => {
 
     if (!boutique) return json({ error: "Boutique introuvable." }, 404);
 
-    // Marque blanche : l'expéditeur porte le nom de la marque du client.
+    // Marque blanche : celle de la boutique (stores.marque_id), sinon la
+    // fiche branding posée sur la boutique elle-même.
+    const { data: etiquette } = await supabase
+      .from("stores")
+      .select("marque_id")
+      .eq("id", store_id)
+      .maybeSingle();
     const { data: marque } = await supabase
       .from("branding")
       .select("app_name")
-      .eq("store_id", store_id)
+      .eq(etiquette?.marque_id ? "id" : "store_id", etiquette?.marque_id ?? store_id)
       .maybeSingle();
     const nomExpediteur = (marque?.app_name ?? "Tantana Suite").replace(/[<>"]/g, "");
 

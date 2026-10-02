@@ -1,6 +1,7 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { supabase } from "../lib/supabase";
+import { hoteVisite } from "../lib/marquesBoutiques";
 import { useAuth } from "../hooks/useAuth";
 import { useMarque } from "../hooks/useMarque";
 import {
@@ -60,11 +61,13 @@ function AcceptInvitePage() {
   const processInvitation = async (userId: string) => {
     setStatus("processing");
     try {
-      // Passe désormais par la RPC accept_invitation (déjà en base) au lieu
-      // de l'edge function accept-invitation : celle-ci vérifie que l'email
-      // du compte connecté correspond bien à l'email invité — l'edge
-      // function, elle, ne le faisait pas (faille corrigée le 19/08/2026).
-      const { data, error } = await supabase.rpc("accept_invitation", { p_token: token });
+      // RPC plutôt que l'edge function accept-invitation : elle vérifie
+      // l'e-mail du compte connecté et que la boutique invitante est bien
+      // de la marque du domaine visité.
+      const { data, error } = await supabase.rpc("rejoindre_par_lien_sur_marque", {
+        p_token: token,
+        p_hote: hoteVisite(),
+      });
 
       if (error) {
         throw new Error(error.message || "Erreur lors de l'acceptation.");

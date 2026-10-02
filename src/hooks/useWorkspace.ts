@@ -10,6 +10,13 @@ import {
 import { lireBoutiqueActive, retenirBoutiqueActive } from "../lib/boutiqueActive";
 import { boutiqueDuDomaineCourant } from "../lib/domaines";
 import { boutiqueEstVerrouillee } from "../lib/verrouillage";
+import {
+  ACCES_SANS_MARQUE,
+  boutiquesDuDomaine,
+  hoteVisite,
+  lireAccesMarque,
+  type AccesMarque,
+} from "../lib/marquesBoutiques";
 
 type Store = Database["public"]["Tables"]["stores"]["Row"];
 
@@ -35,6 +42,8 @@ interface WorkspaceState {
    * et à mesure de la mise à niveau vers le système de permissions v2.
    */
   memberPermissionsDetailed: PermissionsMap | null;
+  /** Marque du domaine visité et droit d'y créer des boutiques. */
+  accesMarque: AccesMarque;
   loading: boolean;
   error: string | null;
 }
@@ -73,7 +82,9 @@ export function useWorkspace(): WorkspaceContext {
 export { workspaceContext };
 
 export function useWorkspaceState(): WorkspaceContext {
-  const { user } = useAuth();
+  const { user, profile } = useAuth();
+  const adminPlateforme = profile?.is_platform_admin === true;
+  const [accesMarque, setAccesMarque] = useState<AccesMarque>(ACCES_SANS_MARQUE);
   // ÉTAPE 6 (18/08/2026) : un compte peut désormais posséder PLUSIEURS
   // boutiques. `ownedStores` est un TABLEAU (auparavant un seul objet
   // récupéré via .maybeSingle(), qui plantait dès qu'un utilisateur avait
@@ -135,8 +146,9 @@ export function useWorkspaceState(): WorkspaceContext {
     setError(null);
 
     try {
-      const [{ owned, memberStoreList, roles, permissionsDetailed }, boutiqueDuDomaine] =
-        await Promise.all([fetchAllStores(), boutiqueDuDomaineCourant()]);
+      const [{ owned, memberStoreList, roles, permissionsDetailed }, boutiqueDuDomaine, acces] =
+        await Promise.all([fetchAllStores(), boutiqueDuDomaineCourant(), lireAccesMarque()]);
+      setAccesMarque(acces);
       setOwnedStores(owned);
       setMemberStores(memberStoreList);
       setMemberRoles(roles);
@@ -148,14 +160,20 @@ export function useWorkspaceState(): WorkspaceContext {
         // elle est toujours accessible, sinon la première boutique
         // possédée, sinon la première boutique où l'utilisateur est
         // collaborateur.
-        const allIds = new Set([...owned.map((s) => s.id), ...memberStoreList.map((s) => s.id)]);
+        // Seulement parmi les boutiques de la marque du domaine.
+        const ownedVisibles = boutiquesDuDomaine(owned, acces.marqueId, adminPlateforme);
+        const memberVisibles = boutiquesDuDomaine(memberStoreList, acces.marqueId, adminPlateforme);
+        const allIds = new Set([
+          ...ownedVisibles.map((s) => s.id),
+          ...memberVisibles.map((s) => s.id),
+        ]);
         const stored = lireBoutiqueActive(user.id);
         const defaultId =
           boutiqueDuDomaine && allIds.has(boutiqueDuDomaine)
             ? boutiqueDuDomaine
             : stored && allIds.has(stored)
               ? stored
-              : (owned[0]?.id ?? memberStoreList[0]?.id ?? null);
+              : (ownedVisibles[0]?.id ?? memberVisibles[0]?.id ?? null);
 
         setActiveStoreIdState(defaultId);
         setHasInitializedActiveStore(true);
@@ -165,7 +183,7 @@ export function useWorkspaceState(): WorkspaceContext {
     } finally {
       setLoading(false);
     }
-  }, [user, fetchAllStores, hasInitializedActiveStore]);
+  }, [user, fetchAllStores, hasInitializedActiveStore, adminPlateforme]);
 
   useEffect(() => {
     setHasInitializedActiveStore(false);
@@ -176,10 +194,11 @@ export function useWorkspaceState(): WorkspaceContext {
 
   // Fusionne propriétés + collaborations, sans doublons (un cas limite
   // improbable mais possible : owner ET membre de sa propre boutique).
-  const allStores = [
-    ...ownedStores,
-    ...memberStores.filter((s) => !ownedStores.some((o) => o.id === s.id)),
-  ];
+  const allStores = boutiquesDuDomaine(
+    [...ownedStores, ...memberStores.filter((s) => !ownedStores.some((o) => o.id === s.id))],
+    accesMarque.marqueId,
+    adminPlateforme,
+  );
 
   const activeStore = allStores.find((s) => s.id === activeStoreId) ?? null;
   const isOwner = activeStore?.owner_id === user?.id;
@@ -231,6 +250,24 @@ export function useWorkspaceState(): WorkspaceContext {
     async (data: Partial<Store>): Promise<{ store: Store | null; error: string | null }> => {
       if (!user) return { store: null, error: "Non authentifié." };
 
+      // Domaine client : la base étiquette la boutique et vérifie la liste.
+      if (accesMarque.marqueId) {
+        if (!accesMarque.proprietaire) {
+          return { store: null, error: "La création de boutique est réservée aux responsables." };
+        }
+        const { data: ouverte, error } = await supabase.rpc("ouvrir_boutique_de_marque", {
+          p_hote: hoteVisite(),
+          p_nom: data.name ?? "",
+        });
+        if (error) return { store: null, error: error.message };
+        const boutique = ouverte as Store;
+        setOwnedStores((prev) => [...prev, boutique]);
+        setActiveStoreIdState(boutique.id);
+        retenirBoutiqueActive(user.id, boutique.id);
+        setHasInitializedActiveStore(true);
+        return { store: boutique, error: null };
+      }
+
       const payload = {
         name: data.name ?? "Ma Boutique",
         subtitle: data.subtitle ?? null,
@@ -265,7 +302,7 @@ export function useWorkspaceState(): WorkspaceContext {
 
       return { store: created, error: null };
     },
-    [user],
+    [user, accesMarque],
   );
 
   const updateStore = useCallback(
@@ -342,6 +379,7 @@ export function useWorkspaceState(): WorkspaceContext {
     memberRole,
     memberPermissions,
     memberPermissionsDetailed,
+    accesMarque,
     loading,
     error,
     switchStore,

@@ -8,6 +8,7 @@ import { supabase } from "../lib/supabase";
 import { MotSymbole } from "./shared/MotSymbole";
 import { LogoMarque } from "./landing/LogoMarque";
 import { ESSAI_JOURS } from "../lib/offres";
+import { hoteVisite } from "../lib/marquesBoutiques";
 
 /**
  * Affiché quand un utilisateur est authentifié mais ne possède/rejoint
@@ -21,10 +22,11 @@ import { ESSAI_JOURS } from "../lib/offres";
  */
 export const CreateStoreOnboarding: React.FC = () => {
   const marque = useMarque();
-  // Domaine client : on n'y crée pas de boutique, on rejoint la sienne.
-  const creationOuverte = marque.parDefaut;
   const { profile, signOut } = useAuth();
-  const { createStore, refreshStores, switchStore } = useWorkspace();
+  const { createStore, refreshStores, switchStore, accesMarque } = useWorkspace();
+  // Domaine client : seuls les responsables listés créent ; les autres
+  // rejoignent avec le code de leur responsable.
+  const creationOuverte = marque.parDefaut || accesMarque.proprietaire;
 
   const [storeName, setStoreName] = useState(
     profile?.full_name ? `Boutique de ${profile.full_name}` : "",
@@ -59,8 +61,10 @@ export const CreateStoreOnboarding: React.FC = () => {
 
     setJoiningWithCode(true);
     setJoinCodeError(null);
-    const { data, error: rpcError } = await supabase.rpc("accept_invitation_by_code", {
+    // Le code n'ouvre qu'une boutique de la marque du domaine visité.
+    const { data, error: rpcError } = await supabase.rpc("rejoindre_par_code_sur_marque", {
       p_code: joinCode.trim(),
+      p_hote: hoteVisite(),
     });
     setJoiningWithCode(false);
 
@@ -133,12 +137,14 @@ export const CreateStoreOnboarding: React.FC = () => {
                   />
                 </div>
 
-                <div className="flex items-center gap-2 rounded-xl border border-success-border bg-success-soft px-3.5 py-2.5 text-xs t-success">
-                  <Sparkles className="w-3.5 h-3.5 shrink-0" />
-                  <span>
-                    {ESSAI_JOURS} jours d'essai gratuit inclus, sans paiement à l'inscription.
-                  </span>
-                </div>
+                {marque.parDefaut && (
+                  <div className="flex items-center gap-2 rounded-xl border border-success-border bg-success-soft px-3.5 py-2.5 text-xs t-success">
+                    <Sparkles className="w-3.5 h-3.5 shrink-0" />
+                    <span>
+                      {ESSAI_JOURS} jours d'essai gratuit inclus, sans paiement à l'inscription.
+                    </span>
+                  </div>
+                )}
 
                 {error && <p className="text-center text-sm font-medium t-danger">{error}</p>}
 
