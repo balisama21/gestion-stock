@@ -14,7 +14,7 @@ type Store = Database["public"]["Tables"]["stores"]["Row"];
 export interface AccesMarque {
   /** Marque du domaine visité ; `null` sur les domaines sans marque cliente. */
   marqueId: string | null;
-  /** E-mail confirmé de la liste : peut créer des boutiques de cette marque. */
+  /** Compte inscrit (user_id) dans la liste de la marque : peut y créer des boutiques. */
   proprietaire: boolean;
 }
 

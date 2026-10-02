@@ -2,9 +2,9 @@
 --
 -- Une boutique dont stores.marque_id est renseigné appartient à une marque
 -- cliente : jamais verrouillée, jamais d'essai ni d'abonnement Tantana.
--- L'étiquette ne se pose que par ouvrir_boutique_de_marque (propriétaires
--- listés, e-mail confirmé) ou par l'éditeur SQL ; le client ne peut ni la
--- poser ni la changer.
+-- L'étiquette ne se pose que par ouvrir_boutique_de_marque (comptes listés
+-- par user_id) ou par l'éditeur SQL ; le client ne peut ni la poser ni la
+-- changer.
 --
 -- Additif : une colonne nullable (null = Tantana), une table, des
 -- fonctions. Remplacées : store_is_locked, protect_store_activation_fields,
@@ -60,15 +60,20 @@ CREATE TRIGGER stores_00_proteger_marque
 
 -- ─── 2. La liste des propriétaires ──────────────────────────────────
 
+-- Liée au COMPTE (user_id), pas à l'adresse : « Confirm email » étant
+-- désactivé, un e-mail ne prouve rien, et un compte supprimé puis recréé
+-- avec la même adresse reçoit un nouvel id, donc aucun droit.
 CREATE TABLE public.proprietaires_de_marque (
   marque_id uuid NOT NULL REFERENCES public.branding(id) ON DELETE CASCADE,
-  email text NOT NULL CHECK (email = lower(btrim(email)) AND position('@' IN email) > 1),
+  user_id uuid NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
+  -- Information seulement, au moment de l'inscription ; jamais lue pour les droits.
+  email text,
   ajoute_le timestamptz NOT NULL DEFAULT now(),
-  PRIMARY KEY (marque_id, email)
+  PRIMARY KEY (marque_id, user_id)
 );
 
 COMMENT ON TABLE public.proprietaires_de_marque IS
-  'E-mails autorisés à créer des boutiques sous une marque. Écriture : éditeur SQL uniquement.';
+  'Comptes (user_id) autorisés à créer des boutiques sous une marque. email : information. Écriture : éditeur SQL uniquement.';
 
 ALTER TABLE public.proprietaires_de_marque ENABLE ROW LEVEL SECURITY;
 
@@ -97,10 +102,8 @@ AS $$
    LIMIT 1;
 $$;
 
--- E-mail du COMPTE (auth.users), confirmé, présent dans la liste.
--- ATTENTION : « Confirm email » est désactivé, email_confirmed_at est donc
--- rempli d'office. La protection réelle tient à la liste : n'y inscrire
--- que des e-mails dont le compte existe déjà (voir supabase/donnees/).
+-- L'appelant (auth.uid()) figure dans la liste de la marque. Ni l'e-mail
+-- ni email_confirmed_at n'interviennent.
 CREATE OR REPLACE FUNCTION public.est_proprietaire_de_marque(p_marque_id uuid)
 RETURNS boolean
 LANGUAGE sql
@@ -108,14 +111,14 @@ STABLE
 SECURITY DEFINER
 SET search_path = public
 AS $$
-  SELECT p_marque_id IS NOT NULL AND EXISTS (
-    SELECT 1
-      FROM auth.users u
-      JOIN proprietaires_de_marque p ON p.email = lower(btrim(u.email))
-     WHERE u.id = auth.uid()
-       AND u.email_confirmed_at IS NOT NULL
-       AND p.marque_id = p_marque_id
-  );
+  SELECT p_marque_id IS NOT NULL
+     AND auth.uid() IS NOT NULL
+     AND EXISTS (
+       SELECT 1
+         FROM proprietaires_de_marque p
+        WHERE p.marque_id = p_marque_id
+          AND p.user_id = auth.uid()
+     );
 $$;
 
 REVOKE ALL ON FUNCTION public.marque_de_l_hote(text) FROM PUBLIC, anon, authenticated;

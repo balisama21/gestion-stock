@@ -1,11 +1,9 @@
 -- Après M2 uniquement. Seules écritures de données autorisées.
 --
--- « Confirm email » est DÉSACTIVÉ dans Supabase Auth : email_confirmed_at
--- est rempli d'office à l'inscription et ne prouve pas que la personne
--- possède l'adresse. Le contrôle reste dans les RPC, mais la protection
--- réelle vient d'ici : on n'inscrit que des e-mails dont le compte EXISTE
--- DÉJÀ. Inscrire une adresse sans compte laisserait le premier venu
--- l'enregistrer et devenir propriétaire.
+-- La liste est liée au COMPTE (user_id) : les droits suivent auth.uid(),
+-- jamais l'adresse. On n'inscrit que des comptes qui EXISTENT DÉJÀ
+-- (« Confirm email » est désactivé : une adresse sans compte pourrait être
+-- prise par le premier venu). L'e-mail est recopié pour information.
 --
 -- Un e-mail absent (liste en fin de script) s'ajoute plus tard, une fois
 -- son compte créé et vérifié par vous, en rejouant le bloc (a).
@@ -13,8 +11,8 @@
 BEGIN;
 
 -- (a) Les propriétaires Kinvest, comptes existants uniquement
-INSERT INTO public.proprietaires_de_marque (marque_id, email)
-SELECT public.marque_de_l_hote('mg-kinvest.com'), lower(u.email)
+INSERT INTO public.proprietaires_de_marque (marque_id, user_id, email)
+SELECT public.marque_de_l_hote('mg-kinvest.com'), u.id, lower(u.email)
   FROM auth.users u
  WHERE lower(u.email) IN (
          'kinvest.concept@gmail.com',
@@ -24,7 +22,7 @@ SELECT public.marque_de_l_hote('mg-kinvest.com'), lower(u.email)
        )
    AND u.deleted_at IS NULL
    AND public.marque_de_l_hote('mg-kinvest.com') IS NOT NULL
-ON CONFLICT DO NOTHING;
+ON CONFLICT (marque_id, user_id) DO NOTHING;
 
 -- (b) « CRM Kinvest » rejoint sa marque (le trigger la passe ouverte à vie)
 UPDATE public.stores

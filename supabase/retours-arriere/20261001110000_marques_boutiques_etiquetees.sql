@@ -253,6 +253,7 @@ GRANT EXECUTE ON FUNCTION public.protect_store_activation_fields() TO PUBLIC, an
 -- Étiquette et liste
 DROP TRIGGER IF EXISTS stores_00_proteger_marque ON public.stores;
 DROP FUNCTION IF EXISTS public.proteger_marque_de_boutique();
+-- La liste (user_id, e-mail pour information) disparaît avec la table.
 DROP TABLE IF EXISTS public.proprietaires_de_marque;
 DROP INDEX IF EXISTS public.stores_marque_id_idx;
 ALTER TABLE public.stores DROP COLUMN IF EXISTS marque_id;
