@@ -107,9 +107,20 @@ serve(async (req: Request) => {
       .maybeSingle();
     const { data: marque } = await supabase
       .from("branding")
-      .select("app_name, short_name")
+      .select("app_name, short_name, store_id")
       .eq(etiquette?.marque_id ? "id" : "store_id", etiquette?.marque_id ?? store_id)
       .maybeSingle();
+    // Expéditeur sur le domaine du client (vérifié chez Resend), sinon celui de Tantana.
+    const { data: domaine } = marque
+      ? await supabase
+          .from("custom_domains")
+          .select("hostname")
+          .eq("store_id", marque.store_id)
+          .eq("is_active", true)
+          .limit(1)
+          .maybeSingle()
+      : { data: null };
+    const adresseExpediteur = `noreply@${domaine?.hostname ?? "balsama.app"}`;
     const nomApp = (marque?.app_name ?? "Balsama Auto Gestion").replace(/[<>"]/g, "");
     const nomCourt = marque
       ? (marque.short_name || marque.app_name).replace(/[<>"]/g, "")
@@ -219,7 +230,7 @@ serve(async (req: Request) => {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        from: `${nomApp} <noreply@balsama.app>`,
+        from: `${nomApp} <${adresseExpediteur}>`,
         to: [invited_email],
         subject: `Invitation à rejoindre ${store_name ?? "une boutique"} sur ${nomCourt}`,
         html: emailHtml,

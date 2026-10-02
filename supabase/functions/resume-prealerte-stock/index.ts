@@ -111,9 +111,20 @@ serve(async (req: Request) => {
       .maybeSingle();
     const { data: marque } = await supabase
       .from("branding")
-      .select("app_name")
+      .select("app_name, store_id")
       .eq(etiquette?.marque_id ? "id" : "store_id", etiquette?.marque_id ?? store_id)
       .maybeSingle();
+    // Expéditeur sur le domaine du client (vérifié chez Resend), sinon celui de Tantana.
+    const { data: domaine } = marque
+      ? await supabase
+          .from("custom_domains")
+          .select("hostname")
+          .eq("store_id", marque.store_id)
+          .eq("is_active", true)
+          .limit(1)
+          .maybeSingle()
+      : { data: null };
+    const adresseExpediteur = `noreply@${domaine?.hostname ?? "balsama.app"}`;
     const nomExpediteur = (marque?.app_name ?? "Tantana Suite").replace(/[<>"]/g, "");
 
     const { data: abonnes } = await supabase
@@ -213,7 +224,7 @@ serve(async (req: Request) => {
         "Content-Type": "application/json",
       },
       body: JSON.stringify({
-        from: `${nomExpediteur} <noreply@balsama.app>`,
+        from: `${nomExpediteur} <${adresseExpediteur}>`,
         // Un seul envoi pour toute l'équipe abonnée : c'est atomique,
         // donc aucun risque qu'un destinataire reçoive deux fois le
         // même résumé parce qu'un autre a échoué. Ils travaillent dans
