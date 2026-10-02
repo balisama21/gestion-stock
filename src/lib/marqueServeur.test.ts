@@ -1,6 +1,6 @@
 // @vitest-environment node
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { manifesteDeMarque, marqueDeLHote } from "./marqueServeur";
+import { lireMarqueDeLHote, manifesteDeMarque, marqueDeLHote } from "./marqueServeur";
 import { SANS_ICONE, marqueDepuisLigne, type LigneMarquePublique } from "./marque";
 
 const ligne: LigneMarquePublique = {
@@ -56,6 +56,30 @@ describe("marqueDeLHote", () => {
     );
     vi.spyOn(console, "error").mockImplementation(() => {});
     expect(await marqueDeLHote("inconnu.mg")).toBeNull();
+    expect(await lireMarqueDeLHote("inconnu.mg")).toEqual({ marque: null, sure: false });
+  });
+
+  it("garde la dernière marque connue quand la lecture expire", async () => {
+    vi.useFakeTimers();
+    vi.stubEnv("VITE_SUPABASE_URL", "https://x.supabase.co");
+    vi.stubEnv("VITE_SUPABASE_ANON_KEY", "anon");
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => new Response(JSON.stringify([ligne]))),
+    );
+    await lireMarqueDeLHote("memoire.mg");
+    vi.advanceTimersByTime(6 * 60 * 1000);
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async () => {
+        throw new Error("délai dépassé");
+      }),
+    );
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    const lecture = await lireMarqueDeLHote("memoire.mg");
+    expect(lecture.sure).toBe(true);
+    expect(lecture.marque?.nom).toBe("Kinvest Gestion");
+    vi.useRealTimers();
   });
 });
 
@@ -71,9 +95,26 @@ describe("manifesteDeMarque", () => {
     expect(JSON.stringify(m)).not.toMatch(/tantana/i);
   });
 
-  it("n'annonce pas d'icône vide", () => {
+  it("sans logo, annonce les PNG de repli qui rendent l'application installable", () => {
     const m = manifesteDeMarque(marqueDepuisLigne({ ...ligne, logo_url: null }));
-    expect(m.icons).toEqual([]);
+    const icones = m.icons as { src: string; sizes: string; type: string; purpose: string }[];
+    expect(icones.map((i) => `${i.purpose} ${i.sizes} ${i.type}`)).toEqual([
+      "any 192x192 image/png",
+      "any 512x512 image/png",
+      "maskable 192x192 image/png",
+      "maskable 512x512 image/png",
+    ]);
+    expect(icones.every((i) => i.src.startsWith("/marque-icone-"))).toBe(true);
+    expect(m).toMatchObject({ start_url: "/", scope: "/", display: "standalone" });
+    expect(JSON.stringify(m)).not.toContain(SANS_ICONE);
+    expect(JSON.stringify(m)).not.toMatch(/tantana|\/icon-\d/i);
+  });
+
+  it("une marque en cache d'avant le repli n'annonce pas d'icône vide", () => {
+    const m = manifesteDeMarque({
+      ...marqueDepuisLigne({ ...ligne, logo_url: null }),
+      faviconUrl: SANS_ICONE,
+    });
     expect(JSON.stringify(m)).not.toContain(SANS_ICONE);
   });
 });
