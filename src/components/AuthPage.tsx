@@ -4,6 +4,7 @@ import { useAuth } from "../hooks/useAuth";
 import { APP_SUPPORT_PHONE } from "../lib/appConfig";
 import { useMarque } from "../hooks/useMarque";
 import { supabase } from "../lib/supabase";
+import { hoteVisite } from "../lib/marquesBoutiques";
 import { HeroAccueil } from "./landing/HeroAccueil";
 import { SectionTicket } from "./landing/SectionTicket";
 import { RegistreModules } from "./landing/RegistreModules";
@@ -47,6 +48,8 @@ export const AuthPage: React.FC = () => {
     resetPasswordForEmail,
   } = useAuth();
   const marque = useMarque();
+  // Sur un domaine de marque, le lien de réinitialisation part seul par e-mail.
+  const recuperationParEmail = !marque.parDefaut;
   // Sur un domaine client : sa marque, sans offres, tarifs ni questions.
   // L'inscription reste ouverte ; la création de boutique, non.
   const vitrine = marque.parDefaut;
@@ -207,7 +210,7 @@ export const AuthPage: React.FC = () => {
     setError(null);
     setLoading(true);
     const { error: fnError } = await supabase.functions.invoke("demander-recuperation", {
-      body: { email: forgotEmail.trim() },
+      body: { email: forgotEmail.trim(), hote: hoteVisite() },
     });
     setLoading(false);
     if (fnError) {
@@ -358,8 +361,9 @@ export const AuthPage: React.FC = () => {
                     </button>
                     <h2 className="text-xl font-bold text-foreground">Mot de passe oublié</h2>
                     <p className="text-sm text-muted-foreground mt-1">
-                      Entrez votre e-mail : votre demande sera transmise à l&apos;administrateur,
-                      qui vous remettra un lien de réinitialisation.
+                      {recuperationParEmail
+                        ? "Entrez votre e-mail : vous recevrez un lien pour choisir un nouveau mot de passe."
+                        : "Entrez votre e-mail : votre demande sera transmise à l'administrateur, qui vous remettra un lien de réinitialisation."}
                     </p>
 
                     {/* Un compte créé par Google n'a jamais eu de mot de
@@ -568,18 +572,33 @@ export const AuthPage: React.FC = () => {
                   (forgotSent ? (
                     <div className="py-2 text-center">
                       <CheckCircle2 className="w-12 h-12 t-success mx-auto mb-4" />
-                      <p className="text-foreground font-semibold mb-2">Demande enregistrée</p>
+                      <p className="text-foreground font-semibold mb-2">
+                        {recuperationParEmail
+                          ? "Vérifiez votre boîte e-mail"
+                          : "Demande enregistrée"}
+                      </p>
                       {/* Le message est le même que l'adresse existe ou non :
                         répondre « ce compte n'existe pas » livrerait la
                         liste des utilisateurs, une adresse à la fois. */}
-                      <p className="text-sm leading-relaxed text-muted-foreground">
-                        L&apos;envoi par e-mail n&apos;est pas encore disponible. Votre demande pour{" "}
-                        <strong className="text-foreground">{forgotEmail}</strong> a été transmise à
-                        l&apos;administrateur.
-                      </p>
+                      {recuperationParEmail ? (
+                        <p className="text-sm leading-relaxed text-muted-foreground">
+                          Si un compte existe pour{" "}
+                          <strong className="text-foreground">{forgotEmail}</strong>, un e-mail avec
+                          un lien de réinitialisation vient d&apos;y être envoyé. Pensez à regarder
+                          dans les courriers indésirables.
+                        </p>
+                      ) : (
+                        <p className="text-sm leading-relaxed text-muted-foreground">
+                          L&apos;envoi par e-mail n&apos;est pas encore disponible. Votre demande
+                          pour <strong className="text-foreground">{forgotEmail}</strong> a été
+                          transmise à l&apos;administrateur.
+                        </p>
+                      )}
                       <div className="mt-4 rounded-xl border border-border bg-muted p-3.5 text-left">
                         <p className="text-xs font-semibold text-foreground">
-                          Contactez l&apos;administrateur pour recevoir votre lien
+                          {recuperationParEmail
+                            ? "Rien reçu après quelques minutes ? Contactez l'administrateur"
+                            : "Contactez l'administrateur pour recevoir votre lien"}
                         </p>
                         <a
                           href={`tel:${APP_SUPPORT_PHONE.replace(/\s/g, "")}`}
