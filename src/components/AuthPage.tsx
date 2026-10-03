@@ -582,7 +582,7 @@ export const AuthPage: React.FC = () => {
                           Contactez l&apos;administrateur pour recevoir votre lien
                         </p>
                         <a
-                          href={`tel:${APP_SUPPORT_PHONE.replace(/s/g, "")}`}
+                          href={`tel:${APP_SUPPORT_PHONE.replace(/\s/g, "")}`}
                           className="mt-1.5 inline-block text-base font-bold text-primary hover:underline"
                         >
                           {APP_SUPPORT_PHONE}
