@@ -60,10 +60,6 @@ export function emailInvitation(d: DonneesInvitation): { html: string; text: str
         <p style="margin:24px 0 0;font:400 13px/1.6 ${POLICE};color:#6b7280;">
           Ce lien est valable 7 jours et ne fonctionne qu'avec cette adresse e-mail.
         </p>
-        <p style="margin:16px 0 0;padding-top:16px;border-top:1px solid #f3f4f6;font:400 12px/1.6 ${POLICE};color:#6b7280;">
-          Si le bouton ne fonctionne pas, copiez ce lien dans votre navigateur :<br>
-          <a href="${lien}" style="color:#374151;word-break:break-all;">${lien}</a>
-        </p>
       </td></tr>
       <tr><td style="padding:16px 4px 0;font:400 12px/1.6 ${POLICE};color:#6b7280;">
         Vous n'attendiez pas cette invitation ? Ignorez simplement cet e-mail.<br>
