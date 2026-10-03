@@ -19,9 +19,9 @@ declare const EdgeRuntime: { waitUntil(promesse: Promise<unknown>): void };
  * pour la même raison. L'information existe, elle est enregistrée, mais
  * elle n'est lisible que du côté administrateur.
  *
- * Étant ouverte, elle se protège seule : format vérifié, une demande par
- * adresse et par heure, et un plafond global qui empêche de gonfler la
- * table. Ces refus restent invisibles du demandeur, qui voit toujours la
+ * Étant ouverte, elle se protège seule : format vérifié, 2 minutes entre
+ * deux demandes et 5 par heure pour une adresse, et un plafond global qui
+ * empêche de gonfler la table. Ces refus restent invisibles du demandeur, qui voit toujours la
  * même réponse.
  */
 
@@ -41,6 +41,8 @@ const ACCUSE = { success: true };
 
 const UNE_HEURE_MS = 60 * 60 * 1000;
 const PLAFOND_HORAIRE_GLOBAL = 50;
+const DELAI_ENTRE_DEMANDES_MS = 2 * 60 * 1000;
+const PLAFOND_HORAIRE_PAR_ADRESSE = 5;
 
 serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
@@ -65,15 +67,17 @@ serve(async (req: Request) => {
 
     const depuisUneHeure = new Date(Date.now() - UNE_HEURE_MS).toISOString();
 
-    // Une seule demande par adresse et par heure.
-    const { data: dejaDemande } = await supabase
+    // Par adresse : 2 minutes entre deux demandes, 5 au plus par heure.
+    const { data: recentes } = await supabase
       .from("password_recovery_requests")
-      .select("id")
+      .select("requested_at")
       .eq("email", adresse)
       .gte("requested_at", depuisUneHeure)
-      .maybeSingle();
+      .order("requested_at", { ascending: false });
 
-    if (dejaDemande) return json(ACCUSE);
+    const derniere = recentes?.[0] ? Date.parse(recentes[0].requested_at) : 0;
+    if (Date.now() - derniere < DELAI_ENTRE_DEMANDES_MS) return json(ACCUSE);
+    if ((recentes?.length ?? 0) >= PLAFOND_HORAIRE_PAR_ADRESSE) return json(ACCUSE);
 
     // Plafond global : empêche de remplir la table à coups d'adresses
     // inventées.
