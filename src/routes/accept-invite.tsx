@@ -149,7 +149,7 @@ function AcceptInvitePage() {
     setErrorMsg("");
     setEnvoiOubli(true);
     const { error } = await supabase.functions.invoke("demander-recuperation", {
-      body: { email: email.trim() },
+      body: { email: email.trim(), hote: hoteVisite() },
     });
     setEnvoiOubli(false);
     if (error) {
@@ -272,8 +272,9 @@ function AcceptInvitePage() {
             {status === "auth-required" && oubli === "saisie" && (
               <form onSubmit={handleOubli} className="space-y-4">
                 <p className="text-sm text-muted-foreground">
-                  Entrez votre e-mail : votre demande sera transmise à l&apos;administrateur, qui
-                  vous remettra un lien de réinitialisation.
+                  {marque.parDefaut
+                    ? "Entrez votre e-mail : votre demande sera transmise à l'administrateur, qui vous remettra un lien de réinitialisation."
+                    : "Entrez votre e-mail : vous recevrez un lien pour choisir un nouveau mot de passe."}
                 </p>
                 {errorMsg && (
                   <div className="flex items-center gap-2 bg-danger-soft border border-danger-border t-danger rounded-xl p-3 text-sm">
@@ -312,27 +313,44 @@ function AcceptInvitePage() {
             {status === "auth-required" && oubli === "envoye" && (
               <div className="text-center py-2">
                 <CheckCircle2 className="w-12 h-12 t-success mx-auto mb-4" />
-                <p className="text-foreground font-semibold mb-2">Demande enregistrée</p>
-                {/* Même réponse que l'adresse existe ou non. */}
-                <p className="text-sm leading-relaxed text-muted-foreground">
-                  Votre demande pour <strong className="text-foreground">{email}</strong> a été
-                  transmise à l&apos;administrateur.
+                <p className="text-foreground font-semibold mb-2">
+                  {marque.parDefaut ? "Demande enregistrée" : "Vérifiez votre boîte e-mail"}
                 </p>
-                <div className="mt-4 rounded-xl border border-border bg-muted p-3.5 text-left">
-                  <p className="text-xs font-semibold text-foreground">
-                    Contactez l&apos;administrateur pour recevoir votre lien
+                {/* Même réponse que l'adresse existe ou non. */}
+                {marque.parDefaut ? (
+                  <p className="text-sm leading-relaxed text-muted-foreground">
+                    Votre demande pour <strong className="text-foreground">{email}</strong> a été
+                    transmise à l&apos;administrateur.
                   </p>
-                  <a
-                    href={`tel:${APP_SUPPORT_PHONE.replace(/\s/g, "")}`}
-                    className="mt-1.5 inline-block text-base font-bold text-primary hover:underline"
-                  >
-                    {APP_SUPPORT_PHONE}
-                  </a>
-                  <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">
+                ) : (
+                  <p className="text-sm leading-relaxed text-muted-foreground">
+                    Si un compte existe pour <strong className="text-foreground">{email}</strong>,
+                    un e-mail avec un lien de réinitialisation vient d&apos;y être envoyé. Pensez à
+                    regarder dans les courriers indésirables.
+                  </p>
+                )}
+                {marque.parDefaut ? (
+                  <div className="mt-4 rounded-xl border border-border bg-muted p-3.5 text-left">
+                    <p className="text-xs font-semibold text-foreground">
+                      Contactez l&apos;administrateur pour recevoir votre lien
+                    </p>
+                    <a
+                      href={`tel:${APP_SUPPORT_PHONE.replace(/\s/g, "")}`}
+                      className="mt-1.5 inline-block text-base font-bold text-primary hover:underline"
+                    >
+                      {APP_SUPPORT_PHONE}
+                    </a>
+                    <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">
+                      Une fois le nouveau mot de passe choisi, rouvrez le lien de l&apos;invitation
+                      reçu par e-mail : il reste valable 7 jours.
+                    </p>
+                  </div>
+                ) : (
+                  <p className="mt-4 text-xs leading-relaxed text-muted-foreground">
                     Une fois le nouveau mot de passe choisi, rouvrez le lien de l&apos;invitation
                     reçu par e-mail : il reste valable 7 jours.
                   </p>
-                </div>
+                )}
                 <button
                   type="button"
                   onClick={() => setOubli("non")}

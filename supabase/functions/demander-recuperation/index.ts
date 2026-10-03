@@ -1,5 +1,8 @@
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { emailRecuperation } from "./email.ts";
+
+declare const EdgeRuntime: { waitUntil(promesse: Promise<unknown>): void };
 
 /**
  * Dépôt d'une demande de réinitialisation de mot de passe.
@@ -45,7 +48,7 @@ serve(async (req: Request) => {
   }
 
   try {
-    const { email } = await req.json();
+    const { email, hote } = await req.json();
 
     if (typeof email !== "string" || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       // Un format invalide est la seule chose qu'on peut dire sans rien
@@ -89,11 +92,78 @@ serve(async (req: Request) => {
       .ilike("email", adresse)
       .maybeSingle();
 
-    await supabase.from("password_recovery_requests").insert({
-      email: adresse,
-      user_id: profil?.id ?? null,
-      status: "pending",
-    });
+    const { data: demande } = await supabase
+      .from("password_recovery_requests")
+      .insert({
+        email: adresse,
+        user_id: profil?.id ?? null,
+        status: "pending",
+      })
+      .select("id")
+      .single();
+
+    // Sur un domaine de marque (expéditeur vérifié chez Resend), le lien part
+    // seul par e-mail ; sinon la demande reste en attente pour l'administrateur.
+    // En arrière-plan : une réponse plus lente trahirait les comptes existants.
+    const envoyer = async () => {
+      if (!profil || !demande || typeof hote !== "string") return;
+      const { data: domaine } = await supabase
+        .from("custom_domains")
+        .select("hostname, store_id")
+        .eq("hostname", hote.trim().toLowerCase())
+        .eq("is_active", true)
+        .maybeSingle();
+      const { data: marque } = domaine
+        ? await supabase
+            .from("branding")
+            .select("app_name, primary_color, logo_url")
+            .eq("store_id", domaine.store_id)
+            .maybeSingle()
+        : { data: null };
+
+      if (domaine && marque) {
+        // La redirection vient de custom_domains, jamais du client.
+        const { data: lien } = await supabase.auth.admin.generateLink({
+          type: "recovery",
+          email: adresse,
+          options: { redirectTo: `https://${domaine.hostname}/reset-password` },
+        });
+
+        if (lien?.properties?.action_link) {
+          const nomApp = marque.app_name.replace(/[<>"]/g, "");
+          const { html, text } = emailRecuperation({
+            nomApp,
+            couleur: /^#[0-9a-f]{6}$/i.test(marque.primary_color ?? "") ? marque.primary_color! : "#008655",
+            logoUrl: /^https:\/\/[^"'\s<>]+$/.test(marque.logo_url ?? "") ? marque.logo_url! : null,
+            lien: lien.properties.action_link,
+          });
+          const envoi = await fetch("https://api.resend.com/emails", {
+            method: "POST",
+            headers: {
+              Authorization: `Bearer ${Deno.env.get("RESEND_API_KEY")!}`,
+              "Content-Type": "application/json",
+            },
+            body: JSON.stringify({
+              from: `${nomApp} <noreply@${domaine.hostname}>`,
+              to: [adresse],
+              subject: `Réinitialiser votre mot de passe ${nomApp}`,
+              html,
+              text,
+            }),
+          });
+
+          if (envoi.ok) {
+            await supabase
+              .from("password_recovery_requests")
+              .update({ status: "handled", handled_at: new Date().toISOString() })
+              .eq("id", demande.id);
+          } else {
+            console.error("Resend a refuse l envoi :", await envoi.text());
+          }
+        }
+      }
+    };
+    EdgeRuntime.waitUntil(envoyer().catch((e) => console.error(e)));
 
     return json(ACCUSE);
   } catch {
