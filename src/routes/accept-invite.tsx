@@ -329,23 +329,28 @@ function AcceptInvitePage() {
                     regarder dans les courriers indésirables.
                   </p>
                 )}
-                <div className="mt-4 rounded-xl border border-border bg-muted p-3.5 text-left">
-                  <p className="text-xs font-semibold text-foreground">
-                    {marque.parDefaut
-                      ? "Contactez l'administrateur pour recevoir votre lien"
-                      : "Rien reçu après quelques minutes ? Contactez l'administrateur"}
-                  </p>
-                  <a
-                    href={`tel:${APP_SUPPORT_PHONE.replace(/\s/g, "")}`}
-                    className="mt-1.5 inline-block text-base font-bold text-primary hover:underline"
-                  >
-                    {APP_SUPPORT_PHONE}
-                  </a>
-                  <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">
+                {marque.parDefaut ? (
+                  <div className="mt-4 rounded-xl border border-border bg-muted p-3.5 text-left">
+                    <p className="text-xs font-semibold text-foreground">
+                      Contactez l&apos;administrateur pour recevoir votre lien
+                    </p>
+                    <a
+                      href={`tel:${APP_SUPPORT_PHONE.replace(/\s/g, "")}`}
+                      className="mt-1.5 inline-block text-base font-bold text-primary hover:underline"
+                    >
+                      {APP_SUPPORT_PHONE}
+                    </a>
+                    <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">
+                      Une fois le nouveau mot de passe choisi, rouvrez le lien de l&apos;invitation
+                      reçu par e-mail : il reste valable 7 jours.
+                    </p>
+                  </div>
+                ) : (
+                  <p className="mt-4 text-xs leading-relaxed text-muted-foreground">
                     Une fois le nouveau mot de passe choisi, rouvrez le lien de l&apos;invitation
                     reçu par e-mail : il reste valable 7 jours.
                   </p>
-                </div>
+                )}
                 <button
                   type="button"
                   onClick={() => setOubli("non")}

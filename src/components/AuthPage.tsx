@@ -594,23 +594,23 @@ export const AuthPage: React.FC = () => {
                           transmise à l&apos;administrateur.
                         </p>
                       )}
-                      <div className="mt-4 rounded-xl border border-border bg-muted p-3.5 text-left">
-                        <p className="text-xs font-semibold text-foreground">
-                          {recuperationParEmail
-                            ? "Rien reçu après quelques minutes ? Contactez l'administrateur"
-                            : "Contactez l'administrateur pour recevoir votre lien"}
-                        </p>
-                        <a
-                          href={`tel:${APP_SUPPORT_PHONE.replace(/\s/g, "")}`}
-                          className="mt-1.5 inline-block text-base font-bold text-primary hover:underline"
-                        >
-                          {APP_SUPPORT_PHONE}
-                        </a>
-                        <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">
-                          Il vous transmettra un lien personnel pour choisir un nouveau mot de
-                          passe.
-                        </p>
-                      </div>
+                      {!recuperationParEmail && (
+                        <div className="mt-4 rounded-xl border border-border bg-muted p-3.5 text-left">
+                          <p className="text-xs font-semibold text-foreground">
+                            Contactez l&apos;administrateur pour recevoir votre lien
+                          </p>
+                          <a
+                            href={`tel:${APP_SUPPORT_PHONE.replace(/\s/g, "")}`}
+                            className="mt-1.5 inline-block text-base font-bold text-primary hover:underline"
+                          >
+                            {APP_SUPPORT_PHONE}
+                          </a>
+                          <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">
+                            Il vous transmettra un lien personnel pour choisir un nouveau mot de
+                            passe.
+                          </p>
+                        </div>
+                      )}
                       <button
                         type="button"
                         onClick={() => switchMode("login")}
