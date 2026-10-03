@@ -21,8 +21,8 @@ declare const EdgeRuntime: { waitUntil(promesse: Promise<unknown>): void };
  *
  * Étant ouverte, elle se protège seule : format vérifié, 2 minutes entre
  * deux demandes et 5 par heure pour une adresse, et un plafond global qui
- * empêche de gonfler la table. Ces refus restent invisibles du demandeur, qui voit toujours la
- * même réponse.
+ * empêche de gonfler la table. Ces refus restent invisibles du demandeur,
+ * qui voit toujours la même réponse.
  */
 
 const corsHeaders = {
