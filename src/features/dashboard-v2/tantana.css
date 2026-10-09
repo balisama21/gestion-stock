@@ -1075,8 +1075,7 @@
   gap: 6px;
   overflow: hidden;
 }
-.tn .tc > .pf-zone,
-.tn .tc > .pdots {
+.tn .tc > .pf-zone {
   position: absolute;
 }
 .tn .kc img,
@@ -1450,11 +1449,9 @@
 .tn svg.chart .axe.fort {
   font-weight: 600;
 }
+/* Un fond uni, à peine teinté : ce sont les photos qui portent la carte. */
 .tn .ic {
-  background-color: var(--card);
-  background-position: center;
-  background-size: 100% 100%;
-  background-repeat: no-repeat;
+  background: linear-gradient(120deg, var(--gsoft) 0%, var(--card) 62%);
   overflow: hidden;
   border-color: var(--line);
 }
@@ -1473,7 +1470,7 @@
   z-index: 2;
   left: calc(27 * var(--u));
   top: calc(34 * var(--u));
-  width: calc(226 * var(--u));
+  width: calc(200 * var(--u));
   display: flex;
   flex-direction: column;
   align-items: flex-start;
@@ -1531,17 +1528,20 @@
   overflow: hidden;
   padding: 0;
   min-height: 0;
-  background: #fff;
-  border: calc(3 * var(--u)) solid #fff;
-  border-radius: calc(11 * var(--u));
-  box-shadow: var(--elev-3);
+  background: var(--card);
+  border: 0;
+  border-radius: calc(12 * var(--u));
+  box-shadow:
+    0 0 0 1px rgba(15, 40, 30, 0.06),
+    0 10px 24px -10px rgba(15, 40, 30, 0.35);
   cursor: pointer;
   transition:
-    left 0.55s ease,
-    top 0.55s ease,
-    width 0.55s ease,
-    height 0.55s ease,
-    opacity 0.55s ease;
+    left 0.7s ease,
+    top 0.7s ease,
+    width 0.7s ease,
+    height 0.7s ease,
+    opacity 0.7s ease,
+    filter 0.7s ease;
 }
 .tn .pf img {
   width: 100%;
@@ -1549,59 +1549,34 @@
   object-fit: cover;
   user-select: none;
   pointer-events: none;
-  /* Cadrage un peu plus serré : la plante remplit mieux la vignette. */
-  transform: scale(1.16);
-  transform-origin: 50% 76%;
+}
+/* Les photos de côté reculent un peu : la profondeur suffit à montrer
+   laquelle est au premier plan, sans points de navigation. */
+.tn .pf.gauche,
+.tn .pf.droite {
+  top: calc(46 * var(--u));
+  width: calc(100 * var(--u));
+  height: calc(146 * var(--u));
+  z-index: 1;
+  opacity: 0.88;
+  filter: saturate(0.85);
 }
 .tn .pf.gauche {
-  left: calc(266 * var(--u));
-  top: calc(55 * var(--u));
-  width: calc(84 * var(--u));
-  height: calc(122 * var(--u));
-  z-index: 1;
+  left: calc(238 * var(--u));
 }
 .tn .pf.droite {
-  left: calc(448 * var(--u));
-  top: calc(55 * var(--u));
-  width: calc(83 * var(--u));
-  height: calc(122 * var(--u));
-  z-index: 1;
+  left: calc(434 * var(--u));
 }
 .tn .pf.centre {
-  left: calc(346 * var(--u));
-  top: calc(39 * var(--u));
-  width: calc(106 * var(--u));
-  height: calc(153 * var(--u));
+  left: calc(324 * var(--u));
+  top: calc(25 * var(--u));
+  width: calc(128 * var(--u));
+  height: calc(184 * var(--u));
   z-index: 3;
   cursor: default;
 }
-.tn .pdots {
-  left: calc(264 * var(--u));
-  top: calc(211 * var(--u));
-  z-index: 4;
-  display: flex;
-  gap: calc(7 * var(--u));
-  transform: translateY(-50%);
-}
-.tn .pdots button {
-  width: 10px;
-  height: 10px;
-  min-height: 0;
-  padding: 0;
-  border-radius: 50%;
-  background: var(--gsoft2);
-  transition:
-    width 0.3s,
-    background-color 0.3s;
-}
-.tn .pdots button.on {
-  width: 22px;
-  border-radius: 999px;
-  background: var(--g);
-}
 @media (prefers-reduced-motion: reduce) {
-  .tn .pf,
-  .tn .pdots button {
+  .tn .pf {
     transition: none;
   }
 }
@@ -3563,20 +3538,16 @@
     right: calc(27 * var(--u));
   }
   .tn .pf.gauche {
-    left: calc(100% - 290 * var(--u));
-    top: calc(232 * var(--u));
+    left: calc(100% - 329 * var(--u));
+    top: calc(228 * var(--u));
   }
   .tn .pf.droite {
-    left: calc(100% - 108 * var(--u));
-    top: calc(232 * var(--u));
+    left: calc(100% - 125 * var(--u));
+    top: calc(228 * var(--u));
   }
   .tn .pf.centre {
-    left: calc(100% - 210 * var(--u));
-    top: calc(216 * var(--u));
-  }
-  .tn #tcInsp .pdots {
-    left: calc(27 * var(--u));
-    top: calc(392 * var(--u));
+    left: calc(100% - 241 * var(--u));
+    top: calc(207 * var(--u));
   }
 
   /* Les bannières gardent leurs proportions, calées à droite. */

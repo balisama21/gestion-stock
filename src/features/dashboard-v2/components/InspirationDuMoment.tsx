@@ -1,27 +1,33 @@
 import React, { useEffect, useRef, useState } from "react";
 import { Icone } from "../../../components/shared/Icone";
 import { Modal } from "../../../components/shared/Modal";
-import { PHOTOS_PLANTES, inspirationFond, plantesDuJour } from "../assets/images";
+import { plantesDuJour } from "../assets/images";
+import { usePhotosInspiration } from "../lib/photosInspiration";
 
 /**
  * INSPIRATION DU MOMENT — trois photos de plantes, trois autres demain.
  *
- * Les photos tournent d'elles-mêmes toutes les cinq secondes ; on peut
- * aussi les faire défiler au doigt, par les points ou par les flèches du
- * clavier. Le survol arrête la rotation, et elle ne démarre pas du tout
- * quand le système demande de réduire les animations.
+ * Les photos tournent d'elles-mêmes toutes les minutes ; on peut aussi
+ * les faire défiler au doigt, d'un clic sur une photo ou par les flèches
+ * du clavier. Le survol arrête la rotation, et elle ne démarre pas du
+ * tout quand le système demande de réduire les animations.
  *
- * « Voir plus » ouvre la galerie de toutes les photos du dossier.
+ * « Voir plus » ouvre la galerie de toutes les photos.
+ *
+ * Les photos sont celles importées par l'administrateur de la plateforme
+ * (Paramètres → Inspiration du moment), sinon celles livrées avec
+ * l'application. Une fois la liste parcourue, elle recommence au début.
  */
 
-const DELAI = 5000;
+const DELAI = 60_000;
 const ALT = "Plante d'intérieur en pot";
 
 /** La place de chaque photo autour de celle du centre. */
 const PLACES = ["centre", "droite", "gauche"] as const;
 
 export const InspirationDuMoment: React.FC<{ maintenant: Date | null }> = ({ maintenant }) => {
-  const trio = plantesDuJour(maintenant ?? new Date(2026, 0, 5));
+  const photos = usePhotosInspiration();
+  const trio = plantesDuJour(maintenant ?? new Date(2026, 0, 5), photos);
   const [centre, setCentre] = useState(0);
   const [pause, setPause] = useState(false);
   const [galerie, setGalerie] = useState(false);
@@ -44,7 +50,6 @@ export const InspirationDuMoment: React.FC<{ maintenant: Date | null }> = ({ mai
     <article
       className="tc ic"
       id="tcInsp"
-      style={{ backgroundImage: `url(${inspirationFond})` }}
       onMouseEnter={() => setPause(true)}
       onMouseLeave={() => setPause(false)}
     >
@@ -94,27 +99,17 @@ export const InspirationDuMoment: React.FC<{ maintenant: Date | null }> = ({ mai
         ))}
       </div>
 
-      <div className="pdots">
-        {trio.map((_, i) => (
-          <button
-            type="button"
-            key={i}
-            className={i === centre ? "on" : undefined}
-            onClick={() => setCentre(i)}
-            aria-label={`Afficher la photo ${i + 1}`}
-            aria-pressed={i === centre}
-          />
-        ))}
-      </div>
-
-      {galerie && <Galerie duJour={trio} onFermer={() => setGalerie(false)} />}
+      {galerie && <Galerie photos={photos} duJour={trio} onFermer={() => setGalerie(false)} />}
     </article>
   );
 };
 
-/** Toutes les photos du dossier, celles du jour mises en avant. */
-const Galerie: React.FC<{ duJour: string[]; onFermer: () => void }> = ({ duJour, onFermer }) => {
-  const photos = PHOTOS_PLANTES;
+/** Toutes les photos, celles du jour mises en avant. */
+const Galerie: React.FC<{ photos: string[]; duJour: string[]; onFermer: () => void }> = ({
+  photos,
+  duJour,
+  onFermer,
+}) => {
   return (
     <Modal
       open

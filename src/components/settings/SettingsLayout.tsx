@@ -18,6 +18,7 @@ import {
   PackageSearch,
   LogOut,
   SlidersHorizontal,
+  Leaf,
 } from "lucide-react";
 
 export type SettingsTab =
@@ -36,7 +37,8 @@ export type SettingsTab =
   | "rappels"
   | "alertes-stock"
   | "categories"
-  | "prix";
+  | "prix"
+  | "inspiration";
 
 interface TabDef {
   id: SettingsTab;
@@ -45,6 +47,8 @@ interface TabDef {
   hint: string;
   icon: React.ReactNode;
   ownerOnly: boolean;
+  /** Réservé à l'administrateur de la plateforme, quelle que soit la boutique. */
+  adminOnly?: boolean;
 }
 
 interface GroupDef {
@@ -185,6 +189,19 @@ const GROUPS: GroupDef[] = [
       },
     ],
   },
+  {
+    title: "Plateforme",
+    tabs: [
+      {
+        id: "inspiration",
+        label: "Inspiration du moment",
+        hint: "Photos du tableau de bord",
+        icon: <Leaf className="w-4 h-4" />,
+        ownerOnly: false,
+        adminOnly: true,
+      },
+    ],
+  },
 ];
 
 interface SettingsLayoutProps {
@@ -204,11 +221,15 @@ export const SettingsLayout: React.FC<SettingsLayoutProps> = ({
   sansAbonnement = false,
 }) => {
   const { signOut, profile } = useAuth();
+  const adminPlateforme = profile?.is_platform_admin === true;
 
   const groups = GROUPS.map((g) => ({
     ...g,
     tabs: g.tabs.filter(
-      (t) => (isOwner || !t.ownerOnly) && !(sansAbonnement && t.id === "paiement"),
+      (t) =>
+        (isOwner || !t.ownerOnly) &&
+        (adminPlateforme || !t.adminOnly) &&
+        !(sansAbonnement && t.id === "paiement"),
     ),
   })).filter((g) => g.tabs.length > 0);
 
