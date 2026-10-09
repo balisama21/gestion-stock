@@ -5,6 +5,13 @@ import { HeroTableauDeBord } from "./HeroTableauDeBord";
 import { HERO_PHOTOS, PHOTOS_PLANTES, indexDuJour, plantesDuJour } from "../assets/images";
 import type { ChiffresDuJour, ChiffresStock } from "../lib/chiffres";
 
+// Les photos importées vivent dans Supabase : ici, celles du dossier.
+vi.mock("../lib/photosInspiration", async () => {
+  const { PHOTOS_PLANTES: photos } =
+    await vi.importActual<typeof import("../assets/images")>("../assets/images");
+  return { usePhotosInspiration: () => photos };
+});
+
 const JOUR = {
   jour: "2026-09-28",
   hier: "2026-09-27",

@@ -5,8 +5,6 @@
 import heroJour from "./hero-jour.jpg";
 import heroNuit from "./hero-nuit.jpg";
 
-export { default as inspirationFond } from "./inspiration-fond.jpg";
-
 export { default as banniereOperations } from "./banniere-operations.webp";
 export { default as banniereVentes } from "./banniere-ventes.webp";
 export { default as banniereArgent } from "./banniere-argent.webp";

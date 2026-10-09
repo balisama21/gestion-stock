@@ -37,6 +37,7 @@ import { NotificationsSection } from "./settings/NotificationsSection";
 import { InvoiceSection } from "./settings/InvoiceSection";
 import { DocumentsSection } from "./settings/DocumentsSection";
 import { InstallationSection } from "./settings/InstallationSection";
+import { InspirationSection } from "./settings/InspirationSection";
 import { Trash2 } from "lucide-react";
 import { ReglagesMetierSection } from "./settings/ReglagesMetierSection";
 import type { ValeursParametres } from "../lib/parametres";
@@ -1086,6 +1087,8 @@ export const ParametresView: React.FC<ParametresViewProps> = ({
       )}
 
       {activeTab === "alertes-stock" && <AlertesStockSection {...alertesStock} />}
+
+      {activeTab === "inspiration" && estAdminPlateforme && <InspirationSection />}
 
       {activeTab === "champs" && (
         <ChampsPersonnalisesSection
