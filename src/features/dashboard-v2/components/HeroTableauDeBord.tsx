@@ -119,7 +119,8 @@ const GraphiqueVentes: React.FC<{ points: PointVentes[]; montantsVisibles: boole
   const base = 112;
   const plein = 92;
   const max = Math.max(...points.map((p) => p.montant), 0);
-  const pas = pasRond(Math.max(max, 1));
+  // Un ariary au moins : sans ventes, l'axe affichait « 0, 0, 1, 1, 1 ».
+  const pas = Math.max(1, pasRond(Math.max(max, 1)));
   const axe = Math.max(pas * 4, Math.ceil(max / pas) * pas);
   const x0 = 70;
   const x1 = W - 47;
@@ -167,9 +168,6 @@ const GraphiqueVentes: React.FC<{ points: PointVentes[]; montantsVisibles: boole
           )}
         </g>
       ))}
-      {P.map(([x, y], i) => (
-        <line key={`v${i}`} x1={x} x2={x} y1={y} y2={base} className="tige" />
-      ))}
       {P.length > 1 && (
         <path
           d={`${chemin} L${P[P.length - 1][0]},${base} L${P[0][0]},${base} Z`}
@@ -177,9 +175,18 @@ const GraphiqueVentes: React.FC<{ points: PointVentes[]; montantsVisibles: boole
         />
       )}
       <path d={chemin} className="courbe" />
-      {P.map(([x, y], i) => (
-        <circle key={`p${i}`} cx={x} cy={y} r={survol === i ? 5.5 : 4.3} className="point" />
-      ))}
+      {/* Pas de point sur chaque jour : la ligne seule, et un repère
+          sous la souris pour lire le jour survolé. Un point isolé reste
+          marqué, sinon il n'y aurait rien à voir. */}
+      {survol !== null && P[survol] && (
+        <g className="repere">
+          <line x1={P[survol][0]} x2={P[survol][0]} y1={20} y2={base} className="guide" />
+          <circle cx={P[survol][0]} cy={P[survol][1]} r={4} className="point" />
+        </g>
+      )}
+      {P.length === 1 && survol === null && (
+        <circle cx={P[0][0]} cy={P[0][1]} r={3.5} className="point" />
+      )}
       {points.map((p, i) =>
         i % pasLibelle === ancre ? (
           <text key={`l${i}`} x={X(i)} y={H - 6} textAnchor="middle" className="axe" style={texte}>

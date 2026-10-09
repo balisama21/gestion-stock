@@ -660,6 +660,14 @@
 .tn .menu-holder {
   position: relative;
 }
+/* Un menu ouvert déborde sur la section suivante, dont la bannière est
+   peinte plus tard : sans ceci, elle passe par-dessus le menu et avale
+   les clics (« Appliquer la période » ne répondait plus). La section
+   qui porte le menu passe devant tant qu'il est ouvert. */
+.tn section.blk:has(.menu-holder > .menu) {
+  position: relative;
+  z-index: 10;
+}
 .tn .pill-choix,
 .tn .menu-holder > .pill {
   display: inline-flex;
@@ -1416,11 +1424,23 @@
 .tn svg.chart .courbe {
   fill: none;
   stroke: var(--chart-g);
-  stroke-width: 1.7;
+  stroke-width: 2;
   stroke-linecap: round;
+  stroke-linejoin: round;
 }
 .tn svg.chart .point {
   fill: var(--chart-g);
+  stroke: var(--card);
+  stroke-width: 2;
+}
+.tn svg.chart .guide {
+  stroke: var(--chart-g);
+  stroke-width: 1;
+  stroke-dasharray: 3 3;
+  opacity: 0.45;
+}
+.tn svg.chart .repere {
+  pointer-events: none;
 }
 .tn svg.chart .axe {
   font-weight: 500;
