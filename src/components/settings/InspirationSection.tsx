@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { ChevronLeft, ChevronRight, ImagePlus, Leaf, RefreshCw, Trash2 } from "lucide-react";
 import { SettingsFeedback, SettingsSection } from "./primitives";
-import { plantesDuJour } from "../../features/dashboard-v2/assets/images";
+import { PHOTOS_PLANTES, plantesDuJour } from "../../features/dashboard-v2/assets/images";
 import {
   type PhotoInspiration,
   ajouterPhotos,
@@ -64,6 +64,32 @@ export const InspirationSection: React.FC = () => {
       async () => (await ajouterPhotos(fichiers, fin)).erreurs,
       fichiers.length > 1 ? `${fichiers.length} photos ajoutées.` : "Photo ajoutée.",
     );
+  };
+
+  /**
+   * Les photos livrées avec l'application, versées dans la liste comme
+   * des photos importées : elles se remplacent, se suppriment et se
+   * rangent ensuite comme les autres.
+   */
+  const reprendreOrigine = () => {
+    if (
+      photos &&
+      photos.length > 0 &&
+      !window.confirm(
+        `Ajouter les ${PHOTOS_PLANTES.length} photos d'origine à la fin de la liste ? Elles s'ajoutent aux vôtres.`,
+      )
+    )
+      return;
+    const fin = photos && photos.length > 0 ? Math.max(...photos.map((p) => p.position)) + 1 : 0;
+    void agir(async () => {
+      const fichiers: File[] = [];
+      for (const [k, url] of PHOTOS_PLANTES.entries()) {
+        const blob = await (await fetch(url)).blob();
+        const type = blob.type || "image/webp";
+        fichiers.push(new File([blob], `origine-${k + 1}.webp`, { type }));
+      }
+      return (await ajouterPhotos(fichiers, fin)).erreurs;
+    }, `${PHOTOS_PLANTES.length} photos d'origine ajoutées.`);
   };
 
   const remplacer = (photo: PhotoInspiration, fichier: File) =>
@@ -175,15 +201,28 @@ export const InspirationSection: React.FC = () => {
         {photos === null ? (
           <p className="text-sm text-muted-foreground">Chargement…</p>
         ) : photos.length === 0 ? (
-          <button
-            type="button"
-            onClick={() => ajout.current?.click()}
-            disabled={occupe}
-            className="flex w-full flex-col items-center gap-2 rounded-xl border-2 border-dashed border-border p-8 text-sm text-muted-foreground transition-colors hover:bg-muted"
-          >
-            <ImagePlus className="h-6 w-6" />
-            Choisissez des photos sur votre ordinateur (JPEG, PNG ou WebP)
-          </button>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <button
+              type="button"
+              onClick={reprendreOrigine}
+              disabled={occupe}
+              className="flex w-full flex-col items-center gap-2 rounded-xl border-2 border-success-border bg-success-soft p-8 text-sm font-medium t-success transition-colors disabled:opacity-60"
+            >
+              <Leaf className="h-6 w-6" />
+              {occupe
+                ? "Envoi des photos…"
+                : `Commencer avec les ${PHOTOS_PLANTES.length} photos d'origine`}
+            </button>
+            <button
+              type="button"
+              onClick={() => ajout.current?.click()}
+              disabled={occupe}
+              className="flex w-full flex-col items-center gap-2 rounded-xl border-2 border-dashed border-border p-8 text-sm text-muted-foreground transition-colors hover:bg-muted"
+            >
+              <ImagePlus className="h-6 w-6" />
+              Choisissez des photos sur votre ordinateur (JPEG, PNG ou WebP)
+            </button>
+          </div>
         ) : (
           <ul className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4 xl:grid-cols-5">
             {photos.map((p, i) => (
@@ -256,6 +295,17 @@ export const InspirationSection: React.FC = () => {
               </li>
             ))}
           </ul>
+        )}
+
+        {photos !== null && photos.length > 0 && (
+          <button
+            type="button"
+            onClick={reprendreOrigine}
+            disabled={occupe}
+            className="text-sm font-medium t-success hover:underline disabled:opacity-60"
+          >
+            Ajouter aussi les {PHOTOS_PLANTES.length} photos d&apos;origine
+          </button>
         )}
       </div>
     </SettingsSection>
