@@ -108,7 +108,7 @@ const JOUR_BRUTES: Brute[] = [
     "Bien préparé,",
     "bien parti !",
   ],
-  ["Le sourire est gratuit,", "mais il rapporte toujours.", "Souriez,", "ça vend !"],
+  ["Un sourire ne coûte rien,", "mais il rapporte toujours.", "Souriez,", "ça vend !"],
   [
     "Chaque produit bien rangé",
     "fait gagner du temps à toute l'équipe.",
