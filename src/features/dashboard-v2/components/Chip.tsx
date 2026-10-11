@@ -1,3 +1,4 @@
+import { AlarmClock, Star, UserRound } from "lucide-react";
 import React from "react";
 
 /**
@@ -21,9 +22,17 @@ export interface ChipProps {
   onAller: (cible: string) => void;
 }
 
+/** L'icône de chaque ton : l'horloge du retard, l'étoile du stock, la personne du devis. */
+const ICONE: Record<ChipProps["ton"], React.ReactNode> = {
+  crit: <AlarmClock aria-hidden="true" />,
+  warn: <Star aria-hidden="true" />,
+  info: <UserRound aria-hidden="true" />,
+};
+
 export const Chip: React.FC<ChipProps> = ({ nombre, singulier, pluriel, ton, cible, onAller }) => (
   <button type="button" className={`chip ${ton}`} onClick={() => onAller(cible)}>
+    <span className="ci">{ICONE[ton]}</span>
+    <span className="t">{nombre > 1 ? pluriel : singulier}</span>
     <span className="n num">{nombre}</span>
-    {nombre > 1 ? pluriel : singulier}
   </button>
 );

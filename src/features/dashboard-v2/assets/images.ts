@@ -66,28 +66,17 @@ export const urlPhoto = (id: string, largeur: number, qualite = 70): string =>
 export const srcsetPhoto = (id: string, largeurs: number[]): string =>
   largeurs.map((l) => `${urlPhoto(id, l)} ${l}w`).join(", ");
 
-/** Les paysages du haut de page, qui défilent en fondu. */
+/**
+ * La nature du haut de page, qui défile en fondu : vallées tropicales,
+ * forêt dense, lémuriens dans la végétation — la nature telle qu'on la
+ * vit à Madagascar, pas des sommets enneigés.
+ */
 export const HERO_PAYSAGES: Photo[] = [
-  {
-    id: "1501785888041-af3ef285b470",
-    cadrage: "50% 60%",
-  },
-  {
-    id: "1464822759023-fed622ff2c3b",
-    cadrage: "50% 45%",
-  },
-  {
-    id: "1470071459604-3b5ec3a7fe05",
-    cadrage: "50% 55%",
-  },
-  {
-    id: "1439066615861-d1af74d74000",
-    cadrage: "50% 55%",
-  },
-  {
-    id: "1506905925346-21bda4d32df4",
-    cadrage: "50% 40%",
-  },
+  { id: "1541637593725-923467404d17", cadrage: "50% 55%" },
+  { id: "1562550745-f54f73011c70", cadrage: "50% 42%" },
+  { id: "1681196488666-096a2d8f3b25", cadrage: "50% 60%" },
+  { id: "1693357483341-204143afdeb7", cadrage: "50% 55%" },
+  { id: "1599998372764-ac8cbb604f21", cadrage: "50% 50%" },
 ];
 
 /** Une photo par grande section, chacune en rapport avec son sujet. */

@@ -1,4 +1,14 @@
-import { ChevronRight } from "lucide-react";
+import {
+  ChevronRight,
+  Cloud,
+  CloudFog,
+  CloudLightning,
+  CloudRain,
+  CloudSun,
+  MapPin,
+  Moon,
+  Sun,
+} from "lucide-react";
 import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { Icone, type NomIcone } from "../../../components/shared/Icone";
 import { dateCourte, dateLongue, heure, montant, nombre } from "../lib/format";
@@ -7,6 +17,8 @@ import type { EvenementJournal } from "../lib/journal";
 import type { CleTuile } from "../registry";
 import { HERO_PAYSAGES, HERO_PHOTOS, indexDuJour, srcsetPhoto, urlPhoto } from "../assets/images";
 import { InspirationDuMoment } from "./InspirationDuMoment";
+import { MenuOption, MenuPill } from "./Pill";
+import { VILLES, useMeteo, type Ciel } from "../lib/meteo";
 
 /**
  * LE HAUT DU TABLEAU DE BORD
@@ -214,6 +226,39 @@ const GraphiqueVentes: React.FC<{ points: PointVentes[]; montantsVisibles: boole
   );
 };
 
+/** L'icône du ciel, de jour ou de nuit. */
+function iconeCiel(ciel: Ciel, jour: boolean): React.ReactNode {
+  const p = { className: "ic-meteo", "aria-hidden": true } as const;
+  switch (ciel) {
+    case "soleil":
+      return jour ? <Sun {...p} /> : <Moon {...p} />;
+    case "nuageux":
+      return jour ? <CloudSun {...p} /> : <Cloud {...p} />;
+    case "couvert":
+      return <Cloud {...p} />;
+    case "brouillard":
+      return <CloudFog {...p} />;
+    case "orage":
+      return <CloudLightning {...p} />;
+    default:
+      return <CloudRain {...p} />;
+  }
+}
+
+/**
+ * La police manuscrite de la devise, demandée une seule fois et pour ses
+ * seules lettres : quelques kilo-octets, sans rien retarder.
+ */
+const DEVISE = "Ensemble vers plus de réussite !";
+function chargerPoliceDevise() {
+  if (typeof document === "undefined" || document.getElementById("tn-police-devise")) return;
+  const lien = document.createElement("link");
+  lien.id = "tn-police-devise";
+  lien.rel = "stylesheet";
+  lien.href = `https://fonts.googleapis.com/css2?family=Caveat:wght@600&display=swap&text=${encodeURIComponent(DEVISE)}`;
+  document.head.appendChild(lien);
+}
+
 /** Le temps passé sur chaque paysage du haut de page. */
 const DELAI_PAYSAGE = 9_000;
 
@@ -376,6 +421,9 @@ export const HeroTableauDeBord: React.FC<HeroProps> = ({
     const id = window.setInterval(() => setMaintenant(new Date()), 30_000);
     return () => window.clearInterval(id);
   }, []);
+
+  const { ville, choisirVille, meteo } = useMeteo();
+  useEffect(chargerPoliceDevise, []);
 
   const h = maintenant?.getHours() ?? 12;
   const nuit = sombre || h < 6 || h >= 18;
@@ -611,6 +659,38 @@ export const HeroTableauDeBord: React.FC<HeroProps> = ({
                     <span>{heure(maintenant)}</span>
                   </>
                 )}
+                {meteo && (
+                  <>
+                    <span className="sep" aria-hidden="true" />
+                    <span className="meteo" title={`Météo à ${ville}`}>
+                      {iconeCiel(meteo.ciel, meteo.jour)}
+                      {meteo.temperature}°C
+                    </span>
+                  </>
+                )}
+                <span className="sep" aria-hidden="true" />
+                <MenuPill
+                  icon={<MapPin className="ic-lieu" aria-hidden="true" />}
+                  value={ville}
+                  alignLeft
+                  className="lieu"
+                  ariaLabel={`Ville de la météo : ${ville}`}
+                >
+                  {(fermer) =>
+                    VILLES.map((v) => (
+                      <MenuOption
+                        key={v.nom}
+                        checked={v.nom === ville}
+                        onClick={() => {
+                          choisirVille(v.nom);
+                          fermer();
+                        }}
+                      >
+                        {v.nom}
+                      </MenuOption>
+                    ))
+                  }
+                </MenuPill>
                 <button
                   ref={boutonRafraichir}
                   type="button"
@@ -633,8 +713,19 @@ export const HeroTableauDeBord: React.FC<HeroProps> = ({
                   ""
                 )}
               </h1>
-              <p>Voici un aperçu de l&apos;activité de votre boutique aujourd&apos;hui.</p>
+              <p>
+                Chaque jour est une nouvelle opportunité.
+                <br />
+                Votre boutique grandit, pas à pas, vers de nouveaux horizons&nbsp;!
+              </p>
               {alertes && <div className="tb-attn">{alertes}</div>}
+            </div>
+            <div className="tb-devise">
+              <span>Ensemble vers</span>
+              <span>plus de réussite&nbsp;!</span>
+              <svg viewBox="0 0 200 14" aria-hidden="true">
+                <path d="M4 10 C 60 2, 130 2, 196 7" />
+              </svg>
             </div>
           </div>
 
