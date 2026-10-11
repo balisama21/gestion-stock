@@ -1114,11 +1114,16 @@
 .tn .tb-hero p {
   text-shadow: 0 1px 14px rgba(0, 0, 0, 0.35);
 }
+/* Une seule ligne de puces : sur deux lignes, la dernière toucherait les
+   cartes du jour. Elle peut déborder la colonne du texte, la photo est
+   libre à cet endroit. */
 .tn .tb-attn {
   margin-top: calc(26 * var(--u));
   display: flex;
   gap: 8px 14px;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
+  width: max-content;
+  max-width: calc(100vw - 2 * var(--gut));
 }
 /* Les puces : une icône ronde colorée, le libellé, le nombre à droite.
    Transparentes comme les flèches des paysages : un contour blanc, le
@@ -3652,9 +3657,14 @@
     --us: 0.82px;
   }
   /* Le hero : la photo se recadre, le voile passe du haut vers le bas. */
+  /* Sur téléphone, le texte et la devise passent dans le flux : la
+     bannière prend la hauteur de son contenu, quelle que soit la longueur
+     de la phrase du jour, et rien ne se chevauche. Le bas reste libre
+     pour les flèches et les cartes qui viennent s'y poser. */
   .tn .tb-hero {
     height: auto;
     min-height: 330px;
+    padding-bottom: 112px;
   }
   .tn .tb-voile {
     background: linear-gradient(
@@ -3665,17 +3675,36 @@
     );
   }
   .tn .tb-texte {
-    left: var(--gut);
-    right: var(--gut);
-    top: 22px;
+    position: relative;
+    left: auto;
+    right: auto;
+    top: auto;
+    padding: 22px var(--gut) 0;
     max-width: none;
     gap: 10px;
   }
   .tn .tb-when {
     font-size: 13px;
   }
+  /* La devise, plus petite, en bas à droite de la photo, au-dessus des
+     flèches : elle orne la photo sans gêner la lecture du texte. */
+  /* La devise, en bas à gauche de la photo, sur la ligne des flèches
+     (qui restent à droite), juste au-dessus des cartes du jour. */
   .tn .tb-devise {
-    display: none;
+    top: auto;
+    right: auto;
+    left: var(--gut);
+    bottom: 38px;
+    width: fit-content;
+    margin: 0;
+    font-size: 19px;
+    line-height: 1.25;
+    transform: rotate(-6deg);
+    transform-origin: left bottom;
+  }
+  .tn .tb-devise svg {
+    width: 7.5em;
+    margin-top: 0;
   }
   .tn .tb-hero h1 {
     font-size: 32px;
@@ -3687,11 +3716,12 @@
     right: var(--gut);
     bottom: 44px;
   }
-  /* Pas de rangée de puces sur téléphone : les mêmes alertes sont dans
-     la carte « Stock du jour » et dans « À faire ». */
+  /* Pas de puces sur téléphone : la bannière reste légère, et les mêmes
+     alertes sont dans la carte « Stock du jour » et dans « À faire ». */
   .tn .tb-attn {
     display: none;
   }
+
   /* Les cinq cartes du jour défilent au doigt, avec accrochage. */
   .tn .tb-kpis {
     display: flex;
@@ -3839,6 +3869,14 @@
 }
 
 @media (max-width: 640px) {
+  /* La ligne du jour passe souvent sur deux lignes : pas de filet orphelin
+     en fin de ligne, l'espacement suffit. */
+  .tn .tb-when {
+    column-gap: 14px;
+  }
+  .tn .tb-when .sep {
+    display: none;
+  }
   .tn .tb-when .date-longue {
     display: none;
   }
