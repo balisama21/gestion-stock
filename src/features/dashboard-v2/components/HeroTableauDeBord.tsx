@@ -25,7 +25,8 @@ import { HERO_PAYSAGES, HERO_PHOTOS, indexDuJour, srcsetPhoto, urlPhoto } from "
 import { InspirationDuMoment } from "./InspirationDuMoment";
 import { MenuOption, MenuPill } from "./Pill";
 import { VILLES, useMeteo, type Ciel } from "../lib/meteo";
-import { LETTRES_DES_DEVISES, phraseDuMoment } from "../lib/phrases";
+import { phraseDuMoment } from "../lib/phrases";
+import { usePhrasesAjoutees } from "../lib/phrasesTableau";
 
 /**
  * LE HAUT DU TABLEAU DE BORD
@@ -269,15 +270,16 @@ function iconeCiel(ciel: Ciel, jour: boolean): React.ReactNode {
 }
 
 /**
- * La police manuscrite de la devise, demandée une seule fois et pour les
- * seules lettres des devises : quelques kilo-octets, sans rien retarder.
+ * La police manuscrite de la devise, demandée une seule fois. Le navigateur
+ * n'en charge que la partie latine, sans rien retarder ; une devise
+ * ajoutée dans les paramètres s'affiche donc dans la même écriture.
  */
 function chargerPoliceDevise() {
   if (typeof document === "undefined" || document.getElementById("tn-police-devise")) return;
   const lien = document.createElement("link");
   lien.id = "tn-police-devise";
   lien.rel = "stylesheet";
-  lien.href = `https://fonts.googleapis.com/css2?family=Caveat:wght@600&display=swap&text=${encodeURIComponent(LETTRES_DES_DEVISES)}`;
+  lien.href = `https://fonts.googleapis.com/css2?family=Caveat:wght@600&display=swap`;
   document.head.appendChild(lien);
 }
 
@@ -455,7 +457,8 @@ export const HeroTableauDeBord: React.FC<HeroProps> = ({
   // Une phrase pour la journée, une autre le soir, et d'autres demain.
   // Avant l'horloge (rendu serveur), une date fixe : pas d'écart à
   // l'hydratation.
-  const phrase = phraseDuMoment(maintenant ?? new Date(2026, 0, 5, 10));
+  const { ajoutees, reglages } = usePhrasesAjoutees();
+  const phrase = phraseDuMoment(maintenant ?? new Date(2026, 0, 5, 10), ajoutees, reglages);
 
   const bientotEnRupture = stock.aRecommander.length + stock.enRupture.length;
   const comparaisonVentes = ecart(jour.ventes, jour.ventesHier);

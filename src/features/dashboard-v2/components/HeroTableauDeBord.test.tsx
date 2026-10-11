@@ -12,6 +12,15 @@ vi.mock("../lib/photosInspiration", async () => {
   return { usePhotosInspiration: () => photos };
 });
 
+// Les phrases ajoutées vivent dans Supabase : ici, aucune.
+vi.mock("../lib/phrasesTableau", async () => {
+  const { REGLAGES_PAR_DEFAUT } =
+    await vi.importActual<typeof import("../lib/phrases")>("../lib/phrases");
+  return {
+    usePhrasesAjoutees: () => ({ ajoutees: { jour: [], soir: [] }, reglages: REGLAGES_PAR_DEFAUT }),
+  };
+});
+
 const JOUR = {
   jour: "2026-09-28",
   hier: "2026-09-27",
