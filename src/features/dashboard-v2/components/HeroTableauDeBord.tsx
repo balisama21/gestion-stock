@@ -26,10 +26,11 @@ import {
   estLaNuitDehors,
   indexDuJour,
   paysagesDuMoment,
+  sourcePhoto,
   srcsetPhoto,
-  urlPhoto,
   type Photo,
 } from "../assets/images";
+import { usePhotosHautDePage } from "../lib/photosHautDePage";
 import { InspirationDuMoment } from "./InspirationDuMoment";
 import { MenuOption, MenuPill } from "./Pill";
 import { VILLES, useMeteo, type Ciel } from "../lib/meteo";
@@ -351,8 +352,8 @@ const PaysagesDuHaut: React.FC<{ photos: Photo[] }> = ({ photos }) => {
           <img
             key={p.id}
             className={`tb-paysage${i === affiche && charges.has(i) ? " actif" : ""}`}
-            src={urlPhoto(p.id, 1800)}
-            srcSet={srcsetPhoto(p.id, [900, 1400, 1800, 2400])}
+            src={sourcePhoto(p, 1800)}
+            srcSet={p.url ? undefined : srcsetPhoto(p.id, [900, 1400, 1800, 2400])}
             sizes="100vw"
             alt=""
             decoding="async"
@@ -462,12 +463,13 @@ export const HeroTableauDeBord: React.FC<HeroProps> = ({
   const h = maintenant?.getHours() ?? 12;
   // Le soir dehors (18 h – 6 h) : la série des photos du soir.
   const nuit = estLaNuitDehors(maintenant ?? new Date(2026, 0, 5, 12));
+  const photosImportees = usePhotosHautDePage();
   const paysages = useMemo(
-    () => paysagesDuMoment(maintenant ?? new Date(2026, 0, 5, 12)),
+    () => paysagesDuMoment(maintenant ?? new Date(2026, 0, 5, 12), photosImportees),
     // Recalculé seulement quand le jour ou la série change, pas à chaque
     // battement de l'horloge.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [nuit, maintenant?.toDateString()],
+    [nuit, maintenant?.toDateString(), photosImportees],
   );
   const idx = indexDuJour(maintenant ?? new Date(2026, 0, 5));
   const photo = HERO_PHOTOS[idx];

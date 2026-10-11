@@ -20,6 +20,7 @@ import {
   SlidersHorizontal,
   Leaf,
   Quote,
+  Images,
 } from "lucide-react";
 
 export type SettingsTab =
@@ -40,7 +41,8 @@ export type SettingsTab =
   | "categories"
   | "prix"
   | "inspiration"
-  | "phrases";
+  | "phrases"
+  | "photos-haut";
 
 interface TabDef {
   id: SettingsTab;
@@ -207,6 +209,14 @@ const GROUPS: GroupDef[] = [
         label: "Phrases du tableau de bord",
         hint: "Messages du jour et du soir",
         icon: <Quote className="w-4 h-4" />,
+        ownerOnly: false,
+        adminOnly: true,
+      },
+      {
+        id: "photos-haut",
+        label: "Photos du haut de page",
+        hint: "Bannière du jour et du soir",
+        icon: <Images className="w-4 h-4" />,
         ownerOnly: false,
         adminOnly: true,
       },

@@ -20,6 +20,11 @@ vi.mock("../lib/photosInspiration", async () => {
   return { usePhotosInspiration: () => photos };
 });
 
+// Les photos importées vivent dans Supabase : ici, aucune.
+vi.mock("../lib/photosHautDePage", () => ({
+  usePhotosHautDePage: () => ({ jour: [], soir: [] }),
+}));
+
 // Les phrases ajoutées vivent dans Supabase : ici, aucune.
 vi.mock("../lib/phrasesTableau", async () => {
   const { REGLAGES_PAR_DEFAUT } =
@@ -112,6 +117,38 @@ describe("le haut du tableau de bord", () => {
 
   it("le thème sombre ne met pas la nuit en plein jour : les photos suivent l'heure", () => {
     expect(afficher("2026-09-28T10:00:00", true).hero.classList.contains("night")).toBe(false);
+  });
+
+  it("un mois de photos : une photo de tête nouvelle chaque jour, puis la boucle", () => {
+    for (const [serie, heure] of [
+      [HERO_PAYSAGES_JOUR, 10],
+      [HERO_PAYSAGES_SOIR, 20],
+    ] as const) {
+      expect(serie.length).toBeGreaterThanOrEqual(30);
+      expect(new Set(serie.map((p) => p.id)).size).toBe(serie.length);
+      const jours = Array.from({ length: serie.length }, (_, j) =>
+        paysagesDuMoment(new Date(2026, 9, 11 + j, heure)),
+      );
+      // Une photo de tête différente chaque jour du mois.
+      expect(new Set(jours.map((l) => l[0].id)).size).toBe(serie.length);
+      // Deux jours qui se suivent ne partagent aucune photo.
+      for (let j = 1; j < jours.length; j++) {
+        const hier = new Set(jours[j - 1].map((p) => p.id));
+        expect(jours[j].some((p) => hier.has(p.id))).toBe(false);
+      }
+      // Le mois passé, la boucle recommence.
+      expect(paysagesDuMoment(new Date(2026, 9, 11 + serie.length, heure))).toEqual(jours[0]);
+    }
+  });
+
+  it("les photos importées prennent la suite de la boucle", () => {
+    const importee = { id: "importee", cadrage: "50% 50%", url: "https://exemple/photo.webp" };
+    const vues = new Set<string>();
+    for (let j = 0; j < 40; j++)
+      paysagesDuMoment(new Date(2026, 9, 11 + j, 10), { jour: [importee], soir: [] }).forEach((p) =>
+        vues.add(p.id),
+      );
+    expect(vues.has("importee")).toBe(true);
   });
 
   it("de vraies photos du soir le soir, de jour le jour, et d'autres demain", () => {
