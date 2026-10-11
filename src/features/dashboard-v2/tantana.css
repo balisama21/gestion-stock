@@ -4251,9 +4251,19 @@
 /* ── Les bannières photographiques des sections ──
    Sans cadre : ni coins arrondis, ni ombre, ni fond. La photo se pose
    directement entre les cartes, d'un bord à l'autre de la page, et se
-   fond dans le fond de page sur sa gauche (sous le titre), en haut et en
-   bas. */
+   fond dans le fond de page sur sa gauche (sous le titre).
+
+   En haut et en bas, elle ne s'estompe pas dans le vide : elle déborde
+   de `--sous` SOUS les cartes de la section d'avant et de la sienne
+   (peintes au-dessus, voir `.blk-corps`), si bien qu'elle a l'air de
+   sortir de dessous les cartes. Le fondu n'a lieu que dans la partie
+   cachée ; on ne le devine qu'entre deux cartes et dans les marges.
+   `--dh` : écart jusqu'aux cartes d'avant (marge de section) + `--sous` ;
+   `--db` : écart jusqu'aux cartes de la section + `--sous`. */
 .tn .banner.full.photo {
+  --sous: 44px;
+  --dh: calc(34px + var(--sous));
+  --db: calc(var(--ecart) + var(--sous));
   aspect-ratio: auto;
   display: flex;
   align-items: center;
@@ -4261,8 +4271,14 @@
   margin: 0 calc(-1 * var(--gut)) var(--ecart);
   background: none;
   border-radius: 0;
-  overflow: hidden;
+  overflow: visible;
   box-shadow: none;
+}
+/* Le haut de page passe devant la photo de la première section, comme
+   les cartes des sections. */
+.tn section#hero.tbsec {
+  position: relative;
+  z-index: 1;
 }
 /* L'illustration de repli ne sert que sans photo (classe .photo absente). */
 .tn .banner.full.photo::before {
@@ -4270,21 +4286,35 @@
 }
 .tn .banner.full.photo .bn-photo {
   position: absolute;
-  top: 0;
-  right: 0;
+  top: calc(-1 * var(--dh));
+  /* Le bord droit de la photo s'aligne sur celui des cartes : rien ne
+     déborde dans la marge de la page. */
+  right: var(--gut);
   z-index: 0;
-  width: 74%;
-  height: 100%;
+  width: calc(74% - var(--gut));
+  height: calc(100% + var(--dh) + var(--db));
   object-fit: cover;
   user-select: none;
   pointer-events: none;
   -webkit-mask-image:
     linear-gradient(90deg, transparent 0, #000 40%),
-    linear-gradient(180deg, transparent 0, #000 22%, #000 78%, transparent 100%);
+    linear-gradient(
+      180deg,
+      transparent 0,
+      #000 var(--sous),
+      #000 calc(100% - var(--sous)),
+      transparent 100%
+    );
   -webkit-mask-composite: source-in;
   mask-image:
     linear-gradient(90deg, transparent 0, #000 40%),
-    linear-gradient(180deg, transparent 0, #000 22%, #000 78%, transparent 100%);
+    linear-gradient(
+      180deg,
+      transparent 0,
+      #000 var(--sous),
+      #000 calc(100% - var(--sous)),
+      transparent 100%
+    );
   mask-composite: intersect;
 }
 .dark .tn .banner.full.photo .bn-photo {
@@ -4309,19 +4339,33 @@
 
 @media (max-width: 999px) {
   .tn .banner.full.photo {
+    --sous: 32px;
+    --db: calc(14px + var(--sous));
     min-height: 118px;
     margin: 0 calc(-1 * var(--gut)) 14px;
   }
   /* Sur téléphone la photo prend toute la largeur, très estompée sous le
      titre, nette à droite ; un léger halo garde le titre lisible. */
   .tn .banner.full.photo .bn-photo {
-    width: 100%;
+    width: calc(100% - 2 * var(--gut));
     -webkit-mask-image:
       linear-gradient(90deg, rgba(0, 0, 0, 0.15) 0, rgba(0, 0, 0, 0.55) 45%, #000 85%),
-      linear-gradient(180deg, transparent 0, #000 22%, #000 78%, transparent 100%);
+      linear-gradient(
+        180deg,
+        transparent 0,
+        #000 var(--sous),
+        #000 calc(100% - var(--sous)),
+        transparent 100%
+      );
     mask-image:
       linear-gradient(90deg, rgba(0, 0, 0, 0.15) 0, rgba(0, 0, 0, 0.55) 45%, #000 85%),
-      linear-gradient(180deg, transparent 0, #000 22%, #000 78%, transparent 100%);
+      linear-gradient(
+        180deg,
+        transparent 0,
+        #000 var(--sous),
+        #000 calc(100% - var(--sous)),
+        transparent 100%
+      );
   }
   .tn .banner.full.photo .blk-h {
     padding: 18px var(--gut);
