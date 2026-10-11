@@ -1,6 +1,6 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Icone, type NomIcone } from "../../../components/shared/Icone";
-import { srcsetPhoto, urlPhoto, type Photo } from "../assets/images";
+import { sourcePhoto, srcsetPhoto, type Photo } from "../assets/images";
 
 /**
  * Les briques de la mise en page `docs/maquette/dashboard-tantana.html`.
@@ -23,6 +23,9 @@ export const Banniere: React.FC<{
   sousTitre?: string;
 }> = ({ id, image, photo, titre, sousTitre }) => {
   const [echec, setEchec] = useState(false);
+  // Une autre photo (le lendemain, ou choisie dans les paramètres) : on
+  // retente l'affichage.
+  useEffect(() => setEchec(false), [photo?.id]);
   const avecPhoto = photo && !echec;
   return (
     <div
@@ -32,8 +35,9 @@ export const Banniere: React.FC<{
       {avecPhoto && (
         <img
           className="bn-photo"
-          src={urlPhoto(photo.id, 1600)}
-          srcSet={srcsetPhoto(photo.id, [800, 1200, 1600, 2200])}
+          key={photo.id}
+          src={sourcePhoto(photo, 1600)}
+          srcSet={photo.url ? undefined : srcsetPhoto(photo.id, [800, 1200, 1600, 2200])}
           sizes="(max-width: 999px) 100vw, 75vw"
           alt=""
           loading="lazy"

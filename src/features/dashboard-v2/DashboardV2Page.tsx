@@ -62,8 +62,10 @@ import {
   banniereOperations,
   banniereStock,
   banniereVentes,
-  PHOTOS_SECTIONS,
+  photoDeSection,
+  type CleSection,
 } from "./assets/images";
+import { usePhotosSections } from "./lib/photosSections";
 import { dateDuJour } from "../../lib/dates";
 import { useAuth } from "../../hooks/useAuth";
 import { REGLAGES_PAR_DEFAUT, type ReglagesAlertesStock } from "../../lib/prealerteStock";
@@ -245,6 +247,22 @@ export const DashboardV2Page: React.FC<DashboardV2PageProps> = ({
   const prenom = (profile?.full_name ?? "").trim().split(/\s+/)[0] || "";
 
   const aujourdhui = dateDuJour();
+
+  /**
+   * La photo du jour de chaque bannière de section. La date n'est lue
+   * qu'après le premier rendu : le serveur et le navigateur doivent
+   * d'abord dessiner la même photo.
+   */
+  const photosSections = usePhotosSections();
+  const [jourPhotos, setJourPhotos] = useState<Date | null>(null);
+  useEffect(() => setJourPhotos(new Date()), []);
+  const photoSection = (cle: CleSection) =>
+    photoDeSection(
+      cle,
+      jourPhotos ?? new Date(2026, 9, 11),
+      photosSections.ajoutees[cle],
+      photosSections.choix[cle],
+    );
   const { periode, choisir, choisirIntervalle, apercus, intervalleLibre } =
     useDashboardPeriod(aujourdhui);
   const droits = useDashboardPermissions();
@@ -716,7 +734,7 @@ export const DashboardV2Page: React.FC<DashboardV2PageProps> = ({
         <Section
           id="operations"
           image={banniereOperations}
-          photo={PHOTOS_SECTIONS.operations}
+          photo={photoSection("operations")}
           titre="Opérations"
         >
           {grille(operations, carteOperation)}
@@ -727,7 +745,7 @@ export const DashboardV2Page: React.FC<DashboardV2PageProps> = ({
         <Section
           id="ventes"
           image={banniereVentes}
-          photo={PHOTOS_SECTIONS.ventes}
+          photo={photoSection("ventes")}
           titre={aSoi ? "Mes ventes" : "Ventes"}
         >
           {grille(ventesCartes, carteVente)}
@@ -735,7 +753,7 @@ export const DashboardV2Page: React.FC<DashboardV2PageProps> = ({
       )}
 
       {avecArgent && (
-        <Section id="argent" image={banniereArgent} photo={PHOTOS_SECTIONS.argent} titre="L'argent">
+        <Section id="argent" image={banniereArgent} photo={photoSection("argent")} titre="L'argent">
           {argent.tresorerie && (
             <CarteTresorerie
               capital={capital}
@@ -817,7 +835,7 @@ export const DashboardV2Page: React.FC<DashboardV2PageProps> = ({
       )}
 
       {avecStock && (
-        <Section id="stock" image={banniereStock} photo={PHOTOS_SECTIONS.stock} titre="Le stock">
+        <Section id="stock" image={banniereStock} photo={photoSection("stock")} titre="Le stock">
           {(stockCartes.stock || stockCartes.ruptures) && (
             <CarteStockChiffres
               stock={chiffres.stock}
@@ -868,7 +886,7 @@ export const DashboardV2Page: React.FC<DashboardV2PageProps> = ({
         <Section
           id="fournisseurs"
           image={banniereFournisseurs}
-          photo={PHOTOS_SECTIONS.fournisseurs}
+          photo={photoSection("fournisseurs")}
           titre="Fournisseurs & Prestataires"
           sousTitre="Gérez vos fournisseurs de produits et vos prestataires de services facilement."
         >
