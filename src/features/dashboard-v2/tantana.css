@@ -964,17 +964,6 @@
     ),
     linear-gradient(180deg, rgba(0, 0, 0, 0.2) 0, rgba(0, 0, 0, 0) 32%);
 }
-.tn .tb-hero.night .tb-voile {
-  background:
-    linear-gradient(
-      90deg,
-      rgba(4, 12, 28, 0.78) 0,
-      rgba(4, 12, 28, 0.52) 32%,
-      rgba(4, 12, 28, 0.2) 62%,
-      rgba(4, 12, 28, 0.12) 100%
-    ),
-    linear-gradient(180deg, rgba(0, 0, 0, 0.25) 0, rgba(0, 0, 0, 0) 40%);
-}
 /* Le texte, rangé en colonne dans la partie calme de la photo. */
 .tn .tb-texte {
   position: absolute;
@@ -3673,14 +3662,6 @@
       rgba(3, 30, 22, 0.62) 0,
       rgba(3, 30, 22, 0.38) 55%,
       rgba(3, 30, 22, 0.12) 100%
-    );
-  }
-  .tn .tb-hero.night .tb-voile {
-    background: linear-gradient(
-      180deg,
-      rgba(4, 12, 28, 0.75) 0,
-      rgba(4, 12, 28, 0.5) 55%,
-      rgba(4, 12, 28, 0.25) 100%
     );
   }
   .tn .tb-texte {

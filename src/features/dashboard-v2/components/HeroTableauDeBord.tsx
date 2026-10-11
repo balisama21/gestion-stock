@@ -21,7 +21,15 @@ import { dateCourte, dateLongue, heure, montant, nombre } from "../lib/format";
 import type { ChiffresDuJour, ChiffresStock } from "../lib/chiffres";
 import type { EvenementJournal } from "../lib/journal";
 import type { CleTuile } from "../registry";
-import { HERO_PAYSAGES, HERO_PHOTOS, indexDuJour, srcsetPhoto, urlPhoto } from "../assets/images";
+import {
+  HERO_PHOTOS,
+  estLaNuitDehors,
+  indexDuJour,
+  paysagesDuMoment,
+  srcsetPhoto,
+  urlPhoto,
+  type Photo,
+} from "../assets/images";
 import { InspirationDuMoment } from "./InspirationDuMoment";
 import { MenuOption, MenuPill } from "./Pill";
 import { VILLES, useMeteo, type Ciel } from "../lib/meteo";
@@ -289,7 +297,8 @@ const DELAI_PAYSAGE = 9_000;
 /**
  * LES PAYSAGES DU HAUT DE PAGE, en fondu enchaîné.
  *
- * Chaque jour part d'un paysage différent. Seuls le paysage affiché et
+ * Les photos viennent de la série du moment — jour ou soir — et changent
+ * chaque jour (voir `paysagesDuMoment`). Seuls le paysage affiché et
  * le suivant sont demandés au réseau ; les autres arrivent à leur tour.
  * Le défilement s'arrête au survol et au focus, et ne démarre pas quand
  * le système demande de réduire les animations — les flèches restent.
@@ -299,16 +308,14 @@ const DELAI_PAYSAGE = 9_000;
  * ne charge pas est retirée du lot ; si aucune ne charge, l'illustration
  * locale, posée dessous par le composant parent, reste visible.
  */
-const PaysagesDuHaut: React.FC<{ depart: number }> = ({ depart }) => {
-  const [courant, setCourant] = useState(depart % HERO_PAYSAGES.length);
+const PaysagesDuHaut: React.FC<{ photos: Photo[] }> = ({ photos }) => {
+  const [courant, setCourant] = useState(0);
   const [pause, setPause] = useState(false);
-  const [vus, setVus] = useState<Set<number>>(() => new Set([depart % HERO_PAYSAGES.length]));
+  const [vus, setVus] = useState<Set<number>>(() => new Set([0]));
   const [echecs, setEchecs] = useState<Set<number>>(() => new Set());
   const [charges, setCharges] = useState<Set<number>>(() => new Set());
-  const [affiche, setAffiche] = useState(depart % HERO_PAYSAGES.length);
-  const n = HERO_PAYSAGES.length;
-
-  useEffect(() => setCourant(depart % n), [depart, n]);
+  const [affiche, setAffiche] = useState(0);
+  const n = photos.length;
 
   const aller = (pas: number) => setCourant((c) => (c + pas + n) % n);
 
@@ -339,7 +346,7 @@ const PaysagesDuHaut: React.FC<{ depart: number }> = ({ depart }) => {
       onFocus={() => setPause(true)}
       onBlur={() => setPause(false)}
     >
-      {HERO_PAYSAGES.map((p, i) =>
+      {photos.map((p, i) =>
         vus.has(i) && !echecs.has(i) ? (
           <img
             key={p.id}
@@ -363,7 +370,7 @@ const PaysagesDuHaut: React.FC<{ depart: number }> = ({ depart }) => {
             <ChevronRight className="tb-nav-g" aria-hidden="true" />
           </button>
           <div className="tb-points" aria-hidden="true">
-            {HERO_PAYSAGES.map((p, i) => (
+            {photos.map((p, i) => (
               <span key={p.id} className={i === courant ? "actif" : undefined} />
             ))}
           </div>
@@ -379,7 +386,11 @@ const PaysagesDuHaut: React.FC<{ depart: number }> = ({ depart }) => {
 export interface HeroProps {
   /** « Bonjour, Mamy » : le prénom, ou rien. */
   prenom: string;
-  /** Le thème sombre de l'application passe aussi le ciel en nuit. */
+  /**
+   * Le thème sombre de l'application. Il ne change plus les photos : elles
+   * suivent l'heure réelle — vraies photos de jour le jour, vraies photos
+   * du soir le soir, jamais une photo de jour assombrie.
+   */
   sombre?: boolean;
   /** Quand les données ont été lues pour la dernière fois. */
   chargeA: Date | null;
@@ -415,7 +426,6 @@ export interface HeroProps {
 
 export const HeroTableauDeBord: React.FC<HeroProps> = ({
   prenom,
-  sombre = false,
   chargeA,
   onRafraichir,
   boutonRafraichir,
@@ -450,7 +460,15 @@ export const HeroTableauDeBord: React.FC<HeroProps> = ({
   useEffect(chargerPoliceDevise, []);
 
   const h = maintenant?.getHours() ?? 12;
-  const nuit = sombre || h < 6 || h >= 18;
+  // Le soir dehors (18 h – 6 h) : la série des photos du soir.
+  const nuit = estLaNuitDehors(maintenant ?? new Date(2026, 0, 5, 12));
+  const paysages = useMemo(
+    () => paysagesDuMoment(maintenant ?? new Date(2026, 0, 5, 12)),
+    // Recalculé seulement quand le jour ou la série change, pas à chaque
+    // battement de l'horloge.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [nuit, maintenant?.toDateString()],
+  );
   const idx = indexDuJour(maintenant ?? new Date(2026, 0, 5));
   const photo = HERO_PHOTOS[idx];
   const salutation = h >= 18 || h < 4 ? "Bonsoir" : "Bonjour";
@@ -674,7 +692,7 @@ export const HeroTableauDeBord: React.FC<HeroProps> = ({
         <div className="tbi">
           <div className={`tb-hero${nuit ? " night" : ""}`}>
             <div className="tb-hero-bg" style={{ backgroundImage: `url(${photoDuJour})` }} />
-            <PaysagesDuHaut depart={idx} />
+            <PaysagesDuHaut key={paysages.map((p) => p.id).join()} photos={paysages} />
             <div className="tb-voile" aria-hidden="true" />
             <div className="tb-texte">
               <div className="tb-when">

@@ -2,7 +2,15 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { act, cleanup, render } from "@testing-library/react";
 import { createRef } from "react";
 import { HeroTableauDeBord } from "./HeroTableauDeBord";
-import { HERO_PHOTOS, PHOTOS_PLANTES, indexDuJour, plantesDuJour } from "../assets/images";
+import {
+  HERO_PAYSAGES_JOUR,
+  HERO_PAYSAGES_SOIR,
+  HERO_PHOTOS,
+  PHOTOS_PLANTES,
+  indexDuJour,
+  paysagesDuMoment,
+  plantesDuJour,
+} from "../assets/images";
 import type { ChiffresDuJour, ChiffresStock } from "../lib/chiffres";
 
 // Les photos importées vivent dans Supabase : ici, celles du dossier.
@@ -102,8 +110,23 @@ describe("le haut du tableau de bord", () => {
     expect(fond.style.backgroundImage).toContain(HERO_PHOTOS[1].nuit);
   });
 
-  it("le thème sombre de l'application passe aussi le ciel en nuit", () => {
-    expect(afficher("2026-09-28T10:00:00", true).hero.classList.contains("night")).toBe(true);
+  it("le thème sombre ne met pas la nuit en plein jour : les photos suivent l'heure", () => {
+    expect(afficher("2026-09-28T10:00:00", true).hero.classList.contains("night")).toBe(false);
+  });
+
+  it("de vraies photos du soir le soir, de jour le jour, et d'autres demain", () => {
+    const soir = paysagesDuMoment(new Date(2026, 9, 11, 20, 0));
+    const jour = paysagesDuMoment(new Date(2026, 9, 11, 10, 0));
+    expect(soir).toHaveLength(5);
+    expect(jour).toHaveLength(5);
+    expect(soir.every((p) => HERO_PAYSAGES_SOIR.includes(p))).toBe(true);
+    expect(jour.every((p) => HERO_PAYSAGES_JOUR.includes(p))).toBe(true);
+    expect(new Set(soir.map((p) => p.id)).size).toBe(5);
+    // Avant 6 h, c'est encore la nuit de la veille.
+    expect(paysagesDuMoment(new Date(2026, 9, 12, 3, 0))).toEqual(soir);
+    // Le lendemain, une autre combinaison.
+    expect(paysagesDuMoment(new Date(2026, 9, 12, 20, 0))).not.toEqual(soir);
+    expect(paysagesDuMoment(new Date(2026, 9, 12, 10, 0))).not.toEqual(jour);
   });
 
   it("l'inspiration du moment montre les trois photos du jour", () => {

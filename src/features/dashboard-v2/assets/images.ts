@@ -67,17 +67,62 @@ export const srcsetPhoto = (id: string, largeurs: number[]): string =>
   largeurs.map((l) => `${urlPhoto(id, l)} ${l}w`).join(", ");
 
 /**
- * La nature du haut de page, qui défile en fondu : vallées tropicales,
- * forêt dense, lémuriens dans la végétation — la nature telle qu'on la
- * vit à Madagascar, pas des sommets enneigés.
+ * LA NATURE DU HAUT DE PAGE, DE JOUR ET DE NUIT
+ *
+ * Deux séries de vraies photos, chacune prise à son heure :
+ *  - le jour : vallées tropicales, forêt dense, lémuriens, cascade —
+ *    la nature telle qu'on la vit à Madagascar ;
+ *  - le soir : de vraies photos de crépuscule et de nuit — l'allée des
+ *    baobabs au coucher du soleil, pirogue sur la mer dorée, palmiers à
+ *    contre-jour, voie lactée au-dessus de la forêt. Jamais une photo de
+ *    jour assombrie.
+ *
+ * Chaque jour, la bannière en prend cinq dans la série du moment, en
+ * décalant le point de départ : la combinaison change d'un jour à
+ * l'autre.
  */
-export const HERO_PAYSAGES: Photo[] = [
+export const HERO_PAYSAGES_JOUR: Photo[] = [
   { id: "1541637593725-923467404d17", cadrage: "50% 55%" },
   { id: "1562550745-f54f73011c70", cadrage: "50% 42%" },
   { id: "1681196488666-096a2d8f3b25", cadrage: "50% 60%" },
   { id: "1693357483341-204143afdeb7", cadrage: "50% 55%" },
   { id: "1599998372764-ac8cbb604f21", cadrage: "50% 50%" },
+  { id: "1546146020-f11a39e6c061", cadrage: "50% 30%" },
+  { id: "1433086966358-54859d0ed716", cadrage: "50% 50%" },
+  { id: "1699622595987-9974344baed5", cadrage: "50% 60%" },
 ];
+
+export const HERO_PAYSAGES_SOIR: Photo[] = [
+  { id: "1677667495307-10e01bd9530f", cadrage: "50% 35%" },
+  { id: "1585335740623-f7a1f0c446eb", cadrage: "50% 60%" },
+  { id: "1659944984855-776187144baf", cadrage: "50% 50%" },
+  { id: "1602174423520-daa2d87175a0", cadrage: "50% 55%" },
+  { id: "1444080748397-f442aa95c3e5", cadrage: "50% 40%" },
+  { id: "1483168527879-c66136b56105", cadrage: "50% 50%" },
+  { id: "1579426922688-8b4607285cd2", cadrage: "50% 55%" },
+  { id: "1695236267549-0732e078655f", cadrage: "50% 50%" },
+  { id: "1601606046870-12a2c4543555", cadrage: "50% 60%" },
+  { id: "1513165533842-2a0dd8b51a74", cadrage: "50% 45%" },
+];
+
+/** Le soir, pour les photos : de 18 h à 6 h, tant qu'il fait nuit dehors. */
+export const estLaNuitDehors = (d: Date): boolean => d.getHours() >= 18 || d.getHours() < 6;
+
+/**
+ * Les cinq photos du moment : la série du jour ou celle du soir, à partir
+ * d'un point de départ qui avance de trois chaque jour.
+ */
+export function paysagesDuMoment(d: Date, combien = 5): Photo[] {
+  const serie = estLaNuitDehors(d) ? HERO_PAYSAGES_SOIR : HERO_PAYSAGES_JOUR;
+  // Avant 6 h, c'est encore la nuit de la veille : mêmes photos.
+  const ref = new Date(d.getFullYear(), d.getMonth(), d.getDate() - (d.getHours() < 6 ? 1 : 0));
+  const jour = Math.floor(Date.UTC(ref.getFullYear(), ref.getMonth(), ref.getDate()) / 86_400_000);
+  const depart = (jour * 3) % serie.length;
+  return Array.from(
+    { length: Math.min(combien, serie.length) },
+    (_, k) => serie[(depart + k) % serie.length],
+  );
+}
 
 /** Une photo par grande section, chacune en rapport avec son sujet. */
 export const PHOTOS_SECTIONS = {
