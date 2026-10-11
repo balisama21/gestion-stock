@@ -1126,23 +1126,31 @@
   text-shadow: 0 1px 14px rgba(0, 0, 0, 0.35);
 }
 .tn .tb-attn {
-  margin-top: calc(6 * var(--u));
+  margin-top: calc(26 * var(--u));
   display: flex;
   gap: 8px 14px;
   flex-wrap: wrap;
 }
-/* Les puces : une icône ronde colorée, le libellé, le nombre à droite. */
+/* Les puces : une icône ronde colorée, le libellé, le nombre à droite.
+   Transparentes comme les flèches des paysages : un contour blanc, le
+   texte blanc ombré, la photo visible au travers. */
 .tn .tb-attn .chip {
   gap: 10px;
-  padding: 6px 7px 6px 7px;
+  padding: 5px 6px;
   font-size: max(13px, calc(14.5 * var(--u)));
   font-weight: 600;
-  color: oklch(0.25 0.03 240);
-  background: rgba(255, 255, 255, 0.95);
-  box-shadow: 0 8px 22px -10px rgba(0, 0, 0, 0.45);
+  color: #fff;
+  background: transparent;
+  border: 1.5px solid rgba(255, 255, 255, 0.75);
+  box-shadow: none;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+  text-shadow: 0 1px 8px rgba(0, 0, 0, 0.45);
+  transition: border-color 0.2s;
 }
 .tn .tb-attn .chip:hover {
-  background: #fff;
+  background: transparent;
+  border-color: #fff;
 }
 .tn .chip .ci {
   display: grid;
