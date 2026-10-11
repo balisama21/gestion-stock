@@ -25,6 +25,7 @@ import { HERO_PAYSAGES, HERO_PHOTOS, indexDuJour, srcsetPhoto, urlPhoto } from "
 import { InspirationDuMoment } from "./InspirationDuMoment";
 import { MenuOption, MenuPill } from "./Pill";
 import { VILLES, useMeteo, type Ciel } from "../lib/meteo";
+import { LETTRES_DES_DEVISES, phraseDuMoment } from "../lib/phrases";
 
 /**
  * LE HAUT DU TABLEAU DE BORD
@@ -246,6 +247,9 @@ const GraphiqueVentes: React.FC<{ points: PointVentes[]; montantsVisibles: boole
 };
 
 /** L'icône du ciel, de jour ou de nuit. */
+/** L'espace insécable du français devant « ! ? : ; ». */
+const typo = (s: string) => s.replace(/ ([!?:;])/g, "\u00a0$1");
+
 function iconeCiel(ciel: Ciel, jour: boolean): React.ReactNode {
   const p = { className: "ic-meteo", "aria-hidden": true } as const;
   switch (ciel) {
@@ -265,16 +269,15 @@ function iconeCiel(ciel: Ciel, jour: boolean): React.ReactNode {
 }
 
 /**
- * La police manuscrite de la devise, demandée une seule fois et pour ses
- * seules lettres : quelques kilo-octets, sans rien retarder.
+ * La police manuscrite de la devise, demandée une seule fois et pour les
+ * seules lettres des devises : quelques kilo-octets, sans rien retarder.
  */
-const DEVISE = "Ensemble vers plus de réussite !";
 function chargerPoliceDevise() {
   if (typeof document === "undefined" || document.getElementById("tn-police-devise")) return;
   const lien = document.createElement("link");
   lien.id = "tn-police-devise";
   lien.rel = "stylesheet";
-  lien.href = `https://fonts.googleapis.com/css2?family=Caveat:wght@600&display=swap&text=${encodeURIComponent(DEVISE)}`;
+  lien.href = `https://fonts.googleapis.com/css2?family=Caveat:wght@600&display=swap&text=${encodeURIComponent(LETTRES_DES_DEVISES)}`;
   document.head.appendChild(lien);
 }
 
@@ -449,6 +452,10 @@ export const HeroTableauDeBord: React.FC<HeroProps> = ({
   const idx = indexDuJour(maintenant ?? new Date(2026, 0, 5));
   const photo = HERO_PHOTOS[idx];
   const salutation = h >= 18 || h < 4 ? "Bonsoir" : "Bonjour";
+  // Une phrase pour la journée, une autre le soir, et d'autres demain.
+  // Avant l'horloge (rendu serveur), une date fixe : pas d'écart à
+  // l'hydratation.
+  const phrase = phraseDuMoment(maintenant ?? new Date(2026, 0, 5, 10));
 
   const bientotEnRupture = stock.aRecommander.length + stock.enRupture.length;
   const comparaisonVentes = ecart(jour.ventes, jour.ventesHier);
@@ -732,15 +739,15 @@ export const HeroTableauDeBord: React.FC<HeroProps> = ({
                 )}
               </h1>
               <p>
-                Chaque jour est une nouvelle opportunité.
+                {typo(phrase.lignes[0])}
                 <br />
-                Votre boutique grandit, pas à pas, vers de nouveaux horizons&nbsp;!
+                {typo(phrase.lignes[1])}
               </p>
               {alertes && <div className="tb-attn">{alertes}</div>}
             </div>
             <div className="tb-devise">
-              <span>Ensemble vers</span>
-              <span>plus de réussite&nbsp;!</span>
+              <span>{typo(phrase.devise[0])}</span>
+              <span>{typo(phrase.devise[1])}</span>
               <svg viewBox="0 0 200 14" aria-hidden="true">
                 <path d="M4 10 C 60 2, 130 2, 196 7" />
               </svg>

@@ -1194,7 +1194,7 @@
 .tn .tb-devise {
   position: absolute;
   z-index: 2;
-  right: calc(170 * var(--u));
+  right: calc(64 * var(--u));
   top: calc(112 * var(--u));
   display: flex;
   flex-direction: column;
@@ -1202,7 +1202,7 @@
   font-family: "Caveat", "Segoe Script", "Bradley Hand", cursive;
   font-weight: 600;
   font-size: max(24px, calc(33 * var(--u)));
-  line-height: 1.05;
+  line-height: 1.35;
   color: #fff;
   text-shadow: 0 2px 14px rgba(0, 0, 0, 0.45);
   transform: rotate(-9deg);
