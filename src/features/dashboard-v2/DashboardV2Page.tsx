@@ -62,6 +62,7 @@ import {
   banniereOperations,
   banniereStock,
   banniereVentes,
+  PHOTOS_SECTIONS,
 } from "./assets/images";
 import { dateDuJour } from "../../lib/dates";
 import { useAuth } from "../../hooks/useAuth";
@@ -743,19 +744,29 @@ export const DashboardV2Page: React.FC<DashboardV2PageProps> = ({
       )}
 
       {operations.length > 0 && (
-        <Section id="operations" image={banniereOperations} titre="Opérations">
+        <Section
+          id="operations"
+          image={banniereOperations}
+          photo={PHOTOS_SECTIONS.operations}
+          titre="Opérations"
+        >
           {grille(operations, carteOperation)}
         </Section>
       )}
 
       {ventesCartes.length > 0 && (
-        <Section id="ventes" image={banniereVentes} titre={aSoi ? "Mes ventes" : "Ventes"}>
+        <Section
+          id="ventes"
+          image={banniereVentes}
+          photo={PHOTOS_SECTIONS.ventes}
+          titre={aSoi ? "Mes ventes" : "Ventes"}
+        >
           {grille(ventesCartes, carteVente)}
         </Section>
       )}
 
       {avecArgent && (
-        <Section id="argent" image={banniereArgent} titre="L'argent">
+        <Section id="argent" image={banniereArgent} photo={PHOTOS_SECTIONS.argent} titre="L'argent">
           {argent.tresorerie && (
             <CarteTresorerie
               capital={capital}
@@ -837,7 +848,7 @@ export const DashboardV2Page: React.FC<DashboardV2PageProps> = ({
       )}
 
       {avecStock && (
-        <Section id="stock" image={banniereStock} titre="Le stock">
+        <Section id="stock" image={banniereStock} photo={PHOTOS_SECTIONS.stock} titre="Le stock">
           {(stockCartes.stock || stockCartes.ruptures) && (
             <CarteStockChiffres
               stock={chiffres.stock}
@@ -888,6 +899,7 @@ export const DashboardV2Page: React.FC<DashboardV2PageProps> = ({
         <Section
           id="fournisseurs"
           image={banniereFournisseurs}
+          photo={PHOTOS_SECTIONS.fournisseurs}
           titre="Fournisseurs & Prestataires"
           sousTitre="Gérez vos fournisseurs de produits et vos prestataires de services facilement."
         >

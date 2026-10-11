@@ -5,7 +5,7 @@ import { dateCourte, dateLongue, heure, montant, nombre } from "../lib/format";
 import type { ChiffresDuJour, ChiffresStock } from "../lib/chiffres";
 import type { EvenementJournal } from "../lib/journal";
 import type { CleTuile } from "../registry";
-import { HERO_PHOTOS, indexDuJour } from "../assets/images";
+import { HERO_PAYSAGES, HERO_PHOTOS, indexDuJour, srcsetPhoto, urlPhoto } from "../assets/images";
 import { InspirationDuMoment } from "./InspirationDuMoment";
 
 /**
@@ -214,6 +214,99 @@ const GraphiqueVentes: React.FC<{ points: PointVentes[]; montantsVisibles: boole
   );
 };
 
+/** Le temps passé sur chaque paysage du haut de page. */
+const DELAI_PAYSAGE = 9_000;
+
+/**
+ * LES PAYSAGES DU HAUT DE PAGE, en fondu enchaîné.
+ *
+ * Chaque jour part d'un paysage différent. Seuls le paysage affiché et
+ * le suivant sont demandés au réseau ; les autres arrivent à leur tour.
+ * Le défilement s'arrête au survol et au focus, et ne démarre pas quand
+ * le système demande de réduire les animations — les flèches restent.
+ *
+ * Le paysage affiché ne cède sa place qu'une fois le suivant chargé : pas
+ * d'écran vide entre deux photos sur une connexion lente. Une photo qui
+ * ne charge pas est retirée du lot ; si aucune ne charge, l'illustration
+ * locale, posée dessous par le composant parent, reste visible.
+ */
+const PaysagesDuHaut: React.FC<{ depart: number }> = ({ depart }) => {
+  const [courant, setCourant] = useState(depart % HERO_PAYSAGES.length);
+  const [pause, setPause] = useState(false);
+  const [vus, setVus] = useState<Set<number>>(() => new Set([depart % HERO_PAYSAGES.length]));
+  const [echecs, setEchecs] = useState<Set<number>>(() => new Set());
+  const [charges, setCharges] = useState<Set<number>>(() => new Set());
+  const [affiche, setAffiche] = useState(depart % HERO_PAYSAGES.length);
+  const n = HERO_PAYSAGES.length;
+
+  useEffect(() => setCourant(depart % n), [depart, n]);
+
+  const aller = (pas: number) => setCourant((c) => (c + pas + n) % n);
+
+  // Le paysage demandé et le suivant, pour qu'il soit prêt à son tour.
+  useEffect(() => {
+    const suivant = (courant + 1) % n;
+    setVus((v) => (v.has(courant) && v.has(suivant) ? v : new Set([...v, courant, suivant])));
+  }, [courant, n]);
+
+  useEffect(() => {
+    if (charges.has(courant)) setAffiche(courant);
+  }, [charges, courant]);
+
+  useEffect(() => {
+    if (pause || n < 2) return;
+    if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return;
+    const id = window.setInterval(() => setCourant((c) => (c + 1) % n), DELAI_PAYSAGE);
+    return () => window.clearInterval(id);
+  }, [pause, n]);
+
+  if (echecs.size === n) return null;
+
+  return (
+    <div
+      className="tb-paysages"
+      onMouseEnter={() => setPause(true)}
+      onMouseLeave={() => setPause(false)}
+      onFocus={() => setPause(true)}
+      onBlur={() => setPause(false)}
+    >
+      {HERO_PAYSAGES.map((p, i) =>
+        vus.has(i) && !echecs.has(i) ? (
+          <img
+            key={p.id}
+            className={`tb-paysage${i === affiche && charges.has(i) ? " actif" : ""}`}
+            src={urlPhoto(p.id, 1800)}
+            srcSet={srcsetPhoto(p.id, [900, 1400, 1800, 2400])}
+            sizes="100vw"
+            alt=""
+            decoding="async"
+            draggable={false}
+            fetchPriority={i === courant ? "high" : "low"}
+            style={{ objectPosition: p.cadrage }}
+            onLoad={() => setCharges((s) => new Set([...s, i]))}
+            onError={() => setEchecs((e) => new Set([...e, i]))}
+          />
+        ) : null,
+      )}
+      {n > 1 && (
+        <div className="tb-nav" role="group" aria-label="Paysages">
+          <button type="button" onClick={() => aller(-1)} aria-label="Paysage précédent">
+            <ChevronRight className="tb-nav-g" aria-hidden="true" />
+          </button>
+          <div className="tb-points" aria-hidden="true">
+            {HERO_PAYSAGES.map((p, i) => (
+              <span key={p.id} className={i === courant ? "actif" : undefined} />
+            ))}
+          </div>
+          <button type="button" onClick={() => aller(1)} aria-label="Paysage suivant">
+            <ChevronRight aria-hidden="true" />
+          </button>
+        </div>
+      )}
+    </div>
+  );
+};
+
 export interface HeroProps {
   /** « Bonjour, Mamy » : le prénom, ou rien. */
   prenom: string;
@@ -366,7 +459,7 @@ export const HeroTableauDeBord: React.FC<HeroProps> = ({
     ),
     entrees: (
       <>
-        {tete("download", "bleu", "Entrées d'argent", "entrees", "Détail des encaissements")}
+        {tete("download", "menthe", "Entrées d'argent", "entrees", "Détail des encaissements")}
         <div className="kv">+{montant(jour.encaisse)}</div>
         <div className="kd">
           {jour.encaisse === 0 ? "Aucun encaissement aujourd'hui." : "Encaissements du jour."}
@@ -374,13 +467,13 @@ export const HeroTableauDeBord: React.FC<HeroProps> = ({
         <div className="kc-pied">
           {tendance(
             "trend",
-            "bleu",
+            "menthe",
             jour.encaisseDuMois > 0 ? `Ce mois ${montant(jour.encaisseDuMois)}` : "–",
           )}
           <button
             type="button"
             className="kl"
-            style={{ color: "var(--k-bleu)" }}
+            style={{ color: "var(--k-menthe)" }}
             onClick={() => onOuvrir("entrees")}
           >
             Voir le détail
@@ -412,7 +505,7 @@ export const HeroTableauDeBord: React.FC<HeroProps> = ({
     ),
     stock: (
       <>
-        {tete("box", "vert", "Stock du jour", "stock", "Produits bientôt en rupture")}
+        {tete("box", "turquoise", "Stock du jour", "stock", "Produits bientôt en rupture")}
         {duo(
           ["Entrées", `+${nombre(jour.entreesStock)} u.`],
           ["Sorties", `−${nombre(jour.sortiesStock)} u.`],
@@ -436,7 +529,7 @@ export const HeroTableauDeBord: React.FC<HeroProps> = ({
               <div className="kb">{montant(stock.valeur)}</div>
             </div>
           )}
-          {lien("produits", "Voir le stock", "var(--k-vert)")}
+          {lien("produits", "Voir le stock", "var(--k-turquoise)")}
         </div>
       </>
     ),
@@ -505,34 +598,44 @@ export const HeroTableauDeBord: React.FC<HeroProps> = ({
         <div className="tbi">
           <div className={`tb-hero${nuit ? " night" : ""}`}>
             <div className="tb-hero-bg" style={{ backgroundImage: `url(${photoDuJour})` }} />
-            <div className="tb-when">
-              <Icone nom="calendar" className="ic1" />
-              <span className="date-longue">{maintenant ? dateLongue(maintenant) : " "}</span>
-              <span className="date-courte">{maintenant ? dateCourte(maintenant) : " "}</span>
-              {maintenant && (
-                <>
-                  <span className="dot">·</span>
-                  <span>{heure(maintenant)}</span>
-                </>
-              )}
-              <button
-                ref={boutonRafraichir}
-                type="button"
-                className="ic2"
-                onClick={onRafraichir}
-                aria-label="Actualiser les données"
-                title={chargeA ? `Mis à jour à ${heure(chargeA)}` : "Actualiser"}
-              >
-                <Icone nom="refresh" />
-              </button>
-              {vue}
+            <PaysagesDuHaut depart={idx} />
+            <div className="tb-voile" aria-hidden="true" />
+            <div className="tb-texte">
+              <div className="tb-when">
+                <Icone nom="calendar" className="ic1" />
+                <span className="date-longue">{maintenant ? dateLongue(maintenant) : " "}</span>
+                <span className="date-courte">{maintenant ? dateCourte(maintenant) : " "}</span>
+                {maintenant && (
+                  <>
+                    <span className="dot">·</span>
+                    <span>{heure(maintenant)}</span>
+                  </>
+                )}
+                <button
+                  ref={boutonRafraichir}
+                  type="button"
+                  className="ic2"
+                  onClick={onRafraichir}
+                  aria-label="Actualiser les données"
+                  title={chargeA ? `Mis à jour à ${heure(chargeA)}` : "Actualiser"}
+                >
+                  <Icone nom="refresh" />
+                </button>
+                {vue}
+              </div>
+              <h1>
+                {salutation}
+                {prenom ? (
+                  <>
+                    , <span className="prenom">{prenom}</span>
+                  </>
+                ) : (
+                  ""
+                )}
+              </h1>
+              <p>Voici un aperçu de l&apos;activité de votre boutique aujourd&apos;hui.</p>
+              {alertes && <div className="tb-attn">{alertes}</div>}
             </div>
-            <h1>
-              {salutation}
-              {prenom ? `, ${prenom}` : ""}
-            </h1>
-            <p>Voici un aperçu de l&apos;activité de votre boutique aujourd&apos;hui.</p>
-            {alertes && <div className="tb-attn">{alertes}</div>}
           </div>
 
           {tuiles.length > 0 && (

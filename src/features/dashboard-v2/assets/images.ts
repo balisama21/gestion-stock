@@ -40,6 +40,81 @@ export const HERO_PHOTOS: { jour: string; nuit: string }[] = [
 ];
 
 /**
+ * LES PHOTOGRAPHIES DU TABLEAU DE BORD
+ *
+ * De vraies photos (Unsplash, licence libre), servies par leur CDN qui
+ * les recadre et les compresse à la largeur demandée : rien ne pèse sur
+ * le paquet de l'application. Leur adresse est stable — un identifiant
+ * de photo, jamais une image « au hasard ».
+ *
+ * Si l'une ne charge pas (réseau coupé, CDN injoignable), l'illustration
+ * locale posée dessous reste visible : le haut de page et les bannières
+ * ne sont jamais vides.
+ */
+export interface Photo {
+  /** L'identifiant Unsplash, sans le préfixe `photo-`. */
+  id: string;
+  /** Le point de cadrage, en `object-position`. */
+  cadrage: string;
+}
+
+/** L'adresse d'une photo, à une largeur donnée. */
+export const urlPhoto = (id: string, largeur: number, qualite = 70): string =>
+  `https://images.unsplash.com/photo-${id}?auto=format&fit=crop&w=${largeur}&q=${qualite}`;
+
+/** Le `srcset` d'une photo : le navigateur prend la largeur qu'il lui faut. */
+export const srcsetPhoto = (id: string, largeurs: number[]): string =>
+  largeurs.map((l) => `${urlPhoto(id, l)} ${l}w`).join(", ");
+
+/** Les paysages du haut de page, qui défilent en fondu. */
+export const HERO_PAYSAGES: Photo[] = [
+  {
+    id: "1501785888041-af3ef285b470",
+    cadrage: "50% 60%",
+  },
+  {
+    id: "1464822759023-fed622ff2c3b",
+    cadrage: "50% 45%",
+  },
+  {
+    id: "1470071459604-3b5ec3a7fe05",
+    cadrage: "50% 55%",
+  },
+  {
+    id: "1439066615861-d1af74d74000",
+    cadrage: "50% 55%",
+  },
+  {
+    id: "1506905925346-21bda4d32df4",
+    cadrage: "50% 40%",
+  },
+];
+
+/** Une photo par grande section, chacune en rapport avec son sujet. */
+export const PHOTOS_SECTIONS = {
+  operations: {
+    id: "1501854140801-50d01698950b",
+    cadrage: "50% 60%",
+  },
+  ventes: {
+    id: "1556741533-6e6a62bd8b49",
+    cadrage: "50% 50%",
+  },
+  argent: {
+    id: "1579621970563-ebec7560ff3e",
+    cadrage: "50% 75%",
+  },
+  stock: {
+    id: "1553413077-190dd305871c",
+    cadrage: "50% 55%",
+  },
+  fournisseurs: {
+    id: "1494412574643-ff11b0a5c1c3",
+    cadrage: "50% 50%",
+  },
+} satisfies Record<string, Photo>;
+
+/**
  * « Inspiration du moment » : toutes les photos du dossier `plantes/`,
  * dans l'ordre de leur nom. Il suffit d'y déposer une photo (JPG, PNG ou
  * WebP) pour qu'elle entre dans la rotation, sans rien toucher d'autre.

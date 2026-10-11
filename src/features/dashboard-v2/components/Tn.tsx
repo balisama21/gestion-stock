@@ -1,36 +1,67 @@
-import React from "react";
+import React, { useState } from "react";
 import { Icone, type NomIcone } from "../../../components/shared/Icone";
+import { srcsetPhoto, urlPhoto, type Photo } from "../assets/images";
 
 /**
  * Les briques de la mise en page `docs/maquette/dashboard-tantana.html`.
  * Les styles vivent dans `tantana.css`, sous la classe `.tn` de la page.
  */
 
-/** Une bannière de section : titre à gauche, illustration pleine largeur derrière. */
+/**
+ * Une bannière de section : titre à gauche sur un voile clair, la photo
+ * de la section qui se dévoile vers la droite.
+ *
+ * L'illustration locale (`image`) reste dessous : si la photo ne charge
+ * pas, c'est elle qu'on voit. La photo n'est demandée qu'à l'approche de
+ * la section — les bannières du bas ne retardent pas le haut de page.
+ */
 export const Banniere: React.FC<{
   id: string;
   image: string;
+  photo?: Photo;
   titre: string;
   sousTitre?: string;
-}> = ({ id, image, titre, sousTitre }) => (
-  <div className="banner full" style={{ ["--bn" as string]: `url(${image})` }}>
-    <div className="blk-h">
-      <h2 id={id}>{titre}</h2>
-      {sousTitre && <p>{sousTitre}</p>}
+}> = ({ id, image, photo, titre, sousTitre }) => {
+  const [echec, setEchec] = useState(false);
+  const avecPhoto = photo && !echec;
+  return (
+    <div
+      className={`banner full${avecPhoto ? " photo" : ""}`}
+      style={{ ["--bn" as string]: `url(${image})` }}
+    >
+      {avecPhoto && (
+        <img
+          className="bn-photo"
+          src={urlPhoto(photo.id, 1600)}
+          srcSet={srcsetPhoto(photo.id, [800, 1200, 1600, 2200])}
+          sizes="(max-width: 999px) 100vw, 75vw"
+          alt=""
+          loading="lazy"
+          decoding="async"
+          draggable={false}
+          style={{ objectPosition: photo.cadrage }}
+          onError={() => setEchec(true)}
+        />
+      )}
+      <div className="blk-h">
+        <h2 id={id}>{titre}</h2>
+        {sousTitre && <p>{sousTitre}</p>}
+      </div>
     </div>
-  </div>
-);
+  );
+};
 
 /** Une section du tableau de bord, avec sa bannière. */
 export const Section: React.FC<{
   id: string;
   image: string;
+  photo?: Photo;
   titre: string;
   sousTitre?: string;
   children: React.ReactNode;
-}> = ({ id, image, titre, sousTitre, children }) => (
+}> = ({ id, image, photo, titre, sousTitre, children }) => (
   <section className="blk" id={id} aria-labelledby={`${id}-titre`}>
-    <Banniere id={`${id}-titre`} image={image} titre={titre} sousTitre={sousTitre} />
+    <Banniere id={`${id}-titre`} image={image} photo={photo} titre={titre} sousTitre={sousTitre} />
     <div className="blk-corps">{children}</div>
   </section>
 );
