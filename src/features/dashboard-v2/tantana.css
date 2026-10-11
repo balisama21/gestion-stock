@@ -664,9 +664,19 @@
    peinte plus tard : sans ceci, elle passe par-dessus le menu et avale
    les clics (« Appliquer la période » ne répondait plus). La section
    qui porte le menu passe devant tant qu'il est ouvert. */
-.tn section.blk:has(.menu-holder > .menu) {
+.tn section.blk:has(.menu-holder > .menu),
+.tn section#hero.tbsec:has(.menu-holder > .menu) {
   position: relative;
   z-index: 10;
+}
+/* De même, dans une section : la carte qui porte le menu ouvert passe
+   devant ses voisines. Les cartes vitrées (flou d'arrière-plan) forment
+   chacune leur propre plan : sans ceci, la carte suivante — l'inspiration
+   du moment, à côté de l'aperçu des ventes — recouvre le menu. */
+.tn .card:has(.menu-holder > .menu),
+.tn .tc:has(.menu-holder > .menu),
+.tn .kc:has(.menu-holder > .menu) {
+  z-index: 20;
 }
 .tn .pill-choix,
 .tn .menu-holder > .pill {
