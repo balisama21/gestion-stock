@@ -77,90 +77,93 @@ export const srcsetPhoto = (id: string, largeurs: number[]): string =>
 /**
  * LA NATURE DU HAUT DE PAGE, DE JOUR ET DE NUIT
  *
- * Deux séries de vraies photos, chacune prise à son heure :
- *  - le jour : vallées tropicales, forêt dense, lémuriens, cascade —
- *    la nature telle qu'on la vit à Madagascar ;
- *  - le soir : de vraies photos de crépuscule et de nuit — l'allée des
- *    baobabs au coucher du soleil, pirogue sur la mer dorée, palmiers à
- *    contre-jour, voie lactée au-dessus de la forêt. Jamais une photo de
- *    jour assombrie.
+ * Deux séries de vraies photos, chacune prise à son heure, rangées par
+ * familles puis entrelacées : cinq photos consécutives mêlent toujours
+ * cinq sujets différents.
+ *  - le jour : paysages · animaux (lémuriens, caméléons, gecko) ·
+ *    oiseaux (martins-pêcheurs, tisserin…) · arbres fruitiers (manguiers,
+ *    bananiers, papayers) · fleurs et végétation (anthurium, héliconia,
+ *    hibiscus, frangipanier, cascade) ;
+ *  - le soir, de vraies photos de crépuscule et de nuit : baobabs au
+ *    couchant · palmiers et mer · oiseaux en silhouette · nuit étoilée et
+ *    lacs · arbres et vallées au soleil couchant. Jamais une photo de jour
+ *    assombrie.
  *
  * TRENTE ET UNE PHOTOS PAR SÉRIE, un mois entier : chaque jour, la
  * bannière en montre cinq, et la série avance de cinq le lendemain. La
  * photo de tête change donc tous les jours pendant trente et un jours,
  * deux jours qui se suivent ne partagent aucune photo, puis la boucle
- * recommence. L'ordre est mélangé une fois pour toutes, pour que chaque
- * jour mêle paysages, animaux, cascades et fleurs.
+ * recommence.
  *
  * Les photos importées par le créateur de la plateforme (Paramètres →
  * Photos du haut de page) prennent la suite de celles-ci dans la boucle.
  */
 export const HERO_PAYSAGES_JOUR: Photo[] = [
   { id: "1541637593725-923467404d17", cadrage: "50% 55%" },
-  { id: "1699622595987-9974344baed5", cadrage: "50% 60%" },
-  { id: "1521706862577-47b053587f91", cadrage: "50% 50%" },
-  { id: "1464419014442-769c523d575b", cadrage: "50% 50%" },
-  { id: "1549615567-101937a79124", cadrage: "50% 50%" },
-  { id: "1599998372764-ac8cbb604f21", cadrage: "50% 50%" },
-  { id: "1732003060139-d75ee1883cb9", cadrage: "50% 50%" },
-  { id: "1500622944204-b135684e99fd", cadrage: "50% 50%" },
-  { id: "1595224162232-4dee7b8fd18b", cadrage: "50% 50%" },
   { id: "1562550745-f54f73011c70", cadrage: "50% 42%" },
-  { id: "1598563352765-85f7971070a7", cadrage: "50% 50%" },
+  { id: "1683321937185-ae683df69a6f", cadrage: "50% 50%" },
+  { id: "1622955658214-d05c1c6fcf84", cadrage: "50% 50%" },
   { id: "1759827767985-b14b62b04d43", cadrage: "50% 50%" },
-  { id: "1513137389744-267d0b623771", cadrage: "50% 50%" },
-  { id: "1593285942976-70dbd769a590", cadrage: "50% 50%" },
-  { id: "1546146020-f11a39e6c061", cadrage: "50% 30%" },
-  { id: "1750615745167-09d610d30d54", cadrage: "50% 50%" },
-  { id: "1610805177214-885738d255f1", cadrage: "50% 50%" },
-  { id: "1569622296640-38737c1d82de", cadrage: "50% 50%" },
+  { id: "1732003060139-d75ee1883cb9", cadrage: "50% 50%" },
+  { id: "1617540021016-72023b487e99", cadrage: "50% 50%" },
+  { id: "1621089667522-272aa4b5b71b", cadrage: "50% 50%" },
+  { id: "1604127627335-53b67fb7d8cf", cadrage: "50% 50%" },
+  { id: "1464419014442-769c523d575b", cadrage: "50% 50%" },
   { id: "1681196488666-096a2d8f3b25", cadrage: "50% 60%" },
+  { id: "1750615745167-09d610d30d54", cadrage: "50% 50%" },
+  { id: "1697576262034-460fb0ef99c3", cadrage: "50% 50%" },
+  { id: "1697578760830-9e61ec23d29f", cadrage: "50% 50%" },
+  { id: "1682888433896-c17bf057d0af", cadrage: "50% 50%" },
   { id: "1627900355526-f77d70cc6887", cadrage: "50% 50%" },
-  { id: "1530215078880-605aa750b7bb", cadrage: "50% 50%" },
-  { id: "1681738623292-3a755d6c8611", cadrage: "50% 50%" },
-  { id: "1552302781-db5b474f4b93", cadrage: "50% 50%" },
-  { id: "1433086966358-54859d0ed716", cadrage: "50% 50%" },
-  { id: "1560851691-ebb64b584d3d", cadrage: "50% 50%" },
-  { id: "1444290679983-dd3aabf671ec", cadrage: "50% 50%" },
-  { id: "1542536686-cdc0f32ae997", cadrage: "50% 50%" },
+  { id: "1619203922058-7c42019fdd37", cadrage: "50% 50%" },
+  { id: "1648625882326-27c46e36eefd", cadrage: "50% 50%" },
+  { id: "1629358821360-500f89a5a907", cadrage: "50% 50%" },
   { id: "1693357483341-204143afdeb7", cadrage: "50% 55%" },
-  { id: "1732003195816-8e76bfc6f4a6", cadrage: "50% 50%" },
-  { id: "1553602932-f93f674a9aaa", cadrage: "50% 50%" },
-  { id: "1623385521200-ac42d87723d3", cadrage: "50% 50%" },
+  { id: "1500622944204-b135684e99fd", cadrage: "50% 50%" },
+  { id: "1552302781-db5b474f4b93", cadrage: "50% 50%" },
+  { id: "1682788819541-f4bfe14d192a", cadrage: "50% 50%" },
+  { id: "1552901633-210088e17486", cadrage: "50% 50%" },
+  { id: "1572225273548-c1a155bdfe10", cadrage: "50% 50%" },
+  { id: "1593285942976-70dbd769a590", cadrage: "50% 50%" },
+  { id: "1781520513038-8fe543ed270b", cadrage: "50% 50%" },
+  { id: "1506848731927-5217d5ae9a5b", cadrage: "50% 50%" },
+  { id: "1625007507813-28644d7d8b03", cadrage: "50% 50%" },
+  { id: "1554569258-670a25302596", cadrage: "50% 50%" },
+  { id: "1598563352765-85f7971070a7", cadrage: "50% 50%" },
 ];
 
 export const HERO_PAYSAGES_SOIR: Photo[] = [
   { id: "1677667495307-10e01bd9530f", cadrage: "50% 35%" },
-  { id: "1695236267549-0732e078655f", cadrage: "50% 50%" },
-  { id: "1597711002271-db32de5ff02b", cadrage: "50% 50%" },
-  { id: "1781428269398-0c044f7060c5", cadrage: "50% 50%" },
-  { id: "1633116910392-54218a9ef732", cadrage: "50% 50%" },
-  { id: "1444080748397-f442aa95c3e5", cadrage: "50% 40%" },
-  { id: "1571043281665-9debfed10719", cadrage: "50% 50%" },
-  { id: "1597426061335-e50c8697630b", cadrage: "50% 50%" },
-  { id: "1680708610902-76440fac1105", cadrage: "50% 50%" },
-  { id: "1585335740623-f7a1f0c446eb", cadrage: "50% 60%" },
-  { id: "1601606046870-12a2c4543555", cadrage: "50% 60%" },
-  { id: "1637231775524-2ce65aaadcc0", cadrage: "50% 50%" },
-  { id: "1781429235783-65a985cbd0f0", cadrage: "50% 50%" },
-  { id: "1510564742958-fb9337aa669e", cadrage: "50% 50%" },
   { id: "1483168527879-c66136b56105", cadrage: "50% 50%" },
-  { id: "1672841828482-45faa4c70e50", cadrage: "50% 50%" },
-  { id: "1593704273477-8a0280c1c237", cadrage: "50% 50%" },
-  { id: "1604617329741-e7540714dc59", cadrage: "50% 50%" },
-  { id: "1659944984855-776187144baf", cadrage: "50% 50%" },
-  { id: "1513165533842-2a0dd8b51a74", cadrage: "50% 45%" },
-  { id: "1591862264319-f00c75a0af32", cadrage: "50% 50%" },
-  { id: "1501164071995-0929702fd3ba", cadrage: "50% 50%" },
-  { id: "1624645384435-5d9fab1a3a23", cadrage: "50% 50%" },
+  { id: "1504270159110-876cfaca9ece", cadrage: "50% 50%" },
+  { id: "1444080748397-f442aa95c3e5", cadrage: "50% 40%" },
+  { id: "1695236267549-0732e078655f", cadrage: "50% 50%" },
+  { id: "1585335740623-f7a1f0c446eb", cadrage: "50% 60%" },
   { id: "1579426922688-8b4607285cd2", cadrage: "50% 55%" },
-  { id: "1605207693166-394b929e8a1a", cadrage: "50% 50%" },
-  { id: "1704684150861-8f7a89335e64", cadrage: "50% 50%" },
-  { id: "1589790272257-8c0f79c221da", cadrage: "50% 50%" },
-  { id: "1602174423520-daa2d87175a0", cadrage: "50% 55%" },
+  { id: "1617972247570-b9e234cfa991", cadrage: "50% 50%" },
+  { id: "1633116910392-54218a9ef732", cadrage: "50% 50%" },
+  { id: "1501164071995-0929702fd3ba", cadrage: "50% 50%" },
+  { id: "1659944984855-776187144baf", cadrage: "50% 50%" },
   { id: "1460627390041-532a28402358", cadrage: "50% 50%" },
+  { id: "1560278078-f5007b846802", cadrage: "50% 50%" },
+  { id: "1513165533842-2a0dd8b51a74", cadrage: "50% 45%" },
+  { id: "1680708610902-76440fac1105", cadrage: "50% 50%" },
+  { id: "1781428269398-0c044f7060c5", cadrage: "50% 50%" },
+  { id: "1672841828482-45faa4c70e50", cadrage: "50% 50%" },
+  { id: "1603799438754-aa77123d8585", cadrage: "50% 50%" },
+  { id: "1510564742958-fb9337aa669e", cadrage: "50% 50%" },
+  { id: "1604617329741-e7540714dc59", cadrage: "50% 50%" },
+  { id: "1781429235783-65a985cbd0f0", cadrage: "50% 50%" },
+  { id: "1605207693166-394b929e8a1a", cadrage: "50% 50%" },
+  { id: "1608671359422-8036f8c55a28", cadrage: "50% 50%" },
   { id: "1506404523803-9f9fa45e066e", cadrage: "50% 50%" },
-  { id: "1704589946424-b64cef22a5e2", cadrage: "50% 50%" },
+  { id: "1589790272257-8c0f79c221da", cadrage: "50% 50%" },
+  { id: "1593704273477-8a0280c1c237", cadrage: "50% 50%" },
+  { id: "1602174423520-daa2d87175a0", cadrage: "50% 55%" },
+  { id: "1521510962739-a5f886b18539", cadrage: "50% 50%" },
+  { id: "1624645384435-5d9fab1a3a23", cadrage: "50% 50%" },
+  { id: "1601606046870-12a2c4543555", cadrage: "50% 60%" },
+  { id: "1597711002271-db32de5ff02b", cadrage: "50% 50%" },
 ];
 
 /** Le soir, pour les photos : de 18 h à 6 h, tant qu'il fait nuit dehors. */
