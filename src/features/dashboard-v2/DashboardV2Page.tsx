@@ -54,7 +54,7 @@ import {
 } from "./lib/chiffres";
 import { lireJournal } from "./lib/journal";
 import { agendaDuMois } from "./lib/agenda";
-import { VUES, VUE_PAR_CLE } from "./roles";
+import { VUE_PAR_CLE } from "./roles";
 import { CARTE_PAR_CLE, type CleCarte, type CleTuile } from "./registry";
 import {
   banniereArgent,
@@ -529,36 +529,6 @@ export const DashboardV2Page: React.FC<DashboardV2PageProps> = ({
     </MenuPill>
   );
 
-  /** Le choix de la vue métier, offert au propriétaire. */
-  const selecteurVue =
-    droits.vuesDisponibles.length > 1 ? (
-      <MenuPill
-        icon={<Icone nom="eye" />}
-        value={vueCourante?.nom ?? "Dirigeant"}
-        alignLeft
-        className="vue"
-        ariaLabel={`Vue : ${vueCourante?.nom ?? "Dirigeant"}`}
-      >
-        {(fermer) =>
-          VUES.filter((v) => droits.vuesDisponibles.includes(v.cle)).map((v) => (
-            <MenuOption
-              key={v.cle}
-              checked={droits.vue === v.cle}
-              onClick={() => {
-                droits.changerDeVue(v.cle);
-                fermer();
-              }}
-            >
-              <span className="two-lines">
-                {v.nom}
-                <small>{v.resume}</small>
-              </span>
-            </MenuOption>
-          ))
-        }
-      </MenuPill>
-    ) : null;
-
   /** Ce qui est urgent, en puces sous le bonjour. Rien quand tout va bien. */
   const puces =
     chiffres.attention.total === 0 ? null : (
@@ -705,7 +675,6 @@ export const DashboardV2Page: React.FC<DashboardV2PageProps> = ({
         chargeA={chargeA}
         onRafraichir={rafraichir}
         boutonRafraichir={boutonRafraichir}
-        vue={selecteurVue}
         alertes={puces}
         tuiles={droits.tuiles}
         jour={chiffres.duJour}

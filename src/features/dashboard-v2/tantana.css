@@ -1235,14 +1235,15 @@
   min-height: 0;
   border-radius: 50%;
   color: #fff;
-  background: rgba(255, 255, 255, 0.16);
-  border: 1px solid rgba(255, 255, 255, 0.38);
-  -webkit-backdrop-filter: blur(8px);
-  backdrop-filter: blur(8px);
-  transition: background 0.2s;
+  /* Transparentes : un simple cercle blanc sur la photo, sans fond. */
+  background: transparent;
+  border: 1.5px solid rgba(255, 255, 255, 0.75);
+  filter: drop-shadow(0 1px 4px rgba(0, 0, 0, 0.35));
+  transition: border-color 0.2s;
 }
 .tn .tb-nav button:hover {
-  background: rgba(255, 255, 255, 0.32);
+  background: transparent;
+  border-color: #fff;
 }
 .tn .tb-nav button:focus-visible {
   outline: 2px solid #fff;
