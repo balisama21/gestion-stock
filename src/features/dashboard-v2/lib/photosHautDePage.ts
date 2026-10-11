@@ -18,7 +18,7 @@ import type { Photo } from "../assets/images";
 
 export type MomentPhoto = "jour" | "soir";
 
-const SEAU = "haut-de-page";
+export const SEAU = "haut-de-page";
 
 /** Une bannière large : jusqu'à 2 400 px, et pas plus haut que 3:2. */
 const LARGEUR_MAX = 2400;
@@ -36,7 +36,7 @@ export interface PhotoImportee {
   url: string;
 }
 
-const adresse = (chemin: string): string =>
+export const adresse = (chemin: string): string =>
   supabase.storage.from(SEAU).getPublicUrl(chemin).data.publicUrl;
 
 export async function lirePhotosHautDePage(): Promise<{
@@ -103,6 +103,34 @@ const identifiant = (): string =>
     ? crypto.randomUUID()
     : `${Date.now()}-${Math.random().toString(36).slice(2)}`;
 
+/**
+ * Prépare une photo et la dépose dans le seau, sous `dossier/`. Partagé
+ * avec les photos des sections : même seau, même préparation.
+ */
+export async function envoyerPhoto(
+  fichier: File,
+  dossier: string,
+): Promise<{ chemin: string | null; error: string | null }> {
+  if (!TYPES.includes(fichier.type)) {
+    return { chemin: null, error: `${fichier.name} : seules les images JPEG, PNG ou WebP.` };
+  }
+  let pret: File;
+  try {
+    pret = await preparer(fichier);
+  } catch {
+    return { chemin: null, error: `${fichier.name} : cette image n'a pas pu être lue.` };
+  }
+  if (pret.size > TAILLE_MAX) {
+    return { chemin: null, error: `${fichier.name} : plus de 4 Mo, même après réduction.` };
+  }
+  const chemin = `${dossier}/${identifiant()}.${pret.type === "image/webp" ? "webp" : "jpg"}`;
+  const { error } = await supabase.storage
+    .from(SEAU)
+    .upload(chemin, pret, { contentType: pret.type, upsert: false });
+  if (error) return { chemin: null, error: `${fichier.name} : ${error.message}` };
+  return { chemin, error: null };
+}
+
 /** Ajoute des photos à la fin d'une série, dans l'ordre choisi. */
 export async function ajouterPhotosHautDePage(
   moment: MomentPhoto,
@@ -112,27 +140,9 @@ export async function ajouterPhotosHautDePage(
   const erreurs: string[] = [];
   let position = positionDepart;
   for (const f of fichiers) {
-    if (!TYPES.includes(f.type)) {
-      erreurs.push(`${f.name} : seules les images JPEG, PNG ou WebP.`);
-      continue;
-    }
-    let pret: File;
-    try {
-      pret = await preparer(f);
-    } catch {
-      erreurs.push(`${f.name} : cette image n'a pas pu être lue.`);
-      continue;
-    }
-    if (pret.size > TAILLE_MAX) {
-      erreurs.push(`${f.name} : plus de 4 Mo, même après réduction.`);
-      continue;
-    }
-    const chemin = `${moment}/${identifiant()}.${pret.type === "image/webp" ? "webp" : "jpg"}`;
-    const { error } = await supabase.storage
-      .from(SEAU)
-      .upload(chemin, pret, { contentType: pret.type, upsert: false });
-    if (error) {
-      erreurs.push(`${f.name} : ${error.message}`);
+    const { chemin, error } = await envoyerPhoto(f, moment);
+    if (!chemin) {
+      erreurs.push(error ?? f.name);
       continue;
     }
     const { error: e } = await supabase

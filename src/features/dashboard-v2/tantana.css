@@ -4248,75 +4248,56 @@
     0 14px 30px -12px rgba(15, 60, 40, 0.4);
 }
 
-/* ── Les bannières photographiques des sections ── */
+/* ── Les bannières photographiques des sections ──
+   Sans cadre : ni coins arrondis, ni ombre, ni fond. La photo se pose
+   directement entre les cartes, d'un bord à l'autre de la page, et se
+   fond dans le fond de page sur sa gauche (sous le titre), en haut et en
+   bas. */
 .tn .banner.full.photo {
   aspect-ratio: auto;
-  background: rgb(240, 249, 244);
   display: flex;
   align-items: center;
-  min-height: clamp(120px, calc(156 * var(--us)), 176px);
-  margin: 0 0 var(--ecart);
-  border-radius: clamp(14px, calc(22 * var(--us)), 22px);
+  min-height: clamp(130px, calc(172 * var(--us)), 192px);
+  margin: 0 calc(-1 * var(--gut)) var(--ecart);
+  background: none;
+  border-radius: 0;
   overflow: hidden;
-  box-shadow: var(--verre-ombre);
+  box-shadow: none;
 }
-/* L'illustration locale, en repli, sous la photo. */
+/* L'illustration de repli ne sert que sans photo (classe .photo absente). */
 .tn .banner.full.photo::before {
-  background-size: cover;
-  background-position: right bottom;
-  -webkit-mask-image: none;
-  mask-image: none;
+  display: none;
 }
-/* La photo occupe la droite de la bannière : son sujet, souvent centré,
-   reste visible au lieu de disparaître sous le voile du titre. */
 .tn .banner.full.photo .bn-photo {
   position: absolute;
   top: 0;
   right: 0;
   z-index: 0;
-  width: 70%;
+  width: 74%;
   height: 100%;
   object-fit: cover;
   user-select: none;
   pointer-events: none;
-}
-/* Un voile clair à gauche, sous le titre ; la photo se dévoile à droite. */
-.tn .banner.full.photo::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  z-index: 1;
-  background: linear-gradient(
-    90deg,
-    rgb(240, 249, 244) 0,
-    rgb(240, 249, 244) 30%,
-    rgba(240, 249, 244, 0.6) 42%,
-    rgba(240, 249, 244, 0) 62%
-  );
-  pointer-events: none;
-}
-.dark .tn .banner.full.photo::after {
-  background: linear-gradient(
-    90deg,
-    var(--card) 0,
-    var(--card) 30%,
-    color-mix(in oklab, var(--card) 55%, transparent) 44%,
-    color-mix(in oklab, var(--card) 10%, transparent) 70%
-  );
-}
-.dark .tn .banner.full.photo {
-  background: var(--card);
+  -webkit-mask-image:
+    linear-gradient(90deg, transparent 0, #000 40%),
+    linear-gradient(180deg, transparent 0, #000 22%, #000 78%, transparent 100%);
+  -webkit-mask-composite: source-in;
+  mask-image:
+    linear-gradient(90deg, transparent 0, #000 40%),
+    linear-gradient(180deg, transparent 0, #000 22%, #000 78%, transparent 100%);
+  mask-composite: intersect;
 }
 .dark .tn .banner.full.photo .bn-photo {
   opacity: 0.85;
 }
 .tn .banner.full.photo .blk-h {
   position: relative;
+  z-index: 1;
   left: auto;
   right: auto;
   top: auto;
-  padding: 22px clamp(20px, 2.6cqw, 44px);
-  max-width: min(560px, 58%);
+  padding: 20px max(var(--gut), 2.6cqw);
+  max-width: min(560px, 46%);
 }
 .tn .banner.full.photo h2 {
   font-size: clamp(22px, 2.1cqw, 32px);
@@ -4328,27 +4309,19 @@
 
 @media (max-width: 999px) {
   .tn .banner.full.photo {
-    min-height: 112px;
-    margin: 0 0 14px;
+    min-height: 118px;
+    margin: 0 calc(-1 * var(--gut)) 14px;
   }
+  /* Sur téléphone la photo prend toute la largeur, très estompée sous le
+     titre, nette à droite ; un léger halo garde le titre lisible. */
   .tn .banner.full.photo .bn-photo {
     width: 100%;
-  }
-  .tn .banner.full.photo::after {
-    background: linear-gradient(
-      90deg,
-      rgba(246, 252, 248, 0.96) 0,
-      rgba(246, 252, 248, 0.82) 45%,
-      rgba(246, 252, 248, 0.25) 100%
-    );
-  }
-  .dark .tn .banner.full.photo::after {
-    background: linear-gradient(
-      90deg,
-      color-mix(in oklab, var(--background) 95%, transparent) 0,
-      color-mix(in oklab, var(--background) 80%, transparent) 45%,
-      color-mix(in oklab, var(--background) 30%, transparent) 100%
-    );
+    -webkit-mask-image:
+      linear-gradient(90deg, rgba(0, 0, 0, 0.15) 0, rgba(0, 0, 0, 0.55) 45%, #000 85%),
+      linear-gradient(180deg, transparent 0, #000 22%, #000 78%, transparent 100%);
+    mask-image:
+      linear-gradient(90deg, rgba(0, 0, 0, 0.15) 0, rgba(0, 0, 0, 0.55) 45%, #000 85%),
+      linear-gradient(180deg, transparent 0, #000 22%, #000 78%, transparent 100%);
   }
   .tn .banner.full.photo .blk-h {
     padding: 18px var(--gut);
@@ -4356,6 +4329,14 @@
   }
   .tn .banner.full.photo h2 {
     font-size: 22px;
+    text-shadow: 0 1px 10px rgba(255, 255, 255, 0.85);
+  }
+  .tn .banner.full.photo .blk-h p {
+    text-shadow: 0 1px 8px rgba(255, 255, 255, 0.85);
+  }
+  .dark .tn .banner.full.photo h2,
+  .dark .tn .banner.full.photo .blk-h p {
+    text-shadow: 0 1px 10px rgba(0, 0, 0, 0.7);
   }
 }
 @media (max-width: 640px) {

@@ -21,6 +21,7 @@ import {
   Leaf,
   Quote,
   Images,
+  LayoutPanelTop,
 } from "lucide-react";
 
 export type SettingsTab =
@@ -42,7 +43,8 @@ export type SettingsTab =
   | "prix"
   | "inspiration"
   | "phrases"
-  | "photos-haut";
+  | "photos-haut"
+  | "photos-sections";
 
 interface TabDef {
   id: SettingsTab;
@@ -217,6 +219,14 @@ const GROUPS: GroupDef[] = [
         label: "Photos du haut de page",
         hint: "Bannière du jour et du soir",
         icon: <Images className="w-4 h-4" />,
+        ownerOnly: false,
+        adminOnly: true,
+      },
+      {
+        id: "photos-sections",
+        label: "Photos des sections",
+        hint: "Bannières entre les cartes",
+        icon: <LayoutPanelTop className="w-4 h-4" />,
         ownerOnly: false,
         adminOnly: true,
       },

@@ -196,29 +196,99 @@ export function paysagesDuMoment(
   return Array.from({ length: Math.min(combien, n) }, (_, k) => serie[(depart + k) % n]);
 }
 
-/** Une photo par grande section, chacune en rapport avec son sujet. */
-export const PHOTOS_SECTIONS = {
-  operations: {
-    id: "1501854140801-50d01698950b",
-    cadrage: "50% 60%",
-  },
-  ventes: {
-    id: "1556741533-6e6a62bd8b49",
-    cadrage: "50% 50%",
-  },
-  argent: {
-    id: "1579621970563-ebec7560ff3e",
-    cadrage: "50% 75%",
-  },
-  stock: {
-    id: "1553413077-190dd305871c",
-    cadrage: "50% 55%",
-  },
-  fournisseurs: {
-    id: "1494412574643-ff11b0a5c1c3",
-    cadrage: "50% 50%",
-  },
-} satisfies Record<string, Photo>;
+/** Les grandes sections du tableau de bord, chacune avec sa bannière. */
+export type CleSection = "operations" | "ventes" | "argent" | "stock" | "fournisseurs";
+
+export const SECTIONS: { cle: CleSection; nom: string }[] = [
+  { cle: "operations", nom: "Opérations" },
+  { cle: "ventes", nom: "Ventes" },
+  { cle: "argent", nom: "L'argent" },
+  { cle: "stock", nom: "Le stock" },
+  { cle: "fournisseurs", nom: "Fournisseurs & Prestataires" },
+];
+
+/**
+ * LES PHOTOS DES BANNIÈRES DE SECTION
+ *
+ * Cinq photos livrées par section, chacune en rapport avec son sujet :
+ * collines pour les opérations, boutiques pour les ventes, pièces et
+ * jeunes pousses pour l'argent, entrepôts pour le stock, port et camions
+ * pour les fournisseurs. Le créateur de la plateforme peut en importer
+ * d'autres (Paramètres → Photos des sections), qui prennent la suite.
+ *
+ * DEUX MODES, réglés section par section :
+ *  - auto   : la photo change chaque jour, en parcourant la série ;
+ *  - manuel : une photo choisie reste affichée.
+ */
+export const PHOTOS_SECTIONS: Record<CleSection, Photo[]> = {
+  operations: [
+    { id: "1501854140801-50d01698950b", cadrage: "50% 60%" },
+    { id: "1472214103451-9374bd1c798e", cadrage: "50% 50%" },
+    { id: "1678070803622-226b432921d5", cadrage: "50% 50%" },
+    { id: "1670240157472-06ae741e431a", cadrage: "50% 50%" },
+    { id: "1664352098866-b3bc5dd474cb", cadrage: "50% 50%" },
+  ],
+  ventes: [
+    { id: "1556741533-6e6a62bd8b49", cadrage: "50% 50%" },
+    { id: "1687422808311-a776f467a468", cadrage: "50% 50%" },
+    { id: "1651449815993-706eaa7a936a", cadrage: "50% 50%" },
+    { id: "1580913428735-bd3c269d6a82", cadrage: "50% 50%" },
+    { id: "1687422809654-579d81c29d32", cadrage: "50% 50%" },
+  ],
+  argent: [
+    { id: "1579621970563-ebec7560ff3e", cadrage: "50% 75%" },
+    { id: "1579621970795-87facc2f976d", cadrage: "50% 50%" },
+    { id: "1633158829875-e5316a358c6f", cadrage: "50% 50%" },
+    { id: "1589556763333-ad818080f39e", cadrage: "50% 50%" },
+    { id: "1534951009808-766178b47a4f", cadrage: "50% 50%" },
+  ],
+  stock: [
+    { id: "1553413077-190dd305871c", cadrage: "50% 55%" },
+    { id: "1586528116311-ad8dd3c8310d", cadrage: "50% 50%" },
+    { id: "1587293852726-70cdb56c2866", cadrage: "50% 50%" },
+    { id: "1700165644892-3dd6b67b25bc", cadrage: "50% 50%" },
+    { id: "1707059259782-21afb503b751", cadrage: "50% 50%" },
+  ],
+  fournisseurs: [
+    { id: "1494412574643-ff11b0a5c1c3", cadrage: "50% 50%" },
+    { id: "1519003722824-194d4455a60c", cadrage: "50% 50%" },
+    { id: "1559297434-fae8a1916a79", cadrage: "50% 50%" },
+    { id: "1598194501777-edbff942e501", cadrage: "50% 50%" },
+    { id: "1601584115197-04ecc0da31d7", cadrage: "50% 50%" },
+  ],
+};
+
+export type ModeSection = "auto" | "manuel";
+
+export interface ChoixSection {
+  mode: ModeSection;
+  /** En mode manuel : l'identifiant de la photo choisie. */
+  photoId: string | null;
+}
+
+/** Le premier jour de la rotation, comme pour la bannière du haut. */
+const DEBUT_SECTIONS = Date.UTC(2026, 9, 11);
+
+/**
+ * La photo du jour d'une section : la photo choisie en mode manuel (si
+ * elle existe encore), sinon celle du jour dans la série livrée puis
+ * importée.
+ */
+export function photoDeSection(
+  cle: CleSection,
+  d: Date,
+  ajoutees: Photo[] = [],
+  choix: ChoixSection = { mode: "auto", photoId: null },
+): Photo {
+  const serie = [...PHOTOS_SECTIONS[cle], ...ajoutees];
+  if (choix.mode === "manuel" && choix.photoId) {
+    const choisie = serie.find((p) => p.id === choix.photoId);
+    if (choisie) return choisie;
+  }
+  const jour = Date.UTC(d.getFullYear(), d.getMonth(), d.getDate());
+  const rang = Math.round((jour - DEBUT_SECTIONS) / 86_400_000);
+  return serie[((rang % serie.length) + serie.length) % serie.length];
+}
 
 /**
  * « Inspiration du moment » : toutes les photos du dossier `plantes/`,
