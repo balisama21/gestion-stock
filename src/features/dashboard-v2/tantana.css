@@ -2841,8 +2841,10 @@
   top: 22px;
   right: 20px;
 }
+/* Mêmes colonnes que la rangée suivante (Paiements · Fournisseurs à
+   payer) : les bords des cartes tombent l'un sous l'autre. */
 .tn .argent-bas {
-  grid-template-columns: minmax(0, 1.05fr) minmax(0, 0.95fr);
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
 }
 .tn .argent-bas.une {
   grid-template-columns: minmax(0, 1fr);
