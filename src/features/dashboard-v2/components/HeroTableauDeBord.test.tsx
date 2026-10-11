@@ -2,7 +2,15 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { act, cleanup, render } from "@testing-library/react";
 import { createRef } from "react";
 import { HeroTableauDeBord } from "./HeroTableauDeBord";
-import { HERO_PHOTOS, PHOTOS_PLANTES, indexDuJour, plantesDuJour } from "../assets/images";
+import {
+  HERO_PAYSAGES_JOUR,
+  HERO_PAYSAGES_SOIR,
+  HERO_PHOTOS,
+  PHOTOS_PLANTES,
+  indexDuJour,
+  paysagesDuMoment,
+  plantesDuJour,
+} from "../assets/images";
 import type { ChiffresDuJour, ChiffresStock } from "../lib/chiffres";
 
 // Les photos importées vivent dans Supabase : ici, celles du dossier.
@@ -10,6 +18,20 @@ vi.mock("../lib/photosInspiration", async () => {
   const { PHOTOS_PLANTES: photos } =
     await vi.importActual<typeof import("../assets/images")>("../assets/images");
   return { usePhotosInspiration: () => photos };
+});
+
+// Les photos importées vivent dans Supabase : ici, aucune.
+vi.mock("../lib/photosHautDePage", () => ({
+  usePhotosHautDePage: () => ({ jour: [], soir: [] }),
+}));
+
+// Les phrases ajoutées vivent dans Supabase : ici, aucune.
+vi.mock("../lib/phrasesTableau", async () => {
+  const { REGLAGES_PAR_DEFAUT } =
+    await vi.importActual<typeof import("../lib/phrases")>("../lib/phrases");
+  return {
+    usePhrasesAjoutees: () => ({ ajoutees: { jour: [], soir: [] }, reglages: REGLAGES_PAR_DEFAUT }),
+  };
 });
 
 const JOUR = {
@@ -93,8 +115,55 @@ describe("le haut du tableau de bord", () => {
     expect(fond.style.backgroundImage).toContain(HERO_PHOTOS[1].nuit);
   });
 
-  it("le thème sombre de l'application passe aussi le ciel en nuit", () => {
-    expect(afficher("2026-09-28T10:00:00", true).hero.classList.contains("night")).toBe(true);
+  it("le thème sombre ne met pas la nuit en plein jour : les photos suivent l'heure", () => {
+    expect(afficher("2026-09-28T10:00:00", true).hero.classList.contains("night")).toBe(false);
+  });
+
+  it("un mois de photos : une photo de tête nouvelle chaque jour, puis la boucle", () => {
+    for (const [serie, heure] of [
+      [HERO_PAYSAGES_JOUR, 10],
+      [HERO_PAYSAGES_SOIR, 20],
+    ] as const) {
+      expect(serie.length).toBeGreaterThanOrEqual(30);
+      expect(new Set(serie.map((p) => p.id)).size).toBe(serie.length);
+      const jours = Array.from({ length: serie.length }, (_, j) =>
+        paysagesDuMoment(new Date(2026, 9, 11 + j, heure)),
+      );
+      // Une photo de tête différente chaque jour du mois.
+      expect(new Set(jours.map((l) => l[0].id)).size).toBe(serie.length);
+      // Deux jours qui se suivent ne partagent aucune photo.
+      for (let j = 1; j < jours.length; j++) {
+        const hier = new Set(jours[j - 1].map((p) => p.id));
+        expect(jours[j].some((p) => hier.has(p.id))).toBe(false);
+      }
+      // Le mois passé, la boucle recommence.
+      expect(paysagesDuMoment(new Date(2026, 9, 11 + serie.length, heure))).toEqual(jours[0]);
+    }
+  });
+
+  it("les photos importées prennent la suite de la boucle", () => {
+    const importee = { id: "importee", cadrage: "50% 50%", url: "https://exemple/photo.webp" };
+    const vues = new Set<string>();
+    for (let j = 0; j < 40; j++)
+      paysagesDuMoment(new Date(2026, 9, 11 + j, 10), { jour: [importee], soir: [] }).forEach((p) =>
+        vues.add(p.id),
+      );
+    expect(vues.has("importee")).toBe(true);
+  });
+
+  it("de vraies photos du soir le soir, de jour le jour, et d'autres demain", () => {
+    const soir = paysagesDuMoment(new Date(2026, 9, 11, 20, 0));
+    const jour = paysagesDuMoment(new Date(2026, 9, 11, 10, 0));
+    expect(soir).toHaveLength(5);
+    expect(jour).toHaveLength(5);
+    expect(soir.every((p) => HERO_PAYSAGES_SOIR.includes(p))).toBe(true);
+    expect(jour.every((p) => HERO_PAYSAGES_JOUR.includes(p))).toBe(true);
+    expect(new Set(soir.map((p) => p.id)).size).toBe(5);
+    // Avant 6 h, c'est encore la nuit de la veille.
+    expect(paysagesDuMoment(new Date(2026, 9, 12, 3, 0))).toEqual(soir);
+    // Le lendemain, une autre combinaison.
+    expect(paysagesDuMoment(new Date(2026, 9, 12, 20, 0))).not.toEqual(soir);
+    expect(paysagesDuMoment(new Date(2026, 9, 12, 10, 0))).not.toEqual(jour);
   });
 
   it("l'inspiration du moment montre les trois photos du jour", () => {

@@ -185,14 +185,14 @@
 .dark .tn .art-rupt {
   display: none;
 }
-.tn #operations .banner.full {
+.tn #operations .banner.full:not(.photo) {
   aspect-ratio: 1628 / 103;
 }
-.tn #operations .banner.full::before {
+.tn #operations .banner.full:not(.photo)::before {
   -webkit-mask-image: linear-gradient(180deg, transparent 0, #000 12%, #000 66%, transparent 100%);
   mask-image: linear-gradient(180deg, transparent 0, #000 12%, #000 66%, transparent 100%);
 }
-.tn #fournisseurs .banner.full {
+.tn #fournisseurs .banner.full:not(.photo) {
   aspect-ratio: 1628 / 168;
 }
 .tn .banner.full .blk-h {
@@ -908,74 +908,164 @@
 }
 .tn .tb-hero {
   position: relative;
-  height: calc(250 * var(--u));
-  color: var(--hero-ink);
+  height: calc(352 * var(--u));
+  min-height: 300px;
+  color: #fff;
 }
-.tn .tb-hero-bg {
+/* Trois couches : l'illustration locale (repli), les paysages en fondu,
+   puis un voile sombre à gauche, sous le texte. Toutes se fondent dans
+   la page par le bas, là où les cartes du jour viennent se poser. */
+.tn .tb-hero-bg,
+.tn .tb-paysage,
+.tn .tb-voile {
   position: absolute;
   inset: 0;
-  background-size: 100% 100%;
-  background-repeat: no-repeat;
   -webkit-mask-image: linear-gradient(
     180deg,
     #000 0,
-    #000 calc(100% - 46 * var(--u)),
+    #000 calc(100% - 64 * var(--u)),
     transparent 100%
   );
-  mask-image: linear-gradient(180deg, #000 0, #000 calc(100% - 46 * var(--u)), transparent 100%);
-  transition: background-image 0.4s;
+  mask-image: linear-gradient(180deg, #000 0, #000 calc(100% - 64 * var(--u)), transparent 100%);
 }
-.tn .tb-hero.night {
-  color: #eef7ff;
+.tn .tb-hero-bg {
+  background-size: cover;
+  background-position: right center;
+  background-repeat: no-repeat;
 }
-.tn .tb-when {
+.tn .tb-paysages {
   position: absolute;
-  left: calc(37 * var(--u));
-  top: calc(50 * var(--u));
+  inset: 0;
+}
+.tn .tb-paysage {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  opacity: 0;
+  transition: opacity 1.4s ease;
+  user-select: none;
+  pointer-events: none;
+}
+.tn .tb-paysage.actif {
+  opacity: 1;
+}
+/* Le voile : assez dense à gauche pour lire un texte blanc sur n'importe
+   quel paysage, transparent à droite pour laisser la photo respirer. */
+.tn .tb-voile {
+  z-index: 1;
+  pointer-events: none;
+  background:
+    linear-gradient(
+      90deg,
+      rgba(3, 30, 22, 0.66) 0,
+      rgba(3, 30, 22, 0.42) 28%,
+      rgba(3, 30, 22, 0.08) 56%,
+      rgba(3, 30, 22, 0) 70%
+    ),
+    linear-gradient(180deg, rgba(0, 0, 0, 0.2) 0, rgba(0, 0, 0, 0) 32%);
+}
+/* Le texte, rangé en colonne dans la partie calme de la photo. */
+.tn .tb-texte {
+  position: absolute;
   z-index: 2;
-  transform: translateY(-50%);
+  left: calc(40 * var(--u));
+  top: calc(34 * var(--u));
+  max-width: min(620px, 52%);
   display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: calc(12 * var(--u));
+}
+/* La ligne du jour : date et heure | météo | ville, à même la photo. */
+.tn .tb-when {
+  display: flex;
+  flex-wrap: wrap;
   align-items: center;
-  font-size: max(12px, calc(16.2 * var(--u)));
+  gap: 4px 9px;
+  max-width: 100%;
+  font-size: max(13px, calc(15.5 * var(--u)));
   font-weight: 600;
   white-space: nowrap;
 }
-.tn .tb-when .ic1 {
-  width: max(16px, calc(22 * var(--u)));
-  height: max(16px, calc(22 * var(--u)));
-  color: var(--g);
+.tn .tb-when .sep {
+  width: 1px;
+  height: 1.1em;
+  margin: 0 5px;
+  background: rgba(255, 255, 255, 0.55);
 }
-.tn .tb-when span:not(.ico) {
-  margin-left: calc(13 * var(--u));
+.tn .tb-when .meteo {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+.tn .tb-when .ic-meteo {
+  width: 1.25em;
+  height: 1.25em;
+  color: #ffd166;
+}
+/* Le choix de la ville : du texte sur la photo, pas un bouton en gélule. */
+.tn .tb-when .lieu > .pill {
+  height: auto;
+  min-height: 0;
+  padding: 2px 4px;
+  gap: 6px;
+  background: transparent;
+  border: 0;
+  box-shadow: none;
+  color: #fff;
+  font-size: inherit;
+  text-shadow: inherit;
+}
+.tn .tb-when .lieu > .pill b {
+  font-weight: 600;
+}
+.tn .tb-when .lieu > .pill:hover {
+  background: rgba(255, 255, 255, 0.14);
+}
+.tn .tb-when .lieu > .pill .ic-lieu {
+  width: 1.15em;
+  height: 1.15em;
+  color: #fff;
+}
+.tn .tb-when .lieu > .pill .chev {
+  width: 14px;
+  height: 14px;
+  color: #fff;
+}
+.tn .tb-when .lieu .menu {
+  text-shadow: none;
+  white-space: nowrap;
+}
+.tn .tb-when .ic1 {
+  width: max(16px, calc(19 * var(--u)));
+  height: max(16px, calc(19 * var(--u)));
+  flex: none;
+  color: #8ff0c4;
 }
 .tn .tb-when .dot {
   font-weight: 700;
+  opacity: 0.7;
 }
 .tn .tb-when .date-courte {
   display: none;
 }
 .tn .tb-when .ic2 {
-  margin-left: calc(19 * var(--u));
-  color: var(--hero-ink);
+  margin-left: 2px;
+  color: #fff;
   display: grid;
   place-items: center;
+  flex: none;
   min-height: 0;
-  width: max(26px, calc(28 * var(--u)));
-  height: max(26px, calc(28 * var(--u)));
+  width: 28px;
+  height: 28px;
   border-radius: 50%;
 }
 .tn .tb-when .ic2 .ico {
-  width: max(15px, calc(19 * var(--u)));
-  height: max(15px, calc(19 * var(--u)));
+  width: 16px;
+  height: 16px;
 }
 .tn .tb-when .ic2:hover {
-  background: rgba(255, 255, 255, 0.45);
-}
-.tn .tb-hero.night .tb-when .ic2 {
-  color: #eef7ff;
-}
-.tn .tb-hero.night .tb-when .ic2:hover {
-  background: rgba(255, 255, 255, 0.12);
+  background: rgba(255, 255, 255, 0.2);
 }
 .tn .spin .ico {
   animation: tn-tour 0.7s ease-out;
@@ -986,66 +1076,199 @@
   }
 }
 .tn .tb-when .menu-holder {
-  margin-left: calc(14 * var(--u));
+  margin-left: 0;
 }
-.tn .tb-when .menu-holder > .pill {
+.tn .tb-when .menu-holder:not(.lieu) > .pill {
   height: 28px;
-  background: rgba(255, 255, 255, 0.75);
+  background: rgba(255, 255, 255, 0.85);
   border-color: transparent;
-  backdrop-filter: blur(6px);
+  color: var(--hero-ink);
 }
-.tn .tb-hero.night .tb-when .menu-holder > .pill {
-  background: rgba(10, 25, 45, 0.55);
+.tn .tb-hero.night .tb-when .menu-holder:not(.lieu) > .pill {
+  background: rgba(10, 25, 45, 0.7);
   color: #eef7ff;
 }
-.tn .tb-hero.night .tb-when .menu-holder > .pill .ico {
+.tn .tb-hero.night .tb-when .menu-holder:not(.lieu) > .pill .ico {
   color: #eef7ff;
 }
 .tn .tb-hero h1 {
-  position: absolute;
-  left: calc(38 * var(--u));
-  top: calc(98 * var(--u));
-  z-index: 2;
-  transform: translateY(-50%);
-  font-size: max(24px, calc(44.6 * var(--u)));
+  margin-top: calc(6 * var(--u));
+  font-size: max(30px, calc(54 * var(--u)));
   font-weight: 700;
-  letter-spacing: -0.005em;
+  letter-spacing: -0.02em;
   line-height: 1.05;
-  white-space: nowrap;
+  color: #fff;
+}
+.tn .tb-hero h1 .prenom {
+  color: #8ff0c4;
 }
 .tn .tb-hero p {
-  position: absolute;
-  left: calc(38 * var(--u));
-  top: calc(140 * var(--u));
-  z-index: 2;
-  transform: translateY(-50%);
-  font-size: max(13px, calc(17.9 * var(--u)));
-  color: var(--hero-ink-2);
-  white-space: nowrap;
+  font-size: max(14px, calc(18 * var(--u)));
+  line-height: 1.45;
+  color: rgba(255, 255, 255, 0.92);
+  max-width: 34em;
 }
-.tn .tb-hero.night p {
-  color: #b9d3e6;
-}
-/* Le texte garde une légère ombre, pour se lire sur la photo sans la voiler. */
+/* Une ombre douce : le texte se détache sans halo visible. */
 .tn .tb-when,
 .tn .tb-hero h1,
 .tn .tb-hero p {
-  text-shadow: 0 1px 8px rgba(255, 255, 255, 0.35);
-}
-.tn .tb-hero.night .tb-when,
-.tn .tb-hero.night h1,
-.tn .tb-hero.night p {
-  text-shadow: 0 1px 12px rgba(0, 0, 0, 0.5);
+  text-shadow: 0 1px 14px rgba(0, 0, 0, 0.35);
 }
 .tn .tb-attn {
-  position: absolute;
-  left: calc(38 * var(--u));
-  top: calc(165 * var(--u));
-  z-index: 2;
+  margin-top: calc(26 * var(--u));
   display: flex;
-  gap: 8px;
+  gap: 8px 14px;
   flex-wrap: wrap;
-  max-width: 55%;
+}
+/* Les puces : une icône ronde colorée, le libellé, le nombre à droite.
+   Transparentes comme les flèches des paysages : un contour blanc, le
+   texte blanc ombré, la photo visible au travers. */
+.tn .tb-attn .chip {
+  gap: 10px;
+  padding: 5px 6px;
+  font-size: max(13px, calc(14.5 * var(--u)));
+  font-weight: 600;
+  color: #fff;
+  background: transparent;
+  border: 1.5px solid rgba(255, 255, 255, 0.75);
+  box-shadow: none;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+  text-shadow: 0 1px 8px rgba(0, 0, 0, 0.45);
+  transition: border-color 0.2s;
+}
+.tn .tb-attn .chip:hover {
+  background: transparent;
+  border-color: #fff;
+}
+.tn .chip .ci {
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  color: #fff;
+  flex: none;
+}
+.tn .chip .ci svg {
+  width: 14px;
+  height: 14px;
+  opacity: 1;
+}
+.tn .chip.warn .ci {
+  background: #f5a524;
+}
+.tn .chip.warn .ci svg {
+  fill: currentColor;
+}
+.tn .chip.info .ci {
+  background: var(--blue);
+}
+.tn .chip.crit .ci {
+  background: var(--red);
+}
+.tn .chip .t {
+  display: inline-block;
+}
+.tn .chip .t::first-letter {
+  text-transform: uppercase;
+}
+.tn .tb-attn .chip .n {
+  margin-left: 6px;
+}
+.tn .chip.warn .n {
+  background: var(--success);
+}
+/* La devise manuscrite, posée sur la photo à droite du bonjour. */
+.tn .tb-devise {
+  position: absolute;
+  z-index: 2;
+  right: calc(64 * var(--u));
+  top: calc(112 * var(--u));
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  font-family: "Caveat", "Segoe Script", "Bradley Hand", cursive;
+  font-weight: 600;
+  font-size: max(24px, calc(33 * var(--u)));
+  line-height: 1.35;
+  color: #fff;
+  text-shadow: 0 2px 14px rgba(0, 0, 0, 0.45);
+  transform: rotate(-9deg);
+  pointer-events: none;
+  user-select: none;
+}
+.tn .tb-devise span + span {
+  margin-left: 0.6em;
+}
+.tn .tb-devise svg {
+  width: 72%;
+  height: auto;
+  margin: 2px 0 0 1.6em;
+  overflow: visible;
+}
+.tn .tb-devise path {
+  fill: none;
+  stroke: #fff;
+  stroke-width: 2.5;
+  stroke-linecap: round;
+  filter: drop-shadow(0 1px 3px rgba(0, 0, 0, 0.35));
+}
+/* Les flèches et les points des paysages, discrets, en bas à droite. */
+.tn .tb-nav {
+  position: absolute;
+  z-index: 2;
+  right: calc(40 * var(--u));
+  bottom: calc(70 * var(--u));
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+.tn .tb-nav button {
+  display: grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  min-height: 0;
+  border-radius: 50%;
+  color: #fff;
+  /* Transparentes : un simple cercle blanc sur la photo, sans fond. */
+  background: transparent;
+  border: 1.5px solid rgba(255, 255, 255, 0.75);
+  filter: drop-shadow(0 1px 4px rgba(0, 0, 0, 0.35));
+  transition: border-color 0.2s;
+}
+.tn .tb-nav button:hover {
+  background: transparent;
+  border-color: #fff;
+}
+.tn .tb-nav button:focus-visible {
+  outline: 2px solid #fff;
+  outline-offset: 2px;
+}
+.tn .tb-nav svg {
+  width: 16px;
+  height: 16px;
+}
+.tn .tb-nav .tb-nav-g {
+  transform: rotate(180deg);
+}
+.tn .tb-points {
+  display: flex;
+  gap: 6px;
+}
+.tn .tb-points span {
+  width: 6px;
+  height: 6px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.5);
+  transition:
+    width 0.3s ease,
+    background 0.3s ease;
+}
+.tn .tb-points span.actif {
+  width: 18px;
+  background: #fff;
 }
 
 /* Les cinq cartes du jour, qui chevauchent le bas de la photo */
@@ -3428,73 +3651,41 @@
   .tn > * {
     --us: 0.82px;
   }
-  /* Le hero : la photo garde ses proportions et se cale à droite. */
+  /* Le hero : la photo se recadre, le voile passe du haut vers le bas. */
   .tn .tb-hero {
-    min-height: 230px;
+    height: auto;
+    min-height: 330px;
   }
-  .tn .tb-hero-bg {
-    background-size: auto 100%;
-    background-position: right center;
-  }
-  /* Un voile léger, sur la gauche seulement, sous le texte. */
-  .tn .tb-hero::before {
-    content: "";
-    position: absolute;
-    inset: 0;
-    z-index: 1;
+  .tn .tb-voile {
     background: linear-gradient(
-      90deg,
-      rgba(232, 246, 239, 0.45) 0,
-      rgba(232, 246, 239, 0.18) 45%,
-      rgba(232, 246, 239, 0) 75%
+      180deg,
+      rgba(3, 30, 22, 0.62) 0,
+      rgba(3, 30, 22, 0.38) 55%,
+      rgba(3, 30, 22, 0.12) 100%
     );
-    pointer-events: none;
-    -webkit-mask-image: linear-gradient(180deg, #000 0, #000 calc(100% - 38px), transparent 100%);
-    mask-image: linear-gradient(180deg, #000 0, #000 calc(100% - 38px), transparent 100%);
   }
-  .tn .tb-hero.night::before {
-    background: linear-gradient(
-      90deg,
-      rgba(6, 20, 40, 0.38) 0,
-      rgba(6, 20, 40, 0.15) 45%,
-      rgba(6, 20, 40, 0) 75%
-    );
+  .tn .tb-texte {
+    left: var(--gut);
+    right: var(--gut);
+    top: 22px;
+    max-width: none;
+    gap: 10px;
   }
   .tn .tb-when {
-    left: var(--gut);
-    top: 34px;
     font-size: 13px;
   }
-  .tn .tb-when span:not(.ico) {
-    margin-left: 8px;
-  }
-  .tn .tb-when {
-    right: var(--gut);
-  }
-  .tn .tb-when .ic2 {
-    margin-left: 10px;
-  }
-  .tn .tb-when .menu-holder {
-    margin-left: 6px;
+  .tn .tb-devise {
+    display: none;
   }
   .tn .tb-hero h1 {
-    left: var(--gut);
-    top: 78px;
     font-size: 32px;
-    white-space: normal;
-    right: var(--gut);
-  }
-  .tn .tb-hero:not(.night) p {
-    color: var(--hero-ink);
-    text-shadow: 0 1px 8px rgba(255, 255, 255, 0.7);
   }
   .tn .tb-hero p {
-    left: var(--gut);
-    top: 108px;
-    transform: none;
-    white-space: normal;
-    max-width: 72%;
     font-size: 14px;
+  }
+  .tn .tb-nav {
+    right: var(--gut);
+    bottom: 44px;
   }
   /* Pas de rangée de puces sur téléphone : les mêmes alertes sont dans
      la carte « Stock du jour » et dans « À faire ». */
@@ -3552,27 +3743,27 @@
 
   /* Les bannières gardent leurs proportions, calées à droite. */
   .tn .banner.full,
-  .tn #operations .banner.full,
-  .tn #fournisseurs .banner.full {
+  .tn #operations .banner.full:not(.photo),
+  .tn #fournisseurs .banner.full:not(.photo) {
     aspect-ratio: auto;
     min-height: 118px;
     margin: 0 calc(-1 * var(--gut)) -16px;
   }
-  .tn #operations .banner.full {
+  .tn #operations .banner.full:not(.photo) {
     min-height: 96px;
   }
-  .tn #fournisseurs .banner.full {
+  .tn #fournisseurs .banner.full:not(.photo) {
     min-height: 150px;
   }
   .tn .banner.full::before {
     background-size: auto 112px;
     background-position: 76% bottom;
   }
-  .tn #operations .banner.full::before {
+  .tn #operations .banner.full:not(.photo)::before {
     background-size: auto 96px;
     background-position: right bottom;
   }
-  .tn #fournisseurs .banner.full::before {
+  .tn #fournisseurs .banner.full:not(.photo)::before {
     background-size: auto 124px;
     background-position: 90% bottom;
   }
@@ -3654,7 +3845,7 @@
   .tn .tb-when .date-courte {
     display: inline;
   }
-  .tn .tb-when .menu-holder > .pill b {
+  .tn .tb-when .menu-holder:not(.lieu) > .pill b {
     max-width: 88px;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -3690,7 +3881,7 @@
     font-size: 30px;
   }
   .tn .tb-hero p {
-    max-width: 78%;
+    max-width: none;
   }
   .tn .art-cal {
     width: 110px;
@@ -3756,10 +3947,10 @@
   }
   /* Le titre le plus long passe sur deux lignes : la bannière grandit
      d'autant, pour que les cartes ne recouvrent jamais le sous-titre. */
-  .tn #fournisseurs .banner.full {
+  .tn #fournisseurs .banner.full:not(.photo) {
     min-height: 206px;
   }
-  .tn #fournisseurs .banner.full h2 {
+  .tn #fournisseurs .banner.full:not(.photo) h2 {
     font-size: 22px;
   }
 }
@@ -3836,5 +4027,301 @@
   .tn .feed .prod .vignette-produit {
     width: 28px !important;
     height: 28px !important;
+  }
+}
+
+/* ═══════════════ FINITION : verre dépoli, photos de section ═══════════════
+   Une seule couche, posée par-dessus la mise en page : les cartes du jour
+   deviennent légèrement translucides, chaque section reçoit sa photo. Le
+   flou reste léger et le fond assez dense pour que chiffres et libellés
+   gardent tout leur contraste. */
+.tn {
+  /* Les tons fonctionnels des cartes du jour. */
+  --k-menthe: oklch(0.54 0.12 172);
+  --k-turquoise: oklch(0.55 0.1 205);
+  --kc-bg: rgba(255, 255, 255, 0.86);
+  --kc-line: rgba(255, 255, 255, 0.8);
+  --verre-ombre:
+    0 0 0 1px rgba(16, 70, 48, 0.06), 0 1px 2px rgba(16, 70, 48, 0.05),
+    0 14px 34px -16px rgba(16, 70, 48, 0.22);
+  --verre-ombre-survol:
+    0 0 0 1px rgba(16, 70, 48, 0.08), 0 2px 4px rgba(16, 70, 48, 0.06),
+    0 22px 44px -18px rgba(16, 70, 48, 0.3);
+}
+.dark .tn {
+  --k-menthe: oklch(0.78 0.12 172);
+  --k-turquoise: oklch(0.78 0.1 205);
+  --kc-bg: color-mix(in oklab, var(--card) 88%, transparent);
+  --kc-line: rgba(255, 255, 255, 0.08);
+  --verre-ombre: 0 1px 2px rgba(0, 0, 0, 0.35), 0 14px 34px -18px rgba(0, 0, 0, 0.6);
+  --verre-ombre-survol: 0 2px 4px rgba(0, 0, 0, 0.4), 0 22px 44px -18px rgba(0, 0, 0, 0.7);
+}
+.tn .kpetite.menthe {
+  color: var(--k-menthe);
+}
+.tn .kpetite.turquoise {
+  color: var(--k-turquoise);
+}
+.tn .pastille.menthe {
+  color: var(--k-menthe);
+}
+.tn .pastille.turquoise {
+  color: var(--k-turquoise);
+}
+
+/* ── Les cinq cartes du jour, l'aperçu des ventes, l'inspiration ── */
+.tn .kc,
+.tn .tc {
+  border-radius: max(14px, calc(20 * var(--u)));
+  border-color: var(--kc-line);
+  box-shadow: var(--verre-ombre);
+  -webkit-backdrop-filter: blur(16px) saturate(1.3);
+  backdrop-filter: blur(16px) saturate(1.3);
+}
+.tn .kc {
+  --ton: var(--k-vert);
+  transition:
+    transform 0.2s ease,
+    box-shadow 0.2s ease;
+}
+.tn .kc[data-tile="entrees"] {
+  --ton: var(--k-menthe);
+}
+.tn .kc[data-tile="sorties"] {
+  --ton: var(--k-rouge);
+}
+.tn .kc[data-tile="stock"] {
+  --ton: var(--k-turquoise);
+}
+.tn .kc[data-tile="activite"] {
+  --ton: var(--k-violet);
+}
+/* Un halo de la couleur de la carte, fondu dans le coin : il signe la
+   carte sans passer derrière les chiffres. */
+.tn .kc::before {
+  content: "";
+  position: absolute;
+  top: -45%;
+  right: -35%;
+  width: 85%;
+  aspect-ratio: 1;
+  border-radius: 50%;
+  background: radial-gradient(
+    closest-side,
+    color-mix(in oklab, var(--ton) 16%, transparent),
+    transparent
+  );
+  pointer-events: none;
+}
+.tn .kc > * {
+  position: relative;
+}
+.tn .kc:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--verre-ombre-survol);
+}
+/* L'icône de titre : nue, sans pastille ni cadre, comme dans tout le
+   tableau de bord — la couleur de la carte dit le sens. Taille fixe, pour
+   qu'elle ne déborde jamais sur le titre. */
+.tn .kc-h .pastille,
+.tn #tcChart .tc-h .pastille {
+  width: 26px;
+  height: 26px;
+  flex: none;
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+  color: var(--ton);
+}
+.tn #tcChart .tc-h .pastille {
+  --ton: var(--k-vert);
+}
+.tn .kc-h .pastille svg,
+.tn #tcChart .tc-h .pastille svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  stroke-width: 1.9;
+}
+.tn .kc-h .kt,
+.tn .ctitle {
+  font-weight: 650;
+  letter-spacing: -0.005em;
+}
+.tn .kc .kv {
+  margin-top: 2px;
+  font-weight: 750;
+  letter-spacing: -0.02em;
+}
+.tn .kc .kv.moyen {
+  font-weight: 650;
+}
+.tn .kc-pied {
+  border-top: 1px solid color-mix(in oklab, var(--ton) 12%, transparent);
+  padding-top: 10px;
+}
+/* Le chevron d'une carte : nu lui aussi, un fond léger au survol seulement. */
+.tn .kch {
+  background: none;
+}
+.tn .kch:hover {
+  background: color-mix(in oklab, var(--ton, var(--g)) 10%, transparent);
+}
+.tn .kch:hover .kch-svg {
+  color: var(--ton, var(--g));
+}
+@media (prefers-reduced-motion: reduce) {
+  .tn .kc {
+    transition: none;
+  }
+  .tn .kc:hover {
+    transform: none;
+  }
+  .tn .tb-paysage,
+  .tn .tb-points span {
+    transition: none;
+  }
+}
+
+/* L'inspiration du moment : un vert d'eau lumineux, les pots devant. */
+.tn .ic {
+  background:
+    radial-gradient(120% 140% at 100% 100%, rgba(167, 230, 196, 0.45) 0, transparent 55%),
+    radial-gradient(80% 90% at 0% 0%, rgba(255, 255, 255, 0.9) 0, transparent 60%),
+    linear-gradient(125deg, #eef9f3 0%, #f7fcf9 52%, #e4f4ea 100%);
+  border-color: rgba(16, 120, 80, 0.1);
+}
+.dark .tn .ic {
+  background:
+    radial-gradient(120% 140% at 100% 100%, rgba(52, 160, 110, 0.18) 0, transparent 55%),
+    var(--card);
+}
+.tn .ic .ititle {
+  font-weight: 650;
+}
+.tn .ic .ititle .kpetite {
+  width: 24px;
+  height: 24px;
+}
+.tn .pf {
+  border-radius: max(10px, calc(14 * var(--u)));
+  box-shadow:
+    0 0 0 3px rgba(255, 255, 255, 0.9),
+    0 14px 30px -12px rgba(15, 60, 40, 0.4);
+}
+
+/* ── Les bannières photographiques des sections ── */
+.tn .banner.full.photo {
+  aspect-ratio: auto;
+  background: rgb(240, 249, 244);
+  display: flex;
+  align-items: center;
+  min-height: clamp(120px, calc(156 * var(--us)), 176px);
+  margin: 0 0 var(--ecart);
+  border-radius: clamp(14px, calc(22 * var(--us)), 22px);
+  overflow: hidden;
+  box-shadow: var(--verre-ombre);
+}
+/* L'illustration locale, en repli, sous la photo. */
+.tn .banner.full.photo::before {
+  background-size: cover;
+  background-position: right bottom;
+  -webkit-mask-image: none;
+  mask-image: none;
+}
+/* La photo occupe la droite de la bannière : son sujet, souvent centré,
+   reste visible au lieu de disparaître sous le voile du titre. */
+.tn .banner.full.photo .bn-photo {
+  position: absolute;
+  top: 0;
+  right: 0;
+  z-index: 0;
+  width: 70%;
+  height: 100%;
+  object-fit: cover;
+  user-select: none;
+  pointer-events: none;
+}
+/* Un voile clair à gauche, sous le titre ; la photo se dévoile à droite. */
+.tn .banner.full.photo::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+  background: linear-gradient(
+    90deg,
+    rgb(240, 249, 244) 0,
+    rgb(240, 249, 244) 30%,
+    rgba(240, 249, 244, 0.6) 42%,
+    rgba(240, 249, 244, 0) 62%
+  );
+  pointer-events: none;
+}
+.dark .tn .banner.full.photo::after {
+  background: linear-gradient(
+    90deg,
+    var(--card) 0,
+    var(--card) 30%,
+    color-mix(in oklab, var(--card) 55%, transparent) 44%,
+    color-mix(in oklab, var(--card) 10%, transparent) 70%
+  );
+}
+.dark .tn .banner.full.photo {
+  background: var(--card);
+}
+.dark .tn .banner.full.photo .bn-photo {
+  opacity: 0.85;
+}
+.tn .banner.full.photo .blk-h {
+  position: relative;
+  left: auto;
+  right: auto;
+  top: auto;
+  padding: 22px clamp(20px, 2.6cqw, 44px);
+  max-width: min(560px, 58%);
+}
+.tn .banner.full.photo h2 {
+  font-size: clamp(22px, 2.1cqw, 32px);
+  color: var(--ink);
+}
+.tn .banner.full.photo .blk-h p {
+  color: color-mix(in oklab, var(--ink) 72%, transparent);
+}
+
+@media (max-width: 999px) {
+  .tn .banner.full.photo {
+    min-height: 112px;
+    margin: 0 0 14px;
+  }
+  .tn .banner.full.photo .bn-photo {
+    width: 100%;
+  }
+  .tn .banner.full.photo::after {
+    background: linear-gradient(
+      90deg,
+      rgba(246, 252, 248, 0.96) 0,
+      rgba(246, 252, 248, 0.82) 45%,
+      rgba(246, 252, 248, 0.25) 100%
+    );
+  }
+  .dark .tn .banner.full.photo::after {
+    background: linear-gradient(
+      90deg,
+      color-mix(in oklab, var(--background) 95%, transparent) 0,
+      color-mix(in oklab, var(--background) 80%, transparent) 45%,
+      color-mix(in oklab, var(--background) 30%, transparent) 100%
+    );
+  }
+  .tn .banner.full.photo .blk-h {
+    padding: 18px var(--gut);
+    max-width: 78%;
+  }
+  .tn .banner.full.photo h2 {
+    font-size: 22px;
+  }
+}
+@media (max-width: 640px) {
+  .tn .banner.full.photo .blk-h {
+    max-width: 100%;
   }
 }

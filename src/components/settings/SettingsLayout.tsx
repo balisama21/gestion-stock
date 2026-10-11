@@ -19,6 +19,8 @@ import {
   LogOut,
   SlidersHorizontal,
   Leaf,
+  Quote,
+  Images,
 } from "lucide-react";
 
 export type SettingsTab =
@@ -38,7 +40,9 @@ export type SettingsTab =
   | "alertes-stock"
   | "categories"
   | "prix"
-  | "inspiration";
+  | "inspiration"
+  | "phrases"
+  | "photos-haut";
 
 interface TabDef {
   id: SettingsTab;
@@ -197,6 +201,22 @@ const GROUPS: GroupDef[] = [
         label: "Inspiration du moment",
         hint: "Photos du tableau de bord",
         icon: <Leaf className="w-4 h-4" />,
+        ownerOnly: false,
+        adminOnly: true,
+      },
+      {
+        id: "phrases",
+        label: "Phrases du tableau de bord",
+        hint: "Messages du jour et du soir",
+        icon: <Quote className="w-4 h-4" />,
+        ownerOnly: false,
+        adminOnly: true,
+      },
+      {
+        id: "photos-haut",
+        label: "Photos du haut de page",
+        hint: "Bannière du jour et du soir",
+        icon: <Images className="w-4 h-4" />,
         ownerOnly: false,
         adminOnly: true,
       },
