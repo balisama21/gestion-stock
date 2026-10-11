@@ -4130,23 +4130,28 @@
   transform: translateY(-2px);
   box-shadow: var(--verre-ombre-survol);
 }
-/* L'icône de titre, pleine et ronde, dans la couleur de la carte. */
+/* L'icône de titre : nue, sans pastille ni cadre, comme dans tout le
+   tableau de bord — la couleur de la carte dit le sens. Taille fixe, pour
+   qu'elle ne déborde jamais sur le titre. */
 .tn .kc-h .pastille,
 .tn #tcChart .tc-h .pastille {
-  width: max(34px, calc(40 * var(--u)));
-  height: max(34px, calc(40 * var(--u)));
-  border-radius: 50%;
-  color: #fff;
-  background: linear-gradient(145deg, color-mix(in oklab, var(--ton) 72%, white), var(--ton));
-  box-shadow: 0 6px 14px -6px color-mix(in oklab, var(--ton) 75%, transparent);
+  width: 26px;
+  height: 26px;
+  flex: none;
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+  color: var(--ton);
 }
 .tn #tcChart .tc-h .pastille {
   --ton: var(--k-vert);
 }
-.tn .kc-h .pastille .ico,
-.tn #tcChart .tc-h .pastille .ico {
-  width: 52%;
-  height: 52%;
+.tn .kc-h .pastille svg,
+.tn #tcChart .tc-h .pastille svg {
+  display: block;
+  width: 100%;
+  height: 100%;
+  stroke-width: 1.9;
 }
 .tn .kc-h .kt,
 .tn .ctitle {
@@ -4165,11 +4170,15 @@
   border-top: 1px solid color-mix(in oklab, var(--ton) 12%, transparent);
   padding-top: 10px;
 }
+/* Le chevron d'une carte : nu lui aussi, un fond léger au survol seulement. */
 .tn .kch {
-  background: color-mix(in oklab, var(--ton, var(--g)) 8%, transparent);
+  background: none;
 }
 .tn .kch:hover {
-  background: color-mix(in oklab, var(--ton, var(--g)) 16%, transparent);
+  background: color-mix(in oklab, var(--ton, var(--g)) 10%, transparent);
+}
+.tn .kch:hover .kch-svg {
+  color: var(--ton, var(--g));
 }
 @media (prefers-reduced-motion: reduce) {
   .tn .kc {
@@ -4199,6 +4208,10 @@
 }
 .tn .ic .ititle {
   font-weight: 650;
+}
+.tn .ic .ititle .kpetite {
+  width: 24px;
+  height: 24px;
 }
 .tn .pf {
   border-radius: max(10px, calc(14 * var(--u)));

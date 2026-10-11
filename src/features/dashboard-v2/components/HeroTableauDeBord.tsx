@@ -1,4 +1,8 @@
 import {
+  Activity,
+  BanknoteArrowDown,
+  BanknoteArrowUp,
+  ChartSpline,
   ChevronRight,
   Cloud,
   CloudFog,
@@ -7,6 +11,8 @@ import {
   CloudSun,
   MapPin,
   Moon,
+  Package,
+  ShoppingCart,
   Sun,
 } from "lucide-react";
 import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
@@ -35,6 +41,19 @@ import { VILLES, useMeteo, type Ciel } from "../lib/meteo";
  */
 
 const CHEVRON = <ChevronRight className="kch-svg" aria-hidden="true" />;
+
+/**
+ * L'icône de chaque carte du jour : nue, sans pastille ni cadre — la
+ * couleur de la carte dit le sens. Le chariot des ventes, le billet qui
+ * entre, le billet qui sort, le colis du stock, le tracé de l'activité.
+ */
+const ICONE_TUILE: Record<CleTuile, React.ReactNode> = {
+  ventes: <ShoppingCart aria-hidden="true" />,
+  entrees: <BanknoteArrowDown aria-hidden="true" />,
+  sorties: <BanknoteArrowUp aria-hidden="true" />,
+  stock: <Package aria-hidden="true" />,
+  activite: <Activity aria-hidden="true" />,
+};
 
 /** « 16 % », signé, ou rien quand il n'y a pas de quoi comparer. */
 function ecart(valeur: number, reference: number): string | null {
@@ -445,16 +464,14 @@ export const HeroTableauDeBord: React.FC<HeroProps> = ({
     </button>
   );
   const tete = (
-    nom: NomIcone,
+    cleIcone: CleTuile,
     ton: string,
     titre: React.ReactNode,
     cle: CleTuile,
     aide: string,
   ) => (
     <div className="kc-h">
-      <span className={`pastille ${ton}`}>
-        <Icone nom={nom} />
-      </span>
+      <span className={`pastille ${ton}`}>{ICONE_TUILE[cleIcone]}</span>
       <div className="kt">{titre}</div>
       <button type="button" className="kch" onClick={() => onOuvrir(cle)} aria-label={aide}>
         {CHEVRON}
@@ -488,7 +505,7 @@ export const HeroTableauDeBord: React.FC<HeroProps> = ({
   const cartes: Record<CleTuile, React.ReactNode> = {
     ventes: (
       <>
-        {tete("cart", "vert", "Ventes du jour", "ventes", "Détail des ventes du jour")}
+        {tete("ventes", "vert", "Ventes du jour", "ventes", "Détail des ventes du jour")}
         <div className="kv">{montantsVentesVisibles ? montant(jour.ventes) : "•••"}</div>
         <div className="kd">
           {jour.tickets === 0
@@ -507,7 +524,7 @@ export const HeroTableauDeBord: React.FC<HeroProps> = ({
     ),
     entrees: (
       <>
-        {tete("download", "menthe", "Entrées d'argent", "entrees", "Détail des encaissements")}
+        {tete("entrees", "menthe", "Entrées d'argent", "entrees", "Détail des encaissements")}
         <div className="kv">+{montant(jour.encaisse)}</div>
         <div className="kd">
           {jour.encaisse === 0 ? "Aucun encaissement aujourd'hui." : "Encaissements du jour."}
@@ -531,7 +548,7 @@ export const HeroTableauDeBord: React.FC<HeroProps> = ({
     ),
     sorties: (
       <>
-        {tete("arrowup", "rouge", "Sorties d'argent", "sorties", "Détail des sorties")}
+        {tete("sorties", "rouge", "Sorties d'argent", "sorties", "Détail des sorties")}
         <div className="kv">
           {jour.sorties > 0 ? "−" : ""}
           {montant(jour.sorties)}
@@ -553,10 +570,11 @@ export const HeroTableauDeBord: React.FC<HeroProps> = ({
     ),
     stock: (
       <>
-        {tete("box", "turquoise", "Stock du jour", "stock", "Produits bientôt en rupture")}
+        {tete("stock", "turquoise", "Stock du jour", "stock", "Produits bientôt en rupture")}
         {duo(
-          ["Entrées", `+${nombre(jour.entreesStock)} u.`],
-          ["Sorties", `−${nombre(jour.sortiesStock)} u.`],
+          ["Entrées", `+${nombre(Math.abs(jour.entreesStock))} u.`],
+          // La valeur absolue : un « −0 » venu du calcul s'écrivait « −−0 u. ».
+          ["Sorties", `−${nombre(Math.abs(jour.sortiesStock))} u.`],
           "kv moyen pos",
         )}
         {bientotEnRupture > 0 ? (
@@ -584,7 +602,7 @@ export const HeroTableauDeBord: React.FC<HeroProps> = ({
     activite: (
       <>
         {tete(
-          "pulse",
+          "activite",
           "violet",
           "Activité aujourd'hui",
           "activite",
@@ -749,7 +767,7 @@ export const HeroTableauDeBord: React.FC<HeroProps> = ({
               <article className="tc" id="tcChart">
                 <div className="tc-h">
                   <span className="pastille vert">
-                    <Icone nom="chart" />
+                    <ChartSpline aria-hidden="true" />
                   </span>
                   <div className="tc-t">
                     <button type="button" className="ctitle" onClick={graphique.onDetails}>
