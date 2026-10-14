@@ -8,9 +8,9 @@ declare const EdgeRuntime: { waitUntil(promesse: Promise<unknown>): void };
  * Dépôt d'une demande de réinitialisation de mot de passe.
  *
  * Publique par nécessité : celui qui a oublié son mot de passe n'est
- * précisément pas connecté. Elle enregistre la demande pour que le
- * propriétaire la traite, et ne renvoie jamais rien d'autre qu'un accusé
- * de réception identique pour tout le monde.
+ * précisément pas connecté. Elle enregistre la demande, envoie le lien
+ * par e-mail (l'administrateur la traite si l'envoi échoue), et ne renvoie
+ * jamais rien d'autre qu'un accusé de réception identique pour tout le monde.
  *
  * Ce silence est délibéré. Répondre « cette adresse n'est pas connue »
  * transformerait ce formulaire en outil de recensement : il suffirait
@@ -43,6 +43,9 @@ const UNE_HEURE_MS = 60 * 60 * 1000;
 const PLAFOND_HORAIRE_GLOBAL = 50;
 const DELAI_ENTRE_DEMANDES_MS = 2 * 60 * 1000;
 const PLAFOND_HORAIRE_PAR_ADRESSE = 5;
+
+/** Domaine principal du SaaS, vérifié chez Resend. */
+const DOMAINE_TANTANA = "tantana-suite.com";
 
 serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
@@ -106,17 +109,21 @@ serve(async (req: Request) => {
       .select("id")
       .single();
 
-    // Sur un domaine de marque (expéditeur vérifié chez Resend), le lien part
-    // seul par e-mail ; sinon la demande reste en attente pour l'administrateur.
+    // Le lien part par e-mail : depuis le domaine de la marque sur un domaine
+    // client, depuis tantana-suite.com ailleurs (expéditeurs vérifiés chez
+    // Resend). En cas d'échec, la demande reste en attente pour l'administrateur.
     // En arrière-plan : une réponse plus lente trahirait les comptes existants.
     const envoyer = async () => {
-      if (!profil || !demande || typeof hote !== "string") return;
-      const { data: domaine } = await supabase
-        .from("custom_domains")
-        .select("hostname, store_id")
-        .eq("hostname", hote.trim().toLowerCase())
-        .eq("is_active", true)
-        .maybeSingle();
+      if (!profil || !demande) return;
+      const { data: domaine } =
+        typeof hote === "string"
+          ? await supabase
+              .from("custom_domains")
+              .select("hostname, store_id")
+              .eq("hostname", hote.trim().toLowerCase())
+              .eq("is_active", true)
+              .maybeSingle()
+          : { data: null };
       const { data: marque } = domaine
         ? await supabase
             .from("branding")
@@ -125,46 +132,49 @@ serve(async (req: Request) => {
             .maybeSingle()
         : { data: null };
 
-      if (domaine && marque) {
-        // La redirection vient de custom_domains, jamais du client.
-        const { data: lien } = await supabase.auth.admin.generateLink({
-          type: "recovery",
-          email: adresse,
-          options: { redirectTo: `https://${domaine.hostname}/reset-password` },
-        });
+      // Domaine client sans fiche de marque : jamais Tantana à sa place.
+      if (domaine && !marque) return;
 
-        if (lien?.properties?.action_link) {
-          const nomApp = marque.app_name.replace(/[<>"]/g, "");
-          const { html, text } = emailRecuperation({
-            nomApp,
-            couleur: /^#[0-9a-f]{6}$/i.test(marque.primary_color ?? "") ? marque.primary_color! : "#008655",
-            logoUrl: /^https:\/\/[^"'\s<>]+$/.test(marque.logo_url ?? "") ? marque.logo_url! : null,
-            lien: lien.properties.action_link,
-          });
-          const envoi = await fetch("https://api.resend.com/emails", {
-            method: "POST",
-            headers: {
-              Authorization: `Bearer ${Deno.env.get("RESEND_API_KEY")!}`,
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              from: `${nomApp} <noreply@${domaine.hostname}>`,
-              to: [adresse],
-              subject: `Réinitialiser votre mot de passe ${nomApp}`,
-              html,
-              text,
-            }),
-          });
+      // La redirection vient de custom_domains ou de cette constante, jamais du client.
+      const hoteEnvoi = domaine?.hostname ?? DOMAINE_TANTANA;
+      const nomApp = (marque?.app_name ?? "Tantana Suite").replace(/[<>"]/g, "");
+      const { data: lien } = await supabase.auth.admin.generateLink({
+        type: "recovery",
+        email: adresse,
+        options: { redirectTo: `https://${hoteEnvoi}/reset-password` },
+      });
+      if (!lien?.properties?.action_link) return;
 
-          if (envoi.ok) {
-            await supabase
-              .from("password_recovery_requests")
-              .update({ status: "handled", handled_at: new Date().toISOString() })
-              .eq("id", demande.id);
-          } else {
-            console.error("Resend a refuse l envoi :", await envoi.text());
-          }
-        }
+      const { html, text } = emailRecuperation({
+        nomApp,
+        couleur: /^#[0-9a-f]{6}$/i.test(marque?.primary_color ?? "")
+          ? marque!.primary_color!
+          : "#008655",
+        logoUrl: /^https:\/\/[^"'\s<>]+$/.test(marque?.logo_url ?? "") ? marque!.logo_url! : null,
+        lien: lien.properties.action_link,
+      });
+      const envoi = await fetch("https://api.resend.com/emails", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${Deno.env.get("RESEND_API_KEY")!}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          from: `${nomApp} <noreply@${hoteEnvoi}>`,
+          to: [adresse],
+          subject: `Réinitialiser votre mot de passe ${nomApp}`,
+          html,
+          text,
+        }),
+      });
+
+      if (envoi.ok) {
+        await supabase
+          .from("password_recovery_requests")
+          .update({ status: "handled", handled_at: new Date().toISOString() })
+          .eq("id", demande.id);
+      } else {
+        console.error("Resend a refuse l envoi :", await envoi.text());
       }
     };
     EdgeRuntime.waitUntil(envoyer().catch((e) => console.error(e)));

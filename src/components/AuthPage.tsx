@@ -1,7 +1,6 @@
 import React, { useEffect, useRef, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { useAuth } from "../hooks/useAuth";
-import { APP_SUPPORT_PHONE } from "../lib/appConfig";
 import { useMarque } from "../hooks/useMarque";
 import { supabase } from "../lib/supabase";
 import { hoteVisite } from "../lib/marquesBoutiques";
@@ -48,8 +47,6 @@ export const AuthPage: React.FC = () => {
     resetPasswordForEmail,
   } = useAuth();
   const marque = useMarque();
-  // Sur un domaine de marque, le lien de réinitialisation part seul par e-mail.
-  const recuperationParEmail = !marque.parDefaut;
   // Sur un domaine client : sa marque, sans offres, tarifs ni questions.
   // L'inscription reste ouverte ; la création de boutique, non.
   const vitrine = marque.parDefaut;
@@ -194,12 +191,11 @@ export const AuthPage: React.FC = () => {
   };
 
   /**
-   * Dépose une demande de réinitialisation auprès de l'administrateur.
+   * Demande un lien de réinitialisation par e-mail.
    *
-   * L'envoi d'e-mails n'atteint aujourd'hui qu'une seule adresse, faute
-   * de domaine vérifié : passer par `resetPasswordForEmail` ne produisait
-   * qu'une erreur. La demande est donc enregistrée, l'administrateur la
-   * voit dans son espace et délivre le lien lui-même.
+   * `demander-recuperation` l'envoie depuis le domaine de la marque, ou
+   * depuis tantana-suite.com ; si l'envoi échoue, la demande reste visible
+   * de l'administrateur, qui délivre le lien lui-même.
    *
    * La réponse est la même que l'adresse existe ou non. Dire « cette
    * adresse n'est pas connue » livrerait à n'importe qui la liste des
@@ -361,9 +357,8 @@ export const AuthPage: React.FC = () => {
                     </button>
                     <h2 className="text-xl font-bold text-foreground">Mot de passe oublié</h2>
                     <p className="text-sm text-muted-foreground mt-1">
-                      {recuperationParEmail
-                        ? "Entrez votre e-mail : vous recevrez un lien pour choisir un nouveau mot de passe."
-                        : "Entrez votre e-mail : votre demande sera transmise à l'administrateur, qui vous remettra un lien de réinitialisation."}
+                      Entrez votre e-mail : vous recevrez un lien pour choisir un nouveau mot de
+                      passe.
                     </p>
 
                     {/* Un compte créé par Google n'a jamais eu de mot de
@@ -573,44 +568,17 @@ export const AuthPage: React.FC = () => {
                     <div className="py-2 text-center">
                       <CheckCircle2 className="w-12 h-12 t-success mx-auto mb-4" />
                       <p className="text-foreground font-semibold mb-2">
-                        {recuperationParEmail
-                          ? "Vérifiez votre boîte e-mail"
-                          : "Demande enregistrée"}
+                        Vérifiez votre boîte e-mail
                       </p>
                       {/* Le message est le même que l'adresse existe ou non :
                         répondre « ce compte n'existe pas » livrerait la
                         liste des utilisateurs, une adresse à la fois. */}
-                      {recuperationParEmail ? (
-                        <p className="text-sm leading-relaxed text-muted-foreground">
-                          Si un compte existe pour{" "}
-                          <strong className="text-foreground">{forgotEmail}</strong>, un e-mail avec
-                          un lien de réinitialisation vient d&apos;y être envoyé. Pensez à regarder
-                          dans les courriers indésirables.
-                        </p>
-                      ) : (
-                        <p className="text-sm leading-relaxed text-muted-foreground">
-                          L&apos;envoi par e-mail n&apos;est pas encore disponible. Votre demande
-                          pour <strong className="text-foreground">{forgotEmail}</strong> a été
-                          transmise à l&apos;administrateur.
-                        </p>
-                      )}
-                      {!recuperationParEmail && (
-                        <div className="mt-4 rounded-xl border border-border bg-muted p-3.5 text-left">
-                          <p className="text-xs font-semibold text-foreground">
-                            Contactez l&apos;administrateur pour recevoir votre lien
-                          </p>
-                          <a
-                            href={`tel:${APP_SUPPORT_PHONE.replace(/\s/g, "")}`}
-                            className="mt-1.5 inline-block text-base font-bold text-primary hover:underline"
-                          >
-                            {APP_SUPPORT_PHONE}
-                          </a>
-                          <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">
-                            Il vous transmettra un lien personnel pour choisir un nouveau mot de
-                            passe.
-                          </p>
-                        </div>
-                      )}
+                      <p className="text-sm leading-relaxed text-muted-foreground">
+                        Si un compte existe pour{" "}
+                        <strong className="text-foreground">{forgotEmail}</strong>, un e-mail avec
+                        un lien de réinitialisation vient d&apos;y être envoyé. Pensez à regarder
+                        dans les courriers indésirables.
+                      </p>
                       <button
                         type="button"
                         onClick={() => switchMode("login")}
