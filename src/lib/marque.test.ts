@@ -42,6 +42,8 @@ describe("hôtes", () => {
     expect(estHoteParDefaut("localhost")).toBe(true);
     expect(estHoteParDefaut("127.0.0.1")).toBe(true);
     expect(estHoteParDefaut("deploy-preview-12--tantana.netlify.app")).toBe(true);
+    expect(estHoteParDefaut("tantana-suite.com")).toBe(true);
+    expect(estHoteParDefaut("www.tantana-suite.com")).toBe(true);
     expect(estHoteParDefaut("kinvest.mg")).toBe(false);
   });
 });
