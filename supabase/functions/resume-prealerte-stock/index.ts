@@ -124,7 +124,7 @@ serve(async (req: Request) => {
           .limit(1)
           .maybeSingle()
       : { data: null };
-    const adresseExpediteur = `noreply@${domaine?.hostname ?? "balsama.app"}`;
+    const adresseExpediteur = `noreply@${domaine?.hostname ?? "tantana-suite.com"}`;
     const nomExpediteur = (marque?.app_name ?? "Tantana Suite").replace(/[<>"]/g, "");
 
     const { data: abonnes } = await supabase

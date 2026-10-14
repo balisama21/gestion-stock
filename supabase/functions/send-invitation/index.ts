@@ -121,14 +121,14 @@ serve(async (req: Request) => {
           .limit(1)
           .maybeSingle()
       : { data: null };
-    const adresseExpediteur = `noreply@${domaine?.hostname ?? "balsama.app"}`;
-    const nomApp = (marque?.app_name ?? "Balsama Auto Gestion").replace(/[<>"]/g, "");
+    const adresseExpediteur = `noreply@${domaine?.hostname ?? "tantana-suite.com"}`;
+    const nomApp = (marque?.app_name ?? "Tantana Suite").replace(/[<>"]/g, "");
     const nomCourt = marque
       ? (marque.short_name || marque.app_name).replace(/[<>"]/g, "")
-      : "Balsama";
+      : "Tantana Suite";
     const piedDePage = marque
       ? nomApp
-      : "Balsama Auto Gestion — Système professionnel de gestion de stock & trésorerie";
+      : "Tantana Suite — Toute votre entreprise, dans un seul logiciel.";
 
     // Generate token, short code and expiry
     const token = crypto.randomUUID();
