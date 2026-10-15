@@ -52,6 +52,6 @@ export default defineConfig({
      * VITE_DOCUMENTS_V2 pour essayer les nouveaux documents fait échouer
      * les tests du drapeau, qui mesurent tout contre ce socle.
      */
-    env: { VITE_DOCUMENTS_V2: "" },
+    env: { VITE_DOCUMENTS_V2: "", VITE_ORGANISATION_V2: "" },
   },
 });
