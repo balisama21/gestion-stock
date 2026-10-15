@@ -1203,6 +1203,7 @@
   font-weight: 650;
   min-width: 170px;
   text-align: center;
+  text-transform: capitalize;
 }
 .org2 .navbtn {
   width: 32px;

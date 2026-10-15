@@ -17,3 +17,9 @@ Fait : liste groupée (retard/aujourd'hui/semaine/plus tard/sans échéance/term
 Fichiers : components/{Panneaux,Drawer,TacheLigne}.tsx, tabs/TachesTab.tsx, lib/{activite,stats}.ts, OrganisationV2Page.test.tsx
 Décisions prises seul : « Réassigner » = liste des membres (la maquette faisait tourner les noms) ; pas d'heure sur une tâche ; case à cocher désactivée sans `taches.edit` (règle `peutTerminerUneTache` existante).
 Vérifs : tsc/lint/build/tests OK
+
+## Phase 3 — Onglet Agenda
+Fait : vues mois (42 cases) / semaine (7 h–20 h) / jour, navigation, « Aujourd'hui », 4 filtres de type, détail du jour, création d'événement via `useEvenements().creer` ; fusion événements + échéances de tâches + occurrences de rappels + échéances boutique (`echeancesMetier`, filtrée par module visible).
+Fichiers : tabs/AgendaTab.tsx, lib/elements.ts (`panneauDe`), test complété
+Décisions prises seul : filtres de type propres à l'onglet (n'altèrent pas la vue d'ensemble) ; événement « Privé » par défaut comme l'agenda actuel + case « Toute la journée » (colonne existante) ; heures hors 7 h–20 h rangées dans la première/dernière case.
+Vérifs : tsc/lint/build/tests OK

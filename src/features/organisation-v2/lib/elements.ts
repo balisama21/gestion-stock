@@ -3,6 +3,7 @@ import type { Rappel } from "../../../lib/rappels";
 import type { Evenement, LigneAgenda } from "../../../lib/evenements";
 import { heureDe, jourDe } from "../../../lib/evenements";
 import { occurrencesEntre } from "./occurrences";
+import type { Panneau } from "../contexte";
 
 /**
  * UNE LIGNE D'AGENDA, QUELLE QUE SOIT SA SOURCE
@@ -152,3 +153,7 @@ export const elementsEntre = (
     (a.jour + (a.heure ?? "00:00")).localeCompare(b.jour + (b.heure ?? "00:00")),
   );
 };
+
+/** Le panneau qui détaille un élément : une échéance ouvre la liste des échéances. */
+export const panneauDe = (ref: Reference): Panneau =>
+  ref.kind === "echeance" ? { kind: "echeances", ids: [ref.id] } : ref;

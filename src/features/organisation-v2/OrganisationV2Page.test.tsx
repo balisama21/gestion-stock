@@ -244,3 +244,47 @@ describe("Organisation v2 — onglet Tâches", () => {
     expect(m.ecritures()).toBe(0);
   });
 });
+
+describe("Organisation v2 — onglet Agenda", () => {
+  it("change de vue et de période sans rien écrire", () => {
+    const m = monter({ onglet: "agenda" });
+    for (const nom of ["Jour", "Semaine", "Mois"]) {
+      fireEvent.click(screen.getByRole("button", { name: nom }));
+      fireEvent.click(screen.getByRole("button", { name: "Période suivante" }));
+      fireEvent.click(screen.getByRole("button", { name: "Période précédente" }));
+    }
+    fireEvent.click(screen.getByRole("button", { name: /Rappels$/ }));
+    fireEvent.click(screen.getByRole("button", { name: "Aujourd'hui" }));
+    expect(m.ecritures()).toBe(0);
+  });
+
+  it("fusionne échéance de tâche et occurrence de rappel dans le détail du jour", () => {
+    monter({ onglet: "agenda" });
+    const detail = screen.getAllByRole("article")[1];
+    expect(within(detail).getByText("Inventaire")).toBeTruthy();
+    expect(within(detail).getByText("Faire la caisse")).toBeTruthy();
+    expect(within(detail).getByText("16:45")).toBeTruthy();
+  });
+
+  it("crée un événement par la fonction de l'agenda, privé par défaut", async () => {
+    const m = monter({ onglet: "agenda" });
+    fireEvent.click(screen.getByRole("button", { name: "+ Événement" }));
+    fireEvent.change(screen.getByPlaceholderText("Ex. Fournisseur Distri Tana"), {
+      target: { value: "Réunion équipe" },
+    });
+    await act(async () => {
+      fireEvent.click(screen.getByRole("button", { name: "Créer l'événement" }));
+    });
+    expect(m.sourceEvenements.creer).toHaveBeenCalledTimes(1);
+    expect(m.sourceEvenements.creer.mock.calls[0]).toEqual([
+      expect.objectContaining({
+        titre: "Réunion équipe",
+        jour: AUJ,
+        heure: "10:00",
+        journeeEntiere: false,
+        nature: "rendez_vous",
+        visibilite: "prive",
+      }),
+    ]);
+  });
+});
