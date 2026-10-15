@@ -46,5 +46,12 @@ export default defineConfig({
      * synchrone ou resolu en quelques millisecondes.
      */
     testTimeout: 20_000,
+    /*
+     * Les interrupteurs de déploiement valent « éteint » dans les tests,
+     * quel que soit le `.env` local : sans cela, un poste qui active
+     * VITE_DOCUMENTS_V2 pour essayer les nouveaux documents fait échouer
+     * les tests du drapeau, qui mesurent tout contre ce socle.
+     */
+    env: { VITE_DOCUMENTS_V2: "" },
   },
 });
