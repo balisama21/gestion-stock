@@ -1,16 +1,47 @@
 import React from "react";
+import { ArrowRight, Mail, MapPin, MessageCircle, Phone } from "lucide-react";
 import type { Marque } from "../../lib/marque";
 import { lienWhatsapp, type BlocLanding, type LandingMarque } from "../../lib/landingMarque";
 import { LogoMarque } from "./LogoMarque";
 
 /**
  * Page d'accueil d'une marque cliente, tirée de `branding.landing`.
- * Même principe que la vitrine Tantana, identité propre : l'étiquette de
- * colis tient le rôle du ticket. Aucune animation, aucun prix.
+ *
+ * Elle présente l'entreprise à SES clients, pas le logiciel : l'entrepôt,
+ * les cartons, la route. Les textes viennent tous de la marque ; seules
+ * les photos sont fixées ici, choisies dans le registre de la logistique
+ * (entrepôt, emballages, livraison) pour aller avec n'importe quel
+ * grossiste. L'étiquette de colis reste la signature de la page.
+ *
+ * Photos Unsplash (licence libre), servies par leur CDN à la largeur
+ * demandée. Aucun prix.
  */
 
 const POLICE =
   "https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&display=swap";
+
+const photo = (id: string, largeur: number) =>
+  `https://images.unsplash.com/photo-${id}?auto=format&fit=crop&w=${largeur}&q=70`;
+
+/** L'entrepôt et ses palettes, en ouverture. */
+const PHOTO_OUVERTURE = "1587293852726-70cdb56c2866";
+/** Le port : fond de la bande des arguments. */
+const PHOTO_ARGUMENTS = "1494412574643-ff11b0a5c1c3";
+/** Une par offre, dans l'ordre : produits, emballages, volume, suivi. */
+const PHOTOS_OFFRES = [
+  "1580913428735-bd3c269d6a82",
+  "1700165644892-3dd6b67b25bc",
+  "1553413077-190dd305871c",
+  "1586528116311-ad8dd3c8310d",
+];
+/** Une par étape : la demande, la préparation, la livraison. */
+const PHOTOS_ETAPES = [
+  "1666101043509-e9b60b6698d3",
+  "1586528116311-ad8dd3c8310d",
+  "1601584115197-04ecc0da31d7",
+];
+
+const photoDuRang = (serie: string[], i: number) => serie[i % serie.length];
 
 /** Code-barres tiré du nom : décoratif, mais toujours le même. */
 function CodeBarres({ graine }: { graine: string }) {
@@ -43,7 +74,10 @@ function Etiquette({ marque, landing }: { marque: Marque; landing: LandingMarque
     { nom: "Contenu", valeur: landing.contenu },
   ].filter((c) => c.valeur);
   return (
-    <div className="vm-etiquette mx-auto w-full max-w-sm px-5 pb-5 pt-7">
+    <div
+      className="vm-etiquette mx-auto w-full max-w-sm px-5 pb-5 pt-7"
+      style={{ boxShadow: "0 30px 70px -25px rgba(0,0,0,.65)", transform: "rotate(-2deg)" }}
+    >
       {champs.map((c) => (
         <div key={c.nom} className="vm-champ py-3">
           <p className="text-xs" style={{ color: "var(--carbone-doux)" }}>
@@ -59,28 +93,49 @@ function Etiquette({ marque, landing }: { marque: Marque; landing: LandingMarque
   );
 }
 
-function TitreSection({ children }: { children: React.ReactNode }) {
+function TitreSection({ children, clair }: { children: React.ReactNode; clair?: boolean }) {
   return (
-    <h2 className="vm-condense vm-titre-section text-[clamp(1.9rem,4.5vw,2.8rem)]">{children}</h2>
+    <h2
+      className="vm-condense vm-titre-section text-[clamp(1.9rem,4.5vw,2.8rem)]"
+      style={clair ? { color: "#fff" } : undefined}
+    >
+      {children}
+    </h2>
   );
 }
 
 function Offres({ bloc }: { bloc: BlocLanding }) {
   return (
-    <section id="offres" className="reglure px-4 py-16 sm:px-8 sm:py-20">
-      <div className="mx-auto max-w-5xl">
+    <section id="offres" className="px-4 py-16 sm:px-8 sm:py-24">
+      <div className="mx-auto max-w-6xl">
         <TitreSection>{bloc.titre || "Ce que nous proposons"}</TitreSection>
-        <ul className="mt-10 grid gap-x-12 gap-y-8 sm:grid-cols-2">
-          {bloc.elements.map((e) => (
-            <li key={e.titre} className="flex gap-4">
-              <span className="vm-repere" aria-hidden="true" />
-              <div className="min-w-0">
-                <p className="text-lg font-semibold" style={{ color: "var(--carbone)" }}>
+        <ul className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+          {bloc.elements.map((e, i) => (
+            <li
+              key={e.titre}
+              className="overflow-hidden rounded-2xl border bg-white"
+              style={{
+                borderColor: "var(--reglure)",
+                boxShadow: "0 18px 40px -28px rgba(0,0,0,.45)",
+              }}
+            >
+              <img
+                src={photo(photoDuRang(PHOTOS_OFFRES, i), 600)}
+                alt=""
+                loading="lazy"
+                className="aspect-video w-full object-cover sm:aspect-[4/3]"
+              />
+              <div className="p-5">
+                <p
+                  className="flex items-center gap-2.5 text-lg font-semibold"
+                  style={{ color: "var(--carbone)" }}
+                >
+                  <span className="vm-repere !mt-0" aria-hidden="true" />
                   {e.titre}
                 </p>
                 {e.texte && (
                   <p
-                    className="mt-1 max-w-[46ch] text-[0.9375rem] leading-relaxed"
+                    className="mt-2 text-[0.9375rem] leading-relaxed"
                     style={{ color: "var(--carbone-doux)" }}
                   >
                     {e.texte}
@@ -97,20 +152,34 @@ function Offres({ bloc }: { bloc: BlocLanding }) {
 
 function Arguments({ bloc }: { bloc: BlocLanding }) {
   return (
-    <section className="reglure px-4 py-16 sm:px-8 sm:py-20">
-      <div className="mx-auto max-w-5xl">
-        <TitreSection>{bloc.titre || "Pourquoi nous"}</TitreSection>
-        <div className="mt-10 grid gap-10 md:grid-cols-3">
+    <section className="relative isolate overflow-hidden px-4 py-20 sm:px-8 sm:py-28">
+      <img
+        src={photo(PHOTO_ARGUMENTS, 1600)}
+        srcSet={`${photo(PHOTO_ARGUMENTS, 800)} 800w, ${photo(PHOTO_ARGUMENTS, 1600)} 1600w`}
+        sizes="100vw"
+        alt=""
+        loading="lazy"
+        className="absolute inset-0 -z-20 h-full w-full object-cover"
+      />
+      <div
+        aria-hidden
+        className="absolute inset-0 -z-10"
+        style={{ background: "rgba(17,19,21,.8)" }}
+      />
+      <div className="mx-auto max-w-6xl">
+        <TitreSection clair>{bloc.titre || "Pourquoi nous"}</TitreSection>
+        <div className="mt-12 grid gap-10 md:grid-cols-3">
           {bloc.elements.map((e) => (
-            <div key={e.titre} className="vm-argument pt-4">
-              <p className="vm-condense text-2xl font-semibold leading-tight">{e.titre}</p>
+            <div
+              key={e.titre}
+              className="border-t-[3px] pt-5"
+              style={{ borderColor: "var(--vm-kraft)" }}
+            >
+              <p className="vm-condense text-2xl font-semibold leading-tight text-white">
+                {e.titre}
+              </p>
               {e.texte && (
-                <p
-                  className="mt-2 text-[0.9375rem] leading-relaxed"
-                  style={{ color: "var(--carbone-doux)" }}
-                >
-                  {e.texte}
-                </p>
+                <p className="mt-2 text-[0.9375rem] leading-relaxed text-white/75">{e.texte}</p>
               )}
             </div>
           ))}
@@ -122,32 +191,36 @@ function Arguments({ bloc }: { bloc: BlocLanding }) {
 
 function Etapes({ bloc }: { bloc: BlocLanding }) {
   return (
-    <section className="reglure px-4 py-16 sm:px-8 sm:py-20">
-      <div className="mx-auto max-w-5xl">
+    <section className="px-4 py-16 sm:px-8 sm:py-24">
+      <div className="mx-auto max-w-6xl">
         <TitreSection>{bloc.titre || "Comment commander"}</TitreSection>
-        <ol className="mt-10 grid gap-10 md:grid-cols-3">
+        <ol className="mt-12 grid gap-10 md:grid-cols-3 md:gap-8">
           {bloc.elements.map((e, i) => (
-            <li key={e.titre} className="flex gap-4">
+            <li key={e.titre} className="relative">
+              <img
+                src={photo(photoDuRang(PHOTOS_ETAPES, i), 600)}
+                alt=""
+                loading="lazy"
+                className="aspect-video w-full rounded-2xl object-cover"
+              />
               <span
-                className="vm-condense text-5xl font-bold leading-none"
-                style={{ color: "var(--vm-kraft)" }}
+                className="vm-condense absolute left-5 top-5 grid h-12 w-12 place-items-center rounded-full text-2xl font-bold text-white shadow-lg ring-4 ring-white"
+                style={{ background: "var(--vm-kraft)" }}
                 aria-hidden="true"
               >
                 {i + 1}
               </span>
-              <div className="min-w-0 pt-1">
-                <p className="text-lg font-semibold" style={{ color: "var(--carbone)" }}>
-                  {e.titre}
+              <p className="mt-5 text-lg font-semibold" style={{ color: "var(--carbone)" }}>
+                {e.titre}
+              </p>
+              {e.texte && (
+                <p
+                  className="mt-1 text-[0.9375rem] leading-relaxed"
+                  style={{ color: "var(--carbone-doux)" }}
+                >
+                  {e.texte}
                 </p>
-                {e.texte && (
-                  <p
-                    className="mt-1 text-[0.9375rem] leading-relaxed"
-                    style={{ color: "var(--carbone-doux)" }}
-                  >
-                    {e.texte}
-                  </p>
-                )}
-              </div>
+              )}
             </li>
           ))}
         </ol>
@@ -155,6 +228,13 @@ function Etapes({ bloc }: { bloc: BlocLanding }) {
     </section>
   );
 }
+
+const ICONES_CONTACT = {
+  Téléphone: Phone,
+  WhatsApp: MessageCircle,
+  "E-mail": Mail,
+  Adresse: MapPin,
+} as const;
 
 function Contact({ landing }: { landing: LandingMarque }) {
   const c = landing.contact;
@@ -169,36 +249,59 @@ function Contact({ landing }: { landing: LandingMarque }) {
     c.whatsapp && { nom: "WhatsApp", valeur: c.whatsapp, lien: whatsapp },
     c.email && { nom: "E-mail", valeur: c.email, lien: `mailto:${c.email}` },
     c.adresse && { nom: "Adresse", valeur: c.adresse, lien: null },
-  ].filter(Boolean) as { nom: string; valeur: string; lien: string | null }[];
+  ].filter(Boolean) as { nom: keyof typeof ICONES_CONTACT; valeur: string; lien: string | null }[];
   return (
     <section id="contact" className="reglure scroll-mt-14 px-4 py-16 sm:px-8 sm:py-20">
-      <div className="mx-auto max-w-5xl">
+      <div className="mx-auto max-w-6xl">
         <TitreSection>Nous contacter</TitreSection>
-        <dl className="mt-8 grid gap-6 sm:grid-cols-2">
-          {lignes.map((l) => (
-            <div key={l.nom}>
-              <dt className="text-xs" style={{ color: "var(--carbone-doux)" }}>
-                {l.nom}
-              </dt>
-              <dd className="mt-1 break-words text-lg font-semibold">
+        <ul className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {lignes.map((l) => {
+            const Icone = ICONES_CONTACT[l.nom];
+            const contenu = (
+              <>
+                <span
+                  className="grid h-11 w-11 shrink-0 place-items-center rounded-xl text-white"
+                  style={{ background: "var(--vm-kraft)" }}
+                >
+                  <Icone className="h-5 w-5" aria-hidden />
+                </span>
+                <span className="min-w-0">
+                  <span className="block text-xs" style={{ color: "var(--carbone-doux)" }}>
+                    {l.nom}
+                  </span>
+                  <span
+                    className="mt-0.5 block break-words font-semibold"
+                    style={{ color: "var(--carbone)" }}
+                  >
+                    {l.valeur}
+                  </span>
+                </span>
+              </>
+            );
+            const cadre =
+              "flex h-full items-center gap-4 rounded-2xl border bg-white p-4 transition-shadow";
+            return (
+              <li key={l.nom}>
                 {l.lien ? (
                   <a
                     href={l.lien}
-                    className="hover:underline"
-                    style={{ color: "var(--carbone)" }}
+                    className={`${cadre} hover:shadow-md`}
+                    style={{ borderColor: "var(--reglure)" }}
                     {...(l.lien.startsWith("https:")
                       ? { target: "_blank", rel: "noreferrer" }
                       : null)}
                   >
-                    {l.valeur}
+                    {contenu}
                   </a>
                 ) : (
-                  l.valeur
+                  <div className={cadre} style={{ borderColor: "var(--reglure)" }}>
+                    {contenu}
+                  </div>
                 )}
-              </dd>
-            </div>
-          ))}
-        </dl>
+              </li>
+            );
+          })}
+        </ul>
       </div>
     </section>
   );
@@ -223,15 +326,15 @@ export const PageAccueilMarque: React.FC<PageAccueilMarqueProps> = ({
       className="sticky top-0 z-40 border-b"
       style={{ borderColor: "var(--reglure)", background: "var(--papier-fond)" }}
     >
-      <div className="mx-auto flex max-w-5xl items-center justify-between gap-3 px-4 py-2.5">
-        <span className="flex min-w-0 items-center gap-2.5">
-          <LogoMarque marque={marque} taille={30} />
-          <span className="vm-condense truncate text-xl font-semibold">{marque.nom}</span>
+      <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-3 sm:px-8">
+        <span className="flex min-w-0 items-center gap-3">
+          <LogoMarque marque={marque} taille={40} />
+          <span className="vm-condense truncate text-2xl font-semibold">{marque.nom}</span>
         </span>
         <button
           type="button"
           onClick={onEspaceEquipe}
-          className="shrink-0 rounded-lg border px-3.5 py-1.5 text-xs font-semibold"
+          className="shrink-0 rounded-lg border px-4 py-2 text-sm font-semibold"
           style={{ borderColor: "var(--carbone)", color: "var(--carbone)" }}
         >
           Espace équipe
@@ -239,17 +342,35 @@ export const PageAccueilMarque: React.FC<PageAccueilMarqueProps> = ({
       </div>
     </div>
 
-    <section className="px-4 pb-20 pt-14 sm:px-8 sm:pt-20">
-      <div className="mx-auto grid max-w-5xl items-center gap-14 md:grid-cols-[1.25fr_1fr]">
-        <div className="min-w-0">
-          <h1 className="vm-condense vm-titre break-words text-[clamp(2.6rem,7.5vw,4.9rem)]">
+    {/* Ouverture : l'entrepôt en grand, l'étiquette de colis posée dessus. */}
+    <section className="relative isolate overflow-hidden px-4 pb-20 pt-16 sm:px-8 sm:pb-28 sm:pt-24">
+      <img
+        src={photo(PHOTO_OUVERTURE, 1600)}
+        srcSet={`${photo(PHOTO_OUVERTURE, 800)} 800w, ${photo(PHOTO_OUVERTURE, 1600)} 1600w, ${photo(PHOTO_OUVERTURE, 2400)} 2400w`}
+        sizes="100vw"
+        alt=""
+        fetchPriority="high"
+        className="absolute inset-0 -z-20 h-full w-full object-cover"
+        style={{ background: "#2a2c2e" }}
+      />
+      <div
+        aria-hidden
+        className="absolute inset-0 -z-10"
+        style={{
+          background:
+            "linear-gradient(100deg, rgba(17,19,21,.86) 0%, rgba(17,19,21,.66) 45%, rgba(17,19,21,.3) 100%)",
+        }}
+      />
+      <div className="mx-auto grid max-w-6xl items-center gap-14 md:grid-cols-[1.25fr_1fr]">
+        <div className="min-w-0 text-white">
+          <h1
+            className="vm-condense vm-titre break-words text-[clamp(2.6rem,7.5vw,4.9rem)]"
+            style={{ color: "#fff" }}
+          >
             {landing.titre}
           </h1>
           {landing.sousTitre && (
-            <p
-              className="mt-5 max-w-[46ch] text-base leading-relaxed sm:text-lg"
-              style={{ color: "var(--carbone-doux)" }}
-            >
+            <p className="mt-5 max-w-[46ch] text-base leading-relaxed text-white/80 sm:text-lg">
               {landing.sousTitre}
             </p>
           )}
@@ -257,9 +378,10 @@ export const PageAccueilMarque: React.FC<PageAccueilMarqueProps> = ({
             {landing.contact && (
               <a
                 href="#contact"
-                className="rounded-lg bg-primary px-7 py-3.5 text-center text-sm font-semibold text-primary-foreground hover:opacity-90"
+                className="inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-7 py-3.5 text-center text-sm font-semibold text-primary-foreground shadow-lg hover:opacity-90"
               >
                 Nous contacter
+                <ArrowRight className="h-4 w-4" aria-hidden />
               </a>
             )}
             <button
@@ -267,10 +389,9 @@ export const PageAccueilMarque: React.FC<PageAccueilMarqueProps> = ({
               onClick={onEspaceEquipe}
               className={
                 landing.contact
-                  ? "rounded-lg border px-7 py-3.5 text-sm font-semibold"
+                  ? "rounded-lg border border-white/50 px-7 py-3.5 text-sm font-semibold text-white hover:bg-white/10"
                   : "rounded-lg bg-primary px-7 py-3.5 text-sm font-semibold text-primary-foreground hover:opacity-90"
               }
-              style={landing.contact ? { borderColor: "var(--carbone)" } : undefined}
             >
               Espace équipe
             </button>
