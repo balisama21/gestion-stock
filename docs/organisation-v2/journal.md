@@ -40,3 +40,9 @@ Vérifs : tsc/lint/build/tests OK
 Fait : filtre « Toute l'équipe / Ce qui m'est assigné » (défaut selon la portée `taches`), droits repris des règles existantes (`useOrganisationPermissions`), onglets = entrées du menu visibles, drapeau testé (allumage navigateur/adresse, extinction par adresse prioritaire, indépendant du dashboard), `VITE_ORGANISATION_V2` neutralisé dans `vitest.config.ts`, INTEGRATION.md.
 Fichiers : drapeau.test.ts, INTEGRATION.md, vitest.config.ts
 Vérifs : tsc/lint/build OK, suite complète 1052 tests OK
+
+## Phase 7 — Vérifications et rapport
+Fait : rapport final (fichiers, correspondance, écritures réutilisées, masqués, règles d'alerte, écarts, checklist §10, activation).
+Fichiers : docs/organisation-v2/rapport-final.md
+Décisions prises seul : vérification en base laissée à l'utilisateur (connexion et SQL interdits à l'agent).
+Vérifs : tsc/build/tests OK ; lint OK sur les fichiers touchés (erreurs globales préexistantes ailleurs)
