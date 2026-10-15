@@ -114,6 +114,10 @@ export const OrganisationV2Page: React.FC<OrganisationV2Props> = (props) => {
   // voit, ses propres tâches pour les autres.
   const [portee, setPortee] = useState<Portee>(droits.voitTouteLEquipe ? "equipe" : "moi");
 
+  // Le jour choisi dans l agenda vit ici : « Ouvrir dans l agenda » et
+  // « + Événement » en ont besoin hors de l onglet Agenda.
+  const [jourAgenda, setJourAgenda] = useState(aujourdhui);
+
   // ── message de confirmation ──
   const [message, setMessage] = useState<MessageToast | null>(null);
   const dire = useCallback((texte: string, erreur?: boolean) => {
@@ -198,6 +202,8 @@ export const OrganisationV2Page: React.FC<OrganisationV2Props> = (props) => {
     nom,
     portee,
     setPortee,
+    jourAgenda,
+    setJourAgenda,
     taches,
     tachesPortee,
     evenements,

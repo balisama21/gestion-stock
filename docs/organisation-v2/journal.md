@@ -11,3 +11,9 @@ Fait : page `OrganisationV2Page` (en-tête, filtre équipe/moi, menu Nouveau, 4 
 Fichiers : src/features/organisation-v2/** , src/BalsamaApp.tsx (import paresseux, garde `!ongletOrganisation` sur les 4 anciennes vues, clé de remontage commune aux 4 vues, rangée d'univers masquée en v2)
 Décisions prises seul : jetons recopiés du bloc `.dash2` (classe non réutilisable : ses `.btn/.tag/.card` diffèrent) avec le vert sur `--primary` comme le dashboard v2 (marque blanche) ; Onest/JetBrains Mono servies depuis les fichiers déjà embarqués des documents (pas de Google Fonts) ; ruptures responsive en requêtes de conteneur ; captures non faites (connexion réelle requise — interdite à l'agent).
 Vérifs : tsc/lint/build OK
+
+## Phase 2 — Onglet Tâches
+Fait : liste groupée (retard/aujourd'hui/semaine/plus tard/sans échéance/terminées), colonnes, filtres, recherche, 4 compteurs ; panneau partagé (fiche tâche + historique tiré du journal d'activité, actions rapides, formulaires tâche/événement/rappel) ; écritures via `changerStatut`/`modifier`/`creer` existants ; tests vitest (aucune écriture à l'affichage/filtre/onglet, colonnes envoyées, validation, lecture seule).
+Fichiers : components/{Panneaux,Drawer,TacheLigne}.tsx, tabs/TachesTab.tsx, lib/{activite,stats}.ts, OrganisationV2Page.test.tsx
+Décisions prises seul : « Réassigner » = liste des membres (la maquette faisait tourner les noms) ; pas d'heure sur une tâche ; case à cocher désactivée sans `taches.edit` (règle `peutTerminerUneTache` existante).
+Vérifs : tsc/lint/build/tests OK

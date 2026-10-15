@@ -32,6 +32,9 @@ export interface ContexteOrganisation {
   nom: (id: string | null) => string;
 
   portee: Portee;
+  /** Le jour choisi dans l agenda, gardé quand on change d onglet. */
+  jourAgenda: string;
+  setJourAgenda: (j: string) => void;
   setPortee: (p: Portee) => void;
 
   /** Toutes les lignes que la base a laissé lire. */
