@@ -42,6 +42,8 @@ function AcceptInvitePage() {
   const [joinedStoreName, setJoinedStoreName] = useState<string | null>(null);
 
   const [needsEmailConfirmation, setNeedsEmailConfirmation] = useState(false);
+  const [oubli, setOubli] = useState<"non" | "saisie" | "envoye">("non");
+  const [envoiOubli, setEnvoiOubli] = useState(false);
 
   useEffect(() => {
     if (!token) {
@@ -138,6 +140,22 @@ function AcceptInvitePage() {
       setStatus("auth-required");
       setErrorMsg(e instanceof Error ? e.message : "Erreur d'authentification.");
     }
+  };
+
+  // Même demande que sur la page de connexion ; l'invitation reste ouverte ici.
+  const handleOubli = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setErrorMsg("");
+    setEnvoiOubli(true);
+    const { error } = await supabase.functions.invoke("demander-recuperation", {
+      body: { email: email.trim(), hote: hoteVisite() },
+    });
+    setEnvoiOubli(false);
+    if (error) {
+      setErrorMsg("Demande impossible pour l'instant. Réessayez dans un moment.");
+      return;
+    }
+    setOubli("envoye");
   };
 
   return (
@@ -250,7 +268,70 @@ function AcceptInvitePage() {
               </div>
             )}
 
-            {status === "auth-required" && !needsEmailConfirmation && (
+            {status === "auth-required" && oubli === "saisie" && (
+              <form onSubmit={handleOubli} className="space-y-4">
+                <p className="text-sm text-muted-foreground">
+                  Entrez votre e-mail : vous recevrez un lien pour choisir un nouveau mot de passe.
+                </p>
+                {errorMsg && (
+                  <div className="flex items-center gap-2 bg-danger-soft border border-danger-border t-danger rounded-xl p-3 text-sm">
+                    <AlertCircle className="w-4 h-4 shrink-0" />
+                    {errorMsg}
+                  </div>
+                )}
+                <div className="relative">
+                  <Mail className="w-4 h-4 absolute left-3.5 top-3 text-muted-foreground" />
+                  <input
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                    required
+                    autoComplete="email"
+                    placeholder="votre@email.com"
+                    className="app-field pl-10"
+                  />
+                </div>
+                <button type="submit" disabled={envoiOubli} className="app-btn-primary w-full">
+                  {envoiOubli ? "Envoi de la demande…" : "Demander la réinitialisation"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => {
+                    setOubli("non");
+                    setErrorMsg("");
+                  }}
+                  className="block w-full text-center text-xs text-muted-foreground hover:text-foreground"
+                >
+                  Retour à l&apos;invitation
+                </button>
+              </form>
+            )}
+
+            {status === "auth-required" && oubli === "envoye" && (
+              <div className="text-center py-2">
+                <CheckCircle2 className="w-12 h-12 t-success mx-auto mb-4" />
+                <p className="text-foreground font-semibold mb-2">Vérifiez votre boîte e-mail</p>
+                {/* Même réponse que l'adresse existe ou non. */}
+                <p className="text-sm leading-relaxed text-muted-foreground">
+                  Si un compte existe pour <strong className="text-foreground">{email}</strong>, un
+                  e-mail avec un lien de réinitialisation vient d&apos;y être envoyé. Pensez à
+                  regarder dans les courriers indésirables.
+                </p>
+                <p className="mt-4 text-xs leading-relaxed text-muted-foreground">
+                  Une fois le nouveau mot de passe choisi, rouvrez le lien de l&apos;invitation reçu
+                  par e-mail : il reste valable 7 jours.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setOubli("non")}
+                  className="w-full mt-6 py-2.5 bg-muted hover:bg-muted/80 text-foreground text-sm font-semibold rounded-xl transition-colors"
+                >
+                  Retour à l&apos;invitation
+                </button>
+              </div>
+            )}
+
+            {status === "auth-required" && !needsEmailConfirmation && oubli === "non" && (
               <div>
                 <p className="text-sm text-muted-foreground mb-6">
                   Connectez-vous ou créez un compte pour accepter cette invitation.
@@ -327,6 +408,20 @@ function AcceptInvitePage() {
                         )}
                       </button>
                     </div>
+                    {isLogin && (
+                      <div className="mt-2 text-right">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            setOubli("saisie");
+                            setErrorMsg("");
+                          }}
+                          className="text-xs font-semibold t-success hover:underline"
+                        >
+                          Mot de passe oublié ?
+                        </button>
+                      </div>
+                    )}
                   </div>
                   <button
                     type="submit"

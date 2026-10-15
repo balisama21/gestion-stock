@@ -1,12 +1,41 @@
-import { ChevronRight } from "lucide-react";
+import {
+  Activity,
+  BanknoteArrowDown,
+  BanknoteArrowUp,
+  ChartSpline,
+  ChevronRight,
+  Cloud,
+  CloudFog,
+  CloudLightning,
+  CloudRain,
+  CloudSun,
+  MapPin,
+  Moon,
+  Package,
+  ShoppingCart,
+  Sun,
+} from "lucide-react";
 import React, { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import { Icone, type NomIcone } from "../../../components/shared/Icone";
 import { dateCourte, dateLongue, heure, montant, nombre } from "../lib/format";
 import type { ChiffresDuJour, ChiffresStock } from "../lib/chiffres";
 import type { EvenementJournal } from "../lib/journal";
 import type { CleTuile } from "../registry";
-import { HERO_PHOTOS, indexDuJour } from "../assets/images";
+import {
+  HERO_PHOTOS,
+  estLaNuitDehors,
+  indexDuJour,
+  paysagesDuMoment,
+  sourcePhoto,
+  srcsetPhoto,
+  type Photo,
+} from "../assets/images";
+import { usePhotosHautDePage } from "../lib/photosHautDePage";
 import { InspirationDuMoment } from "./InspirationDuMoment";
+import { MenuOption, MenuPill } from "./Pill";
+import { VILLES, useMeteo, type Ciel } from "../lib/meteo";
+import { phraseDuMoment } from "../lib/phrases";
+import { usePhrasesAjoutees } from "../lib/phrasesTableau";
 
 /**
  * LE HAUT DU TABLEAU DE BORD
@@ -23,6 +52,19 @@ import { InspirationDuMoment } from "./InspirationDuMoment";
  */
 
 const CHEVRON = <ChevronRight className="kch-svg" aria-hidden="true" />;
+
+/**
+ * L'icône de chaque carte du jour : nue, sans pastille ni cadre — la
+ * couleur de la carte dit le sens. Le chariot des ventes, le billet qui
+ * entre, le billet qui sort, le colis du stock, le tracé de l'activité.
+ */
+const ICONE_TUILE: Record<CleTuile, React.ReactNode> = {
+  ventes: <ShoppingCart aria-hidden="true" />,
+  entrees: <BanknoteArrowDown aria-hidden="true" />,
+  sorties: <BanknoteArrowUp aria-hidden="true" />,
+  stock: <Package aria-hidden="true" />,
+  activite: <Activity aria-hidden="true" />,
+};
 
 /** « 16 % », signé, ou rien quand il n'y a pas de quoi comparer. */
 function ecart(valeur: number, reference: number): string | null {
@@ -119,7 +161,8 @@ const GraphiqueVentes: React.FC<{ points: PointVentes[]; montantsVisibles: boole
   const base = 112;
   const plein = 92;
   const max = Math.max(...points.map((p) => p.montant), 0);
-  const pas = pasRond(Math.max(max, 1));
+  // Un ariary au moins : sans ventes, l'axe affichait « 0, 0, 1, 1, 1 ».
+  const pas = Math.max(1, pasRond(Math.max(max, 1)));
   const axe = Math.max(pas * 4, Math.ceil(max / pas) * pas);
   const x0 = 70;
   const x1 = W - 47;
@@ -167,9 +210,6 @@ const GraphiqueVentes: React.FC<{ points: PointVentes[]; montantsVisibles: boole
           )}
         </g>
       ))}
-      {P.map(([x, y], i) => (
-        <line key={`v${i}`} x1={x} x2={x} y1={y} y2={base} className="tige" />
-      ))}
       {P.length > 1 && (
         <path
           d={`${chemin} L${P[P.length - 1][0]},${base} L${P[0][0]},${base} Z`}
@@ -177,9 +217,18 @@ const GraphiqueVentes: React.FC<{ points: PointVentes[]; montantsVisibles: boole
         />
       )}
       <path d={chemin} className="courbe" />
-      {P.map(([x, y], i) => (
-        <circle key={`p${i}`} cx={x} cy={y} r={survol === i ? 5.5 : 4.3} className="point" />
-      ))}
+      {/* Pas de point sur chaque jour : la ligne seule, et un repère
+          sous la souris pour lire le jour survolé. Un point isolé reste
+          marqué, sinon il n'y aurait rien à voir. */}
+      {survol !== null && P[survol] && (
+        <g className="repere">
+          <line x1={P[survol][0]} x2={P[survol][0]} y1={20} y2={base} className="guide" />
+          <circle cx={P[survol][0]} cy={P[survol][1]} r={4} className="point" />
+        </g>
+      )}
+      {P.length === 1 && survol === null && (
+        <circle cx={P[0][0]} cy={P[0][1]} r={3.5} className="point" />
+      )}
       {points.map((p, i) =>
         i % pasLibelle === ancre ? (
           <text key={`l${i}`} x={X(i)} y={H - 6} textAnchor="middle" className="axe" style={texte}>
@@ -207,10 +256,142 @@ const GraphiqueVentes: React.FC<{ points: PointVentes[]; montantsVisibles: boole
   );
 };
 
+/** L'icône du ciel, de jour ou de nuit. */
+/** L'espace insécable du français devant « ! ? : ; ». */
+const typo = (s: string) => s.replace(/ ([!?:;])/g, "\u00a0$1");
+
+function iconeCiel(ciel: Ciel, jour: boolean): React.ReactNode {
+  const p = { className: "ic-meteo", "aria-hidden": true } as const;
+  switch (ciel) {
+    case "soleil":
+      return jour ? <Sun {...p} /> : <Moon {...p} />;
+    case "nuageux":
+      return jour ? <CloudSun {...p} /> : <Cloud {...p} />;
+    case "couvert":
+      return <Cloud {...p} />;
+    case "brouillard":
+      return <CloudFog {...p} />;
+    case "orage":
+      return <CloudLightning {...p} />;
+    default:
+      return <CloudRain {...p} />;
+  }
+}
+
+/**
+ * La police manuscrite de la devise, demandée une seule fois. Le navigateur
+ * n'en charge que la partie latine, sans rien retarder ; une devise
+ * ajoutée dans les paramètres s'affiche donc dans la même écriture.
+ */
+function chargerPoliceDevise() {
+  if (typeof document === "undefined" || document.getElementById("tn-police-devise")) return;
+  const lien = document.createElement("link");
+  lien.id = "tn-police-devise";
+  lien.rel = "stylesheet";
+  lien.href = `https://fonts.googleapis.com/css2?family=Caveat:wght@600&display=swap`;
+  document.head.appendChild(lien);
+}
+
+/** Le temps passé sur chaque paysage du haut de page. */
+const DELAI_PAYSAGE = 9_000;
+
+/**
+ * LES PAYSAGES DU HAUT DE PAGE, en fondu enchaîné.
+ *
+ * Les photos viennent de la série du moment — jour ou soir — et changent
+ * chaque jour (voir `paysagesDuMoment`). Seuls le paysage affiché et
+ * le suivant sont demandés au réseau ; les autres arrivent à leur tour.
+ * Le défilement s'arrête au survol et au focus, et ne démarre pas quand
+ * le système demande de réduire les animations — les flèches restent.
+ *
+ * Le paysage affiché ne cède sa place qu'une fois le suivant chargé : pas
+ * d'écran vide entre deux photos sur une connexion lente. Une photo qui
+ * ne charge pas est retirée du lot ; si aucune ne charge, l'illustration
+ * locale, posée dessous par le composant parent, reste visible.
+ */
+const PaysagesDuHaut: React.FC<{ photos: Photo[] }> = ({ photos }) => {
+  const [courant, setCourant] = useState(0);
+  const [pause, setPause] = useState(false);
+  const [vus, setVus] = useState<Set<number>>(() => new Set([0]));
+  const [echecs, setEchecs] = useState<Set<number>>(() => new Set());
+  const [charges, setCharges] = useState<Set<number>>(() => new Set());
+  const [affiche, setAffiche] = useState(0);
+  const n = photos.length;
+
+  const aller = (pas: number) => setCourant((c) => (c + pas + n) % n);
+
+  // Le paysage demandé et le suivant, pour qu'il soit prêt à son tour.
+  useEffect(() => {
+    const suivant = (courant + 1) % n;
+    setVus((v) => (v.has(courant) && v.has(suivant) ? v : new Set([...v, courant, suivant])));
+  }, [courant, n]);
+
+  useEffect(() => {
+    if (charges.has(courant)) setAffiche(courant);
+  }, [charges, courant]);
+
+  useEffect(() => {
+    if (pause || n < 2) return;
+    if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return;
+    const id = window.setInterval(() => setCourant((c) => (c + 1) % n), DELAI_PAYSAGE);
+    return () => window.clearInterval(id);
+  }, [pause, n]);
+
+  if (echecs.size === n) return null;
+
+  return (
+    <div
+      className="tb-paysages"
+      onMouseEnter={() => setPause(true)}
+      onMouseLeave={() => setPause(false)}
+      onFocus={() => setPause(true)}
+      onBlur={() => setPause(false)}
+    >
+      {photos.map((p, i) =>
+        vus.has(i) && !echecs.has(i) ? (
+          <img
+            key={p.id}
+            className={`tb-paysage${i === affiche && charges.has(i) ? " actif" : ""}`}
+            src={sourcePhoto(p, 1800)}
+            srcSet={p.url ? undefined : srcsetPhoto(p.id, [900, 1400, 1800, 2400])}
+            sizes="100vw"
+            alt=""
+            decoding="async"
+            draggable={false}
+            fetchPriority={i === courant ? "high" : "low"}
+            style={{ objectPosition: p.cadrage }}
+            onLoad={() => setCharges((s) => new Set([...s, i]))}
+            onError={() => setEchecs((e) => new Set([...e, i]))}
+          />
+        ) : null,
+      )}
+      {n > 1 && (
+        <div className="tb-nav" role="group" aria-label="Paysages">
+          <button type="button" onClick={() => aller(-1)} aria-label="Paysage précédent">
+            <ChevronRight className="tb-nav-g" aria-hidden="true" />
+          </button>
+          <div className="tb-points" aria-hidden="true">
+            {photos.map((p, i) => (
+              <span key={p.id} className={i === courant ? "actif" : undefined} />
+            ))}
+          </div>
+          <button type="button" onClick={() => aller(1)} aria-label="Paysage suivant">
+            <ChevronRight aria-hidden="true" />
+          </button>
+        </div>
+      )}
+    </div>
+  );
+};
+
 export interface HeroProps {
   /** « Bonjour, Mamy » : le prénom, ou rien. */
   prenom: string;
-  /** Le thème sombre de l'application passe aussi le ciel en nuit. */
+  /**
+   * Le thème sombre de l'application. Il ne change plus les photos : elles
+   * suivent l'heure réelle — vraies photos de jour le jour, vraies photos
+   * du soir le soir, jamais une photo de jour assombrie.
+   */
   sombre?: boolean;
   /** Quand les données ont été lues pour la dernière fois. */
   chargeA: Date | null;
@@ -246,7 +427,6 @@ export interface HeroProps {
 
 export const HeroTableauDeBord: React.FC<HeroProps> = ({
   prenom,
-  sombre = false,
   chargeA,
   onRafraichir,
   boutonRafraichir,
@@ -277,11 +457,28 @@ export const HeroTableauDeBord: React.FC<HeroProps> = ({
     return () => window.clearInterval(id);
   }, []);
 
+  const { ville, choisirVille, meteo } = useMeteo();
+  useEffect(chargerPoliceDevise, []);
+
   const h = maintenant?.getHours() ?? 12;
-  const nuit = sombre || h < 6 || h >= 18;
+  // Le soir dehors (18 h – 6 h) : la série des photos du soir.
+  const nuit = estLaNuitDehors(maintenant ?? new Date(2026, 0, 5, 12));
+  const photosImportees = usePhotosHautDePage();
+  const paysages = useMemo(
+    () => paysagesDuMoment(maintenant ?? new Date(2026, 0, 5, 12), photosImportees),
+    // Recalculé seulement quand le jour ou la série change, pas à chaque
+    // battement de l'horloge.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [nuit, maintenant?.toDateString(), photosImportees],
+  );
   const idx = indexDuJour(maintenant ?? new Date(2026, 0, 5));
   const photo = HERO_PHOTOS[idx];
   const salutation = h >= 18 || h < 4 ? "Bonsoir" : "Bonjour";
+  // Une phrase pour la journée, une autre le soir, et d'autres demain.
+  // Avant l'horloge (rendu serveur), une date fixe : pas d'écart à
+  // l'hydratation.
+  const { ajoutees, reglages } = usePhrasesAjoutees();
+  const phrase = phraseDuMoment(maintenant ?? new Date(2026, 0, 5, 10), ajoutees, reglages);
 
   const bientotEnRupture = stock.aRecommander.length + stock.enRupture.length;
   const comparaisonVentes = ecart(jour.ventes, jour.ventesHier);
@@ -297,16 +494,14 @@ export const HeroTableauDeBord: React.FC<HeroProps> = ({
     </button>
   );
   const tete = (
-    nom: NomIcone,
+    cleIcone: CleTuile,
     ton: string,
     titre: React.ReactNode,
     cle: CleTuile,
     aide: string,
   ) => (
     <div className="kc-h">
-      <span className={`pastille ${ton}`}>
-        <Icone nom={nom} />
-      </span>
+      <span className={`pastille ${ton}`}>{ICONE_TUILE[cleIcone]}</span>
       <div className="kt">{titre}</div>
       <button type="button" className="kch" onClick={() => onOuvrir(cle)} aria-label={aide}>
         {CHEVRON}
@@ -340,7 +535,7 @@ export const HeroTableauDeBord: React.FC<HeroProps> = ({
   const cartes: Record<CleTuile, React.ReactNode> = {
     ventes: (
       <>
-        {tete("cart", "vert", "Ventes du jour", "ventes", "Détail des ventes du jour")}
+        {tete("ventes", "vert", "Ventes du jour", "ventes", "Détail des ventes du jour")}
         <div className="kv">{montantsVentesVisibles ? montant(jour.ventes) : "•••"}</div>
         <div className="kd">
           {jour.tickets === 0
@@ -359,7 +554,7 @@ export const HeroTableauDeBord: React.FC<HeroProps> = ({
     ),
     entrees: (
       <>
-        {tete("download", "bleu", "Entrées d'argent", "entrees", "Détail des encaissements")}
+        {tete("entrees", "menthe", "Entrées d'argent", "entrees", "Détail des encaissements")}
         <div className="kv">+{montant(jour.encaisse)}</div>
         <div className="kd">
           {jour.encaisse === 0 ? "Aucun encaissement aujourd'hui." : "Encaissements du jour."}
@@ -367,13 +562,13 @@ export const HeroTableauDeBord: React.FC<HeroProps> = ({
         <div className="kc-pied">
           {tendance(
             "trend",
-            "bleu",
+            "menthe",
             jour.encaisseDuMois > 0 ? `Ce mois ${montant(jour.encaisseDuMois)}` : "–",
           )}
           <button
             type="button"
             className="kl"
-            style={{ color: "var(--k-bleu)" }}
+            style={{ color: "var(--k-menthe)" }}
             onClick={() => onOuvrir("entrees")}
           >
             Voir le détail
@@ -383,7 +578,7 @@ export const HeroTableauDeBord: React.FC<HeroProps> = ({
     ),
     sorties: (
       <>
-        {tete("arrowup", "rouge", "Sorties d'argent", "sorties", "Détail des sorties")}
+        {tete("sorties", "rouge", "Sorties d'argent", "sorties", "Détail des sorties")}
         <div className="kv">
           {jour.sorties > 0 ? "−" : ""}
           {montant(jour.sorties)}
@@ -405,10 +600,11 @@ export const HeroTableauDeBord: React.FC<HeroProps> = ({
     ),
     stock: (
       <>
-        {tete("box", "vert", "Stock du jour", "stock", "Produits bientôt en rupture")}
+        {tete("stock", "turquoise", "Stock du jour", "stock", "Produits bientôt en rupture")}
         {duo(
-          ["Entrées", `+${nombre(jour.entreesStock)} u.`],
-          ["Sorties", `−${nombre(jour.sortiesStock)} u.`],
+          ["Entrées", `+${nombre(Math.abs(jour.entreesStock))} u.`],
+          // La valeur absolue : un « −0 » venu du calcul s'écrivait « −−0 u. ».
+          ["Sorties", `−${nombre(Math.abs(jour.sortiesStock))} u.`],
           "kv moyen pos",
         )}
         {bientotEnRupture > 0 ? (
@@ -429,14 +625,14 @@ export const HeroTableauDeBord: React.FC<HeroProps> = ({
               <div className="kb">{montant(stock.valeur)}</div>
             </div>
           )}
-          {lien("produits", "Voir le stock", "var(--k-vert)")}
+          {lien("produits", "Voir le stock", "var(--k-turquoise)")}
         </div>
       </>
     ),
     activite: (
       <>
         {tete(
-          "pulse",
+          "activite",
           "violet",
           "Activité aujourd'hui",
           "activite",
@@ -498,34 +694,87 @@ export const HeroTableauDeBord: React.FC<HeroProps> = ({
         <div className="tbi">
           <div className={`tb-hero${nuit ? " night" : ""}`}>
             <div className="tb-hero-bg" style={{ backgroundImage: `url(${photoDuJour})` }} />
-            <div className="tb-when">
-              <Icone nom="calendar" className="ic1" />
-              <span className="date-longue">{maintenant ? dateLongue(maintenant) : " "}</span>
-              <span className="date-courte">{maintenant ? dateCourte(maintenant) : " "}</span>
-              {maintenant && (
-                <>
-                  <span className="dot">·</span>
-                  <span>{heure(maintenant)}</span>
-                </>
-              )}
-              <button
-                ref={boutonRafraichir}
-                type="button"
-                className="ic2"
-                onClick={onRafraichir}
-                aria-label="Actualiser les données"
-                title={chargeA ? `Mis à jour à ${heure(chargeA)}` : "Actualiser"}
-              >
-                <Icone nom="refresh" />
-              </button>
-              {vue}
+            <PaysagesDuHaut key={paysages.map((p) => p.id).join()} photos={paysages} />
+            <div className="tb-voile" aria-hidden="true" />
+            <div className="tb-texte">
+              <div className="tb-when">
+                <Icone nom="calendar" className="ic1" />
+                <span className="date-longue">{maintenant ? dateLongue(maintenant) : " "}</span>
+                <span className="date-courte">{maintenant ? dateCourte(maintenant) : " "}</span>
+                {maintenant && (
+                  <>
+                    <span className="dot">·</span>
+                    <span>{heure(maintenant)}</span>
+                  </>
+                )}
+                {meteo && (
+                  <>
+                    <span className="sep" aria-hidden="true" />
+                    <span className="meteo" title={`Météo à ${ville}`}>
+                      {iconeCiel(meteo.ciel, meteo.jour)}
+                      {meteo.temperature}°C
+                    </span>
+                  </>
+                )}
+                <span className="sep" aria-hidden="true" />
+                <MenuPill
+                  icon={<MapPin className="ic-lieu" aria-hidden="true" />}
+                  value={ville}
+                  alignLeft
+                  className="lieu"
+                  ariaLabel={`Ville de la météo : ${ville}`}
+                >
+                  {(fermer) =>
+                    VILLES.map((v) => (
+                      <MenuOption
+                        key={v.nom}
+                        checked={v.nom === ville}
+                        onClick={() => {
+                          choisirVille(v.nom);
+                          fermer();
+                        }}
+                      >
+                        {v.nom}
+                      </MenuOption>
+                    ))
+                  }
+                </MenuPill>
+                <button
+                  ref={boutonRafraichir}
+                  type="button"
+                  className="ic2"
+                  onClick={onRafraichir}
+                  aria-label="Actualiser les données"
+                  title={chargeA ? `Mis à jour à ${heure(chargeA)}` : "Actualiser"}
+                >
+                  <Icone nom="refresh" />
+                </button>
+                {vue}
+              </div>
+              <h1>
+                {salutation}
+                {prenom ? (
+                  <>
+                    , <span className="prenom">{prenom}</span>
+                  </>
+                ) : (
+                  ""
+                )}
+              </h1>
+              <p>
+                {typo(phrase.lignes[0])}
+                <br />
+                {typo(phrase.lignes[1])}
+              </p>
+              {alertes && <div className="tb-attn">{alertes}</div>}
             </div>
-            <h1>
-              {salutation}
-              {prenom ? `, ${prenom}` : ""}
-            </h1>
-            <p>Voici un aperçu de l&apos;activité de votre boutique aujourd&apos;hui.</p>
-            {alertes && <div className="tb-attn">{alertes}</div>}
+            <div className="tb-devise">
+              <span>{typo(phrase.devise[0])}</span>
+              <span>{typo(phrase.devise[1])}</span>
+              <svg viewBox="0 0 200 14" aria-hidden="true">
+                <path d="M4 10 C 60 2, 130 2, 196 7" />
+              </svg>
+            </div>
           </div>
 
           {tuiles.length > 0 && (
@@ -548,7 +797,7 @@ export const HeroTableauDeBord: React.FC<HeroProps> = ({
               <article className="tc" id="tcChart">
                 <div className="tc-h">
                   <span className="pastille vert">
-                    <Icone nom="chart" />
+                    <ChartSpline aria-hidden="true" />
                   </span>
                   <div className="tc-t">
                     <button type="button" className="ctitle" onClick={graphique.onDetails}>

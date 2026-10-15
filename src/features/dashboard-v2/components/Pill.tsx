@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useId, useRef, useState } from "react";
+import React, { useCallback, useEffect, useId, useLayoutEffect, useRef, useState } from "react";
 
 /**
  * LE BOUTON EN GÉLULE DE L'EN-TÊTE, ET SON MENU
@@ -89,6 +89,28 @@ export const MenuPill: React.FC<MenuPillProps> = ({
       document.removeEventListener("keydown", auClavier);
     };
   }, [ouvert, fermer]);
+
+  // Le menu s'aligne sur un bord du bouton ; si le bouton est près de
+  // l'autre bord de l'écran (sur téléphone surtout), le menu en sortirait.
+  // On le glisse alors juste assez pour qu'il tienne en entier.
+  useLayoutEffect(() => {
+    if (!ouvert) return;
+    const placer = () => {
+      const m = menu.current;
+      if (!m) return;
+      m.style.transform = "";
+      const r = m.getBoundingClientRect();
+      const largeur = document.documentElement.clientWidth;
+      const marge = 8;
+      let dx = 0;
+      if (r.left < marge) dx = marge - r.left;
+      else if (r.right > largeur - marge) dx = largeur - marge - r.right;
+      if (dx) m.style.transform = `translateX(${Math.round(dx)}px)`;
+    };
+    placer();
+    window.addEventListener("resize", placer);
+    return () => window.removeEventListener("resize", placer);
+  }, [ouvert]);
 
   return (
     <div className={`menu-holder ${className}`} ref={boite}>

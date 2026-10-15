@@ -91,11 +91,15 @@ export function normaliserHote(hote: string): string {
     .replace(/^www\./, "");
 }
 
-/** localhost, IP, previews Netlify : toujours Tantana, sans requête. */
+/** Domaines propres à Tantana (sans `www.`, retiré par `normaliserHote`). */
+export const DOMAINES_PAR_DEFAUT = ["tantana-suite.com"];
+
+/** localhost, IP, previews Netlify, domaines Tantana : toujours Tantana, sans requête. */
 export function estHoteParDefaut(hote: string): boolean {
   const h = normaliserHote(hote);
   return (
     h === "" ||
+    DOMAINES_PAR_DEFAUT.includes(h) ||
     h === "localhost" ||
     h.endsWith(".localhost") ||
     h === "[::1]" ||
@@ -323,7 +327,7 @@ export function scriptMarqueAvantRendu(graine: Marque | null = null): string {
   return `(function(){try{
 var g=${g};window.__marqueRendu=g;
 var h=location.hostname.toLowerCase().replace(/:\\d+$/,"").replace(/\\.$/,"").replace(/^www\\./,"");
-if(h==="localhost"||h==="[::1]"||/\\.localhost$/.test(h)||/^\\d{1,3}(\\.\\d{1,3}){3}$/.test(h)||/\\.netlify\\.(app|live)$/.test(h))return;
+if(${JSON.stringify(DOMAINES_PAR_DEFAUT)}.indexOf(h)>=0||h==="localhost"||h==="[::1]"||/\\.localhost$/.test(h)||/^\\d{1,3}(\\.\\d{1,3}){3}$/.test(h)||/\\.netlify\\.(app|live)$/.test(h))return;
 var k=${JSON.stringify(CLE_CACHE_MARQUE)};
 var c=JSON.parse(localStorage.getItem(k)||"null");
 if(c&&c.hote!==h)c=null;

@@ -4,8 +4,9 @@ import { SettingsLayout } from "./SettingsLayout";
 
 // La barre lit le profil connecté pour son sous-titre et son bouton de
 // déconnexion ; ni l'un ni l'autre ne concerne ce qu'on vérifie ici.
+const profil = vi.hoisted(() => ({ email: "essai@exemple.mg", is_platform_admin: false }));
 vi.mock("../../hooks/useAuth", () => ({
-  useAuth: () => ({ signOut: vi.fn(), profile: { email: "essai@exemple.mg" } }),
+  useAuth: () => ({ signOut: vi.fn(), profile: profil }),
 }));
 
 /**
@@ -94,5 +95,19 @@ describe("ce que chacun a le droit de voir", () => {
       expect(screen.queryByText(libelle), libelle).toBeNull();
     }
     expect(screen.getAllByText("Mon compte").length).toBeGreaterThan(0);
+  });
+
+  it("les photos d'inspiration ne sont ouvertes qu'à l'administrateur de la plateforme", () => {
+    afficher(true);
+    expect(screen.queryByText("Inspiration du moment")).toBeNull();
+    cleanup();
+
+    profil.is_platform_admin = true;
+    try {
+      afficher(true);
+      expect(screen.getAllByText("Inspiration du moment")).toHaveLength(2);
+    } finally {
+      profil.is_platform_admin = false;
+    }
   });
 });

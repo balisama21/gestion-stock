@@ -54,7 +54,7 @@ import {
 } from "./lib/chiffres";
 import { lireJournal } from "./lib/journal";
 import { agendaDuMois } from "./lib/agenda";
-import { VUES, VUE_PAR_CLE } from "./roles";
+import { VUE_PAR_CLE } from "./roles";
 import { CARTE_PAR_CLE, type CleCarte, type CleTuile } from "./registry";
 import {
   banniereArgent,
@@ -62,7 +62,10 @@ import {
   banniereOperations,
   banniereStock,
   banniereVentes,
+  photoDeSection,
+  type CleSection,
 } from "./assets/images";
+import { usePhotosSections } from "./lib/photosSections";
 import { dateDuJour } from "../../lib/dates";
 import { useAuth } from "../../hooks/useAuth";
 import { REGLAGES_PAR_DEFAUT, type ReglagesAlertesStock } from "../../lib/prealerteStock";
@@ -244,6 +247,22 @@ export const DashboardV2Page: React.FC<DashboardV2PageProps> = ({
   const prenom = (profile?.full_name ?? "").trim().split(/\s+/)[0] || "";
 
   const aujourdhui = dateDuJour();
+
+  /**
+   * La photo du jour de chaque bannière de section. La date n'est lue
+   * qu'après le premier rendu : le serveur et le navigateur doivent
+   * d'abord dessiner la même photo.
+   */
+  const photosSections = usePhotosSections();
+  const [jourPhotos, setJourPhotos] = useState<Date | null>(null);
+  useEffect(() => setJourPhotos(new Date()), []);
+  const photoSection = (cle: CleSection) =>
+    photoDeSection(
+      cle,
+      jourPhotos ?? new Date(2026, 9, 11),
+      photosSections.ajoutees[cle],
+      photosSections.choix[cle],
+    );
   const { periode, choisir, choisirIntervalle, apercus, intervalleLibre } =
     useDashboardPeriod(aujourdhui);
   const droits = useDashboardPermissions();
@@ -528,36 +547,6 @@ export const DashboardV2Page: React.FC<DashboardV2PageProps> = ({
     </MenuPill>
   );
 
-  /** Le choix de la vue métier, offert au propriétaire. */
-  const selecteurVue =
-    droits.vuesDisponibles.length > 1 ? (
-      <MenuPill
-        icon={<Icone nom="eye" />}
-        value={vueCourante?.nom ?? "Dirigeant"}
-        alignLeft
-        className="vue"
-        ariaLabel={`Vue : ${vueCourante?.nom ?? "Dirigeant"}`}
-      >
-        {(fermer) =>
-          VUES.filter((v) => droits.vuesDisponibles.includes(v.cle)).map((v) => (
-            <MenuOption
-              key={v.cle}
-              checked={droits.vue === v.cle}
-              onClick={() => {
-                droits.changerDeVue(v.cle);
-                fermer();
-              }}
-            >
-              <span className="two-lines">
-                {v.nom}
-                <small>{v.resume}</small>
-              </span>
-            </MenuOption>
-          ))
-        }
-      </MenuPill>
-    ) : null;
-
   /** Ce qui est urgent, en puces sous le bonjour. Rien quand tout va bien. */
   const puces =
     chiffres.attention.total === 0 ? null : (
@@ -704,7 +693,6 @@ export const DashboardV2Page: React.FC<DashboardV2PageProps> = ({
         chargeA={chargeA}
         onRafraichir={rafraichir}
         boutonRafraichir={boutonRafraichir}
-        vue={selecteurVue}
         alertes={puces}
         tuiles={droits.tuiles}
         jour={chiffres.duJour}
@@ -743,19 +731,29 @@ export const DashboardV2Page: React.FC<DashboardV2PageProps> = ({
       )}
 
       {operations.length > 0 && (
-        <Section id="operations" image={banniereOperations} titre="Opérations">
+        <Section
+          id="operations"
+          image={banniereOperations}
+          photo={photoSection("operations")}
+          titre="Opérations"
+        >
           {grille(operations, carteOperation)}
         </Section>
       )}
 
       {ventesCartes.length > 0 && (
-        <Section id="ventes" image={banniereVentes} titre={aSoi ? "Mes ventes" : "Ventes"}>
+        <Section
+          id="ventes"
+          image={banniereVentes}
+          photo={photoSection("ventes")}
+          titre={aSoi ? "Mes ventes" : "Ventes"}
+        >
           {grille(ventesCartes, carteVente)}
         </Section>
       )}
 
       {avecArgent && (
-        <Section id="argent" image={banniereArgent} titre="L'argent">
+        <Section id="argent" image={banniereArgent} photo={photoSection("argent")} titre="L'argent">
           {argent.tresorerie && (
             <CarteTresorerie
               capital={capital}
@@ -837,7 +835,7 @@ export const DashboardV2Page: React.FC<DashboardV2PageProps> = ({
       )}
 
       {avecStock && (
-        <Section id="stock" image={banniereStock} titre="Le stock">
+        <Section id="stock" image={banniereStock} photo={photoSection("stock")} titre="Le stock">
           {(stockCartes.stock || stockCartes.ruptures) && (
             <CarteStockChiffres
               stock={chiffres.stock}
@@ -888,6 +886,7 @@ export const DashboardV2Page: React.FC<DashboardV2PageProps> = ({
         <Section
           id="fournisseurs"
           image={banniereFournisseurs}
+          photo={photoSection("fournisseurs")}
           titre="Fournisseurs & Prestataires"
           sousTitre="Gérez vos fournisseurs de produits et vos prestataires de services facilement."
         >

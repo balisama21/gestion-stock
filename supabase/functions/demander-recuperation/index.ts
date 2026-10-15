@@ -1,13 +1,16 @@
 import { serve } from "https://deno.land/std@0.177.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { emailRecuperation } from "./email.ts";
+
+declare const EdgeRuntime: { waitUntil(promesse: Promise<unknown>): void };
 
 /**
  * Dépôt d'une demande de réinitialisation de mot de passe.
  *
  * Publique par nécessité : celui qui a oublié son mot de passe n'est
- * précisément pas connecté. Elle enregistre la demande pour que le
- * propriétaire la traite, et ne renvoie jamais rien d'autre qu'un accusé
- * de réception identique pour tout le monde.
+ * précisément pas connecté. Elle enregistre la demande, envoie le lien
+ * par e-mail (l'administrateur la traite si l'envoi échoue), et ne renvoie
+ * jamais rien d'autre qu'un accusé de réception identique pour tout le monde.
  *
  * Ce silence est délibéré. Répondre « cette adresse n'est pas connue »
  * transformerait ce formulaire en outil de recensement : il suffirait
@@ -16,10 +19,10 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
  * pour la même raison. L'information existe, elle est enregistrée, mais
  * elle n'est lisible que du côté administrateur.
  *
- * Étant ouverte, elle se protège seule : format vérifié, une demande par
- * adresse et par heure, et un plafond global qui empêche de gonfler la
- * table. Ces refus restent invisibles du demandeur, qui voit toujours la
- * même réponse.
+ * Étant ouverte, elle se protège seule : format vérifié, 2 minutes entre
+ * deux demandes et 5 par heure pour une adresse, et un plafond global qui
+ * empêche de gonfler la table. Ces refus restent invisibles du demandeur,
+ * qui voit toujours la même réponse.
  */
 
 const corsHeaders = {
@@ -38,6 +41,11 @@ const ACCUSE = { success: true };
 
 const UNE_HEURE_MS = 60 * 60 * 1000;
 const PLAFOND_HORAIRE_GLOBAL = 50;
+const DELAI_ENTRE_DEMANDES_MS = 2 * 60 * 1000;
+const PLAFOND_HORAIRE_PAR_ADRESSE = 5;
+
+/** Domaine principal du SaaS, vérifié chez Resend. */
+const DOMAINE_TANTANA = "tantana-suite.com";
 
 serve(async (req: Request) => {
   if (req.method === "OPTIONS") {
@@ -45,7 +53,7 @@ serve(async (req: Request) => {
   }
 
   try {
-    const { email } = await req.json();
+    const { email, hote } = await req.json();
 
     if (typeof email !== "string" || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
       // Un format invalide est la seule chose qu'on peut dire sans rien
@@ -62,15 +70,17 @@ serve(async (req: Request) => {
 
     const depuisUneHeure = new Date(Date.now() - UNE_HEURE_MS).toISOString();
 
-    // Une seule demande par adresse et par heure.
-    const { data: dejaDemande } = await supabase
+    // Par adresse : 2 minutes entre deux demandes, 5 au plus par heure.
+    const { data: recentes } = await supabase
       .from("password_recovery_requests")
-      .select("id")
+      .select("requested_at")
       .eq("email", adresse)
       .gte("requested_at", depuisUneHeure)
-      .maybeSingle();
+      .order("requested_at", { ascending: false });
 
-    if (dejaDemande) return json(ACCUSE);
+    const derniere = recentes?.[0] ? Date.parse(recentes[0].requested_at) : 0;
+    if (Date.now() - derniere < DELAI_ENTRE_DEMANDES_MS) return json(ACCUSE);
+    if ((recentes?.length ?? 0) >= PLAFOND_HORAIRE_PAR_ADRESSE) return json(ACCUSE);
 
     // Plafond global : empêche de remplir la table à coups d'adresses
     // inventées.
@@ -89,11 +99,85 @@ serve(async (req: Request) => {
       .ilike("email", adresse)
       .maybeSingle();
 
-    await supabase.from("password_recovery_requests").insert({
-      email: adresse,
-      user_id: profil?.id ?? null,
-      status: "pending",
-    });
+    const { data: demande } = await supabase
+      .from("password_recovery_requests")
+      .insert({
+        email: adresse,
+        user_id: profil?.id ?? null,
+        status: "pending",
+      })
+      .select("id")
+      .single();
+
+    // Le lien part par e-mail : depuis le domaine de la marque sur un domaine
+    // client, depuis tantana-suite.com ailleurs (expéditeurs vérifiés chez
+    // Resend). En cas d'échec, la demande reste en attente pour l'administrateur.
+    // En arrière-plan : une réponse plus lente trahirait les comptes existants.
+    const envoyer = async () => {
+      if (!profil || !demande) return;
+      const { data: domaine } =
+        typeof hote === "string"
+          ? await supabase
+              .from("custom_domains")
+              .select("hostname, store_id")
+              .eq("hostname", hote.trim().toLowerCase())
+              .eq("is_active", true)
+              .maybeSingle()
+          : { data: null };
+      const { data: marque } = domaine
+        ? await supabase
+            .from("branding")
+            .select("app_name, primary_color, logo_url")
+            .eq("store_id", domaine.store_id)
+            .maybeSingle()
+        : { data: null };
+
+      // Domaine client sans fiche de marque : jamais Tantana à sa place.
+      if (domaine && !marque) return;
+
+      // La redirection vient de custom_domains ou de cette constante, jamais du client.
+      const hoteEnvoi = domaine?.hostname ?? DOMAINE_TANTANA;
+      const nomApp = (marque?.app_name ?? "Tantana Suite").replace(/[<>"]/g, "");
+      const { data: lien } = await supabase.auth.admin.generateLink({
+        type: "recovery",
+        email: adresse,
+        options: { redirectTo: `https://${hoteEnvoi}/reset-password` },
+      });
+      if (!lien?.properties?.action_link) return;
+
+      const { html, text } = emailRecuperation({
+        nomApp,
+        couleur: /^#[0-9a-f]{6}$/i.test(marque?.primary_color ?? "")
+          ? marque!.primary_color!
+          : "#008655",
+        logoUrl: /^https:\/\/[^"'\s<>]+$/.test(marque?.logo_url ?? "") ? marque!.logo_url! : null,
+        lien: lien.properties.action_link,
+      });
+      const envoi = await fetch("https://api.resend.com/emails", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${Deno.env.get("RESEND_API_KEY")!}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          from: `${nomApp} <noreply@${hoteEnvoi}>`,
+          to: [adresse],
+          subject: `Réinitialiser votre mot de passe ${nomApp}`,
+          html,
+          text,
+        }),
+      });
+
+      if (envoi.ok) {
+        await supabase
+          .from("password_recovery_requests")
+          .update({ status: "handled", handled_at: new Date().toISOString() })
+          .eq("id", demande.id);
+      } else {
+        console.error("Resend a refuse l envoi :", await envoi.text());
+      }
+    };
+    EdgeRuntime.waitUntil(envoyer().catch((e) => console.error(e)));
 
     return json(ACCUSE);
   } catch {

@@ -1,13 +1,13 @@
 import React, { useEffect, useRef, useState } from "react";
 import { Link } from "@tanstack/react-router";
 import { useAuth } from "../hooks/useAuth";
-import { APP_SUPPORT_PHONE } from "../lib/appConfig";
 import { useMarque } from "../hooks/useMarque";
 import { supabase } from "../lib/supabase";
+import { hoteVisite } from "../lib/marquesBoutiques";
 import { HeroAccueil } from "./landing/HeroAccueil";
 import { SectionTicket } from "./landing/SectionTicket";
-import { RegistreModules } from "./landing/RegistreModules";
-import { InventaireApplication } from "./landing/InventaireApplication";
+import { VisiteGuidee } from "./landing/VisiteGuidee";
+import { ModulesApplication } from "./landing/ModulesApplication";
 import { PanneauMarque, PanneauMarqueClient } from "./landing/PanneauMarque";
 import { PageAccueilMarque, PanneauEspaceEquipe, PiedMarque } from "./landing/PageAccueilMarque";
 import { SectionTarif } from "./landing/SectionTarif";
@@ -15,7 +15,6 @@ import { SectionQuestions } from "./landing/SectionQuestions";
 import { MotSymbole } from "./shared/MotSymbole";
 import { useDefilement } from "./landing/useDefilement";
 import { CarteConnexion } from "./ui/sign-in-card";
-import { CourbesSiVisible } from "./ui/floating-paths";
 import { traduireErreurAuth } from "../lib/messagesAuth";
 import { ESSAI_JOURS, prixAVie, prixMensuel } from "../lib/offres";
 import {
@@ -191,12 +190,11 @@ export const AuthPage: React.FC = () => {
   };
 
   /**
-   * Dépose une demande de réinitialisation auprès de l'administrateur.
+   * Demande un lien de réinitialisation par e-mail.
    *
-   * L'envoi d'e-mails n'atteint aujourd'hui qu'une seule adresse, faute
-   * de domaine vérifié : passer par `resetPasswordForEmail` ne produisait
-   * qu'une erreur. La demande est donc enregistrée, l'administrateur la
-   * voit dans son espace et délivre le lien lui-même.
+   * `demander-recuperation` l'envoie depuis le domaine de la marque, ou
+   * depuis tantana-suite.com ; si l'envoi échoue, la demande reste visible
+   * de l'administrateur, qui délivre le lien lui-même.
    *
    * La réponse est la même que l'adresse existe ou non. Dire « cette
    * adresse n'est pas connue » livrerait à n'importe qui la liste des
@@ -207,7 +205,7 @@ export const AuthPage: React.FC = () => {
     setError(null);
     setLoading(true);
     const { error: fnError } = await supabase.functions.invoke("demander-recuperation", {
-      body: { email: forgotEmail.trim() },
+      body: { email: forgotEmail.trim(), hote: hoteVisite() },
     });
     setLoading(false);
     if (fnError) {
@@ -243,15 +241,15 @@ export const AuthPage: React.FC = () => {
               background: "color-mix(in srgb, var(--papier) 88%, transparent)",
             }}
           >
-            <div className="mx-auto flex max-w-5xl items-center justify-between gap-3 px-4 py-2.5">
-              <span className="flex items-center gap-2.5">
-                <img src="/logo.svg" alt="" width={38} height={28} className="h-7 w-auto" />
-                <MotSymbole hauteur={26} couleur="var(--carbone)" />
+            <div className="mx-auto flex max-w-7xl items-center justify-between gap-3 px-5 py-3 sm:px-8">
+              <span className="flex items-center gap-3">
+                <img src="/logo.svg" alt="" width={60} height={44} className="h-9 w-auto sm:h-11" />
+                <MotSymbole hauteur={40} couleur="var(--carbone)" />
               </span>
               <button
                 type="button"
                 onClick={allerAuFormulaire}
-                className="rounded-lg border px-3.5 py-1.5 text-xs font-semibold transition-colors"
+                className="rounded-lg border px-4 py-2 text-sm font-semibold transition-colors"
                 style={{ borderColor: "var(--reglure)", color: "var(--carbone)" }}
               >
                 Se connecter
@@ -263,9 +261,9 @@ export const AuthPage: React.FC = () => {
 
           <SectionTicket />
 
-          <RegistreModules />
+          <VisiteGuidee />
 
-          <InventaireApplication />
+          <ModulesApplication />
 
           {/* Le prix, puis les questions : on annonce ce que ca coute avant
           de repondre aux objections, et les deux avant le formulaire —
@@ -288,18 +286,6 @@ export const AuthPage: React.FC = () => {
           vitrine || landing ? "" : "flex min-h-screen items-center"
         }`}
       >
-        {/* Pas de cadre autour : la maquette pose le contenu à même le
-            papier, et les courbes traversent la section entière sans être
-            coupées par une bordure. */}
-        <div
-          aria-hidden
-          className="pointer-events-none absolute inset-0"
-          style={{ color: "var(--primary)" }}
-        >
-          {/* Domaine client : page sobre, sans les courbes animées. */}
-          {vitrine && <CourbesSiVisible />}
-        </div>
-
         <div className="relative mx-auto w-full max-w-6xl">
           <div className="grid gap-12 lg:grid-cols-[1fr_minmax(0,26rem)] lg:items-center lg:gap-20">
             {vitrine ? (
@@ -358,8 +344,8 @@ export const AuthPage: React.FC = () => {
                     </button>
                     <h2 className="text-xl font-bold text-foreground">Mot de passe oublié</h2>
                     <p className="text-sm text-muted-foreground mt-1">
-                      Entrez votre e-mail : votre demande sera transmise à l&apos;administrateur,
-                      qui vous remettra un lien de réinitialisation.
+                      Entrez votre e-mail : vous recevrez un lien pour choisir un nouveau mot de
+                      passe.
                     </p>
 
                     {/* Un compte créé par Google n'a jamais eu de mot de
@@ -568,30 +554,18 @@ export const AuthPage: React.FC = () => {
                   (forgotSent ? (
                     <div className="py-2 text-center">
                       <CheckCircle2 className="w-12 h-12 t-success mx-auto mb-4" />
-                      <p className="text-foreground font-semibold mb-2">Demande enregistrée</p>
+                      <p className="text-foreground font-semibold mb-2">
+                        Vérifiez votre boîte e-mail
+                      </p>
                       {/* Le message est le même que l'adresse existe ou non :
                         répondre « ce compte n'existe pas » livrerait la
                         liste des utilisateurs, une adresse à la fois. */}
                       <p className="text-sm leading-relaxed text-muted-foreground">
-                        L&apos;envoi par e-mail n&apos;est pas encore disponible. Votre demande pour{" "}
-                        <strong className="text-foreground">{forgotEmail}</strong> a été transmise à
-                        l&apos;administrateur.
+                        Si un compte existe pour{" "}
+                        <strong className="text-foreground">{forgotEmail}</strong>, un e-mail avec
+                        un lien de réinitialisation vient d&apos;y être envoyé. Pensez à regarder
+                        dans les courriers indésirables.
                       </p>
-                      <div className="mt-4 rounded-xl border border-border bg-muted p-3.5 text-left">
-                        <p className="text-xs font-semibold text-foreground">
-                          Contactez l&apos;administrateur pour recevoir votre lien
-                        </p>
-                        <a
-                          href={`tel:${APP_SUPPORT_PHONE.replace(/s/g, "")}`}
-                          className="mt-1.5 inline-block text-base font-bold text-primary hover:underline"
-                        >
-                          {APP_SUPPORT_PHONE}
-                        </a>
-                        <p className="mt-1.5 text-xs leading-relaxed text-muted-foreground">
-                          Il vous transmettra un lien personnel pour choisir un nouveau mot de
-                          passe.
-                        </p>
-                      </div>
                       <button
                         type="button"
                         onClick={() => switchMode("login")}
