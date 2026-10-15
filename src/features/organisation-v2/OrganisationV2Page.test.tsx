@@ -288,3 +288,27 @@ describe("Organisation v2 — onglet Agenda", () => {
     ]);
   });
 });
+
+describe("Organisation v2 — onglet Rappels", () => {
+  it("l'interrupteur n'appelle que basculer(id, actif)", async () => {
+    const m = monter({ onglet: "rappels" });
+    await act(async () => {
+      fireEvent.click(screen.getByRole("switch", { name: "Activer Faire la caisse" }));
+    });
+    expect(m.sourceRappels.basculer).toHaveBeenCalledTimes(1);
+    expect(m.sourceRappels.basculer).toHaveBeenCalledWith("r1", false);
+    expect(m.ecritures()).toBe(1);
+  });
+
+  it("montre les alertes automatiques en lecture seule, sans interrupteur", () => {
+    monter({ onglet: "rappels" });
+    expect(screen.getAllByRole("switch")).toHaveLength(1);
+    expect(screen.getByText("Une échéance d'achat")).toBeTruthy();
+  });
+
+  it("une boutique vide affiche des états vides, pas une erreur", () => {
+    monter({ onglet: "rappels", rappels: [], taches: [] });
+    expect(screen.getByText("Aucun rappel")).toBeTruthy();
+    expect(screen.getByText("Aucun rappel actif")).toBeTruthy();
+  });
+});

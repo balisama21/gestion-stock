@@ -23,3 +23,9 @@ Fait : vues mois (42 cases) / semaine (7 h–20 h) / jour, navigation, « Aujour
 Fichiers : tabs/AgendaTab.tsx, lib/elements.ts (`panneauDe`), test complété
 Décisions prises seul : filtres de type propres à l'onglet (n'altèrent pas la vue d'ensemble) ; événement « Privé » par défaut comme l'agenda actuel + case « Toute la journée » (colonne existante) ; heures hors 7 h–20 h rangées dans la première/dernière case.
 Vérifs : tsc/lint/build/tests OK
+
+## Phase 4 — Onglet Rappels
+Fait : « Mes rappels » (libellé `libelleQuand`, prochain déclenchement, interrupteur → `useRappels().basculer` = colonne `actif` seule), « Prochains déclenchements » (`prochaineOccurrence`), « Alertes automatiques » ; tests des occurrences (quotidien, hebdo, mensuel 20/31, ponctuel, désactivé, concordance avec `prochaineOccurrence`).
+Fichiers : tabs/RappelsTab.tsx, lib/occurrences.test.ts, test de page complété
+Décisions prises seul : alertes automatiques en LECTURE SEULE (aucune table de règles) — 6 règles réécrites d'après le vrai code de la cloche (`lib/activite.ts`), délais rendez-vous lus dans Paramètres → Rappels, tag « toujours active » à la place des interrupteurs ; stock bas affiche l'état réel de la préférence navigateur existante ; règle masquée si le module source n'est pas visible ; fiche rappel : bouton « Modifier » remplacé par « Activer/Désactiver » (aucune fonction de modification de rappel n'existe).
+Vérifs : tsc/lint/build/tests OK
