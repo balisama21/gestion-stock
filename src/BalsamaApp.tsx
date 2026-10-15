@@ -19,7 +19,7 @@ import { formatCurrency, getProductLabel } from "./utils/formulas";
 import { getModuleScope, isFieldVisible, hasModuleAction } from "./lib/permissions";
 import { downloadExcelWorkbook } from "./utils/exportExcel";
 import { Header } from "./components/Header";
-import { universDe } from "./components/navigation";
+import { universDe, visibleNavItems } from "./components/navigation";
 import { SousNavigation } from "./components/shared/SousNavigation";
 import { SquelettePage } from "./components/shared/SquelettePage";
 import { construireNotifications, type ActionNotification } from "./lib/activite";
@@ -65,6 +65,11 @@ import { offresDeLaPortee, ventesDeLaPortee } from "./components/facturation/por
 import { useNotificationPrefs } from "./lib/notificationPrefs";
 import { useCaptureDuDrapeau, useDashboardV2 } from "./features/dashboard-v2/drapeau";
 import {
+  useCaptureDuDrapeauOrganisation,
+  useOrganisationV2,
+} from "./features/organisation-v2/drapeau";
+import { ongletDeLaVue, ongletsVisibles, VUE_DE_L_ONGLET } from "./features/organisation-v2/vues";
+import {
   contextePersonnalisation,
   lirePersonnalisation,
   moduleMasque,
@@ -101,6 +106,12 @@ const DashboardView = lazy(() =>
 const DashboardV2Page = lazy(() =>
   import("./features/dashboard-v2/DashboardV2Page").then((m) => ({
     default: m.DashboardV2Page,
+  })),
+);
+// L organisation v2, derriere son propre drapeau : meme principe.
+const OrganisationV2Page = lazy(() =>
+  import("./features/organisation-v2/OrganisationV2Page").then((m) => ({
+    default: m.OrganisationV2Page,
   })),
 );
 const CapitalView = lazy(() =>
@@ -363,6 +374,9 @@ function AppInner() {
    * src/features/dashboard-v2/drapeau.ts pour les deux interrupteurs.
    */
   const dashboardV2 = useDashboardV2();
+  // Meme principe pour l organisation : voir
+  // src/features/organisation-v2/drapeau.ts.
+  const organisationV2 = useOrganisationV2();
 
   // Sur quelle section ouvrir les Parametres a la prochaine arrivee.
   // La roue dentee ne dit rien et laisse « Mon compte » ; le logo de
@@ -1861,6 +1875,9 @@ function AppInner() {
    * rien à voir avec les données de la boutique expirée.
    */
   const vue = vueAffichee(activeTab, boutiqueVerrouillee);
+  // Drapeau leve, les quatre ecrans du groupe « Organisation » n en font
+  // plus qu un, a onglets. Baisse, rien ne change.
+  const ongletOrganisation = organisationV2 ? ongletDeLaVue(vue) : null;
 
   /* Les autres boutiques du compte, avec leur état, pour que l'écran
      de blocage ne soit jamais une impasse. */
@@ -1920,7 +1937,7 @@ function AppInner() {
               elle s applique du meme coup aux ecrans de repli affiches
               quand une permission manque. Elle ne parait que la ou elle
               a quelque chose a relier. */}
-              {vue !== VUE_VERROUILLEE && (
+              {vue !== VUE_VERROUILLEE && !ongletOrganisation && (
                 <SousNavigation
                   actif={activeTab}
                   items={universDe(activeTab, workspace.memberPermissions, personnalisation)}
@@ -1937,7 +1954,7 @@ function AppInner() {
               d entree de la vue. Quatre pixels, deux dixiemes de
               seconde — la reponse au doigt qui vient de choisir, pas un
               effet d apparition. */}
-              <div key={vue} className="app-vue">
+              <div key={ongletOrganisation ? "organisation-v2" : vue} className="app-vue">
                 <LimiteChargement>
                   <Suspense fallback={<EcranQuiArrive />}>
                     {vue === VUE_VERROUILLEE && (
@@ -2209,7 +2226,30 @@ function AppInner() {
                         }
                       />
                     )}
-                    {vue === "taches" && (
+                    {ongletOrganisation && (
+                      <OrganisationV2Page
+                        onglet={ongletOrganisation}
+                        onglets={ongletsVisibles(
+                          visibleNavItems(workspace.memberPermissions, personnalisation).map(
+                            (item) => item.id,
+                          ),
+                        )}
+                        onChangerOnglet={(o) => setActiveTab(VUE_DE_L_ONGLET[o] as ActiveTab)}
+                        storeId={workspace.activeStore?.id ?? null}
+                        moiId={user?.id ?? null}
+                        membres={storeMembers}
+                        permissions={workspace.memberPermissionsDetailed}
+                        taches={organisation}
+                        evenements={calendrier}
+                        rappels={memos}
+                        purchases={purchases}
+                        quotes={storeData.quotes}
+                        deliveries={storeData.deliveries}
+                        delaisRappel={delaisDeRappel(personnalisation.rappels)}
+                        onNaviguer={(v) => setActiveTab(v as ActiveTab)}
+                      />
+                    )}
+                    {!ongletOrganisation && vue === "taches" && (
                       <TachesView
                         taches={organisation.taches}
                         membres={storeMembers}
@@ -2240,7 +2280,7 @@ function AppInner() {
                         onSupprimer={organisation.supprimer}
                       />
                     )}
-                    {vue === "vue_equipe" && (
+                    {!ongletOrganisation && vue === "vue_equipe" && (
                       <VueEquipeView
                         taches={organisation.taches}
                         evenements={calendrier.evenements}
@@ -2256,7 +2296,7 @@ function AppInner() {
                         onNavigateTab={(t) => setActiveTab(t as ActiveTab)}
                       />
                     )}
-                    {vue === "rappels" && (
+                    {!ongletOrganisation && vue === "rappels" && (
                       <RappelsView
                         rappels={memos.rappels}
                         membres={storeMembers}
@@ -2266,7 +2306,7 @@ function AppInner() {
                         onSupprimer={memos.supprimer}
                       />
                     )}
-                    {vue === "agenda" && (
+                    {!ongletOrganisation && vue === "agenda" && (
                       <AgendaView
                         evenements={calendrier.evenements}
                         membres={storeMembers}
@@ -2788,6 +2828,7 @@ export default function App() {
   // choix survive a l ecran de connexion.
   useCaptureDuDrapeau();
   useCaptureDuDrapeauDocuments();
+  useCaptureDuDrapeauOrganisation();
   const [locked, setLocked] = useState(false);
 
   /**
