@@ -6,8 +6,8 @@ import { supabase } from "../lib/supabase";
 import { hoteVisite } from "../lib/marquesBoutiques";
 import { HeroAccueil } from "./landing/HeroAccueil";
 import { SectionTicket } from "./landing/SectionTicket";
-import { RegistreModules } from "./landing/RegistreModules";
-import { InventaireApplication } from "./landing/InventaireApplication";
+import { VisiteGuidee } from "./landing/VisiteGuidee";
+import { ModulesApplication } from "./landing/ModulesApplication";
 import { PanneauMarque, PanneauMarqueClient } from "./landing/PanneauMarque";
 import { PageAccueilMarque, PanneauEspaceEquipe, PiedMarque } from "./landing/PageAccueilMarque";
 import { SectionTarif } from "./landing/SectionTarif";
@@ -15,7 +15,6 @@ import { SectionQuestions } from "./landing/SectionQuestions";
 import { MotSymbole } from "./shared/MotSymbole";
 import { useDefilement } from "./landing/useDefilement";
 import { CarteConnexion } from "./ui/sign-in-card";
-import { CourbesSiVisible } from "./ui/floating-paths";
 import { traduireErreurAuth } from "../lib/messagesAuth";
 import { ESSAI_JOURS, prixAVie, prixMensuel } from "../lib/offres";
 import {
@@ -242,15 +241,15 @@ export const AuthPage: React.FC = () => {
               background: "color-mix(in srgb, var(--papier) 88%, transparent)",
             }}
           >
-            <div className="mx-auto flex max-w-5xl items-center justify-between gap-3 px-4 py-2.5">
-              <span className="flex items-center gap-2.5">
-                <img src="/logo.svg" alt="" width={38} height={28} className="h-7 w-auto" />
-                <MotSymbole hauteur={26} couleur="var(--carbone)" />
+            <div className="mx-auto flex max-w-7xl items-center justify-between gap-3 px-5 py-3 sm:px-8">
+              <span className="flex items-center gap-3">
+                <img src="/logo.svg" alt="" width={60} height={44} className="h-9 w-auto sm:h-11" />
+                <MotSymbole hauteur={40} couleur="var(--carbone)" />
               </span>
               <button
                 type="button"
                 onClick={allerAuFormulaire}
-                className="rounded-lg border px-3.5 py-1.5 text-xs font-semibold transition-colors"
+                className="rounded-lg border px-4 py-2 text-sm font-semibold transition-colors"
                 style={{ borderColor: "var(--reglure)", color: "var(--carbone)" }}
               >
                 Se connecter
@@ -262,9 +261,9 @@ export const AuthPage: React.FC = () => {
 
           <SectionTicket />
 
-          <RegistreModules />
+          <VisiteGuidee />
 
-          <InventaireApplication />
+          <ModulesApplication />
 
           {/* Le prix, puis les questions : on annonce ce que ca coute avant
           de repondre aux objections, et les deux avant le formulaire —
@@ -287,18 +286,6 @@ export const AuthPage: React.FC = () => {
           vitrine || landing ? "" : "flex min-h-screen items-center"
         }`}
       >
-        {/* Pas de cadre autour : la maquette pose le contenu à même le
-            papier, et les courbes traversent la section entière sans être
-            coupées par une bordure. */}
-        <div
-          aria-hidden
-          className="pointer-events-none absolute inset-0"
-          style={{ color: "var(--primary)" }}
-        >
-          {/* Domaine client : page sobre, sans les courbes animées. */}
-          {vitrine && <CourbesSiVisible />}
-        </div>
-
         <div className="relative mx-auto w-full max-w-6xl">
           <div className="grid gap-12 lg:grid-cols-[1fr_minmax(0,26rem)] lg:items-center lg:gap-20">
             {vitrine ? (

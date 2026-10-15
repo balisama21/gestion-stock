@@ -20,7 +20,6 @@ const LECTEURS_AUTORISES = new Set([
   "components/shared/AppLoader.tsx", // variante masquée hors Tantana
   "components/shared/MotSymbole.tsx", // branche parDefaut
   "components/landing/PanneauMarque.tsx", // vitrine
-  "components/landing/RegistreModules.tsx", // vitrine
   "components/landing/TicketImprime.tsx", // vitrine
 ]);
 

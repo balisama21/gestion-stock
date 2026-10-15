@@ -1,7 +1,6 @@
 import React from "react";
 import { ArrowRight, FileText, ImageIcon, Printer } from "lucide-react";
 import { TicketImprime } from "./TicketImprime";
-import { CourbesSiVisible } from "../ui/floating-paths";
 
 /**
  * Ce que le logiciel fabrique : le ticket.
@@ -12,10 +11,6 @@ import { CourbesSiVisible } from "../ui/floating-paths";
  * différentes. Ici la grille les aligne sur leur milieu, et la flèche
  * verte entre les deux dit ce qui relie l'un à l'autre — une vente
  * enregistrée, un ticket qui sort.
- *
- * Les courbes de fond sont celles de la section de connexion : c'est le
- * même motif d'un bout à l'autre du site, pas une décoration inventée
- * pour cette section.
  *
  * Les données du ticket ne sont pas touchées : ce composant se contente
  * de l'agrandir et de mieux l'asseoir.
@@ -41,14 +36,6 @@ const FORMATS = [
 
 export const SectionTicket: React.FC = () => (
   <section className="reglure relative overflow-hidden px-5 py-20 sm:py-28">
-    <div
-      aria-hidden
-      className="pointer-events-none absolute inset-0"
-      style={{ color: "var(--primary)" }}
-    >
-      <CourbesSiVisible />
-    </div>
-
     <div className="relative mx-auto max-w-6xl">
       <div className="grid items-center gap-12 lg:grid-cols-[1fr_auto_minmax(0,22rem)] lg:gap-10">
         <div>
