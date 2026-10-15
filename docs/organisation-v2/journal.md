@@ -35,3 +35,8 @@ Fait : 4 tuiles du jour (à boucler, en retard, prochain rendez-vous, échéance
 Fichiers : tabs/ApercuTab.tsx, organisation.css, test complété
 Décisions prises seul : tuile « Échéances » sans total en Ar (les lignes d'échéance n'ont pas de montant agrégeable) → nombre en retard à la place ; « Qui porte quoi » masqué pour une portée réduite ; activité limitée aux tâches (seule table journalisée).
 Vérifs : tsc/lint/build/tests OK
+
+## Phase 6 — Portée, droits, drapeau
+Fait : filtre « Toute l'équipe / Ce qui m'est assigné » (défaut selon la portée `taches`), droits repris des règles existantes (`useOrganisationPermissions`), onglets = entrées du menu visibles, drapeau testé (allumage navigateur/adresse, extinction par adresse prioritaire, indépendant du dashboard), `VITE_ORGANISATION_V2` neutralisé dans `vitest.config.ts`, INTEGRATION.md.
+Fichiers : drapeau.test.ts, INTEGRATION.md, vitest.config.ts
+Vérifs : tsc/lint/build OK, suite complète 1052 tests OK
