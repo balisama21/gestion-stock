@@ -1,0 +1,7 @@
+# Fins de ligne : LF partout, dans le dépôt comme sur le disque.
+#
+# Prettier écrit en LF, et le routeur régénère src/routeTree.gen.ts en LF
+# à chaque build. Avec une copie de travail en CRLF (core.autocrlf sous
+# Windows), ces fichiers apparaissaient modifiés sans l'être, et ESLint
+# signalait chaque ligne. Fixer LF ici vaut pour tous les postes.
+* text=auto eol=lf
