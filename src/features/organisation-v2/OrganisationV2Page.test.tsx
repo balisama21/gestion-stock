@@ -312,3 +312,24 @@ describe("Organisation v2 — onglet Rappels", () => {
     expect(screen.getByText("Aucun rappel actif")).toBeTruthy();
   });
 });
+
+describe("Organisation v2 — Vue d'ensemble", () => {
+  it("compte les tâches du jour et les retards, sans écrire", () => {
+    const m = monter({ onglet: "apercu" });
+    const tuiles = document.querySelectorAll(".tile .tv");
+    expect(tuiles[0].textContent).toBe("1");
+    expect(tuiles[1].textContent).toBe("1");
+    expect(screen.getByText(/échéance dépassée depuis 4 jours/)).toBeTruthy();
+    expect(screen.getByText("Qui porte quoi")).toBeTruthy();
+    fireEvent.click(screen.getAllByRole("button", { name: "aujourd'hui" })[0]);
+    expect(m.ecritures()).toBe(0);
+  });
+
+  it("une boutique vide affiche des états vides, jamais d'exemple", () => {
+    monter({ onglet: "apercu", taches: [], rappels: [] });
+    expect(screen.getByText("Journée libre")).toBeTruthy();
+    expect(screen.getByText("Aucun retard")).toBeTruthy();
+    expect(screen.getByText("Rien à boucler avant ce soir.")).toBeTruthy();
+    expect(document.body.textContent).not.toMatch(/exemple/i);
+  });
+});

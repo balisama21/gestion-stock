@@ -1666,6 +1666,11 @@
     align-items: stretch;
     gap: 10px;
   }
+  /* En colonne, la base de 320 px deviendrait une HAUTEUR : un grand
+     vide sous le titre. */
+  .org2 .hello {
+    flex: none;
+  }
   .org2 .hello h1 {
     font-size: 21px;
   }

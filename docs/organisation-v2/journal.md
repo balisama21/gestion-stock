@@ -29,3 +29,9 @@ Fait : « Mes rappels » (libellé `libelleQuand`, prochain déclenchement, inte
 Fichiers : tabs/RappelsTab.tsx, lib/occurrences.test.ts, test de page complété
 Décisions prises seul : alertes automatiques en LECTURE SEULE (aucune table de règles) — 6 règles réécrites d'après le vrai code de la cloche (`lib/activite.ts`), délais rendez-vous lus dans Paramètres → Rappels, tag « toujours active » à la place des interrupteurs ; stock bas affiche l'état réel de la préférence navigateur existante ; règle masquée si le module source n'est pas visible ; fiche rappel : bouton « Modifier » remplacé par « Activer/Désactiver » (aucune fonction de modification de rappel n'existe).
 Vérifs : tsc/lint/build/tests OK
+
+## Phase 5 — Vue d'ensemble
+Fait : 4 tuiles du jour (à boucler, en retard, prochain rendez-vous, échéances à régler), fil de la journée (8 h–19 h), 7 prochains jours avec sélection, « En retard », « Qui porte quoi » (si portée équipe), « Activité de l'organisation » (journal d'activité des tâches) ; contrôle visuel sur un rendu statique de test (bureau + téléphone) → correctif du vide sous le titre en colonne.
+Fichiers : tabs/ApercuTab.tsx, organisation.css, test complété
+Décisions prises seul : tuile « Échéances » sans total en Ar (les lignes d'échéance n'ont pas de montant agrégeable) → nombre en retard à la place ; « Qui porte quoi » masqué pour une portée réduite ; activité limitée aux tâches (seule table journalisée).
+Vérifs : tsc/lint/build/tests OK
