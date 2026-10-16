@@ -186,6 +186,14 @@ const CommandesView = lazy(() =>
 const ClientsView = lazy(() =>
   import("./components/ClientsView").then((m) => ({ default: m.ClientsView })),
 );
+// L'assistant d'import (CSV, Excel, Word ; PDF et images avec l'IA) :
+// chargé avec le premier écran qui le montre.
+const ImportAssistant = lazy(() =>
+  import("./features/import/ImportAssistant").then((m) => ({ default: m.ImportAssistant })),
+);
+const EspaceIAView = lazy(() =>
+  import("./features/ia/EspaceIAView").then((m) => ({ default: m.EspaceIAView })),
+);
 const FournisseursView = lazy(() =>
   import("./components/FournisseursView").then((m) => ({ default: m.FournisseursView })),
 );
@@ -2084,6 +2092,18 @@ function AppInner() {
                       ))}
                     {vue === "produits" && (
                       <ProduitsView
+                        importer={
+                          <ImportAssistant
+                            cible="produits"
+                            storeId={workspace.activeStore?.id ?? null}
+                            userId={user?.id ?? null}
+                            existants={products.map((p) => ({
+                              designation: p.designation,
+                              variante: p.variantSuffix,
+                            }))}
+                            onTermine={storeData.refresh}
+                          />
+                        }
                         reglagesAlertes={alertesStock.reglages}
                         // Le stock se corrige par un mouvement d'ajustement,
                         // jamais par une écriture directe sur la colonne :
@@ -2609,6 +2629,12 @@ function AppInner() {
                         locale={locale}
                       />
                     )}
+                    {vue === "assistant_ia" && (
+                      <EspaceIAView
+                        storeId={workspace.activeStore?.id ?? null}
+                        isOwner={workspace.isOwner}
+                      />
+                    )}
                     {vue === "historique" && (
                       <HistoriqueView
                         purchases={historiquePurchases}
@@ -2649,6 +2675,20 @@ function AppInner() {
                     )}
                     {vue === "clients" && (
                       <ClientsView
+                        importer={
+                          <ImportAssistant
+                            cible="clients"
+                            storeId={workspace.activeStore?.id ?? null}
+                            userId={user?.id ?? null}
+                            existants={storeData.clients.map((c) => ({
+                              nom: c.nom,
+                              prenom: c.prenom,
+                              email: c.email,
+                              telephone: c.telephone,
+                            }))}
+                            onTermine={storeData.refresh}
+                          />
+                        }
                         clients={visibleClients}
                         orders={storeData.orders}
                         sales={visibleSales}
@@ -2668,6 +2708,16 @@ function AppInner() {
                     )}
                     {vue === "fournisseurs" && (
                       <FournisseursView
+                        importer={
+                          <ImportAssistant
+                            cible="fournisseurs"
+                            storeId={workspace.activeStore?.id ?? null}
+                            userId={user?.id ?? null}
+                            // Tous statuts : l'index unique de la base porte sur le nom seul.
+                            existants={storeData.suppliers.map((x) => ({ nom: x.nom }))}
+                            onTermine={storeData.refresh}
+                          />
+                        }
                         suppliers={storeData.suppliers}
                         purchases={purchases}
                         products={products}

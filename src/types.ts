@@ -230,6 +230,7 @@ export type ActiveTab =
   | "statistiques"
   | "historique"
   | "rapports"
+  | "assistant_ia"
   | "settings"
   | "nouveaux_produits"
   | "apports"

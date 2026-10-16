@@ -22,6 +22,7 @@ import {
   Quote,
   Images,
   LayoutPanelTop,
+  Sparkles,
 } from "lucide-react";
 
 export type SettingsTab =
@@ -44,7 +45,8 @@ export type SettingsTab =
   | "inspiration"
   | "phrases"
   | "photos-haut"
-  | "photos-sections";
+  | "photos-sections"
+  | "ia";
 
 interface TabDef {
   id: SettingsTab;
@@ -227,6 +229,14 @@ const GROUPS: GroupDef[] = [
         label: "Photos des sections",
         hint: "Bannières entre les cartes",
         icon: <LayoutPanelTop className="w-4 h-4" />,
+        ownerOnly: false,
+        adminOnly: true,
+      },
+      {
+        id: "ia",
+        label: "Intelligence artificielle",
+        hint: "Activation, budget, consommation",
+        icon: <Sparkles className="w-4 h-4" />,
         ownerOnly: false,
         adminOnly: true,
       },

@@ -49,6 +49,8 @@ const FILTRE_A_RECOMMANDER = "A recommander";
 type FiltreStock = "Tous" | "OK" | "Alerte" | typeof FILTRE_A_RECOMMANDER;
 
 interface ProduitsViewProps {
+  /** Bouton d'import (fichier CSV, Excel, Word ; PDF et images avec l'IA). */
+  importer?: React.ReactNode;
   products: Product[];
   locale: LocaleSetting;
   /**
@@ -155,6 +157,7 @@ interface ProduitsViewProps {
 }
 
 export const ProduitsView: React.FC<ProduitsViewProps> = ({
+  importer,
   products,
   locale,
   reglagesAlertes,
@@ -556,13 +559,16 @@ export const ProduitsView: React.FC<ProduitsViewProps> = ({
         subtitle="Vos produits, leurs prix et leur stock disponible."
         actions={
           canCreate && (
-            <button
-              onClick={() => setIsAddModalOpen(true)}
-              className="app-btn-primary w-full sm:w-auto"
-            >
-              <Plus className="w-4 h-4" />
-              Nouveau produit
-            </button>
+            <>
+              {importer}
+              <button
+                onClick={() => setIsAddModalOpen(true)}
+                className="app-btn-primary w-full sm:w-auto"
+              >
+                <Plus className="w-4 h-4" />
+                Nouveau produit
+              </button>
+            </>
           )
         }
       />

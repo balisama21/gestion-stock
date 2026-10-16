@@ -41,6 +41,7 @@ import { InspirationSection } from "./settings/InspirationSection";
 import { PhrasesSection } from "./settings/PhrasesSection";
 import { PhotosHautDePageSection } from "./settings/PhotosHautDePageSection";
 import { PhotosSectionsSection } from "./settings/PhotosSectionsSection";
+import { AdminIASection } from "../features/ia/AdminIASection";
 import { Trash2 } from "lucide-react";
 import { ReglagesMetierSection } from "./settings/ReglagesMetierSection";
 import type { ValeursParametres } from "../lib/parametres";
@@ -1098,6 +1099,7 @@ export const ParametresView: React.FC<ParametresViewProps> = ({
       {activeTab === "photos-haut" && estAdminPlateforme && <PhotosHautDePageSection />}
 
       {activeTab === "photos-sections" && estAdminPlateforme && <PhotosSectionsSection />}
+      {activeTab === "ia" && estAdminPlateforme && <AdminIASection />}
 
       {activeTab === "champs" && (
         <ChampsPersonnalisesSection

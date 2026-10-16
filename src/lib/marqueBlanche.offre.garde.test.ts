@@ -30,6 +30,8 @@ const AUTORISES: Record<string, string> = {
   "components/PrestatairesView.tsx": "tarif d'une prestation",
   "lib/permissions.ts": "module « Prestations et tarifs »",
   "components/settings/IdentiteDocuments.tsx": "licence professionnelle (RCS, agrément)",
+  "features/import/lib/importDonnees.ts": "en-tête « tarif » reconnu comme prix de vente",
+  "features/ia/AdminIASection.tsx": "tarifs des modèles d'IA, écran du super admin",
 };
 
 const RACINE = join(process.cwd(), "src");
