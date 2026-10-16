@@ -27,7 +27,7 @@ const POLICE =
 
 /** L'entrepôt et ses palettes, en ouverture. */
 const PHOTO_OUVERTURE = "1587293852726-70cdb56c2866";
-/** Le port : fond de la bande des arguments. */
+/** Le port : fond de la bande des arguments, faute de photo fournie. */
 const PHOTO_ARGUMENTS = "1494412574643-ff11b0a5c1c3";
 /** Repli des offres et du catalogue : produits, emballages, volume, suivi. */
 const PHOTOS_OFFRES = [
@@ -223,11 +223,12 @@ function Catalogue({ bloc, contact }: { bloc: BlocLanding; contact: boolean }) {
 }
 
 function Arguments({ bloc }: { bloc: BlocLanding }) {
+  const fond = bloc.image ?? PHOTO_ARGUMENTS;
   return (
     <section className="relative isolate overflow-hidden px-4 py-20 sm:px-8 sm:py-28">
       <img
-        src={urlImage(PHOTO_ARGUMENTS, 1600)}
-        srcSet={`${urlImage(PHOTO_ARGUMENTS, 800)} 800w, ${urlImage(PHOTO_ARGUMENTS, 1600)} 1600w`}
+        src={urlImage(fond, 1600)}
+        srcSet={`${urlImage(fond, 800)} 800w, ${urlImage(fond, 1600)} 1600w`}
         sizes="100vw"
         alt=""
         loading="lazy"

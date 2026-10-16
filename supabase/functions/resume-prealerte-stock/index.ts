@@ -111,9 +111,15 @@ serve(async (req: Request) => {
       .maybeSingle();
     const { data: marque } = await supabase
       .from("branding")
-      .select("app_name, store_id")
+      .select("app_name, store_id, logo_url, primary_color")
       .eq(etiquette?.marque_id ? "id" : "store_id", etiquette?.marque_id ?? store_id)
       .maybeSingle();
+    const logoMarque = /^https:\/\/[^"'\s<>]+$/.test(marque?.logo_url ?? "")
+      ? marque!.logo_url!
+      : null;
+    const couleurBouton = /^#[0-9a-f]{6}$/i.test(marque?.primary_color ?? "")
+      ? marque!.primary_color!
+      : "#2f6f4f";
     // Expéditeur sur le domaine du client (vérifié chez Resend), sinon celui de Tantana.
     const { data: domaine } = marque
       ? await supabase
@@ -179,16 +185,25 @@ serve(async (req: Request) => {
     const bouton = app_url
       ? `<p style="margin:24px 0 0;">
            <a href="${echapper(app_url)}"
-              style="display:inline-block;background:#2f6f4f;color:#ffffff;text-decoration:none;
+              style="display:inline-block;background:${couleurBouton};color:#ffffff;text-decoration:none;
                      padding:12px 20px;border-radius:10px;font-weight:600;font-size:14px;">
              Préparer la commande
            </a>
          </p>`
       : "";
 
+    // Marque cliente : son logo et son nom au-dessus de la carte.
+    const enTete = marque
+      ? `<table role="presentation" cellpadding="0" cellspacing="0" border="0" style="max-width:560px;margin:0 auto 14px;"><tr>
+      ${logoMarque ? `<td valign="middle"><img src="${echapper(logoMarque)}" alt="" height="36" style="display:block;height:36px;width:auto;border:0;"></td>` : ""}
+      <td style="${logoMarque ? "padding-left:10px;" : ""}font-size:16px;font-weight:600;color:#1a1a18;">${echapper(nomExpediteur)}</td>
+    </tr></table>`
+      : "";
+
     const html = `<!doctype html>
 <html lang="fr">
 <body style="margin:0;padding:24px;background:#f5f4f1;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;">
+  ${enTete}
   <div style="max-width:560px;margin:0 auto;background:#ffffff;border:1px solid #e8e6e1;border-radius:14px;overflow:hidden;">
     <div style="padding:24px 28px 8px;">
       <p style="margin:0 0 4px;color:#8a877f;font-size:12px;letter-spacing:.06em;text-transform:uppercase;">
