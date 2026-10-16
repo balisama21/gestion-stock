@@ -1,0 +1,10 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 330 100" role="img" aria-label="K Invests Services &amp; Concepts">
+  <circle cx="50" cy="50" r="46" fill="#138a8e"/>
+  <g fill="none" stroke="#fff" stroke-linecap="round" stroke-width="8.6">
+    <path d="M31 26V74"/>
+    <path d="M36 50.5L73 31"/>
+    <path d="M36 50.5L74 70"/>
+  </g>
+  <text x="112" y="58" font-family="'Century Gothic','Futura','Avenir Next','Montserrat',Arial,sans-serif" font-size="40" font-weight="400" letter-spacing="2" fill="#111">INVEST<tspan fill="#e8742c">S</tspan></text>
+  <text x="113" y="82" font-family="'Century Gothic','Futura','Avenir Next','Montserrat',Arial,sans-serif" font-size="15.5" letter-spacing="1.2" fill="#c39257">SERVICES &amp; CONCEPTS</text>
+</svg>

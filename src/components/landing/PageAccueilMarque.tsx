@@ -1,17 +1,22 @@
 import React from "react";
 import { ArrowRight, Mail, MapPin, MessageCircle, Phone } from "lucide-react";
 import type { Marque } from "../../lib/marque";
-import { lienWhatsapp, type BlocLanding, type LandingMarque } from "../../lib/landingMarque";
+import {
+  lienWhatsapp,
+  urlImage,
+  type BlocLanding,
+  type LandingMarque,
+} from "../../lib/landingMarque";
 import { LogoMarque } from "./LogoMarque";
 
 /**
  * Page d'accueil d'une marque cliente, tirée de `branding.landing`.
  *
- * Elle présente l'entreprise à SES clients, pas le logiciel : l'entrepôt,
- * les cartons, la route. Les textes viennent tous de la marque ; seules
- * les photos sont fixées ici, choisies dans le registre de la logistique
- * (entrepôt, emballages, livraison) pour aller avec n'importe quel
- * grossiste. L'étiquette de colis reste la signature de la page.
+ * Elle présente l'entreprise à SES clients, pas le logiciel. Textes,
+ * catalogue, coordonnées et photos viennent de la marque ; les photos
+ * ci-dessous ne servent que de repli, choisies dans le registre de la
+ * logistique (entrepôt, emballages, livraison) pour aller avec n'importe
+ * quel grossiste. L'étiquette de colis reste la signature de la page.
  *
  * Photos Unsplash (licence libre), servies par leur CDN à la largeur
  * demandée. Aucun prix.
@@ -20,14 +25,11 @@ import { LogoMarque } from "./LogoMarque";
 const POLICE =
   "https://fonts.googleapis.com/css2?family=Barlow+Condensed:wght@600;700&display=swap";
 
-const photo = (id: string, largeur: number) =>
-  `https://images.unsplash.com/photo-${id}?auto=format&fit=crop&w=${largeur}&q=70`;
-
 /** L'entrepôt et ses palettes, en ouverture. */
 const PHOTO_OUVERTURE = "1587293852726-70cdb56c2866";
 /** Le port : fond de la bande des arguments. */
 const PHOTO_ARGUMENTS = "1494412574643-ff11b0a5c1c3";
-/** Une par offre, dans l'ordre : produits, emballages, volume, suivi. */
+/** Repli des offres et du catalogue : produits, emballages, volume, suivi. */
 const PHOTOS_OFFRES = [
   "1580913428735-bd3c269d6a82",
   "1700165644892-3dd6b67b25bc",
@@ -104,6 +106,63 @@ function TitreSection({ children, clair }: { children: React.ReactNode; clair?: 
   );
 }
 
+/** Une carte à photo : offre ou famille du catalogue. */
+function CartePhoto({
+  titre,
+  texte,
+  formats,
+  image,
+}: {
+  titre: string;
+  texte: string;
+  formats?: string;
+  image: string;
+}) {
+  return (
+    <li
+      className="flex flex-col overflow-hidden rounded-2xl border bg-white"
+      style={{ borderColor: "var(--reglure)", boxShadow: "0 18px 40px -28px rgba(0,0,0,.45)" }}
+    >
+      <img
+        src={urlImage(image, 600)}
+        alt=""
+        loading="lazy"
+        className="aspect-video w-full object-cover sm:aspect-[4/3]"
+      />
+      <div className="flex flex-1 flex-col p-5">
+        <p
+          className="flex items-center gap-2.5 text-lg font-semibold leading-snug"
+          style={{ color: "var(--carbone)" }}
+        >
+          <span className="vm-repere !mt-0" aria-hidden="true" />
+          {titre}
+        </p>
+        {texte && (
+          <p
+            className="mt-2 text-[0.9375rem] leading-relaxed"
+            style={{ color: "var(--carbone-doux)" }}
+          >
+            {texte}
+          </p>
+        )}
+        {formats && (
+          <p
+            className="mt-auto self-start pt-4 text-[0.8125rem] font-semibold"
+            style={{ color: "var(--carbone)" }}
+          >
+            <span
+              className="inline-block rounded-full px-3 py-1"
+              style={{ background: "color-mix(in srgb, var(--vm-kraft) 18%, transparent)" }}
+            >
+              {formats}
+            </span>
+          </p>
+        )}
+      </div>
+    </li>
+  );
+}
+
 function Offres({ bloc }: { bloc: BlocLanding }) {
   return (
     <section id="offres" className="px-4 py-16 sm:px-8 sm:py-24">
@@ -111,40 +170,53 @@ function Offres({ bloc }: { bloc: BlocLanding }) {
         <TitreSection>{bloc.titre || "Ce que nous proposons"}</TitreSection>
         <ul className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
           {bloc.elements.map((e, i) => (
-            <li
+            <CartePhoto
               key={e.titre}
-              className="overflow-hidden rounded-2xl border bg-white"
-              style={{
-                borderColor: "var(--reglure)",
-                boxShadow: "0 18px 40px -28px rgba(0,0,0,.45)",
-              }}
-            >
-              <img
-                src={photo(photoDuRang(PHOTOS_OFFRES, i), 600)}
-                alt=""
-                loading="lazy"
-                className="aspect-video w-full object-cover sm:aspect-[4/3]"
-              />
-              <div className="p-5">
-                <p
-                  className="flex items-center gap-2.5 text-lg font-semibold"
-                  style={{ color: "var(--carbone)" }}
-                >
-                  <span className="vm-repere !mt-0" aria-hidden="true" />
-                  {e.titre}
-                </p>
-                {e.texte && (
-                  <p
-                    className="mt-2 text-[0.9375rem] leading-relaxed"
-                    style={{ color: "var(--carbone-doux)" }}
-                  >
-                    {e.texte}
-                  </p>
-                )}
-              </div>
-            </li>
+              titre={e.titre}
+              texte={e.texte}
+              formats={e.formats}
+              image={e.image ?? photoDuRang(PHOTOS_OFFRES, i)}
+            />
           ))}
         </ul>
+      </div>
+    </section>
+  );
+}
+
+function Catalogue({ bloc, contact }: { bloc: BlocLanding; contact: boolean }) {
+  return (
+    <section id="catalogue" className="scroll-mt-14 px-4 py-16 sm:px-8 sm:py-24">
+      <div className="mx-auto max-w-6xl">
+        <TitreSection>{bloc.titre || "Nos produits"}</TitreSection>
+        <ul className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
+          {bloc.elements.map((e, i) => (
+            <CartePhoto
+              key={e.titre}
+              titre={e.titre}
+              texte={e.texte}
+              formats={e.formats}
+              image={e.image ?? photoDuRang(PHOTOS_OFFRES, i)}
+            />
+          ))}
+        </ul>
+        {contact && (
+          <div
+            className="mt-10 flex flex-col items-start justify-between gap-4 rounded-2xl px-6 py-5 sm:flex-row sm:items-center"
+            style={{ background: "var(--carbone)" }}
+          >
+            <p className="vm-condense text-2xl font-semibold text-white">
+              Une autre commande, un format précis ?
+            </p>
+            <a
+              href="#contact"
+              className="inline-flex shrink-0 items-center gap-2 rounded-lg bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground hover:opacity-90"
+            >
+              Nous contacter
+              <ArrowRight className="h-4 w-4" aria-hidden />
+            </a>
+          </div>
+        )}
       </div>
     </section>
   );
@@ -154,8 +226,8 @@ function Arguments({ bloc }: { bloc: BlocLanding }) {
   return (
     <section className="relative isolate overflow-hidden px-4 py-20 sm:px-8 sm:py-28">
       <img
-        src={photo(PHOTO_ARGUMENTS, 1600)}
-        srcSet={`${photo(PHOTO_ARGUMENTS, 800)} 800w, ${photo(PHOTO_ARGUMENTS, 1600)} 1600w`}
+        src={urlImage(PHOTO_ARGUMENTS, 1600)}
+        srcSet={`${urlImage(PHOTO_ARGUMENTS, 800)} 800w, ${urlImage(PHOTO_ARGUMENTS, 1600)} 1600w`}
         sizes="100vw"
         alt=""
         loading="lazy"
@@ -198,7 +270,7 @@ function Etapes({ bloc }: { bloc: BlocLanding }) {
           {bloc.elements.map((e, i) => (
             <li key={e.titre} className="relative">
               <img
-                src={photo(photoDuRang(PHOTOS_ETAPES, i), 600)}
+                src={urlImage(e.image ?? photoDuRang(PHOTOS_ETAPES, i), 600)}
                 alt=""
                 loading="lazy"
                 className="aspect-video w-full rounded-2xl object-cover"
@@ -229,75 +301,86 @@ function Etapes({ bloc }: { bloc: BlocLanding }) {
   );
 }
 
-const ICONES_CONTACT = {
-  Téléphone: Phone,
-  WhatsApp: MessageCircle,
-  "E-mail": Mail,
-  Adresse: MapPin,
-} as const;
+interface LigneContact {
+  nom: string;
+  icone: typeof Phone;
+  valeurs: { texte: string; lien: string | null }[];
+}
 
 function Contact({ landing }: { landing: LandingMarque }) {
   const c = landing.contact;
   if (!c) return null;
   const whatsapp = c.whatsapp ? lienWhatsapp(c.whatsapp) : null;
-  const lignes = [
-    c.telephone && {
-      nom: "Téléphone",
-      valeur: c.telephone,
-      lien: `tel:${c.telephone.replace(/\s/g, "")}`,
-    },
-    c.whatsapp && { nom: "WhatsApp", valeur: c.whatsapp, lien: whatsapp },
-    c.email && { nom: "E-mail", valeur: c.email, lien: `mailto:${c.email}` },
-    c.adresse && { nom: "Adresse", valeur: c.adresse, lien: null },
-  ].filter(Boolean) as { nom: keyof typeof ICONES_CONTACT; valeur: string; lien: string | null }[];
+  const lignes = (
+    [
+      {
+        nom: "Téléphone",
+        icone: Phone,
+        valeurs: c.telephones.map((t) => ({ texte: t, lien: `tel:${t.replace(/\s/g, "")}` })),
+      },
+      {
+        nom: "WhatsApp",
+        icone: MessageCircle,
+        valeurs: c.whatsapp ? [{ texte: c.whatsapp, lien: whatsapp }] : [],
+      },
+      {
+        nom: "E-mail",
+        icone: Mail,
+        valeurs: c.emails.map((e) => ({ texte: e, lien: `mailto:${e}` })),
+      },
+      {
+        nom: "Adresse",
+        icone: MapPin,
+        valeurs: c.adresse ? [{ texte: c.adresse, lien: null }] : [],
+      },
+    ] satisfies LigneContact[]
+  ).filter((l) => l.valeurs.length);
   return (
     <section id="contact" className="reglure scroll-mt-14 px-4 py-16 sm:px-8 sm:py-20">
       <div className="mx-auto max-w-6xl">
         <TitreSection>Nous contacter</TitreSection>
-        <ul className="mt-8 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+        <ul
+          className={`mt-8 grid gap-4 sm:grid-cols-2 ${lignes.length >= 3 ? "lg:grid-cols-3" : ""} ${lignes.length >= 4 ? "xl:grid-cols-4" : ""}`}
+        >
           {lignes.map((l) => {
-            const Icone = ICONES_CONTACT[l.nom];
-            const contenu = (
-              <>
+            const Icone = l.icone;
+            return (
+              <li
+                key={l.nom}
+                className="flex gap-4 rounded-2xl border bg-white p-5"
+                style={{ borderColor: "var(--reglure)" }}
+              >
                 <span
                   className="grid h-11 w-11 shrink-0 place-items-center rounded-xl text-white"
                   style={{ background: "var(--vm-kraft)" }}
                 >
                   <Icone className="h-5 w-5" aria-hidden />
                 </span>
-                <span className="min-w-0">
-                  <span className="block text-xs" style={{ color: "var(--carbone-doux)" }}>
+                <div className="min-w-0">
+                  <p className="text-xs" style={{ color: "var(--carbone-doux)" }}>
                     {l.nom}
-                  </span>
-                  <span
-                    className="mt-0.5 block break-words font-semibold"
-                    style={{ color: "var(--carbone)" }}
-                  >
-                    {l.valeur}
-                  </span>
-                </span>
-              </>
-            );
-            const cadre =
-              "flex h-full items-center gap-4 rounded-2xl border bg-white p-4 transition-shadow";
-            return (
-              <li key={l.nom}>
-                {l.lien ? (
-                  <a
-                    href={l.lien}
-                    className={`${cadre} hover:shadow-md`}
-                    style={{ borderColor: "var(--reglure)" }}
-                    {...(l.lien.startsWith("https:")
-                      ? { target: "_blank", rel: "noreferrer" }
-                      : null)}
-                  >
-                    {contenu}
-                  </a>
-                ) : (
-                  <div className={cadre} style={{ borderColor: "var(--reglure)" }}>
-                    {contenu}
-                  </div>
-                )}
+                  </p>
+                  <ul className="mt-1 space-y-1">
+                    {l.valeurs.map((v) => (
+                      <li key={v.texte} className="break-words font-semibold">
+                        {v.lien ? (
+                          <a
+                            href={v.lien}
+                            className="hover:underline"
+                            style={{ color: "var(--carbone)" }}
+                            {...(v.lien.startsWith("https:")
+                              ? { target: "_blank", rel: "noreferrer" }
+                              : null)}
+                          >
+                            {v.texte}
+                          </a>
+                        ) : (
+                          <span style={{ color: "var(--carbone)" }}>{v.texte}</span>
+                        )}
+                      </li>
+                    ))}
+                  </ul>
+                </div>
               </li>
             );
           })}
@@ -318,95 +401,109 @@ export const PageAccueilMarque: React.FC<PageAccueilMarqueProps> = ({
   marque,
   landing,
   onEspaceEquipe,
-}) => (
-  <>
-    <link rel="stylesheet" href={POLICE} precedence="default" />
+}) => {
+  const ouverture = landing.photo ?? PHOTO_OUVERTURE;
+  return (
+    <>
+      <link rel="stylesheet" href={POLICE} precedence="default" />
 
-    <div
-      className="sticky top-0 z-40 border-b"
-      style={{ borderColor: "var(--reglure)", background: "var(--papier-fond)" }}
-    >
-      <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-3 sm:px-8">
-        <span className="flex min-w-0 items-center gap-3">
-          <LogoMarque marque={marque} taille={40} />
-          <span className="vm-condense truncate text-2xl font-semibold">{marque.nom}</span>
-        </span>
-        <button
-          type="button"
-          onClick={onEspaceEquipe}
-          className="shrink-0 rounded-lg border px-4 py-2 text-sm font-semibold"
-          style={{ borderColor: "var(--carbone)", color: "var(--carbone)" }}
-        >
-          Espace équipe
-        </button>
-      </div>
-    </div>
-
-    {/* Ouverture : l'entrepôt en grand, l'étiquette de colis posée dessus. */}
-    <section className="relative isolate overflow-hidden px-4 pb-20 pt-16 sm:px-8 sm:pb-28 sm:pt-24">
-      <img
-        src={photo(PHOTO_OUVERTURE, 1600)}
-        srcSet={`${photo(PHOTO_OUVERTURE, 800)} 800w, ${photo(PHOTO_OUVERTURE, 1600)} 1600w, ${photo(PHOTO_OUVERTURE, 2400)} 2400w`}
-        sizes="100vw"
-        alt=""
-        fetchPriority="high"
-        className="absolute inset-0 -z-20 h-full w-full object-cover"
-        style={{ background: "#2a2c2e" }}
-      />
       <div
-        aria-hidden
-        className="absolute inset-0 -z-10"
-        style={{
-          background:
-            "linear-gradient(100deg, rgba(17,19,21,.86) 0%, rgba(17,19,21,.66) 45%, rgba(17,19,21,.3) 100%)",
-        }}
-      />
-      <div className="mx-auto grid max-w-6xl items-center gap-14 md:grid-cols-[1.25fr_1fr]">
-        <div className="min-w-0 text-white">
-          <h1
-            className="vm-condense vm-titre break-words text-[clamp(2.6rem,7.5vw,4.9rem)]"
-            style={{ color: "#fff" }}
+        className="sticky top-0 z-40 border-b"
+        style={{ borderColor: "var(--reglure)", background: "var(--papier-fond)" }}
+      >
+        <div className="mx-auto flex max-w-6xl items-center justify-between gap-3 px-4 py-3 sm:px-8">
+          <span className="flex min-w-0 items-center gap-3">
+            <LogoMarque marque={marque} taille={40} />
+            <span className="vm-condense truncate text-2xl font-semibold">{marque.nom}</span>
+          </span>
+          <button
+            type="button"
+            onClick={onEspaceEquipe}
+            className="shrink-0 rounded-lg border px-4 py-2 text-sm font-semibold"
+            style={{ borderColor: "var(--carbone)", color: "var(--carbone)" }}
           >
-            {landing.titre}
-          </h1>
-          {landing.sousTitre && (
-            <p className="mt-5 max-w-[46ch] text-base leading-relaxed text-white/80 sm:text-lg">
-              {landing.sousTitre}
-            </p>
-          )}
-          <div className="mt-8 flex flex-col gap-3 sm:flex-row">
-            {landing.contact && (
-              <a
-                href="#contact"
-                className="inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-7 py-3.5 text-center text-sm font-semibold text-primary-foreground shadow-lg hover:opacity-90"
-              >
-                Nous contacter
-                <ArrowRight className="h-4 w-4" aria-hidden />
-              </a>
-            )}
-            <button
-              type="button"
-              onClick={onEspaceEquipe}
-              className={
-                landing.contact
-                  ? "rounded-lg border border-white/50 px-7 py-3.5 text-sm font-semibold text-white hover:bg-white/10"
-                  : "rounded-lg bg-primary px-7 py-3.5 text-sm font-semibold text-primary-foreground hover:opacity-90"
-              }
-            >
-              Espace équipe
-            </button>
-          </div>
+            Espace équipe
+          </button>
         </div>
-        <Etiquette marque={marque} landing={landing} />
       </div>
-    </section>
 
-    {landing.offres && <Offres bloc={landing.offres} />}
-    {landing.arguments && <Arguments bloc={landing.arguments} />}
-    {landing.etapes && <Etapes bloc={landing.etapes} />}
-    <Contact landing={landing} />
-  </>
-);
+      {/* Ouverture : la photo en grand, l'étiquette de colis posée dessus. */}
+      <section className="relative isolate overflow-hidden px-4 pb-20 pt-16 sm:px-8 sm:pb-28 sm:pt-24">
+        <img
+          src={urlImage(ouverture, 1600)}
+          srcSet={`${urlImage(ouverture, 800)} 800w, ${urlImage(ouverture, 1600)} 1600w, ${urlImage(ouverture, 2400)} 2400w`}
+          sizes="100vw"
+          alt=""
+          fetchPriority="high"
+          className="absolute inset-0 -z-20 h-full w-full object-cover"
+          style={{ background: "#2a2c2e" }}
+        />
+        <div
+          aria-hidden
+          className="absolute inset-0 -z-10"
+          style={{
+            background:
+              "linear-gradient(100deg, rgba(17,19,21,.86) 0%, rgba(17,19,21,.66) 45%, rgba(17,19,21,.3) 100%)",
+          }}
+        />
+        <div className="mx-auto grid max-w-6xl items-center gap-14 md:grid-cols-[1.25fr_1fr]">
+          <div className="min-w-0 text-white">
+            <h1
+              className="vm-condense vm-titre break-words text-[clamp(2.6rem,7.5vw,4.9rem)]"
+              style={{ color: "#fff" }}
+            >
+              {landing.titre}
+            </h1>
+            {landing.sousTitre && (
+              <p className="mt-5 max-w-[46ch] text-base leading-relaxed text-white/80 sm:text-lg">
+                {landing.sousTitre}
+              </p>
+            )}
+            <div className="mt-8 flex flex-col gap-3 sm:flex-row">
+              {landing.catalogue && (
+                <a
+                  href="#catalogue"
+                  className="inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-7 py-3.5 text-center text-sm font-semibold text-primary-foreground shadow-lg hover:opacity-90"
+                >
+                  Voir le catalogue
+                  <ArrowRight className="h-4 w-4" aria-hidden />
+                </a>
+              )}
+              {landing.contact && (
+                <a
+                  href="#contact"
+                  className={
+                    landing.catalogue
+                      ? "rounded-lg border border-white/50 px-7 py-3.5 text-center text-sm font-semibold text-white hover:bg-white/10"
+                      : "inline-flex items-center justify-center gap-2 rounded-lg bg-primary px-7 py-3.5 text-center text-sm font-semibold text-primary-foreground shadow-lg hover:opacity-90"
+                  }
+                >
+                  Nous contacter
+                </a>
+              )}
+              {!landing.catalogue && !landing.contact && (
+                <button
+                  type="button"
+                  onClick={onEspaceEquipe}
+                  className="rounded-lg bg-primary px-7 py-3.5 text-sm font-semibold text-primary-foreground hover:opacity-90"
+                >
+                  Espace équipe
+                </button>
+              )}
+            </div>
+          </div>
+          <Etiquette marque={marque} landing={landing} />
+        </div>
+      </section>
+
+      {landing.catalogue && <Catalogue bloc={landing.catalogue} contact={!!landing.contact} />}
+      {landing.offres && <Offres bloc={landing.offres} />}
+      {landing.arguments && <Arguments bloc={landing.arguments} />}
+      {landing.etapes && <Etapes bloc={landing.etapes} />}
+      <Contact landing={landing} />
+    </>
+  );
+};
 
 // Projection oblique des cartons : profondeur vers la droite et le haut.
 const DX = 30;
