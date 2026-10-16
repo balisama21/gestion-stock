@@ -29,7 +29,7 @@ export const FONCTIONNALITES: Fonctionnalite[] = [
   "anomalies",
 ];
 
-export type CibleImport = "produits" | "clients" | "fournisseurs";
+export type CibleImport = "produits" | "clients" | "fournisseurs" | "achats";
 
 /** Champs que l'extraction a le droit de remplir, par cible. */
 export const CHAMPS_EXTRACTION: Record<CibleImport, string[]> = {
@@ -44,6 +44,16 @@ export const CHAMPS_EXTRACTION: Record<CibleImport, string[]> = {
   ],
   clients: ["nom", "prenom", "entreprise", "telephone", "email", "adresse", "ville", "note"],
   fournisseurs: ["nom", "entreprise", "telephone", "email", "adresse", "ville", "note"],
+  achats: [
+    "date",
+    "designation",
+    "variante",
+    "quantite",
+    "prix_achat",
+    "fournisseur",
+    "montant_paye",
+    "prix_vente",
+  ],
 };
 
 export const MIMES_IMAGE = ["image/png", "image/jpeg", "image/webp", "image/gif"];
@@ -169,7 +179,12 @@ export function validerDemande(corps: unknown): DemandeIA | { erreur: string } {
   switch (e.fonctionnalite) {
     case "import_extraction": {
       const cible = e.cible;
-      if (cible !== "produits" && cible !== "clients" && cible !== "fournisseurs") {
+      if (
+        cible !== "produits" &&
+        cible !== "clients" &&
+        cible !== "fournisseurs" &&
+        cible !== "achats"
+      ) {
         return { erreur: "requete_invalide" };
       }
       let texte: string | undefined;
@@ -300,7 +315,7 @@ export function inviteExtraction(
     `Tâche : extraire des ${cible} d'un document pour un import.`,
     `Réponds UNIQUEMENT par un objet JSON de la forme {"lignes":[{...}],"avertissements":["..."]}.`,
     `Chaque ligne n'utilise que ces clés : ${champs.join(", ")}. Valeur absente : null.`,
-    "Les nombres sont des nombres JSON sans séparateur de milliers ni devise.",
+    "Les nombres sont des nombres JSON sans séparateur de milliers ni devise. Les dates au format AAAA-MM-JJ.",
     "Ne crée aucune ligne qui ne figure pas dans le document. Signale les doutes dans « avertissements ».",
   ].join("\n");
   const parties: PartieContenu[] = [];

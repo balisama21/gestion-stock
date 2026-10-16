@@ -15,14 +15,18 @@
  */
 import { cleDeListe } from "../../../lib/listes";
 
-export type CibleImport = "produits" | "clients" | "fournisseurs";
-export type TypeChamp = "texte" | "nombre" | "entier" | "email" | "telephone";
+export type CibleImport = "produits" | "clients" | "fournisseurs" | "achats";
+/** Ce que la détection peut reconnaître, y compris ce qu'on n'importe pas. */
+export type NatureDonnees = CibleImport | "ventes";
+export type TypeChamp = "texte" | "nombre" | "entier" | "email" | "telephone" | "date";
 
 export interface ChampImport {
   cle: string;
   libelle: string;
   type: TypeChamp;
   obligatoire?: boolean;
+  /** Nombre strictement positif (quantité d'un achat). */
+  positif?: boolean;
   /** En-têtes reconnus, déjà normalisés par `normaliserEntete`. */
   synonymes: string[];
 }
@@ -188,6 +192,8 @@ export const SCHEMAS_IMPORT: Record<CibleImport, ChampImport[]> = {
       synonymes: ["note", "notes", "remarque", "commentaire", "observation"],
     },
   ],
+  // Rempli plus bas : réutilise les synonymes des produits.
+  achats: [],
   fournisseurs: [
     {
       cle: "nom",
@@ -230,10 +236,147 @@ export const SCHEMAS_IMPORT: Record<CibleImport, ChampImport[]> = {
   ],
 };
 
+const SYNONYMES_DATE = [
+  "date",
+  "jour",
+  "date achat",
+  "date d achat",
+  "date de l achat",
+  "date facture",
+  "date vente",
+  "date de vente",
+  "le",
+];
+const SYNONYMES_DESIGNATION = SCHEMAS_IMPORT.produits[0].synonymes;
+const SYNONYMES_QUANTITE = ["quantite", "qte", "qty", "quantity", "nombre", "nb", "unites"];
+
+/**
+ * Achats : chaque ligne devient un vrai achat (RPC add_purchase) — le stock
+ * augmente et, sans montant payé, l'achat est réglé comptant. L'écran le
+ * dit et demande une confirmation explicite.
+ */
+SCHEMAS_IMPORT.achats = [
+  { cle: "date", libelle: "Date", type: "date", obligatoire: true, synonymes: SYNONYMES_DATE },
+  {
+    cle: "designation",
+    libelle: "Produit",
+    type: "texte",
+    obligatoire: true,
+    synonymes: SYNONYMES_DESIGNATION,
+  },
+  {
+    cle: "variante",
+    libelle: "Variante",
+    type: "texte",
+    synonymes: SCHEMAS_IMPORT.produits[1].synonymes,
+  },
+  {
+    cle: "quantite",
+    libelle: "Quantité",
+    type: "entier",
+    obligatoire: true,
+    positif: true,
+    synonymes: SYNONYMES_QUANTITE,
+  },
+  {
+    cle: "prix_achat",
+    libelle: "Prix d'achat unitaire",
+    type: "nombre",
+    obligatoire: true,
+    synonymes: [
+      "prix achat",
+      "prix d achat",
+      "pa",
+      "cout",
+      "cout unitaire",
+      "prix de revient",
+      "prix unitaire",
+      "pu",
+      "prix",
+      "purchase price",
+      "cost",
+    ],
+  },
+  {
+    cle: "fournisseur",
+    libelle: "Fournisseur",
+    type: "texte",
+    synonymes: ["fournisseur", "supplier", "vendor", "chez"],
+  },
+  {
+    cle: "montant_paye",
+    libelle: "Montant payé",
+    type: "nombre",
+    synonymes: ["montant paye", "paye", "regle", "montant regle", "verse", "acompte", "paid"],
+  },
+  {
+    cle: "prix_vente",
+    libelle: "Prix de vente (nouveau produit)",
+    type: "nombre",
+    synonymes: ["prix vente", "prix de vente", "pv"],
+  },
+];
+
+/**
+ * Ventes : reconnues pour ne PAS être importées au mauvais endroit. Les
+ * enregistrer après coup ferait sortir du stock et entrer de l'argent
+ * aujourd'hui pour des opérations passées : on ne le fait pas.
+ */
+const SCHEMA_VENTES: ChampImport[] = [
+  { cle: "date", libelle: "Date", type: "date", obligatoire: true, synonymes: SYNONYMES_DATE },
+  {
+    cle: "designation",
+    libelle: "Produit",
+    type: "texte",
+    obligatoire: true,
+    synonymes: SYNONYMES_DESIGNATION,
+  },
+  {
+    cle: "quantite",
+    libelle: "Quantité",
+    type: "entier",
+    obligatoire: true,
+    synonymes: SYNONYMES_QUANTITE,
+  },
+  {
+    cle: "prix_vente",
+    libelle: "Prix",
+    type: "nombre",
+    synonymes: ["prix vente", "prix de vente", "pv", "prix", "prix unitaire", "pu"],
+  },
+  {
+    cle: "total",
+    libelle: "Total",
+    type: "nombre",
+    synonymes: ["total", "montant", "total vente", "chiffre d affaires", "ca"],
+  },
+  {
+    cle: "client",
+    libelle: "Client",
+    type: "texte",
+    synonymes: ["client", "acheteur", "customer"],
+  },
+  {
+    cle: "vendeur",
+    libelle: "Vendeur",
+    type: "texte",
+    synonymes: ["vendeur", "caissier", "seller"],
+  },
+];
+
 export const LIBELLES_CIBLE: Record<CibleImport, string> = {
   produits: "produits",
   clients: "clients",
   fournisseurs: "fournisseurs",
+  achats: "achats",
+};
+
+/** Le module de l'application où chaque type de données est enregistré. */
+export const MODULES_CIBLE: Record<CibleImport, { libelle: string; onglet: string }> = {
+  produits: { libelle: "Produits et stock", onglet: "produits" },
+  clients: { libelle: "Clients", onglet: "clients" },
+  fournisseurs: { libelle: "Fournisseurs", onglet: "fournisseurs" },
+  achats: { libelle: "Achats (et stock)", onglet: "achats" },
 };
 
 /** Plafond de lignes d'un import : au-delà, on découpe le fichier. */
@@ -341,8 +484,11 @@ export type Correspondance = Record<string, number | null>;
  * qu'une proposition : l'écran laisse tout corriger.
  */
 export function devinerCorrespondance(entetes: string[], cible: CibleImport): Correspondance {
+  return correspondre(entetes, SCHEMAS_IMPORT[cible]);
+}
+
+function correspondre(entetes: string[], schema: ChampImport[]): Correspondance {
   const normes = entetes.map(normaliserEntete);
-  const schema = SCHEMAS_IMPORT[cible];
   const scores: { champ: string; col: number; score: number }[] = [];
   schema.forEach((champ, rang) => {
     normes.forEach((n, col) => {
@@ -425,6 +571,36 @@ export function lireTelephone(v: Cellule): string {
   return t.replace(/[^\d+]/g, "").replace(/(?!^)\+/g, "");
 }
 
+/**
+ * Une date lue d'une cellule, au format ISO « AAAA-MM-JJ ».
+ * Excel (numéro de série), « 15/10/2026 », « 15-10-26 », « 2026-10-15 ».
+ * Rend `null` pour une cellule vide, `"invalide"` sinon.
+ */
+export function lireDate(v: Cellule, aujourdhui = new Date()): string | null | "invalide" {
+  if (v === null || v === undefined || v === "") return null;
+  let a: number, m: number, j: number;
+  if (typeof v === "number") {
+    // Numéro de série Excel : jours depuis le 30/12/1899.
+    if (v < 20000 || v > 80000) return "invalide";
+    const d = new Date(Date.UTC(1899, 11, 30) + Math.round(v) * 86_400_000);
+    [a, m, j] = [d.getUTCFullYear(), d.getUTCMonth() + 1, d.getUTCDate()];
+  } else {
+    const t = lireTexte(v);
+    let r = /^(\d{4})[-/.](\d{1,2})[-/.](\d{1,2})/.exec(t);
+    if (r) [a, m, j] = [+r[1], +r[2], +r[3]];
+    else if ((r = /^(\d{1,2})[-/.](\d{1,2})[-/.](\d{2,4})$/.exec(t))) {
+      [j, m, a] = [+r[1], +r[2], +r[3]];
+      if (a < 100) a += 2000;
+    } else return "invalide";
+  }
+  const d = new Date(Date.UTC(a, m - 1, j));
+  if (d.getUTCFullYear() !== a || d.getUTCMonth() !== m - 1 || d.getUTCDate() !== j) {
+    return "invalide";
+  }
+  if (a < 2000 || d.getTime() > aujourdhui.getTime() + 86_400_000) return "invalide";
+  return `${a}-${String(m).padStart(2, "0")}-${String(j).padStart(2, "0")}`;
+}
+
 // ─── Validation et doublons ──────────────────────────────────────────
 
 export type StatutLigne = "ok" | "erreur" | "doublon_fichier" | "doublon_existant";
@@ -436,6 +612,8 @@ export interface LigneImport {
   erreurs: string[];
   statut: StatutLigne;
   cle: string;
+  /** L'enregistrement déjà en base que cette ligne recoupe (doublon_existant). */
+  existantId?: string | null;
 }
 
 /** La clé d'anti-doublon d'une ligne, alignée sur les index uniques de la base. */
@@ -453,26 +631,34 @@ export function cleDoublon(cible: CibleImport, v: Record<string, string | number
       if (tel.length >= 6) return `#${tel.slice(-9)}`;
       return `${t("nom")}|${t("prenom")}`;
     }
+    case "achats": {
+      // Le même achat : même jour, même article, même quantité, même prix.
+      const nom = cleDeListe([v.designation, v.variante].filter(Boolean).join(" "));
+      return `${v.date ?? ""}|${nom}|${v.quantite ?? ""}|${Number(v.prix_achat ?? 0)}`;
+    }
   }
 }
 
-/** Clés de l'existant, à passer à `preparerLignes`. */
+/**
+ * Clés de l'existant → identifiant de l'enregistrement, à passer à
+ * `preparerLignes`. Un enregistrement sans `id` (tests) vaut `null`.
+ */
 export function clesExistantes(
   cible: CibleImport,
   existants: Record<string, string | number | null | undefined>[],
-): Set<string> {
-  const cles = new Set<string>();
+): Map<string, string | null> {
+  const cles = new Map<string, string | null>();
   for (const e of existants) {
     const v = Object.fromEntries(Object.entries(e).map(([k, x]) => [k, x ?? null]));
-    cles.add(cleDoublon(cible, v));
+    const id = typeof v.id === "string" ? v.id : null;
+    cles.set(cleDoublon(cible, v), id);
     // Un client déjà connu par son e-mail l'est aussi par son téléphone.
     if (cible === "clients") {
-      if (v.email) cles.add(cleDoublon(cible, { ...v, telephone: null }));
-      if (v.telephone) cles.add(cleDoublon(cible, { ...v, email: null }));
+      if (v.email) cles.set(cleDoublon(cible, { ...v, telephone: null }), id);
+      if (v.telephone) cles.set(cleDoublon(cible, { ...v, email: null }), id);
     }
   }
-  cles.delete("");
-  cles.delete("|");
+  for (const vide of ["", "|", "||0|0", "|||0"]) cles.delete(vide);
   return cles;
 }
 
@@ -485,6 +671,7 @@ export function validerValeurs(
   const erreurs: string[] = [];
   for (const champ of SCHEMAS_IMPORT[cible]) {
     const brut = brutes[champ.cle];
+    const avant = erreurs.length;
     switch (champ.type) {
       case "nombre":
       case "entier": {
@@ -504,7 +691,20 @@ export function validerValeurs(
         } else if (n > 1e12) {
           valeurs[champ.cle] = null;
           erreurs.push(`${champ.libelle} : valeur trop grande`);
+        } else if (champ.positif && n === 0) {
+          valeurs[champ.cle] = null;
+          erreurs.push(`${champ.libelle} : doit être supérieur à zéro`);
         } else valeurs[champ.cle] = n;
+        break;
+      }
+      case "date": {
+        const d = lireDate(brut);
+        if (d === "invalide") {
+          valeurs[champ.cle] = null;
+          erreurs.push(
+            `${champ.libelle} : « ${lireTexte(brut).slice(0, 20)} » n'est pas une date valable`,
+          );
+        } else valeurs[champ.cle] = d;
         break;
       }
       case "email": {
@@ -524,12 +724,28 @@ export function validerValeurs(
         valeurs[champ.cle] = t ? t.slice(0, LONGUEUR_MAX_TEXTE) : null;
       }
     }
-    if (champ.obligatoire && (valeurs[champ.cle] === null || valeurs[champ.cle] === "")) {
+    // « obligatoire » seulement si la valeur manque, pas si elle est fausse.
+    if (
+      champ.obligatoire &&
+      erreurs.length === avant &&
+      (valeurs[champ.cle] === null || valeurs[champ.cle] === "")
+    ) {
       erreurs.push(`${champ.libelle} obligatoire`);
     }
   }
+  if (
+    cible === "achats" &&
+    typeof valeurs.montant_paye === "number" &&
+    typeof valeurs.quantite === "number" &&
+    typeof valeurs.prix_achat === "number" &&
+    valeurs.montant_paye > valeurs.quantite * valeurs.prix_achat + 1e-6
+  ) {
+    erreurs.push("Montant payé supérieur au total de l'achat");
+  }
   return { valeurs, erreurs };
 }
+
+type Existantes = Map<string, string | null> | Set<string>;
 
 /**
  * Lignes du tableau → lignes vérifiées. `premiereLigne` est le numéro, dans
@@ -539,7 +755,7 @@ export function preparerLignes(
   tableau: Tableau,
   correspondance: Correspondance,
   cible: CibleImport,
-  existantes: Set<string>,
+  existantes: Existantes,
   premiereLigne = 2,
 ): LigneImport[] {
   const vues = new Set<string>();
@@ -557,7 +773,7 @@ export function preparerLignes(
 export function preparerLignesNommees(
   lignes: Record<string, Cellule>[],
   cible: CibleImport,
-  existantes: Set<string>,
+  existantes: Existantes,
 ): LigneImport[] {
   const vues = new Set<string>();
   return lignes
@@ -570,16 +786,19 @@ function classer(
   brutes: Record<string, Cellule>,
   numero: number,
   vues: Set<string>,
-  existantes: Set<string>,
+  existantes: Existantes,
 ): LigneImport {
   const { valeurs, erreurs } = validerValeurs(cible, brutes);
   const cle = cleDoublon(cible, valeurs);
-  let statut: StatutLigne = "ok";
-  if (erreurs.length > 0) statut = "erreur";
-  else if (existantes.has(cle)) statut = "doublon_existant";
-  else if (vues.has(cle)) statut = "doublon_fichier";
-  if (statut === "ok") vues.add(cle);
-  return { numero, valeurs, erreurs, statut, cle };
+  const ligne: LigneImport = { numero, valeurs, erreurs, statut: "ok", cle };
+  if (erreurs.length > 0) ligne.statut = "erreur";
+  else if (vues.has(cle)) ligne.statut = "doublon_fichier";
+  else if (existantes.has(cle)) {
+    ligne.statut = "doublon_existant";
+    ligne.existantId = existantes instanceof Map ? (existantes.get(cle) ?? null) : null;
+  }
+  if (ligne.statut === "ok" || ligne.statut === "doublon_existant") vues.add(cle);
+  return ligne;
 }
 
 export function bilanPreparation(lignes: LigneImport[]) {
@@ -607,4 +826,142 @@ export function empreinte(lignes: LigneImport[]): string {
     h2 = Math.imul(h2 ^ c, 0x5bd1e995) >>> 0;
   }
   return h1.toString(16).padStart(8, "0") + h2.toString(16).padStart(8, "0");
+}
+
+// ─── Détection du type de données ────────────────────────────────────
+
+export interface Detection {
+  /** Le type retenu, ou `null` quand il faut demander à l'utilisateur. */
+  nature: NatureDonnees | null;
+  /** Vrai quand plusieurs destinations restent plausibles : on demande. */
+  ambigu: boolean;
+  /** Les candidats plausibles, du plus probable au moins probable. */
+  candidats: { nature: NatureDonnees; score: number }[];
+  raison: string;
+}
+
+const SCHEMAS_DETECTION: Record<NatureDonnees, ChampImport[]> = {
+  ...SCHEMAS_IMPORT,
+  ventes: SCHEMA_VENTES,
+};
+
+/** Mots du nom de la feuille ou du fichier qui orientent la détection. */
+const INDICES_NOM: Record<NatureDonnees, string[]> = {
+  produits: [
+    "produit",
+    "produits",
+    "article",
+    "articles",
+    "stock",
+    "stocks",
+    "inventaire",
+    "catalogue",
+    "inventory",
+    "products",
+    "items",
+  ],
+  clients: ["client", "clients", "customer", "customers", "clientele"],
+  fournisseurs: ["fournisseur", "fournisseurs", "supplier", "suppliers", "vendors"],
+  achats: [
+    "achat",
+    "achats",
+    "purchase",
+    "purchases",
+    "approvisionnement",
+    "approvisionnements",
+    "reception",
+    "receptions",
+    "entrees",
+  ],
+  ventes: ["vente", "ventes", "sales", "ticket", "tickets", "caisse"],
+};
+
+/** En-têtes qui ne trompent pas sur la nature d'un tiers ou d'une opération. */
+const INDICES_ENTETES: Partial<Record<NatureDonnees, string[]>> = {
+  clients: ["prenom", "client", "nom du client"],
+  fournisseurs: [
+    "nom du fournisseur",
+    "conditions de paiement",
+    "delai de livraison",
+    "produits fournis",
+    "nif",
+  ],
+  achats: ["fournisseur", "prix d achat", "prix achat", "cout", "montant paye"],
+  ventes: ["client", "vendeur", "caissier", "total vente", "prix de vente"],
+};
+
+const MOTS_PRIX_OU_STOCK = [
+  "prix",
+  "pv",
+  "pa",
+  "pu",
+  "cout",
+  "stock",
+  "quantite",
+  "qte",
+  "qty",
+  "montant",
+  "total",
+  "tarif",
+];
+
+/**
+ * Devine ce que contient un tableau : produits, clients, fournisseurs,
+ * achats — ou ventes, reconnues pour être refusées. Ne tranche que s'il
+ * n'y a pas de doute raisonnable ; sinon, `nature: null` et l'écran demande.
+ */
+export function detecterNature(entetes: string[], indices: string[] = []): Detection {
+  const normes = entetes.map(normaliserEntete).filter(Boolean);
+  const mots = new Set(indices.flatMap((i) => normaliserEntete(i).split(" ")).filter(Boolean));
+  const aDate = normes.some((n) => SYNONYMES_DATE.includes(n) || n.startsWith("date"));
+  const aPrixOuStock = normes.some((n) =>
+    MOTS_PRIX_OU_STOCK.some((s) => n === s || n.split(" ").includes(s)),
+  );
+
+  const candidats: { nature: NatureDonnees; score: number }[] = [];
+  for (const nature of Object.keys(SCHEMAS_DETECTION) as NatureDonnees[]) {
+    const schema = SCHEMAS_DETECTION[nature];
+    const corr = correspondre(entetes, schema);
+    if (schema.some((c) => c.obligatoire && corr[c.cle] === null)) continue;
+    let score = schema.reduce((t, c) => t + (corr[c.cle] === null ? 0 : c.obligatoire ? 3 : 1), 0);
+
+    // Règles qui séparent des formes voisines.
+    if (nature === "produits") {
+      if (corr.prix_achat === null && corr.prix_vente === null && corr.stock_initial === null) {
+        continue;
+      }
+      if (aDate) score *= 0.3;
+    }
+    if (nature === "ventes" && corr.prix_vente === null && corr.total === null) continue;
+    if ((nature === "clients" || nature === "fournisseurs") && aPrixOuStock) score *= 0.3;
+
+    for (const s of INDICES_ENTETES[nature] ?? []) if (normes.includes(s)) score += 2;
+    if (INDICES_NOM[nature].some((m) => mots.has(m))) score += 4;
+    candidats.push({ nature, score: Math.round(score * 10) / 10 });
+  }
+  candidats.sort((a, b) => b.score - a.score);
+
+  if (candidats.length === 0) {
+    return {
+      nature: null,
+      ambigu: false,
+      candidats,
+      raison: "Type non reconnu : aucune colonne obligatoire (désignation, nom…) n'a été trouvée.",
+    };
+  }
+  const [premier, second] = candidats;
+  if (second && second.score >= premier.score * 0.85) {
+    return {
+      nature: null,
+      ambigu: true,
+      candidats,
+      raison: "Plusieurs destinations sont possibles : précisez ce que contient ce tableau.",
+    };
+  }
+  return {
+    nature: premier.nature,
+    ambigu: false,
+    candidats,
+    raison: "Détecté d'après les en-têtes.",
+  };
 }

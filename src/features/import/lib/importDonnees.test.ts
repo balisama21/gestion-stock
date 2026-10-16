@@ -2,6 +2,8 @@ import { describe, expect, it } from "vitest";
 import {
   analyserCsv,
   bilanPreparation,
+  detecterNature,
+  lireDate,
   clesExistantes,
   detecterSeparateur,
   devinerCorrespondance,
@@ -167,5 +169,108 @@ describe("validation et doublons", () => {
     expect(l[0].statut).toBe("erreur");
     expect(l[1].statut).toBe("ok");
     expect(l[1].valeurs.stock_initial).toBe(3);
+  });
+});
+
+describe("dates", () => {
+  const jour = new Date("2026-10-16T12:00:00Z");
+  it.each([
+    ["15/10/2026", "2026-10-15"],
+    ["5-1-26", "2026-01-05"],
+    ["2026-10-01", "2026-10-01"],
+    [46300, "2026-10-05"],
+    ["", null],
+  ])("%s → %s", (entree, attendu) => {
+    expect(lireDate(entree as string, jour)).toBe(attendu);
+  });
+
+  it("refuse une date impossible ou future", () => {
+    expect(lireDate("31/02/2026", jour)).toBe("invalide");
+    expect(lireDate("01/01/2030", jour)).toBe("invalide");
+    expect(lireDate("bientôt", jour)).toBe("invalide");
+  });
+});
+
+describe("achats", () => {
+  it("exige date, produit, quantité positive et prix ; contrôle le montant payé", () => {
+    const l = preparerLignesNommees(
+      [
+        { date: "2026-10-01", designation: "Riz", quantite: 2, prix_achat: 100 },
+        { date: "2026-10-01", designation: "Riz", quantite: 0, prix_achat: 100 },
+        { date: "2026-10-01", designation: "Riz", quantite: 2, prix_achat: 100, montant_paye: 500 },
+        { designation: "Riz", quantite: 2, prix_achat: 100 },
+      ],
+      "achats",
+      new Map(),
+    );
+    expect(l.map((x) => x.statut)).toEqual(["ok", "erreur", "erreur", "erreur"]);
+    expect(l[1].erreurs[0]).toMatch(/supérieur à zéro/);
+    expect(l[2].erreurs[0]).toMatch(/Montant payé/);
+    expect(l[3].erreurs).toEqual(["Date obligatoire"]);
+  });
+
+  it("reconnaît un achat déjà enregistré", () => {
+    const ex = clesExistantes("achats", [
+      { date: "2026-10-01", designation: "Riz 25kg", quantite: 2, prix_achat: 100 },
+    ]);
+    const l = preparerLignesNommees(
+      [
+        {
+          date: "01/10/2026",
+          designation: "riz",
+          variante: "25KG",
+          quantite: 2,
+          prix_achat: "100",
+        },
+      ],
+      "achats",
+      ex,
+    );
+    expect(l[0].statut).toBe("doublon_existant");
+  });
+});
+
+describe("rattachement à l'existant", () => {
+  it("garde l'identifiant de l'enregistrement recoupé", () => {
+    const ex = clesExistantes("produits", [{ id: "p1", designation: "Riz", variante: "" }]);
+    const [l] = preparerLignesNommees([{ designation: "RIZ", prix_vente: 1 }], "produits", ex);
+    expect(l).toMatchObject({ statut: "doublon_existant", existantId: "p1" });
+  });
+});
+
+describe("détection du type de données", () => {
+  it.each([
+    [["Désignation", "Prix de vente", "Quantité", "Fournisseur"], [], "produits"],
+    [["Article", "PA", "PV", "Stock"], [], "produits"],
+    [["Nom", "Prénom", "Téléphone", "Email"], [], "clients"],
+    [["Nom du fournisseur", "Téléphone", "Conditions de paiement"], [], "fournisseurs"],
+    [["Date", "Produit", "Quantité", "Prix d'achat", "Fournisseur"], [], "achats"],
+    [["Date", "Produit", "Qté", "Prix de vente", "Client", "Vendeur"], [], "ventes"],
+    [["Nom", "Téléphone"], ["Fournisseurs.xlsx"], "fournisseurs"],
+    [["Nom", "Téléphone"], ["Feuil1", "clients 2026.csv"], "clients"],
+  ])("%j (%j) → %s", (entetes, indices, attendu) => {
+    expect(detecterNature(entetes as string[], indices as string[]).nature).toBe(attendu);
+  });
+
+  it("demande quand plusieurs destinations sont possibles", () => {
+    const d = detecterNature(["Nom", "Téléphone", "Email"]);
+    expect(d.nature).toBeNull();
+    expect(d.ambigu).toBe(true);
+    expect(d.candidats.map((c) => c.nature)).toEqual(
+      expect.arrayContaining(["clients", "fournisseurs"]),
+    );
+  });
+
+  it("ne reconnaît rien sans colonne obligatoire", () => {
+    expect(detecterNature(["Colonne A", "Colonne B"])).toMatchObject({
+      nature: null,
+      ambigu: false,
+    });
+  });
+
+  it("ne prend pas une liste de contacts pour des produits", () => {
+    expect(detecterNature(["Nom", "Ville"]).candidats.map((c) => c.nature)).not.toContain(
+      "produits",
+    );
   });
 });

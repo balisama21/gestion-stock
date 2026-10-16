@@ -105,7 +105,7 @@ export async function lireEtatIA(storeId: string): Promise<EtatIA> {
 export type EntreeIA =
   | {
       fonctionnalite: "import_extraction";
-      cible: "produits" | "clients" | "fournisseurs";
+      cible: "produits" | "clients" | "fournisseurs" | "achats";
       texte?: string;
       fichier?: { mime: string; base64: string; nom?: string };
     }
@@ -130,7 +130,7 @@ export type ResultatIA =
   | {
       ok: true;
       fonctionnalite: "import_extraction";
-      cible: "produits" | "clients" | "fournisseurs";
+      cible: "produits" | "clients" | "fournisseurs" | "achats";
       lignes: Record<string, string | number | null>[];
       avertissements: string[];
       action_id: string | null;
