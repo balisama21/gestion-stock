@@ -16,6 +16,8 @@ export interface ElementLanding {
 
 export interface BlocLanding {
   titre: string;
+  /** Photo de fond du bloc, s'il en a une (bande des arguments). */
+  image?: string;
   elements: ElementLanding[];
 }
 
@@ -82,7 +84,11 @@ function bloc(v: unknown, max = 8): BlocLanding | null {
     })
     .filter((e) => e.titre)
     .slice(0, max);
-  return elements.length ? { titre: texte(v.titre, 80), elements } : null;
+  if (!elements.length) return null;
+  const b: BlocLanding = { titre: texte(v.titre, 80), elements };
+  const img = image(v.image);
+  if (img) b.image = img;
+  return b;
 }
 
 /** Une valeur ou une liste de valeurs, dédoublonnée. */

@@ -15,11 +15,13 @@ export function emailRecuperation(d: DonneesRecuperation): { html: string; text:
   const nomApp = echapper(d.nomApp);
   const lien = echapper(d.lien);
 
-  const marque = d.logoUrl
-    ? `<img src="${echapper(d.logoUrl)}" alt="${nomApp}" height="32" style="display:block;height:32px;width:auto;border:0;">`
-    : `<table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr>
-        <td width="32" height="32" align="center" valign="middle" style="width:32px;height:32px;background:${d.couleur};border-radius:6px;color:#ffffff;font:600 15px ${POLICE};">${echapper(d.nomApp.charAt(0).toUpperCase())}</td>
-        <td style="padding-left:10px;font:600 15px ${POLICE};color:#111827;">${nomApp}</td>
+  // Logo de la marque, sinon son initiale sur sa couleur ; le nom à côté.
+  const signe = d.logoUrl
+    ? `<td valign="middle"><img src="${echapper(d.logoUrl)}" alt="" height="36" style="display:block;height:36px;width:auto;border:0;"></td>`
+    : `<td width="32" height="32" align="center" valign="middle" style="width:32px;height:32px;background:${d.couleur};border-radius:6px;color:#ffffff;font:600 15px ${POLICE};">${echapper(d.nomApp.charAt(0).toUpperCase())}</td>`;
+  const marque = `<table role="presentation" cellpadding="0" cellspacing="0" border="0"><tr>
+        ${signe}
+        <td style="padding-left:10px;font:600 16px ${POLICE};color:#111827;">${nomApp}</td>
       </tr></table>`;
 
   const html = `<!DOCTYPE html>
