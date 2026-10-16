@@ -24,11 +24,31 @@ describe("landingDepuisJson", () => {
     expect(l?.arguments).toBeNull();
     expect(l?.etapes).toBeNull();
     expect(l?.contact).toEqual({
-      telephone: null,
+      telephones: [],
       whatsapp: null,
-      email: "contact@kinvest.mg",
+      emails: ["contact@kinvest.mg"],
       adresse: null,
     });
+  });
+
+  it("accepte plusieurs téléphones et e-mails, et des photos sûres", () => {
+    const l = landingDepuisJson({
+      titre: "Catalogue",
+      photo: "1769355104335-acef3aa4c9b6",
+      catalogue: {
+        elements: [
+          { titre: "Bocaux", image: "javascript:alert(1)", formats: " 50 à 150 ml " },
+          { titre: "Flacons", image: "/marques/k/flacon.jpg" },
+        ],
+      },
+      contact: { telephones: ["+269 334 03 57", " ", "+269 334 03 57", "+261 34 19 600 15"] },
+    });
+    expect(l?.photo).toBe("1769355104335-acef3aa4c9b6");
+    expect(l?.catalogue?.elements).toEqual([
+      { titre: "Bocaux", texte: "", formats: "50 à 150 ml" },
+      { titre: "Flacons", texte: "", image: "/marques/k/flacon.jpg" },
+    ]);
+    expect(l?.contact?.telephones).toEqual(["+269 334 03 57", "+261 34 19 600 15"]);
   });
 
   it("tronque les textes trop longs", () => {
