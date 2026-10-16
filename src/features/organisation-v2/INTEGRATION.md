@@ -4,13 +4,15 @@ Page à quatre onglets (Vue d'ensemble, Tâches, Agenda, Rappels) portée de `do
 
 ## Allumer / éteindre
 
-| Moyen | Allumer | Éteindre |
-|---|---|---|
-| Lien (n'importe quel appareil, choix retenu) | `…/?organisation_v2=1` | `…/?organisation_v2=0` |
-| Un navigateur | `localStorage.organisation_v2 = "1"` | `localStorage.removeItem("organisation_v2")` |
-| Tout le monde (au build) | `VITE_ORGANISATION_V2=1` | variable absente ; `?organisation_v2=0` l'emporte quand même |
+**Allumé par défaut pour tout le monde depuis le 16 octobre 2026.**
 
-Drapeau baissé : les quatre anciens écrans (`VueEquipeView`, `TachesView`, `AgendaView`, `RappelsView`) s'affichent inchangés, et le code de la v2 n'est pas téléchargé (import paresseux).
+| Moyen | Éteindre | Rallumer |
+|---|---|---|
+| Tout le monde (au build, retour arrière global) | `VITE_ORGANISATION_V2=0` puis redéployer | retirer la variable |
+| Un appareil (lien, choix retenu) | `…/?organisation_v2=0` | `…/?organisation_v2=1` |
+| Un navigateur | `localStorage.organisation_v2 = "0"` | `localStorage.removeItem("organisation_v2")` |
+
+Éteint : les quatre anciens écrans (`VueEquipeView`, `TachesView`, `AgendaView`, `RappelsView`) reviennent inchangés, et le code de la v2 n'est pas téléchargé (import paresseux).
 
 ## Branchement (`src/BalsamaApp.tsx`)
 

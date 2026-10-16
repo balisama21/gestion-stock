@@ -4,16 +4,20 @@ import { useEffect, useState } from "react";
  * LE DRAPEAU DE L'ORGANISATION v2
  *
  * Même mécanique que celui du tableau de bord (`dashboard-v2/drapeau.ts`),
- * sur une clé à part pour pouvoir allumer l'un sans l'autre. Tant qu'il
- * est baissé, les quatre écrans actuels (Vue d'ensemble, Tâches, Agenda,
- * Rappels) s'affichent inchangés, écritures comprises, et le code de la
- * v2 n'est même pas chargé.
+ * sur une clé à part pour pouvoir régler l'un sans l'autre.
  *
- *   ?organisation_v2=1                   → depuis un lien ; le choix reste
- *   localStorage.organisation_v2 = "1"   → pour un seul navigateur
- *   VITE_ORGANISATION_V2 = "1"           → pour tout le monde, au build
+ * ALLUMÉ PAR DÉFAUT POUR TOUT LE MONDE depuis le 16 octobre 2026, après la
+ * mise en ligne. Quand il est baissé, les quatre écrans d'avant (Vue
+ * d'ensemble, Tâches, Agenda, Rappels) reviennent inchangés, écritures
+ * comprises, et le code de la v2 n'est même pas chargé.
  *
- * `?organisation_v2=0` éteint, même quand la variable du build allume.
+ *   VITE_ORGANISATION_V2 = "0"           → ÉTEINT pour tout le monde, au
+ *                                          build (le retour arrière global)
+ *   ?organisation_v2=0 / =1              → depuis un lien, sur un appareil ;
+ *                                          le choix reste
+ *   localStorage.organisation_v2 = "0"   → pour un seul navigateur
+ *
+ * L'adresse, puis le navigateur, l'emportent sur la variable du build.
  * Rien n'est stocké en base.
  */
 
@@ -21,7 +25,8 @@ const OUI = new Set(["1", "true", "oui", "on"]);
 const NON = new Set(["0", "false", "non", "off"]);
 const CLE = "organisation_v2";
 
-const PAR_ENV = OUI.has(String(import.meta.env.VITE_ORGANISATION_V2 ?? "").toLowerCase());
+/** Allumé sauf si le build dit explicitement non. */
+const PAR_ENV = !NON.has(String(import.meta.env.VITE_ORGANISATION_V2 ?? "").toLowerCase());
 
 /** Ce que ce navigateur-ci a retenu ; `null` s'il n'a rien dit. */
 function parNavigateur(): boolean | null {
