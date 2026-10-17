@@ -60,6 +60,8 @@ import { Equivalents } from "../lib/contexteDevises";
 import { symboleDeSaisie } from "../lib/affichageDevise";
 
 interface AchatsViewProps {
+  /** Bouton d'import (achats, produits, fournisseurs… depuis un fichier). */
+  importer?: React.ReactNode;
   /** Ouvrir le classeur des factures reçues des fournisseurs. */
   onOuvrirFacturesRecues?: () => void;
   purchases: Purchase[];
@@ -190,6 +192,7 @@ interface AchatsViewProps {
 }
 
 export const AchatsView: React.FC<AchatsViewProps> = ({
+  importer,
   onOuvrirFacturesRecues,
   purchases,
   products,
@@ -733,6 +736,7 @@ export const AchatsView: React.FC<AchatsViewProps> = ({
                 Factures reçues
               </button>
             )}
+            {importer}
             <button
               onClick={() => setIsReportModalOpen(true)}
               className="app-btn-secondary w-full sm:w-auto"

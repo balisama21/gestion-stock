@@ -39,6 +39,8 @@ type Supplier = Database["public"]["Tables"]["suppliers"]["Row"];
 type SupplierInsert = Database["public"]["Tables"]["suppliers"]["Insert"];
 
 interface FournisseursViewProps {
+  /** Bouton d'import (fichier CSV, Excel, Word ; PDF et images avec l'IA). */
+  importer?: React.ReactNode;
   suppliers: Supplier[];
   purchases: Purchase[];
   products: Product[];
@@ -196,6 +198,7 @@ const Chiffre: React.FC<{ libelle: string; valeur: string; teinte?: string }> = 
  * table ne portent que du texte.
  */
 export const FournisseursView: React.FC<FournisseursViewProps> = ({
+  importer: assistantImport,
   suppliers,
   purchases,
   products,
@@ -519,27 +522,33 @@ export const FournisseursView: React.FC<FournisseursViewProps> = ({
         actions={
           peutCreer ? (
             <>
-              {/* L'import est le geste du premier jour. */}
-              <input
-                ref={fichierImport}
-                type="file"
-                accept=".csv,.txt,text/csv,text/plain"
-                className="hidden"
-                onChange={(e) => {
-                  const f = e.target.files?.[0];
-                  if (f) void importer(f);
-                  e.target.value = "";
-                }}
-              />
-              <button
-                type="button"
-                onClick={() => fichierImport.current?.click()}
-                disabled={enregistrement}
-                className="app-btn-secondary w-full sm:w-auto"
-              >
-                <Upload className="w-4 h-4" />
-                Importer
-              </button>
+              {/* L'import est le geste du premier jour. L'assistant complet
+                  (colonnes, aperçu, doublons) remplace l'import simple quand
+                  l'écran parent le fournit. */}
+              {assistantImport ?? (
+                <>
+                  <input
+                    ref={fichierImport}
+                    type="file"
+                    accept=".csv,.txt,text/csv,text/plain"
+                    className="hidden"
+                    onChange={(e) => {
+                      const f = e.target.files?.[0];
+                      if (f) void importer(f);
+                      e.target.value = "";
+                    }}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => fichierImport.current?.click()}
+                    disabled={enregistrement}
+                    className="app-btn-secondary w-full sm:w-auto"
+                  >
+                    <Upload className="w-4 h-4" />
+                    Importer
+                  </button>
+                </>
+              )}
               <button onClick={ouvrirCreation} className="app-btn-primary w-full sm:w-auto">
                 <Plus className="w-4 h-4" />
                 Nouveau fournisseur

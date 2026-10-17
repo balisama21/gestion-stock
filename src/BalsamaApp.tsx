@@ -186,6 +186,14 @@ const CommandesView = lazy(() =>
 const ClientsView = lazy(() =>
   import("./components/ClientsView").then((m) => ({ default: m.ClientsView })),
 );
+// L'assistant d'import (CSV, Excel, Word ; PDF et images avec l'IA) :
+// chargé avec le premier écran qui le montre.
+const ImportAssistant = lazy(() =>
+  import("./features/import/ImportAssistant").then((m) => ({ default: m.ImportAssistant })),
+);
+const EspaceIAView = lazy(() =>
+  import("./features/ia/EspaceIAView").then((m) => ({ default: m.EspaceIAView })),
+);
 const FournisseursView = lazy(() =>
   import("./components/FournisseursView").then((m) => ({ default: m.FournisseursView })),
 );
@@ -1112,6 +1120,59 @@ function AppInner() {
     : ["nom", "prix_vente", "prix_achat", "stock_disponible", "valeur_stock", "fournisseur"].filter(
         (f) => isFieldVisible(workspace.memberPermissionsDetailed ?? {}, "produits", f),
       );
+  // ── Import de données : ce que la personne a le droit de créer, et ce
+  // qui existe déjà (anti-doublons, mises à jour). Les mêmes règles que
+  // les boutons « Nouveau … » de chaque écran. ──
+  const ciblesImport = useMemo(() => {
+    const permis = (module: string) =>
+      workspace.isOwner ||
+      hasModuleAction(workspace.memberPermissionsDetailed ?? {}, module, "create");
+    return (["produits", "clients", "fournisseurs", "achats"] as const).filter((m) => permis(m));
+  }, [workspace.isOwner, workspace.memberPermissionsDetailed]);
+
+  const existantsImport = useMemo(
+    () => ({
+      produits: products.map((p) => ({
+        id: p.id,
+        designation: p.designation,
+        variante: p.variantSuffix ?? "",
+        prix_achat: p.prixAchat,
+        prix_vente: p.prixVenteDefaut,
+        fournisseur: p.fournisseur ?? "",
+        seuil_alerte: p.seuilAlerte,
+        stock_actuel: p.stockActuel,
+      })),
+      // Tous statuts : l'index unique de la base porte sur le nom seul.
+      fournisseurs: storeData.suppliers.map((x) => ({ id: x.id, nom: x.nom })),
+      clients: storeData.clients.map((c) => ({
+        id: c.id,
+        nom: c.nom,
+        prenom: c.prenom,
+        email: c.email,
+        telephone: c.telephone,
+      })),
+      achats: purchases.map((a) => ({
+        date: a.date,
+        designation: a.designation,
+        quantite: a.quantite,
+        prix_achat: a.prixAchatUnit,
+      })),
+    }),
+    [products, storeData.suppliers, storeData.clients, purchases],
+  );
+
+  const boutonImport = (page: "produits" | "clients" | "fournisseurs" | "achats") => (
+    <ImportAssistant
+      storeId={workspace.activeStore?.id ?? null}
+      userId={user?.id ?? null}
+      ciblesAutorisees={[...ciblesImport]}
+      cibleDeLaPage={page}
+      existants={existantsImport}
+      onTermine={() => void storeData.refresh()}
+      onOuvrirModule={(onglet) => setActiveTab(onglet as ActiveTab)}
+    />
+  );
+
   const produitsActions = workspace.isOwner
     ? null
     : ["view", "create", "edit", "delete", "adjust_stock", "inventory"].filter((a) =>
@@ -2084,6 +2145,7 @@ function AppInner() {
                       ))}
                     {vue === "produits" && (
                       <ProduitsView
+                        importer={boutonImport("produits")}
                         reglagesAlertes={alertesStock.reglages}
                         // Le stock se corrige par un mouvement d'ajustement,
                         // jamais par une écriture directe sur la colonne :
@@ -2126,6 +2188,7 @@ function AppInner() {
                     )}
                     {vue === "achats" && (
                       <AchatsView
+                        importer={peutEnregistrerUnAchat ? boutonImport("achats") : undefined}
                         onAddFournisseur={
                           peutCompleterLesListes ? creerFournisseurRapide : undefined
                         }
@@ -2609,6 +2672,12 @@ function AppInner() {
                         locale={locale}
                       />
                     )}
+                    {vue === "assistant_ia" && (
+                      <EspaceIAView
+                        storeId={workspace.activeStore?.id ?? null}
+                        isOwner={workspace.isOwner}
+                      />
+                    )}
                     {vue === "historique" && (
                       <HistoriqueView
                         purchases={historiquePurchases}
@@ -2649,6 +2718,7 @@ function AppInner() {
                     )}
                     {vue === "clients" && (
                       <ClientsView
+                        importer={boutonImport("clients")}
                         clients={visibleClients}
                         orders={storeData.orders}
                         sales={visibleSales}
@@ -2668,6 +2738,7 @@ function AppInner() {
                     )}
                     {vue === "fournisseurs" && (
                       <FournisseursView
+                        importer={boutonImport("fournisseurs")}
                         suppliers={storeData.suppliers}
                         purchases={purchases}
                         products={products}

@@ -21,6 +21,7 @@ import {
   History,
   ReceiptText,
   Receipt,
+  Sparkles,
 } from "lucide-react";
 import type { ActiveTab } from "../types";
 import { libelleModule, moduleMasque, type Personnalisation } from "../lib/personnalisation";
@@ -57,6 +58,9 @@ export const NAV_GROUPS: NavGroup[] = [
       { id: "dashboard", label: "Tableau de bord", icon: <TrendingUp className="w-4 h-4" /> },
       { id: "rapports", label: "Bilan", icon: <CalendarRange className="w-4 h-4" /> },
       { id: "historique", label: "Historique", icon: <History className="w-4 h-4" /> },
+      // Réservé au propriétaire (aucune permission de membre ne l'ouvre) :
+      // l'assistant lit les chiffres de toute la boutique.
+      { id: "assistant_ia", label: "Assistant IA", icon: <Sparkles className="w-4 h-4" /> },
     ],
   },
   {

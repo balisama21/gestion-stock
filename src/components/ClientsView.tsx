@@ -42,6 +42,8 @@ type Order = Database["public"]["Tables"]["orders"]["Row"] & {
 };
 
 interface ClientsViewProps {
+  /** Bouton d'import (fichier CSV, Excel, Word ; PDF et images avec l'IA). */
+  importer?: React.ReactNode;
   clients: Client[];
   orders: Order[];
   /** Les ventes servent aux ventes à crédit rattachées à un client. */
@@ -183,6 +185,7 @@ const depuisClient = (c: Client) => ({
  * ───────────────────────────────────────────────────────────── */
 
 export const ClientsView: React.FC<ClientsViewProps> = ({
+  importer,
   clients,
   orders,
   sales,
@@ -424,10 +427,13 @@ export const ClientsView: React.FC<ClientsViewProps> = ({
         title={`Clients (${clients.length})`}
         subtitle="Leur fiche, leurs commandes et ce qu'ils doivent encore."
         actions={
-          <button onClick={ouvrirCreation} className="app-btn-primary w-full sm:w-auto">
-            <Plus className="w-4 h-4" />
-            Nouveau client
-          </button>
+          <>
+            {importer}
+            <button onClick={ouvrirCreation} className="app-btn-primary w-full sm:w-auto">
+              <Plus className="w-4 h-4" />
+              Nouveau client
+            </button>
+          </>
         }
       />
 
