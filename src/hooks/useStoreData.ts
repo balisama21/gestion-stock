@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { supabase } from "../lib/supabase";
 import type { Database } from "../lib/database.types";
 import type { Sale as AppSale } from "../types";
@@ -685,6 +685,17 @@ export interface StoreData {
   refresh: () => Promise<void>;
 }
 
+/**
+ * La ligne qu'on vient de créer, ajoutée tout de suite à la liste.
+ *
+ * Sans elle, le sélecteur qui l'a créée la choisissait avant de la
+ * connaître : le champ restait vide jusqu'au rechargement, et le nom
+ * n'apparaissait pas dans la liste.
+ */
+export function ajouterSiAbsente<T extends { id: string }>(liste: T[], ligne: T): T[] {
+  return liste.some((l) => l.id === ligne.id) ? liste : [...liste, ligne];
+}
+
 export function useStoreData(storeId: string | null, userId: string | null): StoreData {
   const [products, setProducts] = useState<Product[]>([]);
   const [sales, setSales] = useState<Sale[]>([]);
@@ -717,8 +728,25 @@ export function useStoreData(storeId: string | null, userId: string | null): Sto
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  /*
+   * LE CHARGEMENT N'EST ANNONCÉ QU'UNE FOIS PAR BOUTIQUE.
+   *
+   * `loading` remplace toute l'application par l'écran d'attente (voir
+   * BalsamaApp). Chaque ajout, chaque modification relance `fetchAll` :
+   * s'il relevait le drapeau à chaque fois, l'écran ouvert était démonté
+   * puis remonté — la fiche en cours de saisie se refermait, ses champs
+   * repartaient à vide, et il fallait la rouvrir pour voir la valeur
+   * qu'on venait d'ajouter depuis un de ses champs. Un rafraîchissement
+   * se fait donc en silence, sous les données déjà affichées.
+   */
+  const boutiqueChargee = useRef<string | null>(null);
+  /** Seule la dernière lecture lancée écrit : une réponse en retard ne remet pas l'ancien état. */
+  const derniereLecture = useRef(0);
+
   const fetchAll = useCallback(async () => {
+    const lecture = ++derniereLecture.current;
     if (!storeId) {
+      boutiqueChargee.current = null;
       setProducts([]);
       setSales([]);
       setPurchases([]);
@@ -745,7 +773,7 @@ export function useStoreData(storeId: string | null, userId: string | null): Sto
       return;
     }
 
-    setLoading(true);
+    if (boutiqueChargee.current !== storeId) setLoading(true);
     setError(null);
 
     try {
@@ -889,6 +917,9 @@ export function useStoreData(storeId: string | null, userId: string | null): Sto
           .order("periode", { ascending: false }),
       ]);
 
+      if (lecture !== derniereLecture.current) return;
+      boutiqueChargee.current = storeId;
+
       if (productsRes.data) setProducts(productsRes.data);
       if (salesRes.data) setSales(salesRes.data);
       if (purchasesRes.data) setPurchases(purchasesRes.data);
@@ -914,9 +945,9 @@ export function useStoreData(storeId: string | null, userId: string | null): Sto
       if (salairesRes.data) setSalaires(salairesRes.data);
       if (paiementsSalaireRes.data) setPaiementsSalaire(paiementsSalaireRes.data);
     } catch (e: any) {
-      setError(e.message);
+      if (lecture === derniereLecture.current) setError(e.message);
     } finally {
-      setLoading(false);
+      if (lecture === derniereLecture.current) setLoading(false);
     }
   }, [storeId]);
 
@@ -1606,6 +1637,7 @@ export function useStoreData(storeId: string | null, userId: string | null): Sto
         .select("*")
         .single();
 
+      if (!error && client) setClients((prev) => ajouterSiAbsente(prev, client));
       if (!error) fetchAll();
 
       return {
@@ -1651,6 +1683,7 @@ export function useStoreData(storeId: string | null, userId: string | null): Sto
         .select("*")
         .single();
 
+      if (!error && supplier) setSuppliers((prev) => ajouterSiAbsente(prev, supplier));
       if (!error) fetchAll();
 
       return { supplier: supplier ?? null, error: traduireErreurTiers(error, "fournisseur") };
@@ -1685,6 +1718,7 @@ export function useStoreData(storeId: string | null, userId: string | null): Sto
         .insert({ ...data, store_id: storeId, created_by: userId })
         .select("*")
         .single();
+      if (!error && provider) setProviders((prev) => ajouterSiAbsente(prev, provider));
       if (!error) fetchAll();
       return { provider: provider ?? null, error: traduireErreurTiers(error, "prestataire") };
     },
@@ -1790,6 +1824,7 @@ export function useStoreData(storeId: string | null, userId: string | null): Sto
         })
         .select("*")
         .single();
+      if (!error && creee) setCategories((prev) => ajouterSiAbsente(prev, creee));
       if (!error) fetchAll();
       return { categorie: creee ?? null, error: traduireErreurCategorie(error) };
     },
@@ -1828,6 +1863,7 @@ export function useStoreData(storeId: string | null, userId: string | null): Sto
         .insert({ ...data, store_id: storeId, created_by: userId })
         .select("*")
         .single();
+      if (!error && creee) setPersonnesExternes((prev) => ajouterSiAbsente(prev, creee));
       if (!error) fetchAll();
       return {
         personne: creee ?? null,

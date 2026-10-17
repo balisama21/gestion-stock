@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useId, useMemo, useRef, useState } from "react";
 import { Phone, Save } from "lucide-react";
 import { SelecteurListe } from "./SelecteurListe";
 import type { Database } from "../../lib/database.types";
@@ -46,6 +46,8 @@ export const SelecteurFournisseur: React.FC<SelecteurFournisseurProps> = ({
   const [aCompleter, setACompleter] = useState<Fournisseur | null>(null);
   const [telephone, setTelephone] = useState("");
   const [enCours, setEnCours] = useState(false);
+  const [erreur, setErreur] = useState<string | null>(null);
+  const idTelephone = useId();
 
   const options = useMemo(
     () =>
@@ -61,8 +63,17 @@ export const SelecteurFournisseur: React.FC<SelecteurFournisseurProps> = ({
     [fournisseurs, valeur],
   );
 
+  /*
+   * La fiche qu'on vient de créer. Le sélecteur la choisit aussitôt,
+   * avant que la liste du parent ne la contienne : sans ce repli, le nom
+   * transmis était vide et l'achat partait sans fournisseur écrit.
+   */
+  const derniereCreee = useRef<Fournisseur | null>(null);
+
   const choisir = (choisi: string | null) => {
-    const f = fournisseurs.find((x) => x.id === choisi) ?? null;
+    const f =
+      fournisseurs.find((x) => x.id === choisi) ??
+      (derniereCreee.current?.id === choisi ? derniereCreee.current : null);
     onChange(choisi, f?.nom ?? "");
   };
 
@@ -70,22 +81,35 @@ export const SelecteurFournisseur: React.FC<SelecteurFournisseurProps> = ({
     if (!onCreer) return { id: null, error: "Ajout impossible" };
     const { supplier, error } = await onCreer({ nom });
     if (error || !supplier) return { id: null, error: error ?? "Fiche non créée." };
-    onChange(supplier.id, supplier.nom);
+    // Le sélecteur appelle `choisir` juste après : c'est lui qui transmet.
+    derniereCreee.current = supplier;
     setACompleter(supplier);
     setTelephone("");
+    setErreur(null);
     return { id: supplier.id, error: null };
   };
 
   const enregistrerTelephone = async () => {
-    if (!aCompleter || !onCompleter) return;
+    if (!aCompleter || !onCompleter || enCours) return;
     const propre = telephone.trim();
     if (!propre) {
       setACompleter(null);
       return;
     }
     setEnCours(true);
-    await onCompleter(aCompleter.id, { telephone: propre });
+    setErreur(null);
+    let error: string | null;
+    try {
+      ({ error } = await onCompleter(aCompleter.id, { telephone: propre }));
+    } catch {
+      error = "Connexion impossible. Le téléphone n'a pas été enregistré.";
+    }
     setEnCours(false);
+    // En cas d'échec, le panneau reste ouvert avec ce qui a été tapé.
+    if (error) {
+      setErreur(error);
+      return;
+    }
     setACompleter(null);
   };
 
@@ -111,20 +135,33 @@ export const SelecteurFournisseur: React.FC<SelecteurFournisseurProps> = ({
       {aCompleter && onCompleter && (
         <div className="rounded-xl border border-border p-3">
           <label
-            htmlFor="frn-tel-rapide"
+            htmlFor={idTelephone}
             className="mb-1.5 flex items-center gap-2 text-xs font-medium text-muted-foreground"
           >
             <Phone className="h-3.5 w-3.5" aria-hidden="true" />
             Téléphone de « {aCompleter.nom} » — facultatif, complétez plus tard si besoin
           </label>
+          {erreur && (
+            <p role="alert" className="mb-2 text-xs t-danger">
+              {erreur}
+            </p>
+          )}
           <div className="flex flex-col gap-2 sm:flex-row">
             <input
-              id="frn-tel-rapide"
+              id={idTelephone}
               type="tel"
               inputMode="tel"
               autoComplete="off"
               value={telephone}
               onChange={(e) => setTelephone(e.target.value)}
+              onKeyDown={(e) => {
+                // Entrée enregistre le téléphone, pas l'achat ni le
+                // produit dont le formulaire contient ce champ.
+                if (e.key === "Enter") {
+                  e.preventDefault();
+                  void enregistrerTelephone();
+                }
+              }}
               placeholder="03X XX XXX XX"
               className="app-field flex-1"
             />

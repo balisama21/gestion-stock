@@ -1758,11 +1758,10 @@ function AppInner() {
       note: newExp.note,
       impact_tresorerie_globale: -newExp.montant,
     });
-    if (res.error) {
-      alert("Erreur lors de l'ajout de la dépense : " + res.error);
-      return;
-    }
+    // L'erreur est rendue au formulaire, qui reste ouvert avec sa saisie.
+    if (res.error) return { error: res.error };
     triggerActivityAlert(newExp.vendeur, "depense", `Dépense : ${formatCurrency(newExp.montant)}`);
+    return { error: null };
   };
 
   const handleEditExpense = async (updatedExpense: Expense) => {
@@ -1791,7 +1790,8 @@ function AppInner() {
     if (notesDeFrais.notes.some((n) => n.depense_id === expenseId)) notesDeFrais.recharger();
   };
 
-  const handleAddApport = async (newApport: any) => {
+  /** L'erreur est rendue au formulaire, qui reste ouvert avec sa saisie. */
+  const handleAddApport = async (newApport: any): Promise<{ error: string | null }> => {
     try {
       const res = await storeData.addApport({
         date: newApport.date,
@@ -1799,13 +1799,11 @@ function AppInner() {
         source: newApport.source,
         note: newApport.note || null,
       });
-      if (res.error) {
-        console.error("Erreur ajout apport:", res.error);
-        alert("Erreur lors de l'ajout de l'apport : " + res.error);
-      }
+      if (res.error) console.error("Erreur ajout apport:", res.error);
+      return { error: res.error ?? null };
     } catch (e: any) {
       console.error("Exception ajout apport:", e);
-      alert("Erreur inattendue lors de l'ajout de l'apport : " + (e?.message ?? e));
+      return { error: "Erreur inattendue : " + (e?.message ?? e) };
     }
   };
 
