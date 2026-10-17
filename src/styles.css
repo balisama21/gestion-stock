@@ -1166,6 +1166,10 @@ td {
 }
 .app-modal-overlay[data-etat="sort"] {
   animation: modale-voile-sort 180ms ease-in forwards;
+  /* La fiche qui s'en va ne reçoit plus de clic : un double clic sur
+     « Enregistrer » envoyait sinon le formulaire une seconde fois
+     pendant l'animation, et créait la ligne en double. */
+  pointer-events: none;
 }
 
 .app-modal-panel {

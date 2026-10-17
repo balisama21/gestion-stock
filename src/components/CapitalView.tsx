@@ -24,7 +24,9 @@ interface CapitalViewProps {
   locale: LocaleSetting;
   onUpdateCapitalInitial: (amount: number) => void;
   onUpdateSeuil: (seuil: number) => void;
-  onAddApport: (apport: Omit<CapitalApport, "id">) => void;
+  onAddApport: (
+    apport: Omit<CapitalApport, "id">,
+  ) => void | Promise<{ error: string | null } | void>;
   onDeleteApport: (id: string) => void;
   onDownloadExcel?: () => void;
 }
@@ -82,20 +84,41 @@ export const CapitalView: React.FC<CapitalViewProps> = ({
     }
   };
 
-  const handleSubmitApport = (e: React.FormEvent) => {
+  /*
+   * La fiche ne se ferme qu'une fois l'apport écrit : un refus ou une
+   * coupure réseau gardent la saisie à l'écran, et un double clic ne
+   * l'envoie pas deux fois.
+   */
+  const [ajoutEnCours, setAjoutEnCours] = useState(false);
+  const [erreurAjout, setErreurAjout] = useState<string | null>(null);
+
+  const handleSubmitApport = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (ajoutEnCours) return;
     const numMontant = parseFloat(montant);
     if (isNaN(numMontant) || numMontant <= 0) {
-      alert("Veuillez saisir un montant d’apport valide.");
+      setErreurAjout("Veuillez saisir un montant d’apport valide.");
       return;
     }
 
-    onAddApport({
-      date,
-      montant: numMontant,
-      source: source.trim() || "Injection Associé",
-      note: note.trim(),
-    });
+    setAjoutEnCours(true);
+    setErreurAjout(null);
+    let resultat: { error: string | null } | void;
+    try {
+      resultat = await onAddApport({
+        date,
+        montant: numMontant,
+        source: source.trim() || "Injection Associé",
+        note: note.trim(),
+      });
+    } catch {
+      resultat = { error: "Connexion impossible. Vérifiez le réseau, puis réessayez." };
+    }
+    setAjoutEnCours(false);
+    if (resultat && resultat.error) {
+      setErreurAjout(resultat.error);
+      return;
+    }
 
     // Reset & close
     setMontant("");
@@ -126,7 +149,8 @@ export const CapitalView: React.FC<CapitalViewProps> = ({
     {
       key: "apports",
       label: "Apports en capital",
-      hint: apports.length > 0 ? `${apports.length} apport${apports.length > 1 ? "s" : ""}` : undefined,
+      hint:
+        apports.length > 0 ? `${apports.length} apport${apports.length > 1 ? "s" : ""}` : undefined,
       sign: "+",
       value: capital.apportsTotal,
     },
@@ -216,11 +240,7 @@ export const CapitalView: React.FC<CapitalViewProps> = ({
 
           <span
             className={`app-badge ${
-              isNegative
-                ? "app-badge-danger"
-                : isLow
-                  ? "app-badge-warning"
-                  : "app-badge-success"
+              isNegative ? "app-badge-danger" : isLow ? "app-badge-warning" : "app-badge-success"
             }`}
           >
             {isNegative ? "Négative" : isLow ? "Sous le seuil" : "Saine"}
@@ -396,7 +416,11 @@ export const CapitalView: React.FC<CapitalViewProps> = ({
       {/* ── Nouvel apport ── */}
       <Modal
         open={isApportModalOpen}
-        onClose={() => setIsApportModalOpen(false)}
+        onClose={() => {
+          setIsApportModalOpen(false);
+          setErreurAjout(null);
+        }}
+        dismissible={!ajoutEnCours}
         size="md"
         icon={<PlusCircle className="h-4 w-4" />}
         title="Enregistrer un apport"
@@ -410,14 +434,24 @@ export const CapitalView: React.FC<CapitalViewProps> = ({
             >
               Annuler
             </button>
-            <button type="submit" form="apport-form" className="app-btn-primary">
+            <button
+              type="submit"
+              form="apport-form"
+              disabled={ajoutEnCours}
+              className="app-btn-primary"
+            >
               <Check className="h-4 w-4" />
-              Valider l'apport
+              {ajoutEnCours ? "Enregistrement…" : "Valider l'apport"}
             </button>
           </>
         }
       >
         <form id="apport-form" onSubmit={handleSubmitApport} className="space-y-4">
+          {erreurAjout && (
+            <p role="alert" className="rounded-xl border border-danger-border p-3 text-sm t-danger">
+              {erreurAjout}
+            </p>
+          )}
           <div>
             <label className="mb-1.5 block text-sm font-medium text-foreground">
               Montant de l'apport ({symboleDeSaisie()})
@@ -434,9 +468,7 @@ export const CapitalView: React.FC<CapitalViewProps> = ({
           </div>
 
           <div>
-            <label className="mb-1.5 block text-sm font-medium text-foreground">
-              Source
-            </label>
+            <label className="mb-1.5 block text-sm font-medium text-foreground">Source</label>
             <input
               type="text"
               required

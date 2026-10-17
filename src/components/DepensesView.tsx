@@ -83,7 +83,7 @@ interface DepensesViewProps {
     category_id?: string | null;
     provider_id?: string | null;
     justificatif?: string | null;
-  }) => void;
+  }) => void | Promise<{ error: string | null } | void>;
   onEditExpense?: (updatedExpense: Expense) => void;
   onDeleteExpense?: (expenseId: string) => void;
 }
@@ -191,22 +191,48 @@ export const DepensesView: React.FC<DepensesViewProps> = ({
   const todayStr = useMemo(() => dateDuJour(), []);
   const currentMonthStr = useMemo(() => todayStr.slice(0, 7), [todayStr]);
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!vendeur || montant <= 0) return;
+  /*
+   * La fiche ne se ferme qu'une fois la dépense écrite. Elle se fermait
+   * avant la réponse : un refus de la base ou une coupure réseau faisait
+   * disparaître la saisie, et un double clic l'envoyait deux fois.
+   */
+  const [ajoutEnCours, setAjoutEnCours] = useState(false);
+  const [erreurAjout, setErreurAjout] = useState<string | null>(null);
 
-    onAddExpense({
-      date,
-      vendeur,
-      membre_id: membreId,
-      personne_id: personneId,
-      type,
-      montant: Number(montant),
-      note: note.trim(),
-      category_id: poste || null,
-      provider_id: prestataire || null,
-      justificatif: justificatif || null,
-    });
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (ajoutEnCours) return;
+    if (!vendeur || montant <= 0) {
+      setErreurAjout(
+        !vendeur ? "Choisissez qui a fait la dépense." : "Le montant doit être supérieur à zéro.",
+      );
+      return;
+    }
+
+    setAjoutEnCours(true);
+    setErreurAjout(null);
+    let resultat: { error: string | null } | void;
+    try {
+      resultat = await onAddExpense({
+        date,
+        vendeur,
+        membre_id: membreId,
+        personne_id: personneId,
+        type,
+        montant: Number(montant),
+        note: note.trim(),
+        category_id: poste || null,
+        provider_id: prestataire || null,
+        justificatif: justificatif || null,
+      });
+    } catch {
+      resultat = { error: "Connexion impossible. Vérifiez le réseau, puis réessayez." };
+    }
+    setAjoutEnCours(false);
+    if (resultat && resultat.error) {
+      setErreurAjout(resultat.error);
+      return;
+    }
 
     setNote("");
     setPoste("");
@@ -819,7 +845,11 @@ export const DepensesView: React.FC<DepensesViewProps> = ({
       {/* ── Nouvelle dépense ── */}
       <Modal
         open={isModalOpen}
-        onClose={() => setIsModalOpen(false)}
+        onClose={() => {
+          setIsModalOpen(false);
+          setErreurAjout(null);
+        }}
+        dismissible={!ajoutEnCours}
         size="md"
         icon={<ArrowRightLeft className="h-4 w-4" />}
         title="Nouvelle dépense"
@@ -833,14 +863,24 @@ export const DepensesView: React.FC<DepensesViewProps> = ({
             >
               Annuler
             </button>
-            <button type="submit" form="expense-add-form" className="app-btn-primary">
+            <button
+              type="submit"
+              form="expense-add-form"
+              disabled={ajoutEnCours}
+              className="app-btn-primary"
+            >
               <Check className="h-4 w-4" />
-              Valider la dépense
+              {ajoutEnCours ? "Enregistrement…" : "Valider la dépense"}
             </button>
           </>
         }
       >
         <form id="expense-add-form" onSubmit={handleSubmit} className="space-y-4">
+          {erreurAjout && (
+            <p role="alert" className="rounded-xl border border-danger-border p-3 text-sm t-danger">
+              {erreurAjout}
+            </p>
+          )}
           <div>
             <label className="mb-1.5 block text-sm font-medium text-foreground">Date</label>
             <input

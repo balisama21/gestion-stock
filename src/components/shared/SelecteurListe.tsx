@@ -73,19 +73,41 @@ export const SelecteurListe: React.FC<SelecteurListeProps> = ({
   const [survol, setSurvol] = useState(0);
   const [enCours, setEnCours] = useState(false);
   const [erreur, setErreur] = useState<string | null>(null);
+  /*
+   * La valeur qu'on vient d'ajouter d'ici. La liste des options arrive
+   * du parent, qui ne la connaît qu'au rendu suivant — parfois après un
+   * aller-retour avec la base. En attendant, c'est elle qu'on affiche :
+   * le champ ne doit pas retomber sur « Aucun » juste après l'ajout.
+   */
+  const [creee, setCreee] = useState<OptionDeSelecteur | null>(null);
+  const [annoncer, setAnnoncer] = useState(false);
+  /** Un double clic, ou Entrée frappée deux fois, ne crée qu'une valeur. */
+  const creationEnCours = useRef(false);
 
   useClicExterieur(zone, ouvert, () => setOuvert(false));
 
-  const choisie = options.find((o) => o.id === valeur) ?? null;
+  /** Les options, plus la valeur ajoutée d'ici tant que le parent ne l'a pas encore. */
+  const toutes = useMemo(
+    () => (creee && !options.some((o) => o.id === creee.id) ? [...options, creee] : options),
+    [options, creee],
+  );
+
+  const choisie = toutes.find((o) => o.id === valeur) ?? null;
+
+  // L'annonce de l'ajout ne survit pas à un autre choix.
+  const annonce =
+    annoncer && creee && creee.id === valeur
+      ? `Ajout réussi : « ${creee.nom} » est sélectionné ici.`
+      : null;
 
   const filtrees = useMemo(() => {
-    if (!recherche.trim()) return options;
-    return options.filter((o) => correspond(o.nom, recherche));
-  }, [options, recherche]);
+    if (!recherche.trim()) return toutes;
+    return toutes.filter((o) => correspond(o.nom, recherche));
+  }, [toutes, recherche]);
 
   // Pas de création si la valeur existe déjà, même archivée, même hors
   // du filtre courant.
-  const dejaLa = valeurEquivalente(options, recherche);
+  const dejaLa = valeurEquivalente(toutes, recherche);
   const peutCreer =
     Boolean(onCreer || onDemanderCreation) && Boolean(cleDeListe(recherche)) && !dejaLa;
 
@@ -102,6 +124,7 @@ export const SelecteurListe: React.FC<SelecteurListeProps> = ({
     if (!ouvert) return;
     setRecherche("");
     setErreur(null);
+    setAnnoncer(false);
     setSurvol(0);
     // Au tour suivant : le champ n'est pas encore dans le document.
     const t = window.setTimeout(() => champRecherche.current?.focus(), 0);
@@ -123,21 +146,33 @@ export const SelecteurListe: React.FC<SelecteurListeProps> = ({
 
   const creer = async () => {
     const nom = recherche.trim();
-    if (!nom) return;
+    if (!nom || creationEnCours.current) return;
     if (onDemanderCreation) {
       setOuvert(false);
       onDemanderCreation(nom);
       return;
     }
     if (!onCreer) return;
+    creationEnCours.current = true;
     setEnCours(true);
     setErreur(null);
-    const { id: cree, error } = await onCreer(nom);
-    setEnCours(false);
+    let resultat: { id: string | null; error: string | null };
+    try {
+      resultat = await onCreer(nom);
+    } catch {
+      // Connexion coupée : la promesse rejette au lieu de rendre une erreur.
+      resultat = { id: null, error: "Connexion impossible. Vérifiez le réseau, puis réessayez." };
+    } finally {
+      creationEnCours.current = false;
+      setEnCours(false);
+    }
+    const { id: cree, error } = resultat;
     if (error || !cree) {
       setErreur(error ?? "La valeur n'a pas pu être ajoutée.");
       return;
     }
+    setCreee({ id: cree, nom });
+    setAnnoncer(true);
     onChange(cree);
     setOuvert(false);
   };
@@ -161,9 +196,20 @@ export const SelecteurListe: React.FC<SelecteurListeProps> = ({
       e.preventDefault();
       setSurvol((s) => Math.max(s - 1, 0));
     } else if (e.key === "Enter") {
+      // Sans cela, Entrée enverrait le formulaire qui contient le champ.
       e.preventDefault();
       activer(survol);
-    } else if (e.key === "Escape") {
+    }
+  };
+
+  /*
+   * Échap referme la liste, et seulement elle. La frappe est marquée
+   * comme traitée : la fiche qui contient le champ (voir Modal) ne se
+   * referme pas avec, et ce qui y était saisi reste en place. Posé sur
+   * toute la zone, pour valoir aussi quand le focus est sur une option.
+   */
+  const surToucheZone = (e: React.KeyboardEvent) => {
+    if (e.key === "Escape" && ouvert) {
       e.preventDefault();
       setOuvert(false);
     }
@@ -172,7 +218,7 @@ export const SelecteurListe: React.FC<SelecteurListeProps> = ({
   const champ = compact ? "app-field-sm" : "app-field";
 
   return (
-    <div ref={zone} className="relative">
+    <div ref={zone} className="relative" onKeyDown={surToucheZone}>
       <label htmlFor={idChamp} className="mb-1.5 block text-sm font-medium text-foreground">
         {label}
         {requis && <span className="t-danger"> *</span>}
@@ -200,7 +246,13 @@ export const SelecteurListe: React.FC<SelecteurListeProps> = ({
         </p>
       )}
 
-      {aide && !ouvert && <p className="mt-1 text-[11px] text-muted-foreground">{aide}</p>}
+      {annonce && !ouvert ? (
+        <p role="status" className="mt-1 text-[11px] font-medium text-primary">
+          {annonce}
+        </p>
+      ) : (
+        aide && !ouvert && <p className="mt-1 text-[11px] text-muted-foreground">{aide}</p>
+      )}
 
       {ouvert && (
         <div className="absolute z-30 mt-1 w-full overflow-hidden rounded-xl border border-border bg-card shadow-lg">

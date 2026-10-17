@@ -229,9 +229,15 @@ export function useWorkspaceState(): WorkspaceContext {
     [user],
   );
 
+  /*
+   * Un rafraîchissement, pas un chargement : `loading` remplace toute
+   * l'application par l'écran d'attente, et l'écran ouvert (Paramètres,
+   * la fenêtre « rejoindre une boutique ») était démonté au passage —
+   * onglet, saisie et message de réussite perdus. Les boutiques déjà
+   * affichées le restent pendant la lecture.
+   */
   const refreshStores = useCallback(async () => {
     if (!user) return;
-    setLoading(true);
     setError(null);
     try {
       const { owned, memberStoreList, roles, permissionsDetailed } = await fetchAllStores();
@@ -241,8 +247,6 @@ export function useWorkspaceState(): WorkspaceContext {
       setMemberPermissionsDetailedByStore(permissionsDetailed);
     } catch (err: any) {
       setError(err.message ?? "Erreur lors du rafraîchissement des boutiques.");
-    } finally {
-      setLoading(false);
     }
   }, [user, fetchAllStores]);
 

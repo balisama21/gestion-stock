@@ -171,6 +171,10 @@ export const Modal: React.FC<ModalProps> = ({
     if (!rendu || !dismissible) return;
     const onKey = (e: KeyboardEvent) => {
       if (e.key !== "Escape") return;
+      // Une liste déroulante ouverte dans la fiche a déjà pris cette
+      // frappe pour se refermer : fermer aussi la fiche jetterait tout
+      // ce qui a été saisi.
+      if (e.defaultPrevented) return;
       if (openStack[openStack.length - 1] !== idRef.current) return;
       fermer();
     };
