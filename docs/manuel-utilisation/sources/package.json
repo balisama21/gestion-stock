@@ -1,0 +1,10 @@
+{
+  "name": "manuel-utilisation-sources",
+  "private": true,
+  "description": "Scripts qui produisent le manuel Word, les guides PDF, les modèles d'import Excel et le schéma relationnel de docs/manuel-utilisation.",
+  "type": "commonjs",
+  "dependencies": {
+    "docx": "^9.10.0",
+    "exceljs": "^4.4.0"
+  }
+}
