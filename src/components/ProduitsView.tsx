@@ -30,7 +30,13 @@ import { DETAILS_VIDES, detailsVersBase, type ValeursDetails } from "../lib/deta
 import { envoyerFichier, supprimerFichier } from "../lib/stockageFichiers";
 import type { Database } from "../lib/database.types";
 import { useFiltreInitial, useRechercheInitiale } from "../lib/cibleRecherche";
-import { estARecommander, type ReglagesAlertesStock } from "../lib/prealerteStock";
+import {
+  estARecommander,
+  estEnRupture,
+  estSousLeSeuil,
+  stockEstSuivi,
+  type ReglagesAlertesStock,
+} from "../lib/prealerteStock";
 import { lignesDeReappro, niveauCibleParRegle } from "../lib/reapprovisionnement";
 import type { ProduitARecommander } from "../lib/bonDeCommande";
 import { ReapproVue } from "./produits/ReapproVue";
@@ -298,12 +304,15 @@ export const ProduitsView: React.FC<ProduitsViewProps> = ({
         p.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
         p.fournisseur.toLowerCase().includes(searchTerm.toLowerCase());
 
-      const isLow = p.stockActuel <= p.seuilAlerte;
+      const isLow =
+        stockEstSuivi(p) &&
+        (estSousLeSeuil(p.stockActuel, p.seuilAlerte) || estEnRupture(p.stockActuel));
       // « À recommander » englobe les DEUX niveaux : ce qui est déjà
       // sous le seuil et ce qui s'en approche. La règle est écrite une
       // seule fois, dans `prealerteStock`, et le bon de commande la
       // relit — les deux listes doivent être la même.
-      const aRecommander = estARecommander(p.stockActuel, p.seuilAlerte, reglagesAlertes);
+      const aRecommander =
+        stockEstSuivi(p) && estARecommander(p.stockActuel, p.seuilAlerte, reglagesAlertes);
       const matchStock =
         stockFilter === "Tous" ||
         (stockFilter === "OK" && !isLow) ||
@@ -319,9 +328,13 @@ export const ProduitsView: React.FC<ProduitsViewProps> = ({
   // Key KPI Computations
   const totalReferences = products.length;
   const totalValeurStock = products.reduce((acc, p) => acc + p.stockActuel * p.prixAchat, 0);
-  const totalAlertesStock = products.filter((p) => p.stockActuel <= p.seuilAlerte).length;
-  // Sous le seuil ET dans la bande : la liste complète à commander.
-  const totalARecommander = products.filter((p) =>
+  const suivis = products.filter(stockEstSuivi);
+  const totalAlertesStock = suivis.filter(
+    (p) => estSousLeSeuil(p.stockActuel, p.seuilAlerte) || estEnRupture(p.stockActuel),
+  ).length;
+  // Sous le seuil ET dans la bande : la liste complète à commander, la
+  // même que le bon de commande et que le tableau de bord.
+  const totalARecommander = suivis.filter((p) =>
     estARecommander(p.stockActuel, p.seuilAlerte, reglagesAlertes),
   ).length;
 
@@ -637,7 +650,7 @@ export const ProduitsView: React.FC<ProduitsViewProps> = ({
               value={`${totalAlertesStock}`}
               hint={
                 totalAlertesStock > 0
-                  ? `produit${totalAlertesStock > 1 ? "s" : ""} à réapprovisionner`
+                  ? `produit${totalAlertesStock > 1 ? "s" : ""} sous le seuil ou en rupture`
                   : "tout est approvisionné"
               }
               hintTone={totalAlertesStock > 0 ? "warning" : "neutral"}
@@ -723,8 +736,9 @@ export const ProduitsView: React.FC<ProduitsViewProps> = ({
             <DataList
               emptyLabel="Aucun produit ne correspond à ces filtres."
               items={filteredProducts.map((p) => {
-                const rupture = p.stockActuel <= 0;
-                const bas = !rupture && p.stockActuel <= p.seuilAlerte;
+                const suivi = stockEstSuivi(p);
+                const rupture = suivi && estEnRupture(p.stockActuel);
+                const bas = suivi && !rupture && estSousLeSeuil(p.stockActuel, p.seuilAlerte);
                 return {
                   id: p.id,
                   // La vignette seule, pour reconnaitre la ligne qu'on lit.

@@ -1,4 +1,6 @@
 import React, { useMemo, useState } from "react";
+import { repartirVentesParClient } from "../lib/ventesClients";
+import { montantCommande, resteDuCommande } from "../lib/commandes";
 import {
   AlertCircle,
   ArrowUpRight,
@@ -215,29 +217,10 @@ export const ClientsView: React.FC<ClientsViewProps> = ({
    * Une vente enregistrée depuis l'étape 6 porte la clé du client
    * (`sales.client_id`) dès qu'une fiche a été choisie à la caisse.
    * Les ventes plus anciennes, elles, n'ont que le nom saisi à la main
-   * dans `client_credit` : on les rapproche par ce nom, à la casse
-   * près. Les deux sources sont fusionnées, sans doublon — une vente
-   * qui porte la clé ET le nom n'est comptée qu'une fois.
+   * dans `client_credit` : on les rapproche par ce nom. Les règles, et
+   * ce qui empêche de mélanger deux clients : `lib/ventesClients.ts`.
    */
-  const ventesParClient = useMemo(() => {
-    const parNom = new Map<string, Sale[]>();
-    for (const v of sales) {
-      const cle = (v.clientCredit ?? "").trim().toLowerCase();
-      if (!cle) continue;
-      const liste = parNom.get(cle);
-      if (liste) liste.push(v);
-      else parNom.set(cle, [v]);
-    }
-    const parClient: Record<string, Sale[]> = {};
-    for (const c of clients) {
-      const parId = sales.filter((v) => v.clientId === c.id);
-      const parLeNom = parNom.get(c.nom.trim().toLowerCase()) ?? [];
-      const fusion = [...parId];
-      for (const v of parLeNom) if (!fusion.some((x) => x.id === v.id)) fusion.push(v);
-      parClient[c.id] = fusion;
-    }
-    return parClient;
-  }, [clients, sales]);
+  const ventesParClient = useMemo(() => repartirVentesParClient(clients, sales), [clients, sales]);
 
   /**
    * Le compte de chaque client.
@@ -267,15 +250,13 @@ export const ClientsView: React.FC<ClientsViewProps> = ({
         commandes: sesCommandes.length,
         ventesCredit: sesVentes.length,
         totalAchete:
-          sesCommandes.reduce((s, o) => s + o.montant_total, 0) +
+          sesCommandes.reduce((s, o) => s + montantCommande(o), 0) +
           sesVentes.reduce((s, v) => s + v.totalVente, 0),
         totalPaye:
           sesCommandes.reduce((s, o) => s + o.montant_paye, 0) +
           sesVentes.reduce((s, v) => s + v.montantPaye, 0),
         resteDu:
-          sesCommandes
-            .filter((o) => o.statut_commande !== "annule")
-            .reduce((s, o) => s + (o.reste_a_payer ?? 0), 0) +
+          sesCommandes.reduce((s, o) => s + resteDuCommande(o), 0) +
           sesVentes.reduce((s, v) => s + v.soldeDu, 0),
         rembourse:
           sesCommandes.reduce((s, o) => s + (o.montant_rembourse ?? 0), 0) +

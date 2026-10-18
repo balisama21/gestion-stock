@@ -1,11 +1,14 @@
 import type { CapitalSummary, Expense, Product, Purchase, Sale, Seller } from "../../../types";
+import { resteDuCommande } from "../../../lib/commandes";
 import { dateDuJour } from "../../../lib/dates";
 import type { Intervalle, Periode } from "../hooks/useDashboardPeriod";
 import { dansIntervalle, decalerJours, nombreDeJours } from "../hooks/useDashboardPeriod";
 import type { MouvementStock } from "../hooks/useDashboardData";
 import {
+  estEnRupture,
   etatDeStock,
   REGLAGES_PAR_DEFAUT,
+  stockEstSuivi,
   type ReglagesAlertesStock,
 } from "../../../lib/prealerteStock";
 
@@ -21,7 +24,7 @@ import {
  *
  *   trésorerie      `capital.tresorerieGlobaleActuelle` (BalsamaApp.tsx)
  *   solde vendeur   `seller.soldeNetEnPoche` (BalsamaApp.tsx)
- *   à recommander   `stockActuel <= seuilAlerte` (ProduitsView, DashboardView)
+ *   à recommander   `estARecommander` (lib/prealerteStock, comme le bon de commande)
  *   valeur du stock `Σ stockActuel × prixAchat` (DashboardView)
  *   marge           `Σ sale.margeTotale` (RapportsView)
  *
@@ -301,10 +304,17 @@ export interface LigneStock {
 export interface ChiffresStock {
   /** Valeur du stock : calcul existant, `Σ stockActuel × prixAchat`. */
   valeur: number;
-  /** `stockActuel <= seuilAlerte` — la règle de la page Produits. */
+  /**
+   * Ce qu'il faut racheter : sous le seuil ET dans la bande de
+   * préalerte. `estARecommander`, la règle du bon de commande, du filtre
+   * du catalogue et de la base : les quatre comptent la même chose.
+   */
   aRecommander: LigneStock[];
+  /** La part de `aRecommander` déjà sous le seuil. */
+  sousLeSeuil: LigneStock[];
   /** Ceux qui s'en approchent, quand la préalerte est active. */
   enPrealerte: LigneStock[];
+  /** Plus une unité, seuil fixé ou non. */
   enRupture: LigneStock[];
   /** Les plus proches du seuil, pour l'étagère. */
   etagere: LigneStock[];
@@ -336,6 +346,28 @@ function couvertureEnJours(p: Product, ventes: Sale[], aujourdhui: string): numb
   return p.stockDisponible / (vendues / 30);
 }
 
+/**
+ * Les cinq produits de l'étagère, du plus urgent au moins urgent.
+ *
+ * D'abord ceux qui ont un seuil, à proportion de ce seuil ; ensuite
+ * seulement ceux qui n'en ont pas, les vides en tête. Diviser par
+ * `seuil || 1` mettait en tête tous les produits sans seuil et sans
+ * stock — des fiches de catalogue que personne ne suit — et poussait
+ * hors de l'étagère ceux qu'il fallait vraiment racheter.
+ */
+function etagere(lignes: LigneStock[]): LigneStock[] {
+  const rang = (x: LigneStock) => (x.seuil > 0 ? x.disponible / x.seuil : Infinity);
+  return [...lignes]
+    .sort(
+      (a, b) =>
+        rang(a) - rang(b) ||
+        Number(b.enRupture) - Number(a.enRupture) ||
+        a.disponible - b.disponible ||
+        a.nom.localeCompare(b.nom, "fr"),
+    )
+    .slice(0, 5);
+}
+
 export function chiffresStock(
   s: SourcesChiffres,
   p: Periode,
@@ -349,26 +381,27 @@ export function chiffresStock(
    */
   reglages: ReglagesAlertesStock = REGLAGES_PAR_DEFAUT,
 ): ChiffresStock {
-  const marchandises = s.products.filter((x) => x.typeProduit !== "service");
+  // Les marchandises actives : un service n'a pas de stock, une fiche
+  // archivée ne se rachète plus. Même périmètre que la base.
+  const marchandises = s.products.filter(stockEstSuivi);
 
-  const ligne = (x: Product): LigneStock => ({
-    id: x.id,
-    nom: x.designation,
-    disponible: x.stockDisponible,
-    seuil: x.seuilAlerte,
-    unite: x.unite,
-    couverture: couvertureEnJours(x, s.sales, aujourdhui),
-    // Même règle que ProduitsView et l'ancien tableau de bord :
-    // `stockActuel`, pas `stockDisponible`. Les deux diffèrent quand
-    // des commandes ont réservé de la marchandise, et changer de
-    // colonne ici ferait diverger deux écrans qui doivent s'accorder.
-    sousLeSeuil: x.stockActuel <= x.seuilAlerte,
-    // Le second niveau, quand la boutique l'a activé. `etatDeStock`
-    // rend « normal » dès que la préalerte est éteinte : aucun produit
-    // ne peut alors passer en orange par accident.
-    enPrealerte: etatDeStock(x.stockActuel, x.seuilAlerte, reglages) === "prealerte",
-    enRupture: x.stockDisponible <= 0,
-  });
+  const ligne = (x: Product): LigneStock => {
+    // `stockActuel`, pas `stockDisponible`, partout : voir `etatDeStock`.
+    const etat = etatDeStock(x.stockActuel, x.seuilAlerte, reglages);
+    return {
+      id: x.id,
+      nom: x.designation,
+      disponible: x.stockActuel,
+      seuil: x.seuilAlerte,
+      unite: x.unite,
+      couverture: couvertureEnJours(x, s.sales, aujourdhui),
+      sousLeSeuil: etat === "sous_le_seuil",
+      // `etatDeStock` rend « normal » dès que la préalerte est éteinte :
+      // aucun produit ne peut alors passer en orange par accident.
+      enPrealerte: etat === "prealerte",
+      enRupture: estEnRupture(x.stockActuel),
+    };
+  };
 
   const lignes = marchandises.map(ligne);
 
@@ -409,12 +442,11 @@ export function chiffresStock(
 
   return {
     valeur: somme(s.products, (x) => x.stockActuel * x.prixAchat),
-    aRecommander: lignes.filter((x) => x.sousLeSeuil && !x.enRupture),
+    aRecommander: lignes.filter((x) => x.sousLeSeuil || x.enPrealerte),
+    sousLeSeuil: lignes.filter((x) => x.sousLeSeuil),
     enPrealerte: lignes.filter((x) => x.enPrealerte),
     enRupture: lignes.filter((x) => x.enRupture),
-    etagere: [...lignes]
-      .sort((a, b) => a.disponible / (a.seuil || 1) - b.disponible / (b.seuil || 1))
-      .slice(0, 5),
+    etagere: etagere(lignes),
     entreesDuJour: duJour?.entrees ?? 0,
     sortiesDuJour: duJour?.sorties ?? 0,
     parJour,
@@ -447,7 +479,7 @@ export function chiffresPaiements(
   const limite = decalerJours(aujourdhui, -30);
 
   const impayees = s.sales.filter((v) => v.soldeDu > 0);
-  const commandesDues = s.orders.filter((o) => (o.reste_a_payer ?? 0) > 0);
+  const commandesDues = s.orders.filter((o) => resteDuCommande(o) > 0);
 
   const recents = impayees.filter((v) => v.date >= limite);
   const vieux = impayees.filter((v) => v.date < limite);
@@ -476,9 +508,9 @@ export function chiffresPaiements(
 
   return {
     encaisse: flux.encaisse,
-    aRecevoir: somme(recents, (v) => v.soldeDu) + somme(cmdRecentes, (o) => o.reste_a_payer ?? 0),
+    aRecevoir: somme(recents, (v) => v.soldeDu) + somme(cmdRecentes, resteDuCommande),
     aRecevoirClients: clientsDe(recents) + cmdRecentes.length,
-    enRetard: somme(vieux, (v) => v.soldeDu) + somme(cmdVieilles, (o) => o.reste_a_payer ?? 0),
+    enRetard: somme(vieux, (v) => v.soldeDu) + somme(cmdVieilles, resteDuCommande),
     enRetardClients: clientsDe(vieux) + cmdVieilles.length,
     parSemaine: semaines,
   };
@@ -566,9 +598,7 @@ export function chiffresCommandes(s: SourcesChiffres): ChiffresCommandes {
   const recues = s.orders.filter((o) => o.statut_commande === "en_attente").length;
   const enPreparation = s.orders.filter((o) => o.statut_commande === "en_cours").length;
   const enLivraison = s.deliveries.filter((d) => d.statut === "en_cours").length;
-  const aEncaisser = s.orders.filter(
-    (o) => (o.reste_a_payer ?? 0) > 0 && o.statut_commande !== "annulee",
-  ).length;
+  const aEncaisser = s.orders.filter((o) => resteDuCommande(o) > 0).length;
   return {
     recues,
     enPreparation,
@@ -693,8 +723,7 @@ export function pointsDAttention(
    * `enPrealerte` est vide tant que la boutique n'a pas activé la
    * fonction : le compte ne bouge alors pas d'une unité.
    */
-  const produitsARecommander =
-    stock.aRecommander.length + stock.enRupture.length + stock.enPrealerte.length;
+  const produitsARecommander = stock.aRecommander.length;
   return {
     tachesEnRetard,
     produitsARecommander,

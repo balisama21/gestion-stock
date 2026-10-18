@@ -480,7 +480,8 @@ export const HeroTableauDeBord: React.FC<HeroProps> = ({
   const { ajoutees, reglages } = usePhrasesAjoutees();
   const phrase = phraseDuMoment(maintenant ?? new Date(2026, 0, 5, 10), ajoutees, reglages);
 
-  const bientotEnRupture = stock.aRecommander.length + stock.enRupture.length;
+  // Le même compte que la carte Stock et le bon de commande.
+  const aRecommander = stock.aRecommander.length;
   const comparaisonVentes = ecart(jour.ventes, jour.ventesHier);
 
   const lien = (onglet: string, texte: string, couleur: string) => (
@@ -600,18 +601,18 @@ export const HeroTableauDeBord: React.FC<HeroProps> = ({
     ),
     stock: (
       <>
-        {tete("stock", "turquoise", "Stock du jour", "stock", "Produits bientôt en rupture")}
+        {tete("stock", "turquoise", "Stock du jour", "stock", "Produits à recommander")}
         {duo(
           ["Entrées", `+${nombre(Math.abs(jour.entreesStock))} u.`],
           // La valeur absolue : un « −0 » venu du calcul s'écrivait « −−0 u. ».
           ["Sorties", `−${nombre(Math.abs(jour.sortiesStock))} u.`],
           "kv moyen pos",
         )}
-        {bientotEnRupture > 0 ? (
+        {aRecommander > 0 ? (
           <button type="button" className="pill4" onClick={() => onOuvrir("stock")}>
             <Icone nom="alert" className="kpetite orange" />
-            <span className="pt">Bientôt en rupture</span>
-            <span className="pb">{bientotEnRupture}</span>
+            <span className="pt">À recommander</span>
+            <span className="pb">{aRecommander}</span>
           </button>
         ) : (
           <div className="pill4 ok">

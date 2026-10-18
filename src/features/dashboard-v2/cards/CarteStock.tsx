@@ -20,11 +20,13 @@ export const CarteStock: React.FC<{
   /** La photo de chaque produit, par identifiant. */
   vignettes?: Map<string, string>;
   onProduit?: (produit: LigneStock) => void;
+  /** Ouvre la liste à recommander, dans le panneau. */
+  onVoirLaListe?: () => void;
+  /** Ouvre le bon de commande, prêt à imprimer ou à exporter. */
   onCommander?: () => void;
-  onTelecharger?: () => void;
-}> = ({ stock, valeurVisible, vignettes, onProduit, onCommander, onTelecharger }) => {
-  const sousLeSeuil = stock.aRecommander.length + stock.enRupture.length;
-  const aRecommander = sousLeSeuil + stock.enPrealerte.length;
+}> = ({ stock, valeurVisible, vignettes, onProduit, onVoirLaListe, onCommander }) => {
+  const sousLeSeuil = stock.sousLeSeuil.length;
+  const aRecommander = stock.aRecommander.length;
 
   return (
     <article className="card stk" id="carte-stock">
@@ -70,6 +72,11 @@ export const CarteStock: React.FC<{
                         <Icone nom="alert" />
                         approche du seuil
                       </em>
+                    ) : p.enRupture ? (
+                      <em className="bas">
+                        <Icone nom="alert" />
+                        en rupture
+                      </em>
                     ) : null}
                   </div>
                   <div className="pr" aria-hidden="true">
@@ -77,7 +84,9 @@ export const CarteStock: React.FC<{
                   </div>
                 </div>
                 <span className="q num">
-                  {nombre(p.disponible)} / {nombre(p.seuil)}
+                  {p.seuil > 0
+                    ? `${nombre(p.disponible)} / ${nombre(p.seuil)}`
+                    : nombre(p.disponible)}
                 </span>
                 {onProduit ? <Icone nom="chevright" className="chev" /> : <span />}
               </Ligne>
@@ -103,15 +112,15 @@ export const CarteStock: React.FC<{
             </>
           )}
         </div>
-        {/* Deux gestes, et le second n'est pas le premier : préparer,
-            c'est ouvrir la liste pour la travailler ; télécharger,
-            c'est l'envoyer au fournisseur sans rien ouvrir. */}
+        {/* Deux gestes distincts : voir la liste pour la parcourir,
+            préparer la commande pour ouvrir le bon — qui s'imprime et
+            s'exporte en CSV ou en Excel. */}
         {aRecommander > 0 && (
           <div className="stock-actions">
-            {onTelecharger && (
-              <button className="btn out" type="button" onClick={onTelecharger}>
-                <Icone nom="download" />
-                Télécharger la liste
+            {onVoirLaListe && (
+              <button className="btn out" type="button" onClick={onVoirLaListe}>
+                <Icone nom="eye" />
+                Voir la liste
               </button>
             )}
             {onCommander && (

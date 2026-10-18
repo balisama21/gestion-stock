@@ -15,6 +15,7 @@ import {
   Payment,
 } from "./types";
 import type { Json, OrderStatus } from "./lib/database.types";
+import { calculerTresorerie } from "./lib/tresorerie";
 import { formatCurrency, getProductLabel } from "./utils/formulas";
 import { getModuleScope, isFieldVisible, hasModuleAction } from "./lib/permissions";
 import { downloadExcelWorkbook } from "./utils/exportExcel";
@@ -1355,43 +1356,20 @@ function AppInner() {
     return historiqueScope === "all" ? apports : [];
   }, [apports, hasHistoriqueModule, historiqueScope]);
 
-  const computedCapital = useMemo(() => {
-    const capitalInitial = workspace.activeStore?.capital_initial || 0;
-    const seuilAlerte = workspace.activeStore?.seuil_alerte_tresorerie || 0;
-    const apportsTotal = apports.reduce((acc, a) => acc + a.montant, 0);
-    const ventesTotalEncaisse = sales.reduce((acc, s) => acc + s.montantPaye, 0);
-    const commandesTotalEncaisse = storeData.orders.reduce(
-      (acc, o) => acc + (o.montant_paye ?? 0),
-      0,
-    );
-    const achatsTotal = purchases.reduce((acc, p) => acc + p.totalAchat, 0);
-    const depensesVendeursTotal = expenses.reduce((acc, e) => acc + e.montant, 0);
-    // PHASE 1 : les remboursements (ventes + commandes) sont de l'argent qui
-    // ressort réellement de la trésorerie. Ils ne modifient jamais montant_paye
-    // (paiement d'origine conservé), donc on les soustrait ici séparément.
-    const remboursementsTotal =
-      sales.reduce((acc, s) => acc + (s.montantRembourse ?? 0), 0) +
-      storeData.orders.reduce((acc, o) => acc + (o.montant_rembourse ?? 0), 0);
-    return {
-      capitalInitial,
-      apportsTotal,
-      ventesTotalEncaisse: ventesTotalEncaisse + commandesTotalEncaisse,
-      achatsTotal,
-      depensesVendeursTotal,
-      // Rendu pour que la composition affichée retombe sur le total.
-      // Le calcul ci-dessous n'a pas bougé d'un caractère.
-      remboursementsTotal,
-      tresorerieGlobaleActuelle:
-        capitalInitial +
-        apportsTotal +
-        ventesTotalEncaisse +
-        commandesTotalEncaisse -
-        achatsTotal -
-        depensesVendeursTotal -
-        remboursementsTotal,
-      seuilAlerteTresorerie: seuilAlerte,
-    };
-  }, [apports, sales, purchases, expenses, workspace.activeStore, storeData.orders]);
+  // Voir src/lib/tresorerie.ts : la règle et ses raisons.
+  const computedCapital = useMemo(
+    () =>
+      calculerTresorerie({
+        capitalInitial: workspace.activeStore?.capital_initial || 0,
+        seuilAlerte: workspace.activeStore?.seuil_alerte_tresorerie || 0,
+        apports,
+        ventes: sales,
+        commandes: storeData.orders,
+        achats: purchases,
+        depenses: expenses,
+      }),
+    [apports, sales, purchases, expenses, workspace.activeStore, storeData.orders],
+  );
 
   // Ce que dit la cloche. Construit ici, ou vivent les donnees : la barre
   // du haut n a plus qu a presenter. Voir src/lib/activite.ts pour le
@@ -1473,11 +1451,6 @@ function AppInner() {
       avancesEnAttente,
       personnalisation.rappels,
     ],
-  );
-
-  const lowStockCount = useMemo(
-    () => products.filter((p) => p.stockActuel <= p.seuilAlerte).length,
-    [products],
   );
 
   const [activityToast, setActivityToast] = useState<{

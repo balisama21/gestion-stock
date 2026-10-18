@@ -163,8 +163,8 @@ export const CapitalView: React.FC<CapitalViewProps> = ({
     },
     {
       key: "achats",
-      label: "Achats de stock",
-      hint: "Réassort de marchandises",
+      label: "Achats de stock réglés",
+      hint: "Hors achats à crédit non réglés",
       sign: "−",
       value: capital.achatsTotal,
     },

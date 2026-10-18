@@ -54,10 +54,7 @@ export const AvoirModal: React.FC<{
      est jamais entré. */
   const remboursable = Math.min(valeur, d.paye);
 
-  const articles = useMemo(
-    () => d.ventes.filter((v) => v.productId && v.quantite > 0),
-    [d.ventes],
-  );
+  const articles = useMemo(() => d.ventes.filter((v) => v.productId && v.quantite > 0), [d.ventes]);
 
   const partiel = valeur > 0 && valeur < d.montant;
 
@@ -75,7 +72,16 @@ export const AvoirModal: React.FC<{
         onSubmit={(e) => {
           e.preventDefault();
           if (valeur <= 0 || trop) return;
-          onValider({ montant: valeur, motif: motif.trim(), rembourser, remettreEnStock });
+          // Une case cochée puis grisée (le montant est devenu partiel, ou
+          // plus rien n'est remboursable) reste cochée dans l'état : on ne
+          // transmet que ce qui est encore permis, sans quoi un avoir
+          // partiel remettait en stock TOUTES les quantités de la facture.
+          onValider({
+            montant: valeur,
+            motif: motif.trim(),
+            rembourser: rembourser && remboursable > 0,
+            remettreEnStock: remettreEnStock && !partiel && articles.length > 0,
+          });
         }}
       >
         <div>
@@ -124,8 +130,8 @@ export const AvoirModal: React.FC<{
 
         <div className="space-y-2 rounded-lg border border-border p-3">
           <p className="text-xs text-muted-foreground">
-            L&apos;avoir est une pièce : il ne rembourse rien et ne remet rien en stock de
-            lui-même. Cochez ce qui a réellement eu lieu.
+            L&apos;avoir est une pièce : il ne rembourse rien et ne remet rien en stock de lui-même.
+            Cochez ce qui a réellement eu lieu.
           </p>
 
           <label className="flex items-start gap-2 text-sm">

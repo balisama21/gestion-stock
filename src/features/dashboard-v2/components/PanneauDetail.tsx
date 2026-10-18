@@ -53,6 +53,7 @@ export type VueDetail =
   | { cle: "relancer" }
   | { cle: "client"; client: ChiffresClients["aRelancer"][number] }
   | { cle: "produit"; produit: LigneStock }
+  | { cle: "recommander" }
   | { cle: "ruptures" }
   | { cle: "sorties" }
   | { cle: "fournisseurs" }
@@ -108,8 +109,11 @@ interface Contenu {
   titre: string;
   sous?: string;
   corps: React.ReactNode;
-  /** Le bouton du pied : où il mène, et sous quel nom. */
-  pied?: { libelle: string; onglet: string };
+  /**
+   * Le bouton du pied : où il mène, et sous quel nom. `bonDeCommande`
+   * ouvre le bon de commande au lieu de changer d'écran.
+   */
+  pied?: { libelle: string; onglet: string } | { libelle: string; bonDeCommande: true };
 }
 
 function construire(v: VueDetail, d: DonneesPanneau): Contenu {
@@ -307,35 +311,80 @@ function construire(v: VueDetail, d: DonneesPanneau): Contenu {
       };
     }
 
-    case "ruptures": {
-      const lignes = [...d.stock.enRupture, ...d.stock.aRecommander];
+    case "recommander": {
+      // La liste même du bon de commande : `chiffresStock` et
+      // `lignesDuBonDeCommande` appliquent la même règle.
+      const lignes = d.stock.aRecommander;
+      const prealerte = d.stock.enPrealerte.length;
       return {
         titre: "Produits à recommander",
-        sous: `${nombre(d.stock.enRupture.length)} en rupture · ${nombre(d.stock.aRecommander.length)} sous le seuil`,
+        sous:
+          prealerte > 0
+            ? `${nombre(d.stock.sousLeSeuil.length)} sous le seuil · ${nombre(prealerte)} approchent du seuil`
+            : `${pluriel(lignes.length, "produit")} sous le seuil`,
         corps:
           lignes.length === 0 ? (
-            <p className="note">Tous les produits sont au-dessus de leur seuil.</p>
+            <p className="note">Tous les produits suivis sont au-dessus de leur seuil.</p>
           ) : (
-            lignes.map((pr) => (
-              <DrawerLigne
-                key={pr.id}
-                titre={pr.nom}
-                detail={`${quantiteEnMots(pr.disponible, pr.unite)} en stock · seuil ${nombre(pr.seuil)}`}
-                valeur={
-                  pr.enRupture ? (
-                    <Tag ton="crit">en rupture</Tag>
-                  ) : pr.couverture === null ? (
-                    <Tag ton="warn">sous le seuil</Tag>
-                  ) : (
-                    <Tag ton={pr.couverture < 3 ? "crit" : "warn"}>
-                      ≈ {Math.round(pr.couverture)} j
-                    </Tag>
-                  )
-                }
-              />
-            ))
+            [...lignes]
+              .sort((a, b) => a.disponible / a.seuil - b.disponible / b.seuil)
+              .map((pr) => (
+                <DrawerLigne
+                  key={pr.id}
+                  titre={pr.nom}
+                  detail={`${quantiteEnMots(pr.disponible, pr.unite)} en stock · seuil ${nombre(pr.seuil)}`}
+                  valeur={
+                    pr.enRupture ? (
+                      <Tag ton="crit">en rupture</Tag>
+                    ) : pr.enPrealerte ? (
+                      <Tag ton="warn">approche du seuil</Tag>
+                    ) : pr.couverture === null ? (
+                      <Tag ton="warn">sous le seuil</Tag>
+                    ) : (
+                      <Tag ton={pr.couverture < 3 ? "crit" : "warn"}>
+                        ≈ {Math.round(pr.couverture)} j
+                      </Tag>
+                    )
+                  }
+                />
+              ))
           ),
-        pied: { libelle: "Préparer la commande", onglet: "achats" },
+        pied:
+          lignes.length > 0 ? { libelle: "Préparer la commande", bonDeCommande: true } : undefined,
+      };
+    }
+
+    case "ruptures": {
+      const lignes = d.stock.enRupture;
+      const sansSeuil = lignes.filter((x) => x.seuil <= 0).length;
+      return {
+        titre: "Produits en rupture",
+        sous:
+          sansSeuil > 0
+            ? `${pluriel(lignes.length, "produit")} à zéro · dont ${nombre(sansSeuil)} sans seuil d'alerte`
+            : `${pluriel(lignes.length, "produit")} à zéro`,
+        corps:
+          lignes.length === 0 ? (
+            <p className="note">Aucun produit n'est à zéro.</p>
+          ) : (
+            <>
+              {sansSeuil > 0 && (
+                <p className="note">
+                  Un produit sans seuil d'alerte n'entre pas dans le bon de commande. Fixez son
+                  seuil depuis la page Produits pour qu'il y figure.
+                </p>
+              )}
+              {lignes.map((pr) => (
+                <DrawerLigne
+                  key={pr.id}
+                  titre={pr.nom}
+                  detail={pr.seuil > 0 ? `Seuil ${nombre(pr.seuil)}` : "Sans seuil d'alerte"}
+                  valeur={<Tag ton="crit">en rupture</Tag>}
+                />
+              ))}
+            </>
+          ),
+        pied: { libelle: "Ouvrir les produits", onglet: "produits" },
       };
     }
 
@@ -461,7 +510,9 @@ export const PanneauDetail: React.FC<{
   donnees: DonneesPanneau;
   onFermer: () => void;
   onNaviguer?: (onglet: string) => void;
-}> = ({ vue, donnees, onFermer, onNaviguer }) => {
+  /** Ouvre le bon de commande, pour les pieds qui le demandent. */
+  onBonDeCommande?: () => void;
+}> = ({ vue, donnees, onFermer, onNaviguer, onBonDeCommande }) => {
   // Le contenu reste affiché pendant la fermeture : le vider tout de
   // suite ferait disparaître le texte avant que le panneau ait glissé.
   const dernier = React.useRef<VueDetail | null>(null);
@@ -470,6 +521,16 @@ export const PanneauDetail: React.FC<{
   if (!courante) return null;
 
   const c = construire(courante, donnees);
+  const pied = c.pied;
+  // Un pied n'apparaît que si son geste est possible : un bouton qui ne
+  // fait rien est pire qu'un bouton absent.
+  const actionDuPied = !pied
+    ? null
+    : "bonDeCommande" in pied
+      ? (onBonDeCommande ?? null)
+      : onNaviguer
+        ? () => onNaviguer(pied.onglet)
+        : null;
 
   return (
     <Drawer
@@ -482,16 +543,16 @@ export const PanneauDetail: React.FC<{
           <button type="button" className="btn ghost" onClick={onFermer}>
             Fermer
           </button>
-          {c.pied && onNaviguer && (
+          {pied && actionDuPied && (
             <button
               type="button"
               className="btn"
               onClick={() => {
                 onFermer();
-                onNaviguer(c.pied!.onglet);
+                actionDuPied();
               }}
             >
-              {c.pied.libelle}
+              {pied.libelle}
             </button>
           )}
         </>
