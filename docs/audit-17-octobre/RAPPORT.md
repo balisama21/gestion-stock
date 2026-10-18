@@ -584,3 +584,44 @@ deux paiements (laissés, à supprimer ou garder à votre choix).
   maintenant la ligne : à jour si elle change, fermée si elle disparaît
   (`shared/DataList.tsx`, 4 tests ; les deux tests clés échouent sur
   l'ancienne version).
+
+# 15. Essais de bout en bout, second passage — même bac à sable
+
+Mêmes règles qu'au § 14 (boutique « Boutique de Mamy Balsama » seule, fiches
+« ESSAI CLAUDE », identifiant de boutique revérifié avant chaque écriture).
+Aucune suppression dans ce passage.
+
+| Geste | Attendu | Constaté |
+|---|---|---|
+| Fiche client « ESSAI CLAUDE Fiche » | créée | conforme |
+| Devis DEV001, 1 × 1 500 | brouillon, stock inchangé | conforme (stock 4) |
+| Devis → vente | vente liée au client, devis « accepté » et relié au ticket, payé comptant | conforme (V004) ; stock 3 |
+| Commande CMD001, 2 unités | stock réservé 2, disponible 1 | conforme |
+| Vente de 2 avec 1 disponible | refusée | refusée avant le panier, message clair |
+| Paiement commande 3 000 | « payé », reste 0 | conforme |
+| Commande livrée | stock 1, réservé 0 | conforme ; Σ mouvements = stock |
+| Trésorerie après ces gestes | 0 + 7 000 + 3 000 − 10 000 = 0 | 0 Ar affiché |
+| Dépense 500 | trésorerie −500 | conforme |
+| Apport 20 000 | trésorerie 19 500 | conforme (en-tête et Capital) |
+| Ajustement +2 « inventaire » | stock 3 | conforme ; 10 mouvements retombent sur 3 |
+| Avoir 1 500 sur FAC-V002 (reste 3 500) | reste 2 000, rien à rendre, stock inchangé, remise en stock impossible (partiel) | conforme en base |
+
+## Défauts trouvés, corrigés
+
+- **Après un avoir, l'interface gardait l'ancien reste dû** (3 500 au lieu
+  de 2 000 dans Ventes et Paiements à recevoir) jusqu'au rechargement : seule
+  la liste des avoirs était relue. Les données de la boutique sont relues après
+  chaque avoir enregistré (`BalsamaApp.tsx`).
+- **Bilan : « Marge nette » n'était que la marge brute** — les dépenses n'en
+  étaient jamais retirées — et s'affichait toujours en vert avec « + », même
+  négative (« +-800 »). Deux lignes désormais : « Marge brute des ventes » et
+  « Résultat (marge − dépenses) », avec leur vrai signe. 2 tests.
+- **Nouvelle dépense pré-remplie à 5 000 Ar** : champ vide, au moins 1 exigé,
+  remis à zéro après l'enregistrement.
+
+## À trancher (non modifié)
+
+- **Les commandes livrées n'entrent pas dans le chiffre d'affaires** du Bilan
+  ni des Ventes (3 000 Ar ici), alors que leur paiement entre bien en
+  trésorerie. Faut-il les y compter ? Il faudrait alors aussi leur marge
+  (prix d'achat des lignes).

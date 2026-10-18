@@ -572,9 +572,28 @@ function AppInner() {
     workspace.memberPermissions === null ||
     workspace.memberPermissions.includes("facturation");
 
-  const facturation = useFacturation(
+  const facturationBrute = useFacturation(
     workspace.activeStore?.id ?? null,
     voitLaFacturation && !moduleMasque(personnalisation, "facturation"),
+  );
+  /*
+   * Un avoir change la VENTE en base (montant avoiré, reste dû, parfois le
+   * stock) : seule la liste des avoirs était relue. Ventes, Paiements à
+   * recevoir et la fiche client gardaient l'ancien reste dû jusqu'au
+   * rechargement suivant. On relit les données de la boutique après
+   * chaque avoir enregistré.
+   */
+  const { refresh: relireBoutique } = storeData;
+  const facturation = useMemo(
+    () => ({
+      ...facturationBrute,
+      creerAvoir: async (...args: Parameters<typeof facturationBrute.creerAvoir>) => {
+        const resultat = await facturationBrute.creerAvoir(...args);
+        if (!resultat.error) void relireBoutique();
+        return resultat;
+      },
+    }),
+    [facturationBrute, relireBoutique],
   );
 
   const peutReglerLesDocuments =

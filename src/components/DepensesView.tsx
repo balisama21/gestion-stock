@@ -156,7 +156,9 @@ export const DepensesView: React.FC<DepensesViewProps> = ({
   const [type, setType] = useState<"Achat de stock" | "Retrait d'argent" | "Autre dépense">(
     "Retrait d'argent",
   );
-  const [montant, setMontant] = useState(5000);
+  // Vide au départ : 5 000 Ar proposés d'office finissaient enregistrés tels
+  // quels quand on ne relisait pas. Le navigateur exige au moins 1.
+  const [montant, setMontant] = useState(0);
   const [note, setNote] = useState("");
   const [poste, setPoste] = useState("");
   const [prestataire, setPrestataire] = useState("");
@@ -237,6 +239,7 @@ export const DepensesView: React.FC<DepensesViewProps> = ({
     }
 
     setNote("");
+    setMontant(0);
     setPoste("");
     setPrestataire("");
     setJustificatif("");
@@ -1013,7 +1016,8 @@ export const DepensesView: React.FC<DepensesViewProps> = ({
               type="number"
               required
               min="1"
-              value={montant}
+              placeholder="0"
+              value={montant || ""}
               onChange={(e) => setMontant(Number(e.target.value))}
               className="app-field font-mono"
             />

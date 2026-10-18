@@ -7,6 +7,19 @@ import { PageHeader } from "./shared/PageHeader";
 import { dateDuJour } from "../lib/dates";
 import { chiffreAffairesNet, type AvoirDeVente } from "../lib/ventes";
 
+/**
+ * Un montant qui peut être une perte. Il s'affichait toujours en vert avec
+ * un « + » devant : une marge négative devenait « +-2 000 Ar », en vert.
+ */
+const Signe: React.FC<{ montant: number }> = ({ montant }) =>
+  montant > 0 ? (
+    <span className="t-success">+{formatCurrency(montant)}</span>
+  ) : montant < 0 ? (
+    <span className="t-danger">−{formatCurrency(Math.abs(montant))}</span>
+  ) : (
+    <>{formatCurrency(0)}</>
+  );
+
 const AUCUN_AVOIR: AvoirDeVente[] = [];
 
 interface RapportsViewProps {
@@ -243,10 +256,19 @@ export const RapportsView: React.FC<RapportsViewProps> = ({
     },
     { key: "achats", label: "Achats de stock", render: (p) => formatCurrency(p.achats) },
     { key: "depenses", label: "Dépenses", render: (p) => formatCurrency(p.depenses) },
+    // La « marge nette » n'était que la marge brute des ventes : les
+    // dépenses n'en étaient jamais retirées. Les deux se lisent séparément.
+    // Les achats de stock ne s'en déduisent pas : la marge tient déjà
+    // compte du prix d'achat des articles vendus.
     {
       key: "marge",
-      label: "Marge nette",
-      render: (p) => <span className="t-success">+{formatCurrency(p.marge)}</span>,
+      label: "Marge brute des ventes",
+      render: (p) => <Signe montant={p.marge} />,
+    },
+    {
+      key: "resultat",
+      label: "Résultat (marge − dépenses)",
+      render: (p) => <Signe montant={p.marge - p.depenses} />,
       strong: true,
     },
     { key: "ventes", label: "Ventes", render: (p) => String(p.nbVentes) },
@@ -304,9 +326,7 @@ export const RapportsView: React.FC<RapportsViewProps> = ({
           <tbody>
             {lignes.map((l) => (
               <tr key={l.key}>
-                <td className="px-2 text-xs text-muted-foreground sm:px-4 sm:text-sm">
-                  {l.label}
-                </td>
+                <td className="px-2 text-xs text-muted-foreground sm:px-4 sm:text-sm">{l.label}</td>
                 {periodes.map((p) => (
                   <td
                     key={p.id}
@@ -391,17 +411,12 @@ export const RapportsView: React.FC<RapportsViewProps> = ({
               // Un mois creux le dit franchement, plutôt que de laisser
               // une ligne nue qu'on prendrait pour un défaut d'affichage.
               isEmptyMonth(ms) ? "Aucune activité" : null,
-              ms.countSales > 0
-                ? `${ms.countSales} vente${ms.countSales > 1 ? "s" : ""}`
-                : null,
+              ms.countSales > 0 ? `${ms.countSales} vente${ms.countSales > 1 ? "s" : ""}` : null,
               ms.achats > 0 ? `${formatCurrency(ms.achats)} d'achats` : null,
               ms.depenses > 0 ? `${formatCurrency(ms.depenses)} de dépenses` : null,
             ],
             amount: formatCurrency(ms.ca),
-            amountHint:
-              ms.marge !== 0 ? (
-                <span className="t-success">+{formatCurrency(ms.marge)}</span>
-              ) : undefined,
+            amountHint: ms.marge !== 0 ? <Signe montant={ms.marge} /> : undefined,
             detailTitle: `${ms.month} ${filterYear}`,
             detailSubtitle: "Détail du mois",
             details: [
@@ -417,15 +432,12 @@ export const RapportsView: React.FC<RapportsViewProps> = ({
                 hideIfEmpty: true,
               },
               {
-                label: "Marge nette",
-                // Le « + » et le vert n'ont de sens que sur une marge
-                // réelle : un « +0 Ar » vert se lirait comme un gain.
-                value:
-                  ms.marge !== 0 ? (
-                    <span className="t-success">+{formatCurrency(ms.marge)}</span>
-                  ) : (
-                    formatCurrency(0)
-                  ),
+                label: "Marge brute des ventes",
+                value: <Signe montant={ms.marge} />,
+              },
+              {
+                label: "Résultat (marge − dépenses)",
+                value: <Signe montant={ms.marge - ms.depenses} />,
               },
               { label: "Ventes", value: String(ms.countSales) },
             ],
