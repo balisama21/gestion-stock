@@ -27,7 +27,7 @@
 -- migration refuse de s'appliquer si des avoirs liés à une facture
 -- existent déjà (il faudrait alors les reprendre).
 --
--- Retour arrière : supabase/retours-arriere/20261018120000_avoir_efface_la_dette.sql
+-- Retour arrière : supabase/retours-arriere/20261018055411_avoir_efface_la_dette.sql
 
 DO $$
 BEGIN
