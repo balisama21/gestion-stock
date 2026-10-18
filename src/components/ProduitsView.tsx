@@ -225,9 +225,13 @@ export const ProduitsView: React.FC<ProduitsViewProps> = ({
   const [saving, setSaving] = useState(false);
 
   // Form State for new product
+  //
+  // Tout part de zéro. Le formulaire proposait 1 000 / 1 500, un stock
+  // initial de 20 et un seuil de 5 : un produit enregistré sans relire
+  // entrait avec vingt unités qui n'existaient pas, et des prix inventés.
   const [designation, setDesignation] = useState("");
-  const [prixAchat, setPrixAchat] = useState(1000);
-  const [prixVenteDefaut, setPrixVenteDefaut] = useState(1500);
+  const [prixAchat, setPrixAchat] = useState(0);
+  const [prixVenteDefaut, setPrixVenteDefaut] = useState(0);
   /**
    * Un produit créé ici part en « manuel » : son prix par défaut est un
    * nombre écrit à la main. Toucher un bouton de taux le passe en auto.
@@ -235,8 +239,8 @@ export const ProduitsView: React.FC<ProduitsViewProps> = ({
   const [modePrix, setModePrix] = useState<"auto" | "manuel">("manuel");
   const [tauxProduit, setTauxProduit] = useState<number | null>(null);
   const [fournisseur, setFournisseur] = useState("");
-  const [stockInitial, setStockInitial] = useState(20);
-  const [seuilAlerte, setSeuilAlerte] = useState(5);
+  const [stockInitial, setStockInitial] = useState(0);
+  const [seuilAlerte, setSeuilAlerte] = useState(0);
   // La fiche descriptive, renseignable dès la création : c'est tout
   // l'objet de l'harmonisation. Les photos, elles, restent visibles mais
   // inertes tant que le produit n'existe pas — il n'y a pas encore
@@ -425,10 +429,26 @@ export const ProduitsView: React.FC<ProduitsViewProps> = ({
     }
 
     setSaving(false);
+    remettreCreationAZero();
+    setIsAddModalOpen(false);
+  };
+
+  /**
+   * La fiche de création repart vide — prix, stock, seuil, fournisseur
+   * compris. Sans cela, le produit suivant héritait du stock initial et
+   * des prix du précédent.
+   */
+  const remettreCreationAZero = () => {
     setDesignation("");
+    setPrixAchat(0);
+    setPrixVenteDefaut(0);
+    setModePrix("manuel");
+    setTauxProduit(null);
+    setFournisseur("");
+    setStockInitial(0);
+    setSeuilAlerte(0);
     setAddDetails(DETAILS_VIDES);
     setAddPhotos([]);
-    setIsAddModalOpen(false);
   };
 
   /**
@@ -439,8 +459,7 @@ export const ProduitsView: React.FC<ProduitsViewProps> = ({
    */
   const fermerCreation = () => {
     setIsAddModalOpen(false);
-    setAddDetails(DETAILS_VIDES);
-    setAddPhotos([]);
+    remettreCreationAZero();
     setAddErreur(null);
   };
 
@@ -904,6 +923,7 @@ export const ProduitsView: React.FC<ProduitsViewProps> = ({
               <input
                 type="number"
                 required
+                min="0"
                 value={stockInitial}
                 onChange={(e) => setStockInitial(Number(e.target.value))}
                 className="app-field font-mono"
@@ -916,6 +936,7 @@ export const ProduitsView: React.FC<ProduitsViewProps> = ({
               <input
                 type="number"
                 required
+                min="0"
                 value={seuilAlerte}
                 onChange={(e) => setSeuilAlerte(Number(e.target.value))}
                 className="app-field font-mono"

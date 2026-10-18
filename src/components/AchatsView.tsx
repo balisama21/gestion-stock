@@ -352,8 +352,11 @@ export const AchatsView: React.FC<AchatsViewProps> = ({
   // Form State
   const [date, setDate] = useState(dateDuJour());
   const [designation, setDesignation] = useState("");
-  const [quantite, setQuantite] = useState(10);
-  const [prixAchatUnit, setPrixAchatUnit] = useState(1000);
+  // Vides au départ : un achat de « 10 × 1 000 » proposé d'office finissait
+  // enregistré tel quel quand on ne relisait pas. Le navigateur exige une
+  // quantité et un prix d'au moins 1 avant d'envoyer.
+  const [quantite, setQuantite] = useState(0);
+  const [prixAchatUnit, setPrixAchatUnit] = useState(0);
   const [fournisseur, setFournisseur] = useState("");
   /** La base écrit toujours le NOM ; l'identifiant vient par-dessus. */
   const [supplierId, setSupplierId] = useState<string | null>(null);
@@ -573,6 +576,8 @@ export const AchatsView: React.FC<AchatsViewProps> = ({
     setDesignation("");
     setFournisseur("");
     setSupplierId(null);
+    setQuantite(0);
+    setPrixAchatUnit(0);
     setReglement("comptant");
     setMontantRegle(0);
     setEcheance("");
@@ -1423,7 +1428,8 @@ export const AchatsView: React.FC<AchatsViewProps> = ({
                   type="number"
                   required
                   min="1"
-                  value={quantite}
+                  placeholder="0"
+                  value={quantite || ""}
                   onChange={(e) => setQuantite(Number(e.target.value))}
                   className="app-field font-mono"
                 />
@@ -1436,7 +1442,8 @@ export const AchatsView: React.FC<AchatsViewProps> = ({
                   type="number"
                   required
                   min="1"
-                  value={prixAchatUnit}
+                  placeholder="0"
+                  value={prixAchatUnit || ""}
                   onChange={(e) => setPrixAchatUnit(Number(e.target.value))}
                   className="app-field font-mono"
                 />
