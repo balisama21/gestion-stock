@@ -36,7 +36,7 @@ import { DETAILS_VIDES, detailsVersBase, type ValeursDetails } from "../lib/deta
 import type { Database } from "../lib/database.types";
 import { PageHeader } from "./shared/PageHeader";
 import { FilterBar, FilterField } from "./shared/FilterBar";
-import { DataList } from "./shared/DataList";
+import { DataList, type DataListItem } from "./shared/DataList";
 import { SelecteurFournisseur } from "./shared/SelecteurFournisseur";
 import { cleDeListe } from "../lib/listes";
 import {
@@ -55,7 +55,7 @@ import { reprendreApresDeploiement, messageDErreurExport } from "../lib/chunkRec
 import { PAPER_FORMATS, getPaperFormat, type PaperFormatId } from "../lib/paperFormats";
 import { dateDuJour } from "../lib/dates";
 import { envoyerFichier, supprimerFichier } from "../lib/stockageFichiers";
-import { useRechercheInitiale } from "../lib/cibleRecherche";
+import { useOuvertureFiche, useRechercheInitiale } from "../lib/cibleRecherche";
 import { Equivalents } from "../lib/contexteDevises";
 import { symboleDeSaisie } from "../lib/affichageDevise";
 
@@ -675,6 +675,105 @@ export const AchatsView: React.FC<AchatsViewProps> = ({
     }
   };
 
+  /** Une ligne de la liste ; sert aussi à ouvrir la fiche visée par une notification. */
+  const versItemAchat = (p: Purchase): DataListItem => ({
+    id: p.id,
+    leading: (
+      <VignetteProduit
+        nom={p.designation}
+        chemin={p.productId ? vignettes.get(p.productId) : null}
+      />
+    ),
+    primary: (
+      <span className="flex min-w-0 items-center gap-2">
+        <span className="truncate">{getPurchaseLabel(p, products)}</span>
+        <VariantBadge prix={getPurchaseVariant(p, products)} autorise={showPrix} />
+      </span>
+    ),
+    meta: [
+      // En toutes lettres dans le rang secondaire, comme sur le
+      // tableau de bord et dans les ventes.
+      quantiteEnMots(p.quantite, products.find((x) => x.id === p.productId)?.unite),
+      formatDateLocale(p.date, locale),
+      showFournisseur ? p.fournisseur || null : null,
+      showPrix ? `${formatCurrency(p.prixAchatUnit)} / u` : null,
+    ],
+    amount: showPrix ? formatCurrency(p.totalAchat) : undefined,
+    // Ce qui est réellement sorti de la caisse, et ce qui reste dû :
+    // un achat à crédit n'a encore rien coûté à la trésorerie.
+    amountHint: showPrix ? (
+      p.soldeDu > 0 ? (
+        <span className="t-warning">{formatCurrency(p.soldeDu)} à payer</span>
+      ) : (
+        <span className="t-danger">−{formatCurrency(p.montantPaye)} en caisse</span>
+      )
+    ) : undefined,
+    detailTitle: getPurchaseLabel(p, products),
+    detailSubtitle: `Achat ${p.numero}`,
+    details: [
+      { label: "Date", value: formatDateLocale(p.date, locale) },
+      { label: "Référence", value: p.numero },
+      { label: "Quantité", value: `${p.quantite}` },
+      ...(showPrix
+        ? [
+            { label: "Prix unitaire", value: formatCurrency(p.prixAchatUnit) },
+            { label: "Total", value: formatCurrency(p.totalAchat) },
+            {
+              label: "Réglé au fournisseur",
+              value: formatCurrency(p.montantPaye),
+            },
+            ...(p.soldeDu > 0
+              ? [
+                  {
+                    label: "Reste à payer",
+                    value: <span className="t-warning">{formatCurrency(p.soldeDu)}</span>,
+                  },
+                ]
+              : []),
+          ]
+        : []),
+      ...(showFournisseur
+        ? [{ label: "Fournisseur", value: p.fournisseur || "-", hideIfEmpty: true }]
+        : []),
+    ],
+    actions: (
+      <>
+        <button onClick={() => setSelectedPurchaseReceipt(p)} className="app-btn-secondary">
+          <Eye className="w-4 h-4" />
+          Voir le bon
+        </button>
+        {onUpdatePurchase && (
+          <button
+            onClick={() => ouvrirCorrection(p)}
+            className="app-btn-icon h-9 w-9"
+            title={`Corriger l'achat ${p.numero}`}
+            aria-label={`Corriger l'achat ${p.numero}`}
+          >
+            <Pencil className="h-4 w-4" />
+          </button>
+        )}
+        {onDeletePurchase && (
+          <button
+            onClick={() => {
+              setErreurSuppression(null);
+              setAchatASupprimer(p);
+            }}
+            className="app-btn-icon h-9 w-9"
+            title={`Supprimer l'achat ${p.numero}`}
+            aria-label={`Supprimer l'achat ${p.numero}`}
+          >
+            <Trash2 className="h-4 w-4" />
+          </button>
+        )}
+      </>
+    ),
+  });
+
+  const ficheAOuvrir = useOuvertureFiche("achats", (id) => {
+    const trouve = purchases.find((x) => x.id === id);
+    return trouve ? versItemAchat(trouve) : null;
+  });
+
   return (
     <div className="space-y-6">
       {/* Un prix de vente qui bouge sans qu'on le sache est la façon la
@@ -827,98 +926,8 @@ export const AchatsView: React.FC<AchatsViewProps> = ({
       <div className="app-card overflow-hidden">
         <DataList
           emptyLabel="Aucun achat ne correspond à ces filtres."
-          items={filteredPurchases.map((p) => ({
-            id: p.id,
-            leading: (
-              <VignetteProduit
-                nom={p.designation}
-                chemin={p.productId ? vignettes.get(p.productId) : null}
-              />
-            ),
-            primary: (
-              <span className="flex min-w-0 items-center gap-2">
-                <span className="truncate">{getPurchaseLabel(p, products)}</span>
-                <VariantBadge prix={getPurchaseVariant(p, products)} autorise={showPrix} />
-              </span>
-            ),
-            meta: [
-              // En toutes lettres dans le rang secondaire, comme sur le
-              // tableau de bord et dans les ventes.
-              quantiteEnMots(p.quantite, products.find((x) => x.id === p.productId)?.unite),
-              formatDateLocale(p.date, locale),
-              showFournisseur ? p.fournisseur || null : null,
-              showPrix ? `${formatCurrency(p.prixAchatUnit)} / u` : null,
-            ],
-            amount: showPrix ? formatCurrency(p.totalAchat) : undefined,
-            // Ce qui est réellement sorti de la caisse, et ce qui reste dû :
-            // un achat à crédit n'a encore rien coûté à la trésorerie.
-            amountHint: showPrix ? (
-              p.soldeDu > 0 ? (
-                <span className="t-warning">{formatCurrency(p.soldeDu)} à payer</span>
-              ) : (
-                <span className="t-danger">−{formatCurrency(p.montantPaye)} en caisse</span>
-              )
-            ) : undefined,
-            detailTitle: getPurchaseLabel(p, products),
-            detailSubtitle: `Achat ${p.numero}`,
-            details: [
-              { label: "Date", value: formatDateLocale(p.date, locale) },
-              { label: "Référence", value: p.numero },
-              { label: "Quantité", value: `${p.quantite}` },
-              ...(showPrix
-                ? [
-                    { label: "Prix unitaire", value: formatCurrency(p.prixAchatUnit) },
-                    { label: "Total", value: formatCurrency(p.totalAchat) },
-                    {
-                      label: "Réglé au fournisseur",
-                      value: formatCurrency(p.montantPaye),
-                    },
-                    ...(p.soldeDu > 0
-                      ? [
-                          {
-                            label: "Reste à payer",
-                            value: <span className="t-warning">{formatCurrency(p.soldeDu)}</span>,
-                          },
-                        ]
-                      : []),
-                  ]
-                : []),
-              ...(showFournisseur
-                ? [{ label: "Fournisseur", value: p.fournisseur || "-", hideIfEmpty: true }]
-                : []),
-            ],
-            actions: (
-              <>
-                <button onClick={() => setSelectedPurchaseReceipt(p)} className="app-btn-secondary">
-                  <Eye className="w-4 h-4" />
-                  Voir le bon
-                </button>
-                {onUpdatePurchase && (
-                  <button
-                    onClick={() => ouvrirCorrection(p)}
-                    className="app-btn-icon h-9 w-9"
-                    title={`Corriger l'achat ${p.numero}`}
-                    aria-label={`Corriger l'achat ${p.numero}`}
-                  >
-                    <Pencil className="h-4 w-4" />
-                  </button>
-                )}
-                {onDeletePurchase && (
-                  <button
-                    onClick={() => {
-                      setErreurSuppression(null);
-                      setAchatASupprimer(p);
-                    }}
-                    className="app-btn-icon h-9 w-9"
-                    title={`Supprimer l'achat ${p.numero}`}
-                    aria-label={`Supprimer l'achat ${p.numero}`}
-                  >
-                    <Trash2 className="h-4 w-4" />
-                  </button>
-                )}
-              </>
-            ),
-          }))}
+          ouvrir={ficheAOuvrir}
+          items={filteredPurchases.map(versItemAchat)}
         />
       </div>
 

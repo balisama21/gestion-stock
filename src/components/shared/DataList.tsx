@@ -1,6 +1,7 @@
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import { ChevronRight, Inbox } from "lucide-react";
 import { Modal } from "./Modal";
+import { AvisIntrouvable } from "./AvisIntrouvable";
 
 export interface DetailField {
   label: string;
@@ -52,6 +53,14 @@ interface DataListProps {
   items: DataListItem[];
   emptyLabel?: string;
   className?: string;
+  /**
+   * Une fiche à ouvrir d'office — celle dont parle une notification.
+   * L'élément peut être absent de `items` (filtré) : il s'ouvre quand
+   * même. `item` nul signifie que l'enregistrement n'existe plus : la
+   * liste le dit, plutôt que de laisser l'utilisateur chercher.
+   * Chaque nouvelle `cle` rouvre, même vers la même fiche.
+   */
+  ouvrir?: { cle: number; item: DataListItem | null } | null;
 }
 
 const isEmpty = (v: React.ReactNode) =>
@@ -82,97 +91,112 @@ const isEmpty = (v: React.ReactNode) =>
  */
 const PAR_PAGE = 50;
 
-export const DataList: React.FC<DataListProps> = ({ items, emptyLabel, className = "" }) => {
+export const DataList: React.FC<DataListProps> = ({
+  items,
+  emptyLabel,
+  className = "",
+  ouvrir,
+}) => {
   const [openItem, setOpenItem] = useState<DataListItem | null>(null);
+  const [introuvable, setIntrouvable] = useState(false);
   const [affichees, setAffichees] = useState(PAR_PAGE);
 
-  if (items.length === 0) {
-    return (
-      <div className={`flex flex-col items-center gap-2 px-4 py-10 text-center ${className}`}>
-        <Inbox className="h-7 w-7 text-muted-foreground/50" />
-        <p className="text-sm text-muted-foreground">{emptyLabel ?? "Aucun élément à afficher."}</p>
-      </div>
-    );
-  }
+  const cleOuverture = ouvrir?.cle;
+  useEffect(() => {
+    if (!ouvrir) return;
+    if (ouvrir.item) setOpenItem(ouvrir.item);
+    else setIntrouvable(true);
+    // Seule la clé déclenche : l'élément est recalculé à chaque rendu.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cleOuverture]);
 
   return (
     <>
-      <div className={`app-list ${className}`}>
-        {items.slice(0, affichees).map((item) => {
-          const meta = (item.meta ?? []).filter(Boolean) as string[];
-          const clickable = Boolean(item.details?.length || item.actions);
+      {items.length === 0 ? (
+        <div className={`flex flex-col items-center gap-2 px-4 py-10 text-center ${className}`}>
+          <Inbox className="h-7 w-7 text-muted-foreground/50" />
+          <p className="text-sm text-muted-foreground">
+            {emptyLabel ?? "Aucun élément à afficher."}
+          </p>
+        </div>
+      ) : (
+        <div className={`app-list ${className}`}>
+          {items.slice(0, affichees).map((item) => {
+            const meta = (item.meta ?? []).filter(Boolean) as string[];
+            const clickable = Boolean(item.details?.length || item.actions);
 
-          const inner = (
-            <>
-              {/* Bloc gauche : information principale puis, en dessous,
+            const inner = (
+              <>
+                {/* Bloc gauche : information principale puis, en dessous,
                   tout le contexte sur une seule ligne grise. */}
-              <span className="min-w-0 flex-1">
-                <span className="app-list-primary block">{item.primary}</span>
-                {meta.length > 0 && (
-                  <span className="app-list-secondary block">{meta.join(" · ")}</span>
-                )}
-              </span>
+                <span className="min-w-0 flex-1">
+                  <span className="app-list-primary block">{item.primary}</span>
+                  {meta.length > 0 && (
+                    <span className="app-list-secondary block">{meta.join(" · ")}</span>
+                  )}
+                </span>
 
-              {/* Bloc droit : montant, puis badge de statut. */}
-              <span className="flex shrink-0 items-center gap-2 sm:gap-3">
-                {(item.amount || item.amountHint) && (
-                  <span className="text-right">
-                    {item.amount && <span className="app-list-amount block">{item.amount}</span>}
-                    {item.amountHint && (
-                      <span className="app-list-secondary block">{item.amountHint}</span>
-                    )}
-                  </span>
-                )}
-                {item.badge && <span className="shrink-0">{item.badge}</span>}
-                {/* Le chevron disparaît sur écran étroit : ces 20 px sont
+                {/* Bloc droit : montant, puis badge de statut. */}
+                <span className="flex shrink-0 items-center gap-2 sm:gap-3">
+                  {(item.amount || item.amountHint) && (
+                    <span className="text-right">
+                      {item.amount && <span className="app-list-amount block">{item.amount}</span>}
+                      {item.amountHint && (
+                        <span className="app-list-secondary block">{item.amountHint}</span>
+                      )}
+                    </span>
+                  )}
+                  {item.badge && <span className="shrink-0">{item.badge}</span>}
+                  {/* Le chevron disparaît sur écran étroit : ces 20 px sont
                     plus utiles au libellé principal qu'à un indice
                     d'affordance que le clic donne de toute façon. */}
-                {clickable && (
-                  <ChevronRight className="hidden h-4 w-4 shrink-0 text-muted-foreground/50 sm:block" />
-                )}
-              </span>
-            </>
-          );
-
-          // Sans élément de tête, la ligne EST le bouton. Avec, c'est le
-          // conteneur qui porte l'espacement et le bouton n'a plus de
-          // marge interne propre — sinon les deux s'additionnent et la
-          // ligne dépasse à droite.
-          if (!item.leading) {
-            const Row = clickable ? "button" : "div";
-            return (
-              <Row
-                key={item.id}
-                {...(clickable
-                  ? { type: "button" as const, onClick: () => setOpenItem(item) }
-                  : {})}
-                className="app-list-row w-full justify-between gap-3 text-left"
-              >
-                {inner}
-              </Row>
+                  {clickable && (
+                    <ChevronRight className="hidden h-4 w-4 shrink-0 text-muted-foreground/50 sm:block" />
+                  )}
+                </span>
+              </>
             );
-          }
 
-          return (
-            <div key={item.id} className="app-list-row gap-3">
-              <span className="shrink-0">{item.leading}</span>
-              {clickable ? (
-                <button
-                  type="button"
-                  onClick={() => setOpenItem(item)}
-                  className="flex min-w-0 flex-1 items-center justify-between gap-3 text-left"
+            // Sans élément de tête, la ligne EST le bouton. Avec, c'est le
+            // conteneur qui porte l'espacement et le bouton n'a plus de
+            // marge interne propre — sinon les deux s'additionnent et la
+            // ligne dépasse à droite.
+            if (!item.leading) {
+              const Row = clickable ? "button" : "div";
+              return (
+                <Row
+                  key={item.id}
+                  {...(clickable
+                    ? { type: "button" as const, onClick: () => setOpenItem(item) }
+                    : {})}
+                  className="app-list-row w-full justify-between gap-3 text-left"
                 >
                   {inner}
-                </button>
-              ) : (
-                <span className="flex min-w-0 flex-1 items-center justify-between gap-3">
-                  {inner}
-                </span>
-              )}
-            </div>
-          );
-        })}
-      </div>
+                </Row>
+              );
+            }
+
+            return (
+              <div key={item.id} className="app-list-row gap-3">
+                <span className="shrink-0">{item.leading}</span>
+                {clickable ? (
+                  <button
+                    type="button"
+                    onClick={() => setOpenItem(item)}
+                    className="flex min-w-0 flex-1 items-center justify-between gap-3 text-left"
+                  >
+                    {inner}
+                  </button>
+                ) : (
+                  <span className="flex min-w-0 flex-1 items-center justify-between gap-3">
+                    {inner}
+                  </span>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
 
       {items.length > affichees && (
         <button
@@ -212,6 +236,8 @@ export const DataList: React.FC<DataListProps> = ({ items, emptyLabel, className
           </dl>
         </Modal>
       )}
+
+      <AvisIntrouvable open={introuvable} onClose={() => setIntrouvable(false)} />
     </>
   );
 };

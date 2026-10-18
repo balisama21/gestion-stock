@@ -5,6 +5,7 @@ import { dateLocale, montant, nombre } from "../lib/format";
 import { dateDuJour, dateDansNJours } from "../../../lib/dates";
 import type { ChiffresFournisseurs } from "../lib/chiffres";
 import type { Purchase } from "../../../types";
+import { produitsAchetesA } from "../lib/partenaires";
 import { illVideArgent } from "../assets/images";
 
 /**
@@ -73,8 +74,13 @@ const Annuaire: React.FC<{
   placeholder: string;
   ajouter: string;
   lignes: Ligne[];
+  /** « Voir tout » : l'écran complet. */
   onOuvrir?: () => void;
-}> = ({ titre, lead, colonne, placeholder, ajouter, lignes, onOuvrir }) => {
+  /** Le bouton « … » d'une ligne : la fiche de CETTE ligne. */
+  onFiche?: (id: string) => void;
+  /** « Ajouter » : le formulaire de création, pas seulement l'écran. */
+  onAjouter?: () => void;
+}> = ({ titre, lead, colonne, placeholder, ajouter, lignes, onOuvrir, onFiche, onAjouter }) => {
   const [texte, setTexte] = useState("");
   const [filtre, setFiltre] = useState<Filtre>("tous");
   const [page, setPage] = useState(0);
@@ -126,8 +132,8 @@ const Annuaire: React.FC<{
             {filtre !== "tous" && <span>{LIBELLE_FILTRE[filtre]}</span>}
           </button>
         </label>
-        {onOuvrir && (
-          <button type="button" className="btn pri" onClick={onOuvrir}>
+        {(onAjouter ?? onOuvrir) && (
+          <button type="button" className="btn pri" onClick={onAjouter ?? onOuvrir}>
             <Icone nom="plus" />
             {ajouter}
           </button>
@@ -165,8 +171,8 @@ const Annuaire: React.FC<{
                     <button
                       type="button"
                       className="dots-b"
-                      onClick={onOuvrir}
-                      disabled={!onOuvrir}
+                      onClick={() => (onFiche ? onFiche(l.id) : onOuvrir?.())}
+                      disabled={!onFiche && !onOuvrir}
                       aria-label={`Ouvrir la fiche de ${l.nom}`}
                     >
                       <Icone nom="dots" />
@@ -266,6 +272,12 @@ export const SectionPartenaires: React.FC<{
   onPrestataires?: () => void;
   onAchats?: () => void;
   onCreerCommande?: () => void;
+  /** Ouvre la fiche d'un fournisseur ou d'un prestataire précis. */
+  onFicheFournisseur?: (id: string) => void;
+  onFichePrestataire?: (id: string) => void;
+  /** Ouvre directement le formulaire de création. */
+  onAjouterFournisseur?: () => void;
+  onAjouterPrestataire?: () => void;
 }> = ({
   fournisseurs,
   prestataires,
@@ -276,17 +288,29 @@ export const SectionPartenaires: React.FC<{
   onPrestataires,
   onAchats,
   onCreerCommande,
+  onFicheFournisseur,
+  onFichePrestataire,
+  onAjouterFournisseur,
+  onAjouterPrestataire,
 }) => {
   const lignesF = useMemo<Ligne[]>(
     () =>
       (fournisseurs ?? []).map((f) => ({
         id: f.id,
         nom: f.nom,
-        activite: (f.produits_fournis ?? []).join(", ") || f.categorie || f.entreprise || "",
+        // Ce que la fiche déclare, sinon ce qu'on lui a RÉELLEMENT acheté :
+        // la colonne restait à « — » pour tous les fournisseurs dont la
+        // fiche n'avait pas été remplie, alors que les achats le disaient.
+        activite:
+          (f.produits_fournis ?? []).join(", ") ||
+          produitsAchetesA(f, achats) ||
+          f.categorie ||
+          f.entreprise ||
+          "",
         contact: f.telephone ?? "",
         statut: statutDe(f.statut),
       })),
-    [fournisseurs],
+    [fournisseurs, achats],
   );
   const lignesP = useMemo<Ligne[]>(
     () =>
@@ -432,6 +456,8 @@ export const SectionPartenaires: React.FC<{
             ajouter="Ajouter un fournisseur"
             lignes={lignesF}
             onOuvrir={onFournisseurs}
+            onFiche={onFicheFournisseur}
+            onAjouter={onAjouterFournisseur}
           />
         )}
         {prestataires && (
@@ -443,6 +469,8 @@ export const SectionPartenaires: React.FC<{
             ajouter="Ajouter un prestataire"
             lignes={lignesP}
             onOuvrir={onPrestataires}
+            onFiche={onFichePrestataire}
+            onAjouter={onAjouterPrestataire}
           />
         )}
         <div className="right">

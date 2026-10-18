@@ -23,6 +23,8 @@ import {
   type ValeursPerso,
 } from "../lib/champsPersonnalises";
 import type { Database } from "../lib/database.types";
+import { FILTRE_CREATION, useFicheInitiale, useFiltreInitial } from "../lib/cibleRecherche";
+import { AvisIntrouvable } from "./shared/AvisIntrouvable";
 
 type Provider = Database["public"]["Tables"]["providers"]["Row"];
 type ProviderInsert = Database["public"]["Tables"]["providers"]["Insert"];
@@ -207,6 +209,27 @@ export const PrestatairesView: React.FC<PrestatairesViewProps> = ({
     setErreur(null);
     setFormulaireOuvert(true);
   };
+
+  // Le tableau de bord (ou une notification) peut viser une fiche précise,
+  // ou demander le formulaire de création. Voir lib/cibleRecherche.ts.
+  const [introuvable, setIntrouvable] = useState(false);
+  useFicheInitiale("prestataires", (id) => {
+    const fiche = providers.find((x) => x.id === id);
+    if (!fiche) {
+      setIntrouvable(true);
+      return;
+    }
+    setFiltre("tous");
+    setSelection(fiche);
+    window.requestAnimationFrame(() =>
+      document
+        .getElementById("fiche-prestataire")
+        ?.scrollIntoView({ behavior: "smooth", block: "start" }),
+    );
+  });
+  useFiltreInitial("prestataires", (f) => {
+    if (f === FILTRE_CREATION && peutCreer) ouvrirCreation();
+  });
 
   const ouvrirEdition = (p: Provider) => {
     setEnEdition(p);
@@ -665,7 +688,7 @@ export const PrestatairesView: React.FC<PrestatairesViewProps> = ({
 
         {/* ── La fiche ── */}
         {selection && (
-          <div className="space-y-4 lg:col-span-2">
+          <div id="fiche-prestataire" className="scroll-mt-24 space-y-4 lg:col-span-2">
             <div className="app-card p-5">
               <div className="mb-4 flex items-start justify-between gap-3">
                 <div className="min-w-0">
@@ -957,6 +980,8 @@ export const PrestatairesView: React.FC<PrestatairesViewProps> = ({
           </div>
         )}
       </div>
+
+      <AvisIntrouvable open={introuvable} onClose={() => setIntrouvable(false)} />
     </div>
   );
 };

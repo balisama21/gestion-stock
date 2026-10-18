@@ -52,6 +52,8 @@ import {
   topProduits,
   type SourcesChiffres,
 } from "./lib/chiffres";
+import { FILTRE_CREATION, useViserLigne } from "../../lib/cibleRecherche";
+import type { ActiveTab } from "../../types";
 import { lireJournal } from "./lib/journal";
 import { agendaDuMois } from "./lib/agenda";
 import { VUE_PAR_CLE } from "./roles";
@@ -594,6 +596,26 @@ export const DashboardV2Page: React.FC<DashboardV2PageProps> = ({
 
   const aller = onNavigateTab;
   const vers = (onglet: string) => (aller ? () => aller(onglet) : undefined);
+  /**
+   * Aller sur un écran EN VISANT quelque chose : la fiche d'une ligne
+   * (`id`), ou un geste comme le formulaire de création (`filtre`).
+   * Même mécanisme que la cloche — voir lib/cibleRecherche.ts.
+   */
+  const viser = useViserLigne();
+  const versFiche = (onglet: ActiveTab) =>
+    aller
+      ? (id: string) => {
+          aller(onglet);
+          viser(onglet, "", undefined, id);
+        }
+      : undefined;
+  const versCreation = (onglet: ActiveTab) =>
+    aller
+      ? () => {
+          aller(onglet);
+          viser(onglet, "", FILTRE_CREATION);
+        }
+      : undefined;
 
   /* ── Les sections, dans l'ordre de la maquette ── */
 
@@ -706,6 +728,7 @@ export const DashboardV2Page: React.FC<DashboardV2PageProps> = ({
         jour={chiffres.duJour}
         stock={chiffres.stock}
         journal={journalDuJour}
+        journalPret={donnees.luA !== null}
         erreurJournal={donnees.erreurs.journal}
         onReessayerJournal={donnees.recharger}
         valeurStockVisible={droits.champVisible("produits", "valeur_stock")}
@@ -908,6 +931,10 @@ export const DashboardV2Page: React.FC<DashboardV2PageProps> = ({
             onPrestataires={vers("prestataires")}
             onAchats={vers("achats")}
             onCreerCommande={onTelechargerLaListe}
+            onFicheFournisseur={versFiche("fournisseurs")}
+            onFichePrestataire={versFiche("prestataires")}
+            onAjouterFournisseur={versCreation("fournisseurs")}
+            onAjouterPrestataire={versCreation("prestataires")}
           />
         </Section>
       )}

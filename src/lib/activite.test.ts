@@ -125,3 +125,75 @@ describe("la cloche annonce les produits qui approchent de leur seuil", () => {
     expect(n).toBeUndefined();
   });
 });
+
+describe("la cloche ne se répète pas et ne se notifie pas soi-même", () => {
+  const vente = {
+    id: "s1",
+    numero: "V027",
+    date: "2026-10-18",
+    designation: "Carton",
+    totalVente: 136_500,
+    vendeur: "Mamy",
+    ticketId: null,
+    auteurId: "u-vendeur",
+    saisieLe: "2026-10-18T08:42:00.000Z",
+  };
+  const reglement = (id: string, quand: string, par = "u-vendeur") => ({
+    id,
+    sale_id: "s1",
+    order_id: null,
+    montant: 136_500,
+    methode: "especes",
+    created_at: quand,
+    recorded_by: par,
+  });
+
+  it("le paiement encaissé avec la vente n'est pas un second événement", () => {
+    const n = construireNotifications(
+      sources({
+        sales: [vente] as never,
+        reglements: [reglement("p1", "2026-10-18T08:42:01.000Z")] as never,
+      }),
+    );
+    expect(n.filter((x) => x.genre === "activite").map((x) => x.id)).toEqual(["act-vente-s1"]);
+  });
+
+  it("un règlement arrivé plus tard reste annoncé, et ouvre la vente", () => {
+    const n = construireNotifications(
+      sources({
+        sales: [vente] as never,
+        reglements: [reglement("p2", "2026-10-19T10:00:00.000Z")] as never,
+      }),
+    );
+    const r = n.find((x) => x.id === "act-reglement-p2");
+    expect(r?.onglet).toBe("ventes");
+    expect(r?.cibleId).toBe("s1");
+  });
+
+  it("ses propres gestes sont marqués, ceux des autres non", () => {
+    const n = construireNotifications(sources({ sales: [vente] as never, moiId: "u-vendeur" }));
+    expect(n.find((x) => x.id === "act-vente-s1")?.deMoi).toBe(true);
+    const autre = construireNotifications(sources({ sales: [vente] as never, moiId: "u-gerant" }));
+    expect(autre.find((x) => x.id === "act-vente-s1")?.deMoi).toBe(false);
+  });
+
+  it("une alerte de stock ouvre le catalogue filtré sur les alertes", () => {
+    const n = construireNotifications(
+      sources({
+        products: [
+          {
+            id: "p",
+            designation: "Ciment",
+            stockActuel: 0,
+            seuilAlerte: 5,
+            statut: "actif",
+            typeProduit: "produit",
+          },
+        ] as never,
+      }),
+    );
+    const rupture = n.find((x) => x.id.startsWith("alerte-rupture"));
+    expect(rupture?.filtre).toBe("Alerte");
+    expect(rupture?.onglet).toBe("produits");
+  });
+});

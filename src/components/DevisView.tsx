@@ -34,7 +34,7 @@ import {
   type LigneSaisie,
 } from "../lib/devis";
 import { dateDuJour, dateDansNJours } from "../lib/dates";
-import { useRechercheInitiale } from "../lib/cibleRecherche";
+import { useOuvertureFiche, useRechercheInitiale } from "../lib/cibleRecherche";
 import { AideLigneLibre, LIBELLE_LIGNE_LIBRE } from "./shared/LigneLibre";
 import { AvatarPersonne } from "./shared/AvatarPersonne";
 import { useConfirmation } from "../hooks/useConfirmation";
@@ -505,6 +505,12 @@ export const DevisView: React.FC<DevisViewProps> = ({
 
   const totalSaisi = totalDesLignes(lignes);
 
+  // La fiche dont parle une notification (voir lib/routageNotifications.ts).
+  const ficheAOuvrir = useOuvertureFiche("devis", (id) => {
+    const trouve = quotes.find((x) => x.id === id);
+    return trouve ? item(trouve) : null;
+  });
+
   return (
     <div className="space-y-4">
       <PageHeader
@@ -601,7 +607,11 @@ export const DevisView: React.FC<DevisViewProps> = ({
       </FilterBar>
 
       <div className="app-card overflow-hidden">
-        <DataList emptyLabel="Aucun devis ne correspond à ces filtres." items={filtres.map(item)} />
+        <DataList
+          emptyLabel="Aucun devis ne correspond à ces filtres."
+          ouvrir={ficheAOuvrir}
+          items={filtres.map(item)}
+        />
       </div>
 
       <Modal

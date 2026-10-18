@@ -20,7 +20,7 @@ import {
   type Livraison,
 } from "../lib/livraisons";
 import { dateDuJour } from "../lib/dates";
-import { useRechercheInitiale } from "../lib/cibleRecherche";
+import { useOuvertureFiche, useRechercheInitiale } from "../lib/cibleRecherche";
 import { AvatarPersonne } from "./shared/AvatarPersonne";
 import { useConfirmation } from "../hooks/useConfirmation";
 
@@ -446,6 +446,12 @@ export const LivraisonsView: React.FC<LivraisonsViewProps> = ({
     };
   };
 
+  // La course dont parle une notification (voir lib/routageNotifications.ts).
+  const ficheAOuvrir = useOuvertureFiche("livraisons", (id) => {
+    const trouve = deliveries.find((x) => x.id === id);
+    return trouve ? item(trouve) : null;
+  });
+
   return (
     <div className="space-y-4">
       <PageHeader
@@ -556,6 +562,7 @@ export const LivraisonsView: React.FC<LivraisonsViewProps> = ({
       <div className="app-card overflow-hidden">
         <DataList
           emptyLabel="Aucune course ne correspond à ces filtres."
+          ouvrir={ficheAOuvrir}
           items={filtrees.map(item)}
         />
       </div>

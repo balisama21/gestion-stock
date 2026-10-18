@@ -417,3 +417,99 @@ connectés.
 - Les avoirs ne sont chargés que pour les personnes qui ont accès à la
   Facturation. Pour les autres, le chiffre reste brut (seule la Facturation
   crée des avoirs).
+
+---
+
+# 11. Troisième passe — 18 octobre après-midi : notifications et fiabilité
+
+Point de départ : l'enregistrement d'écran de 12 h 35 (cloche, tableau de
+bord, Produits, Achats, Ventes, Devis, Vendeurs, Historique).
+
+## Ce que montrait la vidéo
+
+| Constat | Cause |
+|---|---|
+| Pastille rouge figée sur « 9+ », même après avoir ouvert la cloche | Seul « Tout marquer lu » remettait à zéro ; ouvrir une notification ne la marquait pas ; ses propres gestes (« Vous ») comptaient |
+| Un clic sur une notification ouvre une liste filtrée (« P086 », « V027 »), pas la fiche | Visée par la recherche, jamais par l'enregistrement |
+| « V023 » encore dans la recherche de Ventes en y revenant par le menu | La visée était réappliquée à chaque remontage de l'écran |
+| « Vente 136 500 Ar » ET « Règlement reçu 136 500 Ar » pour le même encaissement | Le paiement du comptoir était compté comme un second événement |
+| « Activité aujourd'hui : Rien d'enregistré · 0 événement », puis « 5 événements » | Aucun état de chargement ; lien « Voir l'agenda » sans rapport avec le journal |
+| Historique : « Achat · Fournisseur · ACH014 » | Libellé de remplacement lu comme un nom |
+
+## Corrections
+
+### S. Notifications (critique pour l'usage quotidien)
+- **État lu / vu en base** : table `notifications_lues` (migration
+  `20261018102745`, appliquée — purement additive, RLS « ses propres
+  lignes, dans une boutique dont on est membre », aucune autre table
+  touchée ; retour arrière dans `supabase/retours-arriere/`). Le navigateur
+  anticipe la base pour un premier rendu juste, et reprend la main seul si
+  la table refuse. L'ancien état local remonte une fois en base.
+- **Compteur comme sur un réseau social** : ouvrir la cloche met tout ce
+  qui est affiché à « vu » et la pastille retombe à zéro ; ce qui n'a pas
+  été ouvert reste en gras avec un point ; cliquer une notification la met
+  à « lu » ; « Tout marquer lu » ne paraît que s'il reste à lire.
+- **On ne se notifie pas soi-même** : ventes, achats, dépenses, apports,
+  règlements, devis, livraisons, commandes, clients et corrections portent
+  leur auteur (`deMoi`) ; ils restent dans le journal, sans compter.
+- **Pas de doublon** : le règlement enregistré avec la vente (même auteur,
+  à deux minutes près) n'est plus annoncé une seconde fois.
+- **Routage centralisé** (`lib/routageNotifications.ts`) : fiche si la
+  notification désigne un enregistrement, filtre si elle parle d'un
+  ensemble (rupture / sous le seuil → catalogue filtré « Alertes »),
+  recherche sinon. Fiches ouvertes directement : ventes (ticket entier),
+  achats, dépenses, produits, clients, devis, livraisons, commandes,
+  apports. Un règlement ouvre sa vente ou sa commande.
+- **Ressource supprimée ou inaccessible** : l'écran affiche « Introuvable »
+  au lieu d'une liste vide (`shared/AvisIntrouvable.tsx`).
+- **Visée appliquée une seule fois** (`lib/cibleRecherche.ts`) : plus de
+  recherche « collée » au retour par le menu.
+- **Les nouvelles notifications arrivent** : relecture discrète toutes les
+  minutes onglet visible, et au retour au premier plan (données, journal,
+  tâches, agenda, rappels, préalertes). Le journal des corrections se
+  relit après chaque écriture (« Produit modifié » apparaissait seulement
+  au rechargement).
+- **Permissions** : un écran absent du menu d'un membre ne s'ouvre plus
+  par un autre chemin (notification, lien, recherche).
+
+### T. Données tronquées à 1 000 lignes (critique, latent)
+`useStoreData` lisait chaque table en une requête ; PostgREST coupe en
+silence à 1 000 lignes. À la 1 001ᵉ vente, chiffre d'affaires, trésorerie
+et créances auraient été faux sans aucun message. Toutes les lectures
+passent par `lib/lirePages.ts` (tranches de 1 000, tri final sur `id` pour
+ne perdre ni dédoubler aucune ligne). Plus grosse boutique aujourd'hui :
+116 mouvements, 72 produits — aucun chiffre actuel ne change.
+
+### U. Finitions
+- Erreurs affichées dans l'application (messages en haut d'écran) au lieu
+  des boîtes `alert()` du navigateur, qui figeaient la page.
+- Carte « Activité aujourd'hui » : état de chargement, lien « Voir
+  l'historique ».
+- Historique : « Fournisseur non précisé » quand l'achat n'en a pas.
+- Fil des ventes : l'heure de saisie est transmise (elle manquait).
+
+## Vérifié en production après la fusion de la PR #44 (déploiement du 18 octobre, 10 h 49)
+
+Avec la session du propriétaire, dans le navigateur : pastille « 4 » (et non
+plus « 9+ »), remise à zéro à l'ouverture, points sur les non-lues, gestes
+« Vous » sans gras, plus de doublon vente / règlement ; « Vente 136 500 Ar »
+ouvre la fiche V027 ; la liste Ventes revient complète après fermeture ;
+« 66 produits en rupture » ouvre le catalogue filtré « Alertes (67) » ;
+carte « Activité aujourd'hui » : « 5 événements · 1 vente · Voir
+l'historique ». État écrit en base (4 « vu », 1 « lu »). Console sans erreur.
+
+# 12. Fournisseurs, prestataires, vendeurs
+
+- **Colonne « Produits / Services » toujours à « — »** (tableau de bord) :
+  elle ne lisait que la fiche. Elle reprend maintenant ce qu'on a réellement
+  acheté au fournisseur (achats rattachés à sa fiche, sinon saisis sous son
+  nom ; trois au plus) — `dashboard-v2/lib/partenaires.ts`.
+- **Bouton « … » d'une ligne** : ouvrait l'écran entier ; il ouvre la fiche
+  de ce fournisseur ou de ce prestataire.
+- **« Ajouter un fournisseur / prestataire »** : ouvrait la liste ; il ouvre
+  le formulaire de création.
+- **« Supprimer ce vendeur »** sur le propriétaire ou sur un nom venu de
+  l'historique des ventes : ne faisait rien, sans le dire. Un message
+  l'explique désormais. Pour un vrai membre, le geste retire son accès à la
+  boutique (ses ventes restent) ; le libellé de confirmation sera précisé
+  avec le remplacement des `window.confirm` (session parallèle).

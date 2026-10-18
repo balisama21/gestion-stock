@@ -32,7 +32,8 @@ import {
 } from "../lib/champsPersonnalises";
 import type { Sale, Payment } from "../types";
 import type { Database } from "../lib/database.types";
-import { useRechercheInitiale } from "../lib/cibleRecherche";
+import { useFicheInitiale, useRechercheInitiale } from "../lib/cibleRecherche";
+import { AvisIntrouvable } from "./shared/AvisIntrouvable";
 import { AvatarPersonne } from "./shared/AvatarPersonne";
 import { AvatarModifiable } from "./shared/ChoixAvatar";
 import { avoirsDesVentes, chiffreAffairesNet, type AvoirDeVente } from "../lib/ventes";
@@ -218,6 +219,26 @@ export const ClientsView: React.FC<ClientsViewProps> = ({
   const [succes, setSucces] = useState<string | null>(null);
   const [suppressionDemandee, setSuppressionDemandee] = useState(false);
   const [valeursPerso, setValeursPerso] = useState<ValeursPerso>({});
+
+  // La fiche dont parle une notification : on la sélectionne, on retire
+  // le filtre qui pourrait la cacher, et on l'amène à l'écran (sur
+  // téléphone, la fiche est SOUS la liste). Supprimée : on le dit.
+  const [introuvable, setIntrouvable] = useState(false);
+  useFicheInitiale("clients", (id) => {
+    const client = clients.find((c) => c.id === id);
+    if (!client) {
+      setIntrouvable(true);
+      return;
+    }
+    setFiltre("tous");
+    setSelection(client);
+    setSuppressionDemandee(false);
+    window.requestAnimationFrame(() =>
+      document
+        .getElementById("fiche-client")
+        ?.scrollIntoView({ behavior: "smooth", block: "start" }),
+    );
+  });
 
   /**
    * Une vente enregistrée depuis l'étape 6 porte la clé du client
@@ -779,7 +800,7 @@ export const ClientsView: React.FC<ClientsViewProps> = ({
 
         {/* ── Colonne de droite : la fiche ── */}
         {selection && (
-          <div className="space-y-4 lg:col-span-2">
+          <div id="fiche-client" className="scroll-mt-24 space-y-4 lg:col-span-2">
             <div className="app-card p-5">
               <div className="mb-4 flex items-start justify-between gap-3">
                 <AvatarModifiable nom={selection.nom} taille={52} />
@@ -1087,6 +1108,8 @@ export const ClientsView: React.FC<ClientsViewProps> = ({
           </div>
         )}
       </div>
+
+      <AvisIntrouvable open={introuvable} onClose={() => setIntrouvable(false)} />
     </div>
   );
 };

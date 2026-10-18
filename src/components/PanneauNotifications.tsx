@@ -1,6 +1,6 @@
 import React from "react";
 import { Bell, CheckCheck, ChevronRight } from "lucide-react";
-import type { ActiveTab } from "../types";
+import { estNonLue, type EtatNotification } from "../lib/notificationsLues";
 import {
   libelleQuand,
   type ActionNotification,
@@ -17,16 +17,16 @@ const LIBELLE_ACTION: Record<ActionNotification, string> = {
 interface PanneauNotificationsProps {
   alertes: Notification[];
   activites: Notification[];
-  /** Identifiants déjà vus — sert à marquer ce qui est nouveau. */
-  lues: Set<string>;
+  /** Ce que la personne a fait de chaque notification : vue, lue. */
+  etats: ReadonlyMap<string, EtatNotification>;
+  /** Combien restent à ouvrir — décide du bouton « Tout marquer lu ». */
   nonLues: number;
   onToutMarquerLu: () => void;
   /**
-   * Ouvre l'écran, et vise la ligne quand la notification en
-   * désigne une : la recherche de l'écran d'arrivée est pré-remplie
-   * sur la référence, et la liste n'affiche plus que cette ligne.
+   * Une notification cliquée : elle devient lue, puis l'application
+   * ouvre la fiche dont elle parle (voir `lib/routageNotifications.ts`).
    */
-  onOuvrirEcran: (onglet: ActiveTab, reference?: string) => void;
+  onOuvrir: (n: Notification) => void;
   /**
    * Ce que fait un bouton d'action. Le panneau ne connaît que des clés
    * ; c'est l'application qui sait où elles mènent.
@@ -69,15 +69,15 @@ const FILET: Record<TonNotif, string> = {
 export const PanneauNotifications: React.FC<PanneauNotificationsProps> = ({
   alertes,
   activites,
-  lues,
+  etats,
   nonLues,
   onToutMarquerLu,
-  onOuvrirEcran,
+  onOuvrir,
   onAction,
   onFermer,
 }) => {
   const ligne = (n: Notification) => {
-    const nouvelle = !lues.has(n.id);
+    const nouvelle = estNonLue(n, etats);
     const boutons = onAction ? (n.actions ?? []) : [];
 
     // ── Pourquoi la ligne et ses boutons sont deux blocs frères ──
@@ -88,11 +88,11 @@ export const PanneauNotifications: React.FC<PanneauNotificationsProps> = ({
     // bouton principal et se rangent juste en dessous.
     const corps = (
       <button
-        onClick={() => {
-          if (n.onglet) onOuvrirEcran(n.onglet, n.reference);
-          onFermer();
-        }}
-        className="group flex w-full items-start gap-3 px-4 py-3 text-left transition-colors hover:bg-muted active:bg-muted"
+        type="button"
+        onClick={() => onOuvrir(n)}
+        className={`group flex w-full items-start gap-3 px-4 py-3 text-left transition-colors hover:bg-muted active:bg-muted ${
+          nouvelle ? "bg-primary/5" : ""
+        }`}
       >
         <span className={`mt-1.5 h-8 w-0.5 shrink-0 rounded-full ${FILET[n.ton]}`} />
         <span className="min-w-0 flex-1">
@@ -136,9 +136,17 @@ export const PanneauNotifications: React.FC<PanneauNotificationsProps> = ({
             </span>
           )}
         </span>
-        {n.onglet && (
-          <ChevronRight className="mt-0.5 h-4 w-4 shrink-0 text-muted-foreground/50 transition-colors group-hover:text-muted-foreground" />
-        )}
+        <span className="flex shrink-0 flex-col items-center gap-2">
+          {/* La pastille des non lues, comme sur un réseau social : elle
+              tombe dès qu'on ouvre la notification. */}
+          <span
+            aria-hidden="true"
+            className={`mt-1.5 h-2 w-2 rounded-full ${nouvelle ? "bg-primary" : "bg-transparent"}`}
+          />
+          {n.onglet && (
+            <ChevronRight className="h-4 w-4 text-muted-foreground/50 transition-colors group-hover:text-muted-foreground" />
+          )}
+        </span>
       </button>
     );
 
