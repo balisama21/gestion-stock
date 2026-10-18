@@ -9,7 +9,7 @@
 -- ce que `modifier_achat` et `delete_sale` refusent déjà.
 --
 -- Seule la ligne d'autorisation change. Aucune donnée n'est touchée.
--- Retour arrière : supabase/retours-arriere/20261017100000_delete_purchase_memes_droits_que_la_table.sql
+-- Retour arrière : supabase/retours-arriere/20261018051507_delete_purchase_memes_droits_que_la_table.sql
 
 CREATE OR REPLACE FUNCTION public.delete_purchase(p_purchase_id uuid)
  RETURNS void
