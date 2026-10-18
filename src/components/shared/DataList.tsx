@@ -97,14 +97,33 @@ export const DataList: React.FC<DataListProps> = ({
   className = "",
   ouvrir,
 }) => {
-  const [openItem, setOpenItem] = useState<DataListItem | null>(null);
+  /*
+   * LA FICHE OUVERTE SUIT LA LISTE.
+   *
+   * On retenait une COPIE de la ligne au moment du clic. Après une
+   * suppression faite depuis la fiche, la copie restait affichée — la
+   * vente supprimée toujours à l'écran, avec son bouton « Supprimer » ; après
+   * un règlement, le « reste à payer » restait l'ancien. On retient
+   * maintenant l'identifiant, et l'on relit la ligne à chaque rendu :
+   * modifiée, la fiche se met à jour ; disparue, elle se ferme.
+   *
+   * Exception : une fiche ouverte par une notification peut viser une
+   * ligne que les filtres cachent. Sa copie sert alors tant que la ligne
+   * n'est pas dans la liste.
+   */
+  const [ouverte, setOuverte] = useState<{ id: string; copie: DataListItem | null } | null>(null);
+  const ouvrirFiche = (item: DataListItem, depuisLaListe: boolean) =>
+    setOuverte({ id: item.id, copie: depuisLaListe ? null : item });
+  const setOpenItem = (item: DataListItem | null) =>
+    item ? ouvrirFiche(item, true) : setOuverte(null);
+  const openItem = ouverte ? (items.find((i) => i.id === ouverte.id) ?? ouverte.copie) : null;
   const [introuvable, setIntrouvable] = useState(false);
   const [affichees, setAffichees] = useState(PAR_PAGE);
 
   const cleOuverture = ouvrir?.cle;
   useEffect(() => {
     if (!ouvrir) return;
-    if (ouvrir.item) setOpenItem(ouvrir.item);
+    if (ouvrir.item) ouvrirFiche(ouvrir.item, false);
     else setIntrouvable(true);
     // Seule la clé déclenche : l'élément est recalculé à chaque rendu.
     // eslint-disable-next-line react-hooks/exhaustive-deps

@@ -540,3 +540,47 @@ Commandes, Fournisseurs, Prestataires), avec un test.
   fournisseur, elle reprend les produits du catalogue rattachés à lui (par
   sa fiche ou par le nom saisi sur le produit, fiches inactives exclues).
   `dashboard-v2/lib/partenaires.ts`, 2 tests.
+
+# 14. Essais de bout en bout — boutique bac à sable
+
+Sur accord explicite : essais d'ajout, de modification et de suppression
+**uniquement** dans « Boutique de Mamy Balsama » (boutique vide du
+propriétaire : 0 vente, 0 produit, 0 client, aucun membre). Tout ce qui a été
+créé porte « ESSAI CLAUDE » ; seule une vente créée pour l'essai a été
+supprimée. L'identifiant de la boutique active a été revérifié avant chaque
+enregistrement. Aucune autre boutique, aucun compte client touché.
+
+| Geste | Attendu | Constaté en base |
+|---|---|---|
+| Produit P001 (achat 1 000, vente 1 500, stock 0, seuil 5) | créé, sans mouvement | conforme |
+| Achat ACH001, 10 × 1 000, comptant | stock 10, payé 10 000, solde 0 | conforme ; stock = Σ mouvements |
+| Vente V001, 3 × 1 500, comptant | payé 4 500, marge 1 500, stock 7 | conforme |
+| Vente V002, 2 × 1 500, à crédit | solde 3 000, « Impayé », stock 5 | conforme |
+| Règlement 1 000 sur V002 | « Partiel », solde 2 000 = total − Σ paiements | conforme |
+| Règlement 5 000 sur un reste de 2 000 | refusé | refusé (validation), aucun paiement créé |
+| V002 passée de 2 à 3 unités | total 4 500, solde 3 500, stock 4 | conforme |
+| Supprimer V001 (déjà payée) | refusé | refusé, message clair dans l'application |
+| Vente V003 non payée puis supprimée | stock rendu, trace au journal | stock 4, « suppression V003 » au journal |
+| Notification de V003 supprimée | « Introuvable » | conforme |
+
+Contrôles finaux du bac à sable : 0 écart stock / mouvements, 0 écart
+ventes (total, solde, paiements), 0 écart achats, aucun stock négatif.
+Aucune donnée d'essai hors du bac à sable ; « Devis fournisseur » garde ses
+20 ventes. Restent dans le bac à sable : P001, ACH001, V001, V002 et leurs
+deux paiements (laissés, à supprimer ou garder à votre choix).
+
+## Défauts trouvés par ces essais, corrigés
+
+- **Nouveau produit pré-rempli** (achat 1 000, vente 1 500, **stock initial
+  20**, seuil 5) : un produit enregistré sans relire entrait avec 20 unités
+  fictives. Tout part de 0 désormais, et la fiche est **remise à zéro** après
+  l'enregistrement (le produit suivant héritait du stock et des prix du
+  précédent).
+- **Nouvel achat pré-rempli** (10 × 1 000) : champs vides au départ,
+  quantité et prix d'au moins 1 exigés, remis à zéro après l'enregistrement.
+- **Fiche de détail figée** : après la suppression d'une vente depuis sa
+  fiche, la fiche restait ouverte sur la vente supprimée ; après un
+  règlement, l'ancien « reste à payer » restait affiché. La fiche relit
+  maintenant la ligne : à jour si elle change, fermée si elle disparaît
+  (`shared/DataList.tsx`, 4 tests ; les deux tests clés échouent sur
+  l'ancienne version).
