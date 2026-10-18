@@ -4,8 +4,8 @@ import { Lead, Lien, TeteCarte, Vide, type TonIcone } from "../components/Tn";
 import { dateLocale, montant, nombre } from "../lib/format";
 import { dateDuJour, dateDansNJours } from "../../../lib/dates";
 import type { ChiffresFournisseurs } from "../lib/chiffres";
-import type { Purchase } from "../../../types";
-import { produitsAchetesA } from "../lib/partenaires";
+import type { Product, Purchase } from "../../../types";
+import { produitsAchetesA, produitsDuCatalogueDe } from "../lib/partenaires";
 import { illVideArgent } from "../assets/images";
 
 /**
@@ -267,6 +267,8 @@ export const SectionPartenaires: React.FC<{
   /** Ce qui reste dû aux fournisseurs ; absent sans le droit de voir les prix d'achat. */
   aPayer: ChiffresFournisseurs | null;
   achats: Purchase[];
+  /** Le catalogue : ce qu'un fournisseur livre, quand on ne lui a encore rien acheté. */
+  produits?: Product[];
   reglements: ReglementFournisseur[];
   onFournisseurs?: () => void;
   onPrestataires?: () => void;
@@ -283,6 +285,7 @@ export const SectionPartenaires: React.FC<{
   prestataires,
   aPayer,
   achats,
+  produits = [],
   reglements,
   onFournisseurs,
   onPrestataires,
@@ -304,13 +307,14 @@ export const SectionPartenaires: React.FC<{
         activite:
           (f.produits_fournis ?? []).join(", ") ||
           produitsAchetesA(f, achats) ||
+          produitsDuCatalogueDe(f, produits) ||
           f.categorie ||
           f.entreprise ||
           "",
         contact: f.telephone ?? "",
         statut: statutDe(f.statut),
       })),
-    [fournisseurs, achats],
+    [fournisseurs, achats, produits],
   );
   const lignesP = useMemo<Ligne[]>(
     () =>

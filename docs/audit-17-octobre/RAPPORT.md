@@ -523,3 +523,20 @@ trouvé** : sur téléphone, la fiche s'ouvrait sous la liste, hors de l'écran
 (900 px pour 646 px visibles) — le défilement partait avant son rendu.
 Corrigé : `hooks/useDefilerVers.ts` défile après le rendu (Clients,
 Commandes, Fournisseurs, Prestataires), avec un test.
+
+# 13. Fin de journée — confirmations, vendeurs, fournisseurs
+
+- **PR #46 (modales de confirmation)**, relue et testée fusionnée avec main
+  (1 255 / 1 255) avant d'être fusionnée. **PR #48** : « Retirer de
+  l'équipe » au lieu de « Supprimer le vendeur ».
+- **Essai en ligne sans risque pour les données** : compteurs relevés en
+  base (lecture seule) — 20 ventes, 8 achats, 4 dépenses, 72 produits,
+  6 clients, 9 fournisseurs, 1 prestataire, 2 devis, 1 rappel, 2 tâches,
+  74 mouvements ; modale « Retirer Mamy de l'équipe » ouverte puis
+  **annulée** (Mamy n'est pas membre : même confirmée, rien n'aurait été
+  retiré) ; recomptage identique, aucune suppression au journal sur les
+  30 dernières minutes.
+- **Colonne « Produits / Services »** : quand rien n'a encore été acheté au
+  fournisseur, elle reprend les produits du catalogue rattachés à lui (par
+  sa fiche ou par le nom saisi sur le produit, fiches inactives exclues).
+  `dashboard-v2/lib/partenaires.ts`, 2 tests.

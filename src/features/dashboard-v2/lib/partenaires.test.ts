@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { produitsAchetesA } from "../lib/partenaires";
+import { produitsAchetesA, produitsDuCatalogueDe } from "../lib/partenaires";
 
 const achat = (designation: string, date: string, supplierId: string | null, fournisseur = "") => ({
   designation,
@@ -33,5 +33,32 @@ describe("ce qu'on achète à un fournisseur", () => {
 
   it("reste vide quand rien ne lui a été acheté", () => {
     expect(produitsAchetesA(f, [])).toBe("");
+  });
+});
+
+describe("ce qu'un fournisseur livre, d'après le catalogue", () => {
+  const f = { id: "f1", nom: "ESSAI Emballages" };
+  const produit = (
+    displayName: string,
+    supplierId: string | null,
+    fournisseur = "",
+    statut = "actif",
+  ) => ({ displayName, supplierId, fournisseur, statut });
+
+  it("prend les produits rattachés à sa fiche, ou saisis sous son nom", () => {
+    expect(
+      produitsDuCatalogueDe(f, [
+        produit("Sac kraft", null, "essai emballages"),
+        produit("Film étirable", "f1"),
+        produit("Riz", "f2", "ESSAI Emballages"),
+      ]),
+    ).toBe("Film étirable, Sac kraft");
+  });
+
+  it("écarte les fiches inactives et se limite à trois", () => {
+    const liste = ["D", "C", "B", "A"].map((n) => produit(n, "f1"));
+    expect(produitsDuCatalogueDe(f, [...liste, produit("Z", "f1", "", "inactif")])).toBe(
+      "A, B, C +1",
+    );
   });
 });
