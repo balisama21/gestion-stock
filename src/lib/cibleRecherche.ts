@@ -1,4 +1,12 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useState } from "react";
+import {
+  createContext,
+  useCallback,
+  useContext,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
 import type { ActiveTab } from "../types";
 
 /**
@@ -40,38 +48,44 @@ import type { ActiveTab } from "../types";
 export interface CibleRecherche {
   /** L'écran visé. Un écran ne réagit qu'à ce qui le concerne. */
   onglet: ActiveTab;
-  /** Ce qu'on tape dans sa recherche : « V025 », « Huile »… */
+  /**
+   * Ce qu'on tape dans sa recherche : « V025 », « Huile »… Vide quand on
+   * ouvre une fiche par son identifiant : la recherche est alors VIDÉE,
+   * pour ne pas laisser un filtre d'une visite précédente sous la fiche.
+   */
   texte: string;
   /**
    * Un filtre à poser en arrivant, quand la notification parle d'un
-   * ENSEMBLE plutôt que d'une ligne.
-   *
-   * « 4 produits approchent de leur seuil » n'a pas de référence à
-   * viser : ce qu'il faut ouvrir, c'est la liste de ces quatre-là. Une
-   * recherche ne sait pas le faire, un filtre oui.
-   *
-   * Chaque écran décide de ce que la valeur veut dire chez lui ; ceux
-   * qui ne s'y abonnent pas l'ignorent.
+   * ENSEMBLE plutôt que d'une ligne (« 4 produits sous le seuil »).
+   * Chaque écran décide de ce que la valeur veut dire chez lui.
    */
   filtre?: string;
   /**
-   * Change à chaque clic, même vers la même ligne.
-   *
-   * Sans elle, revenir deux fois sur la même notification ne referait
-   * rien la seconde fois si la recherche a été effacée entre-temps : la
-   * valeur serait identique, et l'effet ne se redéclencherait pas.
+   * L'identifiant de l'enregistrement dont parle la notification. L'écran
+   * ouvre directement sa fiche ; s'il ne la trouve plus (supprimée, ou
+   * hors de portée), il le dit au lieu d'afficher une liste vide.
    */
+  id?: string;
+  /** Change à chaque clic, même vers la même ligne. */
   cle: number;
 }
 
 export interface ValeurCibleRecherche {
   cible: CibleRecherche | null;
-  viser: (onglet: ActiveTab, texte: string, filtre?: string) => void;
+  viser: (onglet: ActiveTab, texte: string, filtre?: string, id?: string) => void;
+  /**
+   * Ce qui a déjà été appliqué, par écran et par nature (recherche,
+   * filtre, fiche). Une visée ne s'applique QU'UNE FOIS : sans cela,
+   * revenir sur l'écran Ventes par le menu, une heure plus tard,
+   * remettait « V023 » dans sa recherche, et la liste paraissait vide.
+   */
+  appliquees: Map<string, number>;
 }
 
 export const contexteCibleRecherche = createContext<ValeurCibleRecherche>({
   cible: null,
   viser: () => {},
+  appliquees: new Map(),
 });
 
 /**
@@ -82,12 +96,13 @@ export const contexteCibleRecherche = createContext<ValeurCibleRecherche>({
  */
 export function useEtatCibleRecherche(): ValeurCibleRecherche {
   const [cible, setCible] = useState<CibleRecherche | null>(null);
+  const appliquees = useRef(new Map<string, number>()).current;
 
-  const viser = useCallback((onglet: ActiveTab, texte: string, filtre?: string) => {
-    setCible((avant) => ({ onglet, texte, filtre, cle: (avant?.cle ?? 0) + 1 }));
+  const viser = useCallback((onglet: ActiveTab, texte: string, filtre?: string, id?: string) => {
+    setCible((avant) => ({ onglet, texte, filtre, id, cle: (avant?.cle ?? 0) + 1 }));
   }, []);
 
-  return useMemo(() => ({ cible, viser }), [cible, viser]);
+  return useMemo(() => ({ cible, viser, appliquees }), [cible, viser, appliquees]);
 }
 
 /**
@@ -96,53 +111,81 @@ export function useEtatCibleRecherche(): ValeurCibleRecherche {
  * Il ne change PAS d'écran — c'est la coquille qui sait le faire. Les
  * deux se combinent là où `setActiveTab` est à portée.
  */
-export function useViserLigne(): (onglet: ActiveTab, texte: string, filtre?: string) => void {
+export function useViserLigne(): ValeurCibleRecherche["viser"] {
   return useContext(contexteCibleRecherche).viser;
+}
+
+/**
+ * Le cœur commun : appelle `appliquer` une seule fois par visée, pour un
+ * écran et une nature donnés. `valeur` vaut `undefined` quand la visée
+ * ne porte rien de cette nature.
+ */
+function useAppliquerUneFois<T>(
+  onglet: ActiveTab,
+  nature: string,
+  lire: (c: CibleRecherche) => T | undefined,
+  appliquer: (v: T) => void,
+): void {
+  const { cible, appliquees } = useContext(contexteCibleRecherche);
+  const pourMoi = cible?.onglet === onglet ? cible : null;
+  const valeur = pourMoi ? lire(pourMoi) : undefined;
+  const cle = pourMoi && valeur !== undefined ? pourMoi.cle : null;
+
+  useEffect(() => {
+    if (cle === null || valeur === undefined) return;
+    const k = `${onglet}:${nature}`;
+    if (appliquees.get(k) === cle) return;
+    appliquees.set(k, cle);
+    appliquer(valeur);
+    // `appliquer` est volontairement hors des dépendances : c'est un
+    // setter d'état ou une fonction recréée à chaque rendu, et l'y mettre
+    // relancerait l'effet sans raison. La clé suffit.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [cle]);
 }
 
 /**
  * L'abonnement, pour celui qui reçoit : un écran.
  *
  *     useRechercheInitiale("ventes", setSearchQuery);
- *
- * Ne fait rien tant que personne ne vise cet écran. L'effet ne dépend
- * que de la clé : la fonction passée peut donc être recréée à chaque
- * rendu sans relancer quoi que ce soit.
  */
 export function useRechercheInitiale(onglet: ActiveTab, appliquer: (texte: string) => void): void {
-  const { cible } = useContext(contexteCibleRecherche);
-  const pourMoi = cible?.onglet === onglet;
-  const texte = pourMoi ? cible.texte : null;
-  const cle = pourMoi ? cible.cle : null;
-
-  useEffect(() => {
-    if (texte === null) return;
-    appliquer(texte);
-    // `appliquer` est volontairement hors des dépendances : c'est un
-    // setter d'état, stable en pratique, et l'y mettre relancerait la
-    // recherche à chaque rendu de la vue.
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [texte, cle]);
+  useAppliquerUneFois(onglet, "recherche", (c) => c.texte, appliquer);
 }
 
 /**
- * Le même abonnement, pour un FILTRE plutôt qu'une recherche.
- *
- *     useFiltreInitial("produits", setStockFilter);
- *
- * Ne fait rien tant que personne ne vise cet écran AVEC un filtre : une
+ * Le même abonnement, pour un FILTRE plutôt qu'une recherche. Une
  * notification qui pointe une ligne précise n'en porte pas, et laisse
  * donc le filtre de l'écran tel que l'utilisateur l'avait réglé.
  */
 export function useFiltreInitial(onglet: ActiveTab, appliquer: (filtre: string) => void): void {
-  const { cible } = useContext(contexteCibleRecherche);
-  const pourMoi = cible?.onglet === onglet && cible.filtre !== undefined;
-  const filtre = pourMoi ? (cible.filtre ?? null) : null;
-  const cle = pourMoi ? cible.cle : null;
+  useAppliquerUneFois(onglet, "filtre", (c) => c.filtre, appliquer);
+}
 
-  useEffect(() => {
-    if (filtre === null) return;
-    appliquer(filtre);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [filtre, cle]);
+/**
+ * La fiche à ouvrir, pour un écran qui sait en ouvrir une.
+ *
+ *     useFicheInitiale("clients", (id) => {
+ *       const c = clients.find((x) => x.id === id);
+ *       c ? setSelection(c) : setIntrouvable(true);
+ *     });
+ */
+export function useFicheInitiale(onglet: ActiveTab, ouvrir: (id: string) => void): void {
+  useAppliquerUneFois(onglet, "fiche", (c) => c.id, ouvrir);
+}
+
+/**
+ * La même chose pour un écran bâti sur `DataList` : rend de quoi passer à
+ * sa propriété `ouvrir`. `resoudre` traduit l'identifiant en ligne de
+ * liste, ou rend `null` si l'enregistrement n'existe plus.
+ */
+export function useOuvertureFiche<I>(
+  onglet: ActiveTab,
+  resoudre: (id: string) => I | null,
+): { cle: number; item: I | null } | null {
+  const [ouverture, setOuverture] = useState<{ cle: number; item: I | null } | null>(null);
+  useFicheInitiale(onglet, (id) =>
+    setOuverture((avant) => ({ cle: (avant?.cle ?? 0) + 1, item: resoudre(id) })),
+  );
+  return ouverture;
 }

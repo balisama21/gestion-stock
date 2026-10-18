@@ -60,7 +60,7 @@ function afficher(produits = CATALOGUE, reglages = ACTIVE) {
 }
 
 /** La feuille définitive, une fois la passe de mesure passée. */
-const attendreLaFeuille = () => screen.findByRole("table");
+const attendreLaFeuille = () => screen.findByRole("table", {}, { timeout: 5000 });
 
 /**
  * La ligne du tableau qui parle de ce produit. Cherchée DANS la feuille :

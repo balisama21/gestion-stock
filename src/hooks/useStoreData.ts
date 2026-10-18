@@ -1,4 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from "react";
+import { lireToutesLesPages } from "../lib/lirePages";
 import { supabase } from "../lib/supabase";
 import type { Database } from "../lib/database.types";
 import type { Sale as AppSale } from "../types";
@@ -804,118 +805,253 @@ export function useStoreData(storeId: string | null, userId: string | null): Sto
         salairesRes,
         paiementsSalaireRes,
       ] = await Promise.all([
-        supabase
-          .from("products")
-          .select("*")
-          .eq("store_id", storeId)
-          .order("created_at", { ascending: false }),
+        lireToutesLesPages((a, b) =>
+          supabase
+            .from("products")
+            .select("*")
+            .eq("store_id", storeId)
+            .order("created_at", { ascending: false })
+            .order("id")
+            .range(a, b),
+        ),
 
-        supabase
-          .from("sales")
-          .select("*")
-          .eq("store_id", storeId)
-          .order("date", { ascending: false }),
+        lireToutesLesPages((a, b) =>
+          supabase
+            .from("sales")
+            .select("*")
+            .eq("store_id", storeId)
+            .order("date", { ascending: false })
+            .order("created_at", { ascending: false })
+            .order("id")
+            .range(a, b),
+        ),
 
-        supabase
-          .from("purchases")
-          .select("*")
-          .eq("store_id", storeId)
-          .order("date", { ascending: false }),
+        lireToutesLesPages((a, b) =>
+          supabase
+            .from("purchases")
+            .select("*")
+            .eq("store_id", storeId)
+            .order("date", { ascending: false })
+            .order("created_at", { ascending: false })
+            .order("id")
+            .range(a, b),
+        ),
 
-        supabase
-          .from("expenses")
-          .select("*")
-          .eq("store_id", storeId)
-          .order("date", { ascending: false }),
+        lireToutesLesPages((a, b) =>
+          supabase
+            .from("expenses")
+            .select("*")
+            .eq("store_id", storeId)
+            .order("date", { ascending: false })
+            .order("created_at", { ascending: false })
+            .order("id")
+            .range(a, b),
+        ),
 
-        supabase
-          .from("orders")
-          .select("*, client:clients(*), items:order_items(*)")
-          .eq("store_id", storeId)
-          .order("created_at", { ascending: false }),
+        lireToutesLesPages((a, b) =>
+          supabase
+            .from("orders")
+            .select("*, client:clients(*), items:order_items(*)")
+            .eq("store_id", storeId)
+            .order("created_at", { ascending: false })
+            .order("id")
+            .range(a, b),
+        ),
 
-        supabase.from("clients").select("*").eq("store_id", storeId).order("nom"),
+        lireToutesLesPages((a, b) =>
+          supabase
+            .from("clients")
+            .select("*")
+            .eq("store_id", storeId)
+            .order("nom")
+            .order("id")
+            .range(a, b),
+        ),
 
-        supabase
-          .from("capital_apports")
-          .select("*")
-          .eq("store_id", storeId)
-          .order("date", { ascending: false }),
+        lireToutesLesPages((a, b) =>
+          supabase
+            .from("capital_apports")
+            .select("*")
+            .eq("store_id", storeId)
+            .order("date", { ascending: false })
+            .order("created_at", { ascending: false })
+            .order("id")
+            .range(a, b),
+        ),
 
-        supabase
-          .from("payments")
-          .select("*")
-          .eq("store_id", storeId)
-          .order("created_at", { ascending: false }),
+        lireToutesLesPages((a, b) =>
+          supabase
+            .from("payments")
+            .select("*")
+            .eq("store_id", storeId)
+            .order("created_at", { ascending: false })
+            .order("id")
+            .range(a, b),
+        ),
 
-        supabase.from("suppliers").select("*").eq("store_id", storeId).order("nom"),
+        lireToutesLesPages((a, b) =>
+          supabase
+            .from("suppliers")
+            .select("*")
+            .eq("store_id", storeId)
+            .order("nom")
+            .order("id")
+            .range(a, b),
+        ),
 
-        supabase.from("providers").select("*").eq("store_id", storeId).order("nom"),
+        lireToutesLesPages((a, b) =>
+          supabase
+            .from("providers")
+            .select("*")
+            .eq("store_id", storeId)
+            .order("nom")
+            .order("id")
+            .range(a, b),
+        ),
 
-        supabase.from("provider_services").select("*").eq("store_id", storeId).order("libelle"),
+        lireToutesLesPages((a, b) =>
+          supabase
+            .from("provider_services")
+            .select("*")
+            .eq("store_id", storeId)
+            .order("libelle")
+            .order("id")
+            .range(a, b),
+        ),
 
-        supabase
-          .from("custom_field_definitions")
-          .select("*")
-          .eq("store_id", storeId)
-          .order("ordre"),
+        lireToutesLesPages((a, b) =>
+          supabase
+            .from("custom_field_definitions")
+            .select("*")
+            .eq("store_id", storeId)
+            .order("ordre")
+            .order("id")
+            .range(a, b),
+        ),
 
-        supabase.from("categories").select("*").eq("store_id", storeId).order("ordre"),
+        lireToutesLesPages((a, b) =>
+          supabase
+            .from("categories")
+            .select("*")
+            .eq("store_id", storeId)
+            .order("ordre")
+            .order("id")
+            .range(a, b),
+        ),
 
-        supabase.from("personnes_externes").select("*").eq("store_id", storeId).order("nom"),
+        lireToutesLesPages((a, b) =>
+          supabase
+            .from("personnes_externes")
+            .select("*")
+            .eq("store_id", storeId)
+            .order("nom")
+            .order("id")
+            .range(a, b),
+        ),
 
-        supabase.from("product_images").select("*").eq("store_id", storeId).order("ordre"),
+        lireToutesLesPages((a, b) =>
+          supabase
+            .from("product_images")
+            .select("*")
+            .eq("store_id", storeId)
+            .order("ordre")
+            .order("id")
+            .range(a, b),
+        ),
 
-        supabase
-          .from("supplier_payments")
-          .select("*")
-          .eq("store_id", storeId)
-          .order("date", { ascending: false }),
-        supabase
-          .from("quotes")
-          .select("*")
-          .eq("store_id", storeId)
-          .order("date", { ascending: false }),
-        supabase
-          .from("quote_items")
-          .select("*")
-          .eq("store_id", storeId)
-          .order("ordre", { ascending: true }),
-        supabase
-          .from("supplier_invoices")
-          .select("*")
-          .eq("store_id", storeId)
-          .order("date", { ascending: false }),
-        supabase
-          .from("supplier_invoice_items")
-          .select("*")
-          .eq("store_id", storeId)
-          .order("created_at", { ascending: true }),
-        supabase
-          .from("deliveries")
-          .select("*")
-          .eq("store_id", storeId)
-          .order("date_prevue", { ascending: false, nullsFirst: false }),
+        lireToutesLesPages((a, b) =>
+          supabase
+            .from("supplier_payments")
+            .select("*")
+            .eq("store_id", storeId)
+            .order("date", { ascending: false })
+            .order("created_at", { ascending: false })
+            .order("id")
+            .range(a, b),
+        ),
+        lireToutesLesPages((a, b) =>
+          supabase
+            .from("quotes")
+            .select("*")
+            .eq("store_id", storeId)
+            .order("date", { ascending: false })
+            .order("created_at", { ascending: false })
+            .order("id")
+            .range(a, b),
+        ),
+        lireToutesLesPages((a, b) =>
+          supabase
+            .from("quote_items")
+            .select("*")
+            .eq("store_id", storeId)
+            .order("ordre", { ascending: true })
+            .order("id")
+            .range(a, b),
+        ),
+        lireToutesLesPages((a, b) =>
+          supabase
+            .from("supplier_invoices")
+            .select("*")
+            .eq("store_id", storeId)
+            .order("date", { ascending: false })
+            .order("created_at", { ascending: false })
+            .order("id")
+            .range(a, b),
+        ),
+        lireToutesLesPages((a, b) =>
+          supabase
+            .from("supplier_invoice_items")
+            .select("*")
+            .eq("store_id", storeId)
+            .order("created_at", { ascending: true })
+            .order("id")
+            .range(a, b),
+        ),
+        lireToutesLesPages((a, b) =>
+          supabase
+            .from("deliveries")
+            .select("*")
+            .eq("store_id", storeId)
+            .order("date_prevue", { ascending: false, nullsFirst: false })
+            .order("created_at", { ascending: false })
+            .order("id")
+            .range(a, b),
+        ),
 
-        supabase
-          .from("remises_vendeur")
-          .select("*")
-          .eq("store_id", storeId)
-          .order("date", { ascending: false }),
+        lireToutesLesPages((a, b) =>
+          supabase
+            .from("remises_vendeur")
+            .select("*")
+            .eq("store_id", storeId)
+            .order("date", { ascending: false })
+            .order("created_at", { ascending: false })
+            .order("id")
+            .range(a, b),
+        ),
 
         // Les regles de lecture filtrent deja : un employe ne recoit que
         // ses propres lignes, un responsable les recoit toutes.
-        supabase
-          .from("salaires")
-          .select("*")
-          .eq("store_id", storeId)
-          .order("debut_le", { ascending: false }),
+        lireToutesLesPages((a, b) =>
+          supabase
+            .from("salaires")
+            .select("*")
+            .eq("store_id", storeId)
+            .order("debut_le", { ascending: false })
+            .order("created_at", { ascending: false })
+            .order("id")
+            .range(a, b),
+        ),
 
-        supabase
-          .from("paiements_salaire")
-          .select("*")
-          .eq("store_id", storeId)
-          .order("periode", { ascending: false }),
+        lireToutesLesPages((a, b) =>
+          supabase
+            .from("paiements_salaire")
+            .select("*")
+            .eq("store_id", storeId)
+            .order("periode", { ascending: false })
+            .order("created_at", { ascending: false })
+            .order("id")
+            .range(a, b),
+        ),
       ]);
 
       if (lecture !== derniereLecture.current) return;

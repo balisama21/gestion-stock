@@ -706,6 +706,7 @@ export const DashboardV2Page: React.FC<DashboardV2PageProps> = ({
         jour={chiffres.duJour}
         stock={chiffres.stock}
         journal={journalDuJour}
+        journalPret={donnees.luA !== null}
         erreurJournal={donnees.erreurs.journal}
         onReessayerJournal={donnees.recharger}
         valeurStockVisible={droits.champVisible("produits", "valeur_stock")}

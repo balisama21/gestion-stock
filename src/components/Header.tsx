@@ -23,7 +23,8 @@ import { Modal } from "./shared/Modal";
 import { Sidebar } from "./Sidebar";
 import { MenuPlus } from "./MenuPlus";
 import { PanneauNotifications } from "./PanneauNotifications";
-import { useNotificationsLues } from "../lib/notificationsLues";
+import { compterNonVues, estNonLue, useNotificationsLues } from "../lib/notificationsLues";
+import { destinationDe } from "../lib/routageNotifications";
 import type { ActionNotification, Notification } from "../lib/activite";
 import { visibleNavGroups, visibleBottomTabs, canSeeSettings } from "./navigation";
 import { useWorkspace } from "../hooks/useWorkspace";
@@ -75,7 +76,7 @@ interface HeaderProps {
    * qui sert à huit autres endroits et n'a aucune raison de porter
    * un argument dont ils ne se servent pas.
    */
-  onViserLigne?: (onglet: ActiveTab, reference: string) => void;
+  onViserLigne?: (onglet: ActiveTab, texte: string, filtre?: string, id?: string) => void;
   settings: StoreSettings;
   /** Solde de trésorerie, affiché sous le nom de la boutique. */
   tresorerie: number;
@@ -274,11 +275,41 @@ export const Header: React.FC<HeaderProps> = ({
   // La liste se construit dans BalsamaApp, où vivent les données. Ici on
   // ne fait que la lire, la séparer en deux et compter ce qui n'a pas
   // encore été vu.
-  const { lues, marquerLues } = useNotificationsLues(workspace.activeStore?.id ?? null);
+  //
+  // La pastille compte ce qui n'a pas encore été VU — ouvrir la cloche la
+  // remet à zéro, comme sur un réseau social. Ce qui n'a pas été ouvert
+  // reste en gras dans la liste. Les gestes de la personne connectée ne
+  // comptent jamais : on ne se notifie pas soi-même.
+  const { etats, marquerVues, marquerLues } = useNotificationsLues(
+    workspace.activeStore?.id ?? null,
+    user?.id ?? null,
+  );
   const alertes = notifications.filter((n) => n.genre === "alerte");
   const activites = notifications.filter((n) => n.genre === "activite");
-  const nonLues = notifications.filter((n) => !lues.has(n.id)).length;
-  const toutMarquerLu = () => marquerLues(notifications.map((n) => n.id));
+  const nonVues = compterNonVues(notifications, etats);
+  const nonLues = notifications.filter((n) => estNonLue(n, etats)).length;
+  const toutMarquerLu = () =>
+    marquerLues(notifications.filter((n) => estNonLue(n, etats)).map((n) => n.id));
+
+  // Tout ce qui est affiché à l'ouverture est vu. Les notifications qui
+  // arrivent pendant que le panneau reste ouvert le sont aussi : on les
+  // a sous les yeux.
+  useEffect(() => {
+    if (!notifOpen) return;
+    const aVoir = notifications.filter((n) => !n.deMoi && !etats.has(n.id)).map((n) => n.id);
+    if (aVoir.length > 0) marquerVues(aVoir);
+  }, [notifOpen, notifications, etats, marquerVues]);
+
+  /** Une notification ouverte : lue, puis on va là où elle mène. */
+  const ouvrirNotification = (n: Notification) => {
+    marquerLues([n.id]);
+    setNotifOpen(false);
+    const d = destinationDe(n);
+    if (!d) return;
+    if (onViserLigne) onViserLigne(d.onglet, d.texte, d.filtre, d.id);
+    else setActiveTab(d.onglet);
+    setMobileMenuOpen(false);
+  };
 
   // Onglets et filtrage par permissions : voir src/components/navigation.tsx.
   // La sidebar (desktop) et le menu bas (mobile) consomment ces mêmes
@@ -641,17 +672,21 @@ export const Header: React.FC<HeaderProps> = ({
                 aria-label="Notifications"
               >
                 <Bell className="text-primary" />
-                {nonLues > 0 && <span className="coq-badge">{nonLues > 9 ? "9+" : nonLues}</span>}
+                {nonVues > 0 && (
+                  <span className="coq-badge" aria-label={`${nonVues} nouvelles notifications`}>
+                    {nonVues > 9 ? "9+" : nonVues}
+                  </span>
+                )}
               </button>
 
               {notifOpen && (
                 <PanneauNotifications
                   alertes={alertes}
                   activites={activites}
-                  lues={lues}
+                  etats={etats}
                   nonLues={nonLues}
                   onToutMarquerLu={toutMarquerLu}
-                  onOuvrirEcran={handleTabClick}
+                  onOuvrir={ouvrirNotification}
                   onAction={onActionNotification}
                   onFermer={fermerNotif}
                 />

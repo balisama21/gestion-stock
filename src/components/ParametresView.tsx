@@ -46,6 +46,7 @@ import { Trash2 } from "lucide-react";
 import { ReglagesMetierSection } from "./settings/ReglagesMetierSection";
 import type { ValeursParametres } from "../lib/parametres";
 import type { DevisesBoutique } from "../hooks/useDevises";
+import { signalerErreur } from "../lib/messages";
 
 interface ParametresViewProps {
   settings: StoreSettings;
@@ -346,7 +347,7 @@ export const ParametresView: React.FC<ParametresViewProps> = ({
 
     const trimmedPin = masterPin.trim();
     if (trimmedPin && !/^\d{4,6}$/.test(trimmedPin)) {
-      alert("Le code PIN doit contenir entre 4 et 6 chiffres.");
+      signalerErreur("Le code PIN doit contenir entre 4 et 6 chiffres.");
       return;
     }
 
@@ -361,7 +362,7 @@ export const ParametresView: React.FC<ParametresViewProps> = ({
     setSavingSecurity(false);
 
     if (error) {
-      alert("Erreur lors de la sauvegarde de la sécurité : " + error.message);
+      signalerErreur("Erreur lors de la sauvegarde de la sécurité : " + error.message);
       return;
     }
 
@@ -472,7 +473,7 @@ export const ParametresView: React.FC<ParametresViewProps> = ({
       setAccountSaved(true);
       setTimeout(() => setAccountSaved(false), 3000);
     } catch (err: any) {
-      alert("Erreur lors de la mise à jour du compte : " + err.message);
+      signalerErreur("Erreur lors de la mise à jour du compte : " + err.message);
     } finally {
       setSavingAccount(false);
     }
