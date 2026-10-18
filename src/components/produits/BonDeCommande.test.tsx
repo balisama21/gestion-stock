@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { cleanup, render, screen, within } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, within } from "@testing-library/react";
 import { BonDeCommande } from "./BonDeCommande";
 import { REGLAGES_PAR_DEFAUT, type ReglagesAlertesStock } from "../../lib/prealerteStock";
 import type { ProduitARecommander } from "../../lib/bonDeCommande";
@@ -62,8 +62,12 @@ function afficher(produits = CATALOGUE, reglages = ACTIVE) {
 /** La feuille définitive, une fois la passe de mesure passée. */
 const attendreLaFeuille = () => screen.findByRole("table");
 
-/** La ligne du tableau qui parle de ce produit. */
-const ligneDe = (nom: string) => screen.getByText(nom).closest("tr") as HTMLElement;
+/**
+ * La ligne du tableau qui parle de ce produit. Cherchée DANS la feuille :
+ * le nom figure aussi au-dessus, dans la liste des quantités à régler.
+ */
+const ligneDe = (nom: string) =>
+  within(screen.getByRole("table")).getByText(nom).closest("tr") as HTMLElement;
 const cellulesDe = (nom: string) => within(ligneDe(nom)).getAllByRole("cell");
 
 describe("le bon de commande", () => {
@@ -79,10 +83,11 @@ describe("le bon de commande", () => {
     expect(screen.getAllByText("Bon de commande")).toHaveLength(2);
   });
 
-  it("ne liste que ce qu'il faut racheter", () => {
+  it("ne liste que ce qu'il faut racheter", async () => {
     afficher();
-    expect(screen.getByText("Huile 1 L")).toBeTruthy();
-    expect(screen.getByText("Savon")).toBeTruthy();
+    const feuille = within(await attendreLaFeuille());
+    expect(feuille.getByText("Huile 1 L")).toBeTruthy();
+    expect(feuille.getByText("Savon")).toBeTruthy();
     // Quarante unités pour un seuil de dix : rien à commander.
     expect(screen.queryByText("Ciment")).toBeNull();
   });
@@ -145,6 +150,16 @@ describe("le bon de commande", () => {
     expect(screen.queryByText(/sans reprise après la vente/)).toBeNull();
   });
 
+  it("se nomme bon de commande dans le montant en lettres, et non facture", async () => {
+    // Le montant en lettres coupe la phrase en deux balises : on lit le
+    // texte de la page entière. Un seul produit, chiffré : sans prix,
+    // pas de montant en lettres.
+    afficher([CATALOGUE[0]]);
+    await attendreLaFeuille();
+    expect(document.body.textContent).toContain("Arrêté le présent bon de commande à la somme de");
+    expect(document.body.textContent).not.toContain("présente facture");
+  });
+
   it("laisse la place au cachet et à la signature", () => {
     afficher();
     expect(screen.getByText("Cachet et signature")).toBeTruthy();
@@ -157,10 +172,10 @@ describe("le bon de commande", () => {
     expect(screen.queryByRole("button", { name: /Excel/ })).toBeNull();
   });
 
-  it("préalerte éteinte, il s'en tient au seuil", () => {
+  it("préalerte éteinte, il s'en tient au seuil", async () => {
     // La garantie « rien ne change pour qui n'active pas ».
     afficher(CATALOGUE, REGLAGES_PAR_DEFAUT);
-    expect(screen.getByText("Savon")).toBeTruthy();
+    expect(within(await attendreLaFeuille()).getByText("Savon")).toBeTruthy();
     expect(screen.queryByText("Huile 1 L")).toBeNull();
   });
 
@@ -193,5 +208,83 @@ describe("le destinataire, quand il n'y en a qu'un", () => {
     afficher([...memeFournisseur, { id: "c", nom: "Sel", stockActuel: 1, seuilAlerte: 3 }]);
     expect(screen.queryByText("Fournisseur")).toBeNull();
     expect(screen.getAllByText("Tiko Import")).toHaveLength(2);
+  });
+});
+
+describe("ce que la boutique décide", () => {
+  afterEach(cleanup);
+
+  const quantiteDe = (nom: string) =>
+    screen.getByRole("spinbutton", { name: `Quantité à commander : ${nom}` }) as HTMLInputElement;
+
+  it("chaque quantité part de la suggestion", () => {
+    afficher();
+    expect(quantiteDe("Savon").value).toBe("5");
+    expect(quantiteDe("Huile 1 L").value).toBe("1");
+  });
+
+  it("une quantité changée passe sur le bon, avec son total", async () => {
+    afficher();
+    fireEvent.change(quantiteDe("Huile 1 L"), { target: { value: "12" } });
+    await attendreLaFeuille();
+    const cellules = cellulesDe("Huile 1 L");
+    expect(cellules[1].textContent).toBe("12 unités");
+    expect(cellules[3].textContent?.replace(/\s/g, "")).toContain("48000");
+  });
+
+  it("zéro retire le produit du bon", async () => {
+    afficher();
+    fireEvent.change(quantiteDe("Savon"), { target: { value: "0" } });
+    const feuille = within(await attendreLaFeuille());
+    expect(feuille.queryByText("Savon")).toBeNull();
+    expect(screen.getByText("Retiré du bon")).toBeTruthy();
+    expect(screen.getByText("1 produit")).toBeTruthy();
+  });
+
+  it("tout à zéro : ni bon ni fichier", () => {
+    afficher();
+    fireEvent.change(quantiteDe("Savon"), { target: { value: "0" } });
+    fireEvent.change(quantiteDe("Huile 1 L"), { target: { value: "0" } });
+    expect(screen.getByText(/Toutes les quantités sont à zéro/)).toBeTruthy();
+    expect(screen.queryByRole("button", { name: /Excel/ })).toBeNull();
+  });
+
+  it("on revient d'un geste aux quantités conseillées", () => {
+    afficher();
+    expect(screen.queryByRole("button", { name: /Quantités conseillées/ })).toBeNull();
+    fireEvent.change(quantiteDe("Savon"), { target: { value: "9" } });
+    fireEvent.click(screen.getByRole("button", { name: /Quantités conseillées/ }));
+    expect(quantiteDe("Savon").value).toBe("5");
+  });
+
+  it("un seul bon par défaut", async () => {
+    afficher();
+    expect(screen.getByRole("button", { name: "Un seul bon" }).getAttribute("aria-pressed")).toBe(
+      "true",
+    );
+    const feuille = within(await attendreLaFeuille());
+    expect(feuille.getByText("Savon")).toBeTruthy();
+    expect(feuille.getByText("Huile 1 L")).toBeTruthy();
+  });
+
+  it("un bon par produit : un bon à la fois, et on passe de l'un à l'autre", async () => {
+    afficher();
+    fireEvent.click(screen.getByRole("button", { name: "Un bon par produit" }));
+    expect(screen.getByText("2 produits · 2 bons")).toBeTruthy();
+    expect(screen.getByText(/Bon 1 sur 2/)).toBeTruthy();
+
+    // Le plus urgent d'abord : Savon (1 sur 3) avant Huile (5 sur 3).
+    let feuille = within(await attendreLaFeuille());
+    expect(feuille.getByText("Savon")).toBeTruthy();
+    expect(feuille.queryByText("Huile 1 L")).toBeNull();
+
+    fireEvent.click(screen.getByRole("button", { name: "Bon suivant" }));
+    expect(screen.getByText(/Bon 2 sur 2/)).toBeTruthy();
+    feuille = within(await attendreLaFeuille());
+    expect(feuille.getByText("Huile 1 L")).toBeTruthy();
+    expect(feuille.queryByText("Savon")).toBeNull();
+    expect(
+      (screen.getByRole("button", { name: "Bon suivant" }) as HTMLButtonElement).disabled,
+    ).toBe(true);
   });
 });
