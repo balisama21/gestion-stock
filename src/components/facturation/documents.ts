@@ -213,6 +213,7 @@ export function construireDocuments(source: SourceFacturation): DocumentCommerci
       statut: statutDeFacture({
         montant,
         paye,
+        avoire: ventes.reduce((n, v) => n + (v.montantAvoire ?? 0), 0),
         annulee: montant > 0 && montantAvoire >= montant,
         envoyee: envois.has(cle),
         echeance,

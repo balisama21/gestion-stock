@@ -16,6 +16,7 @@ import {
 } from "./types";
 import type { Json, OrderStatus } from "./lib/database.types";
 import { calculerTresorerie } from "./lib/tresorerie";
+import { avoirsDesVentes } from "./lib/ventes";
 import { formatCurrency, getProductLabel } from "./utils/formulas";
 import { getModuleScope, isFieldVisible, hasModuleAction } from "./lib/permissions";
 import { downloadExcelWorkbook } from "./utils/exportExcel";
@@ -741,6 +742,7 @@ function AppInner() {
         ticketId: s.ticket_id,
         montantPaye: s.montant_paye,
         montantRembourse: s.montant_rembourse,
+        montantAvoire: s.montant_avoire ?? 0,
         soldeDu: s.solde_du,
         statutCredit: s.statut_credit as any,
       })),
@@ -1088,6 +1090,15 @@ function AppInner() {
     [sales, myName],
   );
   const visibleSales = hasVentesAccess ? sales : mySales;
+  /**
+   * Les avoirs sur les ventes visibles : ils retranchent du chiffre
+   * d'affaires, à leur date, partout où il s'affiche. Un vendeur limité à
+   * ses ventes ne voit que les avoirs de ses tickets.
+   */
+  const avoirsVisibles = useMemo(
+    () => avoirsDesVentes(facturation.avoirs, visibleSales),
+    [facturation.avoirs, visibleSales],
+  );
 
   // ── Clients : portée own/team/all ──
   const hasClientsModule =
@@ -2028,6 +2039,7 @@ function AppInner() {
                             capital={computedCapital}
                             products={products}
                             sales={visibleSales}
+                            avoirs={avoirsVisibles}
                             purchases={purchases}
                             expenses={visibleExpenses}
                             payments={visiblePayments}
@@ -2467,6 +2479,7 @@ function AppInner() {
                         reglagesDocuments={reglagesDocuments}
                         productImages={storeData.productImages}
                         sales={visibleSales}
+                        avoirs={avoirsVisibles}
                         products={products}
                         clients={storeData.clients}
                         sellers={computedSellers}
@@ -2627,6 +2640,7 @@ function AppInner() {
                     {vue === "rapports" && (
                       <RapportsView
                         sales={visibleSales}
+                        avoirs={avoirsVisibles}
                         purchases={purchases}
                         expenses={visibleExpenses}
                         products={products}
@@ -2703,6 +2717,7 @@ function AppInner() {
                         clients={visibleClients}
                         orders={storeData.orders}
                         sales={visibleSales}
+                        avoirs={avoirsVisibles}
                         payments={visiblePayments}
                         onAddClient={storeData.addClient}
                         onUpdateClient={storeData.updateClient}

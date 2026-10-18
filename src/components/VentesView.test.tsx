@@ -61,6 +61,7 @@ const VENTE: Sale = {
   commission: 0,
   montantPaye: 60_000,
   montantRembourse: 0,
+  montantAvoire: 0,
   soldeDu: 30_000,
   statutCredit: "Partiel",
   ticketId: null,
