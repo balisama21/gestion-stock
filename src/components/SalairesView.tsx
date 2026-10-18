@@ -36,6 +36,7 @@ import {
   type TypePaiement,
 } from "../lib/salaires";
 import { AvatarModifiable } from "./shared/ChoixAvatar";
+import { useConfirmation } from "../hooks/useConfirmation";
 
 interface SalairesViewProps {
   salaires: Salaire[];
@@ -439,6 +440,7 @@ const FicheEmploye: React.FC<{
   onDeletePaiement,
   onDeleteSalaire,
 }) => {
+  const { confirmer, modaleConfirmation } = useConfirmation();
   // L'historique complet des salaires de cette personne : c'est lui qui
   // permet de relire un mois ancien avec le montant de l'époque.
   const historique = salaires
@@ -554,8 +556,13 @@ const FicheEmploye: React.FC<{
                         )}
                         <button
                           type="button"
-                          onClick={() => {
-                            if (window.confirm(`Supprimer définitivement ${l.numero} ?`)) {
+                          onClick={async () => {
+                            if (
+                              await confirmer(`Supprimer définitivement ${l.numero} ?`, {
+                                danger: true,
+                                libelle: "Supprimer",
+                              })
+                            ) {
                               onDeletePaiement(l.id);
                             }
                           }}
@@ -601,10 +608,11 @@ const FicheEmploye: React.FC<{
                   {peutGerer && (
                     <button
                       type="button"
-                      onClick={() => {
+                      onClick={async () => {
                         if (
-                          window.confirm(
+                          await confirmer(
                             "Supprimer cette période de salaire ? L'historique des mois concernés changera.",
+                            { danger: true, libelle: "Supprimer" },
                           )
                         ) {
                           onDeleteSalaire(h.id);
@@ -623,6 +631,7 @@ const FicheEmploye: React.FC<{
           </div>
         </div>
       </div>
+      {modaleConfirmation}
     </Modal>
   );
 };

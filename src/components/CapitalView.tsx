@@ -18,6 +18,7 @@ import { useOuvertureFiche } from "../lib/cibleRecherche";
 import { Modal } from "./shared/Modal";
 import { dateDuJour } from "../lib/dates";
 import { symboleDeSaisie } from "../lib/affichageDevise";
+import { useConfirmation } from "../hooks/useConfirmation";
 
 interface CapitalViewProps {
   capital: CapitalSummary;
@@ -42,6 +43,7 @@ export const CapitalView: React.FC<CapitalViewProps> = ({
   onDeleteApport,
   onDownloadExcel,
 }) => {
+  const { confirmer, modaleConfirmation } = useConfirmation();
   const isNegative = capital.tresorerieGlobaleActuelle < 0;
   const isLow = capital.tresorerieGlobaleActuelle < capital.seuilAlerteTresorerie;
 
@@ -213,9 +215,12 @@ export const CapitalView: React.FC<CapitalViewProps> = ({
     ],
     actions: (
       <button
-        onClick={() => {
+        onClick={async () => {
           if (
-            window.confirm(`Supprimer l'apport de ${formatCurrency(app.montant)} (${app.source}) ?`)
+            await confirmer(
+              `Supprimer l'apport de ${formatCurrency(app.montant)} (${app.source}) ?`,
+              { danger: true, libelle: "Supprimer" },
+            )
           ) {
             onDeleteApport(app.id);
           }
@@ -519,6 +524,7 @@ export const CapitalView: React.FC<CapitalViewProps> = ({
           </div>
         </form>
       </Modal>
+      {modaleConfirmation}
     </div>
   );
 };

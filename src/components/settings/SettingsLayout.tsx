@@ -24,6 +24,7 @@ import {
   LayoutPanelTop,
   Sparkles,
 } from "lucide-react";
+import { useConfirmation } from "../../hooks/useConfirmation";
 
 export type SettingsTab =
   | "metier"
@@ -260,6 +261,7 @@ export const SettingsLayout: React.FC<SettingsLayoutProps> = ({
   isOwner,
   sansAbonnement = false,
 }) => {
+  const { confirmer, modaleConfirmation } = useConfirmation();
   const { signOut, profile } = useAuth();
   const adminPlateforme = profile?.is_platform_admin === true;
 
@@ -361,8 +363,14 @@ export const SettingsLayout: React.FC<SettingsLayoutProps> = ({
 
             <div className="border-t border-border pt-3">
               <button
-                onClick={() => {
-                  if (window.confirm("Voulez-vous vraiment vous déconnecter ?")) signOut();
+                onClick={async () => {
+                  if (
+                    await confirmer("Voulez-vous vraiment vous déconnecter ?", {
+                      danger: true,
+                      libelle: "Se déconnecter",
+                    })
+                  )
+                    signOut();
                 }}
                 className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold t-danger transition-colors hover:bg-danger-soft"
               >
@@ -388,8 +396,14 @@ export const SettingsLayout: React.FC<SettingsLayoutProps> = ({
           {/* Déconnexion accessible aussi sur mobile */}
           <div className="lg:hidden">
             <button
-              onClick={() => {
-                if (window.confirm("Voulez-vous vraiment vous déconnecter ?")) signOut();
+              onClick={async () => {
+                if (
+                  await confirmer("Voulez-vous vraiment vous déconnecter ?", {
+                    danger: true,
+                    libelle: "Se déconnecter",
+                  })
+                )
+                  signOut();
               }}
               className="app-btn-secondary w-full t-danger"
             >
@@ -399,6 +413,7 @@ export const SettingsLayout: React.FC<SettingsLayoutProps> = ({
           </div>
         </div>
       </div>
+      {modaleConfirmation}
     </div>
   );
 };

@@ -22,6 +22,7 @@ import {
 import { dateDuJour } from "../lib/dates";
 import { useOuvertureFiche, useRechercheInitiale } from "../lib/cibleRecherche";
 import { AvatarPersonne } from "./shared/AvatarPersonne";
+import { useConfirmation } from "../hooks/useConfirmation";
 
 /** Un membre de l'équipe, tel que l'écran a besoin de le connaître. */
 interface Membre {
@@ -92,6 +93,7 @@ export const LivraisonsView: React.FC<LivraisonsViewProps> = ({
   peutModifier = true,
   peutSupprimer = true,
 }) => {
+  const { confirmer, modaleConfirmation } = useConfirmation();
   const [recherche, setRecherche] = useState("");
   // Une notification peut viser une ligne précise : la recherche
   // s'ouvre alors remplie dessus. Voir `src/lib/cibleRecherche.ts`.
@@ -285,14 +287,27 @@ export const LivraisonsView: React.FC<LivraisonsViewProps> = ({
   };
 
   const annuler = async (l: Livraison) => {
-    if (!window.confirm(`Annuler la course ${l.numero ?? ""} ?`)) return;
+    if (
+      !(await confirmer(`Annuler la course ${l.numero ?? ""} ?`, {
+        danger: true,
+        libelle: "Annuler la course",
+        libelleAnnuler: "Garder",
+      }))
+    )
+      return;
     const res = await onUpdateDelivery(l.id, { statut: "annulee" });
     if (res.error) setErreur(res.error);
     else setSucces(`Course ${l.numero ?? ""} annulée.`);
   };
 
   const supprimer = async (l: Livraison) => {
-    if (!window.confirm(`Supprimer la course ${l.numero ?? ""} ?`)) return;
+    if (
+      !(await confirmer(`Supprimer la course ${l.numero ?? ""} ?`, {
+        danger: true,
+        libelle: "Supprimer",
+      }))
+    )
+      return;
     const res = await onDeleteDelivery(l.id);
     if (res.error) setErreur(res.error);
     else setSucces(`Course ${l.numero ?? ""} supprimée.`);
@@ -770,6 +785,7 @@ export const LivraisonsView: React.FC<LivraisonsViewProps> = ({
           </div>
         </div>
       </Modal>
+      {modaleConfirmation}
     </div>
   );
 };

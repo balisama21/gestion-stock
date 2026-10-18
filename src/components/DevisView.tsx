@@ -37,6 +37,7 @@ import { dateDuJour, dateDansNJours } from "../lib/dates";
 import { useOuvertureFiche, useRechercheInitiale } from "../lib/cibleRecherche";
 import { AideLigneLibre, LIBELLE_LIGNE_LIBRE } from "./shared/LigneLibre";
 import { AvatarPersonne } from "./shared/AvatarPersonne";
+import { useConfirmation } from "../hooks/useConfirmation";
 
 type Client = Database["public"]["Tables"]["clients"]["Row"];
 
@@ -179,6 +180,7 @@ export const DevisView: React.FC<DevisViewProps> = ({
   peutModifier = true,
   peutSupprimer = true,
 }) => {
+  const { confirmer, modaleConfirmation } = useConfirmation();
   const [recherche, setRecherche] = useState("");
   // Une notification peut viser une ligne précise : la recherche
   // s'ouvre alors remplie dessus. Voir `src/lib/cibleRecherche.ts`.
@@ -372,7 +374,13 @@ export const DevisView: React.FC<DevisViewProps> = ({
 
   const supprimer = async (devis: Devis) => {
     const piece = PIECES[typeDe(devis)];
-    if (!window.confirm(`Supprimer ${piece.article} ${devis.numero ?? ""} ?`)) return;
+    if (
+      !(await confirmer(`Supprimer ${piece.article} ${devis.numero ?? ""} ?`, {
+        danger: true,
+        libelle: "Supprimer",
+      }))
+    )
+      return;
     const res = await onDeleteQuote(devis.id);
     if (res.error) setErreur(res.error);
     else
@@ -883,6 +891,7 @@ export const DevisView: React.FC<DevisViewProps> = ({
         settings={settings}
         onClose={() => setDevisAImprimer(null)}
       />
+      {modaleConfirmation}
     </div>
   );
 };

@@ -25,6 +25,7 @@ import { adresseDocument, envoyerFichier, reduireImage } from "../lib/stockageFi
 import { dateDuJour } from "../lib/dates";
 import type { SaisieFactureAchat } from "../hooks/useStoreData";
 import { AideLigneLibre, LIBELLE_LIGNE_LIBRE } from "./shared/LigneLibre";
+import { useConfirmation } from "../hooks/useConfirmation";
 
 type FactureAchat = Database["public"]["Tables"]["supplier_invoices"]["Row"];
 type LigneFactureAchat = Database["public"]["Tables"]["supplier_invoice_items"]["Row"];
@@ -107,6 +108,7 @@ export const FacturesAchatView: React.FC<Props> = ({
   peutCreer = true,
   peutModifier = true,
 }) => {
+  const { confirmer, modaleConfirmation } = useConfirmation();
   const [recherche, setRecherche] = useState("");
   const [filtreReglement, setFiltreReglement] = useState<"Tous" | "du" | "regle">("Tous");
   const [formulaireOuvert, setFormulaireOuvert] = useState(false);
@@ -295,7 +297,13 @@ export const FacturesAchatView: React.FC<Props> = ({
 
   const supprimer = async (f: FactureAchat) => {
     if (!onDelete) return;
-    if (!window.confirm(`Retirer la facture ${f.numero ?? ""} du classeur ?`)) return;
+    if (
+      !(await confirmer(`Retirer la facture ${f.numero ?? ""} du classeur ?`, {
+        danger: true,
+        libelle: "Retirer",
+      }))
+    )
+      return;
     const res = await onDelete(f.id);
     if (res.error) setErreur(res.error);
     else setSucces(`Facture ${f.numero ?? ""} retirée.`);
@@ -811,6 +819,7 @@ export const FacturesAchatView: React.FC<Props> = ({
           onFermer={() => setAImprimer(null)}
         />
       )}
+      {modaleConfirmation}
     </div>
   );
 };

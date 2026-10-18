@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { CachetsSection } from "./CachetsSection";
 import type { Cachet } from "../../features/documents/lib/cachets";
 
@@ -23,9 +23,8 @@ const cachet: Cachet = {
 };
 
 describe("la liste des cachets", () => {
-  it("se renomme et se retire de la liste", () => {
+  it("se renomme et se retire de la liste", async () => {
     const onChange = vi.fn();
-    vi.spyOn(window, "confirm").mockReturnValue(true);
     render(
       <CachetsSection cachets={[cachet]} storeId="x" onChange={onChange} onEnregistrer={vi.fn()} />,
     );
@@ -33,7 +32,15 @@ describe("la liste des cachets", () => {
     fireEvent.change(screen.getByLabelText("Nom du cachet"), { target: { value: "Tampon" } });
     expect(onChange.mock.calls[0][0][0].nom).toBe("Tampon");
     fireEvent.click(screen.getByRole("button", { name: "Retirer Cachet officiel" }));
-    expect(onChange.mock.calls[1][0]).toEqual([]);
+    const confirmation = await screen.findByRole("dialog", { name: "Confirmation" });
+    expect(
+      within(confirmation).getByText(
+        "Retirer « Cachet officiel » de la liste ? Les documents déjà émis le gardent.",
+      ),
+    ).toBeTruthy();
+    expect(onChange).toHaveBeenCalledTimes(1);
+    fireEvent.click(within(confirmation).getByRole("button", { name: "Retirer" }));
+    await waitFor(() => expect(onChange.mock.calls[1][0]).toEqual([]));
   });
 
   it("ne propose pas l'ajout sans boutique active", () => {

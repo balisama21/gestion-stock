@@ -35,6 +35,7 @@ import { PAPER_FORMATS, getPaperFormat, type PaperFormatId } from "../lib/paperF
 import { dateDuJour } from "../lib/dates";
 import { useOuvertureFiche, useRechercheInitiale } from "../lib/cibleRecherche";
 import { symboleDeSaisie } from "../lib/affichageDevise";
+import { useConfirmation } from "../hooks/useConfirmation";
 
 interface DepensesViewProps {
   expenses: Expense[];
@@ -104,6 +105,7 @@ export const DepensesView: React.FC<DepensesViewProps> = ({
   onEditExpense,
   onDeleteExpense,
 }) => {
+  const { confirmer, modaleConfirmation } = useConfirmation();
   const marque = useMarque();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingExpense, setEditingExpense] = useState<Expense | null>(null);
@@ -385,8 +387,13 @@ export const DepensesView: React.FC<DepensesViewProps> = ({
         )}
         {onDeleteExpense && (
           <button
-            onClick={() => {
-              if (window.confirm(`Supprimer la dépense ${e.numero} ?`)) {
+            onClick={async () => {
+              if (
+                await confirmer(`Supprimer la dépense ${e.numero} ?`, {
+                  danger: true,
+                  libelle: "Supprimer",
+                })
+              ) {
                 onDeleteExpense(e.id);
               }
             }}
@@ -1143,6 +1150,7 @@ export const DepensesView: React.FC<DepensesViewProps> = ({
           </form>
         </Modal>
       )}
+      {modaleConfirmation}
     </div>
   );
 };

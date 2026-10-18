@@ -14,6 +14,7 @@ import {
   type Disposition,
   type ReglagesLibres,
 } from "../../features/documents/lib/disposition";
+import { useConfirmation } from "../../hooks/useConfirmation";
 
 interface Props {
   reglages: ReglagesDocuments;
@@ -38,6 +39,7 @@ export const ChoixDisposition: React.FC<Props> = ({
   onChange,
   onEnregistrer,
 }) => {
+  const { confirmer, modaleConfirmation } = useConfirmation();
   const libre = reglages.libre;
   const [ouverte, setOuverte] = useState<string | null>(null);
   const [depart, setDepart] = useState<string>(resoudreType(reglages, type).modele);
@@ -74,8 +76,14 @@ export const ChoixDisposition: React.FC<Props> = ({
     );
   };
 
-  const supprimer = (d: Disposition) => {
-    if (!window.confirm(`Supprimer la disposition « ${d.nom} » ?`)) return;
+  const supprimer = async (d: Disposition) => {
+    if (
+      !(await confirmer(`Supprimer la disposition « ${d.nom} » ?`, {
+        danger: true,
+        libelle: "Supprimer",
+      }))
+    )
+      return;
     const dispositions = { ...libre.dispositions };
     delete dispositions[d.id];
     const parType = { ...libre.parType };
@@ -223,6 +231,7 @@ export const ChoixDisposition: React.FC<Props> = ({
           }}
         />
       )}
+      {modaleConfirmation}
     </SettingsBlock>
   );
 };

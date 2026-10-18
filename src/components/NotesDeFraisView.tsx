@@ -16,6 +16,7 @@ import {
   type DeviseBoutique,
 } from "../lib/devises";
 import type { NoteDeFrais, SaisieNoteDeFrais } from "../hooks/useNotesDeFrais";
+import { useConfirmation } from "../hooks/useConfirmation";
 
 type Statut = NoteDeFrais["statut"];
 type Filtre = "toutes" | Statut;
@@ -418,6 +419,7 @@ const DetailNote: React.FC<
     onEditer: () => void;
   }
 > = ({ note, fmt, nomPoste, onFermer, onEditer, ...p }) => {
+  const { confirmer, modaleConfirmation } = useConfirmation();
   const [erreur, setErreur] = useState<string | null>(null);
   const [enCours, setEnCours] = useState(false);
   const [refus, setRefus] = useState<string | null>(null);
@@ -606,8 +608,13 @@ const DetailNote: React.FC<
             <button
               type="button"
               disabled={enCours}
-              onClick={() => {
-                if (window.confirm(`Supprimer la note ${note.numero ?? ""} ?`))
+              onClick={async () => {
+                if (
+                  await confirmer(`Supprimer la note ${note.numero ?? ""} ?`, {
+                    danger: true,
+                    libelle: "Supprimer",
+                  })
+                )
                   agir(() => p.onSupprimer(note.id), true);
               }}
               className="app-btn-ghost t-danger"
@@ -618,6 +625,7 @@ const DetailNote: React.FC<
           </div>
         )}
       </div>
+      {modaleConfirmation}
     </Modal>
   );
 };
