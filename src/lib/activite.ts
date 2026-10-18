@@ -87,6 +87,25 @@ export interface Notification {
    * part se contente de son chevron.
    */
   actions?: ActionNotification[];
+  /**
+   * L'identifiant de l'enregistrement dont parle la notification. Le
+   * clic ouvre directement sa fiche sur l'écran `onglet`, au lieu d'une
+   * liste filtrée qu'il faudrait encore parcourir. Vide pour une alerte
+   * qui parle d'un ensemble.
+   */
+  cibleId?: string;
+  /**
+   * Un filtre à poser sur l'écran d'arrivée, quand la notification parle
+   * d'un ensemble : « Alerte » pour les produits en rupture ou sous le
+   * seuil. Chaque écran sait ce que la valeur veut dire chez lui.
+   */
+  filtre?: string;
+  /**
+   * Vrai quand c'est la personne connectée qui a fait le geste. Elle le
+   * voit dans le journal, mais on ne la NOTIFIE pas de ce qu'elle vient
+   * de faire elle-même : la pastille ne compte que les autres.
+   */
+  deMoi?: boolean;
 }
 
 /**
@@ -466,6 +485,24 @@ export function libelleQuand(quand: string, aujourdhui = dateDuJour()): string {
   return `${jj}/${mm}/${aa}`;
 }
 
+/** Écart au-delà duquel un règlement n'est plus celui de la vente elle-même. */
+const DELAI_REGLEMENT_COMPTOIR_MS = 2 * 60_000;
+
+/**
+ * Vrai quand le règlement a été enregistré avec la vente, par la même
+ * personne, dans la même minute ou presque : c'est l'encaissement du
+ * comptoir, pas un événement à part.
+ */
+export function reglementDeLaVente(
+  r: Pick<Reglement, "created_at" | "recorded_by">,
+  vente: Pick<Sale, "saisieLe" | "auteurId"> | undefined,
+): boolean {
+  if (!vente?.saisieLe) return false;
+  if (vente.auteurId && r.recorded_by && vente.auteurId !== r.recorded_by) return false;
+  const ecart = Math.abs(Date.parse(r.created_at) - Date.parse(vente.saisieLe));
+  return Number.isFinite(ecart) && ecart <= DELAI_REGLEMENT_COMPTOIR_MS;
+}
+
 export function construireNotifications(s: SourcesActivite): Notification[] {
   const { formatMontant: fmt } = s;
   const aujourdhui = dateDuJour();
@@ -489,6 +526,8 @@ export function construireNotifications(s: SourcesActivite): Notification[] {
     const m = s.membres.find((x) => x.user_id === id);
     return m ? m.full_name?.trim() || m.email : undefined;
   };
+
+  const deMoi = (id: string | null | undefined): boolean => Boolean(id && id === s.moiId);
 
   const alertes: Notification[] = [];
   const activites: Notification[] = [];
@@ -515,6 +554,7 @@ export function construireNotifications(s: SourcesActivite): Notification[] {
         quand: "",
         ton: "danger",
         onglet: "produits",
+        filtre: "Alerte",
       });
     }
     const faibles = bas.filter((p) => !estEnRupture(p.stockActuel));
@@ -530,6 +570,7 @@ export function construireNotifications(s: SourcesActivite): Notification[] {
         quand: "",
         ton: "warning",
         onglet: "produits",
+        filtre: "Alerte",
       });
     }
 
@@ -876,13 +917,15 @@ export function construireNotifications(s: SourcesActivite): Notification[] {
         // droite, celle du « qui ».
         detail: lignes.length > 1 ? `${lignes.length} articles` : premiere.designation,
         quand: premiere.date,
-        acteur: premiere.vendeur || undefined,
+        acteur: deMoi(premiere.auteurId) ? "Vous" : premiere.vendeur || undefined,
         ton: "success",
         onglet: "ventes",
         // Un ticket de plusieurs articles n'a pas de numéro à lui :
         // on vise alors sa première ligne, qui suffit à amener
         // l'œil au bon endroit de la liste.
         reference: viser("ventes", premiere.numero),
+        cibleId: cle,
+        deMoi: deMoi(premiere.auteurId),
       });
     }
 
@@ -893,8 +936,13 @@ export function construireNotifications(s: SourcesActivite): Notification[] {
     // vraiment regarder. Faute de vente identifiable, on garde l'écran
     // des paiements, sans filtre.
     const numeroDeLaVente = new Map(s.sales.map((v) => [v.id, v.numero]));
+    const venteParId = new Map(s.sales.map((v) => [v.id, v]));
     for (const r of s.reglements) {
       const vente = r.sale_id ? numeroDeLaVente.get(r.sale_id) : undefined;
+      // Le paiement encaissé AU COMPTOIR, avec la vente, n'est pas un
+      // second événement : « Vente 136 500 Ar » le dit déjà. On ne garde
+      // que les règlements arrivés après coup (crédit soldé, acompte…).
+      if (reglementDeLaVente(r, r.sale_id ? venteParId.get(r.sale_id) : undefined)) continue;
       activites.push({
         id: `act-reglement-${r.id}`,
         genre: "activite",
@@ -903,8 +951,12 @@ export function construireNotifications(s: SourcesActivite): Notification[] {
         quand: r.created_at,
         acteur: nomDe(r.recorded_by),
         ton: "success",
-        onglet: vente ? "ventes" : "paiements",
+        // Le règlement d'une vente ouvre la vente ; celui d'une commande
+        // ouvre la commande. Sans l'un ni l'autre, la liste des créances.
+        onglet: vente ? "ventes" : r.order_id ? "commandes" : "paiements",
         reference: viser("ventes", vente),
+        cibleId: (vente ? r.sale_id : r.order_id) ?? undefined,
+        deMoi: deMoi(r.recorded_by),
       });
     }
   }
@@ -921,6 +973,8 @@ export function construireNotifications(s: SourcesActivite): Notification[] {
         ton: "info",
         onglet: "achats",
         reference: viser("achats", a.numero),
+        cibleId: a.id,
+        deMoi: deMoi(a.auteurId),
       });
     }
   }
@@ -933,10 +987,12 @@ export function construireNotifications(s: SourcesActivite): Notification[] {
         titre: `Dépense ${fmt(d.montant)}`,
         detail: `${d.type}${d.note ? ` · ${d.note}` : ""}`,
         quand: d.date,
-        acteur: d.vendeur || undefined,
+        acteur: deMoi(d.auteurId) ? "Vous" : d.vendeur || undefined,
         ton: "warning",
         onglet: "depenses",
         reference: viser("depenses", d.numero),
+        cibleId: d.id,
+        deMoi: deMoi(d.auteurId),
       });
     }
   }
@@ -952,6 +1008,8 @@ export function construireNotifications(s: SourcesActivite): Notification[] {
         acteur: nomDe(ap.auteurId),
         ton: "success",
         onglet: "capital",
+        cibleId: ap.id,
+        deMoi: deMoi(ap.auteurId),
       });
     }
   }
@@ -976,6 +1034,8 @@ export function construireNotifications(s: SourcesActivite): Notification[] {
         ton: d.statut === "accepte" ? "success" : d.statut === "refuse" ? "danger" : "info",
         onglet: "devis",
         reference: viser("devis", d.numero),
+        cibleId: d.id,
+        deMoi: deMoi(d.created_by),
       });
     }
   }
@@ -1002,6 +1062,8 @@ export function construireNotifications(s: SourcesActivite): Notification[] {
         // À défaut de numéro, le destinataire : la vue cherche sur les
         // deux.
         reference: viser("livraisons", l.numero || l.destinataire),
+        cibleId: l.id,
+        deMoi: deMoi(l.created_by),
       });
     }
   }
@@ -1018,6 +1080,8 @@ export function construireNotifications(s: SourcesActivite): Notification[] {
         ton: "info",
         onglet: "commandes",
         reference: viser("commandes", c.numero),
+        cibleId: c.id,
+        deMoi: deMoi(c.owner_id),
       });
     }
   }
@@ -1036,6 +1100,8 @@ export function construireNotifications(s: SourcesActivite): Notification[] {
         // Le nom, pas le prénom seul : la vue cherche sur les deux,
         // mais un prénom courant ramènerait plusieurs fiches.
         reference: viser("clients", c.nom),
+        cibleId: c.id,
+        deMoi: deMoi(c.created_by),
       });
     }
   }
@@ -1076,6 +1142,10 @@ export function construireNotifications(s: SourcesActivite): Notification[] {
       // référence : la ligne n'existe plus, la recherche ne ramènera
       // rien, et c'est la bonne réponse à « montre-la-moi ».
       reference: viser(ent.onglet, j.etiquette),
+      // Une ligne supprimée n'a plus de fiche : l'écran le dira. Un
+      // règlement n'a pas de fiche propre, on ouvre seulement l'écran.
+      cibleId: j.entite_id && j.entite !== "payments" ? j.entite_id : undefined,
+      deMoi: deMoi(j.acteur_id),
     });
   }
 

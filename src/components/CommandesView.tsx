@@ -61,8 +61,10 @@ function getOrderItemLabel(
   );
 }
 import type { Database } from "../lib/database.types";
-import { useRechercheInitiale } from "../lib/cibleRecherche";
+import { useFicheInitiale, useRechercheInitiale } from "../lib/cibleRecherche";
+import { AvisIntrouvable } from "./shared/AvisIntrouvable";
 import { AideLigneLibre, LIBELLE_LIGNE_LIBRE } from "./shared/LigneLibre";
+import { signalerErreur } from "../lib/messages";
 
 type Order = Database["public"]["Tables"]["orders"]["Row"] & {
   client?: Database["public"]["Tables"]["clients"]["Row"] | null;
@@ -188,6 +190,25 @@ export const CommandesView: React.FC<CommandesViewProps> = ({
   const [filterPayment, setFilterPayment] = useState<PaymentStatus | "all">("all");
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
 
+  // La commande dont parle une notification : filtres retirés, ligne
+  // dépliée et amenée à l'écran. Supprimée : on le dit.
+  const [introuvable, setIntrouvable] = useState(false);
+  useFicheInitiale("commandes", (id) => {
+    const commande = orders.find((o) => o.id === id);
+    if (!commande) {
+      setIntrouvable(true);
+      return;
+    }
+    setFilterStatus("all");
+    setFilterPayment("all");
+    setSelectedOrder(commande);
+    window.requestAnimationFrame(() =>
+      document
+        .getElementById(`commande-${commande.id}`)
+        ?.scrollIntoView({ behavior: "smooth", block: "center" }),
+    );
+  });
+
   /*
    * LE BON DE COMMANDE CLIENT.
    *
@@ -248,7 +269,7 @@ export const CommandesView: React.FC<CommandesViewProps> = ({
     setCancelling(true);
     const result = await onUpdateOrder(cancelTarget.id, { statut_commande: "annule" });
     if (result.error) {
-      alert("Erreur lors de l'annulation : " + result.error);
+      signalerErreur("Erreur lors de l'annulation : " + result.error);
       setCancelling(false);
       return;
     }
@@ -549,6 +570,7 @@ export const CommandesView: React.FC<CommandesViewProps> = ({
             return (
               <div
                 key={order.id}
+                id={`commande-${order.id}`}
                 className={`app-card overflow-hidden transition-colors ${isSelected ? "bg-muted/40" : ""}`}
               >
                 <div
@@ -1123,6 +1145,8 @@ export const CommandesView: React.FC<CommandesViewProps> = ({
           )}
         </form>
       </Modal>
+
+      <AvisIntrouvable open={introuvable} onClose={() => setIntrouvable(false)} />
     </div>
   );
 };

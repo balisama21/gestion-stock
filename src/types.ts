@@ -93,6 +93,8 @@ export interface Sale {
   montantAvoire: number;
   soldeDu: number;
   statutCredit: "Payé" | "Partiel" | "Impayé";
+  /** Qui a enregistre la ligne (`sales.owner_id`). Sert au journal d activite. */
+  auteurId?: string | null;
   /**
    * Quand la ligne a ete ecrite, horodatage complet.
    *
@@ -137,6 +139,8 @@ export interface Expense {
   personneId?: string | null;
   /** Le chemin de la photo du recu dans le seau documents. */
   justificatif?: string | null;
+  /** Qui a enregistre la ligne (`expenses.owner_id`). Sert au journal d activite. */
+  auteurId?: string | null;
 }
 
 export interface CapitalApport {

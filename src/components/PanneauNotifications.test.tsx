@@ -40,10 +40,10 @@ function afficher(surcharge: Partial<React.ComponentProps<typeof PanneauNotifica
   const props = {
     alertes: [PREALERTE],
     activites: [],
-    lues: new Set<string>(),
+    etats: new Map(),
     nonLues: 1,
     onToutMarquerLu: vi.fn(),
-    onOuvrirEcran: vi.fn(),
+    onOuvrir: vi.fn(),
     onAction: vi.fn(),
     onFermer: vi.fn(),
     ...surcharge,
@@ -71,7 +71,7 @@ describe("une notification qui liste et qui agit", () => {
     expect(props.onFermer).toHaveBeenCalled();
     // Le bouton agit, il ne navigue pas : les deux gestes seraient
     // concurrents, et c'est l'action qui a été demandée.
-    expect(props.onOuvrirEcran).not.toHaveBeenCalled();
+    expect(props.onOuvrir).not.toHaveBeenCalled();
   });
 
   it("le bouton d'action n'est pas DANS le bouton de la ligne", () => {
@@ -87,12 +87,52 @@ describe("une notification qui liste et qui agit", () => {
     expect(screen.queryByRole("button", { name: "Préparer la commande" })).toBeNull();
 
     fireEvent.click(screen.getByText("1 produit en rupture"));
-    expect(props.onOuvrirEcran).toHaveBeenCalledWith("produits", undefined);
+    expect(props.onOuvrir).toHaveBeenCalledWith(SIMPLE);
   });
 
   it("sans gestionnaire d'action, aucun bouton n'est proposé", () => {
     // Mieux vaut pas de bouton qu'un bouton qui ne fait rien.
     afficher({ onAction: undefined });
     expect(screen.queryByRole("button", { name: "Préparer la commande" })).toBeNull();
+  });
+});
+
+describe("lu, vu, non lu", () => {
+  afterEach(cleanup);
+
+  it("une notification ouverte n'est plus en gras ; une notification vue l'est encore", () => {
+    afficher({
+      alertes: [SIMPLE, PREALERTE],
+      etats: new Map([
+        [SIMPLE.id, "lu"],
+        [PREALERTE.id, "vu"],
+      ]),
+    });
+    expect(screen.getByText(SIMPLE.titre).className).not.toContain("font-semibold");
+    expect(screen.getByText(PREALERTE.titre).className).toContain("font-semibold");
+  });
+
+  it("ses propres gestes ne sont jamais présentés comme nouveaux", () => {
+    const moi: Notification = {
+      id: "act-achat-1",
+      genre: "activite",
+      titre: "Achat 50 000 Ar",
+      detail: "Carnet",
+      quand: "2026-10-18",
+      ton: "info",
+      onglet: "achats",
+      deMoi: true,
+    };
+    afficher({ alertes: [], activites: [moi] });
+    expect(screen.getByText(moi.titre).className).not.toContain("font-semibold");
+  });
+
+  it("« Tout marquer lu » n'apparaît que s'il reste quelque chose à lire", () => {
+    afficher({ nonLues: 0 });
+    expect(screen.queryByText("Tout marquer lu")).toBeNull();
+    cleanup();
+    const props = afficher({ nonLues: 2 });
+    fireEvent.click(screen.getByText("Tout marquer lu"));
+    expect(props.onToutMarquerLu).toHaveBeenCalled();
   });
 });

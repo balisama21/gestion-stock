@@ -18,7 +18,7 @@ import { formatCurrency, getProductLabel, getProductVariant } from "../utils/for
 import { VariantBadge } from "./shared/VariantBadge";
 import { PageHeader } from "./shared/PageHeader";
 import { FilterBar, FilterField } from "./shared/FilterBar";
-import { DataList } from "./shared/DataList";
+import { DataList, type DataListItem } from "./shared/DataList";
 import { VignetteProduit, vignettesParProduit } from "./shared/VignetteProduit";
 import { StatCol } from "./shared/StatBar";
 import { Modal } from "./shared/Modal";
@@ -29,7 +29,7 @@ import { SelecteurFournisseur } from "./shared/SelecteurFournisseur";
 import { DETAILS_VIDES, detailsVersBase, type ValeursDetails } from "../lib/detailsProduit";
 import { envoyerFichier, supprimerFichier } from "../lib/stockageFichiers";
 import type { Database } from "../lib/database.types";
-import { useFiltreInitial, useRechercheInitiale } from "../lib/cibleRecherche";
+import { useFiltreInitial, useOuvertureFiche, useRechercheInitiale } from "../lib/cibleRecherche";
 import {
   estARecommander,
   estEnRupture,
@@ -562,6 +562,76 @@ export const ProduitsView: React.FC<ProduitsViewProps> = ({
     setConfirmDeleteIds(null);
   };
 
+  /** Une ligne de la liste ; sert aussi à ouvrir la fiche visée par une notification. */
+  const versItemProduit = (p: Product): DataListItem => {
+    const suivi = stockEstSuivi(p);
+    const rupture = suivi && estEnRupture(p.stockActuel);
+    const bas = suivi && !rupture && estSousLeSeuil(p.stockActuel, p.seuilAlerte);
+    return {
+      id: p.id,
+      // La vignette seule, pour reconnaitre la ligne qu'on lit.
+      // La case a cocher qui l'accompagnait est partie avec la
+      // selection multiple : on supprime un produit depuis sa
+      // propre ligne, ce qui laisse voir lequel on supprime.
+      leading: <VignetteProduit nom={getProductLabel(p, products)} chemin={vignettes.get(p.id)} />,
+      primary: (
+        <span className="flex min-w-0 items-center gap-2">
+          <span className="truncate">{getProductLabel(p, products)}</span>
+          <VariantBadge prix={getProductVariant(p, products)} autorise={showPrixAchat} />
+        </span>
+      ),
+      meta: [p.numero, showFournisseur ? p.fournisseur || null : null, `seuil ${p.seuilAlerte}`],
+      amount: formatCurrency(p.prixVenteDefaut),
+      amountHint: showPrixAchat ? `achat ${formatCurrency(p.prixAchat)}` : undefined,
+      badge: (
+        <span
+          className={`app-badge ${
+            rupture ? "app-badge-danger" : bas ? "app-badge-warning" : "app-badge-neutral"
+          }`}
+        >
+          {rupture ? "Rupture" : `${p.stockActuel} en stock`}
+        </span>
+      ),
+      detailTitle: getProductLabel(p, products),
+      detailSubtitle: p.numero,
+      details: [
+        { label: "Référence", value: p.numero },
+        { label: "Stock actuel", value: `${p.stockActuel}` },
+        { label: "Stock réservé", value: `${p.stockReserve}`, hideIfEmpty: true },
+        { label: "Stock disponible", value: `${p.stockDisponible}` },
+        { label: "Seuil d'alerte", value: `${p.seuilAlerte}` },
+        ...(showPrixAchat ? [{ label: "Prix d'achat", value: formatCurrency(p.prixAchat) }] : []),
+        { label: "Prix de vente", value: formatCurrency(p.prixVenteDefaut) },
+        ...(showFournisseur
+          ? [{ label: "Fournisseur", value: p.fournisseur || "-", hideIfEmpty: true }]
+          : []),
+      ],
+      actions: (
+        <>
+          {onEditProduct && canEdit && (
+            <button onClick={() => openEditModal(p)} className="app-btn-secondary">
+              <Pencil className="w-4 h-4" />
+              Modifier
+            </button>
+          )}
+          {onDeleteProducts && canDelete && (
+            <button onClick={() => setConfirmDeleteIds([p.id])} className="app-btn-danger">
+              <Trash2 className="w-4 h-4" />
+              Supprimer
+            </button>
+          )}
+        </>
+      ),
+    };
+  };
+
+  const ficheAOuvrir = useOuvertureFiche("produits", (id) => {
+    // La fiche s'ouvre depuis le catalogue : on y revient s'il le faut.
+    setVueReappro(false);
+    const trouve = products.find((x) => x.id === id);
+    return trouve ? versItemProduit(trouve) : null;
+  });
+
   return (
     <div className="space-y-6">
       {/* Page Header */}
@@ -735,88 +805,8 @@ export const ProduitsView: React.FC<ProduitsViewProps> = ({
           <div className="app-card overflow-hidden">
             <DataList
               emptyLabel="Aucun produit ne correspond à ces filtres."
-              items={filteredProducts.map((p) => {
-                const suivi = stockEstSuivi(p);
-                const rupture = suivi && estEnRupture(p.stockActuel);
-                const bas = suivi && !rupture && estSousLeSeuil(p.stockActuel, p.seuilAlerte);
-                return {
-                  id: p.id,
-                  // La vignette seule, pour reconnaitre la ligne qu'on lit.
-                  // La case a cocher qui l'accompagnait est partie avec la
-                  // selection multiple : on supprime un produit depuis sa
-                  // propre ligne, ce qui laisse voir lequel on supprime.
-                  leading: (
-                    <VignetteProduit
-                      nom={getProductLabel(p, products)}
-                      chemin={vignettes.get(p.id)}
-                    />
-                  ),
-                  primary: (
-                    <span className="flex min-w-0 items-center gap-2">
-                      <span className="truncate">{getProductLabel(p, products)}</span>
-                      <VariantBadge
-                        prix={getProductVariant(p, products)}
-                        autorise={showPrixAchat}
-                      />
-                    </span>
-                  ),
-                  meta: [
-                    p.numero,
-                    showFournisseur ? p.fournisseur || null : null,
-                    `seuil ${p.seuilAlerte}`,
-                  ],
-                  amount: formatCurrency(p.prixVenteDefaut),
-                  amountHint: showPrixAchat ? `achat ${formatCurrency(p.prixAchat)}` : undefined,
-                  badge: (
-                    <span
-                      className={`app-badge ${
-                        rupture
-                          ? "app-badge-danger"
-                          : bas
-                            ? "app-badge-warning"
-                            : "app-badge-neutral"
-                      }`}
-                    >
-                      {rupture ? "Rupture" : `${p.stockActuel} en stock`}
-                    </span>
-                  ),
-                  detailTitle: getProductLabel(p, products),
-                  detailSubtitle: p.numero,
-                  details: [
-                    { label: "Référence", value: p.numero },
-                    { label: "Stock actuel", value: `${p.stockActuel}` },
-                    { label: "Stock réservé", value: `${p.stockReserve}`, hideIfEmpty: true },
-                    { label: "Stock disponible", value: `${p.stockDisponible}` },
-                    { label: "Seuil d'alerte", value: `${p.seuilAlerte}` },
-                    ...(showPrixAchat
-                      ? [{ label: "Prix d'achat", value: formatCurrency(p.prixAchat) }]
-                      : []),
-                    { label: "Prix de vente", value: formatCurrency(p.prixVenteDefaut) },
-                    ...(showFournisseur
-                      ? [{ label: "Fournisseur", value: p.fournisseur || "-", hideIfEmpty: true }]
-                      : []),
-                  ],
-                  actions: (
-                    <>
-                      {onEditProduct && canEdit && (
-                        <button onClick={() => openEditModal(p)} className="app-btn-secondary">
-                          <Pencil className="w-4 h-4" />
-                          Modifier
-                        </button>
-                      )}
-                      {onDeleteProducts && canDelete && (
-                        <button
-                          onClick={() => setConfirmDeleteIds([p.id])}
-                          className="app-btn-danger"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                          Supprimer
-                        </button>
-                      )}
-                    </>
-                  ),
-                };
-              })}
+              ouvrir={ficheAOuvrir}
+              items={filteredProducts.map(versItemProduit)}
             />
           </div>
         </>

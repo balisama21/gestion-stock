@@ -25,7 +25,7 @@ import { SelecteurPersonne } from "./shared/SelecteurPersonne";
 import { cleDeListe } from "../lib/listes";
 import type { Personne } from "../lib/personnes";
 import { FilterBar, FilterField } from "./shared/FilterBar";
-import { DataList } from "./shared/DataList";
+import { DataList, type DataListItem } from "./shared/DataList";
 import { adresseDocument, envoyerFichier, reduireImage } from "../lib/stockageFichiers";
 import { StatCol } from "./shared/StatBar";
 import { Modal } from "./shared/Modal";
@@ -33,7 +33,7 @@ import { exporterPdf, exporterImage, imprimerDocument, nomDeFichier } from "../l
 import { reprendreApresDeploiement, messageDErreurExport } from "../lib/chunkRecovery";
 import { PAPER_FORMATS, getPaperFormat, type PaperFormatId } from "../lib/paperFormats";
 import { dateDuJour } from "../lib/dates";
-import { useRechercheInitiale } from "../lib/cibleRecherche";
+import { useOuvertureFiche, useRechercheInitiale } from "../lib/cibleRecherche";
 import { symboleDeSaisie } from "../lib/affichageDevise";
 
 interface DepensesViewProps {
@@ -326,6 +326,85 @@ export const DepensesView: React.FC<DepensesViewProps> = ({
     }
   };
 
+  /** Une ligne de la liste ; sert aussi à ouvrir la fiche visée par une notification. */
+  const versItemDepense = (e: Expense): DataListItem => ({
+    id: e.id,
+    primary: e.note?.trim() || e.type,
+    meta: [formatDateLocale(e.date, locale), e.vendeur],
+    amount: `- ${formatCurrency(e.montant)}`,
+    badge: (
+      <span
+        className={`app-badge ${
+          e.type === "Achat de stock"
+            ? "app-badge-info"
+            : e.type === "Retrait d'argent"
+              ? "app-badge-warning"
+              : "app-badge-neutral"
+        }`}
+      >
+        {e.type}
+      </span>
+    ),
+    detailTitle: e.note?.trim() || e.type,
+    detailSubtitle: `Dépense ${e.numero}`,
+    details: [
+      { label: "Date", value: formatDateLocale(e.date, locale) },
+      { label: "Référence", value: e.numero },
+      { label: "Vendeur", value: e.vendeur },
+      { label: "Type", value: e.type },
+      { label: "Note", value: e.note || "-", hideIfEmpty: true },
+      ...(e.justificatif
+        ? [
+            {
+              label: "Reçu",
+              value: (
+                <button
+                  type="button"
+                  onClick={() => ouvrirJustificatif(e.justificatif as string)}
+                  className="font-medium t-success hover:underline"
+                >
+                  Ouvrir la photo
+                </button>
+              ),
+            },
+          ]
+        : []),
+      { label: "Montant", value: formatCurrency(e.montant) },
+      {
+        label: "Effet sur la trésorerie",
+        value: <span className="t-danger">{formatCurrency(e.impactTresorerieGlobale)}</span>,
+      },
+    ],
+    actions: (
+      <>
+        {onEditExpense && (
+          <button onClick={() => setEditingExpense(e)} className="app-btn-secondary">
+            <Edit3 className="w-4 h-4" />
+            Modifier
+          </button>
+        )}
+        {onDeleteExpense && (
+          <button
+            onClick={() => {
+              if (window.confirm(`Supprimer la dépense ${e.numero} ?`)) {
+                onDeleteExpense(e.id);
+              }
+            }}
+            className="app-btn-danger"
+          >
+            <Trash2 className="w-4 h-4" />
+            Supprimer
+          </button>
+        )}
+      </>
+    ),
+  });
+
+  const ficheAOuvrir = useOuvertureFiche("depenses", (id) => {
+    const trouve = expenses.find((x) => x.id === id);
+    return trouve ? versItemDepense(trouve) : null;
+  });
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -434,80 +513,8 @@ export const DepensesView: React.FC<DepensesViewProps> = ({
       <div className="app-card overflow-hidden">
         <DataList
           emptyLabel="Aucune dépense ne correspond à ces filtres."
-          items={filteredExpenses.map((e) => ({
-            id: e.id,
-            primary: e.note?.trim() || e.type,
-            meta: [formatDateLocale(e.date, locale), e.vendeur],
-            amount: `- ${formatCurrency(e.montant)}`,
-            badge: (
-              <span
-                className={`app-badge ${
-                  e.type === "Achat de stock"
-                    ? "app-badge-info"
-                    : e.type === "Retrait d'argent"
-                      ? "app-badge-warning"
-                      : "app-badge-neutral"
-                }`}
-              >
-                {e.type}
-              </span>
-            ),
-            detailTitle: e.note?.trim() || e.type,
-            detailSubtitle: `Dépense ${e.numero}`,
-            details: [
-              { label: "Date", value: formatDateLocale(e.date, locale) },
-              { label: "Référence", value: e.numero },
-              { label: "Vendeur", value: e.vendeur },
-              { label: "Type", value: e.type },
-              { label: "Note", value: e.note || "-", hideIfEmpty: true },
-              ...(e.justificatif
-                ? [
-                    {
-                      label: "Reçu",
-                      value: (
-                        <button
-                          type="button"
-                          onClick={() => ouvrirJustificatif(e.justificatif as string)}
-                          className="font-medium t-success hover:underline"
-                        >
-                          Ouvrir la photo
-                        </button>
-                      ),
-                    },
-                  ]
-                : []),
-              { label: "Montant", value: formatCurrency(e.montant) },
-              {
-                label: "Effet sur la trésorerie",
-                value: (
-                  <span className="t-danger">{formatCurrency(e.impactTresorerieGlobale)}</span>
-                ),
-              },
-            ],
-            actions: (
-              <>
-                {onEditExpense && (
-                  <button onClick={() => setEditingExpense(e)} className="app-btn-secondary">
-                    <Edit3 className="w-4 h-4" />
-                    Modifier
-                  </button>
-                )}
-                {onDeleteExpense && (
-                  <button
-                    onClick={() => {
-                      if (window.confirm(`Supprimer la dépense ${e.numero} ?`)) {
-                        onDeleteExpense(e.id);
-                      }
-                    }}
-                    className="app-btn-danger"
-                  >
-                    <Trash2 className="w-4 h-4" />
-                    Supprimer
-                  </button>
-                )}
-              </>
-            ),
-          }))}
+          ouvrir={ficheAOuvrir}
+          items={filteredExpenses.map(versItemDepense)}
         />
       </div>
 

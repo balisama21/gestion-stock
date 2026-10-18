@@ -107,7 +107,7 @@ export const HistoriqueView: React.FC<HistoriqueViewProps> = ({
         date: p.date,
         type: "ACHAT" as const,
         description: `Achat stock : ${getPurchaseLabel(p, products)} (${p.quantite} pcs)`,
-        actor: p.fournisseur || "Fournisseur",
+        actor: p.fournisseur?.trim() || "Fournisseur non précisé",
         montant: -p.totalAchat,
         decaisse: true,
         icon: <ShoppingCart className={icone} />,

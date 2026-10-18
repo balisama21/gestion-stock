@@ -21,13 +21,14 @@ import { formatCurrency, getProductLabel } from "./utils/formulas";
 import { getModuleScope, isFieldVisible, hasModuleAction } from "./lib/permissions";
 import { downloadExcelWorkbook } from "./utils/exportExcel";
 import { Header } from "./components/Header";
-import { universDe, visibleNavItems } from "./components/navigation";
+import { NAV_GROUPS, universDe, visibleNavItems } from "./components/navigation";
 import { SousNavigation } from "./components/shared/SousNavigation";
 import { SquelettePage } from "./components/shared/SquelettePage";
 import { construireNotifications, type ActionNotification } from "./lib/activite";
 import { avancesPrisesSurLaCaisse, demandesEnAttente } from "./lib/salaires";
 import { delaisDeRappel } from "./lib/rappels";
 import { useJournalActivite } from "./hooks/useJournalActivite";
+import { useRafraichissementDiscret } from "./hooks/useRafraichissementDiscret";
 import { useTaches } from "./hooks/useTaches";
 import { useParametres } from "./hooks/useParametres";
 import { useNotesDeFrais } from "./hooks/useNotesDeFrais";
@@ -81,6 +82,8 @@ import { libelleEffectuePar, lireReglagesListes } from "./lib/listes";
 import { listerLesPersonnes } from "./lib/personnes";
 import { lirePrixAuto } from "./lib/prixAuto";
 import { FournisseurAvatarsPersonnes } from "./components/shared/FournisseurAvatarsPersonnes";
+import { signalerAvertissement, signalerErreur } from "./lib/messages";
+import { Toaster } from "./components/ui/sonner";
 
 /**
  * Les écrans internes arrivent à la demande.
@@ -241,7 +244,9 @@ function AppInner() {
     estLivreur ? null : (workspace.activeStore?.id ?? null),
     user?.id ?? null,
   );
-  const { lignes: journalActivite } = useJournalActivite(workspace.activeStore?.id ?? null);
+  const { lignes: journalActivite, recharger: rechargerJournal } = useJournalActivite(
+    workspace.activeStore?.id ?? null,
+  );
   const organisation = useTaches(workspace.activeStore?.id ?? null, user?.id ?? null);
   const parametresBoutique = useParametres(workspace.activeStore?.id ?? null, user?.id ?? null);
   const devisesBoutique = useDevises(
@@ -328,7 +333,53 @@ function AppInner() {
    * valeurs par défaut et une liste vide. Rien ne change nulle part.
    */
   const alertesStock = useReglagesAlertesStock(workspace.activeStore?.id ?? null);
-  const { prealertes } = usePrealertesStock(workspace.activeStore?.id ?? null);
+  const { prealertes, recharger: rechargerPrealertes } = usePrealertesStock(
+    workspace.activeStore?.id ?? null,
+  );
+
+  /*
+   * CE QUE FONT LES AUTRES ARRIVE SANS RECHARGER LA PAGE.
+   *
+   * Toutes les minutes tant que l'onglet est visible, et au retour au
+   * premier plan : les données de la boutique, le journal des
+   * corrections, les tâches, l'agenda, les rappels et les préalertes —
+   * tout ce dont la cloche se nourrit. La lecture est silencieuse :
+   * l'écran ouvert reste en place, un formulaire en cours aussi.
+   */
+  const { refresh: rafraichirBoutique } = storeData;
+  const { recharger: rechargerTaches } = organisation;
+  const { recharger: rechargerAgenda } = calendrier;
+  const { recharger: rechargerRappels } = memos;
+  useRafraichissementDiscret(
+    () => {
+      if (!estLivreur) void rafraichirBoutique();
+      rechargerJournal();
+      rechargerTaches();
+      rechargerAgenda();
+      rechargerRappels();
+      rechargerPrealertes();
+    },
+    60_000,
+    Boolean(workspace.activeStore?.id),
+  );
+
+  // Une écriture relit les données de la boutique : le journal des
+  // corrections suit, sans quoi « Produit modifié » n'apparaissait
+  // dans la cloche qu'au rechargement suivant.
+  useEffect(() => {
+    rechargerJournal();
+  }, [
+    rechargerJournal,
+    storeData.products,
+    storeData.sales,
+    storeData.purchases,
+    storeData.expenses,
+    storeData.clients,
+    storeData.orders,
+    storeData.quotes,
+    storeData.deliveries,
+    storeData.apports,
+  ]);
 
   const [activeTab, setActiveTab] = useState<ActiveTab>("dashboard");
 
@@ -344,9 +395,9 @@ function AppInner() {
    */
   const viser = useViserLigne();
   const viserLigne = useCallback(
-    (onglet: ActiveTab, reference: string) => {
+    (onglet: ActiveTab, texte: string, filtre?: string, id?: string) => {
       setActiveTab(onglet);
-      viser(onglet, reference);
+      viser(onglet, texte, filtre, id);
     },
     [viser],
   );
@@ -614,6 +665,23 @@ function AppInner() {
     }
   }, [personnalisation, activeTab]);
 
+  /**
+   * Un écran que le menu ne propose pas à ce membre ne s'ouvre pas non
+   * plus par un autre chemin — une notification, un lien du tableau de
+   * bord, la recherche. Les données restent de toute façon filtrées par
+   * la base ; ceci évite seulement d'arriver sur un écran vide ou
+   * trompeur. Les sous-écrans hors menu et les Paramètres (profil,
+   * support, compte) gardent leurs propres règles.
+   */
+  useEffect(() => {
+    const permissions = workspace.memberPermissions;
+    if (permissions === null) return;
+    const auMenu = NAV_GROUPS.some((g) => g.items.some((i) => i.id === activeTab));
+    if (!auMenu) return;
+    const visible = visibleNavItems(permissions, personnalisation).some((i) => i.id === activeTab);
+    if (!visible) setActiveTab("dashboard");
+  }, [workspace.memberPermissions, personnalisation, activeTab]);
+
   // Préférences d'affichage des alertes (Paramètres → Notifications).
   const [notificationPrefs] = useNotificationPrefs();
 
@@ -745,6 +813,8 @@ function AppInner() {
         montantAvoire: s.montant_avoire ?? 0,
         soldeDu: s.solde_du,
         statutCredit: s.statut_credit as any,
+        auteurId: s.owner_id,
+        saisieLe: s.created_at,
       })),
     [storeData.sales],
   );
@@ -806,6 +876,7 @@ function AppInner() {
         membreId: e.membre_id,
         personneId: e.personne_id,
         justificatif: e.justificatif,
+        auteurId: e.owner_id,
       })),
     [storeData.expenses],
   );
@@ -850,7 +921,7 @@ function AppInner() {
   // était une fonction vide : aucun champ ne se sauvegardait jamais.
   const handleUpdateSettings = async (newSettings: Partial<StoreSettings>) => {
     if (!workspace.activeStore) {
-      alert("Impossible de mettre à jour la boutique : aucune boutique active.");
+      signalerErreur("Impossible de mettre à jour la boutique : aucune boutique active.");
       return;
     }
 
@@ -877,7 +948,7 @@ function AppInner() {
 
     const res = await workspace.updateStore(workspace.activeStore.id, updates);
     if (res.error) {
-      alert("Erreur lors de la mise à jour de la boutique : " + res.error);
+      signalerErreur("Erreur lors de la mise à jour de la boutique : " + res.error);
     }
   };
 
@@ -1398,8 +1469,9 @@ function AppInner() {
 
   // Ce que dit la cloche. Construit ici, ou vivent les donnees : la barre
   // du haut n a plus qu a presenter. Voir src/lib/activite.ts pour le
-  // detail, et notamment pourquoi aucune table de notifications n a ete
-  // creee.
+  // detail : les notifications se deduisent des ecritures reelles, seul
+  // leur etat (vu / lu) est garde en base (lib/notificationsLues.ts), et
+  // leur destination est decidee par lib/routageNotifications.ts.
   const notifications = useMemo(
     () =>
       construireNotifications({
@@ -1522,7 +1594,7 @@ function AppInner() {
       seuil_alerte: newP.seuilAlerte,
     });
     if (res.error) {
-      alert("Erreur lors de l'ajout du produit : " + res.error);
+      signalerErreur("Erreur lors de l'ajout du produit : " + res.error);
       return res;
     }
     triggerActivityAlert("Magasinier", "produit", `Nouveau produit créé : ${newP.designation}`);
@@ -1567,7 +1639,7 @@ function AppInner() {
     });
 
     if (res.error) {
-      alert("Erreur lors de l'ajout de l'achat : " + res.error);
+      signalerErreur("Erreur lors de l'ajout de l'achat : " + res.error);
     } else {
       triggerActivityAlert(
         "Acheteur",
@@ -1591,7 +1663,7 @@ function AppInner() {
     if (!data.statut_commande) return { error: "Statut manquant" };
     const res = await storeData.updateOrder(orderId, { statut_commande: data.statut_commande });
     if (res.error) {
-      alert("Erreur lors de la mise à jour de la commande : " + res.error);
+      signalerErreur("Erreur lors de la mise à jour de la commande : " + res.error);
     }
     return res;
   };
@@ -1671,7 +1743,7 @@ function AppInner() {
     const laissees = lignes.filter((l) => !reprises.includes(l));
 
     if (reprises.length === 0) {
-      alert(
+      signalerAvertissement(
         `Le devis ${devis.numero ?? ""} ne contient aucun produit du catalogue : ` +
           `il n'y a rien à décrémenter du stock. Enregistrez la vente à la main.`,
       );
@@ -1679,7 +1751,7 @@ function AppInner() {
     }
 
     if (laissees.length > 0) {
-      alert(
+      signalerAvertissement(
         `${laissees.length} ligne(s) du devis ne sont pas au catalogue et ne peuvent ` +
           `pas entrer dans le panier : ${laissees.map((l) => l.designation).join(", ")}.`,
       );
@@ -1706,7 +1778,7 @@ function AppInner() {
     if (!origine) return;
     const res = await storeData.setQuoteStatus(origine, "accepte", ticketId);
     if (res.error) {
-      alert(
+      signalerErreur(
         "La vente est enregistrée, mais le devis n'a pas pu être marqué accepté : " + res.error,
       );
     }
@@ -1733,7 +1805,7 @@ function AppInner() {
     // par la RPC delete_sale (verrouillage FOR UPDATE sur le produit).
     const res = await storeData.deleteSale(saleId);
     if (res.error) {
-      alert("Erreur lors de la suppression de la vente : " + res.error);
+      signalerErreur("Erreur lors de la suppression de la vente : " + res.error);
     }
   };
 
@@ -1808,7 +1880,7 @@ function AppInner() {
 
   const handleUpdateCapitalInitial = async (amount: number) => {
     if (!workspace.activeStore) {
-      alert("Impossible de mettre à jour le capital initial : aucune boutique active.");
+      signalerErreur("Impossible de mettre à jour le capital initial : aucune boutique active.");
       return;
     }
     try {
@@ -1817,17 +1889,19 @@ function AppInner() {
       } as any);
       if (res.error) {
         console.error("Erreur mise à jour capital_initial:", res.error);
-        alert("Erreur lors de la mise à jour du capital initial : " + res.error);
+        signalerErreur("Erreur lors de la mise à jour du capital initial : " + res.error);
       }
     } catch (e: any) {
       console.error("Exception mise à jour capital_initial:", e);
-      alert("Erreur inattendue lors de la mise à jour du capital initial : " + (e?.message ?? e));
+      signalerErreur(
+        "Erreur inattendue lors de la mise à jour du capital initial : " + (e?.message ?? e),
+      );
     }
   };
 
   const handleUpdateSeuil = async (seuil: number) => {
     if (!workspace.activeStore) {
-      alert("Impossible de mettre à jour le seuil d'alerte : aucune boutique active.");
+      signalerErreur("Impossible de mettre à jour le seuil d'alerte : aucune boutique active.");
       return;
     }
     try {
@@ -1836,11 +1910,13 @@ function AppInner() {
       } as any);
       if (res.error) {
         console.error("Erreur mise à jour seuil_alerte_tresorerie:", res.error);
-        alert("Erreur lors de la mise à jour du seuil d'alerte : " + res.error);
+        signalerErreur("Erreur lors de la mise à jour du seuil d'alerte : " + res.error);
       }
     } catch (e: any) {
       console.error("Exception mise à jour seuil_alerte_tresorerie:", e);
-      alert("Erreur inattendue lors de la mise à jour du seuil d'alerte : " + (e?.message ?? e));
+      signalerErreur(
+        "Erreur inattendue lors de la mise à jour du seuil d'alerte : " + (e?.message ?? e),
+      );
     }
   };
 
@@ -1861,7 +1937,7 @@ function AppInner() {
     const isRealMember = storeMembers.some((m) => m.id === sellerId);
     if (isRealMember) {
       const res = await removeStoreMember(sellerId);
-      if (res.error) alert("Erreur lors de la suppression : " + res.error);
+      if (res.error) signalerErreur("Erreur lors de la suppression : " + res.error);
     }
   };
 
@@ -3026,6 +3102,11 @@ export default function App() {
           <PinLockScreen onUnlock={() => setLocked(false)} />
         </div>
       )}
+
+      {/* Les messages de l'application (erreurs, avertissements) : voir
+          lib/messages.ts. Hors de la zone verrouillable, pour qu'une
+          erreur reste lisible même derrière l'écran de code. */}
+      <Toaster position="top-center" richColors closeButton />
     </>
   );
 }

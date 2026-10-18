@@ -13,7 +13,8 @@ import {
 import { formatCurrency, formatDateLocale } from "../utils/formulas";
 import { PageHeader } from "./shared/PageHeader";
 import { StatCol } from "./shared/StatBar";
-import { DataList } from "./shared/DataList";
+import { DataList, type DataListItem } from "./shared/DataList";
+import { useOuvertureFiche } from "../lib/cibleRecherche";
 import { Modal } from "./shared/Modal";
 import { dateDuJour } from "../lib/dates";
 import { symboleDeSaisie } from "../lib/affichageDevise";
@@ -195,6 +196,42 @@ export const CapitalView: React.FC<CapitalViewProps> = ({
     capital.seuilAlerteTresorerie > 0
       ? `${Math.round((capital.tresorerieGlobaleActuelle / capital.seuilAlerteTresorerie) * 100)} %`
       : "100 %";
+
+  /** Une ligne de la liste ; sert aussi à ouvrir la fiche visée par une notification. */
+  const versItemApport = (app: CapitalApport): DataListItem => ({
+    id: app.id,
+    primary: app.source,
+    meta: [formatDateLocale(app.date, locale), app.note || null],
+    amount: `+ ${formatCurrency(app.montant)}`,
+    detailTitle: app.source,
+    detailSubtitle: `Apport du ${formatDateLocale(app.date, locale)}`,
+    details: [
+      { label: "Date", value: formatDateLocale(app.date, locale) },
+      { label: "Source", value: app.source },
+      { label: "Montant", value: formatCurrency(app.montant) },
+      { label: "Note", value: app.note || "", hideIfEmpty: true },
+    ],
+    actions: (
+      <button
+        onClick={() => {
+          if (
+            window.confirm(`Supprimer l'apport de ${formatCurrency(app.montant)} (${app.source}) ?`)
+          ) {
+            onDeleteApport(app.id);
+          }
+        }}
+        className="app-btn-danger sm:flex-none"
+      >
+        <Trash2 className="h-4 w-4" />
+        Supprimer
+      </button>
+    ),
+  });
+
+  const ficheAOuvrir = useOuvertureFiche("capital", (id) => {
+    const trouve = apports.find((x) => x.id === id);
+    return trouve ? versItemApport(trouve) : null;
+  });
 
   return (
     <div className="space-y-6 pb-12">
@@ -386,37 +423,8 @@ export const CapitalView: React.FC<CapitalViewProps> = ({
 
         <DataList
           emptyLabel="Aucun apport enregistré pour le moment."
-          items={apports.map((app) => ({
-            id: app.id,
-            primary: app.source,
-            meta: [formatDateLocale(app.date, locale), app.note || null],
-            amount: `+ ${formatCurrency(app.montant)}`,
-            detailTitle: app.source,
-            detailSubtitle: `Apport du ${formatDateLocale(app.date, locale)}`,
-            details: [
-              { label: "Date", value: formatDateLocale(app.date, locale) },
-              { label: "Source", value: app.source },
-              { label: "Montant", value: formatCurrency(app.montant) },
-              { label: "Note", value: app.note || "", hideIfEmpty: true },
-            ],
-            actions: (
-              <button
-                onClick={() => {
-                  if (
-                    window.confirm(
-                      `Supprimer l'apport de ${formatCurrency(app.montant)} (${app.source}) ?`,
-                    )
-                  ) {
-                    onDeleteApport(app.id);
-                  }
-                }}
-                className="app-btn-danger sm:flex-none"
-              >
-                <Trash2 className="h-4 w-4" />
-                Supprimer
-              </button>
-            ),
-          }))}
+          ouvrir={ficheAOuvrir}
+          items={apports.map(versItemApport)}
         />
       </div>
 

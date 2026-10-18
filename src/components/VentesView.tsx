@@ -59,7 +59,7 @@ import {
   type PaperFormatId,
 } from "../lib/paperFormats";
 import { dateDuJour } from "../lib/dates";
-import { useRechercheInitiale } from "../lib/cibleRecherche";
+import { useOuvertureFiche, useRechercheInitiale } from "../lib/cibleRecherche";
 import { FiletDeSecurite } from "../features/documents/FiletDeSecurite";
 import { SortieDocument } from "../features/documents/SortieDocument";
 import { documentDeVente } from "../features/documents/lib/buildDocument";
@@ -1001,6 +1001,18 @@ export const VentesView: React.FC<VentesViewProps> = ({
   const totalPayeEncaisse = sales.reduce((acc, s) => acc + s.montantPaye, 0);
   const totalSoldeDuCredit = sales.reduce((acc, s) => acc + s.soldeDu, 0);
 
+  // La vente dont parle une notification : un identifiant de vente ou de
+  // ticket. Une ligne qui appartient à un ticket ouvre le ticket entier,
+  // comme dans la liste.
+  const ficheAOuvrir = useOuvertureFiche("ventes", (id) => {
+    const vente = sales.find((v) => v.id === id);
+    const ticket = vente ? vente.ticketId : id;
+    const lignes = ticket ? sales.filter((v) => v.ticketId === ticket) : [];
+    if (lignes.length > 1) return itemTicket(lignes);
+    if (lignes.length === 1) return itemVente(lignes[0]);
+    return vente ? itemVente(vente) : null;
+  });
+
   return (
     <div className="space-y-6">
       {restrictedToOwnSales && (
@@ -1131,6 +1143,7 @@ export const VentesView: React.FC<VentesViewProps> = ({
       <div className="app-card overflow-hidden">
         <DataList
           emptyLabel="Aucune vente ne correspond à ces filtres."
+          ouvrir={ficheAOuvrir}
           items={ventesGroupees.map((groupe) =>
             groupe.length === 1 ? itemVente(groupe[0]) : itemTicket(groupe),
           )}

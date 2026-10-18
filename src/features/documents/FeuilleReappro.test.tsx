@@ -37,7 +37,9 @@ function afficher(grouper: boolean) {
       couleur="#0E7C5A"
     />,
   );
-  return screen.findByRole("table");
+  // Le premier rendu mesure l'échelle de la feuille avant de l'afficher :
+  // sous charge, il dépasse la seconde par défaut de `findByRole`.
+  return screen.findByRole("table", {}, { timeout: 5000 });
 }
 
 afterEach(cleanup);

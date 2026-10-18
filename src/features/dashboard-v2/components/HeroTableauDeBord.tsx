@@ -406,6 +406,12 @@ export interface HeroProps {
   jour: ChiffresDuJour;
   stock: ChiffresStock;
   journal: EvenementJournal[];
+  /**
+   * Faux tant que la première lecture du journal n'est pas revenue. Sans
+   * lui, la carte annonçait « Rien d'enregistré aujourd'hui · 0 événement »
+   * pendant le chargement, puis « 5 événements » une seconde plus tard.
+   */
+  journalPret?: boolean;
   erreurJournal?: string | null;
   onReessayerJournal?: () => void;
   valeurStockVisible: boolean;
@@ -436,6 +442,7 @@ export const HeroTableauDeBord: React.FC<HeroProps> = ({
   jour,
   stock,
   journal,
+  journalPret = true,
   erreurJournal,
   onReessayerJournal,
   valeurStockVisible,
@@ -648,6 +655,10 @@ export const HeroTableauDeBord: React.FC<HeroProps> = ({
               </button>
             )}
           </div>
+        ) : !journalPret ? (
+          <div className="kx centre" role="status">
+            Chargement de l&apos;activité…
+          </div>
         ) : journal.length === 0 ? (
           <div className="kc-vide">
             <span className="pastille neutre">
@@ -674,9 +685,14 @@ export const HeroTableauDeBord: React.FC<HeroProps> = ({
           {tendance(
             "calendar",
             "violet",
-            `${journal.length} événement${journal.length > 1 ? "s" : ""}\u2002·\u2002${jour.tickets} vente${jour.tickets > 1 ? "s" : ""}`,
+            journalPret
+              ? `${journal.length} événement${journal.length > 1 ? "s" : ""}\u2002·\u2002${jour.tickets} vente${jour.tickets > 1 ? "s" : ""}`
+              : `${jour.tickets} vente${jour.tickets > 1 ? "s" : ""}`,
           )}
-          {lien("agenda", "Voir l'agenda", "var(--k-violet)")}
+          {/* Ce compte est celui du JOURNAL (créations, corrections,
+              suppressions) : le lien mène donc à l'historique, comme le
+              chevron de la carte, et non à l'agenda. */}
+          {lien("historique", "Voir l'historique", "var(--k-violet)")}
         </div>
       </>
     ),
