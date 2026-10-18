@@ -1,4 +1,4 @@
--- Retour arrière de 20261017100000_delete_purchase_memes_droits_que_la_table.sql
+-- Retour arrière de 20261018051507_delete_purchase_memes_droits_que_la_table.sql
 -- Rétablit la vérification d'origine (is_store_member), sans toucher aux données.
 
 CREATE OR REPLACE FUNCTION public.delete_purchase(p_purchase_id uuid)

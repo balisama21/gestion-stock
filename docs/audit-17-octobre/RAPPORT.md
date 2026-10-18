@@ -93,9 +93,15 @@ recalculait les mêmes chiffres avec des règles différentes selon les pages.
 - `PaiementsARecevoirView` : dépendance manquante d'un `useMemo` (la liste ne se
   rafraîchissait pas quand les produits changeaient).
 
-## 3. Migration préparée — NON appliquée, en attente d'accord
+## 3. Migration — appliquée en production le 18 octobre, avec accord
 
-`supabase/migrations/20261017100000_delete_purchase_memes_droits_que_la_table.sql`
+Appliquée sur accord explicite, version enregistrée `20261018051507`. Le
+fichier porte ce numéro pour correspondre à la base. Vérifié ensuite : la
+nouvelle règle est en place, l'ancienne a disparu, les droits d'exécution
+sont inchangés (`authenticated` oui, `anon` non) et les 54 achats sont
+intacts.
+
+`supabase/migrations/20261018051507_delete_purchase_memes_droits_que_la_table.sql`
 (retour arrière : `supabase/retours-arriere/` du même nom)
 
 - **Problème** : `delete_purchase` (SECURITY DEFINER) ne vérifie que
