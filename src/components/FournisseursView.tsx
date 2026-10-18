@@ -36,6 +36,7 @@ import { dateDuJour } from "../lib/dates";
 import { cleDeListe, lireLignesCsv, trierValeurs } from "../lib/listes";
 import { FILTRE_CREATION, useFicheInitiale, useFiltreInitial } from "../lib/cibleRecherche";
 import { AvisIntrouvable } from "./shared/AvisIntrouvable";
+import { useDefilerVers } from "../hooks/useDefilerVers";
 
 type Supplier = Database["public"]["Tables"]["suppliers"]["Row"];
 type SupplierInsert = Database["public"]["Tables"]["suppliers"]["Insert"];
@@ -388,6 +389,7 @@ export const FournisseursView: React.FC<FournisseursViewProps> = ({
 
   // Le tableau de bord (ou une notification) peut viser une fiche précise,
   // ou demander le formulaire de création. Voir lib/cibleRecherche.ts.
+  const defilerVers = useDefilerVers();
   const [introuvable, setIntrouvable] = useState(false);
   useFicheInitiale("fournisseurs", (id) => {
     const fiche = suppliers.find((x) => x.id === id);
@@ -397,11 +399,7 @@ export const FournisseursView: React.FC<FournisseursViewProps> = ({
     }
     setFiltre("tous");
     setSelection(fiche);
-    window.requestAnimationFrame(() =>
-      document
-        .getElementById("fiche-fournisseur")
-        ?.scrollIntoView({ behavior: "smooth", block: "start" }),
-    );
+    defilerVers("fiche-fournisseur");
   });
   useFiltreInitial("fournisseurs", (f) => {
     if (f === FILTRE_CREATION && peutCreer) ouvrirCreation();

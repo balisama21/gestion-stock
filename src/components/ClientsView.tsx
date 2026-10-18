@@ -37,6 +37,7 @@ import { AvisIntrouvable } from "./shared/AvisIntrouvable";
 import { AvatarPersonne } from "./shared/AvatarPersonne";
 import { AvatarModifiable } from "./shared/ChoixAvatar";
 import { avoirsDesVentes, chiffreAffairesNet, type AvoirDeVente } from "../lib/ventes";
+import { useDefilerVers } from "../hooks/useDefilerVers";
 
 const AUCUN_AVOIR: AvoirDeVente[] = [];
 
@@ -223,6 +224,7 @@ export const ClientsView: React.FC<ClientsViewProps> = ({
   // La fiche dont parle une notification : on la sélectionne, on retire
   // le filtre qui pourrait la cacher, et on l'amène à l'écran (sur
   // téléphone, la fiche est SOUS la liste). Supprimée : on le dit.
+  const defilerVers = useDefilerVers();
   const [introuvable, setIntrouvable] = useState(false);
   useFicheInitiale("clients", (id) => {
     const client = clients.find((c) => c.id === id);
@@ -233,11 +235,7 @@ export const ClientsView: React.FC<ClientsViewProps> = ({
     setFiltre("tous");
     setSelection(client);
     setSuppressionDemandee(false);
-    window.requestAnimationFrame(() =>
-      document
-        .getElementById("fiche-client")
-        ?.scrollIntoView({ behavior: "smooth", block: "start" }),
-    );
+    defilerVers("fiche-client");
   });
 
   /**

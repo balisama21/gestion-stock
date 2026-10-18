@@ -25,6 +25,7 @@ import {
 import type { Database } from "../lib/database.types";
 import { FILTRE_CREATION, useFicheInitiale, useFiltreInitial } from "../lib/cibleRecherche";
 import { AvisIntrouvable } from "./shared/AvisIntrouvable";
+import { useDefilerVers } from "../hooks/useDefilerVers";
 
 type Provider = Database["public"]["Tables"]["providers"]["Row"];
 type ProviderInsert = Database["public"]["Tables"]["providers"]["Insert"];
@@ -212,6 +213,7 @@ export const PrestatairesView: React.FC<PrestatairesViewProps> = ({
 
   // Le tableau de bord (ou une notification) peut viser une fiche précise,
   // ou demander le formulaire de création. Voir lib/cibleRecherche.ts.
+  const defilerVers = useDefilerVers();
   const [introuvable, setIntrouvable] = useState(false);
   useFicheInitiale("prestataires", (id) => {
     const fiche = providers.find((x) => x.id === id);
@@ -221,11 +223,7 @@ export const PrestatairesView: React.FC<PrestatairesViewProps> = ({
     }
     setFiltre("tous");
     setSelection(fiche);
-    window.requestAnimationFrame(() =>
-      document
-        .getElementById("fiche-prestataire")
-        ?.scrollIntoView({ behavior: "smooth", block: "start" }),
-    );
+    defilerVers("fiche-prestataire");
   });
   useFiltreInitial("prestataires", (f) => {
     if (f === FILTRE_CREATION && peutCreer) ouvrirCreation();

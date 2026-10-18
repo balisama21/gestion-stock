@@ -65,6 +65,7 @@ import { useFicheInitiale, useRechercheInitiale } from "../lib/cibleRecherche";
 import { AvisIntrouvable } from "./shared/AvisIntrouvable";
 import { AideLigneLibre, LIBELLE_LIGNE_LIBRE } from "./shared/LigneLibre";
 import { signalerErreur } from "../lib/messages";
+import { useDefilerVers } from "../hooks/useDefilerVers";
 
 type Order = Database["public"]["Tables"]["orders"]["Row"] & {
   client?: Database["public"]["Tables"]["clients"]["Row"] | null;
@@ -192,6 +193,7 @@ export const CommandesView: React.FC<CommandesViewProps> = ({
 
   // La commande dont parle une notification : filtres retirés, ligne
   // dépliée et amenée à l'écran. Supprimée : on le dit.
+  const defilerVers = useDefilerVers("center");
   const [introuvable, setIntrouvable] = useState(false);
   useFicheInitiale("commandes", (id) => {
     const commande = orders.find((o) => o.id === id);
@@ -202,11 +204,7 @@ export const CommandesView: React.FC<CommandesViewProps> = ({
     setFilterStatus("all");
     setFilterPayment("all");
     setSelectedOrder(commande);
-    window.requestAnimationFrame(() =>
-      document
-        .getElementById(`commande-${commande.id}`)
-        ?.scrollIntoView({ behavior: "smooth", block: "center" }),
-    );
+    defilerVers(`commande-${commande.id}`);
   });
 
   /*

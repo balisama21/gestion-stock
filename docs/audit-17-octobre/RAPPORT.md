@@ -513,3 +513,13 @@ l'historique ». État écrit en base (4 « vu », 1 « lu »). Console sans err
   l'explique désormais. Pour un vrai membre, le geste retire son accès à la
   boutique (ses ventes restent) ; le libellé de confirmation sera précisé
   avec le remplacement des `window.confirm` (session parallèle).
+
+## Vérifié en production après la fusion de la PR #45 (déploiement de 15 h 47 UTC)
+
+Colonne « Produits / Services » : « Kapa » pour Tsara, « kiraro » pour
+VillaD ; « — » pour les fournisseurs à qui rien n'a été acheté (contrôlé en
+base). Le bouton « … » de Tsara ouvre sa fiche (ACH004, 4 000 Ar). **Défaut
+trouvé** : sur téléphone, la fiche s'ouvrait sous la liste, hors de l'écran
+(900 px pour 646 px visibles) — le défilement partait avant son rendu.
+Corrigé : `hooks/useDefilerVers.ts` défile après le rendu (Clients,
+Commandes, Fournisseurs, Prestataires), avec un test.
