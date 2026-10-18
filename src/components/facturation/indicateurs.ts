@@ -73,6 +73,10 @@ export function calculerIndicateurs(s: SourcesIndicateurs): IndicateursFacturati
 
     if (d.entite === "vente") {
       if (d.statut !== "annulee") r.facture = ajouter(r.facture, d.montant);
+      // Une facture annulée garde son montant ici : c'est son avoir, à
+      // sa propre date, qui le retranche (voir plus bas). L'en retirer
+      // aussi le retrancherait deux fois.
+      else r.facture = { ...r.facture, montant: r.facture.montant + d.montant };
       if (d.reste > 0 && d.statut !== "annulee") {
         r.aEncaisser = ajouter(r.aEncaisser, d.reste);
         if (d.statut === "retard") r.enRetard = ajouter(r.enRetard, d.reste);
@@ -81,6 +85,14 @@ export function calculerIndicateurs(s: SourcesIndicateurs): IndicateursFacturati
 
     // Brouillon compris, expiré exclu : la règle de `estEnAttenteDeReponse`,
     // celle de la page Devis et du tableau de bord.
+    // Le chiffre d'affaires est net des avoirs, chacun à sa date : la
+    // règle de `chiffreAffairesNet`, celle du tableau de bord.
+    // Un avoir libre, sans facture d'origine, ne retranche rien : le
+    // tableau de bord ne le rattache à aucune vente non plus.
+    if (d.entite === "avoir" && d.avoir?.ticket_id) {
+      r.facture = { ...r.facture, montant: r.facture.montant - d.montant };
+    }
+
     if (d.entite === "devis" && (d.statut === "attente" || d.statut === "brouillon")) {
       r.offres = ajouter(r.offres, d.montant);
     }

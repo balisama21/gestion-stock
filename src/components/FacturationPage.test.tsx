@@ -73,6 +73,7 @@ const VENTE: Sale = {
   commission: 0,
   montantPaye: 0,
   montantRembourse: 0,
+  montantAvoire: 0,
   soldeDu: 250_000,
   statutCredit: "Impayé",
   ticketId: "T1",

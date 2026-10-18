@@ -74,3 +74,62 @@ export function preparerModificationVente(
   }
   return { quantite, totalVente };
 }
+
+// ─────────────────────────────────────────────────────────────────────
+// LE CHIFFRE D'AFFAIRES NET DES AVOIRS
+//
+// Un avoir annule tout ou partie d'une facture (décision du 18 octobre,
+// rapport d'audit § 10). Il retranche donc son montant du chiffre
+// d'affaires — mais à SA date, pas à celle de la vente : le mois passé,
+// déjà lu et peut-être déclaré, ne se réécrit pas. C'est le
+// contre-mouvement de la comptabilité.
+//
+// Le reste dû, lui, n'est pas calculé ici : la base le tient dans
+// `solde_du` (total − payé − avoiré).
+// ─────────────────────────────────────────────────────────────────────
+
+/** Un avoir tel que le chiffre d'affaires le lit : un montant, à sa date. */
+export interface AvoirDeVente {
+  date: string;
+  montant: number;
+  ticket_id: string | null;
+}
+
+/**
+ * Les avoirs qui portent sur ces ventes, rattachés par leur ticket.
+ *
+ * Un écran qui ne montre qu'une partie des ventes (un vendeur limité aux
+ * siennes, une fiche client) ne doit retrancher que les avoirs de CES
+ * ventes-là.
+ */
+export function avoirsDesVentes<A extends { ticket_id: string | null }>(
+  avoirs: A[],
+  ventes: { id: string; ticketId?: string | null }[],
+): A[] {
+  const tickets = new Set(ventes.map((v) => v.ticketId ?? v.id));
+  return avoirs.filter((a) => a.ticket_id !== null && tickets.has(a.ticket_id));
+}
+
+/**
+ * Σ des ventes − Σ des avoirs. À l'appelant de passer les deux listes
+ * prises sur la MÊME période, chacune selon sa propre date.
+ */
+export function chiffreAffairesNet(
+  ventes: { totalVente: number }[],
+  avoirs: { montant: number }[],
+): number {
+  return (
+    ventes.reduce((n, v) => n + v.totalVente, 0) - avoirs.reduce((n, a) => n + Number(a.montant), 0)
+  );
+}
+
+/** Le chiffre d'affaires net, jour par jour. */
+export function chiffreAffairesParJour(
+  ventes: { date: string; totalVente: number }[],
+  avoirs: { date: string; montant: number }[],
+): Map<string, number> {
+  const parJour = new Map<string, number>();
+  for (const v of ventes) parJour.set(v.date, (parJour.get(v.date) ?? 0) + v.totalVente);
+  for (const a of avoirs) parJour.set(a.date, (parJour.get(a.date) ?? 0) - Number(a.montant));
+  return parJour;
+}

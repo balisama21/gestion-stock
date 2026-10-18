@@ -21,6 +21,7 @@ const vente = (id: string, vendeur: string): Sale => ({
   commission: 0,
   montantPaye: 0,
   montantRembourse: 0,
+  montantAvoire: 0,
   soldeDu: 100_000,
   statutCredit: "Impayé",
   ticketId: `T${id}`,

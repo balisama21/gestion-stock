@@ -83,6 +83,8 @@ export function echeanceExigible(date: string, echeance: Echeance): string {
 export interface EtatFacture {
   montant: number;
   paye: number;
+  /** La part annulée par des avoirs : elle n'est plus due. */
+  avoire?: number;
   /** Un avoir couvre-t-il cette facture ? */
   annulee: boolean;
   /** Au moins un envoi enregistré. */
@@ -100,7 +102,7 @@ export interface EtatFacture {
  */
 export function statutDeFacture(e: EtatFacture): StatutFacture {
   if (e.annulee) return "annulee";
-  const reste = arrondi(e.montant - e.paye);
+  const reste = arrondi(e.montant - e.paye - (e.avoire ?? 0));
   if (reste <= 0) return "payee";
   if (e.echeance < e.aujourdhui) return "retard";
   if (e.paye > 0) return "partiel";

@@ -304,12 +304,7 @@ Contrôles faits en base pour mesurer l'effet réel :
 
 ## 8. À trancher, ou à préparer en migration (rien n'est appliqué)
 
-- **Avoir sur une facture impayée** (latent, 0 avoir en base). Facturation la
-  dit « annulée » et ne la compte plus à encaisser. Mais l'avoir ne touche pas
-  `solde_du` : Ventes, la fiche client et le tableau de bord compteraient
-  encore cette dette, et le CA de Facturation exclurait la pièce, pas celui du
-  tableau de bord. Il faut décider si un avoir éteint la créance en base
-  (migration sur `creer_avoir` ou équivalent), puis l'appliquer partout.
+- **Avoir sur une facture impayée** : tranché le 18 octobre (option B), voir § 10.
 - **Prix d'une vente** : `update_sale_quantity` ne sait pas changer
   `prix_vente_unit`. Corriger un prix après coup exige une migration (nouveau
   paramètre, recalcul de la marge). En attendant, l'écran ne le propose plus.
@@ -340,3 +335,72 @@ Contrôles faits en base pour mesurer l'effet réel :
   avant. Pas de reformatage de masse.
 - Même limite qu'au § 5 : pas de test connecté de bout en bout, les écrans
   n'ont pas été vérifiés visuellement avec un compte.
+
+---
+
+# 10. L'avoir efface la dette — décision du 18 octobre
+
+**Décision** (option B) : un avoir annule tout ou partie d'une facture, donc
+la créance. Il efface d'abord ce que le client doit encore ; seul ce qui
+dépasse cette dette est de l'argent à lui rendre. Le chiffre d'affaires est
+net des avoirs, chacun à **sa** date.
+
+Exemples sur une facture de 100 000 Ar payée 30 000 :
+
+| Avoir | Reste dû | À rendre |
+|---|---|---|
+| 50 000 | 20 000 | 0 |
+| 80 000 | 0 | 10 000 |
+| 100 000 sur une facture impayée | 0 | 0 |
+
+## En base — migration préparée, NON appliquée
+
+`supabase/migrations/20261018120000_avoir_efface_la_dette.sql`
+(retour arrière : `supabase/retours-arriere/` du même nom)
+
+- Colonne `sales.montant_avoire` (0 partout à la création, bornée entre 0 et
+  le total). Reste dû = total − payé − avoiré.
+- `recalculer_solde_vente` : la règle du solde à un seul endroit, appelée par
+  le déclencheur des paiements, `creer_avoir` et `update_sale_quantity`. Non
+  appelable par `anon` ni `authenticated`.
+- `creer_avoir` pose l'avoir ligne par ligne dans l'ordre du ticket :
+  d'abord sur ce qui reste dû, puis sur la part payée.
+- On ne peut plus encaisser ce qu'un avoir a annulé, ni ramener le total
+  d'une vente sous « payé + avoiré ».
+- Aucune donnée existante ne change. La migration refuse de s'appliquer si
+  des avoirs liés à une facture existent déjà (0 aujourd'hui).
+- Les quatre fonctions remplacées ont été relues en production avant
+  l'écriture. Le retour arrière les rétablit mot pour mot.
+- **Banc d'essai** : `supabase/essais/avoir_efface_la_dette.mjs` rejoue la
+  migration et son retour arrière dans un Postgres embarqué (PGlite), sans
+  toucher à la production. 16 contrôles, tous verts.
+
+## Dans l'application
+
+- **Chiffre d'affaires net, à la date de l'avoir** (`lib/ventes.ts` :
+  `chiffreAffairesNet`, `chiffreAffairesParJour`, `avoirsDesVentes`). Un avoir
+  d'octobre sur une vente de septembre baisse octobre, pas septembre. Il est
+  appliqué au tableau de bord (total, comparaison, courbe, journée), à
+  l'en-tête Ventes, au « Total acheté » de la fiche client, à l'indicateur de
+  Facturation et aux Rapports. Le tableau de bord et Facturation donnent le
+  même chiffre (test).
+- **Facturation** : une facture couverte par paiements + avoirs est soldée,
+  et non plus « en retard ». La case « Rembourser » ne propose plus que
+  l'excédent sur la dette (`aRembourserApresAvoir`). La fenêtre d'avoir
+  annonce ce que le client devra encore.
+- **Ventes** : la fiche d'une vente affiche « Annulé par avoir ».
+- Le code se déploie **avant** la migration sans rien changer :
+  `montant_avoire` absent se lit 0.
+- Tests : `lib/avoirs.test.ts` (11).
+
+## Limites connues
+
+- Les répartitions **par vendeur et par produit** (Statistiques, Vendeurs,
+  top produits du tableau de bord, ancien tableau de bord) restent brutes :
+  un avoir partiel ne dit pas sur quel article il porte. À traiter si des
+  avoirs apparaissent.
+- La **marge** n'est pas diminuée par un avoir : selon que la marchandise
+  revient en stock ou non, la bonne réponse diffère. Une règle reste à fixer.
+- Les avoirs ne sont chargés que pour les personnes qui ont accès à la
+  Facturation. Pour les autres, le chiffre reste brut (seule la Facturation
+  crée des avoirs).

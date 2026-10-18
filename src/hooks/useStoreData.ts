@@ -74,6 +74,7 @@ const versVente = (row: SaleRow): AppSale => ({
   ticketId: row.ticket_id,
   montantPaye: row.montant_paye,
   montantRembourse: row.montant_rembourse,
+  montantAvoire: row.montant_avoire ?? 0,
   soldeDu: row.solde_du,
   statutCredit: row.statut_credit as AppSale["statutCredit"],
   saisieLe: row.created_at,

@@ -18,6 +18,7 @@ const ligne = (id: string, total: number, paye: number): Sale => ({
   commission: 0,
   montantPaye: paye,
   montantRembourse: 0,
+  montantAvoire: 0,
   soldeDu: total - paye,
   statutCredit: paye >= total ? "Payé" : paye > 0 ? "Partiel" : "Impayé",
   ticketId: "T1",
