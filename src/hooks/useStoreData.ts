@@ -1547,18 +1547,14 @@ export function useStoreData(storeId: string | null, userId: string | null): Sto
 
   // Remboursement traçable : le paiement d'origine n'est JAMAIS supprimé.
   // Bloqué côté base si le montant dépasse ce qui reste remboursable.
+  // La base n'a que refund_order(p_order_id, p_montant, p_reason) : un
+  // paramètre de plus et PostgREST ne trouve plus la fonction.
   const refundOrder = useCallback(
     async (orderId: string, montant: number, reason?: string) => {
-      const idempotencyKey =
-        typeof crypto !== "undefined" && crypto.randomUUID
-          ? crypto.randomUUID()
-          : `refund-order-${Date.now()}-${Math.random()}`;
-
       const { error } = await supabase.rpc("refund_order", {
         p_order_id: orderId,
         p_montant: montant,
         p_reason: reason ?? null,
-        p_idempotency_key: idempotencyKey,
       });
 
       if (!error) fetchAll();

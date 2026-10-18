@@ -1,4 +1,4 @@
-// BANC D'ESSAI — migration 20261018120000_avoir_efface_la_dette
+// BANC D'ESSAI — migration 20261018055411_avoir_efface_la_dette
 //
 // Rejoue la migration et son retour arrière dans un Postgres embarqué
 // (PGlite), sur une réplique minimale des tables concernées, sans jamais
@@ -10,8 +10,8 @@
 // Lancer (PGlite installé à part, hors du projet) :
 //   mkdir /tmp/pg && cd /tmp/pg && npm init -y && npm i @electric-sql/pglite@0.2.17
 //   node supabase/essais/avoir_efface_la_dette.mjs /tmp/pg \
-//     supabase/migrations/20261018120000_avoir_efface_la_dette.sql \
-//     supabase/retours-arriere/20261018120000_avoir_efface_la_dette.sql
+//     supabase/migrations/20261018055411_avoir_efface_la_dette.sql \
+//     supabase/retours-arriere/20261018055411_avoir_efface_la_dette.sql
 //
 // Résultat au 18 octobre 2026 : 16 contrôles, tous verts.
 
