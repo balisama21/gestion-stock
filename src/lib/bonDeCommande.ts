@@ -49,6 +49,11 @@ export interface LigneBonDeCommande {
   stock: number;
   seuil: number;
   quantiteSuggeree: number;
+  /**
+   * Ce que la boutique commande vraiment. Égale à la suggestion tant
+   * qu'on n'y touche pas ; voir `appliquerLesQuantites`.
+   */
+  quantiteCommandee: number;
   unite: string | null;
   /** Vide quand la fiche ne le dit pas. */
   fournisseur: string;
@@ -99,6 +104,7 @@ export function lignesDuBonDeCommande(
         stock: p.stockActuel,
         seuil: p.seuilAlerte,
         quantiteSuggeree: quantite,
+        quantiteCommandee: quantite,
         unite: p.unite?.trim() || null,
         fournisseur: (p.fournisseur || "").trim(),
         prixAchat: prix,
@@ -108,6 +114,56 @@ export function lignesDuBonDeCommande(
     .sort(
       (a, b) => a.stock / a.seuil - b.stock / b.seuil || a.produit.localeCompare(b.produit, "fr"),
     );
+}
+
+/**
+ * LES QUANTITÉS QUE LA BOUTIQUE A CHOISIES.
+ *
+ * La suggestion n'est qu'un point de départ : on connaît son
+ * fournisseur, ses conditionnements, sa trésorerie. Chaque quantité se
+ * change librement ; celle qu'on ne touche pas garde la suggestion.
+ *
+ * Une quantité à zéro retire le produit du bon : on ne commande pas
+ * « 0 carton ». Une saisie qui n'est pas un nombre entier positif est
+ * ramenée à l'entier positif le plus proche — jamais négative.
+ */
+export type QuantitesChoisies = Record<string, number>;
+
+export function appliquerLesQuantites(
+  lignes: LigneBonDeCommande[],
+  choix: QuantitesChoisies,
+): LigneBonDeCommande[] {
+  return lignes
+    .map((l) => {
+      const brute = choix[l.id];
+      const quantite =
+        brute === undefined || !Number.isFinite(brute)
+          ? l.quantiteSuggeree
+          : Math.max(0, Math.round(brute));
+      return {
+        ...l,
+        quantiteCommandee: quantite,
+        totalEstime: l.prixAchat === null ? null : l.prixAchat * quantite,
+      };
+    })
+    .filter((l) => l.quantiteCommandee > 0);
+}
+
+/**
+ * UN BON, OU UN BON PAR PRODUIT.
+ *
+ * Certains fournisseurs veulent une pièce par article, d'autres une
+ * commande groupée : le choix est laissé à la boutique. Chaque bon
+ * garde l'ordre de la liste.
+ */
+export type DecoupageDuBon = "un" | "parProduit";
+
+export function decouperLeBon(
+  lignes: LigneBonDeCommande[],
+  decoupage: DecoupageDuBon,
+): LigneBonDeCommande[][] {
+  if (lignes.length === 0) return [];
+  return decoupage === "un" ? [lignes] : lignes.map((l) => [l]);
 }
 
 /**
@@ -138,6 +194,9 @@ export function totalDuBon(lignes: LigneBonDeCommande[]): TotalDuBon {
 /**
  * Les colonnes du fichier, dans l'ordre demandé.
  *
+ * La suggestion ET la quantité commandée : le fichier, qu'on
+ * retravaille, garde la trace de ce qui a été changé.
+ *
  * Écrites une fois et employées par le CSV comme par le tableur : deux
  * listes d'en-têtes finiraient par ne plus dire la même chose.
  */
@@ -147,6 +206,7 @@ export const COLONNES_BON_DE_COMMANDE = [
   "Stock actuel",
   "Seuil d'alerte",
   "Quantité suggérée",
+  "Quantité commandée",
   "Fournisseur",
   "Prix d'achat",
   "Total estimé",
@@ -167,6 +227,7 @@ export function cellulesDeLigne(l: LigneBonDeCommande): (string | number | null)
     l.stock,
     l.seuil,
     l.quantiteSuggeree,
+    l.quantiteCommandee,
     l.fournisseur || null,
     l.prixAchat,
     l.totalEstime,

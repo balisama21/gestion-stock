@@ -256,8 +256,14 @@ export const Totaux: React.FC<{
 
 /* ── Bas de page ─────────────────────────────────────────────────── */
 
-export const introMontantEnLettres = (type: Document["type"]) =>
-  `Arrêtée la présente ${type === "devis" ? "offre" : type === "recu" ? "quittance" : "facture"} à la somme de`;
+export const introMontantEnLettres = (type: Document["type"]) => {
+  // Un bon de commande ou un avoir n'est pas une facture : la phrase
+  // s'accorde avec ce que la pièce est vraiment.
+  if (type === "achat" || type === "commande")
+    return "Arrêté le présent bon de commande à la somme de";
+  if (type === "avoir") return "Arrêté le présent avoir à la somme de";
+  return `Arrêtée la présente ${type === "devis" ? "offre" : type === "recu" ? "quittance" : "facture"} à la somme de`;
+};
 
 export const MontantEnLettres: React.FC<{
   texte: string | null;

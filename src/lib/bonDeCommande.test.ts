@@ -1,6 +1,8 @@
 import { describe, expect, it } from "vitest";
 import {
+  appliquerLesQuantites,
   cellulesDeLigne,
+  decouperLeBon,
   COLONNES_BON_DE_COMMANDE,
   lignesDuBonDeCommande,
   quantiteSuggeree,
@@ -155,13 +157,14 @@ describe("le fichier à retravailler", () => {
     ACTIVE,
   );
 
-  it("porte les huit colonnes demandées, dans l'ordre", () => {
+  it("porte les neuf colonnes demandées, dans l'ordre", () => {
     expect([...COLONNES_BON_DE_COMMANDE]).toEqual([
       "Produit",
       "Référence",
       "Stock actuel",
       "Seuil d'alerte",
       "Quantité suggérée",
+      "Quantité commandée",
       "Fournisseur",
       "Prix d'achat",
       "Total estimé",
@@ -170,12 +173,12 @@ describe("le fichier à retravailler", () => {
 
   it("une cellule vide reste vide, et n'est pas un zéro", () => {
     const savon = lignes.find((l) => l.produit === "Savon")!;
-    expect(cellulesDeLigne(savon)).toEqual(["Savon", null, 1, 3, 5, null, null, null]);
+    expect(cellulesDeLigne(savon)).toEqual(["Savon", null, 1, 3, 5, 5, null, null, null]);
   });
 
-  it("une ligne complète porte ses huit valeurs", () => {
+  it("une ligne complète porte ses neuf valeurs", () => {
     const huile = lignes.find((l) => l.produit === "Huile 1 L")!;
-    expect(cellulesDeLigne(huile)).toEqual(["Huile 1 L", "P001", 5, 3, 1, "Tiko", 4000, 4000]);
+    expect(cellulesDeLigne(huile)).toEqual(["Huile 1 L", "P001", 5, 3, 1, 1, "Tiko", 4000, 4000]);
   });
 
   it("le CSV s'ouvre dans un tableur français", () => {
@@ -187,11 +190,75 @@ describe("le fichier à retravailler", () => {
     // Le point-virgule, sans lequel le fichier s'ouvre en une colonne.
     expect(csv).toContain("Produit;Référence;Stock actuel");
     // Une cellule vide, et non un « null » écrit en toutes lettres.
-    expect(csv).toContain("Savon;;1;3;5;;;");
+    expect(csv).toContain("Savon;;1;3;5;5;;;");
   });
 
   it("protège une valeur qui contient le séparateur", () => {
     const csv = composerCsv(["A", "B"], [["Vis 4;6 mm", 'Le "grand" modèle']]);
     expect(csv).toContain('"Vis 4;6 mm";"Le ""grand"" modèle"');
+  });
+});
+
+describe("les quantités choisies par la boutique", () => {
+  const lignes = lignesDuBonDeCommande(
+    [
+      produit({ id: "h", nom: "Huile", stockActuel: 5, seuilAlerte: 3, prixAchat: 4000 }),
+      produit({ id: "s", nom: "Savon", stockActuel: 1, seuilAlerte: 3 }),
+    ],
+    ACTIVE,
+  );
+
+  it("sans choix, la suggestion est commandée", () => {
+    const bon = appliquerLesQuantites(lignes, {});
+    expect(bon.map((l) => [l.id, l.quantiteCommandee])).toEqual([
+      ["s", 5],
+      ["h", 1],
+    ]);
+  });
+
+  it("une quantité changée change aussi le total de la ligne", () => {
+    const huile = appliquerLesQuantites(lignes, { h: 12 }).find((l) => l.id === "h")!;
+    expect(huile.quantiteCommandee).toBe(12);
+    expect(huile.quantiteSuggeree).toBe(1);
+    expect(huile.totalEstime).toBe(48000);
+    expect(totalDuBon([huile]).montant).toBe(48000);
+  });
+
+  it("zéro retire le produit du bon", () => {
+    expect(appliquerLesQuantites(lignes, { s: 0 }).map((l) => l.id)).toEqual(["h"]);
+  });
+
+  it("ni négatif ni décimal, ni saisie illisible", () => {
+    const bon = appliquerLesQuantites(lignes, { h: 2.6, s: -4 });
+    expect(bon.map((l) => [l.id, l.quantiteCommandee])).toEqual([["h", 3]]);
+    expect(appliquerLesQuantites(lignes, { h: Number.NaN })[1].quantiteCommandee).toBe(1);
+  });
+
+  it("le fichier garde la suggestion à côté de la quantité commandée", () => {
+    const huile = appliquerLesQuantites(lignes, { h: 12 }).find((l) => l.id === "h")!;
+    expect(cellulesDeLigne(huile).slice(4, 6)).toEqual([1, 12]);
+  });
+});
+
+describe("un bon, ou un bon par produit", () => {
+  const lignes = lignesDuBonDeCommande(
+    [produit({ id: "a", stockActuel: 0 }), produit({ id: "b", stockActuel: 1 })],
+    ACTIVE,
+  );
+
+  it("un seul bon regroupe toutes les lignes", () => {
+    expect(decouperLeBon(lignes, "un").map((b) => b.map((l) => l.id))).toEqual([["a", "b"]]);
+  });
+
+  it("un bon par produit, dans l'ordre de la liste", () => {
+    expect(decouperLeBon(lignes, "parProduit").map((b) => b.map((l) => l.id))).toEqual([
+      ["a"],
+      ["b"],
+    ]);
+  });
+
+  it("rien à commander, aucun bon", () => {
+    expect(decouperLeBon([], "un")).toEqual([]);
+    expect(decouperLeBon([], "parProduit")).toEqual([]);
   });
 });
