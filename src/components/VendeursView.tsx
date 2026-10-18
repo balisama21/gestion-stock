@@ -19,25 +19,14 @@ import {
   Wallet,
   Save,
 } from "lucide-react";
-import { formatCurrency, formatDateLocale, getSaleLabel,
-  quantiteEnMots,
-} from "../utils/formulas";
+import { formatCurrency, formatDateLocale, getSaleLabel, quantiteEnMots } from "../utils/formulas";
 import { PageHeader } from "./shared/PageHeader";
 import { StatCol } from "./shared/StatBar";
 import { DataList } from "./shared/DataList";
 import { Modal } from "./shared/Modal";
-import {
-  exporterPdf,
-  exporterImage,
-  imprimerDocument,
-  nomDeFichier,
-} from "../lib/documentExport";
+import { exporterPdf, exporterImage, imprimerDocument, nomDeFichier } from "../lib/documentExport";
 import { reprendreApresDeploiement, messageDErreurExport } from "../lib/chunkRecovery";
-import {
-  PAPER_FORMATS,
-  getPaperFormat,
-  type PaperFormatId,
-} from "../lib/paperFormats";
+import { PAPER_FORMATS, getPaperFormat, type PaperFormatId } from "../lib/paperFormats";
 import { dateDuJour } from "../lib/dates";
 import { symboleDeSaisie } from "../lib/affichageDevise";
 import { AvatarModifiable } from "./shared/ChoixAvatar";
@@ -386,11 +375,10 @@ export const VendeursView: React.FC<VendeursViewProps> = ({
           disponible — c'est la trésorerie qui porte celui-là. */}
       {sellers.length <= 1 && (
         <p className="app-card px-4 py-3 text-sm leading-relaxed text-muted-foreground">
-          Tant que vous vendez seul, ce solde n&apos;est que le cumul de vos propres
-          encaissements : votre poche et votre caisse sont le même argent. Il prend tout son sens
-          dès qu&apos;un collaborateur encaisse à votre place — il dira alors combien il détient et
-          ne vous a pas encore remis. L&apos;argent réellement disponible, lui, se lit dans la
-          trésorerie.
+          Tant que vous vendez seul, ce solde n&apos;est que le cumul de vos propres encaissements :
+          votre poche et votre caisse sont le même argent. Il prend tout son sens dès qu&apos;un
+          collaborateur encaisse à votre place — il dira alors combien il détient et ne vous a pas
+          encore remis. L&apos;argent réellement disponible, lui, se lit dans la trésorerie.
         </p>
       )}
 
@@ -671,7 +659,9 @@ export const VendeursView: React.FC<VendeursViewProps> = ({
             <StatCol
               label="Solde en poche"
               value={formatCurrency(activeSellerModal.soldeNetEnPoche)}
-              hint={activeSellerModal.soldeNetEnPoche < 0 ? "la boutique lui doit" : "reste à rendre"}
+              hint={
+                activeSellerModal.soldeNetEnPoche < 0 ? "la boutique lui doit" : "reste à rendre"
+              }
             />
           </div>
 
@@ -732,9 +722,7 @@ export const VendeursView: React.FC<VendeursViewProps> = ({
                       formatCurrency(s.prixVenteUnit),
                     ],
                     amount: formatCurrency(s.totalVente),
-                    amountHint: (
-                      <span className="t-success">+{formatCurrency(s.margeTotale)}</span>
-                    ),
+                    amountHint: <span className="t-success">+{formatCurrency(s.margeTotale)}</span>,
                     detailTitle: getSaleLabel(s, products),
                     detailSubtitle: `Vente n° ${s.numero}`,
                     details: [
@@ -744,9 +732,7 @@ export const VendeursView: React.FC<VendeursViewProps> = ({
                       { label: "Total", value: formatCurrency(s.totalVente) },
                       {
                         label: "Marge",
-                        value: (
-                          <span className="t-success">+{formatCurrency(s.margeTotale)}</span>
-                        ),
+                        value: <span className="t-success">+{formatCurrency(s.margeTotale)}</span>,
                       },
                       { label: "Client", value: s.clientCredit || "", hideIfEmpty: true },
                       {
@@ -882,10 +868,7 @@ export const VendeursView: React.FC<VendeursViewProps> = ({
           }
           footer={
             <>
-              <button
-                onClick={() => imprimerDocument(paper)}
-                className="app-btn-secondary"
-              >
+              <button onClick={() => imprimerDocument(paper)} className="app-btn-secondary">
                 <Printer className="h-4 w-4" />
                 Imprimer
               </button>
@@ -910,370 +893,365 @@ export const VendeursView: React.FC<VendeursViewProps> = ({
             </>
           }
         >
-            {/* Portée du document — masqué à l'impression. */}
-            <div className="no-print grid grid-cols-1 gap-3 sm:grid-cols-2">
-              <div>
-                <label className="mb-1 block text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
-                  Vendeur
-                </label>
-                <select
-                  value={selectedReportSeller}
-                  onChange={(e) => setSelectedReportSeller(e.target.value)}
-                  className="app-field-sm"
-                >
-                  <option value="all">Tous les vendeurs (cumulé)</option>
-                  {sellers.map((s) => (
-                    <option key={s.id} value={s.nom}>
-                      {s.nom}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              <div>
-                <label className="mb-1 block text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
-                  Période
-                </label>
-                <select
-                  value={selectedPeriod}
-                  onChange={(e) => setSelectedPeriod(e.target.value as any)}
-                  className="app-field-sm"
-                >
-                  <option value="today">Aujourd'hui ({todayStr})</option>
-                  <option value="month">Ce mois-ci ({currentMonthStr})</option>
-                  <option value="all">Historique complet</option>
-                </select>
-              </div>
+          {/* Portée du document — masqué à l'impression. */}
+          <div className="no-print grid grid-cols-1 gap-3 sm:grid-cols-2">
+            <div>
+              <label className="mb-1 block text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+                Vendeur
+              </label>
+              <select
+                value={selectedReportSeller}
+                onChange={(e) => setSelectedReportSeller(e.target.value)}
+                className="app-field-sm"
+              >
+                <option value="all">Tous les vendeurs (cumulé)</option>
+                {sellers.map((s) => (
+                  <option key={s.id} value={s.nom}>
+                    {s.nom}
+                  </option>
+                ))}
+              </select>
             </div>
 
-            {exportErreur && (
-              <p className="no-print rounded-xl border border-danger-border bg-danger-soft px-3 py-2.5 text-sm t-danger">
-                {exportErreur}
-              </p>
-            )}
+            <div>
+              <label className="mb-1 block text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+                Période
+              </label>
+              <select
+                value={selectedPeriod}
+                onChange={(e) => setSelectedPeriod(e.target.value as any)}
+                className="app-field-sm"
+              >
+                <option value="today">Aujourd'hui ({todayStr})</option>
+                <option value="month">Ce mois-ci ({currentMonthStr})</option>
+                <option value="all">Historique complet</option>
+              </select>
+            </div>
+          </div>
 
-            <div className="receipt-viewport flex items-start justify-start overflow-x-auto rounded-xl border border-border bg-background p-4">
-              {isTicket ? (
-                /* Ticket Thermal Receipt Format */
-                <div
-                  ref={documentRef}
-                  className={`printable-receipt mx-auto min-w-0 w-full rounded-lg border border-slate-200 bg-white p-4 space-y-3 font-mono text-[11px] leading-relaxed text-slate-900 shadow-sm`}
-                  style={{ maxWidth: paper.previewWidth }}
-                >
-                  {/* Store Header */}
-                  <div className="text-center space-y-1">
-                    {settings?.logoUrl && (
-                      <img
-                        src={settings.logoUrl}
-                        alt="Logo"
-                        className="mx-auto mb-2 h-12 w-12 rounded object-contain"
-                      />
-                    )}
-                    <h2 className="font-bold text-sm tracking-wide text-slate-950 uppercase">
-                      {settings?.storeName || marque.nom}
-                    </h2>
-                    <p className="text-[10px] text-slate-600">
-                      {settings?.subtitle || marque.slogan}
-                    </p>
-                    <p className="text-[10px] text-slate-600">
-                      {settings?.address || "Lot IVG 124, Antananarivo 101"}
-                    </p>
-                    <p className="text-[10px] text-slate-600">
-                      Tél: {settings?.phone || "+261 34 12 345 67"}
-                    </p>
-                  </div>
+          {exportErreur && (
+            <p className="no-print rounded-xl border border-danger-border bg-danger-soft px-3 py-2.5 text-sm t-danger">
+              {exportErreur}
+            </p>
+          )}
 
-                  <div className="border-b border-dashed border-slate-400 my-2"></div>
+          <div className="receipt-viewport flex items-start justify-start overflow-x-auto rounded-xl border border-border bg-background p-4">
+            {isTicket ? (
+              /* Ticket Thermal Receipt Format */
+              <div
+                ref={documentRef}
+                className={`printable-receipt mx-auto min-w-0 w-full rounded-lg border border-slate-200 bg-white p-4 space-y-3 font-mono text-[11px] leading-relaxed text-slate-900 shadow-sm`}
+                style={{ maxWidth: paper.previewWidth }}
+              >
+                {/* Store Header */}
+                <div className="text-center space-y-1">
+                  {settings?.logoUrl && (
+                    <img
+                      src={settings.logoUrl}
+                      alt="Logo"
+                      className="mx-auto mb-2 h-12 w-12 rounded object-contain"
+                    />
+                  )}
+                  <h2 className="font-bold text-sm tracking-wide text-slate-950 uppercase">
+                    {settings?.storeName || marque.nom}
+                  </h2>
+                  <p className="text-[10px] text-slate-600">
+                    {settings?.subtitle || marque.slogan}
+                  </p>
+                  <p className="text-[10px] text-slate-600">
+                    {settings?.address || "Lot IVG 124, Antananarivo 101"}
+                  </p>
+                  <p className="text-[10px] text-slate-600">
+                    Tél: {settings?.phone || "+261 34 12 345 67"}
+                  </p>
+                </div>
 
-                  {/* Header Title & Metadata */}
-                  <div className="text-center space-y-1">
-                    <h3 className="font-bold text-xs uppercase border-y border-slate-300 py-1 text-slate-900">
-                      RELEVÉ D'ACTIVITÉ VENDEUR
-                    </h3>
-                    <p className="text-[10px] font-semibold text-slate-800">
-                      VENDEUR :{" "}
-                      <span className="font-bold uppercase text-slate-950">
-                        {selectedReportSeller === "all"
-                          ? "TOUS LES VENDEURS"
-                          : selectedReportSeller}
-                      </span>
-                    </p>
-                    <p className="text-[9px] text-slate-600">
-                      Période:{" "}
-                      {selectedPeriod === "today"
-                        ? "Aujourd'hui (" + todayStr + ")"
-                        : selectedPeriod === "month"
-                          ? "Mois de " + currentMonthStr
-                          : "Historique complet"}
-                    </p>
-                    {/* Le jour et le mois ont quitté les libellés des
+                <div className="border-b border-dashed border-slate-400 my-2"></div>
+
+                {/* Header Title & Metadata */}
+                <div className="text-center space-y-1">
+                  <h3 className="font-bold text-xs uppercase border-y border-slate-300 py-1 text-slate-900">
+                    RELEVÉ D'ACTIVITÉ VENDEUR
+                  </h3>
+                  <p className="text-[10px] font-semibold text-slate-800">
+                    VENDEUR :{" "}
+                    <span className="font-bold uppercase text-slate-950">
+                      {selectedReportSeller === "all" ? "TOUS LES VENDEURS" : selectedReportSeller}
+                    </span>
+                  </p>
+                  <p className="text-[9px] text-slate-600">
+                    Période:{" "}
+                    {selectedPeriod === "today"
+                      ? "Aujourd'hui (" + todayStr + ")"
+                      : selectedPeriod === "month"
+                        ? "Mois de " + currentMonthStr
+                        : "Historique complet"}
+                  </p>
+                  {/* Le jour et le mois ont quitté les libellés des
                         totaux, trop longs pour 58 mm ; ils sont rappelés
                         ici, où la place ne manque pas. */}
-                    <p className="text-[9px] text-slate-600">
-                      Jour : {todayStr} — Mois : {currentMonthStr}
-                    </p>
+                  <p className="text-[9px] text-slate-600">
+                    Jour : {todayStr} — Mois : {currentMonthStr}
+                  </p>
+                </div>
+
+                <div className="border-b border-dashed border-slate-400 my-2"></div>
+
+                {/* KPI Highlights for Seller */}
+                <div className="space-y-1.5 text-[10px]">
+                  <div className="flex justify-between border-t border-slate-900 pt-1 font-bold text-slate-900">
+                    <span>CA DU JOUR</span>
+                    <span>{formatCurrency(reportStats.caJour)}</span>
                   </div>
 
-                  <div className="border-b border-dashed border-slate-400 my-2"></div>
+                  <div className="flex justify-between border-t border-slate-900 pt-1 font-bold text-slate-900">
+                    <span>CA DU MOIS</span>
+                    <span>{formatCurrency(reportStats.caMois)}</span>
+                  </div>
 
-                  {/* KPI Highlights for Seller */}
-                  <div className="space-y-1.5 text-[10px]">
-                    <div className="flex justify-between border-t border-slate-900 pt-1 font-bold text-slate-900">
-                      <span>CA DU JOUR</span>
-                      <span>{formatCurrency(reportStats.caJour)}</span>
-                    </div>
+                  <div className="border-b border-slate-300 my-1"></div>
 
-                    <div className="flex justify-between border-t border-slate-900 pt-1 font-bold text-slate-900">
-                      <span>CA DU MOIS</span>
-                      <span>{formatCurrency(reportStats.caMois)}</span>
-                    </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-600">Ventes</span>
+                    <span className="font-bold">
+                      {formatCurrency(reportStats.totalCA)} ({reportStats.countSales} vtes)
+                    </span>
+                  </div>
 
-                    <div className="border-b border-slate-300 my-1"></div>
+                  <div className="flex justify-between text-slate-600">
+                    <span>Encaissé</span>
+                    <span className="font-bold">{formatCurrency(reportStats.totalEncaisse)}</span>
+                  </div>
 
-                    <div className="flex justify-between">
-                      <span className="text-slate-600">Ventes</span>
-                      <span className="font-bold">
-                        {formatCurrency(reportStats.totalCA)} ({reportStats.countSales} vtes)
-                      </span>
-                    </div>
-
-                    <div className="flex justify-between text-slate-600">
-                      <span>Encaissé</span>
-                      <span className="font-bold">{formatCurrency(reportStats.totalEncaisse)}</span>
-                    </div>
-
-                    {reportStats.totalSoldeDu > 0 && (
-                      <div className="flex justify-between text-slate-700 font-semibold">
-                        <span>Crédits</span>
-                        <span>{formatCurrency(reportStats.totalSoldeDu)}</span>
-                      </div>
-                    )}
-
+                  {reportStats.totalSoldeDu > 0 && (
                     <div className="flex justify-between text-slate-700 font-semibold">
-                      <span>Dépenses</span>
-                      <span>- {formatCurrency(reportStats.totalDepenses)}</span>
+                      <span>Crédits</span>
+                      <span>{formatCurrency(reportStats.totalSoldeDu)}</span>
                     </div>
+                  )}
 
-                    <div className="flex justify-between text-slate-900 font-bold border-t border-slate-400 pt-1 text-xs">
-                      <span>NET EN POCHE</span>
-                      <span>{formatCurrency(reportStats.soldeNetCaisse)}</span>
-                    </div>
+                  <div className="flex justify-between text-slate-700 font-semibold">
+                    <span>Dépenses</span>
+                    <span>- {formatCurrency(reportStats.totalDepenses)}</span>
                   </div>
 
-                  <div className="border-b border-dashed border-slate-400 my-2"></div>
-
-                  {/* Itemized Transactions List */}
-                  <div className="space-y-2">
-                    <p className="font-bold text-[10px] uppercase text-slate-700">
-                      Détail des opérations ({reportSales.length} ventes) :
-                    </p>
-
-                    {reportSales.length === 0 ? (
-                      <p className="text-[10px] text-slate-500 italic text-center">
-                        Aucune vente pour cette période.
-                      </p>
-                    ) : (
-                      <table className="w-full text-[9px] text-left">
-                        <thead>
-                          <tr className="border-b border-slate-300 font-bold uppercase">
-                            <th className="py-1">Art.</th>
-                            <th className="py-1 text-center">Qté</th>
-                            <th className="py-1 text-right">Total</th>
-                          </tr>
-                        </thead>
-                        <tbody className="divide-y divide-slate-200">
-                          {reportSales.map((s) => (
-                            <tr key={s.id}>
-                              <td className="py-1 font-medium pr-1">
-                                {getSaleLabel(s, products)}
-                                {selectedReportSeller === "all" && (
-                                  <span className="block text-[8px] text-slate-500">
-                                    By: {s.vendeur}
-                                  </span>
-                                )}
-                              </td>
-                              <td className="py-1 text-center font-bold">{s.quantite}</td>
-                              <td className="py-1 text-right font-bold">
-                                {formatCurrency(s.totalVente)}
-                              </td>
-                            </tr>
-                          ))}
-                        </tbody>
-                      </table>
-                    )}
-                  </div>
-
-                  <div className="border-b border-dashed border-slate-400 my-2"></div>
-
-                  {/* Footer */}
-                  <div className="text-center text-[9px] text-slate-600 italic">
-                    Émis le {new Date().toLocaleString()} - {marque.nom}
+                  <div className="flex justify-between text-slate-900 font-bold border-t border-slate-400 pt-1 text-xs">
+                    <span>NET EN POCHE</span>
+                    <span>{formatCurrency(reportStats.soldeNetCaisse)}</span>
                   </div>
                 </div>
-              ) : (
-                /* Fiche Bilan A4 Format */
-                <div
-                  ref={documentRef}
-                  className={`printable-receipt mx-auto min-w-0 w-full rounded-lg border border-slate-200 bg-white p-8 space-y-6 font-sans text-xs text-slate-900 shadow-sm`}
-                  style={{ maxWidth: paper.previewWidth }}
-                >
-                  <header className="flex flex-wrap items-start justify-between gap-6 pb-6">
-                    <div className="min-w-0 space-y-2">
-                      {settings?.logoUrl && (
-                        <img
-                          src={settings.logoUrl}
-                          alt=""
-                          className="h-14 w-14 rounded object-contain"
-                        />
-                      )}
-                      <div className="space-y-0.5">
-                        <p className="text-base font-bold uppercase tracking-tight text-slate-900">
-                          {settings?.storeName || marque.nom}
-                        </p>
-                        {settings?.subtitle && (
-                          <p className="text-[11px] text-slate-500">{settings.subtitle}</p>
-                        )}
-                        <p className="text-[11px] text-slate-500">
-                          {settings?.address || "Lot IVG 124, Antananarivo 101"}
-                        </p>
-                        <p className="text-[11px] text-slate-500">
-                          Tél. {settings?.phone || "+261 34 12 345 67"}
-                          {settings?.email ? ` · ${settings.email}` : ""}
-                        </p>
-                      </div>
-                    </div>
 
-                    <div className="min-w-0 space-y-1 sm:text-right">
-                      <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-slate-400">
-                        Bilan d'activité
-                      </p>
-                      <p className="text-lg font-bold tracking-tight text-slate-900">
-                        {selectedReportSeller === "all" ? "Tous les vendeurs" : selectedReportSeller}
-                      </p>
-                      <dl className="space-y-0.5 pt-1 text-[11px] text-slate-500">
-                        <div className="flex gap-2 sm:justify-end">
-                          <dt>Période</dt>
-                          <dd className="font-medium text-slate-700">{periodeLabel}</dd>
-                        </div>
-                        <div className="flex gap-2 sm:justify-end">
-                          <dt>Édité le</dt>
-                          <dd className="font-medium text-slate-700">
-                            {new Date().toLocaleDateString("fr-FR")}
-                          </dd>
-                        </div>
-                      </dl>
-                    </div>
-                  </header>
+                <div className="border-b border-dashed border-slate-400 my-2"></div>
 
-                  {/* KPI Cards Grid */}
-                  <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
-                    <div className="bg-slate-50 border border-slate-200 p-3 rounded-xl">
-                      <span className="text-[9px] uppercase font-semibold text-slate-500 block">
-                        CA du Jour ({todayStr})
-                      </span>
-                      <span className="text-sm font-bold text-slate-900 font-mono">
-                        {formatCurrency(reportStats.caJour)}
-                      </span>
-                    </div>
+                {/* Itemized Transactions List */}
+                <div className="space-y-2">
+                  <p className="font-bold text-[10px] uppercase text-slate-700">
+                    Détail des opérations ({reportSales.length} ventes) :
+                  </p>
 
-                    <div className="bg-slate-50 border border-slate-200 p-3 rounded-xl">
-                      <span className="text-[9px] uppercase font-semibold text-slate-500 block">
-                        CA du Mois ({currentMonthStr})
-                      </span>
-                      <span className="text-sm font-bold text-slate-900 font-mono">
-                        {formatCurrency(reportStats.caMois)}
-                      </span>
-                    </div>
-
-                    <div className="bg-slate-50 border border-slate-200 p-3 rounded-xl">
-                      <span className="text-[9px] uppercase font-semibold text-slate-500 block">
-                        Dépenses / Retraits
-                      </span>
-                      <span className="text-sm font-bold text-slate-900 font-mono">
-                        - {formatCurrency(reportStats.totalDepenses)}
-                      </span>
-                    </div>
-
-                    <div className="bg-slate-50 border border-slate-300 p-3 rounded-xl">
-                      <span className="text-[9px] uppercase font-semibold text-slate-500 block">
-                        Solde Net en Poche
-                      </span>
-                      <span className="text-sm font-bold text-slate-900 font-mono">
-                        {formatCurrency(reportStats.soldeNetCaisse)}
-                      </span>
-                    </div>
-                  </div>
-
-                  {/* Summary Table */}
-                  <div className="space-y-2">
-                    <h4 className="font-bold text-slate-900 text-xs uppercase tracking-wider">
-                      Journal des Ventes ({reportSales.length} opérations)
-                    </h4>
-                    <table className="w-full text-left text-xs border-collapse">
+                  {reportSales.length === 0 ? (
+                    <p className="text-[10px] text-slate-500 italic text-center">
+                      Aucune vente pour cette période.
+                    </p>
+                  ) : (
+                    <table className="w-full text-[9px] text-left">
                       <thead>
-                        <tr className="border-b border-slate-300 text-[10px] font-semibold uppercase tracking-wider text-slate-500">
-                          <th className="p-2">Date</th>
-                          <th className="p-2">Article</th>
-                          <th className="p-2 text-center">Qté</th>
-                          <th className="p-2 text-right">P.U</th>
-                          <th className="p-2 text-right">Total</th>
-                          <th className="p-2 text-right">Encaissé</th>
+                        <tr className="border-b border-slate-300 font-bold uppercase">
+                          <th className="py-1">Art.</th>
+                          <th className="py-1 text-center">Qté</th>
+                          <th className="py-1 text-right">Total</th>
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-slate-200">
-                        {reportSales.length === 0 ? (
-                          <tr>
-                            <td
-                              colSpan={6}
-                              className="p-3 text-center text-slate-500 italic"
-                            >
-                              Aucune vente trouvée pour cette sélection.
+                        {reportSales.map((s) => (
+                          <tr key={s.id}>
+                            <td className="py-1 font-medium pr-1">
+                              {getSaleLabel(s, products)}
+                              {selectedReportSeller === "all" && (
+                                <span className="block text-[8px] text-slate-500">
+                                  By: {s.vendeur}
+                                </span>
+                              )}
+                            </td>
+                            <td className="py-1 text-center font-bold">{s.quantite}</td>
+                            <td className="py-1 text-right font-bold">
+                              {formatCurrency(s.totalVente)}
                             </td>
                           </tr>
-                        ) : (
-                          reportSales.map((s, i) => (
-                            <tr
-                              key={s.id}
-                              className={`border-b border-slate-100 ${i % 2 === 1 ? "bg-slate-50/70" : ""}`}
-                            >
-                              <td className="p-2 font-mono text-slate-500">{s.date}</td>
-                              <td className="p-2 font-bold text-slate-900">
-                                {getSaleLabel(s, products)}
-                                {selectedReportSeller === "all" && (
-                                  <span className="block text-[10px] text-slate-500 font-normal">
-                                    Vendeur: {s.vendeur}
-                                  </span>
-                                )}
-                              </td>
-                              <td className="p-2 text-center font-bold">{s.quantite}</td>
-                              <td className="p-2 text-right">{formatCurrency(s.prixVenteUnit)}</td>
-                              <td className="p-2 text-right font-bold text-slate-900">
-                                {formatCurrency(s.totalVente)}
-                              </td>
-                              <td className="p-2 text-right font-medium text-slate-900">
-                                {formatCurrency(s.montantPaye)}
-                              </td>
-                            </tr>
-                          ))
-                        )}
+                        ))}
                       </tbody>
                     </table>
+                  )}
+                </div>
+
+                <div className="border-b border-dashed border-slate-400 my-2"></div>
+
+                {/* Footer */}
+                <div className="text-center text-[9px] text-slate-600 italic">
+                  Émis le {new Date().toLocaleString()} - {marque.nom}
+                </div>
+              </div>
+            ) : (
+              /* Fiche Bilan A4 Format */
+              <div
+                ref={documentRef}
+                className={`printable-receipt mx-auto min-w-0 w-full rounded-lg border border-slate-200 bg-white p-8 space-y-6 font-sans text-xs text-slate-900 shadow-sm`}
+                style={{ maxWidth: paper.previewWidth }}
+              >
+                <header className="flex flex-wrap items-start justify-between gap-6 pb-6">
+                  <div className="min-w-0 space-y-2">
+                    {settings?.logoUrl && (
+                      <img
+                        src={settings.logoUrl}
+                        alt=""
+                        className="h-14 w-14 rounded object-contain"
+                      />
+                    )}
+                    <div className="space-y-0.5">
+                      <p className="text-base font-bold uppercase tracking-tight text-slate-900">
+                        {settings?.storeName || marque.nom}
+                      </p>
+                      {settings?.subtitle && (
+                        <p className="text-[11px] text-slate-500">{settings.subtitle}</p>
+                      )}
+                      <p className="text-[11px] text-slate-500">
+                        {settings?.address || "Lot IVG 124, Antananarivo 101"}
+                      </p>
+                      <p className="text-[11px] text-slate-500">
+                        Tél. {settings?.phone || "+261 34 12 345 67"}
+                        {settings?.email ? ` · ${settings.email}` : ""}
+                      </p>
+                    </div>
                   </div>
 
-                  {/* Signatures */}
-                  <div className="grid grid-cols-2 gap-8 border-t border-slate-200 pt-8 text-center text-[10px] text-slate-600">
-                    <div className="space-y-12">
-                      <p className="font-bold uppercase tracking-wider">Signature du Vendeur</p>
-                      <div className="border-b border-dashed border-slate-300 w-32 mx-auto"></div>
-                    </div>
-                    <div className="space-y-12">
-                      <p className="font-bold uppercase tracking-wider">Cachet & Direction</p>
-                      <div className="border-b border-dashed border-slate-300 w-32 mx-auto"></div>
-                    </div>
+                  <div className="min-w-0 space-y-1 sm:text-right">
+                    <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-slate-400">
+                      Bilan d'activité
+                    </p>
+                    <p className="text-lg font-bold tracking-tight text-slate-900">
+                      {selectedReportSeller === "all" ? "Tous les vendeurs" : selectedReportSeller}
+                    </p>
+                    <dl className="space-y-0.5 pt-1 text-[11px] text-slate-500">
+                      <div className="flex gap-2 sm:justify-end">
+                        <dt>Période</dt>
+                        <dd className="font-medium text-slate-700">{periodeLabel}</dd>
+                      </div>
+                      <div className="flex gap-2 sm:justify-end">
+                        <dt>Édité le</dt>
+                        <dd className="font-medium text-slate-700">
+                          {new Date().toLocaleDateString("fr-FR")}
+                        </dd>
+                      </div>
+                    </dl>
+                  </div>
+                </header>
+
+                {/* KPI Cards Grid */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 text-xs">
+                  <div className="bg-slate-50 border border-slate-200 p-3 rounded-xl">
+                    <span className="text-[9px] uppercase font-semibold text-slate-500 block">
+                      CA du Jour ({todayStr})
+                    </span>
+                    <span className="text-sm font-bold text-slate-900 font-mono">
+                      {formatCurrency(reportStats.caJour)}
+                    </span>
+                  </div>
+
+                  <div className="bg-slate-50 border border-slate-200 p-3 rounded-xl">
+                    <span className="text-[9px] uppercase font-semibold text-slate-500 block">
+                      CA du Mois ({currentMonthStr})
+                    </span>
+                    <span className="text-sm font-bold text-slate-900 font-mono">
+                      {formatCurrency(reportStats.caMois)}
+                    </span>
+                  </div>
+
+                  <div className="bg-slate-50 border border-slate-200 p-3 rounded-xl">
+                    <span className="text-[9px] uppercase font-semibold text-slate-500 block">
+                      Dépenses / Retraits
+                    </span>
+                    <span className="text-sm font-bold text-slate-900 font-mono">
+                      - {formatCurrency(reportStats.totalDepenses)}
+                    </span>
+                  </div>
+
+                  <div className="bg-slate-50 border border-slate-300 p-3 rounded-xl">
+                    <span className="text-[9px] uppercase font-semibold text-slate-500 block">
+                      Solde Net en Poche
+                    </span>
+                    <span className="text-sm font-bold text-slate-900 font-mono">
+                      {formatCurrency(reportStats.soldeNetCaisse)}
+                    </span>
                   </div>
                 </div>
-              )}
-            </div>
+
+                {/* Summary Table */}
+                <div className="space-y-2">
+                  <h4 className="font-bold text-slate-900 text-xs uppercase tracking-wider">
+                    Journal des Ventes ({reportSales.length} opérations)
+                  </h4>
+                  <table className="w-full text-left text-xs border-collapse">
+                    <thead>
+                      <tr className="border-b border-slate-300 text-[10px] font-semibold uppercase tracking-wider text-slate-500">
+                        <th className="p-2">Date</th>
+                        <th className="p-2">Article</th>
+                        <th className="p-2 text-center">Qté</th>
+                        <th className="p-2 text-right">P.U</th>
+                        <th className="p-2 text-right">Total</th>
+                        <th className="p-2 text-right">Encaissé</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-200">
+                      {reportSales.length === 0 ? (
+                        <tr>
+                          <td colSpan={6} className="p-3 text-center text-slate-500 italic">
+                            Aucune vente trouvée pour cette sélection.
+                          </td>
+                        </tr>
+                      ) : (
+                        reportSales.map((s, i) => (
+                          <tr
+                            key={s.id}
+                            className={`border-b border-slate-100 ${i % 2 === 1 ? "bg-slate-50/70" : ""}`}
+                          >
+                            <td className="p-2 font-mono text-slate-500">{s.date}</td>
+                            <td className="p-2 font-bold text-slate-900">
+                              {getSaleLabel(s, products)}
+                              {selectedReportSeller === "all" && (
+                                <span className="block text-[10px] text-slate-500 font-normal">
+                                  Vendeur: {s.vendeur}
+                                </span>
+                              )}
+                            </td>
+                            <td className="p-2 text-center font-bold">{s.quantite}</td>
+                            <td className="p-2 text-right">{formatCurrency(s.prixVenteUnit)}</td>
+                            <td className="p-2 text-right font-bold text-slate-900">
+                              {formatCurrency(s.totalVente)}
+                            </td>
+                            <td className="p-2 text-right font-medium text-slate-900">
+                              {formatCurrency(s.montantPaye)}
+                            </td>
+                          </tr>
+                        ))
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+
+                {/* Signatures */}
+                <div className="grid grid-cols-2 gap-8 border-t border-slate-200 pt-8 text-center text-[10px] text-slate-600">
+                  <div className="space-y-12">
+                    <p className="font-bold uppercase tracking-wider">Signature du Vendeur</p>
+                    <div className="border-b border-dashed border-slate-300 w-32 mx-auto"></div>
+                  </div>
+                  <div className="space-y-12">
+                    <p className="font-bold uppercase tracking-wider">Cachet & Direction</p>
+                    <div className="border-b border-dashed border-slate-300 w-32 mx-auto"></div>
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
         </Modal>
       )}
 
