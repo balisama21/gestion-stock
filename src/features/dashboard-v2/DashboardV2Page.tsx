@@ -71,6 +71,10 @@ import { useAuth } from "../../hooks/useAuth";
 import { REGLAGES_PAR_DEFAUT, type ReglagesAlertesStock } from "../../lib/prealerteStock";
 import { Icone } from "../../components/shared/Icone";
 import { vignettesParProduit } from "../../components/shared/VignetteProduit";
+import { chiffreAffairesParJour } from "../../lib/ventes";
+
+/** Une seule liste vide : une nouvelle à chaque rendu relancerait tous les calculs. */
+const AUCUN_AVOIR: NonNullable<SourcesChiffres["avoirs"]> = [];
 
 /**
  * LE TABLEAU DE BORD v2
@@ -129,6 +133,8 @@ export interface DashboardV2PageProps {
   orders: SourcesChiffres["orders"];
   clients: SourcesChiffres["clients"];
   quotes: SourcesChiffres["quotes"];
+  /** Les avoirs sur ces ventes : ils retranchent du chiffre d'affaires. */
+  avoirs?: SourcesChiffres["avoirs"];
   /** Les livraisons, avec de quoi dresser la tournee. */
   deliveries: {
     id: string;
@@ -217,6 +223,7 @@ export const DashboardV2Page: React.FC<DashboardV2PageProps> = ({
   orders,
   clients,
   quotes,
+  avoirs = AUCUN_AVOIR,
   deliveries,
   taches,
   productImages,
@@ -283,12 +290,14 @@ export const DashboardV2Page: React.FC<DashboardV2PageProps> = ({
       orders,
       clients,
       quotes,
+      avoirs,
       deliveries,
       taches,
       mouvements: donnees.mouvements,
     }),
     [
       sales,
+      avoirs,
       purchases,
       expenses,
       products,
@@ -452,11 +461,10 @@ export const DashboardV2Page: React.FC<DashboardV2PageProps> = ({
     const n = nombreDeJours(periode.intervalle);
     const debut =
       n < 7 ? decalerJours(fin, -6) : n > 62 ? decalerJours(fin, -61) : periode.intervalle.debut;
-    const parJour = new Map<string, number>();
-    for (const v of sales) {
-      if (v.date >= debut && v.date <= fin)
-        parJour.set(v.date, (parJour.get(v.date) ?? 0) + v.totalVente);
-    }
+    const parJour = chiffreAffairesParJour(
+      sales.filter((v) => v.date >= debut && v.date <= fin),
+      avoirs.filter((a) => a.date >= debut && a.date <= fin),
+    );
     const points: PointVentes[] = [];
     for (let j = debut; j <= fin; j = decalerJours(j, 1)) {
       points.push({
@@ -466,7 +474,7 @@ export const DashboardV2Page: React.FC<DashboardV2PageProps> = ({
       });
     }
     return points;
-  }, [sales, periode.intervalle]);
+  }, [sales, avoirs, periode.intervalle]);
   const sousTitreVentes = `Évolution de vos ventes ${
     nombreDeJours(periode.intervalle) < 7 ? "sur les 7 derniers jours" : periode.phrase
   }`;

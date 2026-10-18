@@ -3,6 +3,7 @@ import { FileMinus } from "lucide-react";
 import { Modal } from "../shared/Modal";
 import { montant as formaterMontant } from "../../features/documents/lib/format";
 import type { DocumentCommercial } from "./documents";
+import { aRembourserApresAvoir } from "./paiement";
 
 /**
  * L'AVOIR : LA PIÈCE QUI ANNULE UNE FACTURE.
@@ -10,7 +11,12 @@ import type { DocumentCommercial } from "./documents";
  * « Une facture émise ne se supprime JAMAIS et ne se modifie plus.
  * Pour l'annuler ou la corriger, on crée un AVOIR. »
  *
- * ── IL NE REMBOURSE PAS DE LUI-MÊME ────────────────────────────────
+ * ── IL EFFACE LA DETTE, IL NE REMBOURSE PAS DE LUI-MÊME ────────────
+ *
+ * Depuis le 18 octobre, l'avoir efface d'abord ce que le client doit
+ * encore sur la facture (la base le pose sur `montant_avoire`). Seul ce
+ * qui dépasse cette dette est de l'argent à rendre, et ce remboursement
+ * reste un geste à part, coché ou non.
  *
  * C'est la décision qui garantit qu'aucune opération n'est comptée deux
  * fois : l'argent rendu passe par le remboursement, la marchandise
@@ -49,10 +55,11 @@ export const AvoirModal: React.FC<{
   const trop = valeur > d.montant;
   const argent = (n: number) => formaterMontant(n, devise);
 
-  /* On ne rend que ce qui a été encaissé. Proposer de rembourser une
-     facture jamais réglée ferait sortir de la caisse un argent qui n'y
-     est jamais entré. */
-  const remboursable = Math.min(valeur, d.paye);
+  /* On ne rend que ce qui dépasse la dette une fois l'avoir posé. Sur une
+     facture jamais réglée, l'avoir efface la dette et il n'y a rien à
+     rendre. */
+  const remboursable = aRembourserApresAvoir(d.ventes, valeur).reduce((n, p) => n + p.montant, 0);
+  const resteDuApres = Math.max(0, d.reste - valeur);
 
   const articles = useMemo(() => d.ventes.filter((v) => v.productId && v.quantite > 0), [d.ventes]);
 
@@ -105,8 +112,10 @@ export const AvoirModal: React.FC<{
           )}
           {partiel && !trop && (
             <p className="mt-1 text-xs text-muted-foreground">
-              Avoir partiel : la facture reste due pour {argent(d.montant - valeur)} et ne passera
-              pas en « Annulée ».
+              Avoir partiel : la facture ne passera pas en « Annulée ».{" "}
+              {resteDuApres > 0
+                ? `Le client devra encore ${argent(resteDuApres)}.`
+                : "Le client ne devra plus rien."}
             </p>
           )}
         </div>
@@ -130,8 +139,8 @@ export const AvoirModal: React.FC<{
 
         <div className="space-y-2 rounded-lg border border-border p-3">
           <p className="text-xs text-muted-foreground">
-            L&apos;avoir est une pièce : il ne rembourse rien et ne remet rien en stock de lui-même.
-            Cochez ce qui a réellement eu lieu.
+            L&apos;avoir efface ce que le client doit encore sur cette facture. Il ne rembourse rien
+            et ne remet rien en stock de lui-même : cochez ce qui a réellement eu lieu.
           </p>
 
           <label className="flex items-start gap-2 text-sm">
@@ -150,7 +159,8 @@ export const AvoirModal: React.FC<{
                 </span>
               ) : (
                 <span className="block text-xs text-muted-foreground">
-                  Rien n&apos;a été encaissé sur cette facture : il n&apos;y a rien à rendre.
+                  L&apos;avoir ne dépasse pas ce que le client doit encore : il n&apos;y a rien à
+                  rendre.
                 </span>
               )}
             </span>

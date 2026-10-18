@@ -5,9 +5,14 @@ import { formatCurrency } from "../utils/formulas";
 import { DataList } from "./shared/DataList";
 import { PageHeader } from "./shared/PageHeader";
 import { dateDuJour } from "../lib/dates";
+import { chiffreAffairesNet, type AvoirDeVente } from "../lib/ventes";
+
+const AUCUN_AVOIR: AvoirDeVente[] = [];
 
 interface RapportsViewProps {
   sales: Sale[];
+  /** Les avoirs sur ces ventes : le chiffre d'affaires en est net, à leur date. */
+  avoirs?: AvoirDeVente[];
   /** Les postes de dépenses de la boutique, pour les nommer. */
   postes: { id: string; nom: string }[];
   purchases: Purchase[];
@@ -18,6 +23,7 @@ interface RapportsViewProps {
 
 export const RapportsView: React.FC<RapportsViewProps> = ({
   sales,
+  avoirs = AUCUN_AVOIR,
   purchases,
   expenses,
   postes = [],
@@ -77,7 +83,10 @@ export const RapportsView: React.FC<RapportsViewProps> = ({
     isSameDay(e.date, filterDay, filterMonth, filterYear),
   );
 
-  const caToday = salesToday.reduce((acc, s) => acc + s.totalVente, 0);
+  const caToday = chiffreAffairesNet(
+    salesToday,
+    avoirs.filter((a) => isSameDay(a.date, filterDay, filterMonth, filterYear)),
+  );
   const achatsToday = purchasesToday.reduce((acc, p) => acc + p.totalAchat, 0);
   const depensesToday = expensesToday.reduce((acc, e) => acc + e.montant, 0);
   const margeToday = salesToday.reduce((acc, s) => acc + s.margeTotale, 0);
@@ -87,7 +96,10 @@ export const RapportsView: React.FC<RapportsViewProps> = ({
   const purchasesMonth = purchases.filter((p) => isSameMonth(p.date, filterMonth, filterYear));
   const expensesMonth = expenses.filter((e) => isSameMonth(e.date, filterMonth, filterYear));
 
-  const caMonth = salesMonth.reduce((acc, s) => acc + s.totalVente, 0);
+  const caMonth = chiffreAffairesNet(
+    salesMonth,
+    avoirs.filter((a) => isSameMonth(a.date, filterMonth, filterYear)),
+  );
   const achatsMonth = purchasesMonth.reduce((acc, p) => acc + p.totalAchat, 0);
   const depensesMonth = expensesMonth.reduce((acc, e) => acc + e.montant, 0);
   const margeMonth = salesMonth.reduce((acc, s) => acc + s.margeTotale, 0);
@@ -124,7 +136,10 @@ export const RapportsView: React.FC<RapportsViewProps> = ({
   const purchasesYear = purchases.filter((p) => isSameYear(p.date, filterYear));
   const expensesYear = expenses.filter((e) => isSameYear(e.date, filterYear));
 
-  const caYear = salesYear.reduce((acc, s) => acc + s.totalVente, 0);
+  const caYear = chiffreAffairesNet(
+    salesYear,
+    avoirs.filter((a) => isSameYear(a.date, filterYear)),
+  );
   const achatsYear = purchasesYear.reduce((acc, p) => acc + p.totalAchat, 0);
   const depensesYear = expensesYear.reduce((acc, e) => acc + e.montant, 0);
   const margeYear = salesYear.reduce((acc, s) => acc + s.margeTotale, 0);
@@ -151,7 +166,10 @@ export const RapportsView: React.FC<RapportsViewProps> = ({
     const mPurchases = purchases.filter((p) => isSameMonth(p.date, mIdx, filterYear));
     const mExpenses = expenses.filter((e) => isSameMonth(e.date, mIdx, filterYear));
 
-    const ca = mSales.reduce((acc, s) => acc + s.totalVente, 0);
+    const ca = chiffreAffairesNet(
+      mSales,
+      avoirs.filter((a) => isSameMonth(a.date, mIdx, filterYear)),
+    );
     const achats = mPurchases.reduce((acc, p) => acc + p.totalAchat, 0);
     const depenses = mExpenses.reduce((acc, e) => acc + e.montant, 0);
     const marge = mSales.reduce((acc, s) => acc + s.margeTotale, 0);

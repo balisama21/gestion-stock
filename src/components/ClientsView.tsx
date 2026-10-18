@@ -35,6 +35,9 @@ import type { Database } from "../lib/database.types";
 import { useRechercheInitiale } from "../lib/cibleRecherche";
 import { AvatarPersonne } from "./shared/AvatarPersonne";
 import { AvatarModifiable } from "./shared/ChoixAvatar";
+import { avoirsDesVentes, chiffreAffairesNet, type AvoirDeVente } from "../lib/ventes";
+
+const AUCUN_AVOIR: AvoirDeVente[] = [];
 
 type Client = Database["public"]["Tables"]["clients"]["Row"];
 type ClientInsert = Database["public"]["Tables"]["clients"]["Insert"];
@@ -50,6 +53,8 @@ interface ClientsViewProps {
   orders: Order[];
   /** Les ventes servent aux ventes à crédit rattachées à un client. */
   sales: Sale[];
+  /** Les avoirs sur ces ventes : « Total acheté » en est net. */
+  avoirs?: AvoirDeVente[];
   payments: Payment[];
   onAddClient: (
     data: Omit<ClientInsert, "store_id" | "created_by">,
@@ -191,6 +196,7 @@ export const ClientsView: React.FC<ClientsViewProps> = ({
   clients,
   orders,
   sales,
+  avoirs = AUCUN_AVOIR,
   payments,
   onAddClient,
   onUpdateClient,
@@ -249,9 +255,11 @@ export const ClientsView: React.FC<ClientsViewProps> = ({
       table[c.id] = {
         commandes: sesCommandes.length,
         ventesCredit: sesVentes.length,
+        // Net des avoirs posés sur SES tickets : la même règle que le
+        // chiffre d'affaires du tableau de bord.
         totalAchete:
           sesCommandes.reduce((s, o) => s + montantCommande(o), 0) +
-          sesVentes.reduce((s, v) => s + v.totalVente, 0),
+          chiffreAffairesNet(sesVentes, avoirsDesVentes(avoirs, sesVentes)),
         totalPaye:
           sesCommandes.reduce((s, o) => s + o.montant_paye, 0) +
           sesVentes.reduce((s, v) => s + v.montantPaye, 0),
@@ -267,7 +275,7 @@ export const ClientsView: React.FC<ClientsViewProps> = ({
       };
     }
     return table;
-  }, [clients, orders, ventesParClient]);
+  }, [clients, avoirs, orders, ventesParClient]);
 
   const compteVide = {
     commandes: 0,

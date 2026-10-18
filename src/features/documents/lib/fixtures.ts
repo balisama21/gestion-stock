@@ -101,6 +101,7 @@ const vente = (v: Partial<Sale> & Pick<Sale, "id" | "numero" | "date">) =>
     vendeur: "Lanto",
     montantPaye: 0,
     montantRembourse: 0,
+    montantAvoire: 0,
     soldeDu: 0,
     statutCredit: "Payé",
     ...v,

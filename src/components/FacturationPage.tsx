@@ -8,7 +8,7 @@ import type { DocumentCommercial } from "./facturation/documents";
 import { ActionsDocument, type DroitsFacturation } from "./facturation/ActionsDocument";
 import { AvoirModal, type SaisieAvoir } from "./facturation/AvoirModal";
 import { PaiementModal } from "./facturation/PaiementModal";
-import { repartirLePaiement } from "./facturation/paiement";
+import { aRembourserApresAvoir, repartirLePaiement } from "./facturation/paiement";
 import {
   FormulaireNouveauDocument,
   MenuNouveauDocument,
@@ -321,16 +321,11 @@ export const FacturationPage: React.FC<FacturationPageProps> = ({
 
     const soucis: string[] = [];
 
+    // L'avoir a d'abord effacé la dette : seul l'excédent se rend.
     if (saisie.rembourser) {
-      let reste = Math.min(saisie.montant, avoir.paye);
-      for (const v of avoir.ventes) {
-        if (reste <= 0) break;
-        const rendable = Math.max(0, v.montantPaye - v.montantRembourse);
-        if (rendable <= 0) continue;
-        const part = Math.min(reste, rendable);
-        const { error: e } = await onRefundSale(v.id, part, saisie.motif || "Avoir");
+      for (const part of aRembourserApresAvoir(avoir.ventes, saisie.montant)) {
+        const { error: e } = await onRefundSale(part.saleId, part.montant, saisie.motif || "Avoir");
         if (e) soucis.push(e);
-        else reste -= part;
       }
     }
 

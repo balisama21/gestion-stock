@@ -53,3 +53,36 @@ export const MODES_DE_PAIEMENT = [
   { valeur: "virement", libelle: "Virement" },
   { valeur: "cheque", libelle: "Chèque" },
 ] as const;
+
+/**
+ * CE QU'UN AVOIR LAISSE À RENDRE.
+ *
+ * Un avoir efface d'abord ce que le client doit encore ; seul ce qui
+ * dépasse sa dette est de l'argent à lui rendre (décision du 18 octobre).
+ * Sur une facture de 100 000 payée 30 000 : un avoir de 50 000 ne rend
+ * rien (il reste 20 000 dus), un avoir de 80 000 rend 10 000.
+ *
+ * Le calcul se fait sur le ticket entier — ce que le client a versé, net
+ * de ce qui lui a déjà été rendu, contre ce qu'il doit encore une fois
+ * l'avoir posé —, puis se répartit sur les lignes dans l'ordre, chacune
+ * jusqu'à ce qu'elle a encaissé et pas encore rendu, comme `refund_sale`
+ * l'exige.
+ */
+export function aRembourserApresAvoir(ventes: Sale[], montantAvoir: number): PartDePaiement[] {
+  const total = ventes.reduce((n, v) => n + v.totalVente, 0);
+  const verseNet = ventes.reduce((n, v) => n + v.montantPaye - v.montantRembourse, 0);
+  const dejaAvoire = ventes.reduce((n, v) => n + (v.montantAvoire ?? 0), 0);
+  const duApres = Math.max(0, total - dejaAvoire - Math.max(0, montantAvoir));
+  let reste = Math.max(0, verseNet - duApres);
+
+  const parts: PartDePaiement[] = [];
+  for (const v of ventes) {
+    if (reste <= 0) break;
+    const rendable = Math.max(0, v.montantPaye - v.montantRembourse);
+    if (rendable <= 0) continue;
+    const part = Math.min(reste, rendable);
+    parts.push({ saleId: v.id, montant: part });
+    reste -= part;
+  }
+  return parts;
+}

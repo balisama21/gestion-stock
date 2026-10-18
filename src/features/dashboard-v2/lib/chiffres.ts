@@ -2,6 +2,7 @@ import type { CapitalSummary, Expense, Product, Purchase, Sale, Seller } from ".
 import { resteDuCommande } from "../../../lib/commandes";
 import { dateDuJour } from "../../../lib/dates";
 import { estEnAttenteDeReponse } from "../../../lib/devis";
+import { chiffreAffairesNet, chiffreAffairesParJour, type AvoirDeVente } from "../../../lib/ventes";
 import type { Intervalle, Periode } from "../hooks/useDashboardPeriod";
 import { dansIntervalle, decalerJours, nombreDeJours } from "../hooks/useDashboardPeriod";
 import type { MouvementStock } from "../hooks/useDashboardData";
@@ -50,6 +51,11 @@ import {
  */
 export interface SourcesChiffres {
   sales: Sale[];
+  /**
+   * Les avoirs sur CES ventes. Chacun retranche son montant du chiffre
+   * d'affaires à sa propre date. Absents : le chiffre reste brut.
+   */
+  avoirs?: AvoirDeVente[];
   purchases: Purchase[];
   expenses: Expense[];
   products: Product[];
@@ -116,9 +122,8 @@ export interface ChiffresVentes {
   cumulPrecedent: { jour: string; cumule: number }[];
 }
 
-function cumulerParJour(ventes: Sale[], i: Intervalle) {
-  const parJour = new Map<string, number>();
-  for (const v of ventes) parJour.set(v.date, (parJour.get(v.date) ?? 0) + v.totalVente);
+function cumulerParJour(ventes: Sale[], avoirs: AvoirDeVente[], i: Intervalle) {
+  const parJour = chiffreAffairesParJour(ventes, avoirs);
   let cumule = 0;
   return joursDe(i).map((jour) => {
     const duJour = parJour.get(jour) ?? 0;
@@ -130,12 +135,16 @@ function cumulerParJour(ventes: Sale[], i: Intervalle) {
 export function chiffresVentes(s: SourcesChiffres, p: Periode): ChiffresVentes {
   const periode = dans(s.sales, (v) => v.date, p.intervalle);
   const precedentes = dans(s.sales, (v) => v.date, p.precedent);
+  // Les avoirs à LEUR date : celui d'aujourd'hui sur une vente du mois
+  // dernier baisse le chiffre d'aujourd'hui, pas celui du mois dernier.
+  const avoirsPeriode = dans(s.avoirs ?? [], (a) => a.date, p.intervalle);
+  const avoirsPrecedents = dans(s.avoirs ?? [], (a) => a.date, p.precedent);
 
   // Un ticket regroupe les lignes passées ensemble au comptoir. Les
   // ventes enregistrées avant l'étape des tickets n'en portent pas :
   // chacune compte alors pour elle-même.
   const tickets = new Set(periode.map((v) => v.ticketId ?? v.id)).size;
-  const total = somme(periode, (v) => v.totalVente);
+  const total = chiffreAffairesNet(periode, avoirsPeriode);
 
   return {
     total,
@@ -143,12 +152,14 @@ export function chiffresVentes(s: SourcesChiffres, p: Periode): ChiffresVentes {
     lignes: periode.length,
     panierMoyen: tickets > 0 ? total / tickets : 0,
     marge: somme(periode, (v) => v.margeTotale),
-    totalPrecedent: somme(precedentes, (v) => v.totalVente),
-    cumul: cumulerParJour(periode, p.intervalle),
-    cumulPrecedent: cumulerParJour(precedentes, p.precedent).map(({ jour, cumule }) => ({
-      jour,
-      cumule,
-    })),
+    totalPrecedent: chiffreAffairesNet(precedentes, avoirsPrecedents),
+    cumul: cumulerParJour(periode, avoirsPeriode, p.intervalle),
+    cumulPrecedent: cumulerParJour(precedentes, avoirsPrecedents, p.precedent).map(
+      ({ jour, cumule }) => ({
+        jour,
+        cumule,
+      }),
+    ),
   };
 }
 
@@ -818,11 +829,14 @@ export function chiffresDuJour(s: SourcesChiffres, aujourdhui = dateDuJour()): C
   return {
     jour: aujourdhui,
     hier,
-    ventes: somme(ventesDuJour, (v) => v.totalVente),
+    ventes: chiffreAffairesNet(
+      ventesDuJour,
+      (s.avoirs ?? []).filter((a) => a.date === aujourdhui),
+    ),
     tickets: new Set(ventesDuJour.map((v) => v.ticketId ?? v.id)).size,
-    ventesHier: somme(
+    ventesHier: chiffreAffairesNet(
       s.sales.filter((v) => v.date === hier),
-      (v) => v.totalVente,
+      (s.avoirs ?? []).filter((a) => a.date === hier),
     ),
     dernierJourVendu,
     encaisse: somme(

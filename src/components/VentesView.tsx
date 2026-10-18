@@ -68,11 +68,16 @@ import type { ReglagesDocuments } from "../features/documents/lib/reglages";
 import { symboleDeSaisie } from "../lib/affichageDevise";
 import { AvatarPersonne } from "./shared/AvatarPersonne";
 import {
+  avoirsDesVentes,
+  chiffreAffairesNet,
   commissionParDefaut,
   erreurDeCommission,
   preparerModificationVente,
   totauxDesLignes,
+  type AvoirDeVente,
 } from "../lib/ventes";
+
+const AUCUN_AVOIR: AvoirDeVente[] = [];
 
 type Client = Database["public"]["Tables"]["clients"]["Row"];
 
@@ -85,6 +90,8 @@ interface LignePanier {
 
 interface VentesViewProps {
   sales: Sale[];
+  /** Les avoirs sur ces ventes : le chiffre d'affaires de l'en-tête en est net. */
+  avoirs?: AvoirDeVente[];
   products: Product[];
   /**
    * Les photos des produits, pour que la caisse montre l'article plutot
@@ -175,6 +182,7 @@ interface VentesViewProps {
 
 export const VentesView: React.FC<VentesViewProps> = ({
   sales,
+  avoirs = AUCUN_AVOIR,
   products,
   productImages = [],
   clients,
@@ -768,6 +776,9 @@ export const VentesView: React.FC<VentesViewProps> = ({
           ),
           hideIfEmpty: true,
         },
+        ...(showMontant && s.montantAvoire > 0
+          ? [{ label: "Annulé par avoir", value: formatCurrency(s.montantAvoire) }]
+          : []),
         ...(showPaiement ? [{ label: "Payé", value: formatCurrency(s.montantPaye) }] : []),
         ...(showSolde && s.soldeDu > 0
           ? [
@@ -984,7 +995,8 @@ export const VentesView: React.FC<VentesViewProps> = ({
     };
   };
 
-  const totalVentesCA = sales.reduce((acc, s) => acc + s.totalVente, 0);
+  // Net des avoirs : la même règle que le tableau de bord et Facturation.
+  const totalVentesCA = chiffreAffairesNet(sales, avoirsDesVentes(avoirs, sales));
   const totalMarges = sales.reduce((acc, s) => acc + s.margeTotale, 0);
   const totalPayeEncaisse = sales.reduce((acc, s) => acc + s.montantPaye, 0);
   const totalSoldeDuCredit = sales.reduce((acc, s) => acc + s.soldeDu, 0);

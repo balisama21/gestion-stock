@@ -86,6 +86,11 @@ export interface Sale {
   commission: number;
   montantPaye: number;
   montantRembourse: number;
+  /**
+   * La part du total annulée par des avoirs (`sales.montant_avoire`). Le
+   * reste dû en tient compte en base : solde = total − payé − avoiré.
+   */
+  montantAvoire: number;
   soldeDu: number;
   statutCredit: "Payé" | "Partiel" | "Impayé";
   /**

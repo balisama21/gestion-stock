@@ -2722,6 +2722,7 @@ export type Database = {
           idempotency_key: string | null;
           marge_totale: number;
           montant_paye: number;
+          montant_avoire: number;
           montant_rembourse: number;
           numero: string | null;
           owner_id: string | null;
@@ -2749,6 +2750,7 @@ export type Database = {
           idempotency_key?: string | null;
           marge_totale?: number;
           montant_paye?: number;
+          montant_avoire?: number;
           montant_rembourse?: number;
           numero?: string | null;
           owner_id?: string | null;
@@ -2776,6 +2778,7 @@ export type Database = {
           idempotency_key?: string | null;
           marge_totale?: number;
           montant_paye?: number;
+          montant_avoire?: number;
           montant_rembourse?: number;
           numero?: string | null;
           owner_id?: string | null;
