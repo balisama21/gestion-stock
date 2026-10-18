@@ -472,17 +472,21 @@ export const VendeursView: React.FC<VendeursViewProps> = ({
                   type="button"
                   onClick={async () => {
                     if (
-                      await confirmer(`Voulez-vous vraiment supprimer le vendeur "${v.nom}" ?`, {
-                        danger: true,
-                        libelle: "Supprimer",
-                      })
+                      // Ce geste retire un MEMBRE de l'équipe : il perd l'accès
+                      // à la boutique. Rien de ce qu'il a enregistré ne
+                      // disparaît — la question doit le dire.
+                      await confirmer(
+                        `Retirer « ${v.nom} » de l'équipe ?
+Il ne pourra plus ouvrir la boutique. Ses ventes, dépenses et remises restent enregistrées.`,
+                        { titre: "Retirer de l'équipe", danger: true, libelle: "Retirer" },
+                      )
                     ) {
                       onDeleteSeller(v.id);
                     }
                   }}
                   className="app-btn-icon h-9 w-9 shrink-0"
-                  title="Supprimer ce vendeur"
-                  aria-label={`Supprimer ${v.nom}`}
+                  title="Retirer de l'équipe"
+                  aria-label={`Retirer ${v.nom} de l'équipe`}
                 >
                   <Trash2 className="h-4 w-4" />
                 </button>
