@@ -43,9 +43,53 @@ export const classeStatutLivraison = (statut: string): string => {
 export const argentChezLeLivreur = (l: Livraison): boolean =>
   l.statut === "livree" && l.montant_encaisse > 0 && l.argent_remis_le === null;
 
-/** Une livraison qu'il reste à faire, par opposition à une close. */
-export const estEnCours = (l: Livraison): boolean =>
+/**
+ * Une livraison qu'il reste à faire, par opposition à une close.
+ *
+ * Une course échouée est close : le tableau de bord la comptait encore
+ * parmi les courses ouvertes (« tout sauf livrée ou annulée »), la page
+ * Livraisons non.
+ */
+export const estEnCours = (l: { statut: string }): boolean =>
   l.statut === "a_faire" || l.statut === "en_cours";
+
+export interface ArgentARendre {
+  /** La clé du regroupement : le compte du livreur, ou le nom libre. */
+  cle: string;
+  qui: string;
+  montant: number;
+  ids: string[];
+}
+
+/**
+ * L'argent encore chez les livreurs, par personne.
+ *
+ * Une course confiée hors équipe n'a pas de `livreur_id`, seulement un
+ * nom (`confie_a`). Regrouper sur le seul identifiant mettait toutes
+ * ces personnes dans un même paquet, affiché « Non assignée » : un
+ * clic sur « Argent rendu » soldait alors l'argent de plusieurs
+ * personnes à la fois, dont certaines n'étaient pas repassées.
+ */
+export function argentChezLesLivreurs(
+  livraisons: Livraison[],
+  nomDuMembre: (userId: string) => string,
+): ArgentARendre[] {
+  const parPersonne = new Map<string, ArgentARendre>();
+  for (const l of livraisons.filter(argentChezLeLivreur)) {
+    const nomLibre = (l.confie_a ?? "").trim();
+    const cle = l.livreur_id
+      ? `membre:${l.livreur_id}`
+      : nomLibre
+        ? `nom:${nomLibre.toLowerCase()}`
+        : "personne";
+    const qui = l.livreur_id ? nomDuMembre(l.livreur_id) : nomLibre || "Non assignée";
+    const entree = parPersonne.get(cle) ?? { cle, qui, montant: 0, ids: [] };
+    entree.montant += l.montant_encaisse;
+    entree.ids.push(l.id);
+    parPersonne.set(cle, entree);
+  }
+  return [...parPersonne.values()];
+}
 
 /**
  * Le contenu tel qu'il est rangé en base : du JSON libre.

@@ -343,7 +343,7 @@ export const DashboardV2Page: React.FC<DashboardV2PageProps> = ({
     ventes: { cle: "ventes" },
     entrees: { cle: "encaisse" },
     sorties: { cle: "sorties" },
-    stock: { cle: "ruptures" },
+    stock: { cle: "recommander" },
     activite: { cle: "ventes" },
   };
 
@@ -842,7 +842,7 @@ export const DashboardV2Page: React.FC<DashboardV2PageProps> = ({
               valeurVisible={droits.champVisible("produits", "valeur_stock")}
               avecRuptures={stockCartes.ruptures}
               onRafraichir={rafraichir}
-              onVoirLaListe={onTelechargerLaListe}
+              onVoirLaListe={() => setPanneau({ cle: "recommander" })}
               onVoirRuptures={() => setPanneau({ cle: "ruptures" })}
             />
           )}
@@ -856,8 +856,8 @@ export const DashboardV2Page: React.FC<DashboardV2PageProps> = ({
                   valeurVisible={droits.champVisible("produits", "valeur_stock")}
                   vignettes={vignettes}
                   onProduit={(produit) => setPanneau({ cle: "produit", produit })}
-                  onCommander={() => setPanneau({ cle: "ruptures" })}
-                  onTelecharger={onTelechargerLaListe}
+                  onVoirLaListe={() => setPanneau({ cle: "recommander" })}
+                  onCommander={onTelechargerLaListe}
                 />
               )}
               {stockCartes.mouvements && (
@@ -1096,6 +1096,7 @@ export const DashboardV2Page: React.FC<DashboardV2PageProps> = ({
         vue={panneau}
         onFermer={() => setPanneau(null)}
         onNaviguer={onNavigateTab}
+        onBonDeCommande={onTelechargerLaListe}
         donnees={{
           periode,
           ventes: chiffres.ventes,

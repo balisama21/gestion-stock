@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { Banknote, Edit3, MapPin, Phone, Plus, Save, Trash2, Truck, Wallet } from "lucide-react";
 import { formatCurrency, formatDateLocale, quantiteEnMots } from "../utils/formulas";
 import { PageHeader, HeaderMetric } from "./shared/PageHeader";
@@ -10,7 +10,7 @@ import { StatCol } from "./shared/StatBar";
 import { Modal } from "./shared/Modal";
 import {
   STATUTS_LIVRAISON,
-  argentChezLeLivreur,
+  argentChezLesLivreurs,
   classeStatutLivraison,
   estEnCours,
   libelleStatutLivraison,
@@ -173,19 +173,17 @@ export const LivraisonsView: React.FC<LivraisonsViewProps> = ({
    * de ses trois courses, et on coche une fois. Cocher course par
    * course marcherait aussi, mais ce n'est pas ainsi que ça se passe.
    */
-  const aRendre = useMemo(() => {
-    const parLivreur = new Map<string, { montant: number; ids: string[] }>();
-    for (const l of deliveries.filter(argentChezLeLivreur)) {
-      const cle = l.livreur_id ?? "";
-      const entree = parLivreur.get(cle) ?? { montant: 0, ids: [] };
-      entree.montant += l.montant_encaisse;
-      entree.ids.push(l.id);
-      parLivreur.set(cle, entree);
-    }
-    return [...parLivreur.entries()];
-  }, [deliveries]);
+  const aRendre = useMemo(
+    () =>
+      argentChezLesLivreurs(deliveries, (id) => {
+        const m = membres.find((x) => x.user_id === id);
+        return m ? (m.full_name ?? m.email) : "Livreur retiré de l'équipe";
+      }),
+    [deliveries, membres],
+  );
 
   const rendre = async (ids: string[], qui: string) => {
+    if (enregistrement) return;
     setEnregistrement(true);
     const res = await onRemettreArgent(ids);
     setEnregistrement(false);
@@ -362,17 +360,12 @@ export const LivraisonsView: React.FC<LivraisonsViewProps> = ({
           )}
 
           {peutModifier && estEnCours(l) && (
-            <div>
-              <ChampAvecSuggestions
-                id={`liv-assign-${l.id}`}
-                label="Confiée à"
-                valeur={aQui(l) ?? ""}
-                onChange={(v) => void assigner(l, v)}
-                suggestions={suggestionsConfieA}
-                placeholder="Personne pour l'instant"
-                aide="Un livreur de l'équipe, ou n'importe quel nom : le champ est libre."
-              />
-            </div>
+            <AssignationCourse
+              id={`liv-assign-${l.id}`}
+              actuel={aQui(l) ?? ""}
+              suggestions={suggestionsConfieA}
+              onAssigner={(nom) => assigner(l, nom)}
+            />
           )}
         </div>
       ),
@@ -517,10 +510,9 @@ export const LivraisonsView: React.FC<LivraisonsViewProps> = ({
             </p>
           </div>
           <div className="app-list">
-            {aRendre.map(([id, { montant, ids }]) => {
-              const qui = nomDuLivreur(id || null) ?? "Non assignée";
+            {aRendre.map(({ cle, qui, montant, ids }) => {
               return (
-                <div key={id || "sans"} className="app-list-row justify-between gap-3">
+                <div key={cle} className="app-list-row justify-between gap-3">
                   <span className="min-w-0 flex-1">
                     <span className="app-list-primary block">{qui}</span>
                     <span className="app-list-secondary block">
@@ -772,5 +764,42 @@ export const LivraisonsView: React.FC<LivraisonsViewProps> = ({
         </div>
       </Modal>
     </div>
+  );
+};
+
+/**
+ * « Confiée à », sur une course déjà créée.
+ *
+ * Le champ écrivait en base à chaque lettre tapée : confier une course à
+ * « Rakoto » envoyait six modifications (« R », « Ra »…), chacune avec
+ * son message, et la course passait un instant par cinq noms faux. La
+ * saisie reste locale et ne part qu'en quittant le champ ou sur Entrée,
+ * et seulement si le nom a changé.
+ */
+const AssignationCourse: React.FC<{
+  id: string;
+  actuel: string;
+  suggestions: string[];
+  onAssigner: (nom: string) => Promise<unknown>;
+}> = ({ id, actuel, suggestions, onAssigner }) => {
+  const [brouillon, setBrouillon] = useState(actuel);
+  useEffect(() => setBrouillon(actuel), [actuel]);
+
+  const valider = () => {
+    if (cleDeListe(brouillon) === cleDeListe(actuel)) return;
+    void onAssigner(brouillon);
+  };
+
+  return (
+    <ChampAvecSuggestions
+      id={id}
+      label="Confiée à"
+      valeur={brouillon}
+      onChange={setBrouillon}
+      onValider={valider}
+      suggestions={suggestions}
+      placeholder="Personne pour l'instant"
+      aide="Un livreur de l'équipe, ou n'importe quel nom : le champ est libre."
+    />
   );
 };

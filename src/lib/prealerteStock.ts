@@ -193,12 +193,44 @@ export function niveauDePrealerte(seuil: number, r: ReglagesAlertesStock): numbe
  */
 export type EtatDeStock = "normal" | "prealerte" | "sous_le_seuil";
 
+/**
+ * LES TROIS RÈGLES DU STOCK, ÉCRITES UNE FOIS.
+ *
+ * Elles étaient recopiées dans la cloche, la page Produits, les deux
+ * tableaux de bord et la coquille, et pas toutes de la même façon : un
+ * `stockActuel <= seuilAlerte` brut comptait comme « sous le seuil » un
+ * produit SANS seuil (0 ≤ 0), qu'un service ou une fiche archivée soit
+ * en cause ou non. Le tableau de bord annonçait alors soixante-six
+ * produits à recommander, et le bon de commande — qui appliquait la
+ * vraie règle — n'en listait qu'un. Toute vue qui compte du stock passe
+ * désormais par ces trois fonctions.
+ *
+ * Ce sont aussi celles de la base (`niveau_surveille`) : un produit
+ * n'est surveillé que s'il est actif, que ce n'est pas un service, et
+ * que son seuil est supérieur à zéro.
+ */
+
+/** Une marchandise dont on suit le stock : active, et pas un service. */
+export function stockEstSuivi(p: { typeProduit?: string | null; statut?: string | null }): boolean {
+  return p.typeProduit !== "service" && (p.statut ?? "actif") === "actif";
+}
+
+/** Sous le seuil d'alerte. Sans seuil (zéro), un produit n'y est jamais. */
+export function estSousLeSeuil(stockActuel: number, seuil: number): boolean {
+  return seuil > 0 && stockActuel <= seuil;
+}
+
+/** Plus une unité en stock, qu'un seuil soit fixé ou non. */
+export function estEnRupture(stockActuel: number): boolean {
+  return stockActuel <= 0;
+}
+
 export function etatDeStock(
   stockActuel: number,
   seuil: number,
   r: ReglagesAlertesStock,
 ): EtatDeStock {
-  if (seuil > 0 && stockActuel <= seuil) return "sous_le_seuil";
+  if (estSousLeSeuil(stockActuel, seuil)) return "sous_le_seuil";
   const niveau = niveauDePrealerte(seuil, r);
   return niveau > 0 && stockActuel <= niveau ? "prealerte" : "normal";
 }

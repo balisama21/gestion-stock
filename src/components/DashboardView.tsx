@@ -1,4 +1,6 @@
 import React, { useMemo, useState } from "react";
+import { resteDuCommande } from "../lib/commandes";
+import { estSousLeSeuil, stockEstSuivi } from "../lib/prealerteStock";
 import { Product, Sale, Expense, Seller, Purchase, CapitalSummary, LocaleSetting } from "../types";
 import {
   Wallet,
@@ -199,7 +201,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   );
 
   const lowStockProducts = products
-    .filter((p) => p.stockActuel <= p.seuilAlerte)
+    .filter((p) => stockEstSuivi(p) && estSousLeSeuil(p.stockActuel, p.seuilAlerte))
     .sort((a, b) => a.stockActuel - b.stockActuel);
   const totalStockValue = products.reduce((acc, p) => acc + p.stockActuel * p.prixAchat, 0);
   // ── Les flux, ramenés à la période choisie ──
@@ -219,7 +221,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   const pendingOrders = orders.filter(
     (o) => o.statut_commande === "en_attente" || o.statut_commande === "en_cours",
   );
-  const unpaidOrders = orders.filter((o) => (o.reste_a_payer ?? 0) > 0);
+  const unpaidOrders = orders.filter((o) => resteDuCommande(o) > 0);
   const isTresorerieNegative = capital.tresorerieGlobaleActuelle < 0;
   const isTresorerieLow = capital.tresorerieGlobaleActuelle < capital.seuilAlerteTresorerie;
 

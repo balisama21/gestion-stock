@@ -1,4 +1,5 @@
 import { quantiteEnMots } from "../utils/formulas";
+import { estEnRupture, estSousLeSeuil, stockEstSuivi } from "./prealerteStock";
 import type { ActiveTab, Sale, Purchase, Expense, CapitalApport, Product } from "../types";
 import type { Database } from "./database.types";
 import { getModuleScope, type PermissionsMap } from "./permissions";
@@ -284,19 +285,18 @@ const MAX_ACTIVITES = 60;
 export const ENTITES: Record<
   string,
   { libelle: string; e: "" | "e"; module: string; onglet: ActiveTab }
-> =
-  {
-    sales: { libelle: "Vente", e: "e", module: "ventes", onglet: "ventes" },
-    purchases: { libelle: "Achat", e: "", module: "achats", onglet: "achats" },
-    expenses: { libelle: "Dépense", e: "e", module: "depenses", onglet: "depenses" },
-    capital_apports: { libelle: "Apport", e: "", module: "capital", onglet: "capital" },
-    quotes: { libelle: "Devis", e: "", module: "devis", onglet: "devis" },
-    deliveries: { libelle: "Livraison", e: "e", module: "livraisons", onglet: "livraisons" },
-    clients: { libelle: "Client", e: "", module: "clients", onglet: "clients" },
-    orders: { libelle: "Commande", e: "e", module: "commandes", onglet: "commandes" },
-    payments: { libelle: "Règlement", e: "", module: "ventes", onglet: "paiements" },
-    products: { libelle: "Produit", e: "", module: "produits", onglet: "produits" },
-  };
+> = {
+  sales: { libelle: "Vente", e: "e", module: "ventes", onglet: "ventes" },
+  purchases: { libelle: "Achat", e: "", module: "achats", onglet: "achats" },
+  expenses: { libelle: "Dépense", e: "e", module: "depenses", onglet: "depenses" },
+  capital_apports: { libelle: "Apport", e: "", module: "capital", onglet: "capital" },
+  quotes: { libelle: "Devis", e: "", module: "devis", onglet: "devis" },
+  deliveries: { libelle: "Livraison", e: "e", module: "livraisons", onglet: "livraisons" },
+  clients: { libelle: "Client", e: "", module: "clients", onglet: "clients" },
+  orders: { libelle: "Commande", e: "e", module: "commandes", onglet: "commandes" },
+  payments: { libelle: "Règlement", e: "", module: "ventes", onglet: "paiements" },
+  products: { libelle: "Produit", e: "", module: "produits", onglet: "produits" },
+};
 
 /**
  * LES RETOUCHES QUI FONT PARTIE DE LA CRÉATION
@@ -496,8 +496,13 @@ export function construireNotifications(s: SourcesActivite): Notification[] {
   // ─────────────── Ce qui demande attention ───────────────
 
   if (s.alertesStock && peutVoir("produits")) {
-    const bas = s.products.filter((p) => p.stockActuel <= p.seuilAlerte);
-    const rupture = bas.filter((p) => p.stockActuel <= 0);
+    // Les règles de `prealerteStock`, celles du tableau de bord et du bon
+    // de commande : ni service, ni fiche archivée, et « sous le seuil »
+    // seulement quand un seuil est fixé. Un produit à zéro reste une
+    // rupture, seuil ou non.
+    const suivis = s.products.filter(stockEstSuivi);
+    const rupture = suivis.filter((p) => estEnRupture(p.stockActuel));
+    const bas = suivis.filter((p) => estSousLeSeuil(p.stockActuel, p.seuilAlerte));
     if (rupture.length > 0) {
       alertes.push({
         id: `alerte-rupture-${rupture.length}`,
@@ -512,7 +517,7 @@ export function construireNotifications(s: SourcesActivite): Notification[] {
         onglet: "produits",
       });
     }
-    const faibles = bas.filter((p) => p.stockActuel > 0);
+    const faibles = bas.filter((p) => !estEnRupture(p.stockActuel));
     if (faibles.length > 0) {
       alertes.push({
         id: `alerte-stock-bas-${faibles.length}`,

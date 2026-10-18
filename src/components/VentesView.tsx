@@ -67,6 +67,12 @@ import { Equivalents, texteEquivalents, useDevisesAffichees } from "../lib/conte
 import type { ReglagesDocuments } from "../features/documents/lib/reglages";
 import { symboleDeSaisie } from "../lib/affichageDevise";
 import { AvatarPersonne } from "./shared/AvatarPersonne";
+import {
+  commissionParDefaut,
+  erreurDeCommission,
+  preparerModificationVente,
+  totauxDesLignes,
+} from "../lib/ventes";
 
 type Client = Database["public"]["Tables"]["clients"]["Row"];
 
@@ -129,12 +135,18 @@ interface VentesViewProps {
     lignes: { productId: string; quantite: number; prixVenteUnit: number }[];
     clientNom?: string | null;
     clientId?: string | null;
+    /** Le devis dont vient ce panier, rendu avec la vente qui en naît. */
+    origine?: string | null;
   } | null;
   /** Prévient que le panier préparé a été repris, pour l'oublier. */
   onPanierRepris?: () => void;
-  /** Le ticket de la vente qui vient d'être enregistrée. */
-  onVenteEnregistree?: (ticketId: string | null) => void;
-  onEditSale?: (updatedSale: Sale) => void;
+  /**
+   * Le ticket de la vente qui vient d'être enregistrée, et le devis dont
+   * venait son panier — nul pour une vente saisie à la caisse.
+   */
+  onVenteEnregistree?: (ticketId: string | null, origine: string | null) => void;
+  /** Rend l'erreur à la modale, qui reste alors ouverte. */
+  onEditSale?: (updatedSale: Sale) => Promise<{ error: string | null }>;
   /**
    * Fixer la part que la boutique garde sur une prestation.
    *
@@ -203,6 +215,43 @@ export const VentesView: React.FC<VentesViewProps> = ({
 
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingSale, setEditingSale] = useState<Sale | null>(null);
+  const [erreurModification, setErreurModification] = useState<string | null>(null);
+  const [modificationEnCours, setModificationEnCours] = useState(false);
+  const [commissionEnCours, setCommissionEnCours] = useState(false);
+
+  const ouvrirModification = (vente: Sale) => {
+    setErreurModification(null);
+    setEditingSale(vente);
+  };
+
+  /**
+   * Enregistrer une vente modifiée : la quantité et le client, rien
+   * d'autre — voir `preparerModificationVente`. La modale ne se ferme
+   * qu'une fois la base d'accord ; un refus (stock insuffisant, total
+   * sous le déjà payé) s'affiche dedans, la saisie intacte.
+   */
+  const enregistrerModification = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!onEditSale || !editingSale || modificationEnCours) return;
+    const prepa = preparerModificationVente(editingSale, { quantite: editingSale.quantite });
+    if ("erreur" in prepa) {
+      setErreurModification(prepa.erreur);
+      return;
+    }
+    setModificationEnCours(true);
+    setErreurModification(null);
+    const { error } = await onEditSale({
+      ...editingSale,
+      quantite: prepa.quantite,
+      totalVente: prepa.totalVente,
+    });
+    setModificationEnCours(false);
+    if (error) {
+      setErreurModification(error);
+      return;
+    }
+    setEditingSale(null);
+  };
   /* La vente dont on règle la commission, et le montant en cours. */
   const [venteCommission, setVenteCommission] = useState<Sale | null>(null);
   const devisesAffichees = useDevisesAffichees();
@@ -236,13 +285,7 @@ export const VentesView: React.FC<VentesViewProps> = ({
    * Les totaux du document, additionnés sur tout le ticket. Une seule
    * ligne d'un panier de trois donnerait un total faux sur le reçu.
    */
-  const totauxRecu = useMemo(() => {
-    const total = ventesDuTicket.reduce((n, v) => n + v.totalVente, 0);
-    const paye = ventesDuTicket.reduce((n, v) => n + v.montantPaye, 0);
-    const du = ventesDuTicket.reduce((n, v) => n + v.soldeDu, 0);
-    const statut = du <= 0 ? "Payé" : paye > 0 ? "Partiel" : "Impayé";
-    return { total, paye, du, statut };
-  }, [ventesDuTicket]);
+  const totauxRecu = useMemo(() => totauxDesLignes(ventesDuTicket), [ventesDuTicket]);
 
   /**
    * Les préférences d'impression étaient réglables dans Paramètres →
@@ -379,6 +422,8 @@ export const VentesView: React.FC<VentesViewProps> = ({
   const [codeSaisi, setCodeSaisi] = useState("");
   const [messageCode, setMessageCode] = useState<string | null>(null);
   const [panier, setPanier] = useState<LignePanier[]>([]);
+  /** Le devis dont vient le panier en cours, s'il en vient un. */
+  const [origineDuPanier, setOrigineDuPanier] = useState<string | null>(null);
 
   /**
    * Un panier préparé ailleurs ouvre la caisse déjà remplie.
@@ -390,13 +435,21 @@ export const VentesView: React.FC<VentesViewProps> = ({
   useEffect(() => {
     if (!panierInitial || panierInitial.lignes.length === 0) return;
     setPanier(panierInitial.lignes);
+    setOrigineDuPanier(panierInitial.origine ?? null);
     setClientCredit(panierInitial.clientNom ?? "");
     setClientChoisi(panierInitial.clientId ?? "");
+    setMontantSaisi(false);
     setFormError(null);
     setIsModalOpen(true);
     onPanierRepris?.();
   }, [panierInitial, onPanierRepris]);
   const [montantPaye, setMontantPaye] = useState<number>(0);
+  /**
+   * Vrai dès qu'on a tapé le montant payé soi-même. Jusque-là il suit le
+   * total du panier : une vente se paie comptant tant qu'on ne dit pas
+   * le contraire.
+   */
+  const [montantSaisi, setMontantSaisi] = useState(false);
 
   /**
    * Retrouver un produit par son code-barres.
@@ -459,11 +512,17 @@ export const VentesView: React.FC<VentesViewProps> = ({
   const totalPanier = panier.reduce((n, l) => n + l.quantite * l.prixVenteUnit, 0);
   const equivalentsPanier = texteEquivalents(totalPanier, devisesAffichees);
 
+  /*
+   * Le montant payé suit le total tant qu'on n'y a pas touché.
+   *
+   * Il se figeait dès qu'un nom de client était posé : choisir le client
+   * AVANT de remplir le panier laissait le montant à zéro, et une vente
+   * payée comptant partait en crédit pour la totalité. Seule une saisie
+   * à la main l'arrête désormais.
+   */
   useEffect(() => {
-    if (!clientCredit) {
-      setMontantPaye(totalPanier);
-    }
-  }, [totalPanier, clientCredit]);
+    if (!montantSaisi) setMontantPaye(totalPanier);
+  }, [totalPanier, montantSaisi]);
 
   /**
    * Poser un produit dans le panier.
@@ -499,6 +558,8 @@ export const VentesView: React.FC<VentesViewProps> = ({
     const prod = produitDe(productId);
     if (quantite <= 0) {
       setPanier((lignes) => lignes.filter((l) => l.productId !== productId));
+      // Un panier vidé n'est plus celui du devis.
+      if (panier.length <= 1) setOrigineDuPanier(null);
       return;
     }
     if (prod && quantite > prod.stockDisponible) return;
@@ -554,9 +615,12 @@ export const VentesView: React.FC<VentesViewProps> = ({
       return;
     }
 
+    const origine = origineDuPanier;
     setIsModalOpen(false);
     setIsCustomPrice(false);
     setPanier([]);
+    setOrigineDuPanier(null);
+    setMontantSaisi(false);
     setClientCredit("");
     setClientChoisi("");
     setCodeSaisi("");
@@ -566,7 +630,7 @@ export const VentesView: React.FC<VentesViewProps> = ({
     // par la base, la liste `sales` n'étant pas encore rechargée.
     setVentesRecu(result.ventes);
     setSelectedReceiptSale(result.ventes[0]);
-    onVenteEnregistree?.(result.ventes[0].ticketId ?? null);
+    onVenteEnregistree?.(result.ventes[0].ticketId ?? null, origine);
   };
 
   const [searchQuery, setSearchQuery] = useState("");
@@ -728,7 +792,7 @@ export const VentesView: React.FC<VentesViewProps> = ({
             Reçu
           </button>
           {onEditSale && (
-            <button onClick={() => setEditingSale(s)} className="app-btn-secondary">
+            <button onClick={() => ouvrirModification(s)} className="app-btn-secondary">
               <Edit3 className="w-4 h-4" />
               Modifier
             </button>
@@ -743,7 +807,7 @@ export const VentesView: React.FC<VentesViewProps> = ({
                 setMontantCommission(
                   s.commission > 0
                     ? s.commission
-                    : Math.round((s.totalVente * tauxCommission) / 100),
+                    : commissionParDefaut(s.totalVente, tauxCommission),
                 );
                 setVenteCommission(s);
               }}
@@ -788,11 +852,7 @@ export const VentesView: React.FC<VentesViewProps> = ({
       })
       .join(", ");
     const articles = lignes.reduce((n, v) => n + v.quantite, 0);
-    const total = lignes.reduce((n, v) => n + v.totalVente, 0);
-    const paye = lignes.reduce((n, v) => n + v.montantPaye, 0);
-    const du = lignes.reduce((n, v) => n + v.soldeDu, 0);
-    const marge = lignes.reduce((n, v) => n + v.margeTotale, 0);
-    const statut = du <= 0 ? "Payé" : paye > 0 ? "Partiel" : "Impayé";
+    const { total, paye, du, marge, statut } = totauxDesLignes(lignes);
 
     return {
       id: premiere.ticketId ?? premiere.id,
@@ -846,7 +906,7 @@ export const VentesView: React.FC<VentesViewProps> = ({
                     {onEditSale && (
                       <button
                         type="button"
-                        onClick={() => setEditingSale(v)}
+                        onClick={() => ouvrirModification(v)}
                         className="app-btn-icon h-7 w-7"
                         aria-label={`Modifier la vente ${v.numero}`}
                       >
@@ -1088,9 +1148,14 @@ export const VentesView: React.FC<VentesViewProps> = ({
             >
               Annuler
             </button>
-            <button type="submit" form="sale-add-form" className="app-btn-primary">
+            <button
+              type="submit"
+              form="sale-add-form"
+              disabled={saving}
+              className="app-btn-primary"
+            >
               <Check className="h-4 w-4" />
-              Valider la vente
+              {saving ? "Enregistrement…" : "Valider la vente"}
             </button>
           </>
         }
@@ -1368,9 +1433,14 @@ export const VentesView: React.FC<VentesViewProps> = ({
                 </label>
                 <input
                   type="number"
+                  min={0}
                   value={montantPaye}
-                  onChange={(e) => setMontantPaye(Number(e.target.value))}
+                  onChange={(e) => {
+                    setMontantSaisi(true);
+                    setMontantPaye(Number(e.target.value));
+                  }}
                   className="app-field font-mono"
+                  aria-label="Montant payé comptant"
                 />
               </div>
             </div>
@@ -1400,7 +1470,7 @@ export const VentesView: React.FC<VentesViewProps> = ({
         </form>
       </Modal>
 
-      {/* ── Modification d'une vente ── */}
+      {/* ── Commission d'une vente ── */}
       {venteCommission && onFixerCommission && (
         <Modal
           open
@@ -1420,17 +1490,23 @@ export const VentesView: React.FC<VentesViewProps> = ({
               </button>
               <button
                 type="button"
+                disabled={commissionEnCours}
                 onClick={async () => {
-                  const res = await onFixerCommission(
-                    venteCommission.id,
-                    Number(montantCommission),
-                  );
+                  const montant = Number(montantCommission);
+                  const invalide = erreurDeCommission(montant, venteCommission.totalVente);
+                  if (invalide) {
+                    setErreurCommission(invalide);
+                    return;
+                  }
+                  setCommissionEnCours(true);
+                  const res = await onFixerCommission(venteCommission.id, montant);
+                  setCommissionEnCours(false);
                   if (res.error) setErreurCommission(res.error);
                   else setVenteCommission(null);
                 }}
                 className="app-btn-primary"
               >
-                Enregistrer
+                {commissionEnCours ? "Enregistrement…" : "Enregistrer"}
               </button>
             </>
           }
@@ -1467,7 +1543,7 @@ export const VentesView: React.FC<VentesViewProps> = ({
                 type="button"
                 onClick={() =>
                   setMontantCommission(
-                    Math.round((venteCommission.totalVente * tauxCommission) / 100),
+                    commissionParDefaut(venteCommission.totalVente, tauxCommission),
                   )
                 }
                 className="mt-1 text-xs font-medium text-primary hover:underline"
@@ -1496,79 +1572,48 @@ export const VentesView: React.FC<VentesViewProps> = ({
               >
                 Annuler
               </button>
-              <button type="submit" form="sale-edit-form" className="app-btn-primary">
+              <button
+                type="submit"
+                form="sale-edit-form"
+                disabled={modificationEnCours}
+                className="app-btn-primary"
+              >
                 <Save className="h-4 w-4" />
-                Enregistrer
+                {modificationEnCours ? "Enregistrement…" : "Enregistrer"}
               </button>
             </>
           }
         >
-          <form
-            id="sale-edit-form"
-            onSubmit={(e) => {
-              e.preventDefault();
-              if (!onEditSale) return;
-
-              const totalVente = editingSale.quantite * editingSale.prixVenteUnit;
-              const totalAchatRef = editingSale.quantite * editingSale.prixAchatUnitRef;
-              const margeTotale = totalVente - totalAchatRef;
-              const soldeDu = totalVente - editingSale.montantPaye;
-
-              let statutCredit: "Payé" | "Partiel" | "Impayé" = "Payé";
-              if (soldeDu > 0 && editingSale.montantPaye > 0) {
-                statutCredit = "Partiel";
-              } else if (soldeDu === totalVente) {
-                statutCredit = "Impayé";
-              }
-
-              onEditSale({
-                ...editingSale,
-                totalVente,
-                totalAchatRef,
-                margeTotale,
-                soldeDu,
-                statutCredit,
-              });
-
-              setEditingSale(null);
-            }}
-            className="space-y-4"
-          >
-            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <div>
-                <label className="mb-1.5 block text-sm font-medium text-foreground">Date</label>
-                <input
-                  type="date"
-                  required
-                  value={editingSale.date}
-                  onChange={(e) => setEditingSale({ ...editingSale, date: e.target.value })}
-                  className="app-field font-mono"
-                />
-              </div>
-
-              <div>
-                <label className="mb-1.5 block text-sm font-medium text-foreground">Vendeur</label>
-                <select
-                  value={editingSale.vendeur}
-                  onChange={(e) => setEditingSale({ ...editingSale, vendeur: e.target.value })}
-                  className="app-field"
-                >
-                  {sellers.map((v) => (
-                    <option key={v.id} value={v.nom}>
-                      {v.nom}
-                    </option>
-                  ))}
-                </select>
-              </div>
+          {/* Seuls la quantité et le client se modifient : c'est tout ce
+              que `update_sale_quantity` écrit. La date, le vendeur, le prix
+              et le montant payé étaient proposés à la saisie puis perdus
+              sans un mot ; ils se lisent désormais sans se modifier. Un
+              règlement passe par « Paiements à recevoir » ou Facturation. */}
+          <form id="sale-edit-form" onSubmit={enregistrerModification} className="space-y-4">
+            <div className="app-statbar grid-cols-2 sm:grid-cols-4">
+              <StatCol label="Date" value={formatDateLocale(editingSale.date, locale)} />
+              <StatCol label="Vendeur" value={editingSale.vendeur || "—"} />
+              <StatCol
+                label={`Prix unitaire (${symboleDeSaisie()})`}
+                value={formatCurrency(editingSale.prixVenteUnit)}
+              />
+              <StatCol label="Déjà payé" value={formatCurrency(editingSale.montantPaye)} />
             </div>
 
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div>
-                <label className="mb-1.5 block text-sm font-medium text-foreground">Quantité</label>
+                <label
+                  htmlFor="vente-modif-quantite"
+                  className="mb-1.5 block text-sm font-medium text-foreground"
+                >
+                  Quantité
+                </label>
                 <input
+                  id="vente-modif-quantite"
                   type="number"
                   required
                   min="1"
+                  step="1"
                   value={editingSale.quantite}
                   onChange={(e) =>
                     setEditingSale({ ...editingSale, quantite: Number(e.target.value) })
@@ -1578,28 +1623,34 @@ export const VentesView: React.FC<VentesViewProps> = ({
               </div>
 
               <div>
-                <label className="mb-1.5 block text-sm font-medium text-foreground">
-                  Prix de vente unitaire ({symboleDeSaisie()})
+                <label
+                  htmlFor="vente-modif-client"
+                  className="mb-1.5 block text-sm font-medium text-foreground"
+                >
+                  Client
                 </label>
-                <input
-                  type="number"
-                  required
-                  min="0"
-                  value={editingSale.prixVenteUnit}
-                  onChange={(e) =>
-                    setEditingSale({ ...editingSale, prixVenteUnit: Number(e.target.value) })
-                  }
-                  className="app-field font-mono"
-                />
-              </div>
-            </div>
-
-            <div className="space-y-4 border-t border-border pt-4">
-              <h4 className="app-section-title">Crédit ou paiement partiel</h4>
-
-              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <div>
-                  <label className="mb-1.5 block text-sm font-medium text-foreground">Client</label>
+                <select
+                  id="vente-modif-client"
+                  value={editingSale.clientId ?? ""}
+                  onChange={(e) => {
+                    const fiche = clients.find((c) => c.id === e.target.value);
+                    setEditingSale({
+                      ...editingSale,
+                      clientId: fiche?.id ?? null,
+                      clientCredit: fiche ? nomDeLaFiche(fiche) : editingSale.clientCredit,
+                    });
+                  }}
+                  className="app-field"
+                >
+                  <option value="">Client de passage</option>
+                  {clientsTries.map((c) => (
+                    <option key={c.id} value={c.id}>
+                      {nomDeLaFiche(c)}
+                      {c.entreprise ? ` — ${c.entreprise}` : ""}
+                    </option>
+                  ))}
+                </select>
+                {!editingSale.clientId && (
                   <input
                     type="text"
                     value={editingSale.clientCredit || ""}
@@ -1609,33 +1660,45 @@ export const VentesView: React.FC<VentesViewProps> = ({
                         clientCredit: e.target.value || undefined,
                       })
                     }
-                    placeholder="Laisser vide si comptant"
-                    className="app-field"
+                    placeholder="Nom du client, si vous voulez le noter"
+                    className="app-field mt-2"
+                    aria-label="Nom du client de passage"
                   />
-                </div>
-
-                <div>
-                  <label className="mb-1.5 block text-sm font-medium text-foreground">
-                    Montant payé comptant
-                  </label>
-                  <input
-                    type="number"
-                    value={editingSale.montantPaye}
-                    onChange={(e) =>
-                      setEditingSale({
-                        ...editingSale,
-                        montantPaye: Number(e.target.value),
-                      })
-                    }
-                    className="app-field font-mono"
-                  />
-                </div>
+                )}
               </div>
             </div>
+
+            <div className="app-statbar grid-cols-2">
+              <StatCol
+                label="Nouveau total"
+                value={formatCurrency(
+                  (Number(editingSale.quantite) || 0) * editingSale.prixVenteUnit,
+                )}
+              />
+              <StatCol
+                label="Reste à payer"
+                value={formatCurrency(
+                  Math.max(
+                    0,
+                    (Number(editingSale.quantite) || 0) * editingSale.prixVenteUnit -
+                      editingSale.montantPaye,
+                  ),
+                )}
+              />
+            </div>
+
+            {erreurModification && (
+              <div
+                role="alert"
+                className="flex items-center gap-2 rounded-xl border border-danger-border bg-danger-soft px-3 py-2.5 text-sm t-danger"
+              >
+                <AlertCircle className="h-4 w-4 shrink-0" />
+                {erreurModification}
+              </div>
+            )}
           </form>
         </Modal>
       )}
-
       {/* ── Le nouveau document, quand le drapeau est levé ──
           L'ancienne modale reste juste en dessous, inchangée : c'est
           elle qui reprend si le drapeau retombe ou si la v2 échoue. */}

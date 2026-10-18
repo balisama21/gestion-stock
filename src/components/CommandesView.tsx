@@ -1,9 +1,9 @@
 import React, { useState, useMemo } from "react";
+import { montantCommande, resteDuCommande } from "../lib/commandes";
 import {
   ShoppingBag,
   Check,
   Plus,
-  Search,
   Filter,
   CreditCard,
   Package,
@@ -23,6 +23,7 @@ import {
 import { formatCurrency, getProductLabel, getSaleLabel, quantiteEnMots } from "../utils/formulas";
 import { PageHeader } from "./shared/PageHeader";
 import { StatCol } from "./shared/StatBar";
+import { FilterBar, FilterField } from "./shared/FilterBar";
 import { Modal } from "./shared/Modal";
 import type { StoreSettings } from "../types";
 import { Printer } from "lucide-react";
@@ -123,45 +124,45 @@ interface CommandesViewProps {
 
 const statusConfig: Record<
   OrderStatus,
-  { label: string; icon: React.ReactNode; color: string; bg: string }
+  { label: string; icon: React.ReactNode; color: string; badge: string }
 > = {
   en_attente: {
     label: "En attente",
     icon: <Clock className="w-3.5 h-3.5" />,
     color: "t-warning",
-    bg: "bg-amber-500/10 border-amber-500/25",
+    badge: "app-badge-warning",
   },
   en_cours: {
     label: "En cours",
     icon: <Package className="w-3.5 h-3.5" />,
     color: "t-info",
-    bg: "bg-blue-500/10 border-blue-500/25",
+    badge: "app-badge-info",
   },
   livre: {
     label: "Livré",
     icon: <Truck className="w-3.5 h-3.5" />,
     color: "t-success",
-    bg: "bg-emerald-500/10 border-emerald-500/25",
+    badge: "app-badge-success",
   },
   annule: {
     label: "Annulé",
     icon: <XCircle className="w-3.5 h-3.5" />,
     color: "t-danger",
-    bg: "bg-red-500/10 border-red-500/25",
+    badge: "app-badge-danger",
   },
 };
 
-const paymentConfig: Record<PaymentStatus, { label: string; color: string; bg: string }> = {
-  impaye: { label: "🔴 Impayé", color: "t-danger", bg: "bg-red-500/10 border-red-500/25" },
+const paymentConfig: Record<PaymentStatus, { label: string; color: string; badge: string }> = {
+  impaye: { label: "Impayé", color: "t-danger", badge: "app-badge-danger" },
   partiel: {
-    label: "⚠️ Partiel",
+    label: "Partiel",
     color: "t-warning",
-    bg: "bg-amber-500/10 border-amber-500/25",
+    badge: "app-badge-warning",
   },
   paye: {
-    label: "✅ Payé",
+    label: "Payé",
     color: "t-success",
-    bg: "bg-emerald-500/10 border-emerald-500/25",
+    badge: "app-badge-success",
   },
 };
 
@@ -296,8 +297,9 @@ export const CommandesView: React.FC<CommandesViewProps> = ({
         (o) => o.statut_commande === "en_cours" || o.statut_commande === "en_attente",
       ).length,
       livrees: orders.filter((o) => o.statut_commande === "livre").length,
-      montantImpayes: orders.reduce((s, o) => s + (o.reste_a_payer ?? 0), 0),
-      totalCA: orders.reduce((s, o) => s + o.montant_total, 0),
+      // Une commande annulée ne doit plus rien et ne fait pas de chiffre.
+      montantImpayes: orders.reduce((s, o) => s + resteDuCommande(o), 0),
+      totalCA: orders.reduce((s, o) => s + montantCommande(o), 0),
       totalPaye: orders.reduce((s, o) => s + o.montant_paye, 0),
     }),
     [orders],
@@ -454,97 +456,77 @@ export const CommandesView: React.FC<CommandesViewProps> = ({
         }
       />
 
-      {/* KPI summary */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-6 gap-3">
-        {[
-          {
-            label: "Total",
-            value: stats.total,
-            color: "text-foreground",
-            icon: <ShoppingBag className="w-4 h-4" />,
-          },
-          {
-            label: "En cours",
-            value: stats.enCours,
-            color: "t-info",
-            icon: <Clock className="w-4 h-4" />,
-          },
-          {
-            label: "Livrées",
-            value: stats.livrees,
-            color: "t-success",
-            icon: <CheckCircle2 className="w-4 h-4" />,
-          },
-          {
-            label: "CA Total",
-            value: formatCurrency(stats.totalCA),
-            color: "text-foreground",
-            icon: <DollarSign className="w-4 h-4" />,
-            mono: true,
-          },
-          {
-            label: "Encaissé",
-            value: formatCurrency(stats.totalPaye),
-            color: "t-success",
-            icon: <CreditCard className="w-4 h-4" />,
-            mono: true,
-          },
-          {
-            label: "Impayés",
-            value: formatCurrency(stats.montantImpayes),
-            color: stats.montantImpayes > 0 ? "t-danger" : "text-muted-foreground",
-            icon: <AlertCircle className="w-4 h-4" />,
-            mono: true,
-          },
-        ].map((s) => (
-          <div key={s.label} className="bg-card border border-border rounded-xl p-3 text-center">
-            <div
-              className={`flex items-center justify-center gap-1 text-xs text-muted-foreground mb-1 ${s.color} opacity-70`}
-            >
-              {s.icon}
-            </div>
-            <div className={`text-sm font-bold ${(s as any).mono ? "font-mono" : ""} ${s.color}`}>
-              {s.value}
-            </div>
-            <div className="text-[10px] text-muted-foreground mt-0.5">{s.label}</div>
-          </div>
-        ))}
+      {/* Indicateurs — les mêmes colonnes que les autres écrans. Une
+          commande annulée ne compte ni dans le chiffre ni dans l'impayé. */}
+      <div className="app-statbar grid-cols-2 sm:grid-cols-3 lg:grid-cols-6">
+        <StatCol
+          label="Commandes"
+          value={`${stats.total}`}
+          icon={<ShoppingBag className="w-5 h-5" />}
+        />
+        <StatCol label="En cours" value={`${stats.enCours}`} icon={<Clock className="w-5 h-5" />} />
+        <StatCol
+          label="Livrées"
+          value={`${stats.livrees}`}
+          icon={<CheckCircle2 className="w-5 h-5" />}
+        />
+        <StatCol
+          label="Chiffre d'affaires"
+          value={formatCurrency(stats.totalCA)}
+          hint="hors commandes annulées"
+          icon={<DollarSign className="w-5 h-5" />}
+        />
+        <StatCol
+          label="Encaissé"
+          value={formatCurrency(stats.totalPaye)}
+          icon={<CreditCard className="w-5 h-5" />}
+        />
+        <StatCol
+          label="Impayés"
+          value={formatCurrency(stats.montantImpayes)}
+          alert={stats.montantImpayes > 0}
+          icon={<AlertCircle className="w-5 h-5" />}
+        />
       </div>
 
-      {/* Filters */}
-      <div className="flex flex-wrap gap-3">
-        <div className="relative flex-1 min-w-48">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-          <input
-            type="text"
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            placeholder="Rechercher une commande..."
-            className="w-full bg-muted border border-border rounded-xl pl-10 pr-4 py-2.5 text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
-          />
-        </div>
-        <select
-          value={filterStatus}
-          onChange={(e) => setFilterStatus(e.target.value as any)}
-          className="bg-muted border border-border rounded-xl px-3 py-2.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
-        >
-          <option value="all">Tous statuts</option>
-          <option value="en_attente">En attente</option>
-          <option value="en_cours">En cours</option>
-          <option value="livre">Livré</option>
-          <option value="annule">Annulé</option>
-        </select>
-        <select
-          value={filterPayment}
-          onChange={(e) => setFilterPayment(e.target.value as any)}
-          className="bg-muted border border-border rounded-xl px-3 py-2.5 text-sm text-foreground focus:outline-none focus:ring-2 focus:ring-emerald-500/50"
-        >
-          <option value="all">Tous paiements</option>
-          <option value="impaye">Impayé</option>
-          <option value="partiel">Partiel</option>
-          <option value="paye">Payé</option>
-        </select>
-      </div>
+      {/* Recherche et filtres */}
+      <FilterBar
+        searchValue={search}
+        onSearchChange={setSearch}
+        searchPlaceholder="Rechercher une commande, un client…"
+        activeFilterCount={(filterStatus !== "all" ? 1 : 0) + (filterPayment !== "all" ? 1 : 0)}
+        onReset={() => {
+          setSearch("");
+          setFilterStatus("all");
+          setFilterPayment("all");
+        }}
+      >
+        <FilterField label="Statut">
+          <select
+            value={filterStatus}
+            onChange={(e) => setFilterStatus(e.target.value as any)}
+            className="app-field-sm lg:w-auto"
+          >
+            <option value="all">Tous statuts</option>
+            <option value="en_attente">En attente</option>
+            <option value="en_cours">En cours</option>
+            <option value="livre">Livré</option>
+            <option value="annule">Annulé</option>
+          </select>
+        </FilterField>
+        <FilterField label="Paiement">
+          <select
+            value={filterPayment}
+            onChange={(e) => setFilterPayment(e.target.value as any)}
+            className="app-field-sm lg:w-auto"
+          >
+            <option value="all">Tous paiements</option>
+            <option value="impaye">Impayé</option>
+            <option value="partiel">Partiel</option>
+            <option value="paye">Payé</option>
+          </select>
+        </FilterField>
+      </FilterBar>
 
       {/* Orders list */}
       {filtered.length === 0 ? (
@@ -579,17 +561,11 @@ export const CommandesView: React.FC<CommandesViewProps> = ({
                         <span className="font-mono font-bold text-sm text-foreground">
                           {order.numero}
                         </span>
-                        <span
-                          className={`app-badge ${sc.color === "t-success" ? "app-badge-success" : sc.color === "t-warning" ? "app-badge-warning" : sc.color === "t-danger" ? "app-badge-danger" : "app-badge-info"}`}
-                        >
+                        <span className={`app-badge ${sc.badge}`}>
                           {sc.icon}
                           {sc.label}
                         </span>
-                        <span
-                          className={`app-badge ${pc.color === "t-success" ? "app-badge-success" : pc.color === "t-warning" ? "app-badge-warning" : "app-badge-danger"}`}
-                        >
-                          {pc.label}
-                        </span>
+                        <span className={`app-badge ${pc.badge}`}>{pc.label}</span>
                       </div>
                       <div className="text-xs text-muted-foreground">
                         {order.client?.nom ?? "Client non spécifié"}

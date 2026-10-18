@@ -163,8 +163,8 @@ export const CapitalView: React.FC<CapitalViewProps> = ({
     },
     {
       key: "achats",
-      label: "Achats de stock",
-      hint: "Réassort de marchandises",
+      label: "Achats de stock réglés",
+      hint: "Hors achats à crédit non réglés",
       sign: "−",
       value: capital.achatsTotal,
     },
@@ -181,6 +181,13 @@ export const CapitalView: React.FC<CapitalViewProps> = ({
       hint: "Argent ressorti de la caisse",
       sign: "−",
       value: capital.remboursementsTotal,
+    },
+    {
+      key: "salaires",
+      label: "Salaires versés",
+      hint: "Avances et soldes remis",
+      sign: "−",
+      value: capital.salairesTotal,
     },
   ];
 

@@ -37,7 +37,7 @@ export const CarteTresorerie: React.FC<{
 
   const sousLeSeuil = capital.seuilAlerteTresorerie > 0 && solde < capital.seuilAlerteTresorerie;
 
-  /* Les six postes, dans l'ordre du calcul. Aucun n'est masqué à zéro :
+  /* Les sept postes, dans l'ordre du calcul. Aucun n'est masqué à zéro :
      une ligne absente casserait l'addition que le lecteur refait de
      tête jusqu'au total. */
   const postes: { cle: string; libelle: string; signe: "+" | "−"; valeur: number }[] = [
@@ -49,7 +49,7 @@ export const CarteTresorerie: React.FC<{
       signe: "+",
       valeur: capital.ventesTotalEncaisse,
     },
-    { cle: "achats", libelle: "Achats de stock", signe: "−", valeur: capital.achatsTotal },
+    { cle: "achats", libelle: "Achats de stock réglés", signe: "−", valeur: capital.achatsTotal },
     {
       cle: "depenses",
       libelle: "Dépenses vendeurs",
@@ -62,6 +62,7 @@ export const CarteTresorerie: React.FC<{
       signe: "−",
       valeur: capital.remboursementsTotal,
     },
+    { cle: "salaires", libelle: "Salaires versés", signe: "−", valeur: capital.salairesTotal },
   ];
 
   return (

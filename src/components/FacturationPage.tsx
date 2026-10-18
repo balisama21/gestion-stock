@@ -20,6 +20,7 @@ import { BoutonsExport } from "./facturation/BoutonsExport";
 import { ExportPdfGroupe } from "./facturation/ExportPdfGroupe";
 import { exporterCsv, exporterTableur, nomDeLExport } from "./facturation/exportFacturation";
 import type { SourcesDeLaPiece } from "./facturation/construireLaPiece";
+import { montant as formaterMontant } from "../features/documents/lib/format";
 
 type Client = Database["public"]["Tables"]["clients"]["Row"];
 type Fournisseur = Database["public"]["Tables"]["suppliers"]["Row"];
@@ -135,6 +136,17 @@ export const FacturationPage: React.FC<FacturationPageProps> = ({
   const [zip, setZip] = useState<DocumentCommercial[] | null>(null);
   const [enCours, setEnCours] = useState(false);
   const [erreur, setErreur] = useState<string | null>(null);
+  /**
+   * Ce qui est passé à moitié : la pièce existe, un geste qui la suivait
+   * a échoué.
+   *
+   * Le message restait DANS le formulaire, laissé ouvert avec son bouton
+   * de validation. Le cliquer de nouveau — le réflexe devant un message
+   * d'erreur — établissait une seconde vente, ou un second avoir. Le
+   * formulaire se ferme donc dès que la pièce existe, et ce qui reste à
+   * reprendre s'affiche ici, sur la page.
+   */
+  const [avertissement, setAvertissement] = useState<string | null>(null);
 
   const devise = settings.currencySymbol ?? "Ar";
 
@@ -179,6 +191,7 @@ export const FacturationPage: React.FC<FacturationPageProps> = ({
    * donc pas à la connaître.
    */
   const etablir = async (saisie: SaisieNouveauDocument) => {
+    if (enCours) return;
     setEnCours(true);
     setErreur(null);
     const { ventes, error } = await onAddSaleTicket({
@@ -222,8 +235,8 @@ export const FacturationPage: React.FC<FacturationPageProps> = ({
     }
 
     setEnCours(false);
-    setErreur(souci);
-    if (!souci) setCreation(null);
+    setCreation(null);
+    setAvertissement(souci);
     void facturation.recharger();
   };
 
@@ -236,9 +249,10 @@ export const FacturationPage: React.FC<FacturationPageProps> = ({
    * comptoir. Voir `facturation/paiement.ts`.
    */
   const encaisser = async (montant: number, methode: string, reference: string) => {
-    if (!paiement) return;
+    if (!paiement || enCours) return;
     setEnCours(true);
     setErreur(null);
+    let dejaPose = 0;
     for (const part of repartirLePaiement(paiement.ventes, montant)) {
       const { error } = await onAddPaymentToSale(part.saleId, {
         montant: part.montant,
@@ -246,10 +260,20 @@ export const FacturationPage: React.FC<FacturationPageProps> = ({
         reference: reference || null,
       });
       if (error) {
-        setErreur(error);
         setEnCours(false);
+        if (dejaPose === 0) {
+          setErreur(error);
+          return;
+        }
+        // Une partie est déjà posée : la modale, qui reproposerait la
+        // somme entière, se ferme.
+        setPaiement(null);
+        setAvertissement(
+          `${formaterMontant(dejaPose, devise)} encaissés sur ${paiement.numero}, mais le reste a été refusé : ${error}. Rouvrez l'encaissement pour ce qui reste dû.`,
+        );
         return;
       }
+      dejaPose += part.montant;
     }
     setEnCours(false);
     setPaiement(null);
@@ -265,7 +289,7 @@ export const FacturationPage: React.FC<FacturationPageProps> = ({
    * d'habitude.
    */
   const etablirLAvoir = async (saisie: SaisieAvoir) => {
-    if (!avoir) return;
+    if (!avoir || enCours) return;
     setEnCours(true);
     setErreur(null);
 
@@ -323,13 +347,12 @@ export const FacturationPage: React.FC<FacturationPageProps> = ({
     }
 
     setEnCours(false);
+    setAvoir(null);
     if (soucis.length > 0) {
-      setErreur(
+      setAvertissement(
         `L'avoir est établi. En revanche : ${soucis.join(" · ")}. Reprenez ces gestes depuis les écrans Ventes et Produits.`,
       );
-      return;
     }
-    setAvoir(null);
   };
 
   const dupliquer = (d: DocumentCommercial) => {
@@ -359,6 +382,21 @@ export const FacturationPage: React.FC<FacturationPageProps> = ({
 
   return (
     <>
+      {avertissement && (
+        <div
+          role="alert"
+          className="mb-4 flex items-start justify-between gap-3 rounded-xl border border-warning-border bg-warning-soft px-4 py-3 text-sm t-warning"
+        >
+          <span>{avertissement}</span>
+          <button
+            type="button"
+            onClick={() => setAvertissement(null)}
+            className="shrink-0 text-xs font-medium underline-offset-2 hover:underline"
+          >
+            Compris
+          </button>
+        </div>
+      )}
       <FacturationView
         documents={documents}
         payments={payments}

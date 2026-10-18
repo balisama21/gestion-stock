@@ -3,6 +3,7 @@ import { cleanup, render, screen } from "@testing-library/react";
 import { CarteStock } from "./CarteStock";
 import { chiffresStock } from "../lib/chiffres";
 import { REGLAGES_PAR_DEFAUT, type ReglagesAlertesStock } from "../../../lib/prealerteStock";
+import { lignesDuBonDeCommande } from "../../../lib/bonDeCommande";
 import type { SourcesChiffres } from "../lib/chiffres";
 import type { Product } from "../../../types";
 
@@ -16,7 +17,12 @@ import type { Product } from "../../../types";
 
 const ACTIVE: ReglagesAlertesStock = { ...REGLAGES_PAR_DEFAUT, prealerteActive: true, ecart: 2 };
 
-const produit = (nom: string, stock: number, seuil: number): Product =>
+const produit = (
+  nom: string,
+  stock: number,
+  seuil: number,
+  extra: Partial<Product> = {},
+): Product =>
   ({
     id: nom,
     designation: nom,
@@ -28,6 +34,7 @@ const produit = (nom: string, stock: number, seuil: number): Product =>
     typeProduit: "revendu",
     statut: "actif",
     unite: null,
+    ...extra,
   }) as unknown as Product;
 
 const CATALOGUE = [
@@ -57,7 +64,7 @@ const periode = { intervalle: { debut: "2026-09-01", fin: "2026-09-30" } } as ne
 
 function afficher(produits = CATALOGUE, reglages = ACTIVE) {
   const stock = chiffresStock(sources(produits), periode, "2026-09-21", reglages);
-  render(<CarteStock stock={stock} valeurVisible onTelecharger={vi.fn()} onCommander={vi.fn()} />);
+  render(<CarteStock stock={stock} valeurVisible onVoirLaListe={vi.fn()} onCommander={vi.fn()} />);
   return stock;
 }
 
@@ -127,5 +134,71 @@ describe("préalerte éteinte, l'étagère est celle d'avant", () => {
   it("tout est au-dessus : la carte le dit", () => {
     afficher([produit("Ciment", 40, 10)], REGLAGES_PAR_DEFAUT);
     expect(screen.getByText("Tout est au-dessus du seuil")).toBeTruthy();
+  });
+});
+
+/**
+ * LE CAS DE L'ENREGISTREMENT D'ÉCRAN : soixante-six fiches sans seuil et
+ * sans stock faisaient annoncer « 66 à recommander » au tableau de bord,
+ * quand le bon de commande n'en listait qu'une.
+ */
+describe("le tableau de bord compte comme le bon de commande", () => {
+  afterEach(cleanup);
+
+  const CATALOGUE_REEL = [
+    produit("Valise", 0, 2), // sous le seuil, à zéro
+    produit("Carnet", 0, 0), // sans seuil : en rupture, pas à recommander
+    produit("Classeur", 0, 0),
+    produit("Ciment", 40, 10),
+    produit("Coupe de cheveux", 0, 0, { typeProduit: "service" } as Partial<Product>),
+    produit("Ancien modèle", 0, 5, { statut: "archive" } as Partial<Product>),
+  ];
+
+  const pourLeBon = CATALOGUE_REEL.filter(
+    (p) => p.statut === "actif" && p.typeProduit !== "service",
+  ).map((p) => ({
+    id: p.id,
+    nom: p.displayName,
+    stockActuel: p.stockActuel,
+    seuilAlerte: p.seuilAlerte,
+  }));
+
+  it("même nombre de produits à recommander", () => {
+    const stock = chiffresStock(
+      sources(CATALOGUE_REEL),
+      periode,
+      "2026-09-21",
+      REGLAGES_PAR_DEFAUT,
+    );
+    const bon = lignesDuBonDeCommande(pourLeBon, REGLAGES_PAR_DEFAUT);
+    expect(stock.aRecommander.map((x) => x.id)).toEqual(bon.map((l) => l.id));
+    expect(stock.aRecommander).toHaveLength(1);
+  });
+
+  it("les ruptures se comptent à part, sans services ni fiches archivées", () => {
+    const stock = chiffresStock(
+      sources(CATALOGUE_REEL),
+      periode,
+      "2026-09-21",
+      REGLAGES_PAR_DEFAUT,
+    );
+    expect(stock.enRupture.map((x) => x.nom).sort()).toEqual(["Carnet", "Classeur", "Valise"]);
+  });
+
+  it("un produit sans seuil n'est jamais « stock faible »", () => {
+    afficher(CATALOGUE_REEL, REGLAGES_PAR_DEFAUT);
+    expect(ligneDe("Carnet").className).not.toContain("low");
+    expect(ligneDe("Carnet").textContent).toContain("en rupture");
+    expect(ligneDe("Carnet").textContent).not.toContain("stock faible");
+  });
+
+  it("l'étagère montre d'abord ce qui a un seuil", () => {
+    const stock = chiffresStock(
+      sources(CATALOGUE_REEL),
+      periode,
+      "2026-09-21",
+      REGLAGES_PAR_DEFAUT,
+    );
+    expect(stock.etagere[0].nom).toBe("Valise");
   });
 });

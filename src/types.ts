@@ -189,6 +189,8 @@ export interface CapitalSummary {
    * c'est la même valeur, simplement exposée.
    */
   remboursementsTotal: number;
+  /** Les salaires et avances versés : de l'argent sorti de la caisse. */
+  salairesTotal: number;
   tresorerieGlobaleActuelle: number;
   seuilAlerteTresorerie: number;
 }

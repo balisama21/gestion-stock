@@ -6,6 +6,7 @@ import type { Product } from "../../types";
 import type { Database } from "../../lib/database.types";
 import { montant as formaterMontant } from "../../features/documents/lib/format";
 import { MODES_DE_PAIEMENT } from "./paiement";
+import { commissionParDefaut } from "../../lib/ventes";
 import { AideLigneLibre, LIBELLE_LIGNE_LIBRE } from "../shared/LigneLibre";
 
 type Client = Database["public"]["Tables"]["clients"]["Row"];
@@ -500,7 +501,7 @@ export const FormulaireNouveauDocument: React.FC<{
               {tauxCommission !== undefined && total > 0 && (
                 <button
                   type="button"
-                  onClick={() => setCommission(String(Math.round((total * tauxCommission) / 100)))}
+                  onClick={() => setCommission(String(commissionParDefaut(total, tauxCommission)))}
                   className="mt-1 text-xs font-medium text-primary hover:underline"
                 >
                   Appliquer le taux de la boutique ({tauxCommission} %)

@@ -15,6 +15,7 @@ import {
   Payment,
 } from "./types";
 import type { Json, OrderStatus } from "./lib/database.types";
+import { calculerTresorerie } from "./lib/tresorerie";
 import { formatCurrency, getProductLabel } from "./utils/formulas";
 import { getModuleScope, isFieldVisible, hasModuleAction } from "./lib/permissions";
 import { downloadExcelWorkbook } from "./utils/exportExcel";
@@ -420,13 +421,18 @@ function AppInner() {
    * et le devis dont il vient vivent ici, le temps d'un aller-retour.
    * La vente enregistrée marque ensuite le devis accepté, avec le
    * ticket qui en est sorti.
+   *
+   * Le devis voyage AVEC le panier (`origine`) et revient avec la vente
+   * qui en est née. Il était gardé ici à part : quitter la caisse sans
+   * vendre le laissait en attente, et la vente suivante, quelle qu'elle
+   * soit, marquait ce devis accepté et le reliait au mauvais ticket.
    */
   const [panierDepuisDevis, setPanierDepuisDevis] = useState<{
     lignes: { productId: string; quantite: number; prixVenteUnit: number }[];
     clientNom?: string | null;
     clientId?: string | null;
+    origine?: string | null;
   } | null>(null);
-  const [devisATransformer, setDevisATransformer] = useState<string | null>(null);
 
   // Le vocabulaire et les modules retenus par la boutique active.
   const personnalisation = useMemo(
@@ -1355,43 +1361,29 @@ function AppInner() {
     return historiqueScope === "all" ? apports : [];
   }, [apports, hasHistoriqueModule, historiqueScope]);
 
-  const computedCapital = useMemo(() => {
-    const capitalInitial = workspace.activeStore?.capital_initial || 0;
-    const seuilAlerte = workspace.activeStore?.seuil_alerte_tresorerie || 0;
-    const apportsTotal = apports.reduce((acc, a) => acc + a.montant, 0);
-    const ventesTotalEncaisse = sales.reduce((acc, s) => acc + s.montantPaye, 0);
-    const commandesTotalEncaisse = storeData.orders.reduce(
-      (acc, o) => acc + (o.montant_paye ?? 0),
-      0,
-    );
-    const achatsTotal = purchases.reduce((acc, p) => acc + p.totalAchat, 0);
-    const depensesVendeursTotal = expenses.reduce((acc, e) => acc + e.montant, 0);
-    // PHASE 1 : les remboursements (ventes + commandes) sont de l'argent qui
-    // ressort réellement de la trésorerie. Ils ne modifient jamais montant_paye
-    // (paiement d'origine conservé), donc on les soustrait ici séparément.
-    const remboursementsTotal =
-      sales.reduce((acc, s) => acc + (s.montantRembourse ?? 0), 0) +
-      storeData.orders.reduce((acc, o) => acc + (o.montant_rembourse ?? 0), 0);
-    return {
-      capitalInitial,
-      apportsTotal,
-      ventesTotalEncaisse: ventesTotalEncaisse + commandesTotalEncaisse,
-      achatsTotal,
-      depensesVendeursTotal,
-      // Rendu pour que la composition affichée retombe sur le total.
-      // Le calcul ci-dessous n'a pas bougé d'un caractère.
-      remboursementsTotal,
-      tresorerieGlobaleActuelle:
-        capitalInitial +
-        apportsTotal +
-        ventesTotalEncaisse +
-        commandesTotalEncaisse -
-        achatsTotal -
-        depensesVendeursTotal -
-        remboursementsTotal,
-      seuilAlerteTresorerie: seuilAlerte,
-    };
-  }, [apports, sales, purchases, expenses, workspace.activeStore, storeData.orders]);
+  // Voir src/lib/tresorerie.ts : la règle et ses raisons.
+  const computedCapital = useMemo(
+    () =>
+      calculerTresorerie({
+        capitalInitial: workspace.activeStore?.capital_initial || 0,
+        seuilAlerte: workspace.activeStore?.seuil_alerte_tresorerie || 0,
+        apports,
+        ventes: sales,
+        commandes: storeData.orders,
+        achats: purchases,
+        depenses: expenses,
+        salaires: storeData.paiementsSalaire,
+      }),
+    [
+      apports,
+      sales,
+      purchases,
+      expenses,
+      workspace.activeStore,
+      storeData.orders,
+      storeData.paiementsSalaire,
+    ],
+  );
 
   // Ce que dit la cloche. Construit ici, ou vivent les donnees : la barre
   // du haut n a plus qu a presenter. Voir src/lib/activite.ts pour le
@@ -1473,11 +1465,6 @@ function AppInner() {
       avancesEnAttente,
       personnalisation.rappels,
     ],
-  );
-
-  const lowStockCount = useMemo(
-    () => products.filter((p) => p.stockActuel <= p.seuilAlerte).length,
-    [products],
   );
 
   const [activityToast, setActivityToast] = useState<{
@@ -1695,8 +1682,8 @@ function AppInner() {
       })),
       clientNom: devis.client_nom,
       clientId: devis.client_id,
+      origine: devis.id,
     });
-    setDevisATransformer(devis.id);
     setActiveTab("ventes");
   };
 
@@ -1704,11 +1691,9 @@ function AppInner() {
    * La vente est enregistrée : le devis dont elle vient devient
    * accepté, et garde le ticket qui en est sorti.
    */
-  const handleVenteEnregistree = async (ticketId: string | null) => {
-    if (!devisATransformer) return;
-    const id = devisATransformer;
-    setDevisATransformer(null);
-    const res = await storeData.setQuoteStatus(id, "accepte", ticketId);
+  const handleVenteEnregistree = async (ticketId: string | null, origine: string | null) => {
+    if (!origine) return;
+    const res = await storeData.setQuoteStatus(origine, "accepte", ticketId);
     if (res.error) {
       alert(
         "La vente est enregistrée, mais le devis n'a pas pu être marqué accepté : " + res.error,
@@ -1716,21 +1701,20 @@ function AppInner() {
     }
   };
 
-  const handleEditSale = async (updatedSale: Sale) => {
+  const handleEditSale = async (updatedSale: Sale): Promise<{ error: string | null }> => {
     // PHASE 1 : le delta de quantité et sa validation (stock suffisant si la
     // quantité augmente) sont désormais appliqués atomiquement côté base par
     // la RPC update_sale_quantity (verrouillage FOR UPDATE sur le produit).
     // montant_paye / solde_du / statut_credit restent exclusivement gérés par
     // la table payments + le trigger SQL (voir addPaymentToSale / refundSale).
+    // L'erreur est rendue à la modale, qui reste ouverte avec la saisie.
     const res = await storeData.updateSale(updatedSale.id, {
       quantite: updatedSale.quantite,
       total_vente: updatedSale.totalVente,
       client_credit: updatedSale.clientCredit || null,
       client_id: updatedSale.clientId || null,
     });
-    if (res.error) {
-      alert("Erreur lors de la modification de la vente : " + res.error);
-    }
+    return { error: res.error };
   };
 
   const handleDeleteSale = async (saleId: string) => {
@@ -2532,7 +2516,6 @@ function AppInner() {
                             ? storeData.addRemise
                             : undefined
                         }
-                        onEditSale={handleEditSale}
                         onDeleteSale={handleDeleteSale}
                         onEditExpense={handleEditExpense}
                         onDeleteExpense={handleDeleteExpense}

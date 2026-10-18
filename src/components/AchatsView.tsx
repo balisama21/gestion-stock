@@ -761,7 +761,7 @@ export const AchatsView: React.FC<AchatsViewProps> = ({
           <StatCol
             label="Total des achats"
             value={formatCurrency(totalAchatsMontant)}
-            hint="sorti de la trésorerie"
+            hint="tous les achats enregistrés"
             icon={<DollarSign className="w-5 h-5" />}
             tone="danger"
           />
@@ -850,8 +850,14 @@ export const AchatsView: React.FC<AchatsViewProps> = ({
               showPrix ? `${formatCurrency(p.prixAchatUnit)} / u` : null,
             ],
             amount: showPrix ? formatCurrency(p.totalAchat) : undefined,
+            // Ce qui est réellement sorti de la caisse, et ce qui reste dû :
+            // un achat à crédit n'a encore rien coûté à la trésorerie.
             amountHint: showPrix ? (
-              <span className="t-danger">{formatCurrency(p.impactTresorerie)} en caisse</span>
+              p.soldeDu > 0 ? (
+                <span className="t-warning">{formatCurrency(p.soldeDu)} à payer</span>
+              ) : (
+                <span className="t-danger">−{formatCurrency(p.montantPaye)} en caisse</span>
+              )
             ) : undefined,
             detailTitle: getPurchaseLabel(p, products),
             detailSubtitle: `Achat ${p.numero}`,
@@ -864,9 +870,17 @@ export const AchatsView: React.FC<AchatsViewProps> = ({
                     { label: "Prix unitaire", value: formatCurrency(p.prixAchatUnit) },
                     { label: "Total", value: formatCurrency(p.totalAchat) },
                     {
-                      label: "Effet sur la trésorerie",
-                      value: <span className="t-danger">{formatCurrency(p.impactTresorerie)}</span>,
+                      label: "Réglé au fournisseur",
+                      value: formatCurrency(p.montantPaye),
                     },
+                    ...(p.soldeDu > 0
+                      ? [
+                          {
+                            label: "Reste à payer",
+                            value: <span className="t-warning">{formatCurrency(p.soldeDu)}</span>,
+                          },
+                        ]
+                      : []),
                   ]
                 : []),
               ...(showFournisseur

@@ -5,6 +5,12 @@ interface ChampAvecSuggestionsProps {
   label: string;
   valeur: string;
   onChange: (valeur: string) => void;
+  /**
+   * La saisie est terminée : on quitte le champ, ou on tape Entrée.
+   * C'est là qu'un champ qui écrit en base doit écrire — pas à chaque
+   * lettre.
+   */
+  onValider?: () => void;
   /** Ce qui a déjà été saisi ailleurs. Jamais imposé. */
   suggestions: string[];
   placeholder?: string;
@@ -25,6 +31,7 @@ export const ChampAvecSuggestions: React.FC<ChampAvecSuggestionsProps> = ({
   label,
   valeur,
   onChange,
+  onValider,
   suggestions,
   placeholder,
   aide,
@@ -59,6 +66,13 @@ export const ChampAvecSuggestions: React.FC<ChampAvecSuggestionsProps> = ({
         list={propres.length > 0 ? idListe : undefined}
         value={valeur}
         onChange={(e) => onChange(e.target.value)}
+        onBlur={onValider}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" && onValider) {
+            e.preventDefault();
+            onValider();
+          }
+        }}
         placeholder={placeholder}
         autoComplete="off"
         className={compact ? "app-field-sm" : "app-field"}

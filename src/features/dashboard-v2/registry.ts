@@ -224,7 +224,7 @@ export const CARTES: DefinitionCarte[] = [
   {
     cle: "ruptures",
     groupe: "stock",
-    titre: "Ruptures à venir",
+    titre: "En rupture",
     span: 4,
     module: "produits",
     widget: "produits_rupture",

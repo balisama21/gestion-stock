@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from "react";
+import { resteDuCommande } from "../lib/commandes";
 import { Banknote, Check, CreditCard, History, Search } from "lucide-react";
 import { formatCurrency, getSaleLabel } from "../utils/formulas";
 import { PageHeader } from "./shared/PageHeader";
@@ -76,11 +77,7 @@ export const PaiementsARecevoirView: React.FC<PaiementsARecevoirViewProps> = ({
       }));
 
     const fromOrders: Receivable[] = orders
-      .filter(
-  (o) =>
-    (o.reste_a_payer ?? 0) > 0 &&
-    o.statut_commande !== "annule",
-)
+      .filter((o) => resteDuCommande(o) > 0)
       .map((o) => ({
         key: `commande-${o.id}`,
         type: "commande",
@@ -101,7 +98,7 @@ export const PaiementsARecevoirView: React.FC<PaiementsARecevoirViewProps> = ({
           r.clientLabel.toLowerCase().includes(search.toLowerCase()),
       )
       .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-  }, [sales, orders, search]);
+  }, [sales, orders, products, search]);
 
   const totalARecevoir = useMemo(
     () => receivables.reduce((acc, r) => acc + r.reste, 0),
@@ -226,9 +223,7 @@ export const PaiementsARecevoirView: React.FC<PaiementsARecevoirViewProps> = ({
                     <span className="app-list-amount block t-danger">
                       {formatCurrency(r.reste)}
                     </span>
-                    <span className="app-list-secondary block">
-                      sur {formatCurrency(r.total)}
-                    </span>
+                    <span className="app-list-secondary block">sur {formatCurrency(r.total)}</span>
                   </span>
                   <button
                     onClick={() => openHistoryModal(r)}

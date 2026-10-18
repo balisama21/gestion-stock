@@ -17,8 +17,12 @@ export const CarteStockChiffres: React.FC<{
   onVoirLaListe?: () => void;
   onVoirRuptures?: () => void;
 }> = ({ stock, valeurVisible, avecRuptures, onRafraichir, onVoirLaListe, onVoirRuptures }) => {
-  const sousLeSeuil = stock.aRecommander.length + stock.enRupture.length;
-  const aRecommander = sousLeSeuil + stock.enPrealerte.length;
+  // Les mêmes nombres que le bon de commande et que le filtre « À
+  // recommander » du catalogue : `chiffresStock` les tient d'une seule
+  // règle. Les ruptures sont un autre compte — un produit sans seuil
+  // peut être à zéro sans être « à recommander ».
+  const aRecommander = stock.aRecommander.length;
+  const sousLeSeuil = stock.sousLeSeuil.length;
   const ruptures = stock.enRupture.length;
 
   return (
@@ -53,7 +57,9 @@ export const CarteStockChiffres: React.FC<{
           <h4>Produits à recommander</h4>
           <div className="bignum num">
             {nombre(aRecommander)}
-            {sousLeSeuil > 0 && <small>dont {nombre(sousLeSeuil)} sous le seuil</small>}
+            {aRecommander > 0 && sousLeSeuil < aRecommander && (
+              <small>dont {nombre(sousLeSeuil)} sous le seuil</small>
+            )}
             {aRecommander === 0 && <small className="ok">tout est au-dessus du seuil</small>}
           </div>
         </div>
@@ -68,16 +74,18 @@ export const CarteStockChiffres: React.FC<{
         <article className={`card${ruptures > 0 ? " warn" : ""}`}>
           <Lead nom="alert" rond ton={ruptures > 0 ? "rouge" : undefined} />
           <div className="tt">
-            <h4>Ruptures à venir</h4>
+            <h4>En rupture</h4>
             <div className="bignum num">
               {nombre(ruptures)}
               <small className={ruptures === 0 ? "ok" : undefined}>
-                produit{ruptures > 1 ? "s" : ""} en rupture
+                {ruptures === 0
+                  ? "aucun produit à zéro"
+                  : `produit${ruptures > 1 ? "s" : ""} à zéro`}
               </small>
             </div>
           </div>
           {ruptures > 0 && <img className="art-rupt" src={illRupture} alt="" />}
-          {onVoirRuptures && (
+          {onVoirRuptures && ruptures > 0 && (
             <button type="button" className="go" onClick={onVoirRuptures}>
               Voir détails
             </button>
