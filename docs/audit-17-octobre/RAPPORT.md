@@ -353,9 +353,17 @@ Exemples sur une facture de 100 000 Ar payée 30 000 :
 | 80 000 | 0 | 10 000 |
 | 100 000 sur une facture impayée | 0 | 0 |
 
-## En base — migration préparée, NON appliquée
+## En base — appliquée en production le 18 octobre, avec accord
 
-`supabase/migrations/20261018120000_avoir_efface_la_dette.sql`
+Version enregistrée `20261018055411` (le fichier porte ce numéro). Juste
+avant l'application, nouvelle vérification : aucun avoir en base, et les
+quatre fonctions remplacées identiques à celles lues pour écrire la
+migration (empreintes md5). Après : colonne et contrainte en place, 0 vente
+avoirée, 0 solde hors règle, fonction interne inaccessible à `anon` et
+`authenticated`, `creer_avoir` toujours ouverte aux seuls utilisateurs
+connectés.
+
+`supabase/migrations/20261018055411_avoir_efface_la_dette.sql`
 (retour arrière : `supabase/retours-arriere/` du même nom)
 
 - Colonne `sales.montant_avoire` (0 partout à la création, bornée entre 0 et

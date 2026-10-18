@@ -1,4 +1,4 @@
--- Retour arrière de 20261018120000_avoir_efface_la_dette.sql
+-- Retour arrière de 20261018055411_avoir_efface_la_dette.sql
 --
 -- Rétablit les quatre fonctions telles qu'elles étaient en production le
 -- 18 octobre (relues par pg_get_functiondef avant la migration), recalcule

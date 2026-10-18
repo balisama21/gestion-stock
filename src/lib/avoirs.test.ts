@@ -13,7 +13,7 @@ import { chiffresVentes, type SourcesChiffres } from "../features/dashboard-v2/l
  * L'AVOIR EFFACE LA DETTE — DÉCISION DU 18 OCTOBRE.
  *
  * La base pose l'avoir sur `montant_avoire` et en déduit `solde_du`
- * (migration 20261018120000). Côté écran, trois règles en découlent :
+ * (migration 20261018055411). Côté écran, trois règles en découlent :
  *  - le chiffre d'affaires est net des avoirs, chacun à SA date ;
  *  - seul ce qui dépasse la dette se rembourse ;
  *  - une facture couverte par paiements et avoirs n'est plus due.
