@@ -1,6 +1,7 @@
 import type { CapitalSummary, Expense, Product, Purchase, Sale, Seller } from "../../../types";
 import { resteDuCommande } from "../../../lib/commandes";
 import { dateDuJour } from "../../../lib/dates";
+import { estEnAttenteDeReponse } from "../../../lib/devis";
 import type { Intervalle, Periode } from "../hooks/useDashboardPeriod";
 import { dansIntervalle, decalerJours, nombreDeJours } from "../hooks/useDashboardPeriod";
 import type { MouvementStock } from "../hooks/useDashboardData";
@@ -64,7 +65,7 @@ export interface SourcesChiffres {
   capital: CapitalSummary;
   orders: { statut_commande: string; reste_a_payer: number | null; created_at: string }[];
   clients: { id: string; nom: string; created_at: string; telephone?: string | null }[];
-  quotes: { statut: string; total: number }[];
+  quotes: { statut: string; total: number; valide_jusqu_au?: string | null }[];
   deliveries: { statut: string; date_prevue?: string | null }[];
   taches: { statut: string; echeance: string | null }[];
   mouvements: MouvementStock[];
@@ -709,8 +710,9 @@ export function pointsDAttention(
   const tachesEnRetard = s.taches.filter(
     (t) => t.statut !== "termine" && t.echeance !== null && t.echeance < aujourdhui,
   ).length;
-  const devisSansReponse = s.quotes.filter(
-    (q) => q.statut === "brouillon" || q.statut === "envoye",
+  // La règle de la page Devis : un devis expiré n'attend plus de réponse.
+  const devisSansReponse = s.quotes.filter((q) =>
+    estEnAttenteDeReponse(q, new Date(`${aujourdhui}T12:00:00`)),
   ).length;
   /*
    * LE MÊME COMPTE QUE LA CARTE STOCK, parce que c'est le même mot.

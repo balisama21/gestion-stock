@@ -421,13 +421,18 @@ function AppInner() {
    * et le devis dont il vient vivent ici, le temps d'un aller-retour.
    * La vente enregistrée marque ensuite le devis accepté, avec le
    * ticket qui en est sorti.
+   *
+   * Le devis voyage AVEC le panier (`origine`) et revient avec la vente
+   * qui en est née. Il était gardé ici à part : quitter la caisse sans
+   * vendre le laissait en attente, et la vente suivante, quelle qu'elle
+   * soit, marquait ce devis accepté et le reliait au mauvais ticket.
    */
   const [panierDepuisDevis, setPanierDepuisDevis] = useState<{
     lignes: { productId: string; quantite: number; prixVenteUnit: number }[];
     clientNom?: string | null;
     clientId?: string | null;
+    origine?: string | null;
   } | null>(null);
-  const [devisATransformer, setDevisATransformer] = useState<string | null>(null);
 
   // Le vocabulaire et les modules retenus par la boutique active.
   const personnalisation = useMemo(
@@ -1367,8 +1372,17 @@ function AppInner() {
         commandes: storeData.orders,
         achats: purchases,
         depenses: expenses,
+        salaires: storeData.paiementsSalaire,
       }),
-    [apports, sales, purchases, expenses, workspace.activeStore, storeData.orders],
+    [
+      apports,
+      sales,
+      purchases,
+      expenses,
+      workspace.activeStore,
+      storeData.orders,
+      storeData.paiementsSalaire,
+    ],
   );
 
   // Ce que dit la cloche. Construit ici, ou vivent les donnees : la barre
@@ -1668,8 +1682,8 @@ function AppInner() {
       })),
       clientNom: devis.client_nom,
       clientId: devis.client_id,
+      origine: devis.id,
     });
-    setDevisATransformer(devis.id);
     setActiveTab("ventes");
   };
 
@@ -1677,11 +1691,9 @@ function AppInner() {
    * La vente est enregistrée : le devis dont elle vient devient
    * accepté, et garde le ticket qui en est sorti.
    */
-  const handleVenteEnregistree = async (ticketId: string | null) => {
-    if (!devisATransformer) return;
-    const id = devisATransformer;
-    setDevisATransformer(null);
-    const res = await storeData.setQuoteStatus(id, "accepte", ticketId);
+  const handleVenteEnregistree = async (ticketId: string | null, origine: string | null) => {
+    if (!origine) return;
+    const res = await storeData.setQuoteStatus(origine, "accepte", ticketId);
     if (res.error) {
       alert(
         "La vente est enregistrée, mais le devis n'a pas pu être marqué accepté : " + res.error,
@@ -1689,21 +1701,20 @@ function AppInner() {
     }
   };
 
-  const handleEditSale = async (updatedSale: Sale) => {
+  const handleEditSale = async (updatedSale: Sale): Promise<{ error: string | null }> => {
     // PHASE 1 : le delta de quantité et sa validation (stock suffisant si la
     // quantité augmente) sont désormais appliqués atomiquement côté base par
     // la RPC update_sale_quantity (verrouillage FOR UPDATE sur le produit).
     // montant_paye / solde_du / statut_credit restent exclusivement gérés par
     // la table payments + le trigger SQL (voir addPaymentToSale / refundSale).
+    // L'erreur est rendue à la modale, qui reste ouverte avec la saisie.
     const res = await storeData.updateSale(updatedSale.id, {
       quantite: updatedSale.quantite,
       total_vente: updatedSale.totalVente,
       client_credit: updatedSale.clientCredit || null,
       client_id: updatedSale.clientId || null,
     });
-    if (res.error) {
-      alert("Erreur lors de la modification de la vente : " + res.error);
-    }
+    return { error: res.error };
   };
 
   const handleDeleteSale = async (saleId: string) => {
@@ -2505,7 +2516,6 @@ function AppInner() {
                             ? storeData.addRemise
                             : undefined
                         }
-                        onEditSale={handleEditSale}
                         onDeleteSale={handleDeleteSale}
                         onEditExpense={handleEditExpense}
                         onDeleteExpense={handleDeleteExpense}

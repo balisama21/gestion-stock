@@ -5,6 +5,7 @@ import type { ReglagesDocuments } from "../../features/documents/lib/reglages";
 import { resoudreType } from "../../features/documents/lib/resolveur";
 import { numeroDuDocument } from "../../features/documents/lib/typesDocument";
 import type { TypeDocumentV3 } from "../../features/documents/lib/typesDocument";
+import { resteDuTicket } from "./paiement";
 import {
   echeanceExigible,
   statutDeFacture,
@@ -206,7 +207,9 @@ export function construireDocuments(source: SourceFacturation): DocumentCommerci
       auteurId: null,
       montant,
       paye,
-      reste: Math.max(0, arrondi(montant - paye)),
+      // Le reste vient de `solde_du`, que la base entretient : la même
+      // source que l'écran Ventes, la fiche client et le tableau de bord.
+      reste: arrondi(resteDuTicket(ventes)),
       statut: statutDeFacture({
         montant,
         paye,

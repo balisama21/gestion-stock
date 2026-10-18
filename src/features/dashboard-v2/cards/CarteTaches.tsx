@@ -4,6 +4,7 @@ import { Lead, Lien } from "../components/Tn";
 import { Tag } from "../components/Tag";
 import { dateLocale, jourMoisChiffres, montant } from "../lib/format";
 import { dateDuJour } from "../../../lib/dates";
+import { estEnAttenteDeReponse } from "../../../lib/devis";
 import { illFeuille } from "../assets/images";
 
 /**
@@ -22,7 +23,7 @@ export interface TacheAffichee {
 
 export const CarteTaches: React.FC<{
   taches: TacheAffichee[];
-  devis: { statut: string; total: number }[];
+  devis: { statut: string; total: number; valide_jusqu_au?: string | null }[];
   onTerminer?: (id: string) => unknown;
   onVoirTaches?: () => void;
   onVoirDevis?: () => void;
@@ -44,7 +45,7 @@ export const CarteTaches: React.FC<{
   const nbEnRetard = taches.filter(
     (t) => t.statut !== "termine" && t.echeance && t.echeance < aujourdhui,
   ).length;
-  const enAttente = devis.filter((d) => d.statut === "brouillon" || d.statut === "envoye");
+  const enAttente = devis.filter((d) => estEnAttenteDeReponse(d));
   const totalDevis = enAttente.reduce((a, d) => a + d.total, 0);
 
   const etiquette = (echeance: string | null) => {

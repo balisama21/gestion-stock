@@ -52,7 +52,6 @@ interface VendeursViewProps {
   products: Product[];
   onAddSeller: (nom: string) => void;
   onDeleteSeller: (id: string) => void;
-  onEditSale?: (updatedSale: Sale) => void;
   onDeleteSale?: (saleId: string) => void;
   onEditExpense?: (updatedExpense: Expense) => void;
   onDeleteExpense?: (expenseId: string) => void;
@@ -84,7 +83,6 @@ export const VendeursView: React.FC<VendeursViewProps> = ({
   onDeleteSeller,
   remises = [],
   onAddRemise,
-  onEditSale,
   onDeleteSale,
   onEditExpense,
   onDeleteExpense,
@@ -752,15 +750,9 @@ export const VendeursView: React.FC<VendeursViewProps> = ({
                     ],
                     actions: (
                       <>
-                        {onEditSale && (
-                          <button
-                            onClick={() => onEditSale(s)}
-                            className="app-btn-secondary sm:flex-none"
-                          >
-                            <Edit3 className="h-4 w-4" />
-                            Modifier
-                          </button>
-                        )}
+                        {/* Pas de « Modifier » ici : le bouton renvoyait la vente
+                            telle quelle à l'enregistrement, sans rien ouvrir.
+                            Une vente se corrige depuis l'écran Ventes. */}
                         {onDeleteSale && (
                           <button
                             onClick={() => {

@@ -41,6 +41,42 @@ describe("la trésorerie", () => {
     );
   });
 
+  it("les salaires et avances versés sortent de la caisse, et retombent dans l'addition", () => {
+    const t = calculerTresorerie({
+      ...base,
+      salaires: [
+        { montant: 50_000, statut: "versee" },
+        // La base renvoie parfois un numeric en texte.
+        { montant: "110000", statut: "versee" },
+      ],
+    });
+    expect(t.salairesTotal).toBe(160_000);
+    expect(t.tresorerieGlobaleActuelle).toBe(
+      calculerTresorerie(base).tresorerieGlobaleActuelle - 160_000,
+    );
+    expect(t.tresorerieGlobaleActuelle).toBe(
+      t.capitalInitial +
+        t.apportsTotal +
+        t.ventesTotalEncaisse -
+        t.achatsTotal -
+        t.depensesVendeursTotal -
+        t.remboursementsTotal -
+        t.salairesTotal,
+    );
+  });
+
+  it("une demande, une approbation ou un refus de salaire ne déplacent pas d'argent", () => {
+    const t = calculerTresorerie({
+      ...base,
+      salaires: ["en_attente", "approuvee", "refusee", "annulee"].map((statut) => ({
+        montant: 40_000,
+        statut,
+      })),
+    });
+    expect(t.salairesTotal).toBe(0);
+    expect(t.tresorerieGlobaleActuelle).toBe(calculerTresorerie(base).tresorerieGlobaleActuelle);
+  });
+
   it("une vente à crédit n'entre qu'à son paiement", () => {
     const credit = calculerTresorerie({ ...base, ventes: [...base.ventes, { montantPaye: 0 }] });
     expect(credit.tresorerieGlobaleActuelle).toBe(

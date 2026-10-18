@@ -79,7 +79,9 @@ export function calculerIndicateurs(s: SourcesIndicateurs): IndicateursFacturati
       }
     }
 
-    if (d.entite === "devis" && d.statut === "attente") {
+    // Brouillon compris, expiré exclu : la règle de `estEnAttenteDeReponse`,
+    // celle de la page Devis et du tableau de bord.
+    if (d.entite === "devis" && (d.statut === "attente" || d.statut === "brouillon")) {
       r.offres = ajouter(r.offres, d.montant);
     }
   }

@@ -3,6 +3,7 @@ import { Icone } from "../../../components/shared/Icone";
 import { Lead, Lien, TeteCarte } from "../components/Tn";
 import { dateLocale, montant, montantMasque } from "../lib/format";
 import { dateDuJour } from "../../../lib/dates";
+import { estEnCours } from "../../../lib/livraisons";
 import { illCamion } from "../assets/images";
 
 /**
@@ -33,7 +34,8 @@ export const CarteLivraisons: React.FC<{
 }> = ({ livraisons, visible, onOuvrir }) => {
   const aujourdhui = dateDuJour();
 
-  const ouvertes = livraisons.filter((l) => l.statut !== "annulee" && l.statut !== "livree");
+  // La règle de la page Livraisons : une course échouée est close.
+  const ouvertes = livraisons.filter(estEnCours);
   const duJour = ouvertes.filter((l) => l.date_prevue === aujourdhui);
   const aVenir = ouvertes
     .filter((l) => l.date_prevue && l.date_prevue > aujourdhui)

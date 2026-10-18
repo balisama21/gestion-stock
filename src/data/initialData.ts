@@ -14,6 +14,7 @@ export const initialCapital: CapitalSummary = {
   achatsTotal: 0,
   depensesVendeursTotal: 0,
   remboursementsTotal: 0,
+  salairesTotal: 0,
   tresorerieGlobaleActuelle: 0,
   seuilAlerteTresorerie: 50000,
 };

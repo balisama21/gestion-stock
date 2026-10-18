@@ -16,7 +16,8 @@ const CAPITAL: CapitalSummary = {
   achatsTotal: 33000,
   depensesVendeursTotal: 58000,
   remboursementsTotal: 12000,
-  tresorerieGlobaleActuelle: 50000 + 20000 + 393200 - 33000 - 58000 - 12000,
+  salairesTotal: 160000,
+  tresorerieGlobaleActuelle: 50000 + 20000 + 393200 - 33000 - 58000 - 12000 - 160000,
   seuilAlerteTresorerie: 50000,
 };
 
@@ -48,13 +49,13 @@ describe("le détail du solde de trésorerie", () => {
     expect(screen.getByLabelText("Replier le détail du solde")).toBeTruthy();
   });
 
-  it("montre les SIX postes du calcul, y compris ceux à zéro", () => {
+  it("montre les SEPT postes du calcul, y compris ceux à zéro", () => {
     const { container } = afficher({
-      capital: { ...CAPITAL, apportsTotal: 0, remboursementsTotal: 0 },
+      capital: { ...CAPITAL, apportsTotal: 0, remboursementsTotal: 0, salairesTotal: 0 },
     });
     // Un état financier ne masque pas ses lignes vides : sans elles,
     // l'addition que le lecteur refait de tête ne tombe plus juste.
-    expect(container.querySelectorAll(".compo-liste div")).toHaveLength(6);
+    expect(container.querySelectorAll(".compo-liste div")).toHaveLength(7);
   });
 
   it("affiche les remboursements — la ligne qui manquait", () => {
@@ -66,7 +67,7 @@ describe("le détail du solde de trésorerie", () => {
     expect(chiffresDe(ligne!.querySelector("dd")!.textContent ?? "")).toBe("12000");
   });
 
-  it("referme l'addition : les six lignes signées donnent le total affiché", () => {
+  it("referme l'addition : les sept lignes signées donnent le total affiché, salaires compris", () => {
     const { container } = afficher();
     const somme = [...container.querySelectorAll(".compo-liste div")].reduce((acc, d) => {
       const texte = d.querySelector("dd")!.textContent ?? "";

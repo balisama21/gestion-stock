@@ -182,6 +182,13 @@ export const CapitalView: React.FC<CapitalViewProps> = ({
       sign: "−",
       value: capital.remboursementsTotal,
     },
+    {
+      key: "salaires",
+      label: "Salaires versés",
+      hint: "Avances et soldes remis",
+      sign: "−",
+      value: capital.salairesTotal,
+    },
   ];
 
   const couverture =

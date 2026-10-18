@@ -140,3 +140,197 @@ recalculait les mêmes chiffres avec des règles différentes selon les pages.
   Leurs tests existants passent, mais leurs écrans n'ont pas été repris ligne
   à ligne.
 - Les données d'essai d'août (§ 1) peuvent être laissées telles quelles.
+
+
+---
+
+# Second audit — 18 octobre 2026 : les modules restants
+
+Ventes et caisse, Devis, Facturation, Livraisons (comptoir et espace
+livreur), Salaires, Notes de frais, Ma paie, Paramètres. Pour chaque
+écran : chargement, boutons et leur effet réel, validations, états vide,
+erreur et chargement, doubles soumissions, et surtout l'égalité des
+chiffres avec les autres pages. Base de production consultée **en lecture
+seule** (`SELECT` uniquement). **Aucune écriture, aucune migration.**
+
+Contrôles faits en base pour mesurer l'effet réel :
+
+| Contrôle | Résultat |
+|---|---|
+| Ventes dont `total_vente` ≠ quantité × prix | 0 |
+| Ventes dont `solde_du` ≠ total − payé | 0 |
+| Avoirs existants | 0 |
+| Devis expirés sans réponse | 0 (sur 3 devis) |
+| Avances et soldes de salaire « versés » | **2 lignes, 160 000 Ar, 1 boutique** |
+
+## 6. Anomalies corrigées
+
+### H. Trésorerie : les salaires versés ne sortaient jamais de la caisse (critique)
+- **Cause** : le module Salaires annonce « seules les lignes versées sortent
+  de la caisse », mais `calculerTresorerie` ne recevait pas les
+  `paiements_salaire`. Aucun déclencheur ne crée non plus de dépense.
+- **Effet aujourd'hui** : une boutique affiche une trésorerie trop haute de
+  **160 000 Ar**. Ce chiffre baissera dès le déploiement : c'est la correction,
+  pas une perte.
+- **Correction** : `src/lib/tresorerie.ts` retire les lignes au statut `versee`
+  (ni les demandes, ni les approbations, ni les refus). Nouveau poste
+  « Salaires versés » sur l'écran Capital et la carte Trésorerie, pour que les
+  sept lignes retombent toujours sur le total.
+- Fichiers : `lib/tresorerie.ts`, `types.ts` (`salairesTotal`), `BalsamaApp.tsx`,
+  `CapitalView.tsx`, `CarteTresorerie.tsx`, `data/initialData.ts`.
+- Tests : `lib/tresorerie.test.ts` (2), `CarteTresorerie.test.tsx` (7 postes,
+  addition avec salaires).
+
+### I. Modifier une vente : quatre champs saisis puis perdus (majeur)
+- **Cause** : la modale proposait la date, le vendeur, le prix unitaire et le
+  montant payé. `update_sale_quantity` n'écrit que la quantité, le total et le
+  client : le reste disparaissait sans message. Changer le prix envoyait un
+  total = quantité × nouveau prix sans changer `prix_vente_unit`, ce qui
+  aurait cassé l'invariant « total = quantité × prix » (0 cas en base
+  aujourd'hui). En cas de refus (stock, total sous le déjà payé), la modale se
+  fermait et seule une `alert()` restait.
+- **Correction** : seuls la quantité et le client se modifient (le client par
+  sa fiche, comme à la caisse). Date, vendeur, prix et déjà payé se lisent.
+  Le contrôle « total ≥ déjà payé » répond avant l'appel, comme la base.
+  L'erreur s'affiche dans la modale, qui reste ouverte. Le bouton est
+  désactivé pendant l'envoi.
+- Fichiers : `lib/ventes.ts` (`preparerModificationVente`), `VentesView.tsx`,
+  `BalsamaApp.tsx` (`handleEditSale` rend l'erreur).
+- Tests : `lib/ventes.test.ts`, `components/VentesView.test.tsx` (4).
+
+### J. Caisse : une vente comptant enregistrée à crédit (majeur)
+- **Cause** : le montant payé suivait le total du panier seulement tant
+  qu'aucun nom de client n'était posé. Choisir le client d'abord, le geste
+  normal pour un habitué, laissait le montant à 0 : toute la vente partait
+  en crédit. Même chose pour un panier venu d'un devis, qui arrive avec son
+  client.
+- **Correction** : le montant suit le total jusqu'à ce qu'on le tape soi-même.
+- Fichier : `VentesView.tsx`. Tests : `VentesView.test.tsx` (2).
+
+### K. Devis transformé en vente : le mauvais ticket marqué « accepté » (majeur)
+- **Cause** : la coquille gardait l'identifiant du devis à part du panier.
+  Quitter la caisse sans vendre le laissait en attente : la vente suivante,
+  quelle qu'elle soit, marquait ce devis accepté et le reliait à son ticket.
+- **Correction** : le devis voyage avec le panier (`origine`) et revient avec
+  la vente qui en est née. Une vente ordinaire ne rattache rien.
+- Fichiers : `VentesView.tsx`, `BalsamaApp.tsx`. Tests : `VentesView.test.tsx` (2).
+
+### L. Facturation : revalider après un demi-échec créait un doublon (majeur)
+- **Cause** : quand la vente passait mais que la commission ou le lien au
+  devis était refusé, le formulaire restait ouvert avec son message.
+  Recliquer établissait une **seconde vente**. Même piège pour l'avoir
+  (remboursement refusé : second avoir au clic suivant) et pour un
+  encaissement réparti sur plusieurs lignes (la somme entière était
+  reproposée après qu'une partie était déjà posée).
+- **Correction** : dès que la pièce existe, le formulaire se ferme. Ce qui
+  reste à reprendre s'affiche dans un bandeau sur la page. Un encaissement
+  interrompu dit le montant déjà posé. Garde `enCours` sur les trois gestes.
+- Fichier : `FacturationPage.tsx`. Tests : `FacturationPage.test.tsx` (3).
+
+### M. « Devis en attente » : trois nombres pour une même question (majeur)
+- **Cause** : la page Devis écartait les expirés. Le tableau de bord (pastille
+  « devis sans réponse » et carte « À faire ») les comptait. Les indicateurs
+  de Facturation écartaient les brouillons.
+- **Correction** : une règle, `estEnAttenteDeReponse` dans `lib/devis.ts` :
+  brouillon ou envoyé, et encore valable. Elle sert aux trois écrans.
+- Fichiers : `lib/devis.ts`, `DevisView.tsx`, `dashboard-v2/lib/chiffres.ts`,
+  `CarteTaches.tsx`, `facturation/indicateurs.ts`. Tests : `lib/devis.test.ts` (4).
+- Au passage : les boutons de statut d'un devis sont verrouillés pendant
+  l'appel (double clic), et « Réinitialiser » vide aussi la recherche, comme
+  sur Ventes.
+
+### N. Livraisons : « Confiée à » écrivait à chaque lettre (majeur)
+- **Cause** : le champ d'une course existante appelait la base à chaque
+  frappe. Taper « Rakoto » envoyait six modifications, dont cinq à des noms
+  faux, chacune avec son message.
+- **Correction** : la saisie reste locale et part en quittant le champ ou sur
+  Entrée, seulement si le nom a changé (`ChampAvecSuggestions.onValider`).
+- Fichiers : `LivraisonsView.tsx`, `shared/ChampAvecSuggestions.tsx`.
+  Tests : `components/LivraisonsView.test.tsx` (3).
+
+### O. Livraisons : l'argent de plusieurs personnes soldé d'un clic (majeur)
+- **Cause** : « Argent chez les livreurs » regroupait par `livreur_id`.
+  Toutes les courses confiées hors équipe (nom libre) tombaient dans un même
+  paquet affiché « Non assignée ». « Argent rendu » soldait alors l'argent de
+  personnes qui n'étaient pas repassées.
+- **Correction** : `argentChezLesLivreurs` (`lib/livraisons.ts`) regroupe par
+  compte, sinon par nom saisi.
+- Le tableau de bord comptait une course **échouée** comme ouverte. La carte
+  Livraisons emploie maintenant `estEnCours`, la règle de la page.
+- Fichiers : `lib/livraisons.ts`, `LivraisonsView.tsx`, `CarteLivraisons.tsx`.
+  Tests : `lib/livraisons.test.ts` (4).
+
+### P. Salaires : un « reste à payer » trop bas (moyen)
+- **Cause** : le total de l'en-tête additionnait les restes négatifs. Une
+  avance supérieure au salaire d'un employé faisait baisser ce qu'on doit
+  aux autres. L'en-tête annonçait moins que la somme des lignes en dessous.
+- **Correction** : `totauxDuMois` n'additionne que ce qui reste dû. Le
+  surplus continue de se reporter sur le mois suivant de l'employé.
+- Fichier : `lib/salaires.ts`. Tests : `lib/salaires.test.ts` (2).
+
+### Q. Vendeurs : un bouton « Modifier » qui ne faisait rien (mineur)
+- Il renvoyait la vente telle quelle à l'enregistrement, avec un appel RPC
+  inutile, sans rien ouvrir. Il est retiré. Une vente se corrige depuis Ventes.
+- Fichier : `VendeursView.tsx`, `BalsamaApp.tsx`.
+
+### R. Règles dupliquées réunies (harmonisation)
+- Statut de règlement d'un ticket (Payé, Partiel, Impayé), recalculé trois
+  fois dans Ventes : `statutDeReglement` / `totauxDesLignes` (`lib/ventes.ts`).
+- Commission proposée par le taux de la boutique, écrite trois fois (Ventes ×2,
+  Facturation) : `commissionParDefaut`. La commission saisie dans Ventes est
+  désormais validée (≥ 0, ≤ total) et son bouton est verrouillé pendant
+  l'envoi.
+- Reste d'une facture : `solde_du` (`resteDuTicket`) au lieu de total − payé,
+  la même source que Ventes, Clients et le tableau de bord. Les deux valeurs
+  sont égales en base aujourd'hui (0 écart).
+- « Valider la vente » est désactivé pendant l'enregistrement.
+
+## 7. Modules relus sans anomalie bloquante
+
+- **Espace livreur** : montant encaissé borné côté serveur
+  (`avancer_livraison` refuse < 0 et > attendu). Boutons verrouillés pendant
+  l'appel.
+- **Notes de frais** et **Ma paie** : calculs repris de `lib/salaires.ts` et de
+  la RPC `rembourser_note_de_frais`. Le remboursement passe par une dépense,
+  donc par la trésorerie. Les boutons sont verrouillés.
+- **Paramètres** : aucun chiffre calculé. Taux de commission borné et lu depuis
+  un seul paramètre (`commission_taux`) par Ventes et Facturation.
+
+## 8. À trancher, ou à préparer en migration (rien n'est appliqué)
+
+- **Avoir sur une facture impayée** (latent, 0 avoir en base). Facturation la
+  dit « annulée » et ne la compte plus à encaisser. Mais l'avoir ne touche pas
+  `solde_du` : Ventes, la fiche client et le tableau de bord compteraient
+  encore cette dette, et le CA de Facturation exclurait la pièce, pas celui du
+  tableau de bord. Il faut décider si un avoir éteint la créance en base
+  (migration sur `creer_avoir` ou équivalent), puis l'appliquer partout.
+- **Prix d'une vente** : `update_sale_quantity` ne sait pas changer
+  `prix_vente_unit`. Corriger un prix après coup exige une migration (nouveau
+  paramètre, recalcul de la marge). En attendant, l'écran ne le propose plus.
+- **Flux du tableau de bord** (carte Trésorerie, « Entrées / sorties ») : les
+  sorties comptent les achats pour leur total (engagement), alors que la
+  trésorerie les compte pour ce qui a été payé. Les salaires versés n'y
+  figurent pas, faute de date de versement exploitable dans la période. Cette
+  carte relevait du premier audit et n'a pas été changée.
+- Rappel du § 5 : verrouillage `store_is_locked` incomplet côté serveur.
+
+## 9. Tests réellement exécutés (18 octobre)
+
+- `tsc --noEmit` : 0 erreur.
+- `vitest run` : **119 fichiers, 1 203 tests, tous verts** (avant ce second
+  audit : 114 / 1 179). 24 tests ajoutés : `lib/ventes.test.ts`,
+  `lib/devis.test.ts`, `lib/livraisons.test.ts`, `lib/salaires.test.ts`,
+  `components/VentesView.test.tsx`, `components/LivraisonsView.test.tsx`, et des
+  cas ajoutés à `lib/tresorerie.test.ts`, `FacturationPage.test.tsx` et
+  `CarteTresorerie.test.tsx`.
+- Contre-épreuve : les tests de Ventes, Facturation et Livraisons ont été
+  lancés sur les anciennes versions des écrans. Ils échouent (8 sur 8 pour
+  Ventes, 3 sur 3 pour les demi-échecs de Facturation, la frappe de « Confiée
+  à »), puis passent sur les nouvelles.
+- `vite build` : construction de production réussie.
+- ESLint sur les fichiers modifiés : aucune erreur nouvelle. Celles qui
+  restent (Prettier dans `VendeursView.tsx`, `documents.ts`,
+  `indicateurs.test.ts`, `react-refresh` dans `NouveauDocument.tsx`) existaient
+  avant. Pas de reformatage de masse.
+- Même limite qu'au § 5 : pas de test connecté de bout en bout, les écrans
+  n'ont pas été vérifiés visuellement avec un compte.

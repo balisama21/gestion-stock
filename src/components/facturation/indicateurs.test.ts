@@ -108,6 +108,7 @@ describe("les mêmes chiffres que le tableau de bord, sur la même période", ()
       achatsTotal: 0,
       depensesVendeursTotal: 0,
       remboursementsTotal: 0,
+      salairesTotal: 0,
       tresorerieGlobaleActuelle: 0,
       seuilAlerteTresorerie: 0,
     },

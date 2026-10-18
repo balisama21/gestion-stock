@@ -242,11 +242,19 @@ export const situations = (
     .sort((a, b) => a.employe.localeCompare(b.employe, "fr"));
 };
 
-/** Les trois chiffres de l'en-tête. */
+/**
+ * Les trois chiffres de l'en-tête.
+ *
+ * Le reste à payer n'additionne que ce qui reste DÛ. Un employé à qui
+ * l'on a avancé plus que son salaire a un reste négatif, qui se reporte
+ * sur son mois suivant : l'ajouter au total retranchait sa dette de ce
+ * qu'on doit aux autres, et l'en-tête annonçait moins d'argent à sortir
+ * que la somme des lignes affichées juste en dessous.
+ */
 export const totauxDuMois = (liste: SituationSalaire[]) => ({
   masseSalariale: liste.reduce((acc, s) => acc + s.salaire, 0),
   verse: liste.reduce((acc, s) => acc + s.verse, 0),
-  resteAPayer: liste.reduce((acc, s) => acc + s.resteAPayer, 0),
+  resteAPayer: liste.reduce((acc, s) => acc + Math.max(0, s.resteAPayer), 0),
   demandesEnAttente: liste.reduce((acc, s) => acc + s.enAttente.length, 0),
 });
 

@@ -25,6 +25,7 @@ import { resoudreType } from "../features/documents/lib/resolveur";
 import {
   STATUTS_DEVIS,
   classeStatut,
+  estEnAttenteDeReponse,
   estExpire,
   texteStatut,
   totalDesLignes,
@@ -231,9 +232,8 @@ export const DevisView: React.FC<DevisViewProps> = ({
     });
   }, [quotes, recherche, filtreStatut, filtreType, lignesDe]);
 
-  const enAttente = quotes.filter(
-    (d) => (d.statut === "brouillon" || d.statut === "envoye") && !estExpire(d),
-  );
+  // La même règle que le tableau de bord et la page Facturation.
+  const enAttente = quotes.filter((d) => estEnAttenteDeReponse(d));
   const montantEnAttente = enAttente.reduce((n, d) => n + d.total, 0);
 
   // ── Le formulaire ──
@@ -356,8 +356,13 @@ export const DevisView: React.FC<DevisViewProps> = ({
     setFormulaireOuvert(false);
   };
 
+  const [statutEnCours, setStatutEnCours] = useState<string | null>(null);
+
   const changerStatut = async (devis: Devis, statut: string) => {
+    if (statutEnCours) return;
+    setStatutEnCours(devis.id);
     const res = await onSetStatus(devis.id, statut);
+    setStatutEnCours(null);
     if (res.error) setErreur(res.error);
     else
       setSucces(
@@ -450,19 +455,31 @@ export const DevisView: React.FC<DevisViewProps> = ({
             </button>
           )}
           {peutModifier && devis.statut === "brouillon" && (
-            <button onClick={() => changerStatut(devis, "envoye")} className="app-btn-secondary">
+            <button
+              onClick={() => changerStatut(devis, "envoye")}
+              disabled={statutEnCours !== null}
+              className="app-btn-secondary"
+            >
               <Send className="h-4 w-4" />
               Marquer envoyé
             </button>
           )}
           {peutModifier && !fige && devis.statut !== "refuse" && (
-            <button onClick={() => changerStatut(devis, "accepte")} className="app-btn-primary">
+            <button
+              onClick={() => changerStatut(devis, "accepte")}
+              disabled={statutEnCours !== null}
+              className="app-btn-primary"
+            >
               <Check className="h-4 w-4" />
               Accepté
             </button>
           )}
           {peutModifier && !fige && devis.statut !== "refuse" && (
-            <button onClick={() => changerStatut(devis, "refuse")} className="app-btn-secondary">
+            <button
+              onClick={() => changerStatut(devis, "refuse")}
+              disabled={statutEnCours !== null}
+              className="app-btn-secondary"
+            >
               <X className="h-4 w-4" />
               Refusé
             </button>
@@ -544,6 +561,7 @@ export const DevisView: React.FC<DevisViewProps> = ({
         onReset={() => {
           setFiltreStatut("Tous");
           setFiltreType("Tous");
+          setRecherche("");
         }}
       >
         <FilterField label="Pièce">

@@ -34,7 +34,7 @@ export const libelleStatut = (statut: string) =>
 // bord ne charge des devis que leur statut, leur total et leur validité,
 // et n'a pas à en fabriquer un complet pour poser cette question.
 export const estExpire = (
-  devis: { statut: string; valide_jusqu_au: string | null },
+  devis: { statut: string; valide_jusqu_au?: string | null },
   aujourdhui = new Date(),
 ): boolean => {
   if (!devis.valide_jusqu_au) return false;
@@ -42,6 +42,22 @@ export const estExpire = (
   const limite = new Date(devis.valide_jusqu_au + "T23:59:59");
   return limite.getTime() < aujourdhui.getTime();
 };
+
+/**
+ * Un devis qui attend encore une réponse : brouillon ou envoyé, et
+ * toujours valable.
+ *
+ * LA règle, pour tous les écrans. La page Devis écartait les expirés,
+ * le tableau de bord les comptait (« devis sans réponse »), et la page
+ * Facturation écartait les brouillons : trois nombres pour une même
+ * question. Un devis expiré ne promet plus rien, il n'attend donc plus
+ * de réponse ; un brouillon, lui, reste une offre en cours.
+ */
+export const estEnAttenteDeReponse = (
+  devis: { statut: string; valide_jusqu_au?: string | null },
+  aujourdhui = new Date(),
+): boolean =>
+  (devis.statut === "brouillon" || devis.statut === "envoye") && !estExpire(devis, aujourdhui);
 
 /** La couleur du badge, où elle porte du sens et nulle part ailleurs. */
 export const classeStatut = (devis: Devis): string => {

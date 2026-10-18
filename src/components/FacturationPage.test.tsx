@@ -514,3 +514,69 @@ describe("les droits", () => {
     expect(within(menu).getByRole("menuitem", { name: /^Devis/ })).toBeTruthy();
   });
 });
+
+describe("ce qui passe à moitié ne se rejoue pas", () => {
+  /*
+   * La pièce existe, le geste qui la suivait a échoué. Le message
+   * restait dans le formulaire, laissé ouvert avec son bouton : le
+   * cliquer de nouveau établissait une seconde vente, ou un second avoir.
+   */
+  it("commission refusée : la vente reste unique, le formulaire se ferme", async () => {
+    const onFixerCommission = vi.fn().mockResolvedValue({ error: "Montant invalide" });
+    const { onAddSaleTicket } = afficher({ onFixerCommission });
+    ouvrirLeFormulaire(/commission/);
+
+    fireEvent.change(screen.getByLabelText(/^Désignation$/i), { target: { value: "Prestation" } });
+    fireEvent.change(screen.getByLabelText(/^Prix unitaire$/i), { target: { value: "100000" } });
+    fireEvent.change(screen.getByLabelText(/Commission de la boutique/i), {
+      target: { value: "15000" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: /Établir le document/ }));
+
+    await waitFor(() =>
+      expect(screen.getByRole("alert").textContent).toMatch(/commission a été refusée/),
+    );
+    expect(screen.queryByRole("button", { name: /Établir le document/ })).toBeNull();
+    expect(onAddSaleTicket).toHaveBeenCalledTimes(1);
+  });
+
+  it("remboursement refusé après l'avoir : un seul avoir, la modale se ferme", async () => {
+    const f = facturation();
+    const paye = { ...VENTE, montantPaye: 250_000, soldeDu: 0, statutCredit: "Payé" as const };
+    afficher({
+      facturation: f,
+      onRefundSale: vi.fn().mockResolvedValue({ error: "Caisse fermée" }),
+      documents: [{ ...DOC_FACTURE, paye: 250_000, reste: 0, statut: "payee", ventes: [paye] }],
+    });
+
+    fireEvent.click(screen.getByText("FAC-V001"));
+    fireEvent.click(screen.getByRole("button", { name: /Annuler par un avoir/ }));
+    fireEvent.click(screen.getByLabelText(/Enregistrer aussi le remboursement/i));
+    fireEvent.click(screen.getByRole("button", { name: /Établir l'avoir/ }));
+
+    await waitFor(() => expect(screen.getByRole("alert").textContent).toMatch(/Caisse fermée/));
+    expect(screen.queryByRole("button", { name: /Établir l'avoir/ })).toBeNull();
+    expect(f.creerAvoir).toHaveBeenCalledTimes(1);
+  });
+
+  it("encaissement refusé à mi-chemin : ce qui est posé est dit, la somme entière n'est plus reproposée", async () => {
+    const l1 = { ...VENTE, id: "s1", totalVente: 100_000, soldeDu: 100_000 };
+    const l2 = { ...VENTE, id: "s2", numero: "V002", totalVente: 150_000, soldeDu: 150_000 };
+    const onAddPaymentToSale = vi
+      .fn()
+      .mockResolvedValueOnce({ error: null })
+      .mockResolvedValueOnce({ error: "Refusé" });
+    afficher({ onAddPaymentToSale, documents: [{ ...DOC_FACTURE, ventes: [l1, l2] }] });
+
+    fireEvent.click(screen.getByText("FAC-V001"));
+    fireEvent.click(screen.getByRole("button", { name: /Enregistrer un paiement/ }));
+    fireEvent.change(screen.getByLabelText(/Montant reçu/i), { target: { value: "250000" } });
+    fireEvent.click(screen.getByRole("button", { name: /Encaisser/ }));
+
+    await waitFor(() =>
+      expect(screen.getByRole("alert").textContent).toMatch(/encaissés sur FAC-V001/),
+    );
+    expect(screen.queryByLabelText(/Montant reçu/i)).toBeNull();
+    expect(onAddPaymentToSale).toHaveBeenCalledTimes(2);
+  });
+});
