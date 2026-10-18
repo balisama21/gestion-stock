@@ -926,6 +926,7 @@ export const DashboardV2Page: React.FC<DashboardV2PageProps> = ({
             prestataires={partenaires.prestataires ? providers : null}
             aPayer={partenaires.aPayer ? chiffres.fournisseurs : null}
             achats={droits.champVisible("achats", "prix_achat") ? purchases : []}
+            produits={products}
             reglements={droits.champVisible("achats", "prix_achat") ? supplierPayments : []}
             onFournisseurs={vers("fournisseurs")}
             onPrestataires={vers("prestataires")}
