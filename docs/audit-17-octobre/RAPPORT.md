@@ -132,12 +132,17 @@ intacts.
   aucun compte de test local n'existe. Pour tester sans risque, il faudrait une
   branche Supabase (payante) ou un Supabase local (`supabase start`) avec des
   données d'essai.
-- **Verrouillage côté serveur incomplet** : `create_sale`, `create_sale_ticket`,
-  `add_purchase`, `add_payment`, `refund_sale`, `refund_order`,
-  `create_order_with_items`, `create_product` et `avancer_livraison` vérifient
-  l'appartenance à la boutique mais pas `store_is_locked`. Ces fonctions
-  contournent la RLS : une boutique verrouillée peut encore écrire par appel
-  direct. Une migration groupée est à préparer.
+- **Verrouillage côté serveur — réglé le 18 octobre** : `create_sale`,
+  `create_sale_ticket`, `add_purchase`, `add_payment`, `refund_sale`,
+  `refund_order`, `create_order_with_items`, `create_product` et
+  `avancer_livraison` ne vérifiaient pas `store_is_locked`. Migration
+  `20261018042029_verrou_boutique_dans_les_rpc.sql` appliquée avec accord ;
+  vérifié en base : le contrôle est présent dans les neuf fonctions, et le
+  fichier du dépôt a la même empreinte md5 que la version enregistrée.
+- **`refund_order` appelé avec un paramètre de trop — corrigé** : l'interface
+  envoyait `p_idempotency_key`, absent de la fonction en base (3 paramètres),
+  donc l'appel échouait. Aucun écran ne l'utilisait encore. Corrigé dans
+  `useStoreData.ts`, sans migration.
 - **Règle métier à trancher** : un remboursement ou un avoir ne remet jamais
   la marchandise en stock d'office (case à cocher sur l'avoir, ajustement
   manuel sinon). C'est cohérent et documenté, à confirmer comme voulu.
