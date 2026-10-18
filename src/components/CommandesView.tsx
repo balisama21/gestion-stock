@@ -63,6 +63,7 @@ function getOrderItemLabel(
 import type { Database } from "../lib/database.types";
 import { useRechercheInitiale } from "../lib/cibleRecherche";
 import { AideLigneLibre, LIBELLE_LIGNE_LIBRE } from "./shared/LigneLibre";
+import { useConfirmation } from "../hooks/useConfirmation";
 
 type Order = Database["public"]["Tables"]["orders"]["Row"] & {
   client?: Database["public"]["Tables"]["clients"]["Row"] | null;
@@ -180,6 +181,7 @@ export const CommandesView: React.FC<CommandesViewProps> = ({
   onRefundOrder,
   onDeleteOrder,
 }) => {
+  const { confirmer, modaleConfirmation } = useConfirmation();
   const [search, setSearch] = useState("");
   // Une notification peut viser une ligne précise : la recherche
   // s'ouvre alors remplie dessus. Voir `src/lib/cibleRecherche.ts`.
@@ -605,11 +607,12 @@ export const CommandesView: React.FC<CommandesViewProps> = ({
                     )}
                     {onDeleteOrder && (
                       <button
-                        onClick={(e) => {
+                        onClick={async (e) => {
                           e.stopPropagation();
                           if (
-                            window.confirm(
+                            await confirmer(
                               `Supprimer définitivement la commande ${order.numero} ?\n\nCeci ne modifie pas le stock (le produit reste sorti si la commande avait déjà été livrée).`,
+                              { danger: true, libelle: "Supprimer" },
                             )
                           ) {
                             onDeleteOrder(order.id);
@@ -1123,6 +1126,7 @@ export const CommandesView: React.FC<CommandesViewProps> = ({
           )}
         </form>
       </Modal>
+      {modaleConfirmation}
     </div>
   );
 };

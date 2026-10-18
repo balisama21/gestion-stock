@@ -103,6 +103,7 @@ import {
   type TexteModifiable,
 } from "../../features/documents/lib/textesLibres";
 import { PPP_MINIMUM, pppEffectif } from "../../features/documents/lib/cachets";
+import { useConfirmation } from "../../hooks/useConfirmation";
 import "../../features/documents/index.css";
 
 /** Pixels CSS par millimètre, à 96 points par pouce. */
@@ -199,6 +200,7 @@ export const EditeurLibre: React.FC<Props> = ({
   onFermer,
   onEnregistrer,
 }) => {
+  const { confirmer, modaleConfirmation } = useConfirmation();
   const contexte = useReglagesModifiables();
   const storeId = storeIdPasse ?? contexte?.storeId;
   const [d, setD] = useState(disposition);
@@ -951,12 +953,13 @@ export const EditeurLibre: React.FC<Props> = ({
       <header className="flex flex-wrap items-center gap-2 border-b border-border bg-card px-3 py-2 sm:px-4">
         <button
           type="button"
-          onClick={() => {
+          onClick={async () => {
             if (
               Object.keys(boutique).length > 0 &&
-              !window.confirm(
+              !(await confirmer(
                 "Les coordonnées écrites sur la feuille ne sont pas enregistrées. Quitter ?",
-              )
+                { danger: true, libelle: "Quitter" },
+              ))
             ) {
               return;
             }
@@ -1849,6 +1852,7 @@ export const EditeurLibre: React.FC<Props> = ({
           )}
         </aside>
       </div>
+      {modaleConfirmation}
     </div>
   );
 

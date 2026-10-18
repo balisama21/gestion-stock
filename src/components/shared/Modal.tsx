@@ -22,6 +22,12 @@ interface ModalProps {
   dismissible?: boolean;
   /** Teinte de l'en-tête pour les confirmations destructrices. */
   tone?: "default" | "danger";
+  /**
+   * Passe au-dessus des écrans plein cadre (éditeurs de mise en page,
+   * z-80). Réservé aux demandes de confirmation, qui doivent toujours
+   * rester visibles par-dessus ce qu'elles interrompent.
+   */
+  premierPlan?: boolean;
   children: React.ReactNode;
   bodyClassName?: string;
 }
@@ -107,6 +113,7 @@ export const Modal: React.FC<ModalProps> = ({
   headerAside,
   dismissible = true,
   tone = "default",
+  premierPlan = false,
   children,
   bodyClassName = "",
 }) => {
@@ -266,7 +273,7 @@ export const Modal: React.FC<ModalProps> = ({
   return createPortal(
     <div
       data-etat={etat}
-      className="app-modal-overlay fixed inset-0 z-[70] flex items-end justify-center bg-black/60 backdrop-blur-sm sm:items-center sm:p-4"
+      className={`app-modal-overlay fixed inset-0 ${premierPlan ? "z-[90]" : "z-[70]"} flex items-end justify-center bg-black/60 backdrop-blur-sm sm:items-center sm:p-4`}
       onMouseDown={(e) => {
         // onMouseDown et non onClick : un glisser-déposer commencé dans
         // la modale et relâché sur le fond ne doit pas la fermer.

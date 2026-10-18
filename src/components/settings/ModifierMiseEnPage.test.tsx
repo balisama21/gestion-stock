@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { ModifierMiseEnPage } from "./ModifierMiseEnPage";
 import {
   ContexteReglagesDocuments,
@@ -107,15 +107,20 @@ describe("depuis un document en mode simple", () => {
     expect(screen.getByRole("dialog", { name: "Éditeur de disposition" })).toBeTruthy();
   });
 
-  it("demande avant de quitter avec des changements", () => {
-    const confirmer = vi.spyOn(window, "confirm").mockReturnValue(false);
-    afficher();
+  it("demande avant de quitter avec des changements", async () => {
+    const { onOuverture } = afficher();
     fireEvent.click(bouton()!);
     fireEvent.click(screen.getByRole("button", { name: "Logo" }));
     fireEvent.keyDown(window, { key: "ArrowRight" });
     fireEvent.click(screen.getByRole("button", { name: "Revenir aux réglages" }));
-    expect(confirmer).toHaveBeenCalled();
+    const confirmation = await screen.findByRole("dialog", { name: "Confirmation" });
+    expect(
+      within(confirmation).getByText("Quitter sans enregistrer vos changements ?"),
+    ).toBeTruthy();
+    fireEvent.click(within(confirmation).getByRole("button", { name: "Annuler" }));
+    await waitFor(() => expect(screen.queryByRole("dialog", { name: "Confirmation" })).toBeNull());
     expect(screen.getByRole("dialog", { name: "Éditeur de disposition" })).toBeTruthy();
+    expect(onOuverture).not.toHaveBeenLastCalledWith(false);
   });
 });
 

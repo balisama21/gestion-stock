@@ -20,6 +20,7 @@ import {
   recommencerSerie,
   supprimerPhrase,
 } from "../../features/dashboard-v2/lib/phrasesTableau";
+import { useConfirmation } from "../../hooks/useConfirmation";
 
 /**
  * Les phrases du haut du tableau de bord, pour le créateur de la
@@ -57,6 +58,7 @@ const decalerJour = (jour: string, n: number) => {
 const FORMULAIRE_VIDE = { moment: "jour" as Moment, l1: "", l2: "", d1: "", d2: "" };
 
 export const PhrasesSection: React.FC = () => {
+  const { confirmer, modaleConfirmation } = useConfirmation();
   const [phrases, setPhrases] = useState<PhraseAjoutee[] | null>(null);
   const [reglages, setReglages] = useState<ReglagesPhrases>(REGLAGES_PAR_DEFAUT);
   const [occupe, setOccupe] = useState(false);
@@ -125,11 +127,12 @@ export const PhrasesSection: React.FC = () => {
     ).then(() => setForm((f) => ({ ...FORMULAIRE_VIDE, moment: f.moment })));
   };
 
-  const recommencer = (moment: Moment) => {
+  const recommencer = async (moment: Moment) => {
     if (
-      !window.confirm(
+      !(await confirmer(
         `Reprendre les phrases ${moment === "jour" ? "de la journée" : "du soir"} depuis la première, dès aujourd'hui ?`,
-      )
+        { libelle: "Reprendre" },
+      ))
     )
       return;
     void agir(() => recommencerSerie(moment, aujourdhui), "La série repart de la première phrase.");
@@ -341,8 +344,13 @@ export const PhrasesSection: React.FC = () => {
                     <button
                       type="button"
                       className="app-btn-icon h-8 w-8"
-                      onClick={() => {
-                        if (window.confirm("Supprimer cette phrase ?"))
+                      onClick={async () => {
+                        if (
+                          await confirmer("Supprimer cette phrase ?", {
+                            danger: true,
+                            libelle: "Supprimer",
+                          })
+                        )
                           void agir(() => supprimerPhrase(p.id), "Phrase supprimée.");
                       }}
                       disabled={occupe}
@@ -358,6 +366,7 @@ export const PhrasesSection: React.FC = () => {
           ),
         )}
       </div>
+      {modaleConfirmation}
     </SettingsSection>
   );
 };

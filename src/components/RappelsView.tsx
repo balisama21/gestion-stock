@@ -17,6 +17,7 @@ import {
   type Rappel,
   type Recurrence,
 } from "../lib/rappels";
+import { useConfirmation } from "../hooks/useConfirmation";
 
 interface Membre {
   user_id: string;
@@ -61,6 +62,7 @@ export const RappelsView: React.FC<RappelsViewProps> = ({
   onBasculer,
   onSupprimer,
 }) => {
+  const { confirmer, modaleConfirmation } = useConfirmation();
   /** Les délais réglés par la boutique, pour les dire en toutes lettres. */
   const delais = delaisDeRappel(usePersonnalisation().rappels);
 
@@ -225,8 +227,14 @@ export const RappelsView: React.FC<RappelsViewProps> = ({
             ),
             actions: (
               <button
-                onClick={() => {
-                  if (window.confirm(`Supprimer le rappel « ${r.titre} » ?`)) onSupprimer(r.id);
+                onClick={async () => {
+                  if (
+                    await confirmer(`Supprimer le rappel « ${r.titre} » ?`, {
+                      danger: true,
+                      libelle: "Supprimer",
+                    })
+                  )
+                    onSupprimer(r.id);
                 }}
                 className="app-btn-danger"
               >
@@ -389,6 +397,7 @@ export const RappelsView: React.FC<RappelsViewProps> = ({
           )}
         </form>
       </Modal>
+      {modaleConfirmation}
     </div>
   );
 };

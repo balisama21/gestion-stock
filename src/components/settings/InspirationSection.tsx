@@ -10,6 +10,7 @@ import {
   remplacerPhoto,
   supprimerPhoto,
 } from "../../features/dashboard-v2/lib/photosInspiration";
+import { useConfirmation } from "../../hooks/useConfirmation";
 
 /**
  * Les photos de « Inspiration du moment », pour l'administrateur de la
@@ -24,6 +25,7 @@ import {
  * porte fermée.
  */
 export const InspirationSection: React.FC = () => {
+  const { confirmer, modaleConfirmation } = useConfirmation();
   const [photos, setPhotos] = useState<PhotoInspiration[] | null>(null);
   const [occupe, setOccupe] = useState(false);
   const [erreurs, setErreurs] = useState<string[]>([]);
@@ -71,13 +73,14 @@ export const InspirationSection: React.FC = () => {
    * des photos importées : elles se remplacent, se suppriment et se
    * rangent ensuite comme les autres.
    */
-  const reprendreOrigine = () => {
+  const reprendreOrigine = async () => {
     if (
       photos &&
       photos.length > 0 &&
-      !window.confirm(
+      !(await confirmer(
         `Ajouter les ${PHOTOS_PLANTES.length} photos d'origine à la fin de la liste ? Elles s'ajoutent aux vôtres.`,
-      )
+        { libelle: "Ajouter" },
+      ))
     )
       return;
     const fin = photos && photos.length > 0 ? Math.max(...photos.map((p) => p.position)) + 1 : 0;
@@ -98,8 +101,14 @@ export const InspirationSection: React.FC = () => {
       return error ? [error] : [];
     }, "Photo remplacée.");
 
-  const supprimer = (photo: PhotoInspiration, numero: number) => {
-    if (!window.confirm(`Supprimer la photo n° ${numero} ?`)) return;
+  const supprimer = async (photo: PhotoInspiration, numero: number) => {
+    if (
+      !(await confirmer(`Supprimer la photo n° ${numero} ?`, {
+        danger: true,
+        libelle: "Supprimer",
+      }))
+    )
+      return;
     void agir(async () => {
       const { error } = await supprimerPhoto(photo);
       return error ? [error] : [];
@@ -308,6 +317,7 @@ export const InspirationSection: React.FC = () => {
           </button>
         )}
       </div>
+      {modaleConfirmation}
     </SettingsSection>
   );
 };

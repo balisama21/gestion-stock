@@ -5,6 +5,7 @@ import type { DevisesBoutique } from "../../hooks/useDevises";
 import { lireParametre, PARAMETRES, type ValeursParametres } from "../../lib/parametres";
 import type { Json } from "../../lib/database.types";
 import { ficheDevise, formaterTaux, LIBELLE_SOURCE, type DeviseBoutique } from "../../lib/devises";
+import { useConfirmation } from "../../hooks/useConfirmation";
 
 interface Props {
   devises: DevisesBoutique;
@@ -117,6 +118,7 @@ const DevisesBloc: React.FC<{
   parametres: ValeursParametres;
   onSave: Props["onSaveParametre"];
 }> = ({ d, parametres, onSave }) => {
+  const { confirmer, modaleConfirmation } = useConfirmation();
   const affichage = lireParametre(parametres, "devise_affichage") || d.principale;
   const choixAffichage = [
     d.principale,
@@ -155,9 +157,10 @@ const DevisesBloc: React.FC<{
     if (code === d.principale) return;
     const nom = ficheDevise(d.catalogue, code)?.nom ?? code;
     if (
-      !window.confirm(
+      !(await confirmer(
         `Faire de ${nom} la devise principale ?\n\nLes taux des autres devises seront recalculés. Les montants déjà enregistrés ne sont PAS convertis.`,
-      )
+        { libelle: "Changer de devise" },
+      ))
     )
       return;
     const res = await d.definirPrincipale(code);
@@ -296,7 +299,13 @@ const DevisesBloc: React.FC<{
                 annoncer(await d.modifier(x.id, patch), "Devise mise à jour.")
               }
               onRetirer={async () => {
-                if (!window.confirm(`Retirer ${x.code} des devises de la boutique ?`)) return;
+                if (
+                  !(await confirmer(`Retirer ${x.code} des devises de la boutique ?`, {
+                    danger: true,
+                    libelle: "Retirer",
+                  }))
+                )
+                  return;
                 annoncer(await d.retirer(x.id), `${x.code} retirée.`);
               }}
             />
@@ -339,7 +348,13 @@ const DevisesBloc: React.FC<{
               annoncer(await d.creerDevise(v), `${v.code.toUpperCase()} ajoutée à la liste.`)
             }
             onSupprimer={async (id, code) => {
-              if (!window.confirm(`Supprimer ${code} de votre liste ?`)) return;
+              if (
+                !(await confirmer(`Supprimer ${code} de votre liste ?`, {
+                  danger: true,
+                  libelle: "Supprimer",
+                }))
+              )
+                return;
               annoncer(await d.supprimerDevise(id), `${code} supprimée.`);
             }}
           />
@@ -386,6 +401,7 @@ const DevisesBloc: React.FC<{
             </ul>
           ))}
       </SettingsBlock>
+      {modaleConfirmation}
     </SettingsSection>
   );
 };

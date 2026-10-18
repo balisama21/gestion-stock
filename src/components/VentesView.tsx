@@ -76,6 +76,7 @@ import {
   totauxDesLignes,
   type AvoirDeVente,
 } from "../lib/ventes";
+import { useConfirmation } from "../hooks/useConfirmation";
 
 const AUCUN_AVOIR: AvoirDeVente[] = [];
 
@@ -204,6 +205,7 @@ export const VentesView: React.FC<VentesViewProps> = ({
   restrictedToOwnSales,
   visibleFields,
 }) => {
+  const { confirmer, modaleConfirmation } = useConfirmation();
   const marque = useMarque();
   // null/undefined = tout visible (propriétaire). Sinon, seuls les champs
   // explicitement listés sont montrés.
@@ -830,8 +832,13 @@ export const VentesView: React.FC<VentesViewProps> = ({
           )}
           {onDeleteSale && (
             <button
-              onClick={() => {
-                if (window.confirm(`Supprimer la vente ${s.numero} (${nom}) ?`)) {
+              onClick={async () => {
+                if (
+                  await confirmer(`Supprimer la vente ${s.numero} (${nom}) ?`, {
+                    danger: true,
+                    libelle: "Supprimer",
+                  })
+                ) {
                   onDeleteSale(s.id);
                 }
               }}
@@ -927,8 +934,13 @@ export const VentesView: React.FC<VentesViewProps> = ({
                     {onDeleteSale && (
                       <button
                         type="button"
-                        onClick={() => {
-                          if (window.confirm(`Supprimer la vente ${v.numero} (${nom}) ?`)) {
+                        onClick={async () => {
+                          if (
+                            await confirmer(`Supprimer la vente ${v.numero} (${nom}) ?`, {
+                              danger: true,
+                              libelle: "Supprimer",
+                            })
+                          ) {
                             onDeleteSale(v.id);
                           }
                         }}
@@ -2113,6 +2125,7 @@ export const VentesView: React.FC<VentesViewProps> = ({
           </div>
         </Modal>
       )}
+      {modaleConfirmation}
     </div>
   );
 };

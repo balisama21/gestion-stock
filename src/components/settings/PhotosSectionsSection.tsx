@@ -20,6 +20,7 @@ import {
   lirePhotosSections,
   supprimerPhotoSection,
 } from "../../features/dashboard-v2/lib/photosSections";
+import { useConfirmation } from "../../hooks/useConfirmation";
 
 /**
  * Les photos des bannières de section (Opérations, Ventes, L'argent,
@@ -36,6 +37,7 @@ import {
  */
 
 export const PhotosSectionsSection: React.FC = () => {
+  const { confirmer, modaleConfirmation } = useConfirmation();
   const [photos, setPhotos] = useState<PhotoSectionImportee[] | null>(null);
   const [choix, setChoix] = useState<Record<CleSection, ChoixSection> | null>(null);
   const [occupe, setOccupe] = useState<CleSection | null>(null);
@@ -98,8 +100,9 @@ export const PhotosSectionsSection: React.FC = () => {
       "Choix enregistré.",
     );
 
-  const supprimer = (p: PhotoSectionImportee) => {
-    if (!window.confirm("Supprimer cette photo ?")) return;
+  const supprimer = async (p: PhotoSectionImportee) => {
+    if (!(await confirmer("Supprimer cette photo ?", { danger: true, libelle: "Supprimer" })))
+      return;
     void agir(
       p.section,
       async () => {
@@ -272,6 +275,7 @@ export const PhotosSectionsSection: React.FC = () => {
           );
         })}
       </div>
+      {modaleConfirmation}
     </SettingsSection>
   );
 };

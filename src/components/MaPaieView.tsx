@@ -18,6 +18,7 @@ import {
   type Salaire,
   type StatutPaiement,
 } from "../lib/salaires";
+import { useConfirmation } from "../hooks/useConfirmation";
 
 /** Combien de mois passés on garde sous les yeux. Au-delà, on demande. */
 const MOIS_D_HISTORIQUE = 6;
@@ -77,6 +78,7 @@ export const MaPaieView: React.FC<MaPaieViewProps> = ({
   onDemander,
   onAnnuler,
 }) => {
+  const { confirmer, modaleConfirmation } = useConfirmation();
   const [periode, setPeriode] = useState(moisCourant());
   const [modale, setModale] = useState(false);
   const [erreur, setErreur] = useState<string | null>(null);
@@ -211,8 +213,13 @@ export const MaPaieView: React.FC<MaPaieViewProps> = ({
                     {l.statut === "en_attente" && (
                       <button
                         type="button"
-                        onClick={() => {
-                          if (window.confirm(`Retirer votre demande ${l.numero} ?`)) {
+                        onClick={async () => {
+                          if (
+                            await confirmer(`Retirer votre demande ${l.numero} ?`, {
+                              danger: true,
+                              libelle: "Retirer",
+                            })
+                          ) {
                             agir(onAnnuler(l.id));
                           }
                         }}
@@ -290,6 +297,7 @@ export const MaPaieView: React.FC<MaPaieViewProps> = ({
         subtitle="Votre salaire, vos avances, et ce qu'il vous reste à percevoir."
       />
       {corps}
+      {modaleConfirmation}
     </div>
   );
 };

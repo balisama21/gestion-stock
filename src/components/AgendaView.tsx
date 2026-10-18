@@ -29,6 +29,7 @@ import {
   type NatureEvenement,
   type VisibiliteEvenement,
 } from "../lib/evenements";
+import { useConfirmation } from "../hooks/useConfirmation";
 
 interface Membre {
   user_id: string;
@@ -104,6 +105,7 @@ export const AgendaView: React.FC<AgendaViewProps> = ({
   onSupprimer,
   onNavigateTab,
 }) => {
+  const { confirmer, modaleConfirmation } = useConfirmation();
   const aujourdhui = dateDuJour();
   const [vue, setVue] = useState<Vue>("jour");
   const [curseur, setCurseur] = useState(aujourdhui);
@@ -383,7 +385,12 @@ export const AgendaView: React.FC<AgendaViewProps> = ({
               <button
                 onClick={async () => {
                   if (!detail.evenement) return;
-                  if (window.confirm(`Supprimer « ${detail.evenement.titre} » ?`)) {
+                  if (
+                    await confirmer(`Supprimer « ${detail.evenement.titre} » ?`, {
+                      danger: true,
+                      libelle: "Supprimer",
+                    })
+                  ) {
                     await onSupprimer(detail.evenement.id);
                     setDetail(null);
                   }
@@ -592,6 +599,7 @@ export const AgendaView: React.FC<AgendaViewProps> = ({
           )}
         </form>
       </Modal>
+      {modaleConfirmation}
     </div>
   );
 };

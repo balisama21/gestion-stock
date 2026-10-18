@@ -13,6 +13,7 @@ import {
   dispositionDuType,
   type Disposition,
 } from "../../features/documents/lib/disposition";
+import { useConfirmation } from "../../hooks/useConfirmation";
 
 interface Props {
   document: Document;
@@ -39,6 +40,7 @@ export const ModifierMiseEnPage: React.FC<Props> = ({
   onDisposition,
   onOuverture,
 }) => {
+  const { confirmer, modaleConfirmation } = useConfirmation();
   const ctx = useReglagesModifiables();
   const [edition, setEdition] = useState<Disposition | null>(null);
   const [enCours, setEnCours] = useState(false);
@@ -66,11 +68,14 @@ export const ModifierMiseEnPage: React.FC<Props> = ({
     onOuverture?.(true);
   };
 
-  const fermer = (d: Disposition) => {
+  const fermer = async (d: Disposition) => {
     if (
       edition &&
       JSON.stringify(d) !== JSON.stringify(edition) &&
-      !window.confirm("Quitter sans enregistrer vos changements ?")
+      !(await confirmer("Quitter sans enregistrer vos changements ?", {
+        danger: true,
+        libelle: "Quitter",
+      }))
     ) {
       return;
     }
@@ -140,6 +145,7 @@ export const ModifierMiseEnPage: React.FC<Props> = ({
           onEnregistrer={(d) => void enregistrer(d)}
         />
       )}
+      {modaleConfirmation}
     </>
   );
 };

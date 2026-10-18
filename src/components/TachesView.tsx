@@ -20,6 +20,7 @@ import {
   type Tache,
 } from "../lib/taches";
 import { dateDuJour } from "../lib/dates";
+import { useConfirmation } from "../hooks/useConfirmation";
 
 interface Membre {
   user_id: string;
@@ -70,6 +71,7 @@ export const TachesView: React.FC<TachesViewProps> = ({
   onChangerStatut,
   onSupprimer,
 }) => {
+  const { confirmer, modaleConfirmation } = useConfirmation();
   const [filtre, setFiltre] = useState<"ouvertes" | "retard" | "toutes">("ouvertes");
   const [formOuvert, setFormOuvert] = useState(false);
   const [enregistrement, setEnregistrement] = useState(false);
@@ -258,8 +260,14 @@ export const TachesView: React.FC<TachesViewProps> = ({
               <>
                 {peutSupprimer && (
                   <button
-                    onClick={() => {
-                      if (window.confirm(`Supprimer la tâche « ${t.titre} » ?`)) onSupprimer(t.id);
+                    onClick={async () => {
+                      if (
+                        await confirmer(`Supprimer la tâche « ${t.titre} » ?`, {
+                          danger: true,
+                          libelle: "Supprimer",
+                        })
+                      )
+                        onSupprimer(t.id);
                     }}
                     className="app-btn-danger"
                   >
@@ -425,6 +433,7 @@ export const TachesView: React.FC<TachesViewProps> = ({
           )}
         </form>
       </Modal>
+      {modaleConfirmation}
     </div>
   );
 };

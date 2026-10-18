@@ -16,6 +16,7 @@ import {
   parMomentPhotos,
   supprimerPhotoHautDePage,
 } from "../../features/dashboard-v2/lib/photosHautDePage";
+import { useConfirmation } from "../../hooks/useConfirmation";
 
 /**
  * Les photos de la grande bannière du tableau de bord, pour le créateur de
@@ -85,6 +86,7 @@ const Vignette: React.FC<{ photo: Photo; titre: string; marque?: string }> = ({
 );
 
 export const PhotosHautDePageSection: React.FC = () => {
+  const { confirmer, modaleConfirmation } = useConfirmation();
   const [photos, setPhotos] = useState<PhotoImportee[] | null>(null);
   const [occupe, setOccupe] = useState<MomentPhoto | null>(null);
   const [erreurs, setErreurs] = useState<string[]>([]);
@@ -131,7 +133,8 @@ export const PhotosHautDePageSection: React.FC = () => {
   };
 
   const supprimer = async (p: PhotoImportee) => {
-    if (!window.confirm("Supprimer cette photo ?")) return;
+    if (!(await confirmer("Supprimer cette photo ?", { danger: true, libelle: "Supprimer" })))
+      return;
     setOccupe(p.moment);
     setErreurs([]);
     const e = await supprimerPhotoHautDePage(p);
@@ -279,6 +282,7 @@ export const PhotosHautDePageSection: React.FC = () => {
           );
         })}
       </div>
+      {modaleConfirmation}
     </SettingsSection>
   );
 };

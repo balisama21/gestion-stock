@@ -41,6 +41,7 @@ import {
 import { dateDuJour } from "../lib/dates";
 import { symboleDeSaisie } from "../lib/affichageDevise";
 import { AvatarModifiable } from "./shared/ChoixAvatar";
+import { useConfirmation } from "../hooks/useConfirmation";
 
 interface VendeursViewProps {
   sellers: Seller[];
@@ -87,6 +88,7 @@ export const VendeursView: React.FC<VendeursViewProps> = ({
   onEditExpense,
   onDeleteExpense,
 }) => {
+  const { confirmer, modaleConfirmation } = useConfirmation();
   const marque = useMarque();
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [newNom, setNewNom] = useState("");
@@ -480,8 +482,13 @@ export const VendeursView: React.FC<VendeursViewProps> = ({
 
                 <button
                   type="button"
-                  onClick={() => {
-                    if (window.confirm(`Voulez-vous vraiment supprimer le vendeur "${v.nom}" ?`)) {
+                  onClick={async () => {
+                    if (
+                      await confirmer(`Voulez-vous vraiment supprimer le vendeur "${v.nom}" ?`, {
+                        danger: true,
+                        libelle: "Supprimer",
+                      })
+                    ) {
                       onDeleteSeller(v.id);
                     }
                   }}
@@ -755,10 +762,11 @@ export const VendeursView: React.FC<VendeursViewProps> = ({
                             Une vente se corrige depuis l'écran Ventes. */}
                         {onDeleteSale && (
                           <button
-                            onClick={() => {
+                            onClick={async () => {
                               if (
-                                window.confirm(
+                                await confirmer(
                                   `Supprimer la vente ${s.numero} (${getSaleLabel(s, products)}) ?`,
+                                  { danger: true, libelle: "Supprimer" },
                                 )
                               ) {
                                 onDeleteSale(s.id);
@@ -815,8 +823,13 @@ export const VendeursView: React.FC<VendeursViewProps> = ({
                         )}
                         {onDeleteExpense && (
                           <button
-                            onClick={() => {
-                              if (window.confirm(`Supprimer la dépense ${e.numero} ?`)) {
+                            onClick={async () => {
+                              if (
+                                await confirmer(`Supprimer la dépense ${e.numero} ?`, {
+                                  danger: true,
+                                  libelle: "Supprimer",
+                                })
+                              ) {
                                 onDeleteExpense(e.id);
                               }
                             }}
@@ -1372,6 +1385,7 @@ export const VendeursView: React.FC<VendeursViewProps> = ({
           </form>
         </Modal>
       )}
+      {modaleConfirmation}
     </div>
   );
 };

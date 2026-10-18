@@ -4,6 +4,7 @@ import { SettingsBlock, SettingsSection } from "./primitives";
 import { ImportCachet } from "./ImportCachet";
 import { largeurNetteMm, type Cachet } from "../../features/documents/lib/cachets";
 import { useImageCachet } from "../../features/documents/lib/traiterCachet";
+import { useConfirmation } from "../../hooks/useConfirmation";
 
 interface Props {
   cachets: Cachet[];
@@ -35,13 +36,19 @@ const Vignette: React.FC<{ cachet: Cachet }> = ({ cachet }) => {
 };
 
 export const CachetsSection: React.FC<Props> = ({ cachets, storeId, onChange, onEnregistrer }) => {
+  const { confirmer, modaleConfirmation } = useConfirmation();
   const [ajout, setAjout] = useState(false);
 
   const renommer = (id: string, nom: string) =>
     onChange(cachets.map((c) => (c.id === id ? { ...c, nom } : c)));
 
-  const retirer = (c: Cachet) => {
-    if (!window.confirm(`Retirer « ${c.nom} » de la liste ? Les documents déjà émis le gardent.`)) {
+  const retirer = async (c: Cachet) => {
+    if (
+      !(await confirmer(`Retirer « ${c.nom} » de la liste ? Les documents déjà émis le gardent.`, {
+        danger: true,
+        libelle: "Retirer",
+      }))
+    ) {
       return;
     }
     onChange(cachets.filter((x) => x.id !== c.id));
@@ -109,6 +116,7 @@ export const CachetsSection: React.FC<Props> = ({ cachets, storeId, onChange, on
           }}
         />
       )}
+      {modaleConfirmation}
     </SettingsSection>
   );
 };
