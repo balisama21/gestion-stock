@@ -96,6 +96,11 @@ export interface Sale {
   /** Qui a enregistre la ligne (`sales.owner_id`). Sert au journal d activite. */
   auteurId?: string | null;
   /**
+   * « commande » pour une ligne issue d'une commande livrée, fabriquée pour
+   * les calculs (voir `lignesDesCommandesLivrees`). Absent : une vraie vente.
+   */
+  origine?: "commande";
+  /**
    * Quand la ligne a ete ecrite, horodatage complet.
    *
    * A ne pas confondre avec `date`, qui est le jour COMMERCIAL de la

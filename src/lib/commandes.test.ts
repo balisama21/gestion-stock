@@ -20,7 +20,13 @@ describe("ce qu'une commande doit encore", () => {
   it("les autres statuts gardent leur reste", () => {
     for (const statut of ["en_attente", "en_cours", "livre"]) {
       expect(resteDuCommande(commande(statut, 12000, 5000))).toBe(5000);
-      expect(montantCommande(commande(statut, 12000, 5000))).toBe(12000);
+    }
+  });
+
+  it("seule une commande livrée fait du chiffre d'affaires", () => {
+    expect(montantCommande(commande("livre", 12000, 5000))).toBe(12000);
+    for (const statut of ["en_attente", "en_cours", "annule"]) {
+      expect(montantCommande(commande(statut, 12000, 5000))).toBe(0);
     }
   });
 
