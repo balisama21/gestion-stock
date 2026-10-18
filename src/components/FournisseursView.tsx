@@ -34,6 +34,8 @@ import type { Purchase, Product } from "../types";
 import type { Database } from "../lib/database.types";
 import { dateDuJour } from "../lib/dates";
 import { cleDeListe, lireLignesCsv, trierValeurs } from "../lib/listes";
+import { FILTRE_CREATION, useFicheInitiale, useFiltreInitial } from "../lib/cibleRecherche";
+import { AvisIntrouvable } from "./shared/AvisIntrouvable";
 
 type Supplier = Database["public"]["Tables"]["suppliers"]["Row"];
 type SupplierInsert = Database["public"]["Tables"]["suppliers"]["Insert"];
@@ -383,6 +385,27 @@ export const FournisseursView: React.FC<FournisseursViewProps> = ({
     setErreur(null);
     setFormulaireOuvert(true);
   };
+
+  // Le tableau de bord (ou une notification) peut viser une fiche précise,
+  // ou demander le formulaire de création. Voir lib/cibleRecherche.ts.
+  const [introuvable, setIntrouvable] = useState(false);
+  useFicheInitiale("fournisseurs", (id) => {
+    const fiche = suppliers.find((x) => x.id === id);
+    if (!fiche) {
+      setIntrouvable(true);
+      return;
+    }
+    setFiltre("tous");
+    setSelection(fiche);
+    window.requestAnimationFrame(() =>
+      document
+        .getElementById("fiche-fournisseur")
+        ?.scrollIntoView({ behavior: "smooth", block: "start" }),
+    );
+  });
+  useFiltreInitial("fournisseurs", (f) => {
+    if (f === FILTRE_CREATION && peutCreer) ouvrirCreation();
+  });
 
   const ouvrirEdition = (f: Supplier) => {
     setEnEdition(f);
@@ -870,7 +893,7 @@ export const FournisseursView: React.FC<FournisseursViewProps> = ({
 
         {/* ── La fiche ── */}
         {selection && (
-          <div className="space-y-4 lg:col-span-2">
+          <div id="fiche-fournisseur" className="scroll-mt-24 space-y-4 lg:col-span-2">
             <div className="app-card p-5">
               <div className="mb-4 flex items-start justify-between gap-3">
                 <div className="min-w-0">
@@ -1239,6 +1262,8 @@ export const FournisseursView: React.FC<FournisseursViewProps> = ({
           </div>
         )}
       </div>
+
+      <AvisIntrouvable open={introuvable} onClose={() => setIntrouvable(false)} />
     </div>
   );
 };

@@ -1933,12 +1933,24 @@ function AppInner() {
   };
 
   // ─── Suppression réelle d'un collaborateur (store_members) ───
+  /*
+   * « Supprimer » un vendeur, c'est retirer un MEMBRE de l'équipe : il perd
+   * l'accès à la boutique, ses ventes restent. Les autres noms de la liste
+   * (le propriétaire, ou un nom qui ne vit que dans l'historique des
+   * ventes) n'ont rien à retirer : le clic ne faisait rien, sans le dire.
+   */
   const handleDeleteSeller = async (sellerId: string) => {
-    const isRealMember = storeMembers.some((m) => m.id === sellerId);
-    if (isRealMember) {
-      const res = await removeStoreMember(sellerId);
-      if (res.error) signalerErreur("Erreur lors de la suppression : " + res.error);
+    const membre = storeMembers.find((m) => m.id === sellerId);
+    if (!membre) {
+      signalerAvertissement(
+        sellerId === user?.id
+          ? "Le propriétaire ne peut pas être retiré de sa propre boutique."
+          : "Ce nom vient de l'historique des ventes et n'est pas un membre de l'équipe : il n'y a rien à retirer. Ses ventes restent enregistrées.",
+      );
+      return;
     }
+    const res = await removeStoreMember(sellerId);
+    if (res.error) signalerErreur("Erreur lors du retrait du membre : " + res.error);
   };
 
   if (workspace.loading) {

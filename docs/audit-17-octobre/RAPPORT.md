@@ -487,3 +487,29 @@ ne perdre ni dédoubler aucune ligne). Plus grosse boutique aujourd'hui :
   l'historique ».
 - Historique : « Fournisseur non précisé » quand l'achat n'en a pas.
 - Fil des ventes : l'heure de saisie est transmise (elle manquait).
+
+## Vérifié en production après la fusion de la PR #44 (déploiement du 18 octobre, 10 h 49)
+
+Avec la session du propriétaire, dans le navigateur : pastille « 4 » (et non
+plus « 9+ »), remise à zéro à l'ouverture, points sur les non-lues, gestes
+« Vous » sans gras, plus de doublon vente / règlement ; « Vente 136 500 Ar »
+ouvre la fiche V027 ; la liste Ventes revient complète après fermeture ;
+« 66 produits en rupture » ouvre le catalogue filtré « Alertes (67) » ;
+carte « Activité aujourd'hui » : « 5 événements · 1 vente · Voir
+l'historique ». État écrit en base (4 « vu », 1 « lu »). Console sans erreur.
+
+# 12. Fournisseurs, prestataires, vendeurs
+
+- **Colonne « Produits / Services » toujours à « — »** (tableau de bord) :
+  elle ne lisait que la fiche. Elle reprend maintenant ce qu'on a réellement
+  acheté au fournisseur (achats rattachés à sa fiche, sinon saisis sous son
+  nom ; trois au plus) — `dashboard-v2/lib/partenaires.ts`.
+- **Bouton « … » d'une ligne** : ouvrait l'écran entier ; il ouvre la fiche
+  de ce fournisseur ou de ce prestataire.
+- **« Ajouter un fournisseur / prestataire »** : ouvrait la liste ; il ouvre
+  le formulaire de création.
+- **« Supprimer ce vendeur »** sur le propriétaire ou sur un nom venu de
+  l'historique des ventes : ne faisait rien, sans le dire. Un message
+  l'explique désormais. Pour un vrai membre, le geste retire son accès à la
+  boutique (ses ventes restent) ; le libellé de confirmation sera précisé
+  avec le remplacement des `window.confirm` (session parallèle).
