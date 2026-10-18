@@ -45,6 +45,13 @@ import type { ActiveTab } from "../types";
  * fournisseur n'enveloppe qu'une ligne.
  */
 
+/**
+ * Le « filtre » qui demande à un écran d'ouvrir son formulaire de
+ * création — « Ajouter un fournisseur » depuis le tableau de bord ouvre
+ * le formulaire, pas seulement la liste.
+ */
+export const FILTRE_CREATION = "nouveau";
+
 export interface CibleRecherche {
   /** L'écran visé. Un écran ne réagit qu'à ce qui le concerne. */
   onglet: ActiveTab;
