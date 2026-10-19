@@ -5,7 +5,7 @@ import { formatCurrency } from "../utils/formulas";
 import { DataList } from "./shared/DataList";
 import { PageHeader } from "./shared/PageHeader";
 import { dateDuJour } from "../lib/dates";
-import { chiffreAffairesNet, type AvoirDeVente } from "../lib/ventes";
+import { chiffreAffairesNet, effetDesAvoirsSurLaMarge, type AvoirDeVente } from "../lib/ventes";
 
 /**
  * Un montant qui peut être une perte. Il s'affichait toujours en vert avec
@@ -26,6 +26,8 @@ interface RapportsViewProps {
   sales: Sale[];
   /** Les avoirs sur ces ventes : le chiffre d'affaires en est net, à leur date. */
   avoirs?: AvoirDeVente[];
+  /** Les factures dont l'avoir a remis les articles en stock. */
+  facturesRemisesEnStock?: ReadonlySet<string>;
   /** Les postes de dépenses de la boutique, pour les nommer. */
   postes: { id: string; nom: string }[];
   purchases: Purchase[];
@@ -37,6 +39,7 @@ interface RapportsViewProps {
 export const RapportsView: React.FC<RapportsViewProps> = ({
   sales,
   avoirs = AUCUN_AVOIR,
+  facturesRemisesEnStock,
   purchases,
   expenses,
   postes = [],
@@ -102,7 +105,16 @@ export const RapportsView: React.FC<RapportsViewProps> = ({
   );
   const achatsToday = purchasesToday.reduce((acc, p) => acc + p.totalAchat, 0);
   const depensesToday = expensesToday.reduce((acc, e) => acc + e.montant, 0);
-  const margeToday = salesToday.reduce((acc, s) => acc + s.margeTotale, 0);
+  // Marges nettes des avoirs, chacun à sa date (`effetDesAvoirsSurLaMarge`).
+  const effetAvoirs = (garder: (date: string) => boolean) =>
+    effetDesAvoirsSurLaMarge(
+      avoirs.filter((a) => garder(a.date)),
+      sales,
+      facturesRemisesEnStock,
+    );
+  const margeToday =
+    salesToday.reduce((acc, s) => acc + s.margeTotale, 0) -
+    effetAvoirs((d) => isSameDay(d, filterDay, filterMonth, filterYear));
 
   // 2. CALCULATIONS FOR THIS MONTH
   const salesMonth = sales.filter((s) => isSameMonth(s.date, filterMonth, filterYear));
@@ -115,7 +127,9 @@ export const RapportsView: React.FC<RapportsViewProps> = ({
   );
   const achatsMonth = purchasesMonth.reduce((acc, p) => acc + p.totalAchat, 0);
   const depensesMonth = expensesMonth.reduce((acc, e) => acc + e.montant, 0);
-  const margeMonth = salesMonth.reduce((acc, s) => acc + s.margeTotale, 0);
+  const margeMonth =
+    salesMonth.reduce((acc, s) => acc + s.margeTotale, 0) -
+    effetAvoirs((d) => isSameMonth(d, filterMonth, filterYear));
 
   // 3. CALCULATIONS FOR THIS YEAR
   /**
@@ -155,7 +169,9 @@ export const RapportsView: React.FC<RapportsViewProps> = ({
   );
   const achatsYear = purchasesYear.reduce((acc, p) => acc + p.totalAchat, 0);
   const depensesYear = expensesYear.reduce((acc, e) => acc + e.montant, 0);
-  const margeYear = salesYear.reduce((acc, s) => acc + s.margeTotale, 0);
+  const margeYear =
+    salesYear.reduce((acc, s) => acc + s.margeTotale, 0) -
+    effetAvoirs((d) => isSameYear(d, filterYear));
 
   // Month names in French
   const monthNames = [
@@ -185,7 +201,9 @@ export const RapportsView: React.FC<RapportsViewProps> = ({
     );
     const achats = mPurchases.reduce((acc, p) => acc + p.totalAchat, 0);
     const depenses = mExpenses.reduce((acc, e) => acc + e.montant, 0);
-    const marge = mSales.reduce((acc, s) => acc + s.margeTotale, 0);
+    const marge =
+      mSales.reduce((acc, s) => acc + s.margeTotale, 0) -
+      effetAvoirs((d) => isSameMonth(d, mIdx, filterYear));
 
     return { month: mName, index: mIdx, ca, achats, depenses, marge, countSales: mSales.length };
   });

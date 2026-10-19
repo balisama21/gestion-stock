@@ -16,7 +16,7 @@ import {
 } from "./types";
 import type { Json, OrderStatus } from "./lib/database.types";
 import { calculerTresorerie } from "./lib/tresorerie";
-import { avoirsDesVentes } from "./lib/ventes";
+import { avoirsDesVentes, chiffreAffairesNet } from "./lib/ventes";
 import { formatCurrency, getProductLabel } from "./utils/formulas";
 import { getModuleScope, isFieldVisible, hasModuleAction } from "./lib/permissions";
 import { downloadExcelWorkbook } from "./utils/exportExcel";
@@ -1041,7 +1041,12 @@ function AppInner() {
 
     return allNames.map((nom, i) => {
       const sellerSales = sales.filter((v) => v.vendeur === nom);
-      const totalSalesMontant = sellerSales.reduce((acc, v) => acc + v.totalVente, 0);
+      // Net des avoirs posés sur SES tickets : la règle du chiffre
+      // d'affaires (`chiffreAffairesNet`), vendeur par vendeur.
+      const totalSalesMontant = chiffreAffairesNet(
+        sellerSales,
+        avoirsDesVentes(facturation.avoirs, sellerSales),
+      );
       const sellerExpenses = expenses.filter((e) => e.vendeur === nom);
       const totalDepenses = sellerExpenses.reduce((acc, e) => acc + e.montant, 0);
       const totalEncaisse = sellerSales.reduce((acc, v) => acc + v.montantPaye, 0);
@@ -1073,6 +1078,7 @@ function AppInner() {
     });
   }, [
     sales,
+    facturation.avoirs,
     expenses,
     storeData.remises,
     storeData.paiementsSalaire,
@@ -1832,6 +1838,14 @@ function AppInner() {
     // montant_paye / solde_du / statut_credit restent exclusivement gérés par
     // la table payments + le trigger SQL (voir addPaymentToSale / refundSale).
     // L'erreur est rendue à la modale, qui reste ouverte avec la saisie.
+    //
+    // Le prix, s'il change, passe d'abord par `corriger_prix_vente` : seule
+    // cette fonction écrit le prix unitaire (total, marge et solde suivent).
+    const avant = sales.find((v) => v.id === updatedSale.id);
+    if (avant && avant.prixVenteUnit !== updatedSale.prixVenteUnit) {
+      const prix = await storeData.corrigerPrixVente(updatedSale.id, updatedSale.prixVenteUnit);
+      if (prix.error) return { error: prix.error };
+    }
     const res = await storeData.updateSale(updatedSale.id, {
       quantite: updatedSale.quantite,
       total_vente: updatedSale.totalVente,
@@ -2169,6 +2183,8 @@ function AppInner() {
                             products={products}
                             sales={visibleSales}
                             commandesLivrees={lignesCommandesLivrees}
+                            facturesRemisesEnStock={storeData.facturesRemisesEnStock}
+                            lignesAvoir={facturation.lignesAvoir}
                             avoirs={avoirsVisibles}
                             purchases={purchases}
                             expenses={visibleExpenses}
@@ -2611,6 +2627,7 @@ function AppInner() {
                         productImages={storeData.productImages}
                         sales={visibleSales}
                         commandesLivrees={lignesCommandesLivrees}
+                        facturesRemisesEnStock={storeData.facturesRemisesEnStock}
                         avoirs={avoirsVisibles}
                         products={products}
                         clients={storeData.clients}
@@ -2773,6 +2790,7 @@ function AppInner() {
                       <RapportsView
                         sales={ventesPourChiffres}
                         avoirs={avoirsVisibles}
+                        facturesRemisesEnStock={storeData.facturesRemisesEnStock}
                         purchases={purchases}
                         expenses={visibleExpenses}
                         products={products}
@@ -2785,6 +2803,9 @@ function AppInner() {
                     {vue === "statistiques" && (
                       <StatistiquesView
                         sales={ventesPourChiffres}
+                        avoirs={avoirsVisibles}
+                        lignesAvoir={facturation.lignesAvoir}
+                        facturesRemisesEnStock={storeData.facturesRemisesEnStock}
                         products={products}
                         sellers={
                           workspace.isOwner ||

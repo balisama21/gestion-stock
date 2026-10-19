@@ -5,9 +5,21 @@ import { formatCurrency, getProductLabel } from "../utils/formulas";
 import { PageHeader } from "./shared/PageHeader";
 import { StatCol } from "./shared/StatBar";
 import { DataList } from "./shared/DataList";
+import {
+  chiffreAffairesNet,
+  effetDesAvoirsParProduit,
+  effetDesAvoirsSurLaMarge,
+  type AvoirDeVente,
+} from "../lib/ventes";
 
 interface StatistiquesViewProps {
   sales: Sale[];
+  /** Les avoirs sur ces ventes : chiffre d'affaires et marge en sont nets. */
+  avoirs?: AvoirDeVente[];
+  /** Leurs lignes, pour retrancher chaque produit. */
+  lignesAvoir?: { avoir_id: string; product_id: string | null; total: number | null }[];
+  /** Les factures dont l'avoir a remis les articles en stock. */
+  facturesRemisesEnStock?: ReadonlySet<string>;
   products: Product[];
   sellers: Seller[];
   expenses: Expense[];
@@ -16,19 +28,32 @@ interface StatistiquesViewProps {
 
 export const StatistiquesView: React.FC<StatistiquesViewProps> = ({
   sales,
+  avoirs = [],
+  lignesAvoir = [],
+  facturesRemisesEnStock,
   products,
   sellers,
 }) => {
-  const totalCA = sales.reduce((acc, s) => acc + s.totalVente, 0);
-  const totalMarge = sales.reduce((acc, s) => acc + s.margeTotale, 0);
+  // Nets des avoirs : la règle du tableau de bord et du Bilan.
+  const totalCA = chiffreAffairesNet(sales, avoirs);
+  const totalMarge =
+    sales.reduce((acc, s) => acc + s.margeTotale, 0) -
+    effetDesAvoirsSurLaMarge(avoirs, sales, facturesRemisesEnStock);
+  const effetsParProduit = effetDesAvoirsParProduit(
+    avoirs,
+    lignesAvoir,
+    sales,
+    facturesRemisesEnStock,
+  );
   const averageMarginRate = totalCA > 0 ? (totalMarge / totalCA) * 100 : 0;
 
   // Sales per product
   const productStats = products.map((p) => {
     const pSales = sales.filter((s) => s.productId === p.id);
     const qtySold = pSales.reduce((acc, s) => acc + s.quantite, 0);
-    const caSold = pSales.reduce((acc, s) => acc + s.totalVente, 0);
-    const margeSold = pSales.reduce((acc, s) => acc + s.margeTotale, 0);
+    const effet = effetsParProduit.get(p.id);
+    const caSold = pSales.reduce((acc, s) => acc + s.totalVente, 0) - (effet?.ca ?? 0);
+    const margeSold = pSales.reduce((acc, s) => acc + s.margeTotale, 0) - (effet?.marge ?? 0);
     return {
       id: p.id,
       displayName: getProductLabel(p, products),
@@ -45,9 +70,7 @@ export const StatistiquesView: React.FC<StatistiquesViewProps> = ({
     .filter((p) => p.qtySold > 0)
     .sort((a, b) => b.caSold - a.caSold);
 
-  const rankedSellers = [...sellers].sort(
-    (a, b) => b.totalVentesMontant - a.totalVentesMontant,
-  );
+  const rankedSellers = [...sellers].sort((a, b) => b.totalVentesMontant - a.totalVentesMontant);
 
   return (
     <div className="space-y-6">
@@ -140,7 +163,9 @@ export const StatistiquesView: React.FC<StatistiquesViewProps> = ({
             items={soldProducts.map((p) => ({
               id: p.id,
               primary: p.displayName,
-              meta: [`${p.qtySold} unité${p.qtySold > 1 ? "s" : ""} vendue${p.qtySold > 1 ? "s" : ""}`],
+              meta: [
+                `${p.qtySold} unité${p.qtySold > 1 ? "s" : ""} vendue${p.qtySold > 1 ? "s" : ""}`,
+              ],
               amount: formatCurrency(p.caSold),
               amountHint:
                 p.margeSold !== 0 ? (
