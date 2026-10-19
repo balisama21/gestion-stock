@@ -25,6 +25,7 @@ import { NAV_GROUPS, universDe, visibleNavItems } from "./components/navigation"
 import { SousNavigation } from "./components/shared/SousNavigation";
 import { SquelettePage } from "./components/shared/SquelettePage";
 import { construireNotifications, type ActionNotification } from "./lib/activite";
+import { lignesDesCommandesLivrees } from "./lib/commandes";
 import { avancesPrisesSurLaCaisse, demandesEnAttente } from "./lib/salaires";
 import { delaisDeRappel } from "./lib/rappels";
 import { useJournalActivite } from "./hooks/useJournalActivite";
@@ -1180,6 +1181,27 @@ function AppInner() {
     [sales, myName],
   );
   const visibleSales = hasVentesAccess ? sales : mySales;
+
+  /**
+   * Les commandes livrées, en lignes de vente pour les CALCULS : chiffre
+   * d'affaires, marge, courbe, meilleurs produits. Datées de la livraison.
+   * Règle unique : `lignesDesCommandesLivrees` (lib/commandes.ts).
+   *
+   * Seulement pour qui voit toutes les ventes : un collaborateur limité à
+   * ses propres ventes voit son chiffre, pas celui des commandes.
+   */
+  const lignesCommandesLivrees = useMemo(
+    () =>
+      hasVentesAccess
+        ? lignesDesCommandesLivrees(storeData.orders, storeData.livraisonsCommandes)
+        : [],
+    [hasVentesAccess, storeData.orders, storeData.livraisonsCommandes],
+  );
+  /** Ventes + commandes livrées : la base de tout chiffre d'affaires affiché. */
+  const ventesPourChiffres = useMemo(
+    () => [...visibleSales, ...lignesCommandesLivrees],
+    [visibleSales, lignesCommandesLivrees],
+  );
   /**
    * Les avoirs sur les ventes visibles : ils retranchent du chiffre
    * d'affaires, à leur date, partout où il s'affiche. Un vendeur limité à
@@ -2146,6 +2168,7 @@ function AppInner() {
                             capital={computedCapital}
                             products={products}
                             sales={visibleSales}
+                            commandesLivrees={lignesCommandesLivrees}
                             avoirs={avoirsVisibles}
                             purchases={purchases}
                             expenses={visibleExpenses}
@@ -2586,6 +2609,7 @@ function AppInner() {
                         reglagesDocuments={reglagesDocuments}
                         productImages={storeData.productImages}
                         sales={visibleSales}
+                        commandesLivrees={lignesCommandesLivrees}
                         avoirs={avoirsVisibles}
                         products={products}
                         clients={storeData.clients}
@@ -2746,7 +2770,7 @@ function AppInner() {
                     )}
                     {vue === "rapports" && (
                       <RapportsView
-                        sales={visibleSales}
+                        sales={ventesPourChiffres}
                         avoirs={avoirsVisibles}
                         purchases={purchases}
                         expenses={visibleExpenses}
@@ -2759,7 +2783,7 @@ function AppInner() {
                     )}
                     {vue === "statistiques" && (
                       <StatistiquesView
-                        sales={visibleSales}
+                        sales={ventesPourChiffres}
                         products={products}
                         sellers={
                           workspace.isOwner ||

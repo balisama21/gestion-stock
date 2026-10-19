@@ -122,10 +122,19 @@ const CLE_CONTROLE = "tantana.dash.controle";
  * `useDashboardData`, et elles portent sur des tables que personne ne
  * lisait.
  */
+const AUCUNE_COMMANDE: SourcesChiffres["sales"] = [];
+
 export interface DashboardV2PageProps {
   /** La boutique active. `null` : rien à lire. */
   storeId: string | null;
   sales: SourcesChiffres["sales"];
+  /**
+   * Les commandes livrées, en lignes de vente datées de la livraison
+   * (`lignesDesCommandesLivrees`). Elles entrent dans le chiffre
+   * d'affaires, la marge, la courbe et les meilleurs produits ; le fil des
+   * ventes, lui, ne montre que les ventes.
+   */
+  commandesLivrees?: SourcesChiffres["sales"];
   purchases: SourcesChiffres["purchases"];
   expenses: SourcesChiffres["expenses"];
   products: SourcesChiffres["products"];
@@ -216,6 +225,7 @@ export interface DashboardV2PageProps {
 export const DashboardV2Page: React.FC<DashboardV2PageProps> = ({
   storeId,
   sales,
+  commandesLivrees = AUCUNE_COMMANDE,
   purchases,
   expenses,
   products,
@@ -280,9 +290,15 @@ export const DashboardV2Page: React.FC<DashboardV2PageProps> = ({
   // seulement si une carte autorisée en a besoin.
   const donnees = useDashboardData(storeId, periode.intervalle, droits.besoins);
 
+  /** Ventes et commandes livrées : la base des chiffres, pas du fil. */
+  const ventesChiffrees = useMemo(
+    () => (commandesLivrees.length > 0 ? [...sales, ...commandesLivrees] : sales),
+    [sales, commandesLivrees],
+  );
+
   const toutes: SourcesChiffres = useMemo(
     () => ({
-      sales,
+      sales: ventesChiffrees,
       purchases,
       expenses,
       products,
@@ -298,7 +314,7 @@ export const DashboardV2Page: React.FC<DashboardV2PageProps> = ({
       mouvements: donnees.mouvements,
     }),
     [
-      sales,
+      ventesChiffrees,
       avoirs,
       purchases,
       expenses,
@@ -464,7 +480,7 @@ export const DashboardV2Page: React.FC<DashboardV2PageProps> = ({
     const debut =
       n < 7 ? decalerJours(fin, -6) : n > 62 ? decalerJours(fin, -61) : periode.intervalle.debut;
     const parJour = chiffreAffairesParJour(
-      sales.filter((v) => v.date >= debut && v.date <= fin),
+      ventesChiffrees.filter((v) => v.date >= debut && v.date <= fin),
       avoirs.filter((a) => a.date >= debut && a.date <= fin),
     );
     const points: PointVentes[] = [];
@@ -476,7 +492,7 @@ export const DashboardV2Page: React.FC<DashboardV2PageProps> = ({
       });
     }
     return points;
-  }, [sales, avoirs, periode.intervalle]);
+  }, [ventesChiffrees, avoirs, periode.intervalle]);
   const sousTitreVentes = `Évolution de vos ventes ${
     nombreDeJours(periode.intervalle) < 7 ? "sur les 7 derniers jours" : periode.phrase
   }`;
