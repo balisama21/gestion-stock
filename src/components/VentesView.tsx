@@ -78,6 +78,7 @@ import {
 } from "../lib/ventes";
 import { useConfirmation } from "../hooks/useConfirmation";
 
+const AUCUNE_COMMANDE: Sale[] = [];
 const AUCUN_AVOIR: AvoirDeVente[] = [];
 
 type Client = Database["public"]["Tables"]["clients"]["Row"];
@@ -91,6 +92,12 @@ interface LignePanier {
 
 interface VentesViewProps {
   sales: Sale[];
+  /**
+   * Les commandes livrées, en lignes de vente (`lignesDesCommandesLivrees`).
+   * Elles comptent dans le chiffre d'affaires et la marge de l'en-tête —
+   * la même règle que le tableau de bord et le Bilan —, pas dans la liste.
+   */
+  commandesLivrees?: Sale[];
   /** Les avoirs sur ces ventes : le chiffre d'affaires de l'en-tête en est net. */
   avoirs?: AvoirDeVente[];
   products: Product[];
@@ -183,6 +190,7 @@ interface VentesViewProps {
 
 export const VentesView: React.FC<VentesViewProps> = ({
   sales,
+  commandesLivrees = AUCUNE_COMMANDE,
   avoirs = AUCUN_AVOIR,
   products,
   productImages = [],
@@ -1008,8 +1016,11 @@ export const VentesView: React.FC<VentesViewProps> = ({
   };
 
   // Net des avoirs : la même règle que le tableau de bord et Facturation.
-  const totalVentesCA = chiffreAffairesNet(sales, avoirsDesVentes(avoirs, sales));
-  const totalMarges = sales.reduce((acc, s) => acc + s.margeTotale, 0);
+  // Les commandes livrées comptent aussi, à leur date de livraison.
+  const totalVentesCA =
+    chiffreAffairesNet(sales, avoirsDesVentes(avoirs, sales)) +
+    commandesLivrees.reduce((acc, c) => acc + c.totalVente, 0);
+  const totalMarges = [...sales, ...commandesLivrees].reduce((acc, s) => acc + s.margeTotale, 0);
   const totalPayeEncaisse = sales.reduce((acc, s) => acc + s.montantPaye, 0);
   const totalSoldeDuCredit = sales.reduce((acc, s) => acc + s.soldeDu, 0);
 

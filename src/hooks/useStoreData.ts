@@ -247,6 +247,14 @@ export interface StoreData {
    */
   salaires: Salaire[];
   paiementsSalaire: PaiementSalaire[];
+  /**
+   * L'instant de livraison de chaque commande livrée : celui du mouvement
+   * de stock « commande_livraison » que `set_order_status` écrit. C'est la
+   * date à laquelle une commande entre dans le chiffre d'affaires (voir
+   * `lignesDesCommandesLivrees`). `orders.updated_at` ne convient pas : un
+   * paiement reçu après la livraison le déplace.
+   */
+  livraisonsCommandes: ReadonlyMap<string, string>;
   addSalaire: (data: {
     employe: string;
     poste?: string | null;
@@ -710,6 +718,9 @@ export function useStoreData(storeId: string | null, userId: string | null): Sto
   /** Les fiches de salaire et l argent verse a ce titre. */
   const [salaires, setSalaires] = useState<Salaire[]>([]);
   const [paiementsSalaire, setPaiementsSalaire] = useState<PaiementSalaire[]>([]);
+  const [livraisonsCommandes, setLivraisonsCommandes] = useState<ReadonlyMap<string, string>>(
+    () => new Map(),
+  );
   const [orders, setOrders] = useState<Order[]>([]);
   const [clients, setClients] = useState<Client[]>([]);
   const [apports, setApports] = useState<CapitalApport[]>([]);
@@ -756,6 +767,7 @@ export function useStoreData(storeId: string | null, userId: string | null): Sto
       setRemises([]);
       setSalaires([]);
       setPaiementsSalaire([]);
+      setLivraisonsCommandes(new Map());
       setOrders([]);
       setClients([]);
       setApports([]);
@@ -804,6 +816,7 @@ export function useStoreData(storeId: string | null, userId: string | null): Sto
         remisesRes,
         salairesRes,
         paiementsSalaireRes,
+        livraisonsRes,
       ] = await Promise.all([
         lireToutesLesPages((a, b) =>
           supabase
@@ -1052,6 +1065,17 @@ export function useStoreData(storeId: string | null, userId: string | null): Sto
             .order("id")
             .range(a, b),
         ),
+
+        lireToutesLesPages((a, b) =>
+          supabase
+            .from("stock_movements")
+            .select("id, reference_id, created_at")
+            .eq("store_id", storeId)
+            .eq("type_mouvement", "commande_livraison")
+            .order("created_at", { ascending: true })
+            .order("id")
+            .range(a, b),
+        ),
       ]);
 
       if (lecture !== derniereLecture.current) return;
@@ -1081,6 +1105,15 @@ export function useStoreData(storeId: string | null, userId: string | null): Sto
       if (remisesRes.data) setRemises(remisesRes.data);
       if (salairesRes.data) setSalaires(salairesRes.data);
       if (paiementsSalaireRes.data) setPaiementsSalaire(paiementsSalaireRes.data);
+      if (livraisonsRes.data) {
+        // Une commande à plusieurs produits a un mouvement par produit, tous
+        // écrits dans la même transaction : on garde le premier.
+        const parCommande = new Map<string, string>();
+        for (const m of livraisonsRes.data)
+          if (m.reference_id && !parCommande.has(m.reference_id))
+            parCommande.set(m.reference_id, m.created_at);
+        setLivraisonsCommandes(parCommande);
+      }
     } catch (e: any) {
       if (lecture === derniereLecture.current) setError(e.message);
     } finally {
@@ -2342,6 +2375,7 @@ export function useStoreData(storeId: string | null, userId: string | null): Sto
     ajusterStock,
     salaires,
     paiementsSalaire,
+    livraisonsCommandes,
     addSalaire,
     updateSalaire,
     deleteSalaire,

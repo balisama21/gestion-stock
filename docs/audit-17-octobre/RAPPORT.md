@@ -625,3 +625,33 @@ Aucune suppression dans ce passage.
   ni des Ventes (3 000 Ar ici), alors que leur paiement entre bien en
   trésorerie. Faut-il les y compter ? Il faudrait alors aussi leur marge
   (prix d'achat des lignes).
+
+# 16. Les commandes livrées entrent dans le chiffre d'affaires — décision du 18 octobre
+
+**Règle** : une commande fait du chiffre d'affaires **le jour de sa
+livraison**, payée ou non — comme une vente à crédit au comptoir. En attente
+ou en cours, elle ne fait que réserver du stock ; annulée, elle ne compte pas.
+
+- **Date** : l'instant du mouvement de stock « commande_livraison » que
+  `set_order_status` écrit, ramené au jour local (chargé par `useStoreData`,
+  `livraisonsCommandes`). `orders.updated_at` ne convient pas : un paiement
+  reçu après la livraison le déplace. Repli sur `updated_at` pour une commande
+  sans article suivi en stock.
+- **Règle unique** : `lignesDesCommandesLivrees` (`lib/commandes.ts`) traduit
+  chaque commande livrée en lignes de vente pour les calculs (total, marge,
+  produit, client), sans créance — ce que la commande doit se lit sur la
+  commande, jamais deux fois.
+- **Appliquée à** : tableau de bord (chiffre, comparaison, courbe, journée,
+  marge, résultat, meilleurs produits, sorties de stock, clients actifs),
+  Bilan, en-tête Ventes, Statistiques. La liste des ventes et le fil des
+  ventes ne montrent que les ventes.
+- **`montantCommande`** ne compte plus que les commandes livrées : la page
+  Commandes (« Chiffre d'affaires ») et le « Total acheté » d'un client
+  comptaient jusque-là aussi les commandes en attente.
+- Un collaborateur limité à ses propres ventes ne voit pas les commandes dans
+  son chiffre.
+- Effet en production aujourd'hui : une seule commande livrée, l'essai CMD001
+  (3 000 Ar) dans le bac à sable. Aucun chiffre d'une vraie boutique ne bouge.
+- Non concernés : l'indicateur de Facturation (il compte les factures, qu'une
+  commande n'émet pas) et l'ancien tableau de bord (désactivé en production).
+- Tests : `lib/commandes.test.ts` (5 ajoutés).
