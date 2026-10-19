@@ -714,3 +714,24 @@ le payé + avoiré ou sous la commission. Droits : `authenticated` oui,
 Dans l'application, la fenêtre « Modifier » d'une vente propose le prix
 unitaire ; s'il change, la coquille appelle d'abord `corriger_prix_vente`,
 puis la mise à jour habituelle. 4 tests.
+
+## Vérifié en production après la fusion de la PR #55 (19 octobre, 08 h 42 UTC)
+
+Bac à sable : marge **+2 500 Ar** (4 500 − 2 000 d'avoirs sans remise en
+stock) dans l'en-tête Ventes et au Bilan, résultat **+2 000 Ar**. Prix de la
+vente d'essai V002 corrigé de 1 500 à 1 400 Ar depuis la fenêtre « Modifier » :
+en base, total 4 200, marge 1 200, reste dû 1 200 (4 200 − 1 000 − 2 000),
+statut « Partiel », modification tracée au journal ; à l'écran, chiffre
+d'affaires 11 200, marge +2 200, reste à encaisser 1 200, et la fiche restée
+ouverte affiche aussitôt les nouvelles valeurs. Aucune requête en échec.
+
+## Ce qui reste, et pourquoi
+
+- **Protection des mots de passe divulgués** : à activer dans le tableau de
+  bord Supabase (Authentication). Elle ne se change pas depuis le code.
+- **Notifications hors de l'application** (e-mail, téléphone) : ce serait
+  une fonction nouvelle, pas une correction.
+- **Données d'essai** en production (« ESSAI… », clients « Actif »…) et
+  dans le bac à sable : laissées, à votre choix.
+- **Mise en forme** : environ 2 300 avertissements Prettier anciens, sans
+  effet sur le fonctionnement ; un reformatage global noierait l'historique.
