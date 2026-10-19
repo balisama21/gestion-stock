@@ -2203,6 +2203,7 @@ function AppInner() {
                             capital={computedCapital}
                             products={products}
                             sales={sales}
+                            commandesLivrees={lignesCommandesLivrees}
                             purchases={purchases}
                             expenses={expenses}
                             sellers={computedSellers}

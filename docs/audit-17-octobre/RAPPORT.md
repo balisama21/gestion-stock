@@ -652,6 +652,12 @@ ou en cours, elle ne fait que réserver du stock ; annulée, elle ne compte pas.
   son chiffre.
 - Effet en production aujourd'hui : une seule commande livrée, l'essai CMD001
   (3 000 Ar) dans le bac à sable. Aucun chiffre d'une vraie boutique ne bouge.
-- Non concernés : l'indicateur de Facturation (il compte les factures, qu'une
-  commande n'émet pas) et l'ancien tableau de bord (désactivé en production).
+- **Facturation** : la page n'affiche aucun chiffre d'affaires (ses quatre
+  indicateurs sont À encaisser, En retard, Encaissé, Devis en attente ;
+  « Encaissé » compte déjà les paiements de commandes). L'indicateur interne
+  « facturé » reste celui des factures — une commande n'en émet pas — et sa
+  documentation le dit désormais. Aucun écart visible.
+- **Ancien tableau de bord** (désactivé en production, utilisé si le nouveau
+  l'est) : même règle pour son total, sa marge et sa tendance ; sa liste des
+  dernières ventes ne montre que les ventes.
 - Tests : `lib/commandes.test.ts` (5 ajoutés).

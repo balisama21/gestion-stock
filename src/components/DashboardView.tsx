@@ -58,6 +58,12 @@ interface DashboardViewProps {
   capital: CapitalSummary;
   products: Product[];
   sales: Sale[];
+  /**
+   * Les commandes livrées, en lignes de vente datées de la livraison
+   * (`lignesDesCommandesLivrees`) : elles comptent dans le total, la marge
+   * et la tendance des ventes, pas dans la liste des dernières ventes.
+   */
+  commandesLivrees?: Sale[];
   purchases: Purchase[];
   expenses: Expense[];
   sellers: Seller[];
@@ -101,10 +107,13 @@ interface DashboardViewProps {
   onReapprovisionner?: (produit: Product) => void;
 }
 
+const AUCUNE_COMMANDE: Sale[] = [];
+
 export const DashboardView: React.FC<DashboardViewProps> = ({
   capital,
   products,
   sales,
+  commandesLivrees = AUCUNE_COMMANDE,
   purchases,
   expenses,
   sellers,
@@ -214,8 +223,11 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   const achatsPeriode = filtrerParIntervalle(purchases, (a) => a.date, periode.intervalle);
   const depensesPeriode = filtrerParIntervalle(expenses, (d) => d.date, periode.intervalle);
 
-  const totalSalesAmount = ventesPeriode.reduce((acc, s) => acc + s.totalVente, 0);
-  const totalMarginAmount = ventesPeriode.reduce((acc, s) => acc + s.margeTotale, 0);
+  // Les chiffres comptent aussi les commandes livrées ; la liste, non.
+  const ventesChiffrees = [...sales, ...commandesLivrees];
+  const chiffreesPeriode = filtrerParIntervalle(ventesChiffrees, (v) => v.date, periode.intervalle);
+  const totalSalesAmount = chiffreesPeriode.reduce((acc, s) => acc + s.totalVente, 0);
+  const totalMarginAmount = chiffreesPeriode.reduce((acc, s) => acc + s.margeTotale, 0);
   const totalExpensesAmount = depensesPeriode.reduce((acc, e) => acc + e.montant, 0);
   const totalPurchasesAmount = achatsPeriode.reduce((acc, p) => acc + p.totalAchat, 0);
   const pendingOrders = orders.filter(
@@ -259,7 +271,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
   const salesTrend = buildTrend(
     totalSalesAmount,
     sommeSur(
-      sales,
+      ventesChiffrees,
       (s) => s.date,
       (s) => s.totalVente,
       periode.precedent,
