@@ -494,7 +494,7 @@ export const CommandesView: React.FC<CommandesViewProps> = ({
         <StatCol
           label="Chiffre d'affaires"
           value={formatCurrency(stats.totalCA)}
-          hint="hors commandes annulées"
+          hint="commandes livrées"
           icon={<DollarSign className="w-5 h-5" />}
         />
         <StatCol
