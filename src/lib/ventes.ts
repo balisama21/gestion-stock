@@ -58,21 +58,28 @@ export function erreurDeCommission(montant: number, total: number): string | nul
  * le total ne peut pas descendre sous ce qui a déjà été encaissé.
  */
 export function preparerModificationVente(
-  vente: { quantite: number; prixVenteUnit: number; montantPaye: number },
-  saisie: { quantite: number },
-): { quantite: number; totalVente: number } | { erreur: string } {
+  vente: { quantite: number; prixVenteUnit: number; montantPaye: number; montantAvoire?: number },
+  saisie: { quantite: number; prixVenteUnit?: number },
+): { quantite: number; prixVenteUnit: number; totalVente: number } | { erreur: string } {
   const quantite = Number(saisie.quantite);
   if (!Number.isInteger(quantite) || quantite <= 0) {
     return { erreur: "La quantité doit être un nombre entier supérieur à zéro." };
   }
-  const totalVente = quantite * vente.prixVenteUnit;
-  if (vente.montantPaye > totalVente) {
+  // Le prix se corrige depuis le 19 octobre (`corriger_prix_vente`) ; sans
+  // saisie, il reste celui d'origine.
+  const prixVenteUnit = Number(saisie.prixVenteUnit ?? vente.prixVenteUnit);
+  if (!Number.isFinite(prixVenteUnit) || prixVenteUnit < 0) {
+    return { erreur: "Le prix unitaire doit être un nombre positif ou nul." };
+  }
+  const totalVente = quantite * prixVenteUnit;
+  // La base refuse un total sous ce qui est payé + annulé par avoir.
+  if (vente.montantPaye + (vente.montantAvoire ?? 0) > totalVente) {
     return {
       erreur:
         "Le nouveau total serait inférieur à ce qui a déjà été encaissé. Remboursez d'abord la différence.",
     };
   }
-  return { quantite, totalVente };
+  return { quantite, prixVenteUnit, totalVente };
 }
 
 // ─────────────────────────────────────────────────────────────────────
@@ -90,9 +97,66 @@ export function preparerModificationVente(
 
 /** Un avoir tel que le chiffre d'affaires le lit : un montant, à sa date. */
 export interface AvoirDeVente {
+  /** Présent quand on a les lignes de l'avoir à lui rattacher. */
+  id?: string;
   date: string;
   montant: number;
   ticket_id: string | null;
+  /** La facture annulée (« FAC-V002 ») : sert à savoir si l'avoir a remis en stock. */
+  facture_numero?: string | null;
+}
+
+/**
+ * LA MARGE NETTE DES AVOIRS
+ *
+ * Un avoir retire son montant du chiffre d'affaires (voir plus haut). Sur
+ * la marge, deux cas :
+ *
+ * — les articles NE reviennent PAS en stock (avoir partiel, geste
+ *   commercial, marchandise perdue) : la boutique a cédé la marchandise et
+ *   renonce à l'argent ; la marge baisse de tout le montant de l'avoir ;
+ * — les articles REVIENNENT en stock (avoir total, case « Remettre les
+ *   articles en stock ») : leur coût d'achat retourne au stock ; la marge
+ *   ne baisse que de l'avoir MOINS ce coût — c'est-à-dire de la marge que
+ *   la vente avait faite.
+ *
+ * La remise en stock se reconnaît au mouvement « ajustement » que la page
+ * Facturation écrit avec la note « Avoir sur <numéro de facture> »
+ * (`facturesRemisesEnStock`). Comme l'avoir, l'effet se compte à la date
+ * de l'avoir.
+ */
+export function effetDesAvoirsSurLaMarge(
+  avoirs: readonly AvoirDeVente[],
+  ventes: readonly {
+    id: string;
+    ticketId?: string | null;
+    productId?: string;
+    totalAchatRef: number;
+  }[],
+  facturesRemisesEnStock: ReadonlySet<string> = new Set(),
+): number {
+  let effet = 0;
+  for (const a of avoirs) {
+    let coutRemis = 0;
+    if (a.facture_numero && facturesRemisesEnStock.has(a.facture_numero) && a.ticket_id) {
+      for (const v of ventes)
+        if ((v.ticketId ?? v.id) === a.ticket_id && v.productId) coutRemis += v.totalAchatRef;
+    }
+    effet += Number(a.montant) - coutRemis;
+  }
+  return effet;
+}
+
+/** Les numéros de facture dont un avoir a remis les articles en stock. */
+export function facturesRemisesEnStockDepuis(
+  notes: readonly (string | null)[],
+): ReadonlySet<string> {
+  const numeros = new Set<string>();
+  for (const n of notes) {
+    const m = n?.match(/^Avoir sur (.+)$/);
+    if (m) numeros.add(m[1].trim());
+  }
+  return numeros;
 }
 
 /**
@@ -132,4 +196,59 @@ export function chiffreAffairesParJour(
   for (const v of ventes) parJour.set(v.date, (parJour.get(v.date) ?? 0) + v.totalVente);
   for (const a of avoirs) parJour.set(a.date, (parJour.get(a.date) ?? 0) - Number(a.montant));
   return parJour;
+}
+
+/**
+ * Ce que les avoirs retirent à chaque PRODUIT, d'après leurs lignes
+ * (`avoir_items`) : un avoir partiel est réparti ligne par ligne par la
+ * base, dans l'ordre du ticket. Sert au classement des produits vendus.
+ */
+export function avoirsParProduit(
+  avoirs: readonly AvoirDeVente[],
+  lignes: readonly { avoir_id: string; product_id: string | null; total: number | null }[],
+): Map<string, number> {
+  const retenus = new Set(avoirs.map((a) => a.id).filter(Boolean) as string[]);
+  const parProduit = new Map<string, number>();
+  for (const l of lignes) {
+    if (!l.product_id || !retenus.has(l.avoir_id)) continue;
+    parProduit.set(l.product_id, (parProduit.get(l.product_id) ?? 0) + Number(l.total ?? 0));
+  }
+  return parProduit;
+}
+
+/**
+ * Le même effet, produit par produit : ce que chaque avoir retire au
+ * chiffre d'affaires (`ca`) et à la marge (`marge`) de chaque produit,
+ * d'après ses lignes. Sur une facture dont l'avoir a remis les articles en
+ * stock, le coût d'achat du produit sur ce ticket revient : la marge ne
+ * perd que la marge de la vente. La somme des marges retirées égale
+ * `effetDesAvoirsSurLaMarge` quand chaque avoir a ses lignes.
+ */
+export function effetDesAvoirsParProduit(
+  avoirs: readonly AvoirDeVente[],
+  lignes: readonly { avoir_id: string; product_id: string | null; total: number | null }[],
+  ventes: readonly {
+    id: string;
+    ticketId?: string | null;
+    productId?: string;
+    totalAchatRef: number;
+  }[],
+  facturesRemisesEnStock: ReadonlySet<string> = new Set(),
+): Map<string, { ca: number; marge: number }> {
+  const parId = new Map(avoirs.filter((a) => a.id).map((a) => [a.id as string, a]));
+  const effets = new Map<string, { ca: number; marge: number }>();
+  for (const l of lignes) {
+    const a = parId.get(l.avoir_id);
+    if (!a || !l.product_id) continue;
+    const total = Number(l.total ?? 0);
+    let coutRemis = 0;
+    if (a.facture_numero && facturesRemisesEnStock.has(a.facture_numero) && a.ticket_id) {
+      for (const v of ventes)
+        if ((v.ticketId ?? v.id) === a.ticket_id && v.productId === l.product_id)
+          coutRemis += v.totalAchatRef;
+    }
+    const deja = effets.get(l.product_id) ?? { ca: 0, marge: 0 };
+    effets.set(l.product_id, { ca: deja.ca + total, marge: deja.marge + total - coutRemis });
+  }
+  return effets;
 }

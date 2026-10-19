@@ -1,13 +1,23 @@
 import { describe, expect, it } from "vitest";
 import type { Sale } from "../types";
-import { avoirsDesVentes, chiffreAffairesNet, chiffreAffairesParJour } from "./ventes";
+import {
+  avoirsDesVentes,
+  chiffreAffairesNet,
+  chiffreAffairesParJour,
+  effetDesAvoirsSurLaMarge,
+  facturesRemisesEnStockDepuis,
+} from "./ventes";
 import { aRembourserApresAvoir } from "../components/facturation/paiement";
 import { statutDeFacture } from "../components/facturation/statuts";
 import { construireDocuments } from "../components/facturation/documents";
 import { calculerIndicateurs } from "../components/facturation/indicateurs";
 import { REGLAGES_DOCUMENTS_PAR_DEFAUT } from "../features/documents/lib/reglages";
 import { construirePeriode } from "../features/dashboard-v2/hooks/useDashboardPeriod";
-import { chiffresVentes, type SourcesChiffres } from "../features/dashboard-v2/lib/chiffres";
+import {
+  chiffresVentes,
+  topProduits,
+  type SourcesChiffres,
+} from "../features/dashboard-v2/lib/chiffres";
 
 /**
  * L'AVOIR EFFACE LA DETTE — DÉCISION DU 18 OCTOBRE.
@@ -162,5 +172,78 @@ describe("le chiffre d'affaires, net des avoirs à leur date", () => {
     // Octobre : 50 000 vendus, 100 000 annulés sur une vente de septembre.
     expect(tableau.total).toBe(-50_000);
     expect(facturation.facture.montant).toBe(tableau.total);
+  });
+});
+
+describe("ce qu'un avoir retire de la marge", () => {
+  const ventes = [
+    { id: "s1", ticketId: "t1", productId: "p1", totalAchatRef: 6_000 },
+    { id: "s2", ticketId: "t2", productId: "p1", totalAchatRef: 2_000 },
+  ];
+  const avoir = (montant: number, ticket: string, facture: string) => ({
+    date: "2026-10-18",
+    montant,
+    ticket_id: ticket,
+    facture_numero: facture,
+  });
+
+  it("sans remise en stock, tout le montant de l'avoir", () => {
+    expect(effetDesAvoirsSurLaMarge([avoir(1_500, "t1", "FAC-V001")], ventes)).toBe(1_500);
+  });
+
+  it("avec remise en stock, l'avoir moins le coût des articles revenus", () => {
+    const remis = facturesRemisesEnStockDepuis(["Avoir sur FAC-V001", "inventaire", null]);
+    expect(remis.has("FAC-V001")).toBe(true);
+    // Vente de 10 000 au coût de 6 000, annulée et remise en stock : la
+    // marge perd 4 000, la marge de cette vente — pas 10 000.
+    expect(effetDesAvoirsSurLaMarge([avoir(10_000, "t1", "FAC-V001")], ventes, remis)).toBe(4_000);
+    // Un autre ticket n'est pas concerné par cette remise en stock.
+    expect(effetDesAvoirsSurLaMarge([avoir(500, "t2", "FAC-V002")], ventes, remis)).toBe(500);
+  });
+});
+
+describe("le tableau de bord retranche les avoirs de la marge et des produits", () => {
+  const periode = {
+    intervalle: { debut: "2026-10-01", fin: "2026-10-31" },
+    precedent: { debut: "2026-09-01", fin: "2026-09-30" },
+  } as never;
+  const vente = {
+    id: "s1",
+    ticketId: "t1",
+    date: "2026-10-18",
+    productId: "p1",
+    designation: "Carton",
+    quantite: 3,
+    totalVente: 4_500,
+    margeTotale: 1_500,
+    totalAchatRef: 3_000,
+  } as unknown as Sale;
+  const avoir = {
+    id: "a1",
+    date: "2026-10-19",
+    montant: 1_500,
+    ticket_id: "t1",
+    facture_numero: "FAC-V001",
+  };
+  const sources = (remis: string[] = []) =>
+    ({
+      sales: [vente],
+      avoirs: [avoir],
+      lignesAvoir: [{ avoir_id: "a1", product_id: "p1", total: 1_500 }],
+      facturesRemisesEnStock: new Set(remis),
+      purchases: [],
+      expenses: [],
+      products: [],
+    }) as unknown as SourcesChiffres;
+
+  it("sans remise en stock, la marge perd le montant de l'avoir", () => {
+    const v = chiffresVentes(sources(), periode);
+    expect(v.total).toBe(3_000);
+    expect(v.marge).toBe(0);
+  });
+
+  it("le produit est classé pour ce qui lui reste", () => {
+    const [p] = topProduits(sources(), periode);
+    expect(p.montant).toBe(3_000);
   });
 });

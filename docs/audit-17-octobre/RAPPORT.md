@@ -661,3 +661,56 @@ ou en cours, elle ne fait que réserver du stock ; annulée, elle ne compte pas.
   l'est) : même règle pour son total, sa marge et sa tendance ; sa liste des
   dernières ventes ne montre que les ventes.
 - Tests : `lib/commandes.test.ts` (5 ajoutés).
+
+# 17. Les restes à faire, réglés — 19 octobre
+
+## Sécurité Supabase (5 avertissements relus un par un)
+
+| Avertissement | Décision |
+|---|---|
+| 15 fonctions SECURITY DEFINER appelables par `anon` | **Voulu** (migration du 16 octobre) : prédicats appelés par les politiques RLS (`is_store_member`…) et marque blanche avant connexion (`get_public_branding`). Les retirer ferait échouer les requêtes anonymes sur « permission denied ». |
+| 105 fonctions appelables par `authenticated` | **Voulu** : ce sont les fonctions de l'application ; chacune vérifie l'appartenance à la boutique. |
+| `store_counters` : RLS sans politique | **Voulu** : table lue et écrite seulement par des fonctions internes. |
+| `pg_net` dans le schéma `public` | **Laissé** : l'extension ne se déplace pas (`SET SCHEMA` non pris en charge) ; la réinstaller couperait les résumés de préalerte. |
+| Protection des mots de passe divulgués désactivée | **À activer par vous** : Supabase → Authentication → (Policies / Password security) → « Leaked password protection ». Ce réglage ne se change pas depuis le code. |
+
+## Tableau de bord : les sorties d'argent sont ce qui a été payé
+
+La carte « Sorties d'argent », les achats du mois et le flux de la période
+comptaient les achats pour leur TOTAL, même à crédit, alors que la
+trésorerie les compte pour ce qui a été payé. Ils additionnent maintenant
+les règlements fournisseurs à leur date (chaque achat payé en a un,
+comptant compris : 56 achats sur 56 vérifiés en base). Un achat à crédit ne
+sort de la caisse qu'au fil de ses règlements. 3 tests.
+
+## Avoirs : marge, produits, vendeurs
+
+Règle : un avoir retire son montant de la **marge**, à sa date — sauf si
+les articles reviennent en stock (avoir total, case « Remettre en stock ») :
+leur coût d'achat revient, la marge ne perd que celle de la vente. La remise
+en stock se reconnaît au mouvement « ajustement » noté « Avoir sur <facture> »
+que la page Facturation écrit déjà (`effetDesAvoirsSurLaMarge`,
+`effetDesAvoirsParProduit`, `lib/ventes.ts`).
+
+Appliquée à : marge et résultat du tableau de bord (et leur comparaison),
+meilleurs produits, Bilan (jour, mois, année, mois par mois), en-tête Ventes,
+Statistiques (total et par produit), ventes de chaque vendeur (avoirs de ses
+tickets). Le « solde en poche » d'un vendeur, qui est de l'argent, ne change
+pas. 5 tests.
+
+## Corriger le prix d'une vente
+
+`update_sale_quantity` n'écrivait que la quantité, le total et le client :
+un prix mal saisi restait faux (§ 8). **Nouvelle fonction additive**
+`corriger_prix_vente` (migration `20261019083335`, appliquée — aucune
+fonction existante modifiée, aucune donnée touchée par la migration) :
+total = quantité × nouveau prix, marge = total − coût de référence, solde par
+`recalculer_solde_vente`. Refus : sans session, sans droit de modifier
+(auteur ou propriétaire, boutique non verrouillée), prix négatif, total sous
+le payé + avoiré ou sous la commission. Droits : `authenticated` oui,
+`anon` non. **Banc d'essai** `supabase/essais/corriger_prix_vente.mjs`
+(PGlite, hors production) : 17 contrôles verts, retour arrière compris.
+
+Dans l'application, la fenêtre « Modifier » d'une vente propose le prix
+unitaire ; s'il change, la coquille appelle d'abord `corriger_prix_vente`,
+puis la mise à jour habituelle. 4 tests.

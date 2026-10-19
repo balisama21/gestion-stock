@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { lireToutesLesPages } from "../lib/lirePages";
+import { facturesRemisesEnStockDepuis } from "../lib/ventes";
 import { supabase } from "../lib/supabase";
 import type { Database } from "../lib/database.types";
 import type { Sale as AppSale } from "../types";
@@ -255,6 +256,13 @@ export interface StoreData {
    * paiement reçu après la livraison le déplace.
    */
   livraisonsCommandes: ReadonlyMap<string, string>;
+  /**
+   * Les numéros de facture dont un avoir a remis les articles en stock
+   * (mouvement « ajustement » noté « Avoir sur … »). Leur coût d'achat
+   * revient au stock : voir `effetDesAvoirsSurLaMarge`.
+   */
+  facturesRemisesEnStock: ReadonlySet<string>;
+  corrigerPrixVente: (id: string, prix: number) => Promise<{ error: string | null }>;
   addSalaire: (data: {
     employe: string;
     poste?: string | null;
@@ -721,6 +729,9 @@ export function useStoreData(storeId: string | null, userId: string | null): Sto
   const [livraisonsCommandes, setLivraisonsCommandes] = useState<ReadonlyMap<string, string>>(
     () => new Map(),
   );
+  const [facturesRemisesEnStock, setFacturesRemisesEnStock] = useState<ReadonlySet<string>>(
+    () => new Set(),
+  );
   const [orders, setOrders] = useState<Order[]>([]);
   const [clients, setClients] = useState<Client[]>([]);
   const [apports, setApports] = useState<CapitalApport[]>([]);
@@ -768,6 +779,7 @@ export function useStoreData(storeId: string | null, userId: string | null): Sto
       setSalaires([]);
       setPaiementsSalaire([]);
       setLivraisonsCommandes(new Map());
+      setFacturesRemisesEnStock(new Set());
       setOrders([]);
       setClients([]);
       setApports([]);
@@ -817,6 +829,7 @@ export function useStoreData(storeId: string | null, userId: string | null): Sto
         salairesRes,
         paiementsSalaireRes,
         livraisonsRes,
+        retoursAvoirsRes,
       ] = await Promise.all([
         lireToutesLesPages((a, b) =>
           supabase
@@ -1076,6 +1089,17 @@ export function useStoreData(storeId: string | null, userId: string | null): Sto
             .order("id")
             .range(a, b),
         ),
+
+        lireToutesLesPages((a, b) =>
+          supabase
+            .from("stock_movements")
+            .select("id, note")
+            .eq("store_id", storeId)
+            .eq("type_mouvement", "ajustement")
+            .like("note", "Avoir sur %")
+            .order("id")
+            .range(a, b),
+        ),
       ]);
 
       if (lecture !== derniereLecture.current) return;
@@ -1114,6 +1138,10 @@ export function useStoreData(storeId: string | null, userId: string | null): Sto
             parCommande.set(m.reference_id, m.created_at);
         setLivraisonsCommandes(parCommande);
       }
+      if (retoursAvoirsRes.data)
+        setFacturesRemisesEnStock(
+          facturesRemisesEnStockDepuis(retoursAvoirsRes.data.map((m) => m.note)),
+        );
     } catch (e: any) {
       if (lecture === derniereLecture.current) setError(e.message);
     } finally {
@@ -1253,6 +1281,22 @@ export function useStoreData(storeId: string | null, userId: string | null): Sto
       return { ventes: retour.ventes.map(versVente), error: null };
     },
     [storeId, userId, fetchAll],
+  );
+
+  /** Corrige le prix unitaire d'une vente (total, marge et solde suivent). */
+  const corrigerPrixVente = useCallback(
+    async (id: string, prix: number) => {
+      const { error } = await supabase.rpc(
+        "corriger_prix_vente" as never,
+        {
+          p_sale_id: id,
+          p_nouveau_prix: prix,
+        } as never,
+      );
+      if (!error) fetchAll();
+      return { error: error?.message ?? null };
+    },
+    [fetchAll],
   );
 
   const updateSale = useCallback(
@@ -2376,6 +2420,8 @@ export function useStoreData(storeId: string | null, userId: string | null): Sto
     salaires,
     paiementsSalaire,
     livraisonsCommandes,
+    facturesRemisesEnStock,
+    corrigerPrixVente,
     addSalaire,
     updateSalaire,
     deleteSalaire,

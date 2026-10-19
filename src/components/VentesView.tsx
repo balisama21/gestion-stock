@@ -70,6 +70,7 @@ import { AvatarPersonne } from "./shared/AvatarPersonne";
 import {
   avoirsDesVentes,
   chiffreAffairesNet,
+  effetDesAvoirsSurLaMarge,
   commissionParDefaut,
   erreurDeCommission,
   preparerModificationVente,
@@ -98,6 +99,8 @@ interface VentesViewProps {
    * la même règle que le tableau de bord et le Bilan —, pas dans la liste.
    */
   commandesLivrees?: Sale[];
+  /** Les factures dont l'avoir a remis les articles en stock. */
+  facturesRemisesEnStock?: ReadonlySet<string>;
   /** Les avoirs sur ces ventes : le chiffre d'affaires de l'en-tête en est net. */
   avoirs?: AvoirDeVente[];
   products: Product[];
@@ -191,6 +194,7 @@ interface VentesViewProps {
 export const VentesView: React.FC<VentesViewProps> = ({
   sales,
   commandesLivrees = AUCUNE_COMMANDE,
+  facturesRemisesEnStock,
   avoirs = AUCUN_AVOIR,
   products,
   productImages = [],
@@ -251,7 +255,10 @@ export const VentesView: React.FC<VentesViewProps> = ({
   const enregistrerModification = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!onEditSale || !editingSale || modificationEnCours) return;
-    const prepa = preparerModificationVente(editingSale, { quantite: editingSale.quantite });
+    const prepa = preparerModificationVente(editingSale, {
+      quantite: editingSale.quantite,
+      prixVenteUnit: editingSale.prixVenteUnit,
+    });
     if ("erreur" in prepa) {
       setErreurModification(prepa.erreur);
       return;
@@ -261,6 +268,7 @@ export const VentesView: React.FC<VentesViewProps> = ({
     const { error } = await onEditSale({
       ...editingSale,
       quantite: prepa.quantite,
+      prixVenteUnit: prepa.prixVenteUnit,
       totalVente: prepa.totalVente,
     });
     setModificationEnCours(false);
@@ -1020,7 +1028,10 @@ export const VentesView: React.FC<VentesViewProps> = ({
   const totalVentesCA =
     chiffreAffairesNet(sales, avoirsDesVentes(avoirs, sales)) +
     commandesLivrees.reduce((acc, c) => acc + c.totalVente, 0);
-  const totalMarges = [...sales, ...commandesLivrees].reduce((acc, s) => acc + s.margeTotale, 0);
+  // Nette des avoirs : même règle que le tableau de bord et le Bilan.
+  const totalMarges =
+    [...sales, ...commandesLivrees].reduce((acc, s) => acc + s.margeTotale, 0) -
+    effetDesAvoirsSurLaMarge(avoirsDesVentes(avoirs, sales), sales, facturesRemisesEnStock);
   const totalPayeEncaisse = sales.reduce((acc, s) => acc + s.montantPaye, 0);
   const totalSoldeDuCredit = sales.reduce((acc, s) => acc + s.soldeDu, 0);
 
@@ -1632,20 +1643,39 @@ export const VentesView: React.FC<VentesViewProps> = ({
             </>
           }
         >
-          {/* Seuls la quantité et le client se modifient : c'est tout ce
-              que `update_sale_quantity` écrit. La date, le vendeur, le prix
-              et le montant payé étaient proposés à la saisie puis perdus
-              sans un mot ; ils se lisent désormais sans se modifier. Un
+          {/* Se modifient : la quantité et le client (`update_sale_quantity`),
+              et le prix unitaire (`corriger_prix_vente`, 19 octobre). La date,
+              le vendeur et le montant payé se lisent sans se modifier : un
               règlement passe par « Paiements à recevoir » ou Facturation. */}
           <form id="sale-edit-form" onSubmit={enregistrerModification} className="space-y-4">
             <div className="app-statbar grid-cols-2 sm:grid-cols-4">
               <StatCol label="Date" value={formatDateLocale(editingSale.date, locale)} />
               <StatCol label="Vendeur" value={editingSale.vendeur || "—"} />
-              <StatCol
-                label={`Prix unitaire (${symboleDeSaisie()})`}
-                value={formatCurrency(editingSale.prixVenteUnit)}
-              />
               <StatCol label="Déjà payé" value={formatCurrency(editingSale.montantPaye)} />
+              <StatCol
+                label="Nouveau total"
+                value={formatCurrency(editingSale.quantite * editingSale.prixVenteUnit)}
+              />
+            </div>
+
+            <div>
+              <label
+                htmlFor="vente-modif-prix"
+                className="mb-1.5 block text-sm font-medium text-foreground"
+              >
+                Prix unitaire ({symboleDeSaisie()})
+              </label>
+              <input
+                id="vente-modif-prix"
+                type="number"
+                required
+                min="0"
+                value={editingSale.prixVenteUnit}
+                onChange={(e) =>
+                  setEditingSale({ ...editingSale, prixVenteUnit: Number(e.target.value) })
+                }
+                className="app-field font-mono"
+              />
             </div>
 
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">

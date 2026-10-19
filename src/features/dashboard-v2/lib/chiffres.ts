@@ -2,7 +2,13 @@ import type { CapitalSummary, Expense, Product, Purchase, Sale, Seller } from ".
 import { resteDuCommande } from "../../../lib/commandes";
 import { dateDuJour } from "../../../lib/dates";
 import { estEnAttenteDeReponse } from "../../../lib/devis";
-import { chiffreAffairesNet, chiffreAffairesParJour, type AvoirDeVente } from "../../../lib/ventes";
+import {
+  chiffreAffairesNet,
+  chiffreAffairesParJour,
+  avoirsParProduit,
+  effetDesAvoirsSurLaMarge,
+  type AvoirDeVente,
+} from "../../../lib/ventes";
 import type { Intervalle, Periode } from "../hooks/useDashboardPeriod";
 import { dansIntervalle, decalerJours, nombreDeJours } from "../hooks/useDashboardPeriod";
 import type { MouvementStock } from "../hooks/useDashboardData";
@@ -57,6 +63,23 @@ export interface SourcesChiffres {
    */
   avoirs?: AvoirDeVente[];
   purchases: Purchase[];
+  /**
+   * Les règlements fournisseurs (`supplier_payments`), à leur date. Ils
+   * disent ce qui est RÉELLEMENT sorti de la caisse pour les achats —
+   * comptant compris : chaque achat payé en a un. Les cartes « sorties
+   * d'argent » les additionnent, comme la trésorerie ; un achat à crédit
+   * ne sort de la caisse qu'au fil de ses règlements. Absents, on retombe
+   * sur le total des achats.
+   */
+  reglementsAchats?: { date: string; montant: number }[];
+  /**
+   * Les factures dont l'avoir a remis les articles en stock : leur coût
+   * revient, et l'avoir ne retire de la marge que celle de la vente.
+   * Voir `effetDesAvoirsSurLaMarge`.
+   */
+  facturesRemisesEnStock?: ReadonlySet<string>;
+  /** Les lignes des avoirs : ce que chacun retire à chaque produit. */
+  lignesAvoir?: { avoir_id: string; product_id: string | null; total: number | null }[];
   expenses: Expense[];
   products: Product[];
   /**
@@ -85,6 +108,22 @@ const somme = <T>(l: T[], f: (x: T) => number): number => l.reduce((a, x) => a +
 
 const dans = <T>(l: T[], jour: (x: T) => string, i: Intervalle): T[] =>
   l.filter((x) => dansIntervalle(jour(x), i));
+
+/**
+ * L'argent sorti pour des achats sur un intervalle : les règlements
+ * fournisseurs quand on les a, sinon le total des achats (engagement).
+ */
+function achatsPayes(s: SourcesChiffres, i: Intervalle): number {
+  if (s.reglementsAchats)
+    return somme(
+      dans(s.reglementsAchats, (r) => r.date, i),
+      (r) => r.montant,
+    );
+  return somme(
+    dans(s.purchases, (a) => a.date, i),
+    (a) => a.totalAchat,
+  );
+}
 
 /** Le jour local d'un horodatage. Jamais `toISOString`. */
 export const jourDe = (instant: string): string => dateDuJour(new Date(instant));
@@ -151,7 +190,10 @@ export function chiffresVentes(s: SourcesChiffres, p: Periode): ChiffresVentes {
     tickets,
     lignes: periode.length,
     panierMoyen: tickets > 0 ? total / tickets : 0,
-    marge: somme(periode, (v) => v.margeTotale),
+    // Marge nette des avoirs de la période (à LEUR date).
+    marge:
+      somme(periode, (v) => v.margeTotale) -
+      effetDesAvoirsSurLaMarge(avoirsPeriode, s.sales, s.facturesRemisesEnStock),
     totalPrecedent: chiffreAffairesNet(precedentes, avoirsPrecedents),
     cumul: cumulerParJour(periode, avoirsPeriode, p.intervalle),
     cumulPrecedent: cumulerParJour(precedentes, avoirsPrecedents, p.precedent).map(
@@ -188,10 +230,11 @@ export interface ChiffresFlux {
 
 export function chiffresFlux(s: SourcesChiffres, p: Periode, ventes: ChiffresVentes): ChiffresFlux {
   const paiementsPeriode = dans(s.payments, (r) => jourDe(r.createdAt), p.intervalle);
-  const achatsPeriode = dans(s.purchases, (a) => a.date, p.intervalle);
   const depensesPeriode = dans(s.expenses, (d) => d.date, p.intervalle);
 
-  const achats = somme(achatsPeriode, (a) => a.totalAchat);
+  // Ce qui est sorti de la caisse, pas ce qui a été commandé : un achat à
+  // crédit ne compte qu'au fil de ses règlements (voir `achatsPayes`).
+  const achats = achatsPayes(s, p.intervalle);
   const depenses = somme(depensesPeriode, (d) => d.montant);
   const sorties = achats + depenses;
 
@@ -219,10 +262,7 @@ export function chiffresFlux(s: SourcesChiffres, p: Periode, ventes: ChiffresVen
       montant: parJour.get(jour) ?? 0,
     })),
     achats,
-    achatsPrecedent: somme(
-      dans(s.purchases, (a) => a.date, p.precedent),
-      (a) => a.totalAchat,
-    ),
+    achatsPrecedent: achatsPayes(s, p.precedent),
     depenses,
     depensesPrecedent: somme(
       dans(s.expenses, (d) => d.date, p.precedent),
@@ -261,18 +301,27 @@ export interface ChiffresResultat {
  * compterait deux fois la même marchandise.
  */
 export function chiffresResultat(s: SourcesChiffres, p: Periode): ChiffresResultat {
-  const marge = somme(
-    dans(s.sales, (v) => v.date, p.intervalle),
-    (v) => v.margeTotale,
-  );
+  // Nette des avoirs, chacun à sa date : la règle de `chiffresVentes`.
+  const effetAvoirs = (i: Intervalle) =>
+    effetDesAvoirsSurLaMarge(
+      dans(s.avoirs ?? [], (a) => a.date, i),
+      s.sales,
+      s.facturesRemisesEnStock,
+    );
+  const marge =
+    somme(
+      dans(s.sales, (v) => v.date, p.intervalle),
+      (v) => v.margeTotale,
+    ) - effetAvoirs(p.intervalle);
   const depenses = somme(
     dans(s.expenses, (d) => d.date, p.intervalle),
     (d) => d.montant,
   );
-  const margePrecedente = somme(
-    dans(s.sales, (v) => v.date, p.precedent),
-    (v) => v.margeTotale,
-  );
+  const margePrecedente =
+    somme(
+      dans(s.sales, (v) => v.date, p.precedent),
+      (v) => v.margeTotale,
+    ) - effetAvoirs(p.precedent);
   const depensesPrecedentes = somme(
     dans(s.expenses, (d) => d.date, p.precedent),
     (d) => d.montant,
@@ -678,7 +727,13 @@ export interface ProduitVendu {
 
 export function topProduits(s: SourcesChiffres, p: Periode, combien = 5): ProduitVendu[] {
   const ventes = dans(s.sales, (v) => v.date, p.intervalle);
-  const total = somme(ventes, (v) => v.totalVente);
+  // Les avoirs de la période, à leur date, retranchés produit par produit.
+  const retraits = avoirsParProduit(
+    dans(s.avoirs ?? [], (a) => a.date, p.intervalle),
+    s.lignesAvoir ?? [],
+  );
+  const total =
+    somme(ventes, (v) => v.totalVente) - [...retraits.values()].reduce((n, x) => n + x, 0);
   const parProduit = new Map<string, { nom: string; montant: number; quantite: number }>();
   for (const v of ventes) {
     const cle = v.productId || v.designation;
@@ -693,10 +748,10 @@ export function topProduits(s: SourcesChiffres, p: Periode, combien = 5): Produi
     .map(([id, x]) => ({
       id,
       nom: x.nom,
-      montant: x.montant,
+      montant: x.montant - (retraits.get(id) ?? 0),
       quantite: x.quantite,
       unite: s.products.find((pr) => pr.id === id)?.unite ?? null,
-      part: total > 0 ? (x.montant / total) * 100 : 0,
+      part: total > 0 ? ((x.montant - (retraits.get(id) ?? 0)) / total) * 100 : 0,
     }))
     .sort((a, b) => b.montant - a.montant)
     .slice(0, combien);
@@ -848,11 +903,10 @@ export function chiffresDuJour(s: SourcesChiffres, aujourdhui = dateDuJour()): C
       jour,
       montant: parJour.get(jour) ?? 0,
     })),
-    sorties: somme(achatsDuJour, (a) => a.totalAchat) + somme(depensesDuJour, (d) => d.montant),
-    achatsDuMois: somme(
-      dans(s.purchases, (a) => a.date, mois),
-      (a) => a.totalAchat,
-    ),
+    sorties:
+      achatsPayes(s, { debut: aujourdhui, fin: aujourdhui }) +
+      somme(depensesDuJour, (d) => d.montant),
+    achatsDuMois: achatsPayes(s, mois),
     depensesDuMois: somme(
       dans(s.expenses, (d) => d.date, mois),
       (d) => d.montant,

@@ -135,6 +135,10 @@ export interface DashboardV2PageProps {
    * ventes, lui, ne montre que les ventes.
    */
   commandesLivrees?: SourcesChiffres["sales"];
+  /** Les factures dont l'avoir a remis les articles en stock. */
+  facturesRemisesEnStock?: SourcesChiffres["facturesRemisesEnStock"];
+  /** Les lignes des avoirs, pour retrancher chaque produit. */
+  lignesAvoir?: SourcesChiffres["lignesAvoir"];
   purchases: SourcesChiffres["purchases"];
   expenses: SourcesChiffres["expenses"];
   products: SourcesChiffres["products"];
@@ -226,6 +230,8 @@ export const DashboardV2Page: React.FC<DashboardV2PageProps> = ({
   storeId,
   sales,
   commandesLivrees = AUCUNE_COMMANDE,
+  facturesRemisesEnStock,
+  lignesAvoir,
   purchases,
   expenses,
   products,
@@ -300,6 +306,10 @@ export const DashboardV2Page: React.FC<DashboardV2PageProps> = ({
     () => ({
       sales: ventesChiffrees,
       purchases,
+      // Ce qui est réellement sorti de la caisse pour les achats.
+      reglementsAchats: supplierPayments,
+      facturesRemisesEnStock,
+      lignesAvoir,
       expenses,
       products,
       payments,
@@ -315,6 +325,9 @@ export const DashboardV2Page: React.FC<DashboardV2PageProps> = ({
     }),
     [
       ventesChiffrees,
+      facturesRemisesEnStock,
+      lignesAvoir,
+      supplierPayments,
       avoirs,
       purchases,
       expenses,

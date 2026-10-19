@@ -44,8 +44,29 @@ describe("modifier une vente", () => {
   it("le total suit la quantité, au prix d'origine", () => {
     expect(preparerModificationVente(vente, { quantite: 5 })).toEqual({
       quantite: 5,
+      prixVenteUnit: 1000,
       totalVente: 5000,
     });
+  });
+
+  it("un prix corrigé change le total : quantité × nouveau prix", () => {
+    expect(preparerModificationVente(vente, { quantite: 3, prixVenteUnit: 900 })).toEqual({
+      quantite: 3,
+      prixVenteUnit: 900,
+      totalVente: 2700,
+    });
+  });
+
+  it("refuse un prix négatif, ou un total sous le payé + avoiré", () => {
+    expect(preparerModificationVente(vente, { quantite: 3, prixVenteUnit: -1 })).toHaveProperty(
+      "erreur",
+    );
+    expect(
+      preparerModificationVente(
+        { ...vente, montantAvoire: 1000 },
+        { quantite: 3, prixVenteUnit: 900 },
+      ),
+    ).toHaveProperty("erreur");
   });
 
   it("refuse un total sous ce qui a déjà été encaissé, comme la base", () => {

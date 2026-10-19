@@ -117,15 +117,27 @@ function ouvrirLaModification() {
 }
 
 describe("modifier une vente", () => {
-  it("ne propose à la saisie que ce que la base enregistre : quantité et client", () => {
+  it("ne propose à la saisie que ce que la base enregistre : quantité, prix et client", () => {
     afficher();
     ouvrirLaModification();
     expect(screen.getByLabelText("Quantité")).toBeTruthy();
     expect(screen.getByLabelText("Client")).toBeTruthy();
-    // Ni la date, ni le prix, ni le montant payé ne sont des champs.
+    expect((screen.getByLabelText(/Prix unitaire/) as HTMLInputElement).value).toBe("30000");
+    // Ni la date ni le montant payé ne sont des champs.
     expect(screen.queryByDisplayValue("2026-10-01")).toBeNull();
-    expect(screen.queryByDisplayValue("30000")).toBeNull();
     expect(screen.queryByDisplayValue("60000")).toBeNull();
+  });
+
+  it("un prix corrigé part avec le nouveau total", async () => {
+    const { onEditSale } = afficher();
+    ouvrirLaModification();
+    fireEvent.change(screen.getByLabelText(/Prix unitaire/), { target: { value: "32000" } });
+    fireEvent.click(screen.getByRole("button", { name: /^Enregistrer$/ }));
+    await waitFor(() => expect(onEditSale).toHaveBeenCalledTimes(1));
+    expect(onEditSale.mock.calls[0][0]).toMatchObject({
+      prixVenteUnit: 32_000,
+      totalVente: 96_000,
+    });
   });
 
   it("envoie la nouvelle quantité et le total au prix d'origine", async () => {
