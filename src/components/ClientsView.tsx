@@ -738,7 +738,12 @@ export const ClientsView: React.FC<ClientsViewProps> = ({
                     compte.commandes > 0
                       ? `${compte.commandes} commande${compte.commandes > 1 ? "s" : ""}`
                       : null,
-                    compte.ventesCredit > 0 ? `${compte.ventesCredit} à crédit` : null,
+                    // Le nombre de VENTES du client, payées ou non : « à crédit » le
+                    // disait d'une vente réglée comptant. Ce qu'il doit encore
+                    // a son propre badge, à droite.
+                    compte.ventesCredit > 0
+                      ? `${compte.ventesCredit} vente${compte.ventesCredit > 1 ? "s" : ""}`
+                      : null,
                     compte.enCours > 0 ? `${compte.enCours} en cours` : null,
                   ]
                     .filter(Boolean)
