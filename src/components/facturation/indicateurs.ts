@@ -34,7 +34,13 @@ export interface IndicateursFacturation {
   encaisse: Indicateur;
   /** Devis et proformas restés sans réponse. */
   offres: Indicateur;
-  /** Le chiffre d'affaires facturé, pour se comparer au tableau de bord. */
+  /**
+   * Le chiffre d'affaires FACTURÉ (ventes, net des avoirs). Il n'est pas
+   * affiché : il sert à vérifier qu'il égale le chiffre des VENTES du
+   * tableau de bord. Les commandes livrées, qui entrent aussi dans le
+   * chiffre d'affaires du tableau de bord (`lignesDesCommandesLivrees`),
+   * n'y figurent pas : une commande n'émet pas de facture.
+   */
   facture: Indicateur;
 }
 
