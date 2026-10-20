@@ -391,9 +391,9 @@ function AcceptInvitePage() {
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
                         required
-                        minLength={6}
+                        minLength={isLogin ? undefined : 8}
                         autoComplete={isLogin ? "current-password" : "new-password"}
-                        placeholder="••••••••"
+                        placeholder={isLogin ? "••••••••" : "Minimum 8 caractères"}
                         className="app-field pl-10 pr-10"
                       />
                       <button

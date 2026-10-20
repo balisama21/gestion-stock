@@ -53,7 +53,7 @@ const TRADUCTIONS: Traduction[] = [
   },
   {
     motif: "password should be at least",
-    texte: "Le mot de passe est trop court : six caractères au minimum.",
+    texte: "Le mot de passe est trop court : huit caractères au minimum.",
   },
   {
     motif: "new password should be different",
