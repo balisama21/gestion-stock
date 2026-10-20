@@ -33,6 +33,7 @@ import { BillingSection } from "./settings/BillingSection";
 import { Modal } from "./shared/Modal";
 import { compressLogo, formatPoids } from "../lib/compressLogo";
 import { PreferencesSection } from "./settings/PreferencesSection";
+import { SuppressionBoutiqueSection } from "./settings/SuppressionBoutiqueSection";
 import { NotificationsSection } from "./settings/NotificationsSection";
 import { InvoiceSection } from "./settings/InvoiceSection";
 import { DocumentsSection } from "./settings/DocumentsSection";
@@ -490,6 +491,10 @@ export const ParametresView: React.FC<ParametresViewProps> = ({
   const [deleteAccountPassword, setDeleteAccountPassword] = useState("");
   const [deletingAccount, setDeletingAccount] = useState(false);
   const [deleteAccountError, setDeleteAccountError] = useState<string | null>(null);
+
+  // Ce que la suppression du compte emporte : nommé dans la fenêtre, pour
+  // qu'on ne la confonde plus avec la suppression d'une seule boutique.
+  const boutiquesDuCompte = workspace.accessibleStores.filter((s) => s.owner_id === user?.id);
 
   const handleConfirmDeleteAccount = async () => {
     setDeleteAccountError(null);
@@ -1050,6 +1055,17 @@ export const ParametresView: React.FC<ParametresViewProps> = ({
         />
       )}
 
+      {/* Supprimer la boutique ouverte, et elle seule. Le compte et les
+          autres boutiques restent : voir deleteStore dans useWorkspace. */}
+      {activeTab === "boutique" && workspace.isOwner && workspace.activeStore && (
+        <SuppressionBoutiqueSection
+          nomBoutique={workspace.activeStore.name}
+          peutSupprimer={workspace.accessibleStores.length > 1}
+          reauthentifier={reauthenticate}
+          supprimer={() => workspace.deleteStore(workspace.activeStore!.id)}
+        />
+      )}
+
       {activeTab === "facture" && <InvoiceSection settings={settings} />}
 
       {activeTab === "documents" && (
@@ -1239,8 +1255,20 @@ export const ParametresView: React.FC<ParametresViewProps> = ({
         }
       >
         <p className="text-sm leading-relaxed text-muted-foreground">
-          Votre compte, votre boutique et toutes ses données — produits, ventes, achats, clients,
-          historique — seront supprimés définitivement.
+          Votre compte et <strong className="text-foreground">toutes les boutiques</strong> dont
+          vous êtes propriétaire, avec toutes leurs données — produits, ventes, achats, clients,
+          historique —, seront supprimés définitivement.
+        </p>
+        {boutiquesDuCompte.length > 0 && (
+          <ul className="mt-2 list-disc space-y-0.5 pl-5 text-sm font-medium text-foreground">
+            {boutiquesDuCompte.map((b) => (
+              <li key={b.id}>{b.name}</li>
+            ))}
+          </ul>
+        )}
+        <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
+          Pour ne supprimer qu'une boutique, ouvrez-la puis allez dans{" "}
+          <strong className="text-foreground">Ma boutique</strong> → « Supprimer cette boutique ».
         </p>
 
         <div className="mt-4">

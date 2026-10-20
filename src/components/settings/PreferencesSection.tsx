@@ -28,12 +28,10 @@ export const PreferencesSection: React.FC<PreferencesSectionProps> = ({
     >
       <SettingsRow label="Thème" hint="Le mode clair est actif par défaut.">
         <div className="flex w-full gap-1 rounded-xl border border-border bg-muted p-1">
-          {(
-            [
-              { value: "light" as const, label: "Clair", icon: <Sun className="h-4 w-4" /> },
-              { value: "dark" as const, label: "Sombre", icon: <Moon className="h-4 w-4" /> },
-            ]
-          ).map((opt) => (
+          {[
+            { value: "light" as const, label: "Clair", icon: <Sun className="h-4 w-4" /> },
+            { value: "dark" as const, label: "Sombre", icon: <Moon className="h-4 w-4" /> },
+          ].map((opt) => (
             <button
               key={opt.value}
               type="button"
@@ -54,11 +52,7 @@ export const PreferencesSection: React.FC<PreferencesSectionProps> = ({
 
       <SettingsRow
         label="Format des dates"
-        hint={
-          locale === "FR"
-            ? "Jour/mois/année — 31/12/2026."
-            : "Mois/jour/année — 12/31/2026."
-        }
+        hint={locale === "FR" ? "Jour/mois/année — 31/12/2026." : "Mois/jour/année — 12/31/2026."}
         htmlFor="pref-locale"
       >
         <div className="relative">
@@ -104,8 +98,8 @@ export const PreferencesSection: React.FC<PreferencesSectionProps> = ({
         <div className="min-w-0">
           <p className="text-sm font-semibold text-foreground">Supprimer mon compte</p>
           <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">
-            Supprime votre compte, votre boutique et toutes ses données : produits, ventes,
-            achats, clients, historique. Rien ne peut être récupéré ensuite.
+            Supprime votre compte et toutes vos boutiques, avec toutes leurs données. Rien ne peut
+            être récupéré ensuite. Pour ne supprimer qu'une boutique, passez par « Ma boutique ».
           </p>
         </div>
         <button
