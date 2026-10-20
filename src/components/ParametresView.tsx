@@ -34,6 +34,7 @@ import { Modal } from "./shared/Modal";
 import { compressLogo, formatPoids } from "../lib/compressLogo";
 import { PreferencesSection } from "./settings/PreferencesSection";
 import { SuppressionBoutiqueSection } from "./settings/SuppressionBoutiqueSection";
+import { SuppressionCompteModal } from "./settings/SuppressionCompteModal";
 import { NotificationsSection } from "./settings/NotificationsSection";
 import { InvoiceSection } from "./settings/InvoiceSection";
 import { DocumentsSection } from "./settings/DocumentsSection";
@@ -43,7 +44,6 @@ import { PhrasesSection } from "./settings/PhrasesSection";
 import { PhotosHautDePageSection } from "./settings/PhotosHautDePageSection";
 import { PhotosSectionsSection } from "./settings/PhotosSectionsSection";
 import { AdminIASection } from "../features/ia/AdminIASection";
-import { Trash2 } from "lucide-react";
 import { ReglagesMetierSection } from "./settings/ReglagesMetierSection";
 import type { ValeursParametres } from "../lib/parametres";
 import type { DevisesBoutique } from "../hooks/useDevises";
@@ -193,8 +193,7 @@ export const ParametresView: React.FC<ParametresViewProps> = ({
   // bien sur la bonne section a chaque fois.
   const [activeTab, setActiveTab] = useState<SettingsTab>(sectionInitiale ?? "compte");
   const workspace = useWorkspace();
-  const { user, profile, refreshProfile, reauthenticate, updatePassword, deleteAccount } =
-    useAuth();
+  const { user, profile, refreshProfile, reauthenticate, updatePassword } = useAuth();
 
   // ─── Onglet « Ma boutique » ───────────────────────────────────────────
   // Un seul objet de formulaire, comparé à sa référence enregistrée pour
@@ -484,47 +483,10 @@ export const ParametresView: React.FC<ParametresViewProps> = ({
   };
 
   // ─── Suppression de compte ────────────────────────────────────────────
-  // Toujours protégée par le mot de passe actuel. Action irréversible
-  // (RPC delete_own_account) — supprime le compte, sa boutique et toutes
-  // ses données.
+  // La fenêtre (SuppressionCompteModal) vérifie le mot de passe et refuse
+  // tant que le compte possède une boutique : la base l'exige.
   const [showDeleteAccountModal, setShowDeleteAccountModal] = useState(false);
-  const [deleteAccountPassword, setDeleteAccountPassword] = useState("");
-  const [deletingAccount, setDeletingAccount] = useState(false);
-  const [deleteAccountError, setDeleteAccountError] = useState<string | null>(null);
-
-  // Ce que la suppression du compte emporte : nommé dans la fenêtre, pour
-  // qu'on ne la confonde plus avec la suppression d'une seule boutique.
   const boutiquesDuCompte = workspace.accessibleStores.filter((s) => s.owner_id === user?.id);
-
-  const handleConfirmDeleteAccount = async () => {
-    setDeleteAccountError(null);
-    if (!deleteAccountPassword) {
-      setDeleteAccountError("Entrez votre mot de passe pour confirmer.");
-      return;
-    }
-
-    setDeletingAccount(true);
-    try {
-      const { error: reauthError } = await reauthenticate(deleteAccountPassword);
-      if (reauthError) {
-        setDeleteAccountError(reauthError);
-        return;
-      }
-
-      const { error: deleteError } = await deleteAccount();
-      if (deleteError) {
-        setDeleteAccountError(deleteError);
-        return;
-      }
-
-      // Le compte n'existe plus : on ne peut plus utiliser signOut() qui
-      // dépend d'une session déjà invalidée. Un rechargement suffit à
-      // ramener l'utilisateur sur l'écran de connexion.
-      window.location.href = "/";
-    } finally {
-      setDeletingAccount(false);
-    }
-  };
 
   // ─── Onglet « Équipe » ────────────────────────────────────────────────
   const [inviting, setInviting] = useState(false);
@@ -1031,11 +993,7 @@ export const ParametresView: React.FC<ParametresViewProps> = ({
             locale={locale}
             setLocale={setLocale}
             onDownloadExcel={onDownloadExcel}
-            onRequestDeleteAccount={() => {
-              setDeleteAccountError(null);
-              setDeleteAccountPassword("");
-              setShowDeleteAccountModal(true);
-            }}
+            onRequestDeleteAccount={() => setShowDeleteAccountModal(true)}
           />
         </>
       )}
@@ -1060,7 +1018,7 @@ export const ParametresView: React.FC<ParametresViewProps> = ({
       {activeTab === "boutique" && workspace.isOwner && workspace.activeStore && (
         <SuppressionBoutiqueSection
           nomBoutique={workspace.activeStore.name}
-          peutSupprimer={workspace.accessibleStores.length > 1}
+          derniere={workspace.accessibleStores.length <= 1}
           reauthentifier={reauthenticate}
           supprimer={() => workspace.deleteStore(workspace.activeStore!.id)}
         />
@@ -1224,75 +1182,11 @@ export const ParametresView: React.FC<ParametresViewProps> = ({
       )}
 
       {/* ── Suppression définitive du compte ── */}
-      <Modal
+      <SuppressionCompteModal
         open={showDeleteAccountModal}
         onClose={() => setShowDeleteAccountModal(false)}
-        size="md"
-        tone="danger"
-        icon={<Trash2 className="h-4 w-4" />}
-        title="Supprimer mon compte"
-        description="Cette action est irréversible."
-        dismissible={!deletingAccount}
-        footer={
-          <>
-            <button
-              type="button"
-              onClick={() => setShowDeleteAccountModal(false)}
-              disabled={deletingAccount}
-              className="app-btn-secondary"
-            >
-              Annuler
-            </button>
-            <button
-              type="button"
-              onClick={handleConfirmDeleteAccount}
-              disabled={deletingAccount}
-              className="app-btn-danger"
-            >
-              {deletingAccount ? "Suppression..." : "Supprimer mon compte"}
-            </button>
-          </>
-        }
-      >
-        <p className="text-sm leading-relaxed text-muted-foreground">
-          Votre compte et <strong className="text-foreground">toutes les boutiques</strong> dont
-          vous êtes propriétaire, avec toutes leurs données — produits, ventes, achats, clients,
-          historique —, seront supprimés définitivement.
-        </p>
-        {boutiquesDuCompte.length > 0 && (
-          <ul className="mt-2 list-disc space-y-0.5 pl-5 text-sm font-medium text-foreground">
-            {boutiquesDuCompte.map((b) => (
-              <li key={b.id}>{b.name}</li>
-            ))}
-          </ul>
-        )}
-        <p className="mt-3 text-sm leading-relaxed text-muted-foreground">
-          Pour ne supprimer qu'une boutique, ouvrez-la puis allez dans{" "}
-          <strong className="text-foreground">Ma boutique</strong> → « Supprimer cette boutique ».
-        </p>
-
-        <div className="mt-4">
-          <label
-            htmlFor="delete-account-pw"
-            className="mb-1.5 block text-sm font-medium text-foreground"
-          >
-            Confirmez avec votre mot de passe
-          </label>
-          <input
-            id="delete-account-pw"
-            type="password"
-            value={deleteAccountPassword}
-            onChange={(e) => setDeleteAccountPassword(e.target.value)}
-            autoComplete="current-password"
-            placeholder="Mot de passe actuel"
-            className="app-field"
-          />
-        </div>
-
-        {deleteAccountError && (
-          <p className="mt-3 text-sm font-medium t-danger">{deleteAccountError}</p>
-        )}
-      </Modal>
+        boutiques={boutiquesDuCompte}
+      />
     </SettingsLayout>
   );
 };
