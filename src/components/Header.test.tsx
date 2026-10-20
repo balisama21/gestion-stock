@@ -58,7 +58,7 @@ afterEach(() => {
   auth.signOut.mockReset();
 });
 
-async function afficher(props: { onOuvrirMonCompte?: () => void } = {}) {
+async function afficher(props: { onOuvrirMonCompte?: () => void; surPhoto?: boolean } = {}) {
   const { Header } = await import("./Header");
   const setActiveTab = vi.fn();
   render(
@@ -85,7 +85,8 @@ describe("barre du haut — menu du profil", () => {
     const { setActiveTab } = await afficher();
     expect(screen.queryByRole("button", { name: "Paramètres" })).toBeNull();
     const avatar = screen.getByRole("button", { name: "Menu du profil" });
-    expect(avatar.textContent).toContain("MR");
+    // L'avatar de la personne connectée, tiré de son nom.
+    expect(avatar.querySelector(".avatar-personne")?.getAttribute("title")).toBe("Mamy Rakoto");
 
     fireEvent.click(avatar);
     expect(screen.getByRole("menu")).toBeTruthy();
@@ -119,5 +120,23 @@ describe("barre du haut — menu du profil", () => {
     const confirmer = await screen.findByRole("button", { name: "Se déconnecter" });
     fireEvent.click(confirmer);
     await waitFor(() => expect(auth.signOut).toHaveBeenCalledTimes(1));
+  });
+
+  it("se pose sur la photo du tableau de bord, puis reprend son fond en descendant", async () => {
+    await afficher({ surPhoto: true });
+    const barre = document.querySelector("header")!;
+    expect(barre.className).toContain("sur-photo");
+    expect(barre.className).toContain("transparente");
+
+    Object.defineProperty(window, "scrollY", { value: 300, configurable: true });
+    fireEvent.scroll(window);
+    expect(barre.className).toContain("sur-photo");
+    expect(barre.className).not.toContain("transparente");
+    Object.defineProperty(window, "scrollY", { value: 0, configurable: true });
+  });
+
+  it("garde son fond hors du tableau de bord", async () => {
+    await afficher();
+    expect(document.querySelector("header")!.className).not.toContain("sur-photo");
   });
 });

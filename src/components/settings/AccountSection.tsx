@@ -1,6 +1,9 @@
-import React from "react";
-import { User, Mail, Phone } from "lucide-react";
+import React, { useContext, useState } from "react";
+import { User, Mail, Phone, Camera } from "lucide-react";
 import { SettingsSection, SettingsRow, SaveBar } from "./primitives";
+import { AvatarPersonne } from "../shared/AvatarPersonne";
+import { ChoixAvatar } from "../shared/ChoixAvatar";
+import { AvatarsPersonnesContext } from "../../lib/avatarsPersonnes";
 
 interface AccountSectionProps {
   fullName: string;
@@ -41,6 +44,17 @@ export const AccountSection: React.FC<AccountSectionProps> = ({
 
   const emailChanged = accountEmail.trim() !== baseline.email;
 
+  /*
+   * LA PHOTO DE PROFIL : l'avatar de l'application (`AvatarPersonne`) —
+   * la photo choisie, ou le visage illustré tiré du nom. Elle suit le nom
+   * ENREGISTRÉ, à défaut l'e-mail : la même clé que l'avatar de la barre
+   * du haut et que l'écran Équipe, qui affichent donc le même visage. Le
+   * choix est celui de partout (`ChoixAvatar`) : un visage, ou une photo.
+   */
+  const nomAvatar = baseline.fullName.trim() || baseline.email;
+  const { modifiable: avatarModifiable } = useContext(AvatarsPersonnesContext);
+  const [choixAvatarOuvert, setChoixAvatarOuvert] = useState(false);
+
   return (
     <>
       <SettingsSection
@@ -48,6 +62,29 @@ export const AccountSection: React.FC<AccountSectionProps> = ({
         description="Votre identité sur la plateforme. Le nom apparaît dans les invitations que vous envoyez."
         icon={<User className="w-4 h-4" />}
       >
+        <SettingsRow
+          label="Photo de profil"
+          hint={
+            avatarModifiable
+              ? "Affichée dans la barre du haut et auprès de vos collaborateurs. Choisissez une photo, ou ajustez le visage tiré de votre nom."
+              : "Affichée dans la barre du haut et auprès de vos collaborateurs. Le visage est tiré de votre nom."
+          }
+        >
+          <div className="flex items-center gap-4">
+            <AvatarPersonne nom={nomAvatar} taille={64} />
+            {avatarModifiable && nomAvatar && (
+              <button
+                type="button"
+                onClick={() => setChoixAvatarOuvert(true)}
+                className="app-btn-secondary"
+              >
+                <Camera className="h-4 w-4" />
+                Changer la photo
+              </button>
+            )}
+          </div>
+        </SettingsRow>
+
         <SettingsRow
           label="Nom complet"
           hint="Affiché à vos collaborateurs."
@@ -106,6 +143,14 @@ export const AccountSection: React.FC<AccountSectionProps> = ({
       </SettingsSection>
 
       <SaveBar dirty={dirty} saving={saving} saved={saved} onSave={onSave} onReset={reset} />
+
+      {choixAvatarOuvert && nomAvatar && (
+        <ChoixAvatar
+          nom={nomAvatar}
+          open={choixAvatarOuvert}
+          onClose={() => setChoixAvatarOuvert(false)}
+        />
+      )}
     </>
   );
 };

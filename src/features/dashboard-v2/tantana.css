@@ -4402,92 +4402,88 @@
 }
 
 /* ═══════════════════════════════════════════════════════════════════
-   REFONTE DU HAUT DE PAGE — bannière encadrée, cartes du jour posées
-   dessous.
+   REFONTE DU HAUT DE PAGE — la photo sous la barre, les cartes dessus.
 
-   La photo n'est plus une bande qui se fond dans la page sous des cartes
-   vitrées : c'est un bandeau aux coins arrondis, aligné sur la gouttière
-   comme tout le reste, et les cinq cartes se rangent en dessous, sur fond
-   plein, filet fin et ombre discrète.
+   La photo occupe toute la largeur, du bord de la barre latérale au bord
+   de l'écran, et remonte SOUS la barre du haut (transparente tant qu'on
+   est en haut de page, voir coquille.css). Elle se fond dans la page par
+   le bas, où les cinq cartes du jour viennent la chevaucher.
 
    RIEN ICI NE TOUCHE AU DÉFILEMENT DES PAYSAGES : ni les images, ni leur
    ordre, ni la minuterie, ni le fondu (`.tb-paysage` / `.actif`). Seuls
-   le cadre qui les contient — hauteur, marges, coins — et le masque de
-   fondu vers le bas, devenu inutile, changent.
+   le cadre qui les contient et la mise en page autour changent.
    ═══════════════════════════════════════════════════════════════════ */
 .tn .tbi {
+  /* Les cartes : fond plein, filet fin, ombre discrète. */
   --kc-bg: var(--card);
-  --kc-line: var(--border);
-  --verre-ombre: 0 1px 2px rgb(16 40 30 / 4%), 0 6px 18px -10px rgb(16 40 30 / 12%);
-  --verre-ombre-survol: 0 1px 2px rgb(16 40 30 / 5%), 0 14px 30px -14px rgb(16 40 30 / 22%);
+  --kc-line: color-mix(in oklab, var(--foreground) 9%, transparent);
+  --verre-ombre: 0 1px 2px rgb(16 40 30 / 5%), 0 10px 26px -14px rgb(16 40 30 / 22%);
+  --verre-ombre-survol: 0 1px 2px rgb(16 40 30 / 6%), 0 16px 34px -16px rgb(16 40 30 / 30%);
   --tb-ecart: max(14px, calc(18 * var(--u)));
-  --tb-rayon: max(14px, calc(18 * var(--u)));
+  --tb-rayon: max(14px, calc(16 * var(--u)));
+  /* Ce que la barre du haut recouvre de la photo (0 sans superposition). */
+  --sous-barre: 0px;
 }
 .dark .tn .tbi {
-  --kc-bg: var(--card);
-  --kc-line: var(--border);
-  --verre-ombre: 0 1px 2px rgb(0 0 0 / 35%);
-  --verre-ombre-survol: 0 1px 2px rgb(0 0 0 / 40%), 0 14px 30px -14px rgb(0 0 0 / 55%);
+  --kc-line: rgb(255 255 255 / 8%);
+  --verre-ombre: 0 1px 2px rgb(0 0 0 / 35%), 0 12px 28px -16px rgb(0 0 0 / 60%);
+  --verre-ombre-survol: 0 1px 2px rgb(0 0 0 / 40%), 0 16px 34px -16px rgb(0 0 0 / 70%);
+}
+
+/* ── La photo remonte sous la barre du haut ──
+   `.app-container--pleine` n'est posé que sur le tableau de bord, en même
+   temps que la barre passe en mode « sur la photo ». */
+.app-container--pleine .tn .tbi {
+  --sous-barre: var(--coq-h, 72px);
+}
+.app-container--pleine .tn section#hero.tbsec {
+  margin-top: calc(-1 * var(--coq-h, 72px));
 }
 
 /* ── La bannière ── */
 .tn .tb-hero {
-  margin: 6px var(--gut) 0;
-  height: calc(380 * var(--u));
-  min-height: 320px;
-  border-radius: var(--tb-rayon);
-  box-shadow: var(--verre-ombre);
-  isolation: isolate;
+  height: calc(360 * var(--u) + var(--sous-barre));
+  min-height: calc(320px + var(--sous-barre));
 }
-/* Les coins arrondis s'appliquent à chaque couche plutôt qu'à la
-   bannière : le menu des villes, ancré dans la ligne du jour, doit
-   pouvoir en déborder. */
-.tn .tb-hero-bg,
-.tn .tb-paysages,
-.tn .tb-voile {
-  border-radius: inherit;
-  overflow: hidden;
-}
-.tn .tb-hero-bg,
-.tn .tb-paysage,
-.tn .tb-voile {
-  -webkit-mask-image: none;
-  mask-image: none;
-}
-/* Un voile un peu plus dense sous le texte, et un léger fond en bas pour
-   les puces et les flèches : lisible sur n'importe quel paysage. */
+/* Un voile qui assombrit aussi le haut, sous la barre transparente :
+   recherche et icônes blanches restent lisibles sur toute photo. */
 .tn .tb-voile {
   background:
     linear-gradient(
       90deg,
-      rgba(3, 30, 22, 0.7) 0,
-      rgba(3, 30, 22, 0.46) 30%,
-      rgba(3, 30, 22, 0.1) 58%,
-      rgba(3, 30, 22, 0) 74%
+      rgba(3, 30, 22, 0.66) 0,
+      rgba(3, 30, 22, 0.42) 28%,
+      rgba(3, 30, 22, 0.08) 56%,
+      rgba(3, 30, 22, 0) 70%
     ),
-    linear-gradient(0deg, rgba(0, 0, 0, 0.22) 0, rgba(0, 0, 0, 0) 34%),
-    linear-gradient(180deg, rgba(0, 0, 0, 0.18) 0, rgba(0, 0, 0, 0) 30%);
+    linear-gradient(180deg, rgba(0, 0, 0, 0.32) 0, rgba(0, 0, 0, 0) 34%);
 }
 .tn .tb-texte {
-  left: max(24px, calc(44 * var(--u)));
-  top: max(22px, calc(38 * var(--u)));
-  bottom: max(22px, calc(36 * var(--u)));
-  gap: max(8px, calc(12 * var(--u)));
+  left: calc(40 * var(--u));
+  top: calc(var(--sous-barre) + 40 * var(--u));
 }
-.tn .tb-attn {
-  margin-top: auto;
-}
-.tn .tb-nav {
-  right: max(20px, calc(36 * var(--u)));
-  bottom: max(20px, calc(36 * var(--u)));
+.tn .tb-hero h1 {
+  font-size: max(32px, calc(58 * var(--u)));
 }
 .tn .tb-devise {
-  top: calc(118 * var(--u));
+  top: calc(var(--sous-barre) + 84 * var(--u));
+}
+.tn .tb-nav {
+  right: calc(52 * var(--u));
+  bottom: calc(80 * var(--u));
+}
+.tn .tb-nav button {
+  width: 40px;
+  height: 40px;
+}
+.tn .tb-nav svg {
+  width: 18px;
+  height: 18px;
 }
 
-/* ── Les cinq cartes du jour ── */
+/* ── Les cinq cartes du jour, qui chevauchent le bas de la photo ── */
 .tn .tb-kpis {
-  margin: var(--tb-ecart) var(--gut) 0;
+  margin: calc(-34 * var(--u)) var(--gut) 0;
   gap: var(--tb-ecart);
 }
 .tn .kc,
@@ -4498,7 +4494,7 @@
   backdrop-filter: none;
 }
 .tn .kc {
-  min-height: calc(272 * var(--u));
+  min-height: calc(300 * var(--u));
   padding: clamp(14px, calc(22 * var(--u)), 22px);
   gap: 6px;
 }
@@ -4513,27 +4509,28 @@
   gap: 12px;
   margin-bottom: 10px;
 }
-/* L'icône de titre dans une tuile douce de la couleur de la carte. */
+/* L'icône de titre : nue, sans tuile ni filet — la couleur de la carte
+   dit le sens, comme dans tout le tableau de bord. */
 .tn .kc-h .pastille {
-  width: 40px;
-  height: 40px;
-  border-radius: 11px;
-  background: color-mix(in oklab, var(--ton) 12%, transparent);
+  width: 26px;
+  height: 26px;
+  background: none;
   color: var(--ton);
 }
 .tn .kc-h .pastille svg {
-  width: 21px;
-  height: 21px;
-  stroke-width: 2;
+  width: 100%;
+  height: 100%;
+  stroke-width: 1.9;
 }
 .tn .kc .kv {
   margin-top: 0;
-  font-size: min(clamp(24px, calc(34 * var(--u)), 32px), 15cqw);
+  font-size: min(clamp(24px, calc(32 * var(--u)), 32px), 15cqw);
   font-weight: 750;
   line-height: 1.1;
 }
 .tn .kc .kv.moyen {
   font-size: min(clamp(19px, calc(24 * var(--u)), 24px), 12cqw);
+  font-weight: 700;
 }
 .tn .kc .kd {
   display: -webkit-box;
@@ -4542,50 +4539,40 @@
   overflow: hidden;
   line-height: 1.45;
 }
-/* Le pied : un filet neutre, puis le lien, toujours en bas à gauche. */
+/* Les deux chiffres d'une carte, l'un sous l'autre : achats et dépenses
+   du mois, entrées et sorties de stock. */
+.tn .kc .kc-duo {
+  grid-template-columns: minmax(0, 1fr);
+  gap: 6px;
+}
+.tn .kc .kc-duo .kdiv {
+  display: none;
+}
+/* Le pied : un filet, puis le lien, toujours en bas à droite, sans
+   flèche. */
 .tn .kc-pied {
   border-top: 1px solid var(--kc-line);
   padding-top: 12px;
   gap: 10px;
 }
 .tn .kc .kl {
-  align-self: flex-start;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
+  align-self: flex-end;
   padding: 2px 0;
 }
-.tn .kc .kl::after {
-  content: "\2192";
-  font-weight: 600;
-  transition: transform 0.15s ease;
-}
-.tn .kc .kl:hover {
-  text-decoration: none;
-}
-.tn .kc .kl:hover::after {
-  transform: translateX(3px);
-}
 .tn .kc .pill4 {
-  margin-top: 6px;
+  margin-top: 8px;
   border-radius: 10px;
-  padding: 7px 8px 7px 10px;
+  padding: 8px 8px 8px 12px;
 }
 @container carte-jour (max-width: 200px) {
   .tn .kc .kc-h {
     gap: 8px;
   }
   .tn .kc-h .pastille {
-    width: 34px;
-    height: 34px;
-    border-radius: 10px;
-  }
-  .tn .kc-h .pastille svg {
-    width: 18px;
-    height: 18px;
+    width: 22px;
+    height: 22px;
   }
 }
-
 /* Sur un portable, barre latérale ouverte, cinq cartes de front
    tombaient sous 200 pixels chacune : titres sur trois lignes, montants
    rognés. Elles passent alors sur deux rangées — trois, puis deux plus
@@ -4609,53 +4596,45 @@
   margin: var(--tb-ecart) var(--gut) 0;
   gap: var(--tb-ecart);
 }
-.tn #tcChart .tc-h .pastille {
-  width: 40px;
-  height: 40px;
-  border-radius: 11px;
-  background: color-mix(in oklab, var(--ton) 12%, transparent);
-}
-.tn #tcChart .tc-h .pastille svg {
-  width: 21px;
-  height: 21px;
-}
 
 @media (max-width: 999px) {
   .tn .tb-hero {
     height: auto;
-    min-height: 330px;
-    margin: 4px var(--gut) 0;
-    padding-bottom: 96px;
+    min-height: calc(330px + var(--sous-barre));
   }
   .tn .tb-texte {
-    top: auto;
-    bottom: auto;
     left: auto;
-    padding: 22px 20px 0;
+    top: auto;
+    padding-top: calc(var(--sous-barre) + 18px);
   }
   .tn .tb-devise {
     top: auto;
-    left: 20px;
-    bottom: 22px;
+  }
+  .tn .tb-hero h1 {
+    font-size: 32px;
   }
   /* Le trait sous la devise s'arrête avant les flèches des paysages. */
   .tn .tb-devise svg {
     width: 6em;
   }
   .tn .tb-nav {
-    right: 16px;
-    bottom: 22px;
+    right: var(--gut);
+    bottom: 44px;
+  }
+  .tn .tb-nav button {
+    width: 34px;
+    height: 34px;
   }
   .tn .tb-kpis {
-    margin: 14px 0 0;
+    margin: -22px 0 0;
   }
   .tn .tb-bottom,
   .tn .tb-bottom.seule {
-    margin-top: 14px;
+    margin-top: 16px;
   }
 }
-@media (prefers-reduced-motion: reduce) {
-  .tn .kc .kl::after {
-    transition: none;
+@media (max-width: 640px) {
+  .tn .tb-hero h1 {
+    font-size: 30px;
   }
 }
