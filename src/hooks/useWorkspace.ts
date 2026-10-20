@@ -67,6 +67,8 @@ interface WorkspaceActions {
     sourceStoreId: string,
     newName: string,
   ) => Promise<{ store: Store | null; error: string | null }>;
+  /** Supprime UNE boutique dont on est propriétaire — jamais le compte. */
+  deleteStore: (storeId: string) => Promise<{ error: string | null }>;
 }
 
 export type WorkspaceContext = WorkspaceState & WorkspaceActions;
@@ -376,6 +378,52 @@ export function useWorkspaceState(): WorkspaceContext {
     [user],
   );
 
+  /*
+   * SUPPRIMER UNE SEULE BOUTIQUE.
+   *
+   * Jusqu'ici, le seul bouton « Supprimer » des Paramètres était celui du
+   * compte, qui emporte le profil et, par cascade, TOUTES les boutiques
+   * qu'il possède. Celui-ci ne touche qu'à la ligne de `stores` : ses
+   * données (produits, ventes, achats, équipe…) partent avec elle par les
+   * clés étrangères, et le compte comme les autres boutiques restent.
+   *
+   * La barrière est en base (policy « Le proprietaire supprime sa
+   * boutique ») ; le filtre sur owner_id ici ne fait que rendre le refus
+   * lisible. Un refus de RLS sur un DELETE est silencieux — zéro ligne —,
+   * d'où le `select` pour s'assurer que la boutique a bien disparu.
+   */
+  const deleteStore = useCallback(
+    async (storeId: string): Promise<{ error: string | null }> => {
+      if (!user) return { error: "Non authentifié." };
+
+      const { data, error } = await supabase
+        .from("stores")
+        .delete()
+        .eq("id", storeId)
+        .eq("owner_id", user.id)
+        .select("id");
+
+      if (error) return { error: error.message };
+      if (!data || data.length === 0) {
+        return { error: "Seul le propriétaire de cette boutique peut la supprimer." };
+      }
+
+      setOwnedStores((prev) => prev.filter((s) => s.id !== storeId));
+      setMemberStores((prev) => prev.filter((s) => s.id !== storeId));
+
+      // On rouvre une autre boutique plutôt que de laisser l'écran pointer
+      // sur une boutique qui n'existe plus.
+      if (activeStoreId === storeId) {
+        const suivante = allStores.find((s) => s.id !== storeId);
+        if (suivante) switchStore(suivante.id);
+        else setActiveStoreIdState(null);
+      }
+
+      return { error: null };
+    },
+    [user, activeStoreId, allStores, switchStore],
+  );
+
   return {
     activeStore,
     accessibleStores: allStores,
@@ -391,5 +439,6 @@ export function useWorkspaceState(): WorkspaceContext {
     createStore,
     updateStore,
     copyStore,
+    deleteStore,
   };
 }
