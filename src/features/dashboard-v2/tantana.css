@@ -4430,14 +4430,17 @@
   --verre-ombre-survol: 0 1px 2px rgb(0 0 0 / 40%), 0 16px 34px -16px rgb(0 0 0 / 70%);
 }
 
-/* ── La photo remonte sous la barre du haut ──
+/* ── La photo remonte sous la barre du haut (ordinateur) ──
    `.app-container--pleine` n'est posé que sur le tableau de bord, en même
-   temps que la barre passe en mode « sur la photo ». */
-.app-container--pleine .tn .tbi {
-  --sous-barre: var(--coq-h, 72px);
-}
-.app-container--pleine .tn section#hero.tbsec {
-  margin-top: calc(-1 * var(--coq-h, 72px));
+   temps que la barre passe en mode « sur la photo ». Sur téléphone et
+   tablette, la barre garde son fond et la photo commence dessous. */
+@media (min-width: 1024px) {
+  .app-container--pleine .tn .tbi {
+    --sous-barre: var(--coq-h, 72px);
+  }
+  .app-container--pleine .tn section#hero.tbsec {
+    margin-top: calc(-1 * var(--coq-h, 72px));
+  }
 }
 
 /* ── La bannière ── */
@@ -4600,12 +4603,12 @@
 @media (max-width: 999px) {
   .tn .tb-hero {
     height: auto;
-    min-height: calc(330px + var(--sous-barre));
+    min-height: 330px;
   }
   .tn .tb-texte {
     left: auto;
     top: auto;
-    padding-top: calc(var(--sous-barre) + 18px);
+    padding-top: 22px;
   }
   .tn .tb-devise {
     top: auto;
