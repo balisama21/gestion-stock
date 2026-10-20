@@ -23,6 +23,8 @@ const AUTORISES: Record<string, string> = {
   "components/CreateStoreOnboarding.tsx": "création réservée aux propriétaires listés",
   "components/Header.tsx": "textes conditionnés par marque_id / accesMarque",
   "lib/activite.ts": "échéances non transmises pour une boutique de marque",
+  "lib/abonnementNouvelleBoutique.ts":
+    "étiquettes internes ; « marque » sur un domaine client, rien d'affiché",
   "lib/aide.ts": "question marquée `offre`, filtrée hors Tantana",
   "hooks/useAbonnementAlertesStock.ts": "message conditionné par la marque",
   "hooks/useReglagesAlertesStock.ts": "message conditionné par la marque",
