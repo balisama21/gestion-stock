@@ -14,9 +14,8 @@
   --coq-muted: var(--muted-foreground);
   --coq-line: var(--sidebar-border);
   --coq-shadow: var(--elev-2);
-  /* Hauteur de la barre du haut (réduite sous 1024 et 640 px, plus
-     bas) : le tableau de bord remonte sa photo d'autant pour qu'elle
-     passe dessous. */
+  /* Hauteur de la barre du haut sur ordinateur : le tableau de bord
+     remonte sa photo d'autant pour qu'elle passe dessous. */
   --coq-h: 72px;
 }
 
@@ -399,102 +398,90 @@
 }
 
 /* ── Sur la photo du tableau de bord ──
-   La barre est posée sur la photo du haut, sur ordinateur comme sur
-   téléphone : fond transparent, recherche sans fond, sans flou ni filet,
+   Sur ordinateur (1024 px et plus), la barre est posée sur la photo du
+   haut : fond transparent, recherche sans fond, sans flou ni filet,
    icônes blanches. Dès qu'on descend, la classe `transparente` tombe et
    la barre reprend son fond. Sa hauteur est fixée à `--coq-h` : le
-   tableau de bord remonte sa photo d'autant (voir tantana.css). */
-.coq-top.sur-photo .coq-top-in {
-  height: var(--coq-h);
-  min-height: 0;
-}
-.coq-top.sur-photo .coq-search {
-  border-radius: 999px;
-  padding: 0 14px;
-}
-.coq-top.transparente {
-  background: transparent;
-  backdrop-filter: none;
-  -webkit-backdrop-filter: none;
-}
-.coq-top.transparente .coq-search,
-.coq-top.transparente .coq-search:hover,
-.coq-top.transparente .coq-search:focus-within {
-  background: transparent;
-  border-color: transparent;
-  box-shadow: none;
-  color: #fff;
-  backdrop-filter: none;
-  -webkit-backdrop-filter: none;
-}
-.coq-top.transparente .coq-search .ico {
-  filter: drop-shadow(0 1px 3px rgb(0 0 0 / 40%));
-}
-.coq-top.transparente .coq-search input,
-.coq-top.transparente .coq-search input::placeholder {
-  color: #fff;
-  text-shadow: 0 1px 6px rgb(0 0 0 / 35%);
-}
-.coq-top.transparente .coq-search input::placeholder {
-  opacity: 0.92;
-}
-.coq-top.transparente .coq-tool,
-.coq-top.transparente .coq-tool > svg {
-  color: #fff;
-}
-.coq-top.transparente .coq-tool > svg {
-  filter: drop-shadow(0 1px 3px rgb(0 0 0 / 35%));
-}
-.coq-top.transparente .coq-tools > .coq-tool:first-child {
-  border-color: transparent;
-}
-.coq-top.transparente .coq-tool:hover,
-.coq-top.transparente .coq-tool.actif,
-.coq-top.transparente .coq-profil:hover,
-.coq-top.transparente .coq-profil.actif {
-  background: rgb(255 255 255 / 16%);
-}
-.coq-top.transparente .coq-profil {
-  color: #fff;
-}
-.coq-top.transparente .coq-avatar {
-  box-shadow:
-    0 0 0 2px rgb(255 255 255 / 70%),
-    0 2px 8px rgb(0 0 0 / 30%);
-}
-.coq-top.transparente .coq-profil.actif .coq-avatar {
-  box-shadow:
-    0 0 0 2px #fff,
-    0 2px 8px rgb(0 0 0 / 30%);
-}
-.coq-top.transparente .coq-profil-chev {
-  filter: drop-shadow(0 1px 3px rgb(0 0 0 / 35%));
-}
-.coq-top.transparente .coq-logo {
-  border-color: rgb(255 255 255 / 55%);
-}
+   tableau de bord remonte sa photo d'autant (voir tantana.css).
+   Sur téléphone et tablette, la barre garde son fond, comme sur les
+   autres écrans, et la photo commence dessous. */
 @media (min-width: 1024px) {
+  .coq-top.sur-photo .coq-top-in {
+    height: var(--coq-h);
+    min-height: 0;
+  }
   .coq-top.sur-photo .coq-search {
     height: 46px;
+    border-radius: 999px;
+    padding: 0 14px;
   }
-}
-@media (max-width: 1023px) {
-  :root {
-    --coq-h: 64px;
+  .coq-top.transparente {
+    background: transparent;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
   }
-  .coq-top.sur-photo .coq-search {
-    height: 40px;
+  .coq-top.transparente .coq-search,
+  .coq-top.transparente .coq-search:hover,
+  .coq-top.transparente .coq-search:focus-within {
+    background: transparent;
+    border-color: transparent;
+    box-shadow: none;
+    color: #fff;
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
   }
-}
-@media (max-width: 640px) {
-  :root {
-    --coq-h: 60px;
+  .coq-top.transparente .coq-search .ico {
+    filter: drop-shadow(0 1px 3px rgb(0 0 0 / 40%));
+  }
+  .coq-top.transparente .coq-search input,
+  .coq-top.transparente .coq-search input::placeholder {
+    color: #fff;
+    text-shadow: 0 1px 6px rgb(0 0 0 / 35%);
+  }
+  .coq-top.transparente .coq-search input::placeholder {
+    opacity: 0.92;
+  }
+  .coq-top.transparente .coq-tool,
+  .coq-top.transparente .coq-tool > svg {
+    color: #fff;
+  }
+  .coq-top.transparente .coq-tool > svg {
+    filter: drop-shadow(0 1px 3px rgb(0 0 0 / 35%));
+  }
+  .coq-top.transparente .coq-tools > .coq-tool:first-child {
+    border-color: transparent;
+  }
+  .coq-top.transparente .coq-tool:hover,
+  .coq-top.transparente .coq-tool.actif,
+  .coq-top.transparente .coq-profil:hover,
+  .coq-top.transparente .coq-profil.actif {
+    background: rgb(255 255 255 / 16%);
+  }
+  .coq-top.transparente .coq-profil {
+    color: #fff;
+  }
+  .coq-top.transparente .coq-avatar {
+    box-shadow:
+      0 0 0 2px rgb(255 255 255 / 70%),
+      0 2px 8px rgb(0 0 0 / 30%);
+  }
+  .coq-top.transparente .coq-profil.actif .coq-avatar {
+    box-shadow:
+      0 0 0 2px #fff,
+      0 2px 8px rgb(0 0 0 / 30%);
+  }
+  .coq-top.transparente .coq-profil-chev {
+    filter: drop-shadow(0 1px 3px rgb(0 0 0 / 35%));
+  }
+  .coq-top.transparente .coq-logo {
+    border-color: rgb(255 255 255 / 55%);
   }
 }
 
 @media (max-width: 1023px) {
   .coq-top-in {
     gap: 10px;
+    min-height: 0;
     padding: 12px 16px;
   }
 }
