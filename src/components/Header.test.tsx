@@ -19,8 +19,18 @@ const auth = {
 const workspace = {
   isOwner: true,
   memberPermissions: null as string[] | null,
-  activeStore: { id: "s1", name: "Boutique" },
-  accessibleStores: [],
+  activeStore: { id: "s1", name: "Boutique", owner_id: "u1" },
+  accessibleStores: [
+    {
+      id: "s1",
+      name: "Boutique",
+      owner_id: "u1",
+      marque_id: null,
+      activation_status: "active",
+      trial_ends_at: "2026-01-01T00:00:00Z",
+      abonnement_jusqu_au: null,
+    },
+  ],
   accesMarque: { marqueId: null, proprietaire: true },
   refreshStores: vi.fn(),
   switchStore: vi.fn(),
@@ -148,5 +158,17 @@ describe("barre du haut — menu du profil", () => {
     cleanup();
     await afficher({ sansBarreLaterale: true });
     expect(document.querySelector("aside.coq-side")).toBeNull();
+  });
+
+  it("« Créer une boutique » ouvre une création, plus une duplication", async () => {
+    await afficher();
+    fireEvent.click(screen.getAllByRole("button", { name: "Changer d'espace de travail" })[0]);
+    fireEvent.click(screen.getAllByRole("button", { name: "Créer une boutique" })[0]);
+    const fenetre = screen.getByRole("dialog");
+    expect(fenetre.textContent).not.toMatch(/dupliquer|copie/i);
+    expect(fenetre.textContent).toContain("activé à vie");
+    expect(
+      (screen.getByPlaceholderText("Nom de la nouvelle boutique") as HTMLInputElement).value,
+    ).toBe("");
   });
 });

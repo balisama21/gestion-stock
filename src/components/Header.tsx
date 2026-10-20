@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { ActiveTab, StoreSettings } from "../types";
 import {
   Store,
@@ -13,7 +13,6 @@ import {
   ChevronDown,
   Building,
   Plus,
-  Copy,
   KeyRound,
   LogOut,
   UserRound,
@@ -37,6 +36,7 @@ import { useClicExterieur } from "../hooks/useClicExterieur";
 import { useConfirmation } from "../hooks/useConfirmation";
 import { supabase } from "../lib/supabase";
 import { hoteVisite, peutCreerUneBoutique } from "../lib/marquesBoutiques";
+import { abonnementNouvelleBoutique } from "../lib/abonnementNouvelleBoutique";
 import { useMarque } from "../hooks/useMarque";
 import { usePersonnalisation } from "../lib/personnalisation";
 
@@ -211,11 +211,6 @@ export const Header: React.FC<HeaderProps> = ({
   const [creatingStore, setCreatingStore] = useState(false);
   const [createStoreError, setCreateStoreError] = useState<string | null>(null);
 
-  const [showCopyStoreModal, setShowCopyStoreModal] = useState(false);
-  const [copyStoreName, setCopyStoreName] = useState("");
-  const [copyingStore, setCopyingStore] = useState(false);
-  const [copyStoreError, setCopyStoreError] = useState<string | null>(null);
-
   const [showJoinCodeModal, setShowJoinCodeModal] = useState(false);
   const [joinCode, setJoinCode] = useState("");
   const [joiningWithCode, setJoiningWithCode] = useState(false);
@@ -243,31 +238,10 @@ export const Header: React.FC<HeaderProps> = ({
     setJoinCode("");
   };
 
-  const handleCopyStore = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!copyStoreName.trim() || copyingStore || !workspace.activeStore) return;
-    setCopyingStore(true);
-    setCopyStoreError(null);
-    const { store, error } = await workspace.copyStore(
-      workspace.activeStore.id,
-      copyStoreName.trim(),
-    );
-    setCopyingStore(false);
-    if (error) {
-      setCopyStoreError(error);
-      return;
-    }
-    if (store) {
-      setShowCopyStoreModal(false);
-      setCopyStoreName("");
-      setWorkspaceMenuOpen(false);
-    }
-  };
-
-  // Création INDÉPENDANTE (jamais un héritage) — c'est celle proposée aux
-  // collaborateurs invités : ils deviennent propriétaires d'une toute
-  // nouvelle boutique avec son propre essai gratuit de 30 jours, sans
-  // aucun lien avec la boutique où ils collaborent déjà.
+  // Une boutique NEUVE, propriétaires comme collaborateurs : rien n'est
+  // copié d'une autre boutique. Son ouverture suit le compte de qui la
+  // crée — la base l'applique d'elle-même, voir
+  // src/lib/abonnementNouvelleBoutique.ts, qui l'annonce dans la fenêtre.
   const handleCreateStore = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newStoreName.trim() || creatingStore) return;
@@ -288,6 +262,45 @@ export const Header: React.FC<HeaderProps> = ({
 
   const workspace = useWorkspace();
   const { user, profile, signOut } = useAuth();
+
+  /** Ce que la fenêtre de création annonce de l'ouverture de la boutique. */
+  const messageAbonnement = useMemo(() => {
+    if (!showCreateStoreModal) return null;
+    const date = (iso: string) =>
+      new Date(iso).toLocaleDateString("fr-FR", { day: "numeric", month: "long", year: "numeric" });
+    const etat = abonnementNouvelleBoutique(
+      workspace.accessibleStores,
+      user?.id,
+      workspace.accesMarque.marqueId,
+    );
+    switch (etat.type) {
+      case "a-vie":
+        return {
+          ton: "t-success",
+          texte: "Votre compte est activé à vie : la boutique sera ouverte immédiatement.",
+        };
+      case "au-mois":
+        return {
+          ton: "t-success",
+          texte: `Votre abonnement s'applique aussi à cette boutique, jusqu'au ${date(etat.jusquAu)}.`,
+        };
+      case "essai":
+        return {
+          ton: "t-warning",
+          texte: `Elle reprend la période d'essai de votre compte, jusqu'au ${date(etat.jusquAu)}.`,
+        };
+      case "essai-termine":
+        return {
+          ton: "t-warning",
+          texte:
+            "La période d'essai de votre compte est terminée : la boutique sera ouverte dès l'activation du compte.",
+        };
+      case "essai-neuf":
+        return { ton: "t-success", texte: "Elle démarre avec un essai gratuit de 30 jours." };
+      default:
+        return null;
+    }
+  }, [showCreateStoreModal, workspace.accessibleStores, workspace.accesMarque.marqueId, user?.id]);
   const { confirmer, modaleConfirmation } = useConfirmation();
 
   /**
@@ -509,23 +522,7 @@ export const Header: React.FC<HeaderProps> = ({
             </button>
           ))}
         </div>
-        {!peutCreerUneBoutique(workspace.accesMarque) ? null : workspace.isOwner ? (
-          <div className="border-t border-border py-1">
-            <button
-              onClick={() => {
-                setWorkspaceMenuOpen(false);
-                setCopyStoreName(
-                  workspace.activeStore ? `${workspace.activeStore.name} (copie)` : "",
-                );
-                setShowCopyStoreModal(true);
-              }}
-              className="w-full flex items-center gap-3 px-3 py-2.5 hover:bg-muted transition-colors text-left t-success"
-            >
-              <Copy className="w-4 h-4 shrink-0" />
-              <span className="text-sm font-semibold">Créer une boutique</span>
-            </button>
-          </div>
-        ) : (
+        {peutCreerUneBoutique(workspace.accesMarque) && (
           <div className="border-t border-border py-1">
             <button
               onClick={() => {
@@ -909,78 +906,9 @@ export const Header: React.FC<HeaderProps> = ({
         </div>
       </nav>
 
-      {/* ── Dupliquer la boutique active (configuration seulement) ── */}
-      {showCopyStoreModal && workspace.activeStore && (
-        <Modal
-          open
-          onClose={() => {
-            setShowCopyStoreModal(false);
-            setCopyStoreError(null);
-          }}
-          size="sm"
-          icon={<Copy className="h-4 w-4" />}
-          title="Dupliquer la boutique"
-          description={workspace.activeStore.name}
-          dismissible={!copyingStore}
-          footer={
-            <>
-              <button
-                type="button"
-                onClick={() => {
-                  setShowCopyStoreModal(false);
-                  setCopyStoreError(null);
-                }}
-                className="app-btn-secondary"
-              >
-                Annuler
-              </button>
-              <button
-                type="submit"
-                form="copy-store-form"
-                disabled={copyingStore}
-                className="app-btn-primary"
-              >
-                {copyingStore ? "Copie..." : "Dupliquer"}
-              </button>
-            </>
-          }
-        >
-          <p className="text-sm leading-relaxed text-muted-foreground">
-            Reprend la configuration (devise, TVA, fournisseurs, coordonnées...) dans une nouvelle
-            boutique. Les produits, ventes et données ne sont pas copiés : c'est une boutique neuve,
-            indépendante.
-          </p>
-
-          {!workspace.activeStore.marque_id && (
-            <p
-              className={`mt-3 text-sm font-medium ${
-                workspace.activeStore.activation_status === "active" ? "t-success" : "t-warning"
-              }`}
-            >
-              {workspace.activeStore.activation_status === "active"
-                ? "Cette boutique est active à vie : la copie le sera aussi, immédiatement."
-                : "Cette boutique est en essai : la copie héritera de la même date de fin d'essai, pas d'un nouvel essai de 30 jours."}
-            </p>
-          )}
-
-          <form onSubmit={handleCopyStore} id="copy-store-form" className="mt-4 space-y-3">
-            <input
-              type="text"
-              required
-              autoFocus
-              value={copyStoreName}
-              onChange={(e) => setCopyStoreName(e.target.value)}
-              placeholder="Nom de la nouvelle boutique"
-              className="app-field"
-            />
-            {copyStoreError && <p className="text-sm font-medium t-danger">{copyStoreError}</p>}
-          </form>
-        </Modal>
-      )}
-
-      {/* ── Créer une boutique indépendante ──
-          Proposée aux collaborateurs invités : elle ouvre un nouvel essai
-          de 30 jours et n'hérite jamais de la boutique où ils collaborent. */}
+      {/* ── Créer une boutique ──
+          Une boutique neuve et vide. Elle ne copie rien d'une autre
+          boutique ; son ouverture suit le compte (voir plus haut). */}
       <Modal
         open={showCreateStoreModal}
         onClose={() => {
@@ -990,11 +918,7 @@ export const Header: React.FC<HeaderProps> = ({
         size="sm"
         icon={<Store className="h-4 w-4" />}
         title="Créer une boutique"
-        description={
-          workspace.accesMarque.marqueId
-            ? "Vous en devenez propriétaire."
-            : "Vous en devenez propriétaire, avec son propre essai gratuit de 30 jours."
-        }
+        description="Vous en devenez propriétaire."
         dismissible={!creatingStore}
         footer={
           <>
@@ -1020,8 +944,15 @@ export const Header: React.FC<HeaderProps> = ({
         }
       >
         <p className="text-sm leading-relaxed text-muted-foreground">
-          Elle est totalement indépendante de la boutique où vous collaborez actuellement.
+          Une boutique neuve, indépendante des autres : ses produits, ventes, clients et réglages
+          lui sont propres.
         </p>
+
+        {messageAbonnement && (
+          <p className={`mt-3 text-sm font-medium ${messageAbonnement.ton}`}>
+            {messageAbonnement.texte}
+          </p>
+        )}
 
         <form onSubmit={handleCreateStore} id="create-store-form" className="mt-4 space-y-3">
           <input
@@ -1030,7 +961,7 @@ export const Header: React.FC<HeaderProps> = ({
             autoFocus
             value={newStoreName}
             onChange={(e) => setNewStoreName(e.target.value)}
-            placeholder="Nom de votre boutique"
+            placeholder="Nom de la nouvelle boutique"
             className="app-field"
           />
           {createStoreError && <p className="text-sm font-medium t-danger">{createStoreError}</p>}
