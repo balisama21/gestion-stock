@@ -1,9 +1,9 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { cleanup, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { SettingsLayout } from "./SettingsLayout";
 
-// La barre lit le profil connecté pour son sous-titre et son bouton de
-// déconnexion ; ni l'un ni l'autre ne concerne ce qu'on vérifie ici.
+// La barre lit le profil connecté pour son sous-titre et pour savoir
+// s'il administre la plateforme.
 const profil = vi.hoisted(() => ({ email: "essai@exemple.mg", is_platform_admin: false }));
 vi.mock("../../hooks/useAuth", () => ({
   useAuth: () => ({ signOut: vi.fn(), profile: profil }),
@@ -109,5 +109,26 @@ describe("ce que chacun a le droit de voir", () => {
     } finally {
       profil.is_platform_admin = false;
     }
+  });
+});
+
+describe("la sortie des Paramètres", () => {
+  afterEach(cleanup);
+
+  it("ne propose plus de déconnexion : elle vit dans le menu du profil", () => {
+    afficher(true);
+    expect(screen.queryByText(/déconnexion/i)).toBeNull();
+    expect(screen.queryByRole("button", { name: /déconnecter/i })).toBeNull();
+  });
+
+  it("« Retour » ramène à l'écran d'où l'on vient", () => {
+    const onRetour = vi.fn();
+    render(
+      <SettingsLayout activeTab="compte" onTabChange={vi.fn()} isOwner onRetour={onRetour}>
+        <div />
+      </SettingsLayout>,
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Retour" }));
+    expect(onRetour).toHaveBeenCalledTimes(1);
   });
 });

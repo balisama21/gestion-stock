@@ -131,6 +131,12 @@ interface HeaderProps {
    */
   sidebarCollapsed: boolean;
   onToggleSidebar: () => void;
+  /**
+   * Sur ordinateur, ne pas monter la navigation latérale : les
+   * Paramètres ont la leur, et deux colonnes de menus côte à côte se
+   * gênaient. Le conteneur racine retire alors son décalage à gauche.
+   */
+  sansBarreLaterale?: boolean;
   /** Ce qui réclame l'attention, par onglet du menu. */
   badgesNav?: Partial<Record<ActiveTab, number>>;
 }
@@ -180,6 +186,7 @@ export const Header: React.FC<HeaderProps> = ({
   setTheme,
   sidebarCollapsed,
   onToggleSidebar,
+  sansBarreLaterale = false,
   badgesNav,
 }) => {
   const marque = useMarque();
@@ -648,16 +655,18 @@ export const Header: React.FC<HeaderProps> = ({
 
   return (
     <>
-      <Sidebar
-        groups={navGroups}
-        activeTab={activeTab}
-        badges={badgesNav}
-        onTabClick={handleTabClick}
-        collapsed={sidebarCollapsed}
-        onToggleCollapsed={onToggleSidebar}
-        brand={brandBlock}
-        brandCompact={brandCompact}
-      />
+      {!sansBarreLaterale && (
+        <Sidebar
+          groups={navGroups}
+          activeTab={activeTab}
+          badges={badgesNav}
+          onTabClick={handleTabClick}
+          collapsed={sidebarCollapsed}
+          onToggleCollapsed={onToggleSidebar}
+          brand={brandBlock}
+          brandCompact={brandCompact}
+        />
+      )}
 
       {/* Le décalage horizontal est appliqué par le conteneur racine dans
           BalsamaApp.tsx, qui englobe cette barre et le contenu.
@@ -676,8 +685,9 @@ export const Header: React.FC<HeaderProps> = ({
       >
         <div className="coq-top-in">
           {/* Sur téléphone : le logo seul, qui ouvre le choix d'espace. Sur
-              ordinateur, la marque vit dans la sidebar. */}
-          <div className="lg:hidden">{brandMobile}</div>
+              ordinateur, la marque vit dans la sidebar — sauf quand
+              celle-ci est retirée (Paramètres) : le logo revient ici. */}
+          <div className={sansBarreLaterale ? undefined : "lg:hidden"}>{brandMobile}</div>
 
           {/* La recherche ouvre l'écran courant — ou le catalogue depuis
               un écran qui n'a pas de liste — avec sa recherche déjà
@@ -777,7 +787,7 @@ export const Header: React.FC<HeaderProps> = ({
                 aria-expanded={profilOuvert}
               >
                 <span className="coq-avatar" aria-hidden="true">
-                  <AvatarPersonne nom={nomAvatar} taille={38} />
+                  <AvatarPersonne nom={nomAvatar} taille={32} />
                 </span>
                 <ChevronDown className="coq-profil-chev" aria-hidden="true" />
               </button>

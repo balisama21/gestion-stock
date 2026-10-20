@@ -140,6 +140,8 @@ interface ParametresViewProps {
    * lui.
    */
   sectionInitiale?: SettingsTab;
+  /** Quitter les Paramètres, vers l'écran d'où l'on venait. */
+  onQuitter?: () => void;
   /** Paramètres métier clé/valeur de la boutique. */
   parametres: ValeursParametres;
   devises: DevisesBoutique;
@@ -180,6 +182,7 @@ export const ParametresView: React.FC<ParametresViewProps> = ({
   isPlatformAdmin = false,
   currentUserId,
   sectionInitiale,
+  onQuitter,
   parametres,
   devises,
   onSaveParametre,
@@ -961,6 +964,7 @@ export const ParametresView: React.FC<ParametresViewProps> = ({
       onTabChange={setActiveTab}
       isOwner={workspace.isOwner}
       sansAbonnement={boutiqueDeMarque}
+      onRetour={onQuitter}
     >
       {activeTab === "metier" && (
         <ReglagesMetierSection

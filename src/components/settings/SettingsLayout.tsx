@@ -16,7 +16,7 @@ import {
   Calculator,
   ListChecks,
   PackageSearch,
-  LogOut,
+  ArrowLeft,
   SlidersHorizontal,
   Leaf,
   Quote,
@@ -24,7 +24,6 @@ import {
   LayoutPanelTop,
   Sparkles,
 } from "lucide-react";
-import { useConfirmation } from "../../hooks/useConfirmation";
 
 export type SettingsTab =
   | "metier"
@@ -252,6 +251,13 @@ interface SettingsLayoutProps {
   isOwner: boolean;
   /** Boutique d'une marque cliente : aucun onglet d'abonnement. */
   sansAbonnement?: boolean;
+  /**
+   * Revenir à l'écran d'où l'on vient. Sur ordinateur, la navigation
+   * latérale de l'application est masquée pendant les Paramètres : ce
+   * bouton est la sortie. La déconnexion, elle, vit dans le menu du
+   * profil, en haut à droite, et nulle part ici.
+   */
+  onRetour?: () => void;
 }
 
 export const SettingsLayout: React.FC<SettingsLayoutProps> = ({
@@ -260,9 +266,9 @@ export const SettingsLayout: React.FC<SettingsLayoutProps> = ({
   children,
   isOwner,
   sansAbonnement = false,
+  onRetour,
 }) => {
-  const { confirmer, modaleConfirmation } = useConfirmation();
-  const { signOut, profile } = useAuth();
+  const { profile } = useAuth();
   const adminPlateforme = profile?.is_platform_admin === true;
 
   const groups = GROUPS.map((g) => ({
@@ -291,6 +297,16 @@ export const SettingsLayout: React.FC<SettingsLayoutProps> = ({
             {profile?.email || "Gérez votre compte et votre boutique"}
           </p>
         </div>
+        {onRetour && (
+          <button
+            type="button"
+            onClick={onRetour}
+            className="app-btn-secondary hidden shrink-0 self-center lg:inline-flex"
+          >
+            <ArrowLeft className="w-4 h-4" />
+            Retour
+          </button>
+        )}
       </div>
 
       {/* Onglets défilants — sous 1024px */}
@@ -360,24 +376,6 @@ export const SettingsLayout: React.FC<SettingsLayoutProps> = ({
                 </div>
               </div>
             ))}
-
-            <div className="border-t border-border pt-3">
-              <button
-                onClick={async () => {
-                  if (
-                    await confirmer("Voulez-vous vraiment vous déconnecter ?", {
-                      danger: true,
-                      libelle: "Se déconnecter",
-                    })
-                  )
-                    signOut();
-                }}
-                className="flex w-full items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold t-danger transition-colors hover:bg-danger-soft"
-              >
-                <LogOut className="w-4 h-4" />
-                Déconnexion
-              </button>
-            </div>
           </div>
         </nav>
 
@@ -392,28 +390,8 @@ export const SettingsLayout: React.FC<SettingsLayoutProps> = ({
           )}
 
           {children}
-
-          {/* Déconnexion accessible aussi sur mobile */}
-          <div className="lg:hidden">
-            <button
-              onClick={async () => {
-                if (
-                  await confirmer("Voulez-vous vraiment vous déconnecter ?", {
-                    danger: true,
-                    libelle: "Se déconnecter",
-                  })
-                )
-                  signOut();
-              }}
-              className="app-btn-secondary w-full t-danger"
-            >
-              <LogOut className="w-4 h-4" />
-              Déconnexion
-            </button>
-          </div>
         </div>
       </div>
-      {modaleConfirmation}
     </div>
   );
 };
