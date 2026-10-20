@@ -156,22 +156,23 @@
   display: flex;
   align-items: center;
   gap: 16px;
-  padding: 10px 28px;
+  min-height: 68px;
+  padding: 12px 28px;
 }
 /* La recherche : un champ discret, fin filet et fond à peine teinté,
    qui ne prend de relief qu'une fois activé. */
 .coq-search {
   flex: 1;
   min-width: 0;
-  max-width: 480px;
-  height: 40px;
+  max-width: 560px;
+  height: 42px;
   display: flex;
   align-items: center;
   gap: 10px;
   padding: 0 8px 0 12px;
   background: color-mix(in srgb, var(--coq-ink) 4%, var(--card));
   border: 1px solid var(--border);
-  border-radius: 10px;
+  border-radius: 12px;
   color: var(--coq-muted);
   transition:
     border-color 0.15s,
@@ -210,25 +211,165 @@
 .coq-tools {
   margin-left: auto;
   display: flex;
-  gap: 6px;
+  align-items: center;
+  gap: 4px;
   flex: none;
 }
+/* Les outils : des boutons carrés aux coins doux, sans cadre au repos ;
+   un fond vert très léger au survol. L'aide, premier d'entre eux, porte
+   un filet fin : c'est le geste qu'on cherche quand on est perdu. */
 .coq-tool {
   position: relative;
-  width: 44px;
-  height: 44px;
-  border-radius: 50%;
+  width: 40px;
+  height: 40px;
+  border-radius: 12px;
   display: grid;
   place-items: center;
   color: var(--coq-g);
+  transition:
+    background-color 0.15s,
+    border-color 0.15s;
 }
 .coq-tool > svg {
-  width: 22px;
-  height: 22px;
+  width: 20px;
+  height: 20px;
+  stroke-width: 2;
+}
+.coq-tools > .coq-tool:first-child {
+  border: 1px solid var(--border);
 }
 .coq-tool:hover,
 .coq-tool.actif {
   background: var(--coq-gsoft);
+}
+.coq-tool:focus-visible,
+.coq-profil:focus-visible,
+.coq-menu-item:focus-visible {
+  outline: 2px solid var(--coq-g);
+  outline-offset: 2px;
+}
+
+/* ── Le profil : avatar, chevron, menu ── */
+.coq-profil {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  height: 44px;
+  margin-left: 6px;
+  padding: 0 6px 0 2px;
+  border-radius: 999px;
+  color: var(--coq-muted);
+  transition: background-color 0.15s;
+}
+.coq-profil:hover,
+.coq-profil.actif {
+  background: var(--coq-gsoft);
+}
+.coq-avatar {
+  display: grid;
+  place-items: center;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  background: color-mix(in srgb, var(--coq-ink) 55%, var(--card));
+  color: var(--card);
+  font-size: 13px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
+}
+.coq-profil.actif .coq-avatar {
+  background: var(--coq-g);
+  color: var(--primary-foreground);
+}
+.coq-profil-chev {
+  width: 16px;
+  height: 16px;
+  transition: transform 0.15s;
+}
+.coq-profil[aria-expanded="true"] .coq-profil-chev {
+  transform: rotate(180deg);
+}
+.coq-menu {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 8px);
+  z-index: 50;
+  width: 240px;
+  padding: 6px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  box-shadow:
+    0 1px 2px rgb(0 0 0 / 6%),
+    0 16px 40px -12px rgb(0 0 0 / 22%);
+  animation: coq-menu-in 0.14s ease-out;
+}
+@keyframes coq-menu-in {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+}
+.coq-menu-tete {
+  padding: 8px 10px 10px;
+  margin-bottom: 4px;
+  border-bottom: 1px solid var(--border);
+  min-width: 0;
+}
+.coq-menu-nom {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--coq-ink);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.coq-menu-mail {
+  margin-top: 1px;
+  font-size: 12px;
+  color: var(--coq-muted);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.coq-menu-item {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: 12px;
+  min-height: 40px;
+  padding: 0 10px;
+  border-radius: 9px;
+  font-size: 0.875rem;
+  color: var(--coq-ink);
+  text-align: left;
+  transition: background-color 0.12s;
+}
+.coq-menu-item > svg {
+  width: 18px;
+  height: 18px;
+  flex: none;
+  color: var(--coq-muted);
+}
+.coq-menu-item:hover {
+  background: var(--muted);
+}
+.coq-menu-item.danger,
+.coq-menu-item.danger > svg {
+  color: var(--danger);
+}
+.coq-menu-item.danger:hover {
+  background: var(--danger-soft);
+}
+.coq-menu-sep {
+  height: 1px;
+  margin: 4px 2px;
+  background: var(--border);
+}
+@media (prefers-reduced-motion: reduce) {
+  .coq-menu {
+    animation: none;
+  }
 }
 .coq-badge {
   position: absolute;
@@ -254,6 +395,9 @@
     gap: 8px;
     padding: 10px 14px;
   }
+  .coq-top-in {
+    min-height: 0;
+  }
   .coq-tools {
     gap: 2px;
   }
@@ -262,8 +406,25 @@
     height: 38px;
   }
   .coq-tool > svg {
-    width: 20px;
-    height: 20px;
+    width: 19px;
+    height: 19px;
+  }
+  /* Sur téléphone l'aide perd son filet : la rangée reste légère. */
+  .coq-tools > .coq-tool:first-child {
+    border-color: transparent;
+  }
+  .coq-profil {
+    margin-left: 2px;
+    padding: 0 2px;
+    height: 40px;
+  }
+  .coq-avatar {
+    width: 34px;
+    height: 34px;
+    font-size: 12px;
+  }
+  .coq-profil-chev {
+    display: none;
   }
   .coq-search {
     height: 38px;
@@ -273,6 +434,10 @@
   .coq-tool {
     width: 34px;
     height: 34px;
+  }
+  .coq-avatar {
+    width: 32px;
+    height: 32px;
   }
   .coq-tool > svg {
     width: 19px;
