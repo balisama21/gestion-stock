@@ -15,6 +15,8 @@ import {
   Plus,
   Copy,
   KeyRound,
+  LogOut,
+  UserRound,
 } from "lucide-react";
 import { PanneauAide } from "./shared/PanneauAide";
 import { Icone } from "./shared/Icone";
@@ -31,6 +33,7 @@ import { useWorkspace } from "../hooks/useWorkspace";
 import { useAuth } from "../hooks/useAuth";
 import { useBarresAuDefilement } from "../hooks/useBarresAuDefilement";
 import { useClicExterieur } from "../hooks/useClicExterieur";
+import { useConfirmation } from "../hooks/useConfirmation";
 import { supabase } from "../lib/supabase";
 import { hoteVisite, peutCreerUneBoutique } from "../lib/marquesBoutiques";
 import { useMarque } from "../hooks/useMarque";
@@ -87,6 +90,12 @@ interface HeaderProps {
    * changent le logo et le nom. Branché sur le logo de l'en-tête.
    */
   onOuvrirIdentiteBoutique: () => void;
+  /**
+   * Ouvre les réglages sur « Mon compte ». Branché sur « Mon profil »,
+   * dans le menu de l'avatar. Sans lui, l'entrée ouvre les Paramètres
+   * tels quels — ils s'ouvrent déjà sur « Mon compte ».
+   */
+  onOuvrirMonCompte?: () => void;
   /** Ce qui demande attention et ce qui vient de se passer. */
   notifications: Notification[];
   /**
@@ -155,6 +164,7 @@ export const Header: React.FC<HeaderProps> = ({
   tresorerie,
   seuilAlerte,
   onOuvrirIdentiteBoutique,
+  onOuvrirMonCompte,
   notifications,
   onActionNotification,
   theme,
@@ -261,7 +271,48 @@ export const Header: React.FC<HeaderProps> = ({
   };
 
   const workspace = useWorkspace();
-  const { user } = useAuth();
+  const { user, profile, signOut } = useAuth();
+  const { confirmer, modaleConfirmation } = useConfirmation();
+
+  /**
+   * LE MENU DU PROFIL. La roue dentée de la barre du haut y est entrée,
+   * avec « Mon profil » et la déconnexion : trois gestes qui concernent
+   * la personne connectée, rangés derrière son avatar. Les Paramètres
+   * restent réservés à qui en a la permission, exactement comme avant.
+   */
+  const [profilOuvert, setProfilOuvert] = useState(false);
+  const zoneProfil = useRef<HTMLDivElement>(null);
+  const fermerProfil = useCallback(() => setProfilOuvert(false), []);
+  useClicExterieur(zoneProfil, profilOuvert, fermerProfil);
+  useEffect(() => {
+    if (!profilOuvert) return;
+    const echap = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setProfilOuvert(false);
+    };
+    window.addEventListener("keydown", echap);
+    return () => window.removeEventListener("keydown", echap);
+  }, [profilOuvert]);
+  const nomComplet = (profile?.full_name ?? "").trim();
+  const courriel = profile?.email ?? user?.email ?? "";
+  const initiales =
+    (nomComplet
+      ? nomComplet
+          .split(/\s+/)
+          .slice(0, 2)
+          .map((m) => m[0])
+          .join("")
+      : courriel.slice(0, 2)
+    ).toUpperCase() || "?";
+  const seDeconnecter = async () => {
+    setProfilOuvert(false);
+    if (
+      await confirmer("Voulez-vous vraiment vous déconnecter ?", {
+        danger: true,
+        libelle: "Se déconnecter",
+      })
+    )
+      signOut();
+  };
 
   // Un collaborateur sans la permission « capital » ne doit JAMAIS voir
   // la trésorerie globale de l'entreprise, pas même dans cette ligne
@@ -363,7 +414,7 @@ export const Header: React.FC<HeaderProps> = ({
      arrivait sur une page courte avec les barres masquées par la
      page précédente, et rien ne pouvait plus les rappeler. */
   const barresMasquees = useBarresAuDefilement(
-    !mobileMenuOpen && !notifOpen && !workspaceMenuOpen,
+    !mobileMenuOpen && !notifOpen && !workspaceMenuOpen && !profilOuvert,
     activeTab,
   );
 
@@ -693,19 +744,76 @@ export const Header: React.FC<HeaderProps> = ({
               )}
             </div>
 
-            {/* Paramètres : propriétaires et collaborateurs qui ont la
-                permission « settings ». */}
-            {showSettings && (
+            {/* Le profil : avatar et menu. « Paramètres » n'y paraît que
+                pour les propriétaires et les collaborateurs qui ont la
+                permission « settings » — la règle de l'ancienne roue. */}
+            <div className="relative" ref={zoneProfil}>
               <button
                 type="button"
-                onClick={() => handleTabClick("settings")}
-                className={`coq-tool${activeTab === "settings" ? " actif" : ""}`}
-                title="Paramètres"
-                aria-label="Paramètres"
+                onClick={() => setProfilOuvert(!profilOuvert)}
+                className={`coq-profil${profilOuvert || activeTab === "settings" ? " actif" : ""}`}
+                title={nomComplet || courriel || "Mon profil"}
+                aria-label="Menu du profil"
+                aria-haspopup="menu"
+                aria-expanded={profilOuvert}
               >
-                <Settings className="t-success" />
+                <span className="coq-avatar" aria-hidden="true">
+                  {initiales}
+                </span>
+                <ChevronDown className="coq-profil-chev" aria-hidden="true" />
               </button>
-            )}
+
+              {profilOuvert && (
+                <div className="coq-menu" role="menu" aria-label="Profil">
+                  {(nomComplet || courriel) && (
+                    <div className="coq-menu-tete">
+                      {nomComplet && <div className="coq-menu-nom">{nomComplet}</div>}
+                      {courriel && <div className="coq-menu-mail">{courriel}</div>}
+                    </div>
+                  )}
+                  <button
+                    type="button"
+                    role="menuitem"
+                    className="coq-menu-item"
+                    onClick={() => {
+                      setProfilOuvert(false);
+                      if (onOuvrirMonCompte) {
+                        onOuvrirMonCompte();
+                        setMobileMenuOpen(false);
+                        setNotifOpen(false);
+                      } else handleTabClick("settings");
+                    }}
+                  >
+                    <UserRound aria-hidden="true" />
+                    Mon profil
+                  </button>
+                  {showSettings && (
+                    <button
+                      type="button"
+                      role="menuitem"
+                      className="coq-menu-item"
+                      onClick={() => {
+                        setProfilOuvert(false);
+                        handleTabClick("settings");
+                      }}
+                    >
+                      <Settings aria-hidden="true" />
+                      Paramètres
+                    </button>
+                  )}
+                  <div className="coq-menu-sep" role="separator" />
+                  <button
+                    type="button"
+                    role="menuitem"
+                    className="coq-menu-item danger"
+                    onClick={seDeconnecter}
+                  >
+                    <LogOut aria-hidden="true" />
+                    Se déconnecter
+                  </button>
+                </div>
+              )}
+            </div>
           </div>
         </div>
       </header>
@@ -939,6 +1047,7 @@ export const Header: React.FC<HeaderProps> = ({
           {joinCodeError && <p className="text-sm font-medium t-danger">{joinCodeError}</p>}
         </form>
       </Modal>
+      {modaleConfirmation}
     </>
   );
 };

@@ -452,6 +452,13 @@ function AppInner() {
     setActiveTab("settings");
   }, []);
 
+  // « Mon profil », dans le menu de l'avatar : toujours « Mon compte »,
+  // même si l'on vient d'un autre onglet des Paramètres.
+  const ouvrirMonCompte = useCallback(() => {
+    setSectionParametres("compte");
+    setActiveTab("settings");
+  }, []);
+
   useEffect(() => {
     if (activeTab !== "settings" && sectionParametres) setSectionParametres(undefined);
   }, [activeTab, sectionParametres]);
@@ -2113,6 +2120,7 @@ function AppInner() {
               tresorerie={computedCapital.tresorerieGlobaleActuelle}
               seuilAlerte={computedCapital.seuilAlerteTresorerie}
               onOuvrirIdentiteBoutique={ouvrirIdentiteBoutique}
+              onOuvrirMonCompte={ouvrirMonCompte}
               notifications={notifications}
               onActionNotification={actionNotification}
               theme={theme}
