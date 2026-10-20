@@ -19,6 +19,7 @@ import {
   UserRound,
 } from "lucide-react";
 import { PanneauAide } from "./shared/PanneauAide";
+import { AvatarPersonne } from "./shared/AvatarPersonne";
 import { Icone } from "./shared/Icone";
 import { formatCurrency } from "../utils/formulas";
 import { Modal } from "./shared/Modal";
@@ -96,6 +97,13 @@ interface HeaderProps {
    * tels quels — ils s'ouvrent déjà sur « Mon compte ».
    */
   onOuvrirMonCompte?: () => void;
+  /**
+   * Vrai sur le tableau de bord, dont la photo du haut remonte sous la
+   * barre (voir coquille.css). Tant que la page est
+   * tout en haut, la barre est transparente et ses icônes blanches ; dès
+   * qu'on descend, elle reprend son fond.
+   */
+  surPhoto?: boolean;
   /** Ce qui demande attention et ce qui vient de se passer. */
   notifications: Notification[];
   /**
@@ -165,6 +173,7 @@ export const Header: React.FC<HeaderProps> = ({
   seuilAlerte,
   onOuvrirIdentiteBoutique,
   onOuvrirMonCompte,
+  surPhoto = false,
   notifications,
   onActionNotification,
   theme,
@@ -294,15 +303,14 @@ export const Header: React.FC<HeaderProps> = ({
   }, [profilOuvert]);
   const nomComplet = (profile?.full_name ?? "").trim();
   const courriel = profile?.email ?? user?.email ?? "";
-  const initiales =
-    (nomComplet
-      ? nomComplet
-          .split(/\s+/)
-          .slice(0, 2)
-          .map((m) => m[0])
-          .join("")
-      : courriel.slice(0, 2)
-    ).toUpperCase() || "?";
+  /*
+   * L'AVATAR DE LA PERSONNE CONNECTÉE : celui du reste de l'application
+   * (`AvatarPersonne`). Sa photo si elle en a choisi une, sinon le visage
+   * illustré tiré de son nom. La clé est celle de l'écran Équipe — le nom
+   * complet, à défaut l'e-mail —, si bien qu'une photo choisie dans
+   * Paramètres → Mon compte y paraît aussi. Elle se change là-bas.
+   */
+  const nomAvatar = nomComplet || courriel;
   const seDeconnecter = async () => {
     setProfilOuvert(false);
     if (
@@ -413,6 +421,15 @@ export const Header: React.FC<HeaderProps> = ({
      l'autre, donc l'état des barres aussi. Sans cette clé, on
      arrivait sur une page courte avec les barres masquées par la
      page précédente, et rien ne pouvait plus les rappeler. */
+  const [enHautDePage, setEnHautDePage] = useState(true);
+  useEffect(() => {
+    if (!surPhoto) return;
+    const lire = () => setEnHautDePage(window.scrollY < 24);
+    lire();
+    window.addEventListener("scroll", lire, { passive: true });
+    return () => window.removeEventListener("scroll", lire);
+  }, [surPhoto]);
+
   const barresMasquees = useBarresAuDefilement(
     !mobileMenuOpen && !notifOpen && !workspaceMenuOpen && !profilOuvert,
     activeTab,
@@ -653,7 +670,9 @@ export const Header: React.FC<HeaderProps> = ({
           premier défilement. */}
       <header
         data-masquee={barresMasquees}
-        className="app-bar-auto app-bar-haut coq-top sticky top-0 z-40"
+        className={`app-bar-auto app-bar-haut coq-top sticky top-0 z-40${
+          surPhoto ? ` sur-photo${enHautDePage ? " transparente" : ""}` : ""
+        }`}
       >
         <div className="coq-top-in">
           {/* Sur téléphone : le logo seul, qui ouvre le choix d'espace. Sur
@@ -758,17 +777,20 @@ export const Header: React.FC<HeaderProps> = ({
                 aria-expanded={profilOuvert}
               >
                 <span className="coq-avatar" aria-hidden="true">
-                  {initiales}
+                  <AvatarPersonne nom={nomAvatar} taille={38} />
                 </span>
                 <ChevronDown className="coq-profil-chev" aria-hidden="true" />
               </button>
 
               {profilOuvert && (
                 <div className="coq-menu" role="menu" aria-label="Profil">
-                  {(nomComplet || courriel) && (
+                  {nomAvatar && (
                     <div className="coq-menu-tete">
-                      {nomComplet && <div className="coq-menu-nom">{nomComplet}</div>}
-                      {courriel && <div className="coq-menu-mail">{courriel}</div>}
+                      <AvatarPersonne nom={nomAvatar} taille={40} />
+                      <div className="min-w-0">
+                        {nomComplet && <div className="coq-menu-nom">{nomComplet}</div>}
+                        {courriel && <div className="coq-menu-mail">{courriel}</div>}
+                      </div>
                     </div>
                   )}
                   <button

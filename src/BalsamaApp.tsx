@@ -2121,6 +2121,7 @@ function AppInner() {
               seuilAlerte={computedCapital.seuilAlerteTresorerie}
               onOuvrirIdentiteBoutique={ouvrirIdentiteBoutique}
               onOuvrirMonCompte={ouvrirMonCompte}
+              surPhoto={vue === "dashboard" && hasDashboardAccess && dashboardV2}
               notifications={notifications}
               onActionNotification={actionNotification}
               theme={theme}
