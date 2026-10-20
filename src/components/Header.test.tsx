@@ -58,7 +58,9 @@ afterEach(() => {
   auth.signOut.mockReset();
 });
 
-async function afficher(props: { onOuvrirMonCompte?: () => void; surPhoto?: boolean } = {}) {
+async function afficher(
+  props: { onOuvrirMonCompte?: () => void; surPhoto?: boolean; sansBarreLaterale?: boolean } = {},
+) {
   const { Header } = await import("./Header");
   const setActiveTab = vi.fn();
   render(
@@ -138,5 +140,13 @@ describe("barre du haut — menu du profil", () => {
   it("garde son fond hors du tableau de bord", async () => {
     await afficher();
     expect(document.querySelector("header")!.className).not.toContain("sur-photo");
+  });
+
+  it("retire la navigation latérale pendant les Paramètres", async () => {
+    await afficher();
+    expect(document.querySelector("aside.coq-side")).not.toBeNull();
+    cleanup();
+    await afficher({ sansBarreLaterale: true });
+    expect(document.querySelector("aside.coq-side")).toBeNull();
   });
 });

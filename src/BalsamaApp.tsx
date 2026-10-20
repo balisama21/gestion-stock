@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useCallback, useMemo, lazy, Suspense } from "react";
+import React, { useState, useEffect, useCallback, useMemo, useRef, lazy, Suspense } from "react";
 import { Zap, X } from "lucide-react";
 import { contexteCibleRecherche, useEtatCibleRecherche, useViserLigne } from "./lib/cibleRecherche";
 import {
@@ -462,6 +462,17 @@ function AppInner() {
   useEffect(() => {
     if (activeTab !== "settings" && sectionParametres) setSectionParametres(undefined);
   }, [activeTab, sectionParametres]);
+
+  // L'écran d'où l'on est entré dans les Paramètres : sur ordinateur, la
+  // navigation latérale s'efface pendant les réglages, et « Retour » y
+  // ramène.
+  const ongletAvantParametres = useRef<ActiveTab>("dashboard");
+  useEffect(() => {
+    if (activeTab !== "settings") ongletAvantParametres.current = activeTab;
+  }, [activeTab]);
+  const quitterParametres = useCallback(() => {
+    setActiveTab(ongletAvantParametres.current);
+  }, []);
   const [locale, setLocale] = useState<LocaleSetting>("FR");
   // Mode clair par défaut : c'est ce que voit un nouvel utilisateur au
   // tout premier chargement. Les utilisateurs existants ne sont pas
@@ -2109,7 +2120,7 @@ function AppInner() {
           haut comme au contenu. */}
           <div
             className={`min-h-screen flex flex-col font-sans bg-background text-foreground selection:bg-emerald-500 selection:text-slate-950 transition-[padding] duration-200 ${
-              sidebarCollapsed ? "lg:pl-18" : "lg:pl-[268px]"
+              vue === "settings" ? "" : sidebarCollapsed ? "lg:pl-18" : "lg:pl-[268px]"
             }`}
           >
             <Header
@@ -2128,6 +2139,7 @@ function AppInner() {
               setTheme={setTheme}
               sidebarCollapsed={sidebarCollapsed}
               onToggleSidebar={toggleSidebar}
+              sansBarreLaterale={vue === "settings"}
               badgesNav={badgesNav}
             />
 
@@ -2939,6 +2951,7 @@ function AppInner() {
                         sales={sales}
                         products={products}
                         sectionInitiale={sectionParametres}
+                        onQuitter={quitterParametres}
                         settings={storeSettings}
                         personnalisation={personnalisation}
                         onSavePersonnalisation={handleSavePersonnalisation}

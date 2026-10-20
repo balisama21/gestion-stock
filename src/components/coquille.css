@@ -136,7 +136,20 @@
   background: var(--coq-gsoft);
   color: var(--coq-g2);
   font-weight: 600;
-  box-shadow: inset 3px 0 0 var(--coq-g);
+  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--coq-g) 18%, transparent);
+}
+/* Le repère de l'onglet actif : un trait droit, arrondi à ses bouts,
+   posé contre le bord gauche. Une ombre intérieure suivait l'arrondi du
+   bouton et se courbait en parenthèse. */
+.coq-lien.on::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 9px;
+  bottom: 9px;
+  width: 3px;
+  border-radius: 0 3px 3px 0;
+  background: var(--coq-g);
 }
 .coq-lien.seul {
   justify-content: center;
@@ -259,8 +272,8 @@
 .coq-profil {
   display: flex;
   align-items: center;
-  gap: 6px;
-  height: 44px;
+  gap: 4px;
+  height: 40px;
   margin-left: 6px;
   padding: 0 6px 0 2px;
   border-radius: 999px;
@@ -277,8 +290,8 @@
 .coq-avatar {
   display: grid;
   place-items: center;
-  width: 38px;
-  height: 38px;
+  width: 32px;
+  height: 32px;
   border-radius: 50%;
   overflow: hidden;
   box-shadow: 0 0 0 1px var(--border);
@@ -462,13 +475,13 @@
   }
   .coq-top.transparente .coq-avatar {
     box-shadow:
-      0 0 0 2px rgb(255 255 255 / 70%),
-      0 2px 8px rgb(0 0 0 / 30%);
+      0 0 0 1.5px rgb(255 255 255 / 70%),
+      0 2px 6px rgb(0 0 0 / 25%);
   }
   .coq-top.transparente .coq-profil.actif .coq-avatar {
     box-shadow:
-      0 0 0 2px #fff,
-      0 2px 8px rgb(0 0 0 / 30%);
+      0 0 0 1.5px #fff,
+      0 2px 6px rgb(0 0 0 / 25%);
   }
   .coq-top.transparente .coq-profil-chev {
     filter: drop-shadow(0 1px 3px rgb(0 0 0 / 35%));
@@ -514,8 +527,8 @@
     height: 40px;
   }
   .coq-avatar {
-    width: 34px;
-    height: 34px;
+    width: 30px;
+    height: 30px;
   }
   .coq-profil-chev {
     display: none;
@@ -530,8 +543,8 @@
     height: 34px;
   }
   .coq-avatar {
-    width: 32px;
-    height: 32px;
+    width: 28px;
+    height: 28px;
   }
   .coq-tool > svg {
     width: 19px;
