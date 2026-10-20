@@ -98,8 +98,8 @@ export const PreferencesSection: React.FC<PreferencesSectionProps> = ({
         <div className="min-w-0">
           <p className="text-sm font-semibold text-foreground">Supprimer mon compte</p>
           <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">
-            Supprime votre compte et toutes vos boutiques, avec toutes leurs données. Rien ne peut
-            être récupéré ensuite. Pour ne supprimer qu'une boutique, passez par « Ma boutique ».
+            Supprime définitivement votre compte. Il doit d'abord ne plus posséder aucune boutique :
+            supprimez-les une par une depuis « Ma boutique ».
           </p>
         </div>
         <button

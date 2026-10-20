@@ -307,6 +307,14 @@ export function useAuthState(): AuthState & AuthActions {
   const deleteAccount = useCallback(async () => {
     const { error } = await supabase.rpc("delete_own_account");
     if (error) {
+      // La base refuse de supprimer un compte qui possède encore une
+      // boutique (stores.owner_id en RESTRICT). On le dit en clair.
+      if (error.code === "23503" || /stores_owner_id_fkey/.test(error.message ?? "")) {
+        return {
+          error:
+            "Votre compte possède encore une boutique. Supprimez d'abord chacune de vos boutiques depuis « Ma boutique », puis votre compte.",
+        };
+      }
       return { error: error.message || "Erreur lors de la suppression du compte." };
     }
     setUser(null);

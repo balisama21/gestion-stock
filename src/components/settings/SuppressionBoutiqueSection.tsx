@@ -7,11 +7,12 @@ interface SuppressionBoutiqueSectionProps {
   /** La boutique ouverte, celle — et la seule — que le bouton supprime. */
   nomBoutique: string;
   /**
-   * Faux quand c'est la dernière boutique du compte : la supprimer
-   * laisserait un compte sans rien à ouvrir. Pour tout effacer, c'est
-   * « Supprimer mon compte », dans Préférences.
+   * Vrai quand c'est la dernière boutique que l'on peut ouvrir. Elle se
+   * supprime quand même — c'est le passage obligé avant de supprimer son
+   * compte —, mais on prévient qu'on arrivera ensuite sur l'écran « créer
+   * ou rejoindre une boutique ».
    */
-  peutSupprimer: boolean;
+  derniere: boolean;
   /** Vérifie le mot de passe actuel ; renvoie un message d'erreur, ou null. */
   reauthentifier: (motDePasse: string) => Promise<{ error: string | null }>;
   supprimer: () => Promise<{ error: string | null }>;
@@ -27,7 +28,7 @@ interface SuppressionBoutiqueSectionProps {
  */
 export const SuppressionBoutiqueSection: React.FC<SuppressionBoutiqueSectionProps> = ({
   nomBoutique,
-  peutSupprimer,
+  derniere,
   reauthentifier,
   supprimer,
 }) => {
@@ -80,15 +81,15 @@ export const SuppressionBoutiqueSection: React.FC<SuppressionBoutiqueSectionProp
           <div className="min-w-0">
             <p className="text-sm font-semibold text-foreground">Supprimer cette boutique</p>
             <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">
-              {peutSupprimer
-                ? `Supprime « ${nomBoutique} » et toutes ses données. Votre compte et vos autres boutiques ne sont pas touchés.`
-                : "C'est la seule boutique de votre compte. Pour tout effacer, utilisez « Supprimer mon compte » dans Préférences."}
+              Supprime « {nomBoutique} » et toutes ses données.{" "}
+              {derniere
+                ? "Votre compte n'est pas touché."
+                : "Votre compte et vos autres boutiques ne sont pas touchés."}
             </p>
           </div>
           <button
             type="button"
             onClick={() => setOuverte(true)}
-            disabled={!peutSupprimer}
             className="app-btn-danger w-full shrink-0 sm:w-auto"
           >
             <Trash2 className="h-4 w-4" />
@@ -122,8 +123,16 @@ export const SuppressionBoutiqueSection: React.FC<SuppressionBoutiqueSectionProp
           historique — seront supprimés définitivement.
         </p>
         <p className="mt-2 text-sm font-medium t-success">
-          Votre compte et vos autres boutiques ne sont pas touchés.
+          {derniere
+            ? "Votre compte n'est pas touché."
+            : "Votre compte et vos autres boutiques ne sont pas touchés."}
         </p>
+        {derniere && (
+          <p className="mt-2 text-sm leading-relaxed text-muted-foreground">
+            C'est votre dernière boutique : vous pourrez ensuite en créer une nouvelle, en rejoindre
+            une, ou supprimer votre compte.
+          </p>
+        )}
 
         <div className="mt-4">
           <label

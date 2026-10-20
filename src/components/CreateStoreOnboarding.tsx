@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { useMarque } from "../hooks/useMarque";
 import { Link } from "@tanstack/react-router";
-import { Store, Sparkles, UserPlus, LogOut, KeyRound } from "lucide-react";
+import { Store, Sparkles, UserPlus, LogOut, KeyRound, Trash2 } from "lucide-react";
 import { useAuth } from "../hooks/useAuth";
 import { useWorkspace } from "../hooks/useWorkspace";
 import { supabase } from "../lib/supabase";
@@ -9,6 +9,7 @@ import { MotSymbole } from "./shared/MotSymbole";
 import { LogoMarque } from "./landing/LogoMarque";
 import { ESSAI_JOURS } from "../lib/offres";
 import { hoteVisite } from "../lib/marquesBoutiques";
+import { SuppressionCompteModal } from "./settings/SuppressionCompteModal";
 
 /**
  * Affiché quand un utilisateur est authentifié mais ne possède/rejoint
@@ -37,6 +38,9 @@ export const CreateStoreOnboarding: React.FC = () => {
   const [joinCode, setJoinCode] = useState("");
   const [joiningWithCode, setJoiningWithCode] = useState(false);
   const [joinCodeError, setJoinCodeError] = useState<string | null>(null);
+  // On arrive ici aussi après avoir supprimé sa dernière boutique : c'est
+  // alors le seul endroit d'où supprimer son compte.
+  const [suppressionCompte, setSuppressionCompte] = useState(false);
 
   const handleCreateStore = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -213,6 +217,19 @@ export const CreateStoreOnboarding: React.FC = () => {
           <LogOut className="w-3.5 h-3.5" />
           Me déconnecter
         </button>
+        <button
+          type="button"
+          onClick={() => setSuppressionCompte(true)}
+          className="flex w-full items-center justify-center gap-1.5 pb-4 text-xs text-muted-foreground transition-colors hover:text-foreground"
+        >
+          <Trash2 className="w-3.5 h-3.5" />
+          Supprimer mon compte
+        </button>
+        <SuppressionCompteModal
+          open={suppressionCompte}
+          onClose={() => setSuppressionCompte(false)}
+          boutiques={[]}
+        />
       </div>
     </div>
   );

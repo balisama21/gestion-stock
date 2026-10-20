@@ -11,13 +11,13 @@ import { SuppressionBoutiqueSection } from "./SuppressionBoutiqueSection";
 
 afterEach(cleanup);
 
-function afficher(peutSupprimer = true) {
+function afficher(derniere = false) {
   const reauthentifier = vi.fn(async () => ({ error: null as string | null }));
   const supprimer = vi.fn(async () => ({ error: null as string | null }));
   render(
     <SuppressionBoutiqueSection
       nomBoutique="Vente en ligne"
-      peutSupprimer={peutSupprimer}
+      derniere={derniere}
       reauthentifier={reauthentifier}
       supprimer={supprimer}
     />,
@@ -73,10 +73,11 @@ describe("supprimer cette boutique", () => {
     await waitFor(() => expect(screen.queryByRole("dialog")).toBeNull());
   });
 
-  it("la dernière boutique du compte ne se supprime pas d'ici", () => {
-    afficher(false);
+  it("la dernière boutique se supprime aussi, en prévenant de la suite", () => {
+    afficher(true);
     const bouton = screen.getByRole("button", { name: "Supprimer" }) as HTMLButtonElement;
-    expect(bouton.disabled).toBe(true);
-    expect(screen.getByText(/seule boutique de votre compte/)).toBeTruthy();
+    expect(bouton.disabled).toBe(false);
+    ouvrir();
+    expect(screen.getByRole("dialog").textContent).toContain("C'est votre dernière boutique");
   });
 });
