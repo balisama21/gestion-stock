@@ -26,7 +26,7 @@ import { LogoMarque } from "./LogoMarque";
 export const PanneauMarque: React.FC = () => (
   <div className="relative text-center lg:text-left">
     <div className="flex items-center justify-center gap-4 lg:justify-start">
-      <img src="/logo.svg" alt="" width={79} height={58} className="h-[3.6rem] w-auto" />
+      <img src="/logo.svg" alt="" width={68} height={64} className="h-16 w-auto" />
       <MotSymbole hauteur={54} couleur="var(--carbone)" />
     </div>
 
