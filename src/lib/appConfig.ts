@@ -5,6 +5,14 @@ export const APP_TAGLINE = "Toute votre entreprise, dans un seul logiciel.";
 export const APP_SHORT_NAME = "Tantana";
 
 /**
+ * Référencement de Tantana Suite : son adresse officielle (canonical,
+ * sitemap, données structurées) et le titre que Google affiche. Les
+ * marques clientes ont les leurs, tirés de leur fiche (`lib/seo.ts`).
+ */
+export const APP_URL = "https://tantana-suite.com";
+export const APP_TITRE_SEO = `${APP_NAME} — Logiciel de gestion de stock, ventes et facturation`;
+
+/**
  * Numéro par lequel joindre l'administrateur.
  *
  * Affiché à qui a oublié son mot de passe : tant qu'aucun domaine n'est

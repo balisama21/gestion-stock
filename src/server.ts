@@ -7,6 +7,7 @@ import { MANIFESTE_DE_MARQUE, MANIFESTE_PAR_DEFAUT, type Marque } from "./lib/ma
 import { lireMarqueDeLHote, manifesteDeMarque } from "./lib/marqueServeur";
 import { initialeDeMarque, lireCheminIconeRepli } from "./lib/iconeRepli";
 import { pngIconeRepli } from "./lib/iconeRepliRendu";
+import { estRobot, robotsTxt, sitemapXml } from "./lib/seo";
 
 // Marque de l'hôte, lue par `marqueCourante()` pendant le rendu.
 const marqueDeLaRequete = new AsyncLocalStorage<Marque | null>();
@@ -61,11 +62,20 @@ export default {
   async fetch(request: Request, env: unknown, ctx: unknown) {
     try {
       const url = new URL(request.url);
-      const { marque, sure } = await lireMarqueDeLHote(url.hostname);
       const icone = lireCheminIconeRepli(url.pathname);
+      const robots = url.pathname === "/robots.txt";
+      const sitemap = url.pathname === "/sitemap.xml";
+      const pourUnRobot = robots || sitemap || estRobot(request.headers.get("user-agent"));
 
-      // Lecture en échec : une erreur passagère, jamais le manifeste de Tantana.
-      if (!sure && (url.pathname === MANIFESTE_DE_MARQUE || icone)) {
+      let { marque, sure } = await lireMarqueDeLHote(url.hostname);
+      // Un robot patiente volontiers quelques secondes : une instance qui
+      // démarre à froid ne doit pas lui valoir une erreur.
+      if (!sure && pourUnRobot) ({ marque, sure } = await lireMarqueDeLHote(url.hostname, 5000));
+
+      // Lecture en échec : une erreur passagère, jamais le manifeste de
+      // Tantana. Les robots non plus ne doivent pas voir ses couleurs sur
+      // un domaine client : Google réessaie un 503 sans rien désindexer.
+      if (!sure && (url.pathname === MANIFESTE_DE_MARQUE || icone || pourUnRobot)) {
         return new Response(null, {
           status: 503,
           headers: { "cache-control": "no-store", "retry-after": "30" },
@@ -78,6 +88,27 @@ export default {
           headers: {
             "content-type": "application/manifest+json; charset=utf-8",
             "cache-control": "public, max-age=300",
+          },
+        });
+      }
+
+      // Propres au domaine visité : chacun annonce son sitemap.
+      if (robots) {
+        return new Response(robotsTxt(url.hostname, marque), {
+          headers: {
+            "content-type": "text/plain; charset=utf-8",
+            "cache-control": "public, max-age=3600",
+          },
+        });
+      }
+
+      if (sitemap) {
+        const xml = sitemapXml(url.hostname, marque);
+        if (!xml) return new Response(null, { status: 404 });
+        return new Response(xml, {
+          headers: {
+            "content-type": "application/xml; charset=utf-8",
+            "cache-control": "public, max-age=3600",
           },
         });
       }

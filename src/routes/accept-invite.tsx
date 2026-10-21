@@ -1,4 +1,5 @@
 import { createFileRoute, Link } from "@tanstack/react-router";
+import { ROBOTS_PRIVE } from "../lib/seo";
 import { useEffect, useState } from "react";
 import { supabase } from "../lib/supabase";
 import { hoteVisite } from "../lib/marquesBoutiques";
@@ -17,6 +18,8 @@ import {
 } from "lucide-react";
 
 export const Route = createFileRoute("/accept-invite")({
+  // Page privée : hors des résultats de recherche.
+  head: () => ({ meta: [{ name: "robots", content: ROBOTS_PRIVE }] }),
   validateSearch: (search: Record<string, unknown>) => ({
     token: typeof search.token === "string" ? search.token : undefined,
   }),

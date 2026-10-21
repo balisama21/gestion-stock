@@ -26,6 +26,7 @@ const AUTORISES: Record<string, string> = {
   "lib/abonnementNouvelleBoutique.ts":
     "étiquettes internes ; « marque » sur un domaine client, rien d'affiché",
   "lib/aide.ts": "question marquée `offre`, filtrée hors Tantana",
+  "lib/seo.ts": "description et données structurées de Tantana seulement (`parDefaut`)",
   "hooks/useAbonnementAlertesStock.ts": "message conditionné par la marque",
   "hooks/useReglagesAlertesStock.ts": "message conditionné par la marque",
   // Vocabulaire métier, sans rapport avec l'offre du logiciel.
