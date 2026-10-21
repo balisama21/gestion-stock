@@ -15,7 +15,10 @@ import { installerRepriseApresDeploiement } from "../lib/chunkRecovery";
 import { enregistrerServiceWorker } from "../lib/pwa";
 import { accorderLaBarreDEtat } from "../lib/couleurDeBarre";
 import { InstallPrompt } from "../components/shared/InstallPrompt";
+import { APP_TITRE_SEO } from "../lib/appConfig";
+import { metasDeReferencement } from "../lib/seo";
 import {
+  hoteDuRendu,
   manifesteDe,
   marqueCourante,
   marqueDuRendu,
@@ -87,6 +90,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
   // l'hydratation au lieu de dupliquer icône et métas.
   head: () => {
     const marque = marqueCourante();
+    const titre = titreDePage(marque, APP_TITRE_SEO);
     return {
       meta: [
         { charSet: "utf-8" },
@@ -100,20 +104,10 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
           name: "viewport",
           content: "width=device-width, initial-scale=1, viewport-fit=cover",
         },
-        { title: titreDePage(marque, marque.nom) },
-        {
-          name: "description",
-          content: marque.slogan,
-        },
-        // Métas d'aperçu : lues par les robots, donc dans le rendu serveur.
-        { name: "author", content: marque.nom },
-        { property: "og:title", content: marque.nom },
-        {
-          property: "og:description",
-          content: marque.slogan,
-        },
-
-        { property: "og:type", content: "website" },
+        { title: titre },
+        // Référencement et aperçus : lus par les robots, donc dans le
+        // rendu serveur, et propres au domaine visité (lib/seo.ts).
+        ...metasDeReferencement(marque, hoteDuRendu(), titre),
         // La barre d'etat prend la couleur de ce qui se trouve JUSTE en
         // dessous d'elle, c'est-a-dire l'en-tete de l'application. Le vert
         // de la marque y ferait un bandeau colore la ou l'on veut
@@ -130,7 +124,6 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         { name: "apple-mobile-web-app-capable", content: "yes" },
         { name: "apple-mobile-web-app-status-bar-style", content: "default" },
         { name: "apple-mobile-web-app-title", content: marque.nomCourt },
-        { name: "twitter:card", content: "summary_large_image" },
       ],
       links: [
         {

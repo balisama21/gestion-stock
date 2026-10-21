@@ -211,16 +211,26 @@ export const manifesteDe = (m: Marque): string =>
   m.parDefaut && estHoteParDefaut(hoteDuRendu()) ? MANIFESTE_PAR_DEFAUT : MANIFESTE_DE_MARQUE;
 
 /** Hôte de la page : celui de la requête côté serveur (posé par `server.ts`). */
-function hoteDuRendu(): string {
+export function hoteDuRendu(): string {
   if (typeof window !== "undefined") return window.location.hostname;
   return (
     (globalThis as { __hoteDeLaRequete?: () => string | undefined }).__hoteDeLaRequete?.() ?? ""
   );
 }
 
-/** Titre d'onglet ; `titreTantana` ne sert que pour la marque d'origine. */
+/**
+ * Titre d'onglet, aussi celui des résultats de recherche ;
+ * `titreTantana` ne sert que pour la marque d'origine. Sans titre
+ * choisi, une marque avec sa page d'accueil y joint son accroche
+ * (« Kinvest — Emballages et packaging… ») : le nom seul ne dit pas
+ * à Google ce que fait l'entreprise.
+ */
 export const titreDePage = (m: Marque, titreTantana: string): string =>
-  m.parDefaut ? titreTantana : m.titre || m.nom;
+  m.parDefaut ? titreTantana : titreDeMarque(m);
+
+/** Même règle, recopiée dans `appliquerMarqueAuDocument` (autonome). */
+const titreDeMarque = (m: Marque): string =>
+  m.titre || (m.landing?.titre ? `${m.nom} — ${m.landing.titre}` : m.nom);
 
 /**
  * Applique une marque au document. AUTONOME (ni import, ni closure) :
@@ -262,8 +272,8 @@ export function appliquerMarqueAuDocument(m: Marque | null): void {
     return;
   }
 
-  // Titre et icônes
-  const titre = m.titre || m.nom;
+  // Titre et icônes ; même règle que `titreDeMarque`.
+  const titre = m.titre || (m.landing && m.landing.titre ? m.nom + " — " + m.landing.titre : m.nom);
   if (d.title !== titre) d.title = titre;
   const icone = lien("icon");
   icone.removeAttribute("type");

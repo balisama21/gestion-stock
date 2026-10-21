@@ -1,4 +1,5 @@
 import { createFileRoute, useNavigate, Link } from "@tanstack/react-router";
+import { ROBOTS_PRIVE } from "../lib/seo";
 import { useEffect, useState } from "react";
 import { useAuth } from "../hooks/useAuth";
 import { traduireErreurAuth } from "../lib/messagesAuth";
@@ -6,6 +7,8 @@ import { useMarque } from "../hooks/useMarque";
 import { AlertCircle, ArrowLeft, CheckCircle2, Eye, EyeOff, KeyRound, Lock } from "lucide-react";
 
 export const Route = createFileRoute("/reset-password")({
+  // Page privée : hors des résultats de recherche.
+  head: () => ({ meta: [{ name: "robots", content: ROBOTS_PRIVE }] }),
   component: ResetPasswordPage,
 });
 

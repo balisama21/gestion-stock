@@ -27,7 +27,10 @@ export interface LectureMarque {
   sure: boolean;
 }
 
-export async function lireMarqueDeLHote(hoteBrut: string): Promise<LectureMarque> {
+export async function lireMarqueDeLHote(
+  hoteBrut: string,
+  delaiMs = DELAI_MS,
+): Promise<LectureMarque> {
   const hote = normaliserHote(hoteBrut);
   if (estHoteParDefaut(hote)) return { marque: null, sure: true };
 
@@ -46,7 +49,7 @@ export async function lireMarqueDeLHote(hoteBrut: string): Promise<LectureMarque
       method: "POST",
       headers: { apikey: cle, Authorization: `Bearer ${cle}`, "Content-Type": "application/json" },
       body: JSON.stringify({ p_hostname: hote }),
-      signal: AbortSignal.timeout(DELAI_MS),
+      signal: AbortSignal.timeout(delaiMs),
     });
     if (!reponse.ok) throw new Error(`get_public_branding : ${reponse.status}`);
     const lignes = (await reponse.json()) as LigneMarquePublique[] | null;
