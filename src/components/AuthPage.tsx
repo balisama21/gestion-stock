@@ -243,7 +243,7 @@ export const AuthPage: React.FC = () => {
           >
             <div className="mx-auto flex max-w-7xl items-center justify-between gap-3 px-5 py-3 sm:px-8">
               <span className="flex items-center gap-3">
-                <img src="/logo.svg" alt="" width={60} height={44} className="h-9 w-auto sm:h-11" />
+                <img src="/logo.svg" alt="" width={51} height={48} className="h-10 w-auto sm:h-12" />
                 <MotSymbole hauteur={40} couleur="var(--carbone)" />
               </span>
               <button
@@ -719,7 +719,7 @@ export const AuthPage: React.FC = () => {
       {vitrine && (
         <footer className="reglure px-5 py-10 text-center">
           <div className="mx-auto flex max-w-3xl flex-col items-center gap-2">
-            <img src="/logo.svg" alt="" width={49} height={36} className="h-9 w-auto" />
+            <img src="/logo.svg" alt="" width={42} height={40} className="h-10 w-auto" />
             <MotSymbole hauteur={34} couleur="var(--carbone)" className="mt-1" />
             <p className="mt-1 text-xs" style={{ color: "var(--carbone-doux)" }}>
               {marque.slogan}
