@@ -259,41 +259,41 @@ const ETAPES: Etape[] = [
       src: tresorerie,
       petit: tresoreriePetit,
       largeur: 1600,
-      hauteur: 1073,
+      hauteur: 1136,
       ecran: "Capital & trésorerie",
       alt: "Écran de trésorerie avec la composition des entrées et sorties",
       reperes: [
         {
           x: 18.5,
-          y: 26.3,
+          y: 24.8,
           cote: "gauche",
           titre: "L'argent disponible",
           texte: "Ce qu'il y a dans la caisse, maintenant.",
         },
         {
           x: 96,
-          y: 9.1,
+          y: 8.5,
           cote: "droite",
           titre: "Ajouter un apport",
           texte: "Une injection d'argent, notée avec sa source.",
         },
         {
           x: 93.4,
-          y: 21.3,
+          y: 20.1,
           cote: "droite",
           titre: "Saine ou basse",
           texte: "Le signal passe à l'orange sous votre seuil.",
         },
         {
           x: 96.2,
-          y: 62.5,
+          y: 59,
           cote: "droite",
           titre: "Ce qui est entré",
           texte: "Les ventes et commandes encaissées.",
         },
         {
           x: 96.2,
-          y: 70.5,
+          y: 66.5,
           cote: "droite",
           titre: "Ce qui est sorti",
           texte: "Les achats de stock et les dépenses.",
@@ -321,34 +321,34 @@ const ETAPES: Etape[] = [
       src: commandes,
       petit: commandesPetit,
       largeur: 1600,
-      hauteur: 909,
+      hauteur: 977,
       ecran: "Commandes",
       alt: "Liste des commandes avec leur statut et leur paiement",
       reperes: [
         {
           x: 12.7,
-          y: 49.5,
+          y: 52.6,
           cote: "gauche",
           titre: "Statut et paiement",
           texte: "En attente, en cours, livré · impayé, partiel, payé.",
         },
         {
           x: 26.6,
-          y: 91.5,
+          y: 91.6,
           cote: "gauche",
           titre: "Marquer livré",
           texte: "La marchandise réservée sort du stock.",
         },
         {
-          x: 94,
-          y: 28.7,
+          x: 92.3,
+          y: 29.2,
           cote: "droite",
           titre: "Les impayés",
           texte: "Ce qui reste à encaisser sur les commandes.",
         },
         {
-          x: 54,
-          y: 82.7,
+          x: 54.1,
+          y: 82.6,
           cote: "droite",
           titre: "Total, payé, reste",
           texte: "Chaque commande, au clair.",
@@ -554,8 +554,8 @@ export const VisiteGuidee: React.FC = () => (
             style={{ color: "var(--carbone-doux)" }}
           >
             Une vente saisie une fois se retrouve dans le stock, dans la caisse et dans le bilan.
-            Suivez une journée de boutique, du comptoir à la caisse : voici les vrais écrans, sur
-            une boutique de démonstration.
+            Suivez une journée de boutique, du comptoir à la caisse : voici les vrais écrans de
+            l'application.
           </p>
         </Revele>
         <Revele delai={120}>
@@ -615,44 +615,44 @@ export const VisiteGuidee: React.FC = () => (
             reperes={[
               {
                 x: 21.6,
-                y: 26.7,
+                y: 28.1,
                 cote: "gauche",
                 titre: "Les alertes du jour",
                 texte: "Tâches en retard, produits à racheter.",
               },
               {
                 x: 18.5,
-                y: 44.7,
+                y: 48.1,
                 cote: "gauche",
                 titre: "Ventes du jour",
                 texte: "Comparées à la veille.",
               },
               {
-                x: 46.3,
-                y: 44.7,
+                x: 46.1,
+                y: 48.1,
                 cote: "gauche",
                 titre: "Entrées d'argent",
                 texte: "Ce qui a été encaissé aujourd'hui.",
               },
               {
-                x: 37.9,
-                y: 90,
+                x: 38.2,
+                y: 95,
                 cote: "gauche",
                 titre: "La courbe du mois",
                 texte: "Les ventes, jour après jour.",
               },
               {
-                x: 58.5,
-                y: 44.7,
+                x: 59.2,
+                y: 48.1,
                 cote: "droite",
                 titre: "Sorties d'argent",
                 texte: "Achats et dépenses du jour et du mois.",
               },
               {
                 x: 86.3,
-                y: 55.2,
+                y: 58.4,
                 cote: "droite",
-                titre: "Bientôt en rupture",
+                titre: "À recommander",
                 texte: "Les produits à racheter avant qu'ils manquent.",
               },
             ]}
@@ -746,7 +746,7 @@ export const VisiteGuidee: React.FC = () => (
       </div>
 
       <p className="mt-16 text-center text-[0.75rem]" style={{ color: "var(--carbone-doux)" }}>
-        Écrans : boutique de démonstration, données fictives · Photos : Unsplash
+        Écrans de l'application, chiffres d'exemple · Photos : Unsplash
       </p>
     </div>
   </section>
