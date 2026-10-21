@@ -12,7 +12,7 @@ interface HeroAccueilProps {
  * Ouverture de la page : le logiciel, posé dans la nature.
  *
  * En fond, une vallée verte ; au premier plan, le vrai tableau de bord de
- * la boutique de démonstration ; autour, des médaillons de la faune et de
+ * la boutique d'exemple ; à côté, des médaillons de la faune et de
  * la flore. Ce ne sont pas des photos décoratives choisies pour l'occasion :
  * ce sont celles que le tableau de bord affiche chaque matin
  * (`HERO_PAYSAGES_JOUR`), si bien que la page d'accueil montre déjà
@@ -27,48 +27,15 @@ const photo = (id: string, largeur: number) =>
 
 const FOND = "1541637593725-923467404d17";
 
-interface Medaillon {
-  id: string;
-  legende: string;
-  /** Position autour de la capture, en classes Tailwind. */
-  place: string;
-  taille: string;
-  /** Décalage de l'animation, pour que les médaillons ne flottent pas ensemble. */
-  delai: string;
-  /** Masqué sur téléphone, où la place manque. */
-  grandEcran?: boolean;
-}
-
-const MEDAILLONS: Medaillon[] = [
-  {
-    id: "1750615745167-09d610d30d54",
-    legende: "Lémurien",
-    place: "-left-6 -top-10 sm:-left-12 sm:-top-14",
-    taille: "h-20 w-20 sm:h-28 sm:w-28",
-    delai: "0s",
-  },
-  {
-    id: "1781520513038-8fe543ed270b",
-    legende: "Caméléon",
-    place: "-right-4 top-[38%] sm:-right-12",
-    taille: "h-16 w-16 sm:h-24 sm:w-24",
-    delai: "-2.2s",
-  },
-  {
-    id: "1554569258-670a25302596",
-    legende: "Hibiscus",
-    place: "-bottom-8 left-[12%] sm:-bottom-10",
-    taille: "h-16 w-16 sm:h-[5.5rem] sm:w-[5.5rem]",
-    delai: "-4.1s",
-  },
-  {
-    id: "1621089667522-272aa4b5b71b",
-    legende: "Martin-pêcheur",
-    place: "-right-6 -top-8",
-    taille: "h-20 w-20",
-    delai: "-1.3s",
-    grandEcran: true,
-  },
+/**
+ * Rangés à côté de la capture, jamais dessus : en colonne à sa droite sur
+ * grand écran, en ligne dessous sur téléphone.
+ */
+const MEDAILLONS = [
+  { id: "1750615745167-09d610d30d54", legende: "Lémurien" },
+  { id: "1621089667522-272aa4b5b71b", legende: "Martin-pêcheur" },
+  { id: "1781520513038-8fe543ed270b", legende: "Caméléon" },
+  { id: "1554569258-670a25302596", legende: "Hibiscus" },
 ];
 
 /** Le bandeau du bas : la nature que le tableau de bord fait défiler. */
@@ -84,18 +51,13 @@ const BANDEAU = [
 export const HeroAccueil: React.FC<HeroAccueilProps> = ({ onRejoindreConnexion }) => (
   <section className="relative isolate overflow-hidden">
     <style>{`
-      @keyframes ha-flotte {
-        0%, 100% { transform: translateY(0); }
-        50% { transform: translateY(-10px); }
-      }
       @keyframes ha-entree {
         from { opacity: 0; transform: translateY(18px); }
         to { opacity: 1; transform: none; }
       }
-      .ha-flotte { animation: ha-flotte 6s ease-in-out infinite; }
       .ha-entree { animation: ha-entree .9s cubic-bezier(.2,.7,.2,1) both; }
       @media (prefers-reduced-motion: reduce) {
-        .ha-flotte, .ha-entree { animation: none; }
+        .ha-entree { animation: none; }
       }
     `}</style>
 
@@ -160,13 +122,13 @@ export const HeroAccueil: React.FC<HeroAccueilProps> = ({ onRejoindreConnexion }
         </div>
       </div>
 
-      {/* Le vrai tableau de bord, entouré de la faune et de la flore. */}
+      {/* Le vrai tableau de bord, accompagné de la faune et de la flore. */}
       <div
-        className="ha-entree relative mx-auto w-full max-w-[40rem]"
+        className="ha-entree mx-auto flex w-full max-w-[40rem] flex-col gap-6 lg:max-w-none lg:flex-row lg:items-stretch lg:gap-5"
         style={{ animationDelay: ".15s" }}
       >
         <div
-          className="overflow-hidden rounded-2xl border border-white/30 bg-white"
+          className="min-w-0 flex-1 overflow-hidden rounded-2xl border border-white/30 bg-white"
           style={{ boxShadow: "0 40px 90px -30px rgba(0,0,0,.6), 0 0 0 6px rgba(255,255,255,.08)" }}
         >
           <div
@@ -191,21 +153,17 @@ export const HeroAccueil: React.FC<HeroAccueilProps> = ({ onRejoindreConnexion }
           />
         </div>
 
-        {MEDAILLONS.map((m) => (
-          <figure
-            key={m.id}
-            className={`absolute m-0 ${m.place} ${m.grandEcran ? "hidden lg:block" : ""}`}
-          >
-            <div className="ha-flotte" style={{ animationDelay: m.delai }}>
-              <img
-                src={photo(m.id, 240)}
-                alt={m.legende}
-                loading="lazy"
-                className={`${m.taille} rounded-full border-4 border-white object-cover shadow-xl`}
-              />
-            </div>
-          </figure>
-        ))}
+        <div className="grid shrink-0 grid-cols-4 gap-3 sm:gap-5 lg:flex lg:flex-col lg:justify-between lg:gap-0 lg:py-1">
+          {MEDAILLONS.map((m) => (
+            <img
+              key={m.id}
+              src={photo(m.id, 240)}
+              alt={m.legende}
+              loading="lazy"
+              className="aspect-square w-full rounded-full border-4 border-white object-cover shadow-xl lg:h-[4.5rem] lg:w-[4.5rem]"
+            />
+          ))}
+        </div>
       </div>
     </div>
 
