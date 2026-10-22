@@ -106,6 +106,9 @@ describe("référencement par domaine", () => {
     expect(commerce.url).toBe("https://mg-kinvest.com/");
     expect(commerce.address).toBe("Moroni, Union des Comores");
     expect(commerce.telephone).toBe("+269 334 03 57");
+    // Sans prix affiché, aucun `Product` : Google le jugerait invalide.
+    expect(JSON.stringify(k)).not.toMatch(/"Product"|"Offer"/);
+    expect(commerce.knowsAbout).toEqual(["Doypacks"]);
     expect(JSON.stringify(k)).not.toMatch(/tantana/i);
 
     const t = donneesStructurees(MARQUE_PAR_DEFAUT, "tantana-suite.com") as {

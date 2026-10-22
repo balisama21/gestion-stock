@@ -112,12 +112,12 @@ Deux clics une fois l'étape 1 faite.
 
 ## Ce que fait le code (pour mémoire)
 
-| Élément                | tantana-suite.com                                           | mg-kinvest.com                                   |
-| ---------------------- | ----------------------------------------------------------- | ------------------------------------------------ |
-| Titre                  | Tantana Suite — Logiciel de gestion de stock…               | Kinvest — Emballages et packaging…               |
-| Description            | texte fixe (`lib/seo.ts`)                                   | accroche de la page d'accueil Kinvest            |
-| Canonical              | https://tantana-suite.com/                                  | https://mg-kinvest.com/ (même depuis `www.`)     |
-| Données structurées    | Organization + WebSite + SoftwareApplication                | LocalBusiness (Moroni) + WebSite, avec catalogue |
-| `robots.txt` / sitemap | générés par `server.ts`, propres au domaine                 | idem                                             |
-| Pages privées          | `/reset-password`, `/accept-invite` en `noindex`            | idem                                             |
-| Aperçus Netlify        | `noindex` + `robots.txt` fermé, canonical vers le vrai site | —                                                |
+| Élément                | tantana-suite.com                                           | mg-kinvest.com                                                         |
+| ---------------------- | ----------------------------------------------------------- | ---------------------------------------------------------------------- |
+| Titre                  | Tantana Suite — Logiciel de gestion de stock…               | Kinvest — Emballages et packaging…                                     |
+| Description            | texte fixe (`lib/seo.ts`)                                   | accroche de la page d'accueil Kinvest                                  |
+| Canonical              | https://tantana-suite.com/                                  | https://mg-kinvest.com/ (même depuis `www.`)                           |
+| Données structurées    | Organization + WebSite + SoftwareApplication                | LocalBusiness (Moroni) + WebSite, thèmes du catalogue (sans `Product`) |
+| `robots.txt` / sitemap | générés par `server.ts`, propres au domaine                 | idem                                                                   |
+| Pages privées          | `/reset-password`, `/accept-invite` en `noindex`            | idem                                                                   |
+| Aperçus Netlify        | `noindex` + `robots.txt` fermé, canonical vers le vrai site | —                                                                      |

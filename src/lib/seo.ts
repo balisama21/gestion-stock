@@ -130,7 +130,8 @@ export const lienCanonique = (m: Marque, hote: string, chemin = "/"): string =>
  *
  * Tantana : l'éditeur, le site et le logiciel (`SoftwareApplication`).
  * Marque cliente avec sa page d'accueil : un commerce (`LocalBusiness`)
- * avec ses coordonnées et son catalogue ; sans page : une organisation.
+ * avec ses coordonnées et les thèmes de son catalogue ; sans page : une
+ * organisation.
  */
 export function donneesStructurees(m: Marque, hote: string): Record<string, unknown> {
   const origine = origineDe(hote, m);
@@ -229,23 +230,11 @@ export function donneesStructurees(m: Marque, hote: string): Record<string, unkn
           ],
         }
       : null),
-    ...(catalogue
-      ? {
-          hasOfferCatalog: {
-            "@type": "OfferCatalog",
-            name: catalogue.titre || m.nom,
-            itemListElement: catalogue.elements.map((e) => ({
-              "@type": "Offer",
-              itemOffered: {
-                "@type": "Product",
-                name: e.titre,
-                ...(e.texte ? { description: e.texte } : null),
-                ...(e.image ? { image: absolue(urlImage(e.image, 800), origine) } : null),
-              },
-            })),
-          },
-        }
-      : null),
+    // Les familles du catalogue, en simples thèmes. Surtout pas en
+    // `Product` : Google exige alors un prix (`offers`) ou des avis, que
+    // la page n'affiche pas, et marque chaque élément comme invalide
+    // dans le rapport « Extraits de produits ».
+    ...(catalogue ? { knowsAbout: catalogue.elements.map((e) => e.titre) } : null),
   };
   return { "@context": "https://schema.org", "@graph": [organisation, site] };
 }
