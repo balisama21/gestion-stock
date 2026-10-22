@@ -132,11 +132,12 @@
   background: var(--sidebar-accent);
   color: var(--coq-ink);
 }
+/* L'onglet actif : un fond vert très doux et le trait à gauche, sans
+   contour — le vert ne cerne rien. */
 .coq-lien.on {
   background: var(--coq-gsoft);
   color: var(--coq-g2);
   font-weight: 600;
-  box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--coq-g) 18%, transparent);
 }
 /* Le repère de l'onglet actif : un trait droit, arrondi à ses bouts,
    posé contre le bord gauche. Une ombre intérieure suivait l'arrondi du
@@ -322,9 +323,7 @@
   background: var(--card);
   border: 1px solid var(--border);
   border-radius: 14px;
-  box-shadow:
-    0 1px 2px rgb(0 0 0 / 6%),
-    0 16px 40px -12px rgb(0 0 0 / 22%);
+  box-shadow: var(--elev-3);
   animation: coq-menu-in 0.14s ease-out;
 }
 @keyframes coq-menu-in {

@@ -27,26 +27,27 @@
 
 .org2,
 .org2-portal {
-  --bg: #f2f5f2;
+  /* Les neutres de la palette reposante (voir src/styles.css). */
+  --bg: #f7f8f5;
   --surface: #ffffff;
-  --surface-2: #f6f8f5;
-  --line: #e2e8e3;
-  --line-2: #edf1ee;
-  --ink: #17211d;
-  --ink-2: #44504a;
-  --muted: #76817b;
+  --surface-2: #f3f5f3;
+  --line: #dde5df;
+  --line-2: #e9eeea;
+  --ink: #263a32;
+  --ink-2: #3f5148;
+  --muted: #52645a;
   --accent: var(--primary);
   --accent-ink: var(--success);
   --accent-soft: var(--success-soft);
-  --warn: #b06f12;
-  --warn-soft: #fbf0dc;
+  --warn: #a65b16;
+  --warn-soft: #fbf3ea;
   --crit: #c0473a;
   --crit-soft: #fbe6e2;
   --info: #3a72a6;
   --info-soft: #e3edf6;
   --hero-1: oklch(from var(--primary) 0.49 calc(c * 0.85) h);
   --hero-2: oklch(from var(--primary) 0.33 calc(c * 0.5) h);
-  --shadow: 0 1px 2px rgba(20, 40, 30, 0.05), 0 6px 20px -12px rgba(20, 40, 30, 0.18);
+  --shadow: 0 1px 2px rgb(38 58 50 / 5%), 0 4px 14px rgb(38 58 50 / 4%);
   --sans: "Onest Documents", "Onest", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
     sans-serif;
   --mono: "JetBrains Mono Documents", "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo,

@@ -859,7 +859,7 @@ export const Header: React.FC<HeaderProps> = ({
       {/* Mobile Bottom Navigation */}
       <nav
         data-masquee={barresMasquees}
-        className="app-bar-auto app-bar-bas lg:hidden fixed bottom-0 left-0 right-0 z-50 bg-card/95 backdrop-blur border-t border-border shadow-[0_-4px_20px_rgba(0,0,0,0.25)]"
+        className="app-bar-auto app-bar-bas lg:hidden fixed bottom-0 left-0 right-0 z-50 bg-card/95 backdrop-blur border-t border-border shadow-[0_-4px_18px_rgba(38,58,50,0.07)]"
       >
         {/* Le nombre de colonnes suit le nombre de raccourcis. Il était
             figé à cinq : une boutique qui masquait un module laissait
@@ -888,7 +888,7 @@ export const Header: React.FC<HeaderProps> = ({
                   <span className="absolute inset-x-4 top-0 h-0.5 rounded-full bg-primary" />
                 )}
                 {tab.icon}
-                <span className="text-[9px] font-semibold">{tab.shortLabel}</span>
+                <span className="text-[10.5px] font-semibold">{tab.shortLabel}</span>
               </button>
             );
           })}
@@ -901,7 +901,7 @@ export const Header: React.FC<HeaderProps> = ({
               <span className="absolute inset-x-4 top-0 h-0.5 rounded-full bg-primary" />
             )}
             {mobileMenuOpen ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
-            <span className="text-[9px] font-semibold">Plus</span>
+            <span className="text-[10.5px] font-semibold">Plus</span>
           </button>
         </div>
       </nav>

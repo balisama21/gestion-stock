@@ -1,6 +1,6 @@
 import React, { useId, useState } from "react";
 import { Icone } from "../../../components/shared/Icone";
-import { Lead, Lien } from "../components/Tn";
+import { Lead, Lien, TeteCarte } from "../components/Tn";
 import { Tag } from "../components/Tag";
 import { dateLocale, jourMoisChiffres, montant } from "../lib/format";
 import { dateDuJour } from "../../../lib/dates";
@@ -58,11 +58,15 @@ export const CarteTaches: React.FC<{
 
   return (
     <article className="card afaire" id="carte-taches">
-      {nbOuvertes === 0 && <img className="art-feuille" src={illFeuille} alt="" />}
-      <div className="card-h">
-        <Lead nom="check" plein />
-        <div className="todo-ok">
-          <h3 className="grand">À faire</h3>
+      <TeteCarte
+        lead={<Lead nom="check" plein />}
+        grand
+        titre="À faire"
+        action={<Lien onClick={onVoirTaches}>Voir toutes les tâches</Lien>}
+      />
+
+      <div className="todo-ok">
+        <div>
           {nbOuvertes === 0 ? (
             <>
               <b>Rien à faire</b>
@@ -81,7 +85,7 @@ export const CarteTaches: React.FC<{
             </>
           )}
         </div>
-        <Lien onClick={onVoirTaches}>Voir toutes les tâches</Lien>
+        {nbOuvertes === 0 && <img className="art-feuille" src={illFeuille} alt="" />}
       </div>
 
       {ouvertes.length > 0 && (

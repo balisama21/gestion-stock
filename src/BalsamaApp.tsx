@@ -745,9 +745,9 @@ function AppInner() {
       root.style.backgroundColor = "#020617";
     } else {
       // Doit correspondre au token --background du mode clair
-      // (oklch(1 0 0) = blanc) : un gris légèrement différent créait
-      // un aplat visible le temps du chargement.
-      root.style.backgroundColor = "#ffffff";
+      // (#f7f8f5) : une teinte légèrement différente créait un aplat
+      // visible le temps du chargement.
+      root.style.backgroundColor = "#f7f8f5";
     }
     window.localStorage.setItem("balsama-theme", theme);
   }, [theme]);
