@@ -693,7 +693,7 @@ export const ProduitsView: React.FC<ProduitsViewProps> = ({
               onClick={() => setVueReappro(o.cle)}
               className={`flex-1 whitespace-nowrap rounded-lg px-3 py-2 text-xs font-medium transition-colors sm:flex-none ${
                 vueReappro === o.cle
-                  ? "bg-primary text-primary-foreground font-semibold"
+                  ? "bg-card text-primary font-semibold shadow-sm"
                   : "text-muted-foreground hover:text-foreground"
               }`}
             >
@@ -790,7 +790,7 @@ export const ProduitsView: React.FC<ProduitsViewProps> = ({
                     onClick={() => setStockFilter(opt.key)}
                     className={`flex-1 whitespace-nowrap rounded-lg px-2.5 py-2 text-xs font-medium transition-colors lg:flex-none ${
                       stockFilter === opt.key
-                        ? "bg-primary text-primary-foreground font-semibold"
+                        ? "bg-card text-primary font-semibold shadow-sm"
                         : "text-muted-foreground hover:text-foreground"
                     }`}
                   >

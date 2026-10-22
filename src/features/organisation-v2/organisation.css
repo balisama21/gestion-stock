@@ -196,15 +196,29 @@
     transform: rotate(360deg);
   }
 }
+/* Le même titre que les autres écrans : posé sur le fond, souligné d'un
+   trait vert court. */
 .org2 .hello h1 {
+  position: relative;
+  padding-bottom: 12px;
   font-size: 26px;
-  font-weight: 650;
+  font-weight: 700;
   letter-spacing: -0.02em;
+}
+.org2 .hello h1::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 48px;
+  height: 3px;
+  border-radius: 3px;
+  background: var(--accent);
 }
 .org2 .hello p {
   color: var(--ink-2);
   font-size: 14px;
-  margin-top: 4px;
+  margin-top: 10px;
   max-width: 62ch;
 }
 .org2 .tools {
