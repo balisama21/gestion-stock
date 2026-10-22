@@ -2325,13 +2325,16 @@
   font-size: var(--fs-liste);
   white-space: nowrap;
 }
-@media (max-width: 640px) {
-  /* Le mois passe sous le titre : une barre pleine largeur, le mois au
-     centre et une flèche à chaque bout. */
+/* Quand la carte est étroite — téléphone, ou deux colonnes serrées
+   sur un petit portable — le mois passe sous le titre : une barre
+   pleine largeur, le mois au centre et une flèche à chaque bout. */
+@media (max-width: 640px), (min-width: 1000px) and (max-width: 1180px) {
   .tn .agenda .nav2 {
     flex: 1 0 100%;
     justify-content: space-between;
   }
+}
+@media (max-width: 640px) {
   .tn .agenda-vide {
     gap: 14px;
     padding: 14px;
@@ -2530,24 +2533,31 @@
   gap: 16px;
   align-items: center;
 }
+/* Des lignes ouvertes séparées d'un filet, et non des cartes dans la
+   carte : le survol suffit à dire qu'elles se touchent. */
 .tn .cli .list {
   display: grid;
-  gap: 12px;
+  gap: 0;
 }
 .tn .cli .it {
   display: flex;
   align-items: center;
   gap: 14px;
-  background: var(--card);
-  border: 1px solid var(--line);
-  border-radius: 16px;
-  padding: 12px 14px;
-  box-shadow: var(--shadow);
+  background: none;
+  border: 0;
+  border-bottom: 1px solid var(--line);
+  border-radius: 0;
+  padding: 12px 6px;
+  box-shadow: none;
   width: 100%;
   text-align: left;
 }
+.tn .cli .it:last-child {
+  border-bottom: 0;
+}
 .tn .cli .it:not(:disabled):hover {
-  border-color: var(--gsoft2);
+  background: var(--surface-neutre);
+  border-radius: 12px;
 }
 .tn .cli .it .b {
   display: grid;
@@ -4419,17 +4429,18 @@
 }
 
 /* ── Les bannières photographiques des sections ──
-   Une zone à part, d'un bord à l'autre du contenu : la photo remplit la
-   bannière, un voile clair monte de la gauche sous le titre, et le bas
-   s'estompe en quelques pixels dans le fond de page. Rien ne déborde :
-   les cartes de la section commencent en dessous, sans chevauchement,
-   sans marge négative ni empilement de plans. */
+   Une zone à part : la photo remplit la bannière, un voile clair monte
+   de la gauche sous le titre, et ses trois autres bords se fondent dans
+   le fond de page — en haut et en bas sur quelques pixels, à droite sur
+   une bande plus large, à l'image du voile de gauche. Son bord droit
+   s'arrête sur celui des cartes : rien ne déborde dans la marge, et
+   aucune arête nette ne dessine de rectangle autour de la photo. */
 .tn .banner.full.photo {
   aspect-ratio: auto;
   display: flex;
   align-items: center;
   min-height: clamp(180px, calc(270 * var(--us)), 270px);
-  margin: 0 calc(-1 * var(--gut)) calc(var(--ecart) + 8px);
+  margin: 0 0 calc(var(--ecart) + 8px) calc(-1 * var(--gut));
   background: var(--bg);
   border-radius: 0;
   overflow: hidden;
@@ -4448,8 +4459,29 @@
   object-fit: cover;
   user-select: none;
   pointer-events: none;
-  -webkit-mask-image: linear-gradient(180deg, #000 0, #000 calc(100% - 26px), transparent 100%);
-  mask-image: linear-gradient(180deg, #000 0, #000 calc(100% - 26px), transparent 100%);
+  --fondu-droit: min(16%, 200px);
+  --fondu-haut: 30px;
+  --fondu-bas: 30px;
+  -webkit-mask-image:
+    linear-gradient(90deg, #000 0, #000 calc(100% - var(--fondu-droit)), transparent 100%),
+    linear-gradient(
+      180deg,
+      transparent 0,
+      #000 var(--fondu-haut),
+      #000 calc(100% - var(--fondu-bas)),
+      transparent 100%
+    );
+  -webkit-mask-composite: source-in;
+  mask-image:
+    linear-gradient(90deg, #000 0, #000 calc(100% - var(--fondu-droit)), transparent 100%),
+    linear-gradient(
+      180deg,
+      transparent 0,
+      #000 var(--fondu-haut),
+      #000 calc(100% - var(--fondu-bas)),
+      transparent 100%
+    );
+  mask-composite: intersect;
 }
 /* Le voile : la couleur du fond, pleine sous le titre, qui s'efface
    avant le milieu. Il suit le thème — clair le jour, sombre la nuit. */
@@ -4494,7 +4526,12 @@
 @media (max-width: 999px) {
   .tn .banner.full.photo {
     min-height: 150px;
-    margin: 0 calc(-1 * var(--gut)) 16px;
+    margin: 0 0 16px calc(-1 * var(--gut));
+  }
+  .tn .banner.full.photo .bn-photo {
+    --fondu-droit: 22%;
+    --fondu-haut: 18px;
+    --fondu-bas: 22px;
   }
   /* Sur téléphone le titre prend presque toute la largeur : le voile
      couvre davantage, la photo reste nette sur le bord droit. */
@@ -4764,5 +4801,48 @@
 @media (max-width: 640px) {
   .tn .tb-hero h1 {
     font-size: 30px;
+  }
+}
+
+/* ── Téléphone : les petits indicateurs vont par deux ──
+   Quatre compteurs empilés en pleine largeur faisaient quatre cartes
+   pour quatre chiffres. Deux par ligne dès 360 px ; en dessous, une
+   colonne, pour que les montants ne débordent jamais. */
+@media (min-width: 360px) and (max-width: 640px) {
+  .tn .g4.minis,
+  .tn .g4.f-top {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 10px;
+  }
+  .tn .g4.minis > .card,
+  .tn .g4.f-top > .card {
+    padding: 14px;
+  }
+  .tn .mini .h {
+    min-height: 0;
+    gap: 8px;
+  }
+  .tn .mini .v,
+  .tn .f-top .stat .n {
+    font-size: clamp(15px, 4.6vw, 18px);
+  }
+  .tn .f-top .stat {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 6px;
+  }
+}
+
+/* Sur téléphone, la description passe souvent sous la photo : le voile
+   reste plein plus loin pour qu'elle se lise sur un fond calme. */
+@media (max-width: 640px) {
+  .tn .banner.full.photo::after {
+    background: linear-gradient(
+      90deg,
+      var(--bg) 0,
+      color-mix(in srgb, var(--bg) 92%, transparent) 55%,
+      color-mix(in srgb, var(--bg) 55%, transparent) 82%,
+      color-mix(in srgb, var(--bg) 20%, transparent) 100%
+    );
   }
 }
