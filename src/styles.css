@@ -110,94 +110,86 @@
   /* Rayons resserrés : l'arrondi généreux fait « application grand
      public ». Un ERP se lit mieux avec des angles plus francs. */
   --radius: 0.5rem;
-  /* Canevas gris très clair et cartes blanches par-dessus — c'est ce
-     contraste discret qui structure la page sans une seule bordure
-     appuyée, plutôt que du blanc sur blanc séparé par des ombres. */
-  --background: oklch(0.976 0.0015 250);
-  --foreground: oklch(0.129 0.042 264.695);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.129 0.042 264.695);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.129 0.042 264.695);
-  /* Assombri (0.55 → 0.52) : à 0.55, le texte blanc des boutons
-     principaux tombait à 4,17:1, sous le seuil de 4,5:1. */
-  /* Le vert de la marque, adouci.
 
-     Il valait oklch(0.52 0.18 162), soit exactement #008647 : la couleur
-     du logo, au centieme pres. Un aplat de trois cents pixels de large
-     parait pourtant bien plus sombre que la meme couleur sur une
-     vignette de quarante — c'est un effet de surface, pas une erreur de
-     reglage. Pour que le bouton RESSEMBLE au logo, il faut donc qu'il
-     soit reellement plus clair que lui.
+  /* ── La palette reposante ──
+     Un fond clair légèrement chaud, des surfaces blanches dominantes,
+     un vert soutenu réservé aux actions et aux éléments actifs, des
+     verts très doux pour le secondaire, des filets gris végétal.
+     Repère indicatif : trois quarts de neutre, un cinquième de nuances
+     douces, une pointe de couleur franche.
 
-     Chroma abaisse de 0,18 a 0,13 et clarte montee a 0,545 : le vert
-     perd son eclat sans changer de famille. C'est la limite. Une nuance
-     plus claire et le libelle blanc tombe sous le rapport de 4,5 pour 1
-     exige par l'accessibilite — a 0,55 de clarte il n'est deja plus qu'a
-     4,52. Ici : 4,61. */
-  --primary: oklch(0.545 0.13 160);
-  --primary-foreground: oklch(1 0 0);
-  /* Le trait du bouton principal : le meme vert, assez pale pour se lire
-     comme un cadre et non comme un surlignage. Ecrit en oklch avec son
-     alpha plutot qu en color-mix : melanger de l oklch avec du
-     transparent en srgb produit un canal negatif, donc une couleur hors
-     de la gamme que le navigateur doit rattraper a l affichage. */
-  --primary-trait: oklch(0.545 0.13 160 / 55%);
-  --secondary: oklch(0.968 0.007 247.896);
-  --secondary-foreground: oklch(0.208 0.042 265.755);
-  --muted: oklch(0.96 0.005 250);
-  /* Assombri (0.50 → 0.44) : à 0.50 le texte secondaire gris sur fond
-     blanc tombait sous le contraste 4.5:1 exigé pour du petit texte. */
-  --muted-foreground: oklch(0.44 0.04 258);
-  --accent: oklch(0.96 0.005 250);
-  --accent-foreground: oklch(0.208 0.042 265.755);
+       fond général   #F7F8F5     surface      #FFFFFF
+       vert principal #16865B     vert foncé   #263A32 (titres, texte)
+       vert secondaire #EAF3ED    vert doux    #F0F5F0
+       bordure        #DDE5DF     texte second #52645A
+       fond neutre    #F3F5F3     orange       #A65B16 (montants)
+
+     Contrastes mesurés : blanc sur #16865B 4,57:1 ; #52645A sur blanc
+     6,3:1 ; #263A32 sur #F7F8F5 11,9:1 ; #A65B16 sur blanc 5,1:1. */
+  --background: #f7f8f5;
+  --foreground: #263a32;
+  --card: #ffffff;
+  --card-foreground: #263a32;
+  --popover: #ffffff;
+  --popover-foreground: #263a32;
+  --primary: #16865b;
+  --primary-foreground: #ffffff;
+  /* Le trait du bouton principal : le même vert, assez pâle pour se lire
+     comme un cadre et non comme un surlignage. */
+  --primary-trait: rgb(22 134 91 / 55%);
+  --secondary: #f0f5f0;
+  --secondary-foreground: #263a32;
+  --muted: #f3f5f3;
+  --muted-foreground: #52645a;
+  --accent: #eaf3ed;
+  --accent-foreground: #263a32;
   --destructive: oklch(0.577 0.245 27.325);
   --destructive-foreground: oklch(0.984 0.003 247.858);
-  /* Filets très clairs : la séparation doit se deviner, pas se voir. */
-  --border: oklch(0.925 0.005 250);
-  --input: oklch(0.9 0.006 250);
-  --ring: oklch(0.58 0.13 160 / 40%);
+  /* Filets gris végétal : la séparation doit se deviner, pas se voir. */
+  --border: #dde5df;
+  --input: #d3ddd6;
+  --ring: rgb(22 134 91 / 35%);
   --chart-1: oklch(0.646 0.222 41.116);
   --chart-2: oklch(0.6 0.118 184.704);
   --chart-3: oklch(0.398 0.07 227.392);
   --chart-4: oklch(0.828 0.189 84.429);
   --chart-5: oklch(0.769 0.188 70.08);
-  --sidebar: oklch(0.984 0.003 247.858);
-  --sidebar-foreground: oklch(0.129 0.042 264.695);
-  --sidebar-primary: oklch(0.545 0.13 160);
-  --sidebar-primary-foreground: oklch(1 0 0);
-  --sidebar-accent: oklch(0.96 0.005 250);
-  --sidebar-accent-foreground: oklch(0.208 0.042 265.755);
-  --sidebar-border: oklch(0.91 0.01 256);
-  --sidebar-ring: oklch(0.58 0.13 160 / 40%);
+  --sidebar: #fcfdfb;
+  --sidebar-foreground: #263a32;
+  --sidebar-primary: #16865b;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #f0f5f0;
+  --sidebar-accent-foreground: #263a32;
+  --sidebar-border: #e4eae5;
+  --sidebar-ring: rgb(22 134 91 / 35%);
 
   /* Palette sémantique — mode clair.
      Les teintes "-soft" servent de fond de badge, les "-border" de
-     contour. Les couleurs de texte sont volontairement assombries
-     (L ≈ 0.50) pour rester lisibles sur fond blanc : les nuances
-     claires type emerald-400 passaient sous le seuil de contraste. */
-  --success: oklch(0.5 0.13 162);
-  --success-soft: oklch(0.96 0.032 162);
-  --success-border: oklch(0.86 0.07 162);
-  --warning: oklch(0.52 0.13 70);
-  --warning-soft: oklch(0.96 0.04 80);
-  --warning-border: oklch(0.86 0.08 75);
+     contour. Les couleurs de texte restent assez sombres pour se lire
+     sur fond blanc ET sur leur propre fond doux (≥ 4,5:1). */
+  --success: #12744f;
+  --success-soft: #eaf3ed;
+  --success-border: #cfe3d6;
+  --warning: #a65b16;
+  --warning-soft: #fbf3ea;
+  --warning-border: #ecd5bd;
   --danger: oklch(0.52 0.19 25);
-  --danger-soft: oklch(0.96 0.028 25);
-  --danger-border: oklch(0.87 0.065 25);
+  --danger-soft: oklch(0.965 0.022 25);
+  --danger-border: oklch(0.88 0.055 25);
   --info: oklch(0.51 0.16 250);
-  --info-soft: oklch(0.96 0.03 250);
-  --info-border: oklch(0.86 0.06 250);
+  --info-soft: oklch(0.965 0.022 250);
+  --info-border: oklch(0.88 0.05 250);
   --violet: oklch(0.51 0.18 292);
-  --violet-soft: oklch(0.96 0.03 292);
-  --violet-border: oklch(0.87 0.06 292);
+  --violet-soft: oklch(0.965 0.022 292);
+  --violet-border: oklch(0.88 0.05 292);
 
-  /* Élévation quasi nulle : la hiérarchie vient du fond gris et des
-     filets, pas des ombres portées. Seules les surfaces flottantes
-     (modales, menus) gardent une ombre franche. */
-  --elev-1: none;
-  --elev-2: 0 1px 2px oklch(0.2 0.03 260 / 6%);
-  --elev-3: 0 8px 24px oklch(0.2 0.03 260 / 12%), 0 2px 6px oklch(0.2 0.03 260 / 6%);
+  /* Élévation légère : la hiérarchie vient du fond et des filets ; les
+     cartes portent une ombre à peine perceptible, teintée de vert foncé
+     plutôt que de noir. Seules les surfaces flottantes (modales, menus)
+     gardent une ombre franche. */
+  --elev-1: 0 1px 2px rgb(38 58 50 / 4%);
+  --elev-2: 0 1px 2px rgb(38 58 50 / 5%), 0 4px 14px rgb(38 58 50 / 4%);
+  --elev-3: 0 10px 28px rgb(38 58 50 / 12%), 0 2px 6px rgb(38 58 50 / 6%);
 }
 
 /* ── Dark Mode — rich, deep navy ── */
@@ -964,7 +956,8 @@ td {
 /* ── Dépenses, Historique, Vendeurs) — aéré, lisible, professionnel  ── */
 @layer components {
   .app-table-wrap {
-    @apply bg-card border border-border rounded-lg overflow-hidden;
+    @apply bg-card border border-border overflow-hidden;
+    border-radius: 14px;
   }
   .app-table-scroll {
     @apply overflow-x-auto;
@@ -1383,11 +1376,11 @@ td {
   /* ── Base commune à toutes les surfaces ── */
   .app-card,
   .app-card-interactive,
-  .app-page-head,
   .app-toolbar,
   .app-mcard {
-    @apply bg-card border border-border rounded-lg;
-    box-shadow: var(--elev-1);
+    @apply bg-card border border-border;
+    border-radius: 14px;
+    box-shadow: var(--elev-2);
   }
 
   /* Carte cliquable : légère élévation au survol. Restreint aux
@@ -1418,17 +1411,33 @@ td {
      Empilé sur mobile, sur une ligne dès 640px. Le bloc titre porte
      min-w-0 pour que le titre puisse tronquer au lieu de pousser les
      actions hors de l'écran. */
+  /* Le titre de page se pose directement sur le fond, sans carte :
+     sa taille, son soulignement vert et l'espace autour suffisent à le
+     distinguer — comme les titres de section du tableau de bord. */
   .app-page-head {
-    @apply flex flex-col gap-4 p-4 sm:flex-row sm:items-start sm:justify-between sm:p-6;
+    @apply flex flex-col gap-4 px-0.5 pt-1 pb-2 sm:flex-row sm:items-end sm:justify-between;
   }
   .app-page-head-text {
     @apply min-w-0 flex-1;
   }
   .app-page-title {
-    @apply flex items-center gap-2.5 text-lg font-bold tracking-tight text-foreground sm:text-xl;
+    @apply relative flex items-center gap-2.5 pb-3 text-xl font-bold tracking-tight text-foreground sm:text-2xl;
+  }
+  .app-page-title::after {
+    content: "";
+    position: absolute;
+    left: 0;
+    bottom: 0;
+    width: 48px;
+    height: 3px;
+    border-radius: 3px;
+    background: var(--primary);
+  }
+  .app-page-title > .shrink-0 {
+    color: var(--primary);
   }
   .app-page-subtitle {
-    @apply mt-1 text-sm text-muted-foreground;
+    @apply mt-2.5 text-sm text-muted-foreground;
   }
   .app-page-actions {
     @apply flex w-full shrink-0 flex-col gap-2 sm:w-auto sm:flex-row sm:items-center sm:gap-3;
@@ -1784,7 +1793,9 @@ td {
      Une seule bande compacte, colonnes séparées par un filet vertical,
      au lieu d'une grille de cartes ombrées. */
   .app-statbar {
-    @apply grid overflow-hidden rounded-lg border border-border bg-card;
+    @apply grid overflow-hidden border border-border bg-card;
+    border-radius: 14px;
+    box-shadow: var(--elev-1);
   }
   .app-statbar-item {
     @apply relative flex flex-col justify-center gap-0.5 px-4 py-3.5 text-left;

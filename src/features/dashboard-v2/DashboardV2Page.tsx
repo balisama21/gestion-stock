@@ -796,6 +796,7 @@ export const DashboardV2Page: React.FC<DashboardV2PageProps> = ({
           image={banniereOperations}
           photo={photoSection("operations")}
           titre="Opérations"
+          sousTitre="Une vue claire sur l'activité de la boutique."
         >
           {grille(operations, carteOperation)}
         </Section>
@@ -807,13 +808,20 @@ export const DashboardV2Page: React.FC<DashboardV2PageProps> = ({
           image={banniereVentes}
           photo={photoSection("ventes")}
           titre={aSoi ? "Mes ventes" : "Ventes"}
+          sousTitre="Les ventes, les clients et les produits qui partent le mieux."
         >
           {grille(ventesCartes, carteVente)}
         </Section>
       )}
 
       {avecArgent && (
-        <Section id="argent" image={banniereArgent} photo={photoSection("argent")} titre="L'argent">
+        <Section
+          id="argent"
+          image={banniereArgent}
+          photo={photoSection("argent")}
+          titre="L'argent"
+          sousTitre="La trésorerie, ce qui entre, ce qui sort et ce qui reste."
+        >
           {argent.tresorerie && (
             <CarteTresorerie
               capital={capital}
@@ -895,7 +903,13 @@ export const DashboardV2Page: React.FC<DashboardV2PageProps> = ({
       )}
 
       {avecStock && (
-        <Section id="stock" image={banniereStock} photo={photoSection("stock")} titre="Le stock">
+        <Section
+          id="stock"
+          image={banniereStock}
+          photo={photoSection("stock")}
+          titre="Le stock"
+          sousTitre="Les quantités, les alertes et les mouvements de la marchandise."
+        >
           {(stockCartes.stock || stockCartes.ruptures) && (
             <CarteStockChiffres
               stock={chiffres.stock}

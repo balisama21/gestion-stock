@@ -62,19 +62,21 @@
    de la marque n'en aurait changé que la moitié. */
 .dash2,
 .dash2-portal {
-  --bg: #f2f5f2;
+  /* Les neutres de la palette reposante (voir src/styles.css) : fond
+     légèrement chaud, filets gris végétal, texte vert très foncé. */
+  --bg: #f7f8f5;
   --surface: #ffffff;
-  --surface-2: #f6f8f5;
-  --line: #e2e8e3;
-  --line-2: #edf1ee;
-  --ink: #17211d;
-  --ink-2: #44504a;
-  --muted: #76817b;
+  --surface-2: #f3f5f3;
+  --line: #dde5df;
+  --line-2: #e9eeea;
+  --ink: #263a32;
+  --ink-2: #3f5148;
+  --muted: #52645a;
   --accent: var(--primary);
   --accent-ink: var(--success);
   --accent-soft: var(--success-soft);
-  --warn: #b06f12;
-  --warn-soft: #fbf0dc;
+  --warn: #a65b16;
+  --warn-soft: #fbf3ea;
   /* L'ORANGE QUAND IL DEVIENT DU TEXTE.
 
      `--warn` tel quel donne 4,09 pour 1 sur le blanc d'une carte : il

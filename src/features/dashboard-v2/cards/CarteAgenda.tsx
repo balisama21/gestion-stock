@@ -76,7 +76,7 @@ export const CarteAgenda: React.FC<{
         grand
         titre={
           <span className="titre-mois">
-            {titre}
+            Agenda de la boutique
             <BoutonRepli
               replie={replie}
               onBasculer={basculer}
@@ -85,16 +85,15 @@ export const CarteAgenda: React.FC<{
             />
           </span>
         }
-        sous={
-          aVenir > 0
-            ? `Agenda de la boutique · ${pluriel(aVenir, "élément")} à venir`
-            : "Agenda de la boutique"
-        }
+        sous={aVenir > 0 ? `${pluriel(aVenir, "élément")} à venir` : undefined}
         action={
           <div className="nav2">
             <button type="button" aria-label="Mois précédent" onClick={() => changer(-1)}>
               <Icone nom="chevleft" />
             </button>
+            <span className="mois" aria-live="polite">
+              {titre}
+            </span>
             <button type="button" aria-label="Mois suivant" onClick={() => changer(1)}>
               <Icone nom="chevright" />
             </button>
@@ -147,18 +146,22 @@ export const CarteAgenda: React.FC<{
         </div>
       )}
 
-      <div className="row">
-        <div className="evlist">
-          {prochains.length === 0 ? (
-            <div className="evi">
-              <div className="dash">–</div>
-              <div>
-                <b>Rien de prévu</b>
-                <div className="sub">Journée libre</div>
-              </div>
-            </div>
-          ) : (
-            prochains.map((it) => (
+      {prochains.length === 0 ? (
+        <div className="agenda-vide">
+          <img className="art-cal" src={illCalendrier} alt="" />
+          <div>
+            <b>Rien de prévu</b>
+            <span>Journée libre</span>
+            <span className="puce-feuille">
+              <Icone nom="leaf" />
+              Aucune activité planifiée
+            </span>
+          </div>
+        </div>
+      ) : (
+        <div className="row">
+          <div className="evlist">
+            {prochains.map((it) => (
               <button type="button" className="evi" key={it.id} onClick={onOuvrir}>
                 <div className="dash">
                   <b>{Number(it.jour.slice(8))}</b>
@@ -171,11 +174,11 @@ export const CarteAgenda: React.FC<{
                   <div className="sub">{it.precision}</div>
                 </div>
               </button>
-            ))
-          )}
+            ))}
+          </div>
+          {prochains.length === 1 && <img className="art-cal" src={illCalendrier} alt="" />}
         </div>
-        {prochains.length <= 1 && <img className="art-cal" src={illCalendrier} alt="" />}
-      </div>
+      )}
       {onOuvrir && prochains.length > 1 && (
         <button type="button" className="link bas" onClick={onOuvrir}>
           Tout le mois

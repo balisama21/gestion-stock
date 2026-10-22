@@ -8,8 +8,10 @@ import { sourcePhoto, srcsetPhoto, type Photo } from "../assets/images";
  */
 
 /**
- * Une bannière de section : titre à gauche sur un voile clair, la photo
- * de la section qui se dévoile vers la droite.
+ * Une bannière de section : un surtitre, le titre souligné de vert et sa
+ * description à gauche, sur un voile clair ; la photo de la section
+ * occupe toute la bannière et se dévoile vers la droite. Elle reste dans
+ * son cadre : les cartes de la section commencent en dessous.
  *
  * L'illustration locale (`image`) reste dessous : si la photo ne charge
  * pas, c'est elle qu'on voit. La photo n'est demandée qu'à l'approche de
@@ -21,7 +23,9 @@ export const Banniere: React.FC<{
   photo?: Photo;
   titre: string;
   sousTitre?: string;
-}> = ({ id, image, photo, titre, sousTitre }) => {
+  /** La petite ligne au-dessus du titre. */
+  surtitre?: string;
+}> = ({ id, image, photo, titre, sousTitre, surtitre = "Espace de gestion" }) => {
   const [echec, setEchec] = useState(false);
   // Une autre photo (le lendemain, ou choisie dans les paramètres) : on
   // retente l'affichage.
@@ -48,6 +52,12 @@ export const Banniere: React.FC<{
         />
       )}
       <div className="blk-h">
+        {surtitre && (
+          <span className="blk-sur" aria-hidden="true">
+            <Icone nom="leaf" />
+            {surtitre}
+          </span>
+        )}
         <h2 id={id}>{titre}</h2>
         {sousTitre && <p>{sousTitre}</p>}
       </div>
@@ -106,7 +116,7 @@ export const TeteCarte: React.FC<{
   </div>
 );
 
-/** « Voir tout », « Gérer »… : un lien texte, sans flèche. */
+/** « Voir tout », « Gérer »… : un lien texte, suivi d'une petite flèche. */
 export const Lien: React.FC<{
   onClick?: () => void;
   children: React.ReactNode;
@@ -115,6 +125,7 @@ export const Lien: React.FC<{
   onClick ? (
     <button type="button" className={`link${className ? ` ${className}` : ""}`} onClick={onClick}>
       {children}
+      <Icone nom="arrowright" className="fleche" />
     </button>
   ) : null;
 
