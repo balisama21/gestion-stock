@@ -352,22 +352,10 @@
 }
 .tn .link {
   margin-left: auto;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
   color: var(--g2);
   font-weight: 600;
   font-size: var(--fs-lien);
   white-space: nowrap;
-}
-.tn .link .fleche {
-  width: 14px;
-  height: 14px;
-  flex: none;
-  transition: transform 0.15s;
-}
-.tn .link:hover .fleche {
-  transform: translateX(2px);
 }
 .tn .link:hover {
   text-decoration: underline;

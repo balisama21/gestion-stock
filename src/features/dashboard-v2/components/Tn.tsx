@@ -116,7 +116,7 @@ export const TeteCarte: React.FC<{
   </div>
 );
 
-/** « Voir tout », « Gérer »… : un lien texte, suivi d'une petite flèche. */
+/** « Voir tout », « Gérer »… : un lien texte, sans flèche. */
 export const Lien: React.FC<{
   onClick?: () => void;
   children: React.ReactNode;
@@ -125,7 +125,6 @@ export const Lien: React.FC<{
   onClick ? (
     <button type="button" className={`link${className ? ` ${className}` : ""}`} onClick={onClick}>
       {children}
-      <Icone nom="arrowright" className="fleche" />
     </button>
   ) : null;
 
