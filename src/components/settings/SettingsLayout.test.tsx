@@ -46,8 +46,7 @@ const PERSONNELS = ["Mon compte", "Sécurité", "Notifications", "Préférences"
 /** Les réglages de boutique, réservés au propriétaire. */
 const BOUTIQUE = [
   "Ma boutique",
-  "Reçus et factures",
-  "Documents",
+  "Factures et documents",
   "Champs personnalisés",
   "Listes",
   "Prix de vente",
@@ -85,7 +84,7 @@ describe("ce que chacun a le droit de voir", () => {
 
   it("le propriétaire atteint les réglages de documents", () => {
     afficher(true);
-    expect(screen.getAllByText("Documents").length).toBeGreaterThan(0);
+    expect(screen.getAllByText("Factures et documents").length).toBeGreaterThan(0);
   });
 
   it("un collaborateur ne voit aucun réglage de boutique", () => {

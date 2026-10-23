@@ -87,7 +87,12 @@ const fr: Dictionnaire = {
       },
       { titre: "Envoyer", texte: "Depuis le document : téléchargement PDF ou envoi." },
     ],
-    questions: [{ q: "Changer le logo ou les couleurs", r: "Paramètres → Documents." }],
+    questions: [
+      {
+        q: "Changer le logo ou les couleurs",
+        r: "Paramètres → Factures et documents → Apparence.",
+      },
+    ],
   },
   clients: {
     titre: "Clients",

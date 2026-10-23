@@ -146,3 +146,41 @@ describe("le bouton d'enregistrement", () => {
     );
   });
 });
+
+describe("un seul écran, rangé en onglets", () => {
+  afterEach(cleanup);
+
+  it("n'affiche que l'onglet ouvert", () => {
+    afficher();
+    expect(screen.getByRole("button", { name: /Bandeau/ })).toBeTruthy();
+    expect(screen.queryByText("Montant en lettres")).toBeNull();
+
+    fireEvent.click(screen.getByRole("tab", { name: /Contenu/ }));
+    expect(screen.getByText("Montant en lettres")).toBeTruthy();
+    expect(screen.queryByRole("button", { name: /Bandeau/ })).toBeNull();
+  });
+
+  it("garde un changement fait dans un autre onglet jusqu'à l'enregistrement", async () => {
+    const onSave = afficher();
+    fireEvent.click(screen.getByRole("button", { name: /Épuré/ }));
+    fireEvent.click(screen.getByRole("tab", { name: /Ticket de caisse/ }));
+    fireEvent.click(screen.getByRole("button", { name: "58 mm" }));
+    fireEvent.click(screen.getByRole("button", { name: /Enregistrer/ }));
+
+    await waitFor(() => expect(onSave).toHaveBeenCalled());
+    const p = envoye(onSave) as Personnalisation & {
+      documents?: { modele?: string; ticket?: { largeur?: number } };
+    };
+    expect(p.documents?.modele).toBe("epure");
+    expect(p.documents?.ticket?.largeur).toBe(58);
+  });
+
+  it("ne propose les options de l'ancien reçu que si les nouveaux documents sont coupés", () => {
+    afficher();
+    fireEvent.click(screen.getByRole("tab", { name: /Contenu/ }));
+    expect(screen.queryByRole("heading", { name: "Ancien reçu" })).toBeNull();
+
+    fireEvent.click(screen.getByRole("switch", { name: /Utiliser les nouveaux documents/ }));
+    expect(screen.getByRole("heading", { name: "Ancien reçu" })).toBeTruthy();
+  });
+});
