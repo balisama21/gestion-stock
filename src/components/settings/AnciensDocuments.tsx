@@ -1,14 +1,24 @@
 import React from "react";
-import { Receipt, RotateCcw, Monitor } from "lucide-react";
-import { SettingsSection, SettingsRow, SettingsBlock } from "./primitives";
+import { RotateCcw } from "lucide-react";
+import { SettingsBlock } from "./primitives";
 import { Toggle } from "../shared/Toggle";
 import { useInvoicePrefs, type InvoicePrefs } from "../../lib/invoicePrefs";
 import { quantiteEnMots } from "../../utils/formulas";
 import type { StoreSettings } from "../../types";
 
-interface InvoiceSectionProps {
-  settings: StoreSettings;
-}
+/**
+ * LES ANCIENS DOCUMENTS, ET LE FORMAT PROPOSÉ À L'IMPRESSION
+ *
+ * Ce qui formait autrefois l'onglet « Reçus et factures ». Ces choix
+ * sont rangés dans le navigateur (voir `invoicePrefs`) et ne pilotent
+ * que l'ancien reçu : celui qui sort quand les nouveaux documents sont
+ * coupés, ou quand ils tombent et que le repli prend leur place. Le
+ * format par défaut, lui, vaut dans les deux cas.
+ *
+ * Ils vivent désormais dans l'écran unique des documents : un seul
+ * endroit pour régler ce qui s'imprime, au lieu de deux onglets qui se
+ * recoupaient.
+ */
 
 const OPTIONS: { key: keyof InvoicePrefs; label: string; hint: string }[] = [
   { key: "showLogo", label: "Logo", hint: "En haut du document." },
@@ -18,18 +28,84 @@ const OPTIONS: { key: keyof InvoicePrefs; label: string; hint: string }[] = [
   { key: "showNif", label: "NIF & STAT", hint: "Obligatoire sur une facture officielle." },
   { key: "showSeller", label: "Nom du vendeur", hint: "Qui a réalisé la vente." },
   { key: "showTva", label: "Ligne de TVA", hint: "Sans effet si votre taux est à 0." },
-  { key: "showFooter", label: "Mention de bas de page", hint: "Le texte défini ci-dessus." },
+  {
+    key: "showFooter",
+    label: "Mention de bas de page",
+    hint: "Celle réglée dans « Ma boutique ».",
+  },
 ];
 
+/** Le format ouvert en premier quand on imprime une vente. */
+export const FormatParDefaut: React.FC = () => {
+  const [prefs, update] = useInvoicePrefs();
+  return (
+    <div className="flex w-full gap-1 rounded-xl border border-border bg-muted p-1">
+      {[
+        { value: "ticket" as const, label: "Ticket" },
+        { value: "facture" as const, label: "Facture A4" },
+      ].map((opt) => (
+        <button
+          key={opt.value}
+          type="button"
+          onClick={() => update({ defaultFormat: opt.value })}
+          aria-pressed={prefs.defaultFormat === opt.value}
+          className={`flex-1 rounded-lg px-3 py-2 text-sm transition-colors ${
+            prefs.defaultFormat === opt.value
+              ? "bg-card font-semibold text-primary shadow-sm"
+              : "font-medium text-muted-foreground hover:text-foreground"
+          }`}
+        >
+          {opt.label}
+        </button>
+      ))}
+    </div>
+  );
+};
+
+/** Ce que l'ancien reçu affiche. Enregistré aussitôt, sur cet appareil. */
+export const OptionsAnciensDocuments: React.FC = () => {
+  const [prefs, update, reset] = useInvoicePrefs();
+  return (
+    <SettingsBlock>
+      <div className="grid gap-x-8 sm:grid-cols-2">
+        {OPTIONS.map((opt) => (
+          <div
+            key={opt.key}
+            className="flex items-center justify-between gap-4 border-b border-border py-3 last:border-b-0 sm:[&:nth-last-child(-n+2)]:border-b-0"
+          >
+            <div className="min-w-0">
+              <p className="text-sm font-semibold text-foreground">{opt.label}</p>
+              <p className="text-xs leading-relaxed text-muted-foreground">{opt.hint}</p>
+            </div>
+            <Toggle
+              size="sm"
+              label={opt.label}
+              checked={Boolean(prefs[opt.key])}
+              onChange={(v) => update({ [opt.key]: v } as Partial<InvoicePrefs>)}
+            />
+          </div>
+        ))}
+      </div>
+      <div className="mt-3 flex flex-wrap items-center justify-between gap-3">
+        <p className="text-xs leading-relaxed text-muted-foreground">
+          Enregistré tout de suite, sur cet appareil seulement.
+        </p>
+        <button type="button" onClick={reset} className="app-btn-ghost text-xs">
+          <RotateCcw className="h-3.5 w-3.5" />
+          Réinitialiser
+        </button>
+      </div>
+    </SettingsBlock>
+  );
+};
+
 /**
- * Aperçu en direct du ticket, reconstruit à partir des mêmes données que
+ * Aperçu de l'ancien ticket, reconstruit à partir des mêmes données que
  * le vrai reçu : ce que l'utilisateur voit ici est ce qui sortira à
- * l'impression.
+ * l'impression quand les nouveaux documents sont coupés.
  */
-const Preview: React.FC<{ settings: StoreSettings; prefs: InvoicePrefs }> = ({
-  settings,
-  prefs,
-}) => {
+export const ApercuAncienTicket: React.FC<{ settings: StoreSettings }> = ({ settings }) => {
+  const [prefs] = useInvoicePrefs();
   const devise = settings.currencySymbol || "Ar";
   const tva = settings.tvaRate ?? 0;
   const sousTotal = 54000;
@@ -121,85 +197,5 @@ const Preview: React.FC<{ settings: StoreSettings; prefs: InvoicePrefs }> = ({
         </>
       )}
     </div>
-  );
-};
-
-export const InvoiceSection: React.FC<InvoiceSectionProps> = ({ settings }) => {
-  const [prefs, update, reset] = useInvoicePrefs();
-
-  return (
-    <>
-      <SettingsSection
-        title="Reçus et factures"
-        description="Choisissez ce qui figure sur les documents remis à vos clients. L'aperçu se met à jour à chaque changement."
-        icon={<Receipt className="w-4 h-4" />}
-        aside={
-          <button type="button" onClick={reset} className="app-btn-ghost text-xs">
-            <RotateCcw className="h-3.5 w-3.5" />
-            Réinitialiser
-          </button>
-        }
-      >
-        <SettingsRow
-          label="Format par défaut"
-          hint="Celui proposé en premier à l'ouverture d'un reçu."
-          htmlFor="invoice-format"
-        >
-          <div className="flex w-full gap-1 rounded-xl border border-border bg-muted p-1">
-            {(
-              [
-                { value: "ticket" as const, label: "Ticket 80 mm" },
-                { value: "facture" as const, label: "Facture A4" },
-              ]
-            ).map((opt) => (
-              <button
-                key={opt.value}
-                type="button"
-                onClick={() => update({ defaultFormat: opt.value })}
-                aria-pressed={prefs.defaultFormat === opt.value}
-                className={`flex-1 rounded-lg py-2 text-sm font-semibold transition-colors ${
-                  prefs.defaultFormat === opt.value
-                    ? "bg-card text-foreground shadow-sm"
-                    : "text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                {opt.label}
-              </button>
-            ))}
-          </div>
-        </SettingsRow>
-
-        {OPTIONS.map((opt) => (
-          <SettingsRow key={opt.key} label={opt.label} hint={opt.hint}>
-            <div className="sm:flex sm:justify-end">
-              <Toggle
-                label={opt.label}
-                checked={Boolean(prefs[opt.key])}
-                onChange={(v) => update({ [opt.key]: v } as Partial<InvoicePrefs>)}
-              />
-            </div>
-          </SettingsRow>
-        ))}
-
-        <div className="flex items-start gap-2.5 px-4 py-3 text-xs leading-relaxed text-muted-foreground sm:px-6">
-          <Monitor className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-          <span>
-            Le contenu affiché (nom, logo, adresse, NIF, TVA, mention de bas de page) se modifie
-            dans <strong className="text-foreground">Ma boutique</strong> et vaut pour toute
-            l'équipe. Les options ci-dessus, elles, sont enregistrées sur cet appareil.
-          </span>
-        </div>
-      </SettingsSection>
-
-      <SettingsSection
-        title="Aperçu"
-        description="Rendu du ticket avec vos réglages actuels."
-        icon={<Receipt className="w-4 h-4" />}
-      >
-        <SettingsBlock className="bg-muted/40">
-          <Preview settings={settings} prefs={prefs} />
-        </SettingsBlock>
-      </SettingsSection>
-    </>
   );
 };

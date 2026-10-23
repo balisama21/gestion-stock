@@ -36,7 +36,6 @@ import { PreferencesSection } from "./settings/PreferencesSection";
 import { SuppressionBoutiqueSection } from "./settings/SuppressionBoutiqueSection";
 import { SuppressionCompteModal } from "./settings/SuppressionCompteModal";
 import { NotificationsSection } from "./settings/NotificationsSection";
-import { InvoiceSection } from "./settings/InvoiceSection";
 import { DocumentsSection } from "./settings/DocumentsSection";
 import { InstallationSection } from "./settings/InstallationSection";
 import { InspirationSection } from "./settings/InspirationSection";
@@ -1023,8 +1022,6 @@ export const ParametresView: React.FC<ParametresViewProps> = ({
           supprimer={() => workspace.deleteStore(workspace.activeStore!.id)}
         />
       )}
-
-      {activeTab === "facture" && <InvoiceSection settings={settings} />}
 
       {activeTab === "documents" && (
         <DocumentsSection

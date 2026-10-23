@@ -1791,8 +1791,8 @@ export const EditeurLibre: React.FC<Props> = ({
             <p className="mb-2 text-sm font-semibold text-foreground">Cachets et signatures</p>
             {cachets.length === 0 ? (
               <p className="text-xs leading-relaxed text-muted-foreground">
-                Ajoutez-les dans Paramètres → Documents → Cachets et signatures, puis placez-les
-                ici.
+                Ajoutez-les dans Paramètres → Factures et documents → Identité et cachets, puis
+                placez-les ici.
               </p>
             ) : (
               <ul className="space-y-2">

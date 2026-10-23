@@ -8,7 +8,6 @@ import {
   Users,
   CreditCard,
   Bell,
-  Receipt,
   FileText,
   Settings as SettingsIcon,
   ListPlus,
@@ -30,7 +29,6 @@ export type SettingsTab =
   | "compte"
   | "securite"
   | "boutique"
-  | "facture"
   | "documents"
   | "equipe"
   | "paiement"
@@ -126,16 +124,9 @@ const GROUPS: GroupDef[] = [
         ownerOnly: true,
       },
       {
-        id: "facture",
-        label: "Reçus et factures",
-        hint: "Contenu des documents",
-        icon: <Receipt className="w-4 h-4" />,
-        ownerOnly: true,
-      },
-      {
         id: "documents",
-        label: "Documents",
-        hint: "Modèle, couleur, ticket",
+        label: "Factures et documents",
+        hint: "Modèle, contenu, ticket",
         icon: <FileText className="w-4 h-4" />,
         ownerOnly: true,
       },
