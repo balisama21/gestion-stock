@@ -107,7 +107,9 @@ const CodeBarres: React.FC<{ valeur: string; largeurTicket: LargeurTicket }> = (
           <rect key={b.x} x={b.x} y="0" width={b.largeur} height="30" fill="#16181a" />
         ))}
       </svg>
-      <div className="num">{valeur}</div>
+      {/* Pas de numéro écrit sous les barres : il figure déjà en tête
+          du ticket, à la ligne « Ticket », et la douchette lit les
+          barres. Répété ici, il alourdissait le bas du rouleau. */}
     </div>
   );
 };
