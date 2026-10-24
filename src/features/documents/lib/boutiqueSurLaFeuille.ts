@@ -26,7 +26,7 @@ export const NOMS_CHAMPS_BOUTIQUE: Record<ChampBoutique, string> = {
   address: "Adresse",
   phone: "Téléphone",
   email: "E-mail",
-  nifStat: "NIF/STAT",
+  nifStat: "NIF et STAT",
 };
 
 const COORDONNEE_DU_CHAMP = Object.fromEntries(

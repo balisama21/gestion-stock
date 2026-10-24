@@ -3,6 +3,7 @@ import type { Blocs, ClePosee } from "./disposition";
 import type { ModeleDocument } from "./reglages";
 import { introMontantEnLettres, TITRE_PAIEMENT } from "../parts/blocs";
 import { cleLibelle, type ChampTiers } from "./coordonnees";
+import { estDetaille } from "../../../lib/nifStat";
 
 /**
  * LES MOTS QU'ON RÉÉCRIT SUR LA FEUILLE
@@ -34,7 +35,9 @@ const LIBELLES_TOTAUX: { cle: keyof Document["totaux"]; nom: string }[] = [
 ];
 
 /** Le libellé posé devant chaque coordonnée : rien, sauf « NIF/STAT » devant le numéro fiscal. */
-export const libelleParDefaut = (c: ChampTiers) => (c.fiscal ? "NIF/STAT " : "");
+/** Un numéro déjà découpé porte ses propres mots, « NIF » et « STAT ». */
+export const libelleParDefaut = (c: ChampTiers) =>
+  c.fiscal && !estDetaille(c.valeur) ? "NIF/STAT " : "";
 
 const libellesDesChamps = (champs: ChampTiers[] | undefined): TexteModifiable[] =>
   (champs ?? []).map((c) => ({

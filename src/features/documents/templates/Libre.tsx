@@ -27,6 +27,7 @@ import {
   TamponPaiement,
   Totaux,
 } from "../parts/blocs";
+import { texteFiscal, valeurFiscale } from "../../../lib/nifStat";
 
 /** Les images des cachets, déjà chargées : la capture du PDF ne doit rien attendre. */
 export interface ImagesCachets {
@@ -80,7 +81,7 @@ export function contenuDuBloc(
       if (base === "classique" || base === "epure") {
         return e.titre || e.lignes.length > 0 || e.nif ? <BlocAdresse bloc={e} /> : null;
       }
-      const lignesEm = [...e.lignes, e.nif ? `NIF/STAT ${e.nif}` : null].filter(Boolean);
+      const lignesEm = [...e.lignes, e.nif ? texteFiscal(e.nif) : null].filter(Boolean);
       return lignesEm.length > 0 ? <div className="coordonnees">{lignesEm.join(" · ")}</div> : null;
     }
     case "titre":
@@ -152,7 +153,7 @@ const Coordonnees: React.FC<{
     return (
       <span data-champ={c.cle} className={c.fiscal ? "doc-fiscal" : undefined}>
         {l && <span className="doc-libelle-champ">{l}</span>}
-        {c.valeur}
+        {c.fiscal ? valeurFiscale(c.valeur) : c.valeur}
       </span>
     );
   };
@@ -207,7 +208,7 @@ function contenuElement(
       return (
         <div className={`doc-libre-texte${c.fiscal ? " doc-fiscal" : ""}`} data-champ={c.cle}>
           {l && <span className="doc-libelle-champ">{l}</span>}
-          {c.valeur}
+          {c.fiscal ? valeurFiscale(c.valeur) : c.valeur}
         </div>
       );
     }

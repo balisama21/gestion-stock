@@ -5,6 +5,7 @@ import { Toggle } from "../shared/Toggle";
 import { useInvoicePrefs, type InvoicePrefs } from "../../lib/invoicePrefs";
 import { quantiteEnMots } from "../../utils/formulas";
 import type { StoreSettings } from "../../types";
+import { texteFiscal } from "../../lib/nifStat";
 
 /**
  * LES ANCIENS DOCUMENTS, ET LE FORMAT PROPOSÉ À L'IMPRESSION
@@ -134,7 +135,7 @@ export const ApercuAncienTicket: React.FC<{ settings: StoreSettings }> = ({ sett
         {prefs.showAddress && settings.address && <p>{settings.address}</p>}
         {prefs.showPhone && settings.phone && <p>Tél : {settings.phone}</p>}
         {prefs.showEmail && settings.email && <p>{settings.email}</p>}
-        {prefs.showNif && settings.nifStat && <p>NIF/STAT : {settings.nifStat}</p>}
+        {prefs.showNif && settings.nifStat && <p>{texteFiscal(settings.nifStat)}</p>}
       </div>
 
       <div className="my-2 border-t border-dashed border-slate-300" />

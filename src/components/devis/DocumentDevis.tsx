@@ -18,6 +18,7 @@ import { FiletDeSecurite } from "../../features/documents/FiletDeSecurite";
 import { SortieDocument } from "../../features/documents/SortieDocument";
 import { documentDeDevis } from "../../features/documents/lib/buildDocument";
 import type { ReglagesDocuments } from "../../features/documents/lib/reglages";
+import { texteFiscal } from "../../lib/nifStat";
 
 interface DocumentDevisProps {
   devis: Devis | null;
@@ -203,7 +204,7 @@ export const DocumentDevis: React.FC<DocumentDevisProps> = ({
                     .join(" · ")}
                 </p>
                 {invoicePrefs.showNif && settings?.nifStat && (
-                  <p className="text-[10px] text-slate-400">{settings.nifStat}</p>
+                  <p className="text-[10px] text-slate-400">{texteFiscal(settings.nifStat)}</p>
                 )}
               </div>
             </div>

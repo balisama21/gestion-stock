@@ -162,7 +162,7 @@ describe("le bon de commande", () => {
 
   it("laisse la place au cachet et à la signature", () => {
     afficher();
-    expect(screen.getByText("Cachet et signature")).toBeTruthy();
+    expect(screen.getByText("Cachet et signature de l'entreprise")).toBeTruthy();
   });
 
   it("le dit, et ne propose rien, quand il n'y a rien à commander", () => {

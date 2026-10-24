@@ -14,6 +14,7 @@ import {
   EquivalentsTotal,
 } from "../parts/blocs";
 import { Ressort, TeteSuite, type ProprietesModele } from "../parts/squelette";
+import { texteFiscal } from "../../../lib/nifStat";
 
 /**
  * MODÈLE 2 — BANDEAU
@@ -56,7 +57,7 @@ export const Bandeau: React.FC<ProprietesModele> = ({
             <Marque emetteur={d.emetteur} inverse />
             {(d.emetteur.lignes.length > 0 || d.emetteur.nif) && (
               <div className="coordonnees">
-                {[...d.emetteur.lignes, d.emetteur.nif ? `NIF/STAT ${d.emetteur.nif}` : null]
+                {[...d.emetteur.lignes, d.emetteur.nif ? texteFiscal(d.emetteur.nif) : null]
                   .filter(Boolean)
                   .join(" · ")}
               </div>

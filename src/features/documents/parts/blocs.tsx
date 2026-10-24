@@ -14,6 +14,7 @@ import { montant, montantOuTiret } from "../lib/format";
 import { celluleDeLigne, CLASSE, COLONNE } from "./cellules";
 import { useEquivalentsDuDocument } from "../lib/equivalents";
 import { convertir } from "../../../lib/contexteDevises";
+import { texteFiscal } from "../../../lib/nifStat";
 
 /**
  * LES MORCEAUX DONT LES QUATRE MODÈLES SONT FAITS
@@ -75,7 +76,7 @@ export const BlocAdresse: React.FC<{ bloc: BlocTiers; titre?: string }> = ({ blo
           {bloc.nif && (
             <>
               {bloc.lignes.length > 0 && <br />}
-              <span className="doc-fiscal">NIF/STAT {bloc.nif}</span>
+              <span className="doc-fiscal">{texteFiscal(bloc.nif)}</span>
             </>
           )}
         </p>

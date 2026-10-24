@@ -6,6 +6,7 @@ import type { LargeurTicket, ReglagesTicket } from "../lib/reglages";
 import { useEquivalentsDuDocument } from "../lib/equivalents";
 import { convertir } from "../../../lib/contexteDevises";
 import { ORDRE_TICKET, type CleTicket, type ColonneTicket } from "../lib/disposition";
+import { texteFiscal } from "../../../lib/nifStat";
 
 /**
  * LE TICKET DE CAISSE
@@ -126,7 +127,7 @@ const SECTIONS: Record<CleTicket, React.FC<ProprietesTicket>> = {
       {d.emetteur.lignes.map((l) => (
         <div key={l}>{l}</div>
       ))}
-      {d.emetteur.nif && <div>NIF {d.emetteur.nif}</div>}
+      {d.emetteur.nif && <div>{texteFiscal(d.emetteur.nif)}</div>}
     </div>
   ),
 
