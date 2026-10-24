@@ -801,11 +801,6 @@
   display: block;
   margin: 0 auto;
 }
-.doc-ticket .codebarres .num {
-  font-size: 7pt;
-  letter-spacing: 0.2em;
-  margin-top: 0.8mm;
-}
 
 /* Sur 58 mm, tout se resserre d'un cran : c'est deux centimètres de
    moins, soit un quart de la largeur en moins. */
