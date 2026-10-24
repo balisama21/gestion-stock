@@ -14,6 +14,7 @@ import {
   Totaux,
 } from "../parts/blocs";
 import { Ressort, TeteSuite, type ProprietesModele } from "../parts/squelette";
+import { texteFiscal } from "../../../lib/nifStat";
 
 /**
  * MODÈLE 4 — COMPACT
@@ -81,7 +82,7 @@ export const Compact: React.FC<ProprietesModele> = ({
               <Marque emetteur={d.emetteur} />
               {(d.emetteur.lignes.length > 0 || d.emetteur.nif) && (
                 <div className="coordonnees doc-muted">
-                  {[...d.emetteur.lignes, d.emetteur.nif ? `NIF ${d.emetteur.nif}` : null]
+                  {[...d.emetteur.lignes, d.emetteur.nif ? texteFiscal(d.emetteur.nif) : null]
                     .filter(Boolean)
                     .join(" · ")}
                 </div>

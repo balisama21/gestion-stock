@@ -630,8 +630,13 @@
   font-size: 9.5pt;
 }
 /* Le total prend l'aplat de couleur : sur un document dense, un
-   chiffre en gras ne se détacherait pas assez. */
-.m-compact .doc-totaux .l:last-child {
+   chiffre en gras ne se détacherait pas assez.
+
+   C'est bien la ligne « Total à payer » qui le prend, et non la
+   dernière : sur une facture payée en partie, la dernière est « Reste à
+   payer », écrite en gris et en rouge, et ces deux teintes posées sur
+   l'aplat devenaient illisibles. */
+.m-compact .doc-totaux .l.grand {
   background: var(--doc);
   color: #fff;
   border-radius: 1.5mm;
@@ -640,8 +645,12 @@
   font-weight: 700;
   margin-top: 1mm;
 }
+.m-compact .doc-totaux .l.grand,
 .m-compact .doc-totaux .l.grand .doc-muted {
   color: #fff;
+}
+.m-compact .doc-totaux .l.grand + .l {
+  margin-top: 1mm;
 }
 .m-compact .pied {
   border-top: 0.3mm solid #e6ebe8;

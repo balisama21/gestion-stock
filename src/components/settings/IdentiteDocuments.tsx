@@ -8,6 +8,7 @@ import type {
   IdentifiantLegal,
   IdentiteBoutique,
 } from "../../features/documents/lib/identite";
+import { texteFiscal } from "../../lib/nifStat";
 
 /**
  * PARAMÈTRES → DOCUMENTS → IDENTITÉ DE LA BOUTIQUE
@@ -152,7 +153,12 @@ export const IdentiteDocuments: React.FC<Props> = ({ identite, onChange, setting
   const majIdentifiants = (liste: IdentifiantLegal[]) => changer({ identifiants: liste });
 
   /* Ce qui s'imprime déjà, sans rien saisir ici. */
-  const deja = [settings?.address, settings?.phone, settings?.email, settings?.nifStat]
+  const deja = [
+    settings?.address,
+    settings?.phone,
+    settings?.email,
+    settings?.nifStat && texteFiscal(settings.nifStat),
+  ]
     .map((v) => (v ?? "").trim())
     .filter(Boolean);
 

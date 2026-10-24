@@ -256,6 +256,17 @@ const champ = (
   return v ? [{ cle, nom, valeur: v, ...extra }] : [];
 };
 
+/**
+ * Les mentions sous les filets de signature.
+ *
+ * Les formules d'usage, sans le nom de la boutique : il est déjà en tête
+ * de la feuille, et « Pour Ma Boutique · cachet et signature » se lisait
+ * comme un brouillon. Le client d'un devis ou d'une commande donne son
+ * accord ; celui d'une facture ou d'un reçu signe simplement.
+ */
+const SIGNATURE_EMETTEUR = "Cachet et signature de l'entreprise";
+const SIGNATURE_ACCORD = "Bon pour accord, date et signature du client";
+
 /** Les morceaux non vides, séparés par un point médian. */
 const joindre = (...parts: (string | null | undefined)[]): string | null =>
   util(parts.map(util).filter(Boolean).join(" · "));
@@ -742,7 +753,7 @@ export function documentDeVente(source: SourceVente): Document {
     signatures: page.visible("bas.signature")
       ? {
           gauche: "Signature du client",
-          droite: nomBoutique ? `Pour ${nomBoutique} · cachet et signature` : "Cachet et signature",
+          droite: SIGNATURE_EMETTEUR,
         }
       : null,
     motDeFin: page.visible("bas.motDeFin") ? util(regle.motDeFin) : null,
@@ -903,8 +914,8 @@ export function documentDeDevis(source: SourceDevis): Document {
     mentions: page.visible("bas.conditions") ? util(regle.conditions) : null,
     signatures: page.visible("bas.signature")
       ? {
-          gauche: "Bon pour accord · signature du client",
-          droite: nomBoutique ? `Pour ${nomBoutique}` : "Cachet et signature",
+          gauche: SIGNATURE_ACCORD,
+          droite: SIGNATURE_EMETTEUR,
         }
       : null,
     motDeFin: page.visible("bas.motDeFin") ? util(regle.motDeFin) : null,
@@ -1029,8 +1040,8 @@ export function documentDeCommande(source: SourceCommande): Document {
     mentions: page.visible("bas.conditions") ? util(regle.conditions) : null,
     signatures: page.visible("bas.signature")
       ? {
-          gauche: "Bon pour accord · signature du client",
-          droite: nomBoutique ? `Pour ${nomBoutique}` : "Cachet et signature",
+          gauche: SIGNATURE_ACCORD,
+          droite: SIGNATURE_EMETTEUR,
         }
       : null,
     motDeFin: page.visible("bas.motDeFin") ? util(regle.motDeFin) : null,
@@ -1325,7 +1336,7 @@ export function documentDAvoir(source: SourceAvoir): Document {
     signatures: page.visible("bas.signature")
       ? {
           gauche: "",
-          droite: nomBoutique ? `Pour ${nomBoutique}` : "Cachet et signature",
+          droite: SIGNATURE_EMETTEUR,
         }
       : null,
     motDeFin: page.visible("bas.motDeFin") ? util(regle.motDeFin) : null,
@@ -1521,9 +1532,7 @@ export function documentDAchat(source: SourceAchat): Document {
      * la formule des autres documents : c'est celle que ce bon-ci
      * portait déjà, et l'en-tête dit de qui il vient.
      */
-    signatures: page.visible("bas.signature")
-      ? { gauche: "", droite: "Cachet et signature" }
-      : null,
+    signatures: page.visible("bas.signature") ? { gauche: "", droite: SIGNATURE_EMETTEUR } : null,
     motDeFin: page.visible("bas.motDeFin") ? util(regle.motDeFin) : null,
     // On n'indique pas où NOUS payer sur une commande que nous passons.
     coordonneesPaiement: null,

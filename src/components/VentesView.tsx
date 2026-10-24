@@ -78,6 +78,7 @@ import {
   type AvoirDeVente,
 } from "../lib/ventes";
 import { useConfirmation } from "../hooks/useConfirmation";
+import { texteFiscal } from "../lib/nifStat";
 
 const AUCUNE_COMMANDE: Sale[] = [];
 const AUCUN_AVOIR: AvoirDeVente[] = [];
@@ -1906,7 +1907,7 @@ export const VentesView: React.FC<VentesViewProps> = ({
                     <p className="text-[10px] text-slate-500">{settings.email}</p>
                   )}
                   {invoicePrefs.showNif && settings?.nifStat && (
-                    <p className="text-[9px] text-slate-400">{settings.nifStat}</p>
+                    <p className="text-[9px] text-slate-400">{texteFiscal(settings.nifStat)}</p>
                   )}
                 </div>
 
@@ -2040,7 +2041,9 @@ export const VentesView: React.FC<VentesViewProps> = ({
                           .join(" · ")}
                       </p>
                       {invoicePrefs.showNif && settings?.nifStat && (
-                        <p className="text-[10px] text-slate-400">{settings.nifStat}</p>
+                        <p className="text-[10px] text-slate-400">
+                          {texteFiscal(settings.nifStat)}
+                        </p>
                       )}
                     </div>
                   </div>
