@@ -17,8 +17,8 @@ import { appliquerTextes, libelleParDefaut } from "../lib/textesLibres";
 import { cleLibelle, lignesPresentees, type ChampTiers } from "../lib/coordonnees";
 import {
   BlocAdresse,
+  CoordonneesEmetteur,
   CoordonneesPaiement,
-  EquivalentsTotal,
   Mentions,
   MontantEnLettres,
   Reperes,
@@ -81,8 +81,7 @@ export function contenuDuBloc(
       if (base === "classique" || base === "epure") {
         return e.titre || e.lignes.length > 0 || e.nif ? <BlocAdresse bloc={e} /> : null;
       }
-      const lignesEm = [...e.lignes, e.nif ? texteFiscal(e.nif) : null].filter(Boolean);
-      return lignesEm.length > 0 ? <div className="coordonnees">{lignesEm.join(" · ")}</div> : null;
+      return <CoordonneesEmetteur emetteur={e} />;
     }
     case "titre":
       return d.titre ? <div className="doc-titre">{d.titre}</div> : null;
@@ -100,18 +99,7 @@ export function contenuDuBloc(
     case "tableau":
       return <TableauLignes lignes={lignes} colonnes={d.colonnes} devise={d.devise} />;
     case "totaux":
-      return base === "classique" || base === "bandeau" ? (
-        <>
-          <Totaux totaux={d.totaux} devise={d.devise} sansTotal />
-          <div className="encadre">
-            <span>{d.totaux.libelleTotal}</span>
-            <span className="doc-num">{montantOuTiret(d.totaux.total, d.devise)}</span>
-          </div>
-          <EquivalentsTotal total={d.totaux.total} />
-        </>
-      ) : (
-        <Totaux totaux={d.totaux} devise={d.devise} />
-      );
+      return <Totaux totaux={d.totaux} devise={d.devise} />;
     case "lettres":
       return d.montantEnLettres ? (
         <MontantEnLettres texte={d.montantEnLettres} type={d.type} intro={textes?.intro} />

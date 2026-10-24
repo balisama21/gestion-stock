@@ -1,7 +1,7 @@
 import React from "react";
-import { montantOuTiret } from "../lib/format";
 import {
   BlocAdresse,
+  CoordonneesEmetteur,
   CoordonneesPaiement,
   Marque,
   Mentions,
@@ -11,10 +11,8 @@ import {
   TableauLignes,
   TamponPaiement,
   Totaux,
-  EquivalentsTotal,
 } from "../parts/blocs";
 import { Ressort, TeteSuite, type ProprietesModele } from "../parts/squelette";
-import { texteFiscal } from "../../../lib/nifStat";
 
 /**
  * MODÈLE 2 — BANDEAU
@@ -55,29 +53,20 @@ export const Bandeau: React.FC<ProprietesModele> = ({
         <div className="band">
           <div className="min0">
             <Marque emetteur={d.emetteur} inverse />
-            {(d.emetteur.lignes.length > 0 || d.emetteur.nif) && (
-              <div className="coordonnees">
-                {[...d.emetteur.lignes, d.emetteur.nif ? texteFiscal(d.emetteur.nif) : null]
-                  .filter(Boolean)
-                  .join(" · ")}
-              </div>
-            )}
+            <CoordonneesEmetteur emetteur={d.emetteur} />
           </div>
+          {/* Le numéro n'est plus répété ici : il figure dans les
+              repères, juste en dessous, avec la date et l'échéance. */}
           <div className="repere">
             <div className="doc-titre">{d.titre}</div>
-            {d.numero && <div className="doc-num ref">N° {d.numero}</div>}
           </div>
         </div>
 
         <div className="doc-blocs">
           <BlocAdresse bloc={d.destinataire} />
-          <div style={{ textAlign: "right" }}>
+          <div className="doc-blocs-droite">
             <Reperes meta={d.meta} pagination={pagination} />
-            {d.tampon && (
-              <div style={{ marginTop: "3mm" }}>
-                <TamponPaiement tampon={d.tampon} />
-              </div>
-            )}
+            <TamponPaiement tampon={d.tampon} />
           </div>
         </div>
       </div>
@@ -101,14 +90,7 @@ export const Bandeau: React.FC<ProprietesModele> = ({
             )}
             <CoordonneesPaiement lignes={d.coordonneesPaiement} />
           </div>
-          <div>
-            <Totaux totaux={d.totaux} devise={d.devise} sansTotal />
-            <div className="encadre">
-              <span>{d.totaux.libelleTotal}</span>
-              <span className="doc-num">{montantOuTiret(d.totaux.total, d.devise)}</span>
-            </div>
-            <EquivalentsTotal total={d.totaux.total} />
-          </div>
+          <Totaux totaux={d.totaux} devise={d.devise} />
         </div>
 
         <Signature signatures={d.signatures} />

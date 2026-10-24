@@ -406,7 +406,7 @@ describe("écrire le mot visé, comme sur Canva", () => {
 
   it("un second clic sur le bloc déjà choisi ouvre l'écriture", () => {
     ouvrirAvecDocument();
-    viser('.doc-libre [data-bloc="totaux"] .encadre span');
+    viser('.doc-libre [data-bloc="totaux"] .l.grand span');
     const cadre = document.querySelector('[data-cadre="totaux"]')!;
     fireEvent.pointerDown(cadre, { pointerType: "mouse", pointerId: 1 });
     fireEvent.pointerUp(cadre, { pointerId: 1 });

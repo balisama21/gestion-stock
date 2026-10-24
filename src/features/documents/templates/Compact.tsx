@@ -4,6 +4,7 @@ import { celluleDeLigne } from "../parts/cellules";
 import { useEquivalentsDuDocument } from "../lib/equivalents";
 import {
   BlocAdresse,
+  CoordonneesEmetteur,
   CoordonneesPaiement,
   Marque,
   Mentions,
@@ -14,7 +15,6 @@ import {
   Totaux,
 } from "../parts/blocs";
 import { Ressort, TeteSuite, type ProprietesModele } from "../parts/squelette";
-import { texteFiscal } from "../../../lib/nifStat";
 
 /**
  * MODÈLE 4 — COMPACT
@@ -80,28 +80,18 @@ export const Compact: React.FC<ProprietesModele> = ({
           <header className="tete">
             <div className="min0">
               <Marque emetteur={d.emetteur} />
-              {(d.emetteur.lignes.length > 0 || d.emetteur.nif) && (
-                <div className="coordonnees doc-muted">
-                  {[...d.emetteur.lignes, d.emetteur.nif ? texteFiscal(d.emetteur.nif) : null]
-                    .filter(Boolean)
-                    .join(" · ")}
-                </div>
-              )}
+              <CoordonneesEmetteur emetteur={d.emetteur} />
             </div>
             <div className="repere">
               <div className="doc-titre">{d.titre}</div>
-              {d.tampon && (
-                <div style={{ marginTop: "2mm" }}>
-                  <TamponPaiement tampon={d.tampon} />
-                </div>
-              )}
             </div>
           </header>
 
           <div className="doc-blocs">
             <BlocAdresse bloc={d.destinataire} />
-            <div style={{ textAlign: "right" }}>
+            <div className="doc-blocs-droite">
               <Reperes meta={d.meta} pagination={pagination} />
+              <TamponPaiement tampon={d.tampon} />
             </div>
           </div>
         </div>

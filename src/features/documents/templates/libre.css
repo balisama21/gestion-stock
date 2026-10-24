@@ -56,6 +56,18 @@
 .doc-libre .coordonnees {
   font-size: 9pt;
 }
+/* Posées dans une boîte de la feuille, les coordonnées n'ont pas à
+   s'écarter d'un nom qui n'est plus au-dessus d'elles. */
+.doc-libre .doc-coordonnees {
+  margin-top: 0;
+  font-size: 9pt;
+}
+/* Les repères gardent leurs deux colonnes, et la largeur de leur
+   contenu : c'est ce qui permet de les pousser à droite d'une boîte. */
+.doc-libre .doc-meta {
+  display: grid;
+  width: max-content;
+}
 .doc-libre-pied {
   border-top: 0.3mm solid #e6ebe8;
   padding-top: 2.5mm;
@@ -80,8 +92,12 @@
 .bl-inverse .doc-sous-titre,
 .bl-inverse .doc-bloc h4,
 .bl-inverse .doc-muted,
-.bl-inverse .coordonnees {
+.bl-inverse .coordonnees,
+.bl-inverse .doc-coordonnees {
   color: rgba(255, 255, 255, 0.78);
+}
+.bl-inverse .doc-coordonnees .doc-fiscal {
+  color: #fff;
 }
 .bl-inverse .doc-pastille {
   background: rgba(255, 255, 255, 0.16);

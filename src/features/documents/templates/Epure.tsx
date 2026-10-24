@@ -1,6 +1,7 @@
 import React from "react";
 import {
   BlocAdresse,
+  CoordonneesEmetteur,
   CoordonneesPaiement,
   Marque,
   Mentions,
@@ -42,18 +43,20 @@ export const Epure: React.FC<ProprietesModele> = ({
     {premiere ? (
       <div data-doc="tete" className="groupe-tete">
         <header className="tete">
-          <Marque emetteur={d.emetteur} />
+          <div className="min0">
+            <Marque emetteur={d.emetteur} />
+            <CoordonneesEmetteur emetteur={d.emetteur} />
+          </div>
           <div className="repere">
             <div className="doc-titre">{d.titre}</div>
-            <div style={{ marginTop: "3mm" }}>
-              <Reperes meta={d.meta} pagination={pagination} />
-            </div>
           </div>
         </header>
 
         <div className="doc-blocs">
-          <BlocAdresse bloc={d.emetteur} />
           <BlocAdresse bloc={d.destinataire} />
+          <div className="doc-blocs-droite">
+            <Reperes meta={d.meta} pagination={pagination} />
+          </div>
         </div>
       </div>
     ) : (
@@ -66,20 +69,22 @@ export const Epure: React.FC<ProprietesModele> = ({
 
     {derniere ? (
       <div className="doc-cloture" data-doc="cloture">
-        <div className="doc-insecable">
+        {/* La même disposition que les trois autres modèles : ce qui
+            s'écrit à gauche, les totaux à droite, puis les signatures.
+            Les conditions vivaient seules au pied de la feuille, loin
+            du montant qu'elles encadrent. Pas d'intitulé « Conditions »
+            pour autant : le texte dit déjà ce qu'il est. */}
+        <div className="bas doc-insecable">
+          <div>
+            <MontantEnLettres texte={d.montantEnLettres} type={d.type} />
+            <Mentions texte={d.mentions} />
+            <CoordonneesPaiement lignes={d.coordonneesPaiement} />
+          </div>
           <Totaux totaux={d.totaux} devise={d.devise} />
-          <MontantEnLettres texte={d.montantEnLettres} type={d.type} />
         </div>
 
-        <Ressort />
-
-        {/* Pas d intitulé « Conditions » : le texte dit déjà ce qu il
-            est, et sur ce modèle très aéré une ligne de titre coûtait
-            une ligne d article sur la page. */}
-        <Mentions texte={d.mentions} />
-        <CoordonneesPaiement lignes={d.coordonneesPaiement} />
-
         <Signature signatures={d.signatures} />
+        <Ressort />
 
         <footer className="pied doc-insecable">
           {[d.motDeFin, d.piedDePage, pagination].filter(Boolean).join(" · ")}
