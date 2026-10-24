@@ -52,6 +52,27 @@ export const Marque: React.FC<{ emetteur: EnTeteBoutique; inverse?: boolean }> =
   </div>
 );
 
+/**
+ * Les coordonnées de la boutique, sous son nom : une information par
+ * ligne, dans l'ordre réglé — l'adresse, puis le téléphone et l'e-mail,
+ * puis les numéros fiscaux, seuls sur leur ligne.
+ *
+ * Les quatre modèles la posent au même endroit. Elles formaient avant
+ * une seule ligne jointe par des points, qui se coupait au hasard de la
+ * largeur — au milieu d'un numéro STAT sur une vraie facture — et que
+ * le Classique et l'Épuré doublaient d'un bloc « Émetteur » répétant le
+ * nom déjà écrit en gros juste au-dessus.
+ */
+export const CoordonneesEmetteur: React.FC<{ emetteur: EnTeteBoutique }> = ({ emetteur }) =>
+  emetteur.lignes.length > 0 || emetteur.nif ? (
+    <div className="doc-coordonnees">
+      {emetteur.lignes.map((l, i) => (
+        <div key={i}>{l}</div>
+      ))}
+      {emetteur.nif && <div className="doc-fiscal">{texteFiscal(emetteur.nif)}</div>}
+    </div>
+  ) : null;
+
 /* ── Un bloc d'adresse — émetteur ou destinataire ────────────────── */
 
 export const BlocAdresse: React.FC<{ bloc: BlocTiers; titre?: string }> = ({ bloc, titre }) => {
@@ -91,11 +112,14 @@ export const Reperes: React.FC<{ meta: LigneMeta[]; pagination?: string | null }
   meta,
   pagination,
 }) => (
+  // Deux colonnes, libellés d'un côté et valeurs de l'autre : alignés
+  // à droite comme avant, des libellés de longueurs différentes
+  // faisaient partir chaque valeur d'un endroit différent.
   <div className="doc-meta">
     {meta.map((m) => (
-      <div key={m.libelle}>
-        <span className="doc-muted">{m.libelle} </span>
-        {m.libelle === "N°" ? <b>{m.valeur}</b> : m.valeur}
+      <div key={m.libelle} className="doc-meta-l">
+        <span className="doc-muted">{m.libelle}</span>
+        <span>{m.libelle === "N°" ? <b>{m.valeur}</b> : m.valeur}</span>
       </div>
     ))}
     {/*
@@ -106,7 +130,7 @@ export const Reperes: React.FC<{ meta: LigneMeta[]; pagination?: string | null }
      * aura de pages. Une ligne qui apparaîtrait après coup ferait
      * déborder la feuille qu'on venait de mesurer.
      */}
-    <div className="doc-muted" aria-hidden={pagination ? undefined : true}>
+    <div className="doc-muted doc-meta-page" aria-hidden={pagination ? undefined : true}>
       {pagination ?? " "}
     </div>
   </div>
@@ -178,16 +202,19 @@ export const EquivalentsTotal: React.FC<{ total: number | null }> = ({ total }) 
 };
 
 /**
- * Les lignes de total qui précèdent le montant final.
+ * Les totaux, dans le même ordre sur tous les modèles : le détail
+ * (hors taxe, commission, TVA), le total, puis ce qui est déjà payé et
+ * ce qui reste.
  *
- * `sansTotal` sert aux modèles qui détachent le total dans un encadré
- * de couleur : il ne doit pas y figurer deux fois.
+ * Le Classique et le Bandeau détachaient le total dans un encadré posé
+ * APRÈS ces lignes : on lisait « Déjà payé » et « Reste à payer » avant
+ * de savoir combien coûtait la facture. Chaque modèle met désormais en
+ * valeur la ligne `.grand` à sa façon, sans la déplacer.
  */
 export const Totaux: React.FC<{
   totaux: TotauxDocument;
   devise: string;
-  sansTotal?: boolean;
-}> = ({ totaux, devise, sansTotal }) => (
+}> = ({ totaux, devise }) => (
   <div className="doc-totaux">
     {/* Le hors-taxe n'apparaît QUE si la TVA est affichée : sans elle,
         il répéterait le total mot pour mot. */}
@@ -226,13 +253,11 @@ export const Totaux: React.FC<{
         qui la mettent en valeur visaient `:last-child`, qui est la
         ligne « Déjà payé » dès qu un règlement est connu — le filet
         de l Épuré soulignait donc l acompte au lieu du total. */}
-    {!sansTotal && (
-      <div className="l grand" style={{ fontSize: "12pt", fontWeight: 700 }}>
-        <span>{totaux.libelleTotal}</span>
-        <span className="doc-num">{montantOuTiret(totaux.total, devise)}</span>
-      </div>
-    )}
-    {!sansTotal && <EquivalentsTotal total={totaux.total} />}
+    <div className="l grand" style={{ fontSize: "12pt", fontWeight: 700 }}>
+      <span>{totaux.libelleTotal}</span>
+      <span className="doc-num">{montantOuTiret(totaux.total, devise)}</span>
+    </div>
+    <EquivalentsTotal total={totaux.total} />
     {totaux.paye !== null && (
       <div className="l">
         <span className="doc-muted">

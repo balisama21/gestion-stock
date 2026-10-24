@@ -37,7 +37,7 @@ describe("sans rien saisir, le document ne bouge pas", () => {
     const d = documentDeVente({ ...base, ventes: [V024] });
     expect(d.emetteur.lignes).toEqual([
       "105 Ambohidratrimo",
-      "0389723412 · balisamamamy2003@gmail.com",
+      "Tél.\u00a00389723412 · balisamamamy2003@gmail.com",
     ]);
   });
 
@@ -141,7 +141,7 @@ describe("ce que l'identité ajoute au document", () => {
     const d = documentDeVente({ ...base, ventes: [V024], reglages });
     expect(d.emetteur.lignes).toEqual([
       "105 Ambohidratrimo",
-      "0389723412 · balisamamamy2003@gmail.com",
+      "Tél.\u00a00389723412 · balisamamamy2003@gmail.com",
       "Mariama · Comores · +269 32 12 345",
       "maboutique.mg",
       "RCS 2024-B-112",

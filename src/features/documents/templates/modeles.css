@@ -54,6 +54,20 @@
   color: #6b7671;
 }
 
+/* Les coordonnées, sous le logo et le nom : une information par
+   ligne. Les numéros fiscaux ferment le bloc, un ton plus appuyés :
+   c'est ce qu'un comptable vient y chercher. */
+.doc-coordonnees {
+  margin-top: 3mm;
+  font-size: 8.5pt;
+  line-height: 1.55;
+  color: #39413d;
+}
+.doc-coordonnees .doc-fiscal {
+  margin-top: 0.6mm;
+  color: #16181a;
+}
+
 /* ── Le titre du document ────────────────────────────────────────── */
 .doc-titre {
   font-size: 26pt;
@@ -63,11 +77,27 @@
 }
 
 /* ── Les couples « libellé : valeur » de l'en-tête ───────────────── */
+/* Deux colonnes : les libellés alignés entre eux, les valeurs entre
+   elles. Le bloc garde sa place à droite de la feuille. */
 .doc-meta {
+  display: inline-grid;
+  grid-template-columns: auto auto;
+  column-gap: 5mm;
+  text-align: left;
   font-family: var(--doc-mono);
   font-variant-numeric: tabular-nums;
   font-size: 9.5pt;
   line-height: 1.7;
+}
+.doc-meta-l {
+  display: contents;
+}
+.doc-meta-l > span:last-child {
+  text-align: right;
+}
+.doc-meta-page {
+  grid-column: 1 / -1;
+  text-align: right;
 }
 .doc-meta b {
   font-weight: 700;
@@ -95,9 +125,22 @@
   color: #39413d;
   line-height: 1.5;
 }
+/* Le NIF et le STAT, dans le corps du texte et non plus en chasse
+   fixe : en petites capitales de machine à écrire, ils se lisaient
+   comme une ligne technique collée sous l'adresse. */
 .doc-fiscal {
-  font-family: var(--doc-mono);
-  font-size: 8.5pt;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+}
+
+/* Le côté droit sous l'en-tête : les repères, puis le tampon. Le même
+   endroit sur tous les modèles. */
+.doc-blocs-droite {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 1.5mm;
+  text-align: right;
 }
 
 /* ── Le tableau ──────────────────────────────────────────────────── */
@@ -149,8 +192,13 @@
   padding: 1.6mm 0;
   font-size: 10pt;
 }
+/* Ce qui reste dû se détache de ce qui est déjà réglé par un filet :
+   les deux montants se suivent et ne se confondent pas. */
 .doc-totaux .l.reste {
   font-weight: 700;
+  border-top: 0.3mm solid #e6ebe8;
+  margin-top: 0.8mm;
+  padding-top: 2.2mm;
 }
 .doc-totaux .l.reste span:last-child {
   color: #c0473a;
@@ -190,6 +238,9 @@
   font-size: 8pt;
   color: #6b7671;
   line-height: 1.5;
+}
+.doc-lettres + .doc-mentions {
+  margin-top: 2.5mm;
 }
 /* Où payer. Un encart discret : c'est une information de service,
    pas un argument. Il n'apparaît que si la boutique l'a renseignée. */
@@ -263,20 +314,17 @@
 .m-classique table tbody tr:first-child td {
   border-top: 0.3mm solid #e6ebe8;
 }
-.m-classique .encadre {
+/* Le total prend l'encadré plein, à sa place dans la colonne : après
+   le détail, avant ce qui est déjà payé. */
+.m-classique .doc-totaux .l.grand {
   background: var(--doc);
   color: #fff;
   border-radius: 2mm;
-  padding: 3.5mm 5mm;
-  display: flex;
-  justify-content: space-between;
+  padding: 3.2mm 5mm;
+  margin: 1.5mm 0;
   align-items: baseline;
-  gap: 5mm;
-  font-size: 12pt;
-  font-weight: 700;
-  margin-top: 2mm;
 }
-.m-classique .encadre .doc-num {
+.m-classique .doc-totaux .l.grand .doc-num {
   white-space: nowrap;
 }
 .m-classique .bas {
@@ -383,17 +431,11 @@
   letter-spacing: 0.02em;
 }
 .m-bandeau .band .doc-sous-titre,
-.m-bandeau .band .coordonnees,
-.m-bandeau .band .ref {
-  color: rgba(255, 255, 255, 0.78);
+.m-bandeau .band .doc-coordonnees {
+  color: rgba(255, 255, 255, 0.82);
 }
-.m-bandeau .band .coordonnees {
-  margin-top: 4mm;
-  font-size: 9pt;
-}
-.m-bandeau .band .ref {
-  font-size: 9.5pt;
-  margin-top: 2mm;
+.m-bandeau .band .doc-coordonnees .doc-fiscal {
+  color: #fff;
 }
 /* La pastille d'initiales se détache sur la couleur plutôt que de s'y
    confondre : un carré de la même teinte serait invisible. */
@@ -435,18 +477,13 @@
   gap: 10mm;
   align-items: start;
 }
-.m-bandeau .encadre {
+.m-bandeau .doc-totaux .l.grand {
   background: var(--doc-soft);
   color: var(--doc-ink);
   border-radius: 2mm;
   padding: 3mm 5mm;
-  display: flex;
-  justify-content: space-between;
+  margin: 1.5mm 0;
   align-items: baseline;
-  gap: 5mm;
-  font-weight: 700;
-  font-size: 12pt;
-  margin-top: 2mm;
 }
 /* La barre de pied répond au bandeau, d'un bout à l'autre de la
    feuille : elle ressort donc des marges du bloc qui la contient. */
@@ -522,7 +559,18 @@
   font-size: 11pt;
 }
 .m-epure .doc-totaux {
-  width: 85mm;
+  width: 80mm;
+}
+.m-epure .bas {
+  display: grid;
+  grid-template-columns: 1fr 80mm;
+  gap: 10mm;
+  align-items: start;
+}
+/* Les coordonnées gardent la sans-empattement du nom qu'elles
+   accompagnent : un numéro STAT en romane se recopie mal. */
+.m-epure .doc-coordonnees {
+  font-family: var(--doc-sans);
 }
 .m-epure .doc-totaux .l {
   font-size: 10.5pt;
@@ -579,9 +627,10 @@
 .m-compact .tete .repere {
   text-align: right;
 }
-.m-compact .coordonnees {
-  font-size: 8.5pt;
-  margin-top: 1.5mm;
+.m-compact .doc-coordonnees {
+  font-size: 8pt;
+  line-height: 1.5;
+  margin-top: 2mm;
 }
 .m-compact .doc-nom {
   font-size: 14pt;

@@ -1,7 +1,7 @@
 import React from "react";
-import { montantOuTiret } from "../lib/format";
 import {
   BlocAdresse,
+  CoordonneesEmetteur,
   CoordonneesPaiement,
   Marque,
   Mentions,
@@ -11,7 +11,6 @@ import {
   TableauLignes,
   TamponPaiement,
   Totaux,
-  EquivalentsTotal,
 } from "../parts/blocs";
 import { Ressort, TeteSuite, type ProprietesModele } from "../parts/squelette";
 
@@ -51,23 +50,21 @@ export const Classique: React.FC<ProprietesModele> = ({
     {premiere ? (
       <div data-doc="tete" className="groupe-tete">
         <header className="tete">
-          <Marque emetteur={d.emetteur} />
+          <div className="min0">
+            <Marque emetteur={d.emetteur} />
+            <CoordonneesEmetteur emetteur={d.emetteur} />
+          </div>
           <div className="repere">
             <div className="doc-titre">{d.titre}</div>
-            <div style={{ marginTop: "2mm" }}>
-              <Reperes meta={d.meta} pagination={pagination} />
-            </div>
-            {d.tampon && (
-              <div style={{ marginTop: "3mm" }}>
-                <TamponPaiement tampon={d.tampon} />
-              </div>
-            )}
           </div>
         </header>
 
         <div className="doc-blocs">
-          <BlocAdresse bloc={d.emetteur} />
           <BlocAdresse bloc={d.destinataire} />
+          <div className="doc-blocs-droite">
+            <Reperes meta={d.meta} pagination={pagination} />
+            <TamponPaiement tampon={d.tampon} />
+          </div>
         </div>
       </div>
     ) : (
@@ -93,14 +90,7 @@ export const Classique: React.FC<ProprietesModele> = ({
             )}
             <CoordonneesPaiement lignes={d.coordonneesPaiement} />
           </div>
-          <div>
-            <Totaux totaux={d.totaux} devise={d.devise} sansTotal />
-            <div className="encadre">
-              <span>{d.totaux.libelleTotal}</span>
-              <span className="doc-num">{montantOuTiret(d.totaux.total, d.devise)}</span>
-            </div>
-            <EquivalentsTotal total={d.totaux.total} />
-          </div>
+          <Totaux totaux={d.totaux} devise={d.devise} />
         </div>
 
         <Signature signatures={d.signatures} />

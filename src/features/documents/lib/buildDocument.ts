@@ -290,6 +290,16 @@ export function libelleMethode(code: string | null | undefined): string | null {
   return LIBELLE_METHODE[c] ?? c.replace(/_/g, " ").replace(/^./, (l) => l.toUpperCase());
 }
 
+/**
+ * « Tél. 032 … » : un numéro seul, à côté d'une adresse et d'un NIF, ne
+ * dit pas ce qu'il est. Un numéro déjà précédé de mots (« Tél : … »,
+ * « Fixe … ») est laissé tel que la boutique l'a écrit.
+ */
+const avecTel = (tel: string | null | undefined): string | null => {
+  const t = util(tel);
+  return t && /^[+\d(]/.test(t) ? `Tél.\u00a0${t}` : t;
+};
+
 /* ─────────────────────────────────────────────────────────────
  * L'en-tête de la boutique
  * ───────────────────────────────────────────────────────────── */
@@ -317,7 +327,7 @@ export function enTeteBoutique(
    */
   const lignes: Record<string, string[]> = {
     "entete.adresse": [util(boutique?.address)].filter((l): l is string => l !== null),
-    "entete.telEmail": [joindre(boutique?.phone, boutique?.email)].filter(
+    "entete.telEmail": [joindre(avecTel(boutique?.phone), boutique?.email)].filter(
       (l): l is string => l !== null,
     ),
     "entete.contacts": lignesDesContacts(reglages.identite),

@@ -99,7 +99,7 @@ describe("masquer un élément ne laisse rien derrière", () => {
       ventes: [V024],
       reglages: avec({ "entete.adresse": { visible: false } }),
     });
-    expect(d.emetteur.lignes).toEqual(["0389723412 · balisamamamy2003@gmail.com"]);
+    expect(d.emetteur.lignes).toEqual(["Tél.\u00a00389723412 · balisamamamy2003@gmail.com"]);
   });
 
   it("retire un repère sans décaler les autres", () => {
