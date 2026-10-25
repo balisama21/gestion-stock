@@ -2167,3 +2167,19 @@ html[data-marque="client"] .gs-ecran-chargement {
 .vitrine-marque .vm-argument {
   border-top: 3px solid var(--carbone);
 }
+
+/*
+ * Page d'accueil rendue par le serveur (lisible par les moteurs de
+ * recherche) : un navigateur qui détient déjà une session voit l'écran de
+ * chargement à sa place, dès le premier affichage. `data-session` est
+ * posé par le script du <head> (lib/sessionAvantRendu.ts).
+ */
+.ecran-session {
+  display: none;
+}
+:root[data-session] .ecran-session {
+  display: block;
+}
+:root[data-session] .accueil-public {
+  display: none;
+}
