@@ -85,6 +85,7 @@ import { lirePrixAuto } from "./lib/prixAuto";
 import { FournisseurAvatarsPersonnes } from "./components/shared/FournisseurAvatarsPersonnes";
 import { signalerAvertissement, signalerErreur } from "./lib/messages";
 import { Toaster } from "./components/ui/sonner";
+import { oublierSessionAvantRendu } from "./lib/sessionAvantRendu";
 
 /**
  * Les écrans internes arrivent à la demande.
@@ -3117,8 +3118,46 @@ export default function App() {
     onTimeout: () => setLocked(true),
   });
 
-  if (loading) {
-    return <AppLoader etape="Vérification de votre session…" />;
+  // Session absente (jamais ouverte, expirée, déconnexion) : la page
+  // d'accueil, masquée d'avance par le script du `<head>`, redevient visible.
+  useEffect(() => {
+    if (!loading && !user) oublierSessionAvantRendu();
+  }, [loading, user]);
+
+  // Authentification requise, mais le PAIEMENT n'est plus un prérequis pour
+  // entrer dans l'app (ancien système supprimé le 18/08/2026). Un nouveau
+  // compte accède directement à l'espace de travail, où il pourra créer sa
+  // boutique (qui démarre automatiquement en essai gratuit de 30 jours —
+  // voir stores.activation_status/trial_ends_at) ou rejoindre une boutique
+  // existante via une invitation.
+
+  /*
+   * Visiteur non connecté, ou pas encore su : la page d'accueil, rendue
+   * dès le serveur pour que les moteurs de recherche en lisent le texte.
+   * Un navigateur qui détient une session voit à la place l'écran de
+   * chargement (`data-session`, posé avant l'affichage) : jamais d'éclair
+   * de la page d'accueil avant l'espace de travail.
+   *
+   * Même arbre pendant et après la vérification : la page d'accueil reste
+   * montée, sans saut ni formulaire vidé.
+   */
+  if (loading || (!user && !isPasswordRecovery)) {
+    return (
+      <>
+        <div className="accueil-public">
+          <LimiteChargement>
+            <Suspense fallback={<AppLoader etape="Ouverture" />}>
+              <AuthPage />
+            </Suspense>
+          </LimiteChargement>
+        </div>
+        {loading && (
+          <div className="ecran-session">
+            <AppLoader etape="Vérification de votre session…" />
+          </div>
+        )}
+      </>
+    );
   }
 
   // Session de récupération de mot de passe (ouverte depuis un autre onglet,
@@ -3138,21 +3177,8 @@ export default function App() {
     );
   }
 
-  // Authentification requise, mais le PAIEMENT n'est plus un prérequis pour
-  // entrer dans l'app (ancien système supprimé le 18/08/2026). Un nouveau
-  // compte accède directement à l'espace de travail, où il pourra créer sa
-  // boutique (qui démarre automatiquement en essai gratuit de 30 jours —
-  // voir stores.activation_status/trial_ends_at) ou rejoindre une boutique
-  // existante via une invitation.
-  if (!user) {
-    return (
-      <LimiteChargement>
-        <Suspense fallback={<AppLoader etape="Ouverture" />}>
-          <AuthPage />
-        </Suspense>
-      </LimiteChargement>
-    );
-  }
+  // Déjà traité plus haut, avec la page d'accueil ; précise le type de `user`.
+  if (!user) return null;
 
   /*
    * Le code PIN se pose PAR-DESSUS l'application, il ne la remplace plus.

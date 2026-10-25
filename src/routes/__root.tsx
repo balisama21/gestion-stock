@@ -17,6 +17,7 @@ import { accorderLaBarreDEtat } from "../lib/couleurDeBarre";
 import { InstallPrompt } from "../components/shared/InstallPrompt";
 import { APP_TITRE_SEO } from "../lib/appConfig";
 import { metasDeReferencement } from "../lib/seo";
+import { scriptSessionAvantRendu } from "../lib/sessionAvantRendu";
 import {
   hoteDuRendu,
   manifesteDe,
@@ -160,6 +161,12 @@ function RootShell({ children }: { children: ReactNode }) {
         <script
           suppressHydrationWarning
           dangerouslySetInnerHTML={{ __html: scriptMarqueAvantRendu(marqueDuRendu()) }}
+        />
+        {/* Session déjà ouverte : l'écran de chargement plutôt que la
+            page d'accueil rendue par le serveur. */}
+        <script
+          suppressHydrationWarning
+          dangerouslySetInnerHTML={{ __html: scriptSessionAvantRendu() }}
         />
       </head>
       <body>
