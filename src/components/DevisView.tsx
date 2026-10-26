@@ -1,16 +1,5 @@
 import React, { useMemo, useState } from "react";
-import {
-  Check,
-  Edit3,
-  FileText,
-  Plus,
-  Printer,
-  Save,
-  Send,
-  ShoppingCart,
-  Trash2,
-  X,
-} from "lucide-react";
+import { Edit3, FileText, Plus, Printer, Save, ShoppingCart, Trash2 } from "lucide-react";
 import type { Product, StoreSettings } from "../types";
 import type { Database } from "../lib/database.types";
 import { formatCurrency, formatDateLocale, getProductLabel } from "../utils/formulas";
@@ -438,7 +427,36 @@ export const DevisView: React.FC<DevisViewProps> = ({
           value: devis.valide_jusqu_au ? formatDateLocale(devis.valide_jusqu_au, "FR") : "—",
         },
         { label: "Total", value: formatCurrency(devis.total) },
-        { label: "Statut", value: texteStatut(devis) },
+        {
+          label: "Statut",
+          // Tant que le devis attend une réponse, son statut se change
+          // ici, d'un geste, plutôt que par trois boutons de plus au
+          // pied de la fiche.
+          value:
+            peutModifier && (devis.statut === "brouillon" || devis.statut === "envoye") ? (
+              <div className="app-seg" role="group" aria-label="Changer le statut">
+                {STATUTS_DEVIS.map((st) => (
+                  <button
+                    key={st.valeur}
+                    type="button"
+                    aria-pressed={devis.statut === st.valeur}
+                    disabled={
+                      statutEnCours !== null ||
+                      devis.statut === st.valeur ||
+                      st.valeur === "brouillon" ||
+                      (st.valeur === "envoye" && devis.statut !== "brouillon")
+                    }
+                    onClick={() => changerStatut(devis, st.valeur)}
+                    className="app-seg-item"
+                  >
+                    {st.libelle}
+                  </button>
+                ))}
+              </div>
+            ) : (
+              texteStatut(devis)
+            ),
+        },
         { label: "Note", value: devis.note || "-", hideIfEmpty: true },
       ],
       actions: (
@@ -447,49 +465,19 @@ export const DevisView: React.FC<DevisViewProps> = ({
             <Printer className="h-4 w-4" />
             Imprimer
           </button>
-          {onTransformerEnVente && !fige && devis.statut !== "refuse" && (
-            <button
-              onClick={() => onTransformerEnVente(devis, sesLignes)}
-              className="app-btn-secondary"
-            >
-              <ShoppingCart className="h-4 w-4" />
-              {typeDe(devis) === "proforma" ? "Convertir en facture" : "Transformer en vente"}
-            </button>
-          )}
           {peutModifier && !fige && (
             <button onClick={() => ouvrirEdition(devis)} className="app-btn-secondary">
               <Edit3 className="h-4 w-4" />
               Modifier
             </button>
           )}
-          {peutModifier && devis.statut === "brouillon" && (
+          {onTransformerEnVente && !fige && devis.statut !== "refuse" && (
             <button
-              onClick={() => changerStatut(devis, "envoye")}
-              disabled={statutEnCours !== null}
-              className="app-btn-secondary"
-            >
-              <Send className="h-4 w-4" />
-              Marquer envoyé
-            </button>
-          )}
-          {peutModifier && !fige && devis.statut !== "refuse" && (
-            <button
-              onClick={() => changerStatut(devis, "accepte")}
-              disabled={statutEnCours !== null}
+              onClick={() => onTransformerEnVente(devis, sesLignes)}
               className="app-btn-primary"
             >
-              <Check className="h-4 w-4" />
-              Accepté
-            </button>
-          )}
-          {peutModifier && !fige && devis.statut !== "refuse" && (
-            <button
-              onClick={() => changerStatut(devis, "refuse")}
-              disabled={statutEnCours !== null}
-              className="app-btn-secondary"
-            >
-              <X className="h-4 w-4" />
-              Refusé
+              <ShoppingCart className="h-4 w-4" />
+              {typeDe(devis) === "proforma" ? "Convertir en facture" : "Transformer en vente"}
             </button>
           )}
           {peutSupprimer && !fige && (

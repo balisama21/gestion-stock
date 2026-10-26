@@ -258,6 +258,18 @@ describe("établir une facture n'écrit qu'une vente", () => {
   });
 });
 
+/** Ouvre le menu « Plus » du pied de fiche, s'il y en a un. */
+function ouvrirPlus() {
+  const plus = screen.queryByRole("button", { name: /^Plus$/ });
+  if (plus && plus.getAttribute("aria-expanded") !== "true") fireEvent.click(plus);
+}
+
+/** « Annuler par un avoir » est rangé dans le menu « Plus » de la fiche. */
+function boutonAvoir() {
+  ouvrirPlus();
+  return screen.getByRole("button", { name: /Annuler par un avoir/ });
+}
+
 describe("une facture émise ne se modifie pas et ne se supprime pas", () => {
   it("aucun bouton ne le propose : on corrige par un avoir", () => {
     afficher();
@@ -265,13 +277,14 @@ describe("une facture émise ne se modifie pas et ne se supprime pas", () => {
 
     expect(screen.queryByRole("button", { name: /^Modifier/ })).toBeNull();
     expect(screen.queryByRole("button", { name: /^Supprimer/ })).toBeNull();
-    expect(screen.getByRole("button", { name: /Annuler par un avoir/ })).toBeTruthy();
+    expect(boutonAvoir()).toBeTruthy();
   });
 
   it("un avoir qui couvre tout le montant enlève même ce chemin-là", () => {
     afficher({ documents: [{ ...DOC_FACTURE, statut: "annulee", avoirDe: "AV001" }] });
     fireEvent.click(screen.getByText("FAC-V001"));
 
+    ouvrirPlus();
     expect(screen.queryByRole("button", { name: /Annuler par un avoir/ })).toBeNull();
     expect(screen.getByText(/annulée par l'avoir AV001/i)).toBeTruthy();
   });
@@ -385,7 +398,7 @@ describe("l'avoir", () => {
     const { onRefundSale, onAjusterStock } = afficher({ facturation: f });
 
     fireEvent.click(screen.getByText("FAC-V001"));
-    fireEvent.click(screen.getByRole("button", { name: /Annuler par un avoir/ }));
+    fireEvent.click(boutonAvoir());
     fireEvent.click(screen.getByRole("button", { name: /Établir l'avoir/ }));
 
     await waitFor(() => expect(f.creerAvoir).toHaveBeenCalledTimes(1));
@@ -396,7 +409,7 @@ describe("l'avoir", () => {
   it("les deux cases sont décochées à l'ouverture", () => {
     afficher();
     fireEvent.click(screen.getByText("FAC-V001"));
-    fireEvent.click(screen.getByRole("button", { name: /Annuler par un avoir/ }));
+    fireEvent.click(boutonAvoir());
 
     for (const c of screen.getAllByRole("checkbox")) {
       expect((c as HTMLInputElement).checked).toBe(false);
@@ -410,7 +423,7 @@ describe("l'avoir", () => {
     });
 
     fireEvent.click(screen.getByText("FAC-V001"));
-    fireEvent.click(screen.getByRole("button", { name: /Annuler par un avoir/ }));
+    fireEvent.click(boutonAvoir());
     fireEvent.click(screen.getByLabelText(/Enregistrer aussi le remboursement/i));
     fireEvent.click(screen.getByRole("button", { name: /Établir l'avoir/ }));
 
@@ -551,7 +564,7 @@ describe("ce qui passe à moitié ne se rejoue pas", () => {
     });
 
     fireEvent.click(screen.getByText("FAC-V001"));
-    fireEvent.click(screen.getByRole("button", { name: /Annuler par un avoir/ }));
+    fireEvent.click(boutonAvoir());
     fireEvent.click(screen.getByLabelText(/Enregistrer aussi le remboursement/i));
     fireEvent.click(screen.getByRole("button", { name: /Établir l'avoir/ }));
 

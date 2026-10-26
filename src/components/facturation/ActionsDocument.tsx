@@ -11,6 +11,7 @@ import {
   Wallet,
 } from "lucide-react";
 import { Modal } from "../shared/Modal";
+import { PiedActions } from "../shared/PiedActions";
 import { SortieDocument } from "../../features/documents/SortieDocument";
 import type { ReglagesDocuments } from "../../features/documents/lib/reglages";
 import { figer, lireCopieFigee, type PieceFigee } from "../../features/documents/lib/copieFigee";
@@ -136,7 +137,9 @@ export const ActionsDocument: React.FC<ActionsDocumentProps> = ({
 
   return (
     <>
-      <div className="flex flex-wrap gap-2">
+      {/* Jusqu'à huit actions selon la pièce : le pied les range — les
+          courantes en vue, le reste dans « Plus ». */}
+      <PiedActions>
         <button
           type="button"
           onClick={() => ouvrirLaPiece("facture")}
@@ -173,7 +176,7 @@ export const ActionsDocument: React.FC<ActionsDocumentProps> = ({
         )}
 
         {droits.encaisser && estUneVente && d.reste > 0 && !annulee && onEncaisser && (
-          <button type="button" onClick={() => onEncaisser(d)} className="app-btn-secondary">
+          <button type="button" onClick={() => onEncaisser(d)} className="app-btn-primary">
             <Wallet className="h-4 w-4" />
             Enregistrer un paiement
           </button>
@@ -199,7 +202,7 @@ export const ActionsDocument: React.FC<ActionsDocumentProps> = ({
             Annuler par un avoir
           </button>
         )}
-      </div>
+      </PiedActions>
 
       {annulee && (
         <p className="mt-3 text-xs text-muted-foreground">

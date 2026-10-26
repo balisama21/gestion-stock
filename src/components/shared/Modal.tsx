@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import { createPortal } from "react-dom";
 import { X } from "lucide-react";
+import { PiedActions } from "./PiedActions";
 
 type ModalSize = "sm" | "md" | "lg" | "xl" | "2xl" | "3xl";
 
@@ -382,12 +383,13 @@ export const Modal: React.FC<ModalProps> = ({
           // le contenu ; pire, `flex-col-reverse` les retournait, si bien
           // que « Supprimer » arrivait tout en haut, en rouge, à la
           // place la plus en vue. Le rangement des actions est décrit
-          // dans styles.css, sous `.app-modal-footer`.
+          // dans styles.css, sous `.app-modal-footer` ; au-delà de trois
+          // actions, `PiedActions` range le surplus dans un menu « Plus ».
           <footer
             className="app-modal-footer flex shrink-0 flex-wrap items-center justify-end gap-2 border-t border-border p-4 pb-[max(1rem,env(safe-area-inset-bottom))] sm:p-5 sm:pb-5"
             style={{ boxShadow: "var(--elev-2)" }}
           >
-            {footer}
+            <PiedActions>{footer}</PiedActions>
           </footer>
         )}
       </div>

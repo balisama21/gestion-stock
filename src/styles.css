@@ -2087,6 +2087,52 @@ td {
   color: var(--primary);
 }
 
+/* ── Le pied rangé d'une fiche (PiedActions) ──
+   « Plus » à gauche, les actions courantes puis la principale à droite,
+   sous le pouce. Le menu s'ouvre vers le haut : le pied est collé au
+   bas de la fiche. */
+.app-pied {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: 0.5rem;
+}
+.app-pied-droite {
+  display: flex;
+  min-width: 0;
+  flex: 1 1 auto;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.5rem;
+}
+.app-pied-plus {
+  position: relative;
+  flex: none;
+}
+.app-pied-menu {
+  position: absolute;
+  left: 0;
+  bottom: calc(100% + 6px);
+  z-index: 50;
+  min-width: 220px;
+}
+/* Ce qui tient en vue est mesuré par le composant. La largeur du pied
+   sert encore ici : sous 360 pixels, « Plus » se réduit à ses trois
+   points. */
+.app-pied {
+  container-type: inline-size;
+}
+@container (max-width: 359px) {
+  .app-pied-plus-bouton {
+    width: 44px;
+    padding-left: 0 !important;
+    padding-right: 0 !important;
+  }
+  .app-pied-plus-bouton > span {
+    display: none;
+  }
+}
+
 /* ── Contrôle segmenté ──
    Des choix exclusifs (une période, une vue) rangés dans une même
    coque grise ; le choix posé ressort en blanc. */
