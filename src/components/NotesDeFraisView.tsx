@@ -114,7 +114,7 @@ export const NotesDeFraisView: React.FC<Props> = (p) => {
         ]}
       />
 
-      <div className="flex flex-wrap gap-2">
+      <div className="app-seg" role="group" aria-label="Filtrer par statut">
         {(["toutes", "a_valider", "validee", "remboursee", "refusee"] as Filtre[]).map((f) => {
           const count = f === "toutes" ? p.notes.length : nb(f as Statut);
           return (
@@ -123,10 +123,10 @@ export const NotesDeFraisView: React.FC<Props> = (p) => {
               type="button"
               onClick={() => setFiltre(f)}
               aria-pressed={filtre === f}
-              className={`app-chip ${filtre === f ? "app-chip-active" : ""}`}
+              className="app-seg-item"
             >
               {f === "toutes" ? "Toutes" : STATUTS[f].libelle}
-              <span className="app-chip-count">{count}</span>
+              <span className="app-seg-count">{count}</span>
             </button>
           );
         })}
