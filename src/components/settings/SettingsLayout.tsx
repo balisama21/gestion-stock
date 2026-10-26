@@ -280,13 +280,15 @@ export const SettingsLayout: React.FC<SettingsLayoutProps> = ({
       {/* En-tête de page */}
       <div className="app-page-head">
         <div className="app-page-head-text">
-          <h1 className="app-page-title">
-            <SettingsIcon className="w-5 h-5 shrink-0 text-muted-foreground" />
-            <span className="truncate">Paramètres</span>
-          </h1>
-          <p className="app-page-subtitle truncate">
-            {profile?.email || "Gérez votre compte et votre boutique"}
-          </p>
+          <span className="app-page-icon" aria-hidden="true">
+            <SettingsIcon />
+          </span>
+          <div className="min-w-0">
+            <h1 className="app-page-title">Paramètres</h1>
+            <p className="app-page-subtitle truncate">
+              {profile?.email || "Gérez votre compte et votre boutique"}
+            </p>
+          </div>
         </div>
         {onRetour && (
           <button

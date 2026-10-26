@@ -48,10 +48,12 @@
   --hero-1: oklch(from var(--primary) 0.49 calc(c * 0.85) h);
   --hero-2: oklch(from var(--primary) 0.33 calc(c * 0.5) h);
   --shadow: 0 1px 2px rgb(38 58 50 / 5%), 0 4px 14px rgb(38 58 50 / 4%);
-  --sans: "Onest Documents", "Onest", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
+  --sans:
+    "Onest Documents", "Onest", ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
     sans-serif;
-  --mono: "JetBrains Mono Documents", "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo,
-    Consolas, monospace;
+  --mono:
+    "JetBrains Mono Documents", "JetBrains Mono", ui-monospace, "SFMono-Regular", Menlo, Consolas,
+    monospace;
 
   font-family: var(--sans);
   color: var(--ink);
@@ -1772,5 +1774,217 @@
   .org2-portal * {
     transition: none !important;
     animation: none !important;
+  }
+}
+
+/* ═══════════════════════════════════════════════════════════════════
+   HARMONISATION AVEC LE RESTE DE L'APPLICATION
+
+   La maquette d'origine apportait sa propre voix : police Onest,
+   chiffres en JetBrains Mono, boutons en pilule, titre souligné, onglets
+   sous l'en-tête. À côté des autres écrans, l'Organisation se lisait
+   comme un autre logiciel. Ce bloc la ramène dans la famille : la police
+   de l'application, des chiffres tabulaires dans cette même police, les
+   onglets en tête d'écran, l'en-tête à tuile d'icône, les boutons aux
+   coins doux et la bande d'indicateurs d'une seule carte.
+
+   Attention : ici `--muted` est une couleur de TEXTE (le gris de la
+   maquette), pas le fond gris de l'application. Les fonds teintés
+   passent donc par `--surface-2`.
+   ═══════════════════════════════════════════════════════════════════ */
+.org2,
+.org2-portal {
+  --sans: var(--font-sans);
+  --mono: var(--font-sans);
+}
+.org2 .num,
+.org2-portal .num {
+  letter-spacing: -0.005em;
+}
+
+/* ── Onglets : les mêmes que ceux des autres univers ── */
+.org2 .tabs {
+  gap: 0.25rem;
+  border-bottom-color: var(--border);
+}
+.org2 .tabs button {
+  padding: 0.5rem 0.75rem 0.625rem;
+  font-size: 13.5px;
+  font-weight: 500;
+  gap: 6px;
+}
+.org2 .tabs button[aria-selected="true"] {
+  color: var(--primary);
+  font-weight: 600;
+}
+.org2 .tabs button[aria-selected="true"]::after {
+  left: 0;
+  right: 0;
+  height: 2px;
+  border-radius: 0;
+  background: var(--primary);
+}
+.org2 .tabs .n {
+  min-width: 18px;
+  height: 18px;
+  font-size: 10.5px;
+}
+
+/* ── En-tête : celui des autres écrans ── */
+.org2 .top {
+  align-items: center;
+  gap: 12px 24px;
+}
+.org2 .top .app-page-head-text {
+  flex: 1 1 280px;
+}
+.org2 .top .app-page-subtitle {
+  margin-top: 2px;
+  color: var(--muted-foreground);
+  font-size: 13px;
+}
+.org2 .top .app-page-icon svg {
+  width: 20px;
+  height: 20px;
+}
+.org2 .tools .fresh-btn {
+  width: 44px;
+  height: 44px;
+  border-radius: 12px;
+}
+.org2 .tools .fresh-btn svg {
+  width: 16px;
+  height: 16px;
+}
+
+/* ── Les boutons de l'en-tête : ceux des autres écrans ──
+   « Nouveau » prend la forme de l'action principale de l'application —
+   cadre vert fin, icône dans un rond vert plein — et le choix de portée
+   celle d'un bouton secondaire. Les boutons du panneau de détail et de
+   la légende de l'agenda gardent leur style d'origine. */
+.org2 .tools .pill {
+  height: 44px;
+  padding: 0 16px;
+  border-radius: 12px;
+  border-color: var(--border);
+  background: var(--card);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--foreground);
+}
+.org2 .tools .pill:hover {
+  border-color: var(--border);
+  background: var(--surface-2);
+}
+.org2 .tools .btn {
+  height: 44px;
+  padding: 0 16px;
+  gap: 8px;
+  border-radius: 12px;
+  background: var(--card);
+  color: var(--primary);
+  border: 1.5px solid var(--primary-trait);
+  font-size: 14px;
+}
+.org2 .tools .btn:hover {
+  filter: none;
+  background: var(--success-soft);
+  border-color: var(--primary);
+}
+.org2 .tools .btn > svg:first-child {
+  box-sizing: content-box;
+  width: 16px;
+  height: 16px;
+  padding: 5px;
+  border-radius: 9999px;
+  background: var(--primary);
+  color: var(--primary-foreground);
+}
+.org2 .menu {
+  border-radius: 12px;
+  padding: 4px;
+}
+
+/* ── Recherche et choix segmentés : ceux des listes ── */
+.org2 .search {
+  height: 40px;
+  border-radius: 12px;
+  border-color: var(--border);
+  background: var(--card);
+}
+.org2 .search:focus-within {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--primary) 16%, transparent);
+}
+.org2 .seg {
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+}
+.org2 .seg button {
+  border-radius: 7px;
+  font-weight: 500;
+  color: var(--muted-foreground);
+}
+.org2 .seg button[aria-pressed="true"] {
+  color: var(--primary);
+  font-weight: 600;
+  box-shadow:
+    var(--elev-1),
+    0 0 0 1px var(--border);
+}
+
+/* ── Indicateurs : une seule carte, des colonnes séparées d'un filet ── */
+.org2 .stats {
+  gap: 0;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--card);
+  box-shadow: var(--elev-1);
+}
+.org2 .stat {
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  padding: 12px 20px;
+  box-shadow:
+    -1px 0 0 var(--border),
+    0 -1px 0 var(--border);
+}
+.org2 .stat b {
+  order: 2;
+  font-size: 20px;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+.org2 .stat small {
+  order: 1;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+@container org2 (max-width: 640px) {
+  .org2 .top {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+  }
+  .org2 .tools {
+    width: 100%;
+  }
+  .org2 .tools > .menu-wrap {
+    flex: 1 1 auto;
+  }
+  .org2 .tools > .menu-wrap > .pill,
+  .org2 .tools > .menu-wrap > .btn {
+    width: 100%;
+    justify-content: center;
+    height: 44px;
+  }
+  .org2 .stat {
+    padding: 10px 16px;
   }
 }

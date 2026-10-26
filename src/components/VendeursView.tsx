@@ -671,7 +671,7 @@ Il ne pourra plus ouvrir la boutique. Ses ventes, dépenses et remises restent e
 
           {/* Filtres */}
           <div className="flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-            <div className="flex flex-wrap items-center gap-2">
+            <div className="app-seg" role="group" aria-label="Afficher">
               {(
                 [
                   {
@@ -685,11 +685,13 @@ Il ne pourra plus ouvrir la boutique. Ses ventes, dépenses et remises restent e
               ).map((t) => (
                 <button
                   key={t.key}
+                  type="button"
                   onClick={() => setActiveTab(t.key)}
-                  className={`app-chip ${activeTab === t.key ? "app-chip-active" : ""}`}
+                  aria-pressed={activeTab === t.key}
+                  className="app-seg-item"
                 >
                   {t.label}
-                  <span className="app-chip-count">{t.count}</span>
+                  <span className="app-seg-count">{t.count}</span>
                 </button>
               ))}
             </div>

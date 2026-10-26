@@ -527,14 +527,7 @@ export const DevisView: React.FC<DevisViewProps> = ({
         }
         actions={
           peutCreer ? (
-            <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
-              <button
-                onClick={() => ouvrirCreation("devis")}
-                className="app-btn-primary w-full sm:w-auto"
-              >
-                <Plus className="h-4 w-4" />
-                Nouveau devis
-              </button>
+            <>
               {/* La proforma est le même papier sous un autre nom :
                   elle part du même écran, sans onglet à elle. */}
               <button
@@ -544,7 +537,14 @@ export const DevisView: React.FC<DevisViewProps> = ({
                 <Plus className="h-4 w-4" />
                 Nouvelle proforma
               </button>
-            </div>
+              <button
+                onClick={() => ouvrirCreation("devis")}
+                className="app-btn-primary w-full sm:w-auto"
+              >
+                <Plus className="h-4 w-4" />
+                Nouveau devis
+              </button>
+            </>
           ) : undefined
         }
       />

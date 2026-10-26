@@ -771,43 +771,43 @@ export const FournisseursView: React.FC<FournisseursViewProps> = ({
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         {/* ── La liste ── */}
         <div className={`space-y-4 ${selection ? "lg:col-span-1" : "lg:col-span-3"}`}>
-          <div className="relative">
-            <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-            <label htmlFor="fo-recherche" className="sr-only">
-              Rechercher un fournisseur
-            </label>
-            <input
-              id="fo-recherche"
-              type="search"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Nom, entreprise, catégorie, ville…"
-              className="app-field pl-10"
-            />
-          </div>
+          {/* Recherche et filtre réunis dans une seule barre, comme sur
+              les autres listes. */}
+          <div className="app-toolbar flex-wrap">
+            <div className="relative w-full sm:min-w-56 sm:flex-1">
+              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+              <label htmlFor="fo-recherche" className="sr-only">
+                Rechercher un fournisseur
+              </label>
+              <input
+                id="fo-recherche"
+                type="search"
+                value={search}
+                onChange={(e) => setSearch(e.target.value)}
+                placeholder="Nom, entreprise, catégorie, ville…"
+                className="app-field pl-10"
+              />
+            </div>
 
-          <div className="flex flex-wrap gap-2">
-            {(
-              [
-                ["tous", `Tous (${suppliers.length})`],
-                ["actifs", "Actifs"],
-                ["inactifs", "Inactifs"],
-              ] as const
-            ).map(([valeur, libelle]) => (
-              <button
-                key={valeur}
-                type="button"
-                onClick={() => setFiltre(valeur)}
-                aria-pressed={filtre === valeur}
-                className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors ${
-                  filtre === valeur
-                    ? "border-success-border bg-success-soft t-success"
-                    : "border-border text-muted-foreground hover:text-foreground"
-                }`}
-              >
-                {libelle}
-              </button>
-            ))}
+            <div className="app-seg" role="group" aria-label="Filtrer la liste">
+              {(
+                [
+                  ["tous", `Tous (${suppliers.length})`],
+                  ["actifs", "Actifs"],
+                  ["inactifs", "Inactifs"],
+                ] as const
+              ).map(([valeur, libelle]) => (
+                <button
+                  key={valeur}
+                  type="button"
+                  onClick={() => setFiltre(valeur)}
+                  aria-pressed={filtre === valeur}
+                  className="app-seg-item"
+                >
+                  {libelle}
+                </button>
+              ))}
+            </div>
           </div>
 
           {listeFiltree.length === 0 ? (

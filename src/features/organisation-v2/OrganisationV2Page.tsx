@@ -281,27 +281,45 @@ export const OrganisationV2Page: React.FC<OrganisationV2Props> = (props) => {
     <Contexte.Provider value={valeur}>
       <div className="org2">
         <div className="wrap">
-          <header className="top">
-            <div className="hello">
-              <div className="eyebrow">
-                <span>{dateDuJourLongue}</span>
-                <span className="fresh">
-                  <i aria-hidden="true" />
-                  <span>Mis à jour à {majA}</span>
-                  <button
-                    className={`mini${tourne ? " spin" : ""}`}
-                    type="button"
-                    aria-label="Actualiser"
-                    onClick={actualiser}
-                  >
-                    <IcActualiser />
-                  </button>
-                </span>
+          <nav className="tabs" role="tablist" aria-label="Sections de l'organisation">
+            {onglets.map((o) => (
+              <button
+                key={o}
+                role="tab"
+                type="button"
+                id={`org2-tab-${o}`}
+                aria-controls={`org2-pane-${o}`}
+                aria-selected={onglet === o}
+                onClick={() => onChangerOnglet(o)}
+              >
+                {LIBELLES[o]}
+                {pastille[o] && (
+                  <span className={`n${pastille[o]?.crit ? " crit" : ""}`}>{pastille[o]?.n}</span>
+                )}
+              </button>
+            ))}
+          </nav>
+
+          <header className="top app-page-head">
+            <div className="app-page-head-text">
+              <span className="app-page-icon" aria-hidden="true">
+                <IcTache />
+              </span>
+              <div className="min-w-0">
+                <h1 className="app-page-title">Organisation</h1>
+                <p className="app-page-subtitle">{ACCROCHES[onglet]}</p>
               </div>
-              <h1>Organisation</h1>
-              <p>{ACCROCHES[onglet]}</p>
             </div>
             <div className="tools" ref={outils}>
+              <button
+                className={`mini fresh-btn${tourne ? " spin" : ""}`}
+                type="button"
+                aria-label="Actualiser"
+                title={`${dateDuJourLongue} · mis à jour à ${majA}`}
+                onClick={actualiser}
+              >
+                <IcActualiser />
+              </button>
               {droits.voitTaches && (
                 <div className="menu-wrap">
                   <button
@@ -376,25 +394,6 @@ export const OrganisationV2Page: React.FC<OrganisationV2Props> = (props) => {
               )}
             </div>
           </header>
-
-          <nav className="tabs" role="tablist" aria-label="Sections de l'organisation">
-            {onglets.map((o) => (
-              <button
-                key={o}
-                role="tab"
-                type="button"
-                id={`org2-tab-${o}`}
-                aria-controls={`org2-pane-${o}`}
-                aria-selected={onglet === o}
-                onClick={() => onChangerOnglet(o)}
-              >
-                {LIBELLES[o]}
-                {pastille[o] && (
-                  <span className={`n${pastille[o]?.crit ? " crit" : ""}`}>{pastille[o]?.n}</span>
-                )}
-              </button>
-            ))}
-          </nav>
 
           <section
             className="pane"

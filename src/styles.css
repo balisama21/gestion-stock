@@ -734,13 +734,26 @@ html.dark {
   background: transparent;
 }
 
-/* ── Mono numbers for financial data ── */
+/* ── Les montants ──
+   Dans les écrans de l'application, un montant s'écrit dans la police
+   du texte, avec des chiffres de largeur égale. La police « machine à
+   écrire » donnait aux listes un air de terminal, et un « 12 000 Ar »
+   d'une autre famille que le libellé posé à côté de lui. Ce sont les
+   chiffres tabulaires, et non la police, qui alignent les montants les
+   uns sous les autres.
+
+   La police ticket reste là où elle a un sens : sur le papier — reçus,
+   factures, bons — et sur la page d'accueil, qui en a fait sa voix. */
 .font-mono {
-  font-family: var(--font-mono);
-  /* Des chiffres de largeur égale : c'est ce qui aligne les montants les
-     uns sous les autres, et cela ne dépend d'aucune police en
-     particulier. */
+  font-family: var(--font-sans);
   font-variant-numeric: tabular-nums;
+  letter-spacing: -0.005em;
+}
+.printable-receipt .font-mono,
+.doc-feuille .font-mono,
+.page-accueil .font-mono {
+  font-family: var(--font-mono);
+  letter-spacing: normal;
 }
 
 /* ── Card hover glow variants ── */
@@ -984,11 +997,11 @@ td {
     @apply border-b border-border/50 last:border-0 hover:bg-muted/30 transition-colors;
   }
   .app-table .cell-id {
-    @apply font-mono text-[11px] font-bold tracking-wide;
+    @apply text-[11px] font-bold tracking-wide tabular-nums;
     color: var(--success);
   }
   .app-table .cell-muted {
-    @apply font-mono text-xs text-muted-foreground;
+    @apply text-xs tabular-nums text-muted-foreground;
   }
   .app-table .cell-truncate {
     @apply max-w-[220px] truncate;
@@ -1411,41 +1424,80 @@ td {
      Empilé sur mobile, sur une ligne dès 640px. Le bloc titre porte
      min-w-0 pour que le titre puisse tronquer au lieu de pousser les
      actions hors de l'écran. */
-  /* Le titre de page se pose directement sur le fond, sans carte :
-     sa taille, son soulignement vert et l'espace autour suffisent à le
-     distinguer — comme les titres de section du tableau de bord. */
+  /* Le titre de page se pose directement sur le fond, sans carte, et
+     tient sur une seule ligne avec ses actions : une tuile d'icône,
+     le titre, la phrase d'usage juste dessous. L'ancien soulignement
+     vert et ses marges prenaient près de cent vingt pixels avant le
+     premier chiffre — l'en-tête se lit maintenant d'un coup d'œil et
+     laisse la place au contenu. */
   .app-page-head {
-    @apply flex flex-col gap-4 px-0.5 pt-1 pb-2 sm:flex-row sm:items-end sm:justify-between;
+    @apply flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between sm:gap-6;
   }
   .app-page-head-text {
-    @apply min-w-0 flex-1;
+    @apply flex min-w-0 flex-1 items-center gap-3;
+  }
+  .app-page-icon {
+    @apply flex h-10 w-10 shrink-0 items-center justify-center rounded-xl;
+    background: var(--success-soft);
+    color: var(--primary);
+    box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--primary) 14%, transparent);
+  }
+  /* L'icône prend la couleur de la tuile, quelle que soit la teinte
+     que l'écran lui passait (`t-info`, `t-success`…) : un seul vert
+     d'un écran à l'autre. */
+  .app-page-icon > svg {
+    width: 20px;
+    height: 20px;
+    color: inherit;
   }
   .app-page-title {
-    @apply relative flex items-center gap-2.5 pb-3 text-xl font-bold tracking-tight text-foreground sm:text-2xl;
-  }
-  .app-page-title::after {
-    content: "";
-    position: absolute;
-    left: 0;
-    bottom: 0;
-    width: 48px;
-    height: 3px;
-    border-radius: 3px;
-    background: var(--primary);
-  }
-  .app-page-title > .shrink-0 {
-    color: var(--primary);
+    @apply truncate text-lg font-semibold leading-tight tracking-tight text-foreground sm:text-[22px];
   }
   .app-page-subtitle {
-    @apply mt-2.5 text-sm text-muted-foreground;
+    @apply mt-0.5 line-clamp-2 text-[13px] leading-snug text-muted-foreground;
   }
+  /* Les actions se rangent toujours en ligne, jamais en pile. Sur
+     téléphone, quatre boutons pleine largeur empilés faisaient quatre
+     cartes blanches avant le premier chiffre ; en ligne, ils se
+     partagent la largeur et passent à la ligne s'il le faut. */
   .app-page-actions {
-    @apply flex w-full shrink-0 flex-col gap-2 sm:w-auto sm:flex-row sm:items-center sm:gap-3;
+    @apply flex w-full shrink-0 flex-row flex-wrap items-center gap-2 sm:w-auto sm:flex-nowrap;
+  }
+
+  /* ── Indicateur posé dans l'en-tête ── */
+  .app-head-metric {
+    @apply flex items-center justify-between gap-3 rounded-xl border border-border bg-card px-3.5 py-1.5 sm:flex-col sm:items-end sm:justify-center sm:gap-0;
+    min-height: 44px;
+  }
+  .app-head-metric-label {
+    @apply text-[10.5px] font-medium uppercase tracking-wider text-muted-foreground;
+  }
+  .app-head-metric-value {
+    @apply text-[15px] font-semibold leading-tight tabular-nums;
   }
 
   /* ── Barre d'outils (recherche + filtres) ── */
   .app-toolbar {
-    @apply flex flex-col gap-3 p-3 sm:flex-row sm:items-center sm:p-4;
+    @apply flex flex-col gap-2 p-2.5 sm:flex-row sm:items-center sm:gap-3;
+  }
+  /* Posée juste au-dessus de la liste qu'elle filtre, la barre s'y
+     soude : une seule carte, la recherche en tête de liste. C'est la
+     forme des tableaux des grandes plateformes, et cela retire un
+     cadre et une marge entre les deux. */
+  .app-toolbar:has(+ .app-card) {
+    border-bottom-left-radius: 0;
+    border-bottom-right-radius: 0;
+    background: color-mix(in srgb, var(--muted) 55%, var(--card));
+    box-shadow: none;
+    margin-block-end: 0 !important;
+  }
+  .app-toolbar + .app-card {
+    border-top-left-radius: 0;
+    border-top-right-radius: 0;
+    border-top: 0;
+  }
+  .app-toolbar .app-field {
+    @apply bg-card py-2;
   }
 
   /* ── Champs de saisie ──
@@ -1458,7 +1510,7 @@ td {
       focus:border-primary focus:outline-none focus:ring-2 focus:ring-ring;
   }
   .app-field-sm {
-    @apply py-2 text-xs;
+    @apply rounded-lg bg-card py-2 text-[13px];
   }
 
   /* ── Boutons ── */
@@ -1606,7 +1658,7 @@ td {
     @apply mt-0.5 truncate text-xs text-muted-foreground;
   }
   .app-mcard-amount {
-    @apply font-mono text-sm font-bold tabular-nums;
+    @apply text-sm font-semibold tabular-nums;
   }
   .app-mcard-body {
     @apply space-y-2 border-t border-border bg-muted/40 px-4 py-3;
@@ -1798,24 +1850,31 @@ td {
     box-shadow: var(--elev-1);
   }
   .app-statbar-item {
-    @apply relative flex flex-col justify-center gap-0.5 px-4 py-3.5 text-left;
+    @apply relative flex min-w-0 flex-col justify-center gap-0.5 px-4 py-3 text-left sm:px-5;
   }
   /* Filet de séparation dessiné en pseudo-élément : il ne s'affiche pas
      en début de ligne, quel que soit le nombre de colonnes. */
-  .app-statbar-item + .app-statbar-item::before {
-    content: "";
-    position: absolute;
-    left: 0;
-    top: 0.75rem;
-    bottom: 0.75rem;
-    width: 1px;
-    background: var(--border);
+  /* Les filets : chaque case trace le sien à gauche et au-dessus, et la
+     bande, qui coupe ce qui dépasse, efface ceux du bord. Quel que soit
+     le nombre de colonnes — deux sur téléphone, trois, six — la grille
+     est donc toujours propre : pas de filet orphelin en début de ligne,
+     et un filet horizontal entre deux rangées. */
+  .app-statbar-item {
+    box-shadow:
+      -1px 0 0 var(--border),
+      0 -1px 0 var(--border);
   }
   .app-statbar-label {
-    @apply flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-wide text-muted-foreground;
+    @apply flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-wider text-muted-foreground;
+  }
+  /* Les icônes passées par les écrans vont de 14 à 20 pixels : on les
+     ramène toutes à la taille du libellé qu'elles accompagnent. */
+  .app-statbar-label > .shrink-0 > svg {
+    width: 14px;
+    height: 14px;
   }
   .app-statbar-value {
-    @apply font-mono text-lg font-semibold tabular-nums text-foreground;
+    @apply text-xl font-semibold leading-tight tracking-tight tabular-nums text-foreground;
   }
   .app-statbar-hint {
     @apply truncate text-xs text-muted-foreground;
@@ -1865,7 +1924,7 @@ td {
     @apply truncate text-xs text-muted-foreground;
   }
   .app-list-amount {
-    @apply shrink-0 font-mono text-sm font-medium tabular-nums text-foreground;
+    @apply shrink-0 text-sm font-semibold tabular-nums text-foreground;
   }
 
   /* ── Tableaux : filets fins, en-tête discret ── */
@@ -1884,7 +1943,7 @@ td {
 
   /* ── Puces de filtre rapide ── */
   .app-chip {
-    @apply inline-flex min-h-9 items-center gap-1.5 whitespace-nowrap rounded-md border border-border
+    @apply inline-flex min-h-9 items-center gap-1.5 whitespace-nowrap rounded-lg lg:min-h-8 border border-border
       bg-card px-3 text-[13px] font-medium text-muted-foreground transition-colors;
   }
   @media (hover: hover) {
@@ -1893,8 +1952,19 @@ td {
       background: var(--muted);
     }
   }
+  /* Une puce posée se teinte, elle ne se remplit pas : un rang de
+     cinq filtres tous actifs faisait cinq pavés verts pleins, plus
+     lourds que le bouton d'action de l'écran. */
   .app-chip-active {
-    @apply border-transparent bg-primary text-primary-foreground;
+    background: var(--success-soft);
+    border-color: var(--primary-trait);
+    color: var(--primary);
+  }
+  @media (hover: hover) {
+    .app-chip-active:hover {
+      background: var(--success-soft);
+      color: var(--primary);
+    }
   }
   .app-chip-count {
     @apply text-[11px] opacity-70;
@@ -1915,6 +1985,185 @@ td {
   .app-section-title {
     @apply flex items-center gap-2 text-[13px] font-semibold uppercase tracking-wide text-muted-foreground;
   }
+}
+
+/* ── Le rythme vertical des écrans ──
+   Les vues empilent leurs blocs (en-tête, indicateurs, filtres, liste)
+   avec `space-y-5` ou `space-y-6`. Vingt-quatre pixels entre chacun,
+   cela faisait près de cent pixels de vide avant la liste. Seize
+   suffisent à séparer sans disperser, et la règle vaut pour toutes les
+   vues d'un coup. */
+.app-vue > .space-y-5 > :not(:last-child),
+.app-vue > .space-y-6 > :not(:last-child) {
+  margin-block-end: 1rem;
+}
+
+/* ── Les actions de l'en-tête, en ligne ──
+   Hors couche, pour l'emporter sur le `w-full` que les écrans posent
+   encore sur leurs boutons : ils se partagent la ligne au lieu d'en
+   occuper chacun une. */
+.app-page-actions > * {
+  width: auto;
+  flex: 1 1 auto;
+}
+@media (min-width: 640px) {
+  .app-page-actions > * {
+    flex: 0 0 auto;
+  }
+}
+
+/* ── La bande d'indicateurs sur téléphone ──
+   Deux colonnes, toujours : une colonne par chiffre empilait trois ou
+   quatre cartes pleine largeur avant la liste. Le dernier d'un nombre
+   impair prend toute la ligne plutôt que de laisser une case vide. */
+@media (max-width: 639px) {
+  .app-statbar {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+  .app-statbar > :last-child:nth-child(odd) {
+    grid-column: 1 / -1;
+  }
+  .app-statbar-value {
+    font-size: 1.0625rem;
+  }
+}
+/* Trois indicateurs tiennent sur une ligne dès que l'écran le permet :
+   mieux vaut trois colonnes qu'une rangée de deux et une orpheline. */
+@media (min-width: 480px) and (max-width: 639px) {
+  .app-statbar:has(> :nth-child(3):last-child) {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .app-statbar:has(> :nth-child(3):last-child) > :last-child {
+    grid-column: auto;
+  }
+}
+
+/* ── Menu déroulant d'un filtre ── */
+.app-menu {
+  padding: 4px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: var(--card);
+  box-shadow:
+    0 10px 30px rgb(16 40 30 / 12%),
+    0 2px 6px rgb(16 40 30 / 6%);
+}
+.app-menu-item {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  gap: 10px;
+  min-height: 36px;
+  padding: 0 10px;
+  border-radius: 8px;
+  font-size: 13.5px;
+  text-align: left;
+  color: var(--foreground);
+}
+.app-menu-item:hover {
+  background: var(--muted);
+}
+.app-case {
+  display: inline-flex;
+  height: 16px;
+  width: 16px;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  border-radius: 4px;
+  border: 1.5px solid var(--border);
+  background: var(--card);
+}
+.app-case-cochee {
+  border-color: var(--primary);
+  background: var(--primary);
+  color: var(--primary-foreground);
+}
+/* Un champ de filtre qui retient quelque chose se teinte, pour qu'on
+   sache d'un coup d'œil que la liste est filtrée. */
+.app-field-actif {
+  border-color: var(--primary-trait);
+  background: var(--success-soft);
+  color: var(--primary);
+}
+
+/* ── Contrôle segmenté ──
+   Des choix exclusifs (une période, une vue) rangés dans une même
+   coque grise ; le choix posé ressort en blanc. */
+.app-seg {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 2px;
+  padding: 3px;
+  border-radius: 10px;
+  background: var(--muted);
+  border: 1px solid var(--border);
+}
+.app-seg-item {
+  min-height: 30px;
+  padding: 0 0.75rem;
+  border-radius: 7px;
+  font-size: 13px;
+  font-weight: 500;
+  white-space: nowrap;
+  color: var(--muted-foreground);
+  transition:
+    color 150ms ease,
+    background-color 150ms ease;
+}
+.app-seg-item:hover {
+  color: var(--foreground);
+}
+.app-seg-item[aria-pressed="true"],
+.app-seg-item[aria-selected="true"] {
+  background: var(--card);
+  color: var(--primary);
+  font-weight: 600;
+  box-shadow:
+    var(--elev-1),
+    0 0 0 1px var(--border);
+}
+@media (max-width: 1023px) {
+  .app-seg-item {
+    min-height: 36px;
+  }
+}
+.app-seg-count {
+  margin-left: 0.375rem;
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  opacity: 0.6;
+}
+
+/* ── Les onglets d'un univers (SousNavigation) ── */
+.app-sous-nav {
+  display: flex;
+  flex-wrap: wrap;
+  column-gap: 0.25rem;
+  margin-bottom: 1.25rem;
+  border-bottom: 1px solid var(--border);
+}
+.app-sous-nav-item {
+  position: relative;
+  margin-bottom: -1px;
+  padding: 0.5rem 0.75rem 0.625rem;
+  font-size: 13.5px;
+  font-weight: 500;
+  color: var(--muted-foreground);
+  border-bottom: 2px solid transparent;
+  transition:
+    color 150ms ease,
+    border-color 150ms ease;
+}
+.app-sous-nav-item:hover {
+  color: var(--foreground);
+  border-bottom-color: var(--border);
+}
+.app-sous-nav-item[aria-current="page"] {
+  color: var(--primary);
+  font-weight: 600;
+  border-bottom-color: var(--primary);
 }
 
 /* Les cartes ne portent plus d'ombre : c'est le contraste blanc sur gris

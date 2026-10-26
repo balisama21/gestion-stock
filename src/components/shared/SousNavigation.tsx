@@ -28,7 +28,9 @@ interface SousNavigationProps {
  *   est : une série d'onglets.
  * — l'écran courant se marque par un filet vert sous son nom, pas par
  *   un aplat. C'est la même convention que le menu latéral, où l'entrée
- *   active porte un filet et non un fond plein.
+ *   active porte un filet et non un fond plein. Un filet gris court sous
+ *   toute la rangée : elle se lit comme une barre d'onglets qui coiffe
+ *   l'écran, et non comme des mots flottant au-dessus du titre.
  *
  * La rangée passe à la ligne si les mots sont longs — une boutique peut
  * renommer ses modules. Jamais de défilement horizontal.
@@ -37,7 +39,7 @@ export const SousNavigation: React.FC<SousNavigationProps> = ({ actif, items, on
   if (items.length < 2) return null;
 
   return (
-    <nav aria-label="Écrans liés" className="-mt-1 mb-4 flex flex-wrap gap-x-1 gap-y-0">
+    <nav aria-label="Écrans liés" className="app-sous-nav">
       {items.map((item) => {
         const estActif = item.id === actif;
         return (
@@ -46,11 +48,7 @@ export const SousNavigation: React.FC<SousNavigationProps> = ({ actif, items, on
             type="button"
             onClick={() => onChoisir(item.id)}
             aria-current={estActif ? "page" : undefined}
-            className={`-mb-px border-b-2 px-2.5 py-2 text-[13px] transition-colors active:bg-muted ${
-              estActif
-                ? "border-primary font-medium text-primary"
-                : "border-transparent text-muted-foreground hover:border-border hover:text-foreground"
-            }`}
+            className="app-sous-nav-item"
           >
             {item.label}
           </button>

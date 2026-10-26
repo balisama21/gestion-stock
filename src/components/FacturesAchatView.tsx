@@ -421,7 +421,7 @@ export const FacturesAchatView: React.FC<Props> = ({
           />
         }
         actions={
-          <div className="flex w-full flex-col gap-2 sm:w-auto sm:flex-row">
+          <div className="flex w-full flex-row flex-wrap gap-2 sm:w-auto [&>*]:flex-1 sm:[&>*]:flex-none">
             {/* Un bouton à symbole seul n'a ni cadre ni fond : la
                 flèche se reconnaît sans qu'on l'encadre. */}
             <button onClick={onRetour} className="app-btn-icon" aria-label="Revenir aux achats">

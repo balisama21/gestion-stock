@@ -28,14 +28,14 @@ export const SelecteurPeriodeFacturation: React.FC<{
 
   return (
     <>
-      <div className="flex flex-wrap items-center gap-1">
+      <div className="app-seg" role="group" aria-label="Période">
         {apercus.map((a) => (
           <button
             key={a.cle}
             type="button"
             onClick={() => onChoisir(a.cle)}
             aria-pressed={periode.cle === a.cle}
-            className={`app-chip ${periode.cle === a.cle ? "app-chip-active" : ""}`}
+            className="app-seg-item"
           >
             {a.nom}
           </button>
@@ -44,7 +44,7 @@ export const SelecteurPeriodeFacturation: React.FC<{
           type="button"
           onClick={() => setOuvert(true)}
           aria-pressed={periode.cle === "custom"}
-          className={`app-chip ${periode.cle === "custom" ? "app-chip-active" : ""}`}
+          className="app-seg-item inline-flex items-center gap-1.5"
         >
           <CalendarRange className="h-3.5 w-3.5" />
           {periode.cle === "custom" ? periode.libelle : "Personnalisé"}
@@ -74,7 +74,10 @@ export const SelecteurPeriodeFacturation: React.FC<{
           >
             <div className="grid grid-cols-2 gap-3">
               <div>
-                <label htmlFor="fact-du" className="mb-1 block text-xs font-medium text-muted-foreground">
+                <label
+                  htmlFor="fact-du"
+                  className="mb-1 block text-xs font-medium text-muted-foreground"
+                >
                   Du
                 </label>
                 <input
@@ -87,7 +90,10 @@ export const SelecteurPeriodeFacturation: React.FC<{
                 />
               </div>
               <div>
-                <label htmlFor="fact-au" className="mb-1 block text-xs font-medium text-muted-foreground">
+                <label
+                  htmlFor="fact-au"
+                  className="mb-1 block text-xs font-medium text-muted-foreground"
+                >
                   Au
                 </label>
                 <input

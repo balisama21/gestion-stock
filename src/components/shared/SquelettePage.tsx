@@ -24,11 +24,14 @@ export const SquelettePage: React.FC = () => (
     {/* L'en-tête de page : titre à gauche, bouton d'action à droite. */}
     <div className="app-page-head" aria-hidden="true">
       <div className="app-page-head-text">
-        <div className="skeleton h-5 w-40" />
-        <div className="skeleton mt-2 h-3 w-56 max-w-full" />
+        <div className="skeleton h-10 w-10 shrink-0 rounded-xl" />
+        <div className="min-w-0 flex-1">
+          <div className="skeleton h-5 w-40" />
+          <div className="skeleton mt-2 h-3 w-56 max-w-full" />
+        </div>
       </div>
       <div className="app-page-actions">
-        <div className="skeleton h-11 w-32" />
+        <div className="skeleton h-10 w-32" />
       </div>
     </div>
 

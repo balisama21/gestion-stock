@@ -16,6 +16,7 @@ import {
 } from "../utils/formulas";
 import { PageHeader } from "./shared/PageHeader";
 import { StatBar } from "./shared/StatBar";
+import { FiltreChoixMultiples } from "./shared/FiltreChoixMultiples";
 
 import type { Database } from "../lib/database.types";
 
@@ -234,62 +235,68 @@ export const HistoriqueView: React.FC<HistoriqueViewProps> = ({
         subtitle="Le journal de compte : chaque entrée et sortie d'argent, jour par jour."
       />
 
-      <div className="app-card space-y-3 p-4">
-        <div className="flex flex-wrap gap-2">
-          {RACCOURCIS.map((r) => (
-            <button
-              key={r.cle}
-              type="button"
-              aria-pressed={raccourci === r.cle}
-              onClick={() => {
-                setRaccourci(r.cle);
-                setPeriode(bornes(r.cle));
-              }}
-              className={`app-chip ${raccourci === r.cle ? "app-chip-active" : ""}`}
-            >
-              {r.libelle}
-            </button>
-          ))}
-        </div>
-        <div className="grid grid-cols-2 gap-2 sm:flex sm:items-end">
-          <label className="text-xs text-muted-foreground">
-            Du
+      {/* Une seule barre : la période à gauche (raccourcis puis dates
+          exactes), les types d'écritures à droite, repliés dans un seul
+          champ à cases à cocher. Elle tenait sur trois rangées empilées
+          dans une carte, avec cinq boutons verts pleins qui pesaient plus
+          lourd que le journal lui-même. */}
+      <div className="app-toolbar flex-wrap lg:justify-between">
+        <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
+          <div className="app-seg" role="group" aria-label="Période">
+            {RACCOURCIS.map((r) => (
+              <button
+                key={r.cle}
+                type="button"
+                aria-pressed={raccourci === r.cle}
+                onClick={() => {
+                  setRaccourci(r.cle);
+                  setPeriode(bornes(r.cle));
+                }}
+                className="app-seg-item"
+              >
+                {r.libelle}
+              </button>
+            ))}
+          </div>
+          <div className="grid w-full grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-1.5 sm:flex sm:w-auto">
+            <label className="sr-only" htmlFor="historique-du">
+              Du
+            </label>
             <input
+              id="historique-du"
               type="date"
               value={periode.du}
               onChange={(e) => {
                 setRaccourci(null);
                 setPeriode((p) => ({ ...p, du: e.target.value }));
               }}
-              className="app-field-sm mt-1 w-full sm:w-40"
+              className="app-field-sm w-full min-w-0 sm:w-36"
             />
-          </label>
-          <label className="text-xs text-muted-foreground">
-            Au
+            <span className="text-xs text-muted-foreground" aria-hidden="true">
+              →
+            </span>
+            <label className="sr-only" htmlFor="historique-au">
+              Au
+            </label>
             <input
+              id="historique-au"
               type="date"
               value={periode.au}
               onChange={(e) => {
                 setRaccourci(null);
                 setPeriode((p) => ({ ...p, au: e.target.value }));
               }}
-              className="app-field-sm mt-1 w-full sm:w-40"
+              className="app-field-sm w-full min-w-0 sm:w-36"
             />
-          </label>
+          </div>
         </div>
-        <div className="flex flex-wrap gap-2" role="group" aria-label="Types d'écritures">
-          {TYPES.map((t) => (
-            <button
-              key={t}
-              type="button"
-              aria-pressed={types.has(t)}
-              onClick={() => basculerType(t)}
-              className={`app-chip ${types.has(t) ? "app-chip-active" : ""}`}
-            >
-              {labelFor(t)}
-            </button>
-          ))}
-        </div>
+        <FiltreChoixMultiples
+          label="Types"
+          options={TYPES.map((t) => ({ valeur: t, libelle: labelFor(t) }))}
+          choisies={types}
+          onBasculer={basculerType}
+          onTout={() => setTypes(new Set(TYPES))}
+        />
       </div>
 
       <StatBar

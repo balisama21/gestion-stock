@@ -300,13 +300,15 @@ export const RapportsView: React.FC<RapportsViewProps> = ({
         title="Bilan"
         subtitle="Vos ventes, achats, dépenses et marges sur la période choisie."
         actions={
-          <label className="flex w-full flex-col gap-1.5 sm:w-auto">
-            <span className="text-xs font-medium text-muted-foreground">Date de référence</span>
+          <label className="flex w-full items-center gap-2 sm:w-auto">
+            <span className="whitespace-nowrap text-xs font-medium text-muted-foreground">
+              Date de référence
+            </span>
             <input
               type="date"
               value={selectedDateInput}
               onChange={(e) => setSelectedDateInput(e.target.value)}
-              className="app-field font-mono sm:w-44"
+              className="app-field-sm min-w-0 flex-1 sm:w-40 sm:flex-none"
             />
           </label>
         }

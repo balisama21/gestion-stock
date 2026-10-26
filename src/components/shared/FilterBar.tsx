@@ -47,9 +47,9 @@ export const FilterBar: React.FC<FilterBarProps> = ({
 
   return (
     <>
-      <div className="app-toolbar gap-3">
+      <div className="app-toolbar lg:flex-wrap">
         {/* Recherche — toujours visible, pleine largeur sur mobile */}
-        <div className="relative w-full lg:flex-1">
+        <div className="relative w-full lg:min-w-64 lg:flex-1">
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
           <input
             type="text"
@@ -88,7 +88,7 @@ export const FilterBar: React.FC<FilterBarProps> = ({
             </button>
 
             {/* Filtres en ligne — à partir de 768px */}
-            <div className="hidden flex-wrap items-center gap-3 lg:flex">{children}</div>
+            <div className="hidden flex-wrap items-center gap-3 lg:ml-auto lg:flex">{children}</div>
           </>
         )}
       </div>

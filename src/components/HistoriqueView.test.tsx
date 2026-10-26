@@ -59,6 +59,8 @@ describe("journal de compte", () => {
 
   it("filtre par type", () => {
     afficher();
+    // Les types sont repliés dans un menu : on l'ouvre, puis on décoche.
+    fireEvent.click(screen.getByRole("button", { name: /^Types :/ }));
     fireEvent.click(screen.getByRole("button", { name: "Dépense" }));
     expect(screen.queryByText(/DEP1/)).toBeNull();
   });
