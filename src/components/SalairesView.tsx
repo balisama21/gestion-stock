@@ -195,7 +195,7 @@ export const SalairesView: React.FC<SalairesViewProps> = ({
       </div>
 
       {/* Le chiffre qui décide : ce qu'il reste à sortir de la caisse. */}
-      <div className="app-card flex items-center justify-between gap-4 border-l-2 border-l-primary p-4">
+      <div className="app-grand-chiffre app-feuille">
         <div className="min-w-0">
           <div className="mb-0.5 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
             Reste à payer — {libelleMois(periode)}

@@ -384,7 +384,7 @@ export const VendeursView: React.FC<VendeursViewProps> = ({
 
       {/* Le solde net cumulé est le chiffre qui décide s'il faut aller
           récupérer de l'argent : il est posé seul, avant tout le reste. */}
-      <div className="app-card flex items-center justify-between gap-4 border-l-2 border-l-primary p-4">
+      <div className="app-grand-chiffre app-feuille">
         <div className="min-w-0">
           <div className="mb-0.5 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
             Solde net en poche — tous vendeurs

@@ -269,8 +269,8 @@ export const CapitalView: React.FC<CapitalViewProps> = ({
           badge de statut qui portent l'alerte, le reste de la carte reste
           blanc comme partout ailleurs. */}
       <div
-        className={`app-card border-l-2 p-4 sm:p-5 ${
-          isNegative ? "border-l-danger" : isLow ? "border-l-warning" : "border-l-primary"
+        className={`app-grand-chiffre app-grand-chiffre--bloc app-feuille ${
+          isNegative ? "app-grand-chiffre--danger" : isLow ? "app-grand-chiffre--warning" : ""
         }`}
       >
         <div className="flex flex-wrap items-start justify-between gap-3">
