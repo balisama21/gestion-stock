@@ -30,7 +30,7 @@ export const OngletsType: React.FC<{
   <div
     role="tablist"
     aria-label="Type de document"
-    className="mb-3 flex flex-wrap gap-x-1 gap-y-0 border-b border-border"
+    className="app-scroll-x mb-3 flex flex-nowrap gap-x-1 gap-y-0 shadow-[inset_0_-1px_0_var(--border)]"
   >
     {onglets.map((o) => {
       const estActif = o.cle === actif;
@@ -41,7 +41,7 @@ export const OngletsType: React.FC<{
           role="tab"
           aria-selected={estActif}
           onClick={() => onChoisir(o.cle)}
-          className={`-mb-px border-b-2 px-2.5 py-2 text-[13px] transition-colors active:bg-muted ${
+          className={`shrink-0 whitespace-nowrap border-b-2 px-2.5 py-2 text-[13px] transition-colors active:bg-muted ${
             estActif
               ? "border-primary font-medium text-primary"
               : "border-transparent text-muted-foreground hover:border-border hover:text-foreground"

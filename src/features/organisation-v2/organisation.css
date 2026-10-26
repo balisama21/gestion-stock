@@ -1934,20 +1934,20 @@
     0 0 0 1px var(--border);
 }
 
-/* ── Indicateurs : une seule carte, des colonnes séparées d'un filet ── */
+/* ── Indicateurs : un cadre vert sans fond, colonnes séparées d'un filet ──
+   Comme la bande d'indicateurs des autres écrans. */
 .org2 .stats {
   gap: 0;
   overflow: hidden;
-  border: 1px solid var(--border);
+  border: 1.5px solid var(--primary-trait);
   border-radius: 14px;
-  background: var(--card);
-  box-shadow: var(--elev-1);
+  background: transparent;
 }
 .org2 .stat {
   border: 0;
   border-radius: 0;
   background: transparent;
-  padding: 12px 20px;
+  padding: 12px 16px;
   box-shadow:
     -1px 0 0 var(--border),
     0 -1px 0 var(--border);
@@ -1978,13 +1978,25 @@
   .org2 .tools > .menu-wrap {
     flex: 1 1 auto;
   }
+  /* Comme les boutons blancs des autres écrans sur téléphone : sans fond
+     blanc, cerclé d'un filet vert. */
+  .org2 .tools .pill {
+    background: transparent;
+    border: 1.5px solid var(--primary-trait);
+  }
+  /* Comme sur les autres écrans : le bouton vert seul, sous les blancs. */
+  .org2 .tools > .menu-wrap:has(> .btn) {
+    order: 10;
+    flex-basis: 100%;
+  }
   .org2 .tools > .menu-wrap > .pill,
   .org2 .tools > .menu-wrap > .btn {
     width: 100%;
     justify-content: center;
     height: 44px;
   }
+  /* Sur téléphone : deux chiffres par rangée, dans la même carte. */
   .org2 .stat {
-    padding: 10px 16px;
+    padding: 10px 12px;
   }
 }

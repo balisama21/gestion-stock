@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useEffect, useRef } from "react";
 import type { ActiveTab } from "../../types";
 import type { NavItem } from "../navigation";
 
@@ -32,14 +32,28 @@ interface SousNavigationProps {
  *   toute la rangée : elle se lit comme une barre d'onglets qui coiffe
  *   l'écran, et non comme des mots flottant au-dessus du titre.
  *
- * La rangée passe à la ligne si les mots sont longs — une boutique peut
- * renommer ses modules. Jamais de défilement horizontal.
+ * La rangée tient sur UNE ligne. Sur téléphone, ce qui ne tient pas se
+ * fait défiler du doigt — une boutique peut renommer ses modules, et
+ * une rangée qui passait à la ligne poussait l'écran vers le bas d'un
+ * étage pour un seul mot. L'onglet courant est amené en vue à
+ * l'ouverture.
  */
 export const SousNavigation: React.FC<SousNavigationProps> = ({ actif, items, onChoisir }) => {
+  const rangee = useRef<HTMLElement>(null);
+
+  // L'onglet courant, centré dans la rangée quand elle défile. Sans
+  // toucher au défilement vertical de la page : pas de scrollIntoView.
+  useEffect(() => {
+    const nav = rangee.current;
+    const courant = nav?.querySelector<HTMLElement>('[aria-current="page"]');
+    if (!nav || !courant || nav.scrollWidth <= nav.clientWidth) return;
+    nav.scrollLeft = courant.offsetLeft - (nav.clientWidth - courant.offsetWidth) / 2;
+  }, [actif]);
+
   if (items.length < 2) return null;
 
   return (
-    <nav aria-label="Écrans liés" className="app-sous-nav">
+    <nav ref={rangee} aria-label="Écrans liés" className="app-sous-nav">
       {items.map((item) => {
         const estActif = item.id === actif;
         return (

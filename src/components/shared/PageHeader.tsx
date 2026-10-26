@@ -93,7 +93,7 @@ export const HeaderMetric: React.FC<HeaderMetricProps> = ({
   hint,
   tone = "neutral",
 }) => (
-  <div className="app-head-metric">
+  <div className="app-head-metric app-feuille">
     <div className="app-head-metric-label">{label}</div>
     <div className="text-right">
       <div className={`app-head-metric-value ${toneClass[tone]}`}>{value}</div>

@@ -1464,9 +1464,10 @@ td {
     @apply flex w-full shrink-0 flex-row flex-wrap items-center gap-2 sm:w-auto sm:flex-nowrap;
   }
 
-  /* ── Indicateur posé dans l'en-tête ── */
+  /* ── Indicateur posé dans l'en-tête ──
+     Sans cadre, comme les autres chiffres : directement sur le fond. */
   .app-head-metric {
-    @apply flex items-center justify-between gap-3 rounded-xl border border-border bg-card px-3.5 py-1.5 sm:flex-col sm:items-end sm:justify-center sm:gap-0;
+    @apply flex items-center justify-between gap-3 px-0.5 py-1 sm:flex-col sm:items-end sm:justify-center sm:gap-0 sm:px-2;
     min-height: 44px;
   }
   .app-head-metric-label {
@@ -1842,36 +1843,35 @@ td {
    ═══════════════════════════════════════════════════════════════════ */
 @layer components {
   /* ── Barre d'indicateurs ──
-     Une seule bande compacte, colonnes séparées par un filet vertical,
-     au lieu d'une grille de cartes ombrées. */
+     Chaque chiffre est précédé d'une pastille d'icône en relief, et un
+     filet vertical les sépare. */
+  /* La bande retrouve un cadre, mais du même dessin que les boutons
+     blancs de l'en-tête : pas de fond blanc — celui de la page passe au
+     travers — et un filet vert. */
   .app-statbar {
-    @apply grid overflow-hidden border border-border bg-card;
+    @apply grid overflow-hidden;
+    border: 1.5px solid var(--primary-trait);
     border-radius: 14px;
-    box-shadow: var(--elev-1);
+    background: transparent;
   }
   .app-statbar-item {
-    @apply relative flex min-w-0 flex-col justify-center gap-0.5 px-4 py-3 text-left sm:px-5;
+    @apply relative flex min-w-0 items-center gap-3 px-4 py-3 text-left;
   }
-  /* Filet de séparation dessiné en pseudo-élément : il ne s'affiche pas
-     en début de ligne, quel que soit le nombre de colonnes. */
   /* Les filets : chaque case trace le sien à gauche et au-dessus, et la
      bande, qui coupe ce qui dépasse, efface ceux du bord. Quel que soit
      le nombre de colonnes — deux sur téléphone, trois, six — la grille
-     est donc toujours propre : pas de filet orphelin en début de ligne,
-     et un filet horizontal entre deux rangées. */
+     reste propre : pas de filet orphelin en début de ligne, et un filet
+     horizontal entre deux rangées. */
   .app-statbar-item {
     box-shadow:
       -1px 0 0 var(--border),
       0 -1px 0 var(--border);
   }
+  .app-statbar-texte {
+    @apply flex min-w-0 flex-col gap-0.5;
+  }
   .app-statbar-label {
     @apply flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-wider text-muted-foreground;
-  }
-  /* Les icônes passées par les écrans vont de 14 à 20 pixels : on les
-     ramène toutes à la taille du libellé qu'elles accompagnent. */
-  .app-statbar-label > .shrink-0 > svg {
-    width: 14px;
-    height: 14px;
   }
   .app-statbar-value {
     @apply text-xl font-semibold leading-tight tracking-tight tabular-nums text-foreground;
@@ -1884,7 +1884,7 @@ td {
   }
   @media (hover: hover) {
     button.app-statbar-item:hover {
-      background: var(--muted);
+      background: color-mix(in srgb, var(--muted) 70%, transparent);
     }
   }
   /* L indicateur sur lequel la liste est filtree. Un filet vert sous la
@@ -1998,13 +1998,70 @@ td {
   margin-block-end: 1rem;
 }
 
-/* ── Les actions de l'en-tête, en ligne ──
+/* ── Les actions de l'en-tête ──
    Hors couche, pour l'emporter sur le `w-full` que les écrans posent
-   encore sur leurs boutons : ils se partagent la ligne au lieu d'en
-   occuper chacun une. */
+   encore sur leurs boutons.
+
+   Sur téléphone, deux étages, toujours dans le même ordre :
+   - en haut, les boutons blancs, côte à côte et de même largeur ;
+   - en bas, seul sur sa ligne, le bouton vert de l'action principale.
+   Le vert ne partage jamais sa ligne avec un blanc : posés côte à côte,
+   ils se disputaient la largeur et l'action principale finissait
+   coincée entre deux boutons secondaires. L'indicateur chiffré, quand
+   l'écran en pose un, coiffe le tout. */
 .app-page-actions > * {
   width: auto;
-  flex: 1 1 auto;
+}
+@media (max-width: 639px) {
+  .app-page-actions > * {
+    flex: 1 1 0;
+    min-width: 0;
+  }
+  .app-page-actions > .app-head-metric {
+    order: -1;
+    flex-basis: 100%;
+  }
+  .app-page-actions > .app-btn-primary {
+    order: 10;
+    flex-basis: 100%;
+  }
+  /* Un bouton d'icône seul (la flèche de retour) garde sa taille. */
+  .app-page-actions > .app-btn-icon {
+    flex: 0 0 auto;
+  }
+  /* Les boutons blancs gardent leur forme de bouton, mais sans fond
+     blanc — le fond de la page passe au travers — et cerclés d'un filet
+     vert. Ils se distinguent ainsi du bouton vert juste dessous, qui
+     garde son fond et son rond plein. */
+  .app-page-actions > .app-btn-secondary {
+    min-height: 44px;
+    border: 1.5px solid var(--primary-trait);
+    background: transparent;
+    box-shadow: none;
+    color: var(--foreground);
+  }
+  .app-page-actions > .app-btn-secondary > svg:first-child {
+    color: var(--primary);
+  }
+  /* Deux boutons blancs et plus : l'icône passe au-dessus du mot. En
+     ligne, « Factures reçues », « Importer » et « Imprimer » ne tenaient
+     pas côte à côte sur 375 pixels sans couper leurs mots. */
+  .app-page-actions:has(> .app-btn-secondary ~ .app-btn-secondary) > .app-btn-secondary {
+    flex-direction: column;
+    gap: 4px;
+    min-height: 60px;
+    padding: 8px 6px;
+    font-size: 12px;
+    line-height: 1.2;
+    white-space: normal;
+    text-align: center;
+  }
+  .app-page-actions:has(> .app-btn-secondary ~ .app-btn-secondary)
+    > .app-btn-secondary
+    > svg:first-child {
+    width: 18px;
+    height: 18px;
+  }
 }
 @media (min-width: 640px) {
   .app-page-actions > * {
@@ -2012,10 +2069,307 @@ td {
   }
 }
 
+/* ── L'icône d'un indicateur ──
+   Neutre et sans fond, posée directement à gauche du chiffre, dans le
+   gris du libellé. Seule une valeur qui demande d'agir (stock bas,
+   impayés) prend la teinte d'alerte. */
+.app-statbar-ico {
+  display: grid;
+  flex: none;
+  place-items: center;
+  color: var(--muted-foreground);
+}
+.app-statbar-ico > svg {
+  width: 20px;
+  height: 20px;
+  stroke-width: 1.75;
+}
+.app-statbar-ico.app-statbar-ico-alerte {
+  color: var(--warning);
+}
+
+/* ═══ La feuille épinglée ═══
+
+   Un chiffre clé — le chiffre d'affaires, la trésorerie, ce qu'il reste
+   à payer — se présente comme une feuille de papier punaisée au mur.
+
+   POURQUOI TROIS COUCHES. Une feuille déchirée n'a pas de bords droits :
+   il faut la découper (`clip-path`). Mais une découpe coupe aussi
+   l'ombre de ce qu'elle découpe. Le papier vit donc dans `::before`,
+   découpé, sous le texte ; l'élément lui-même, transparent, porte
+   l'ombre ; et `::after` porte la punaise, au-dessus de tout.
+
+   - Le papier : blanc légèrement gris, grain fin et fibres allongées, taches de
+     teinte comme sur un papier photographié, contour irrégulier (bords
+     bas et gauche plus déchirés), posé d'un degré de travers.
+   - L'ombre : un liseré au contact, puis une ombre longue sous le bord
+     bas, là où la feuille, retenue par une seule punaise, se décolle.
+   - La punaise : celle d'un tableau de liège, petite et presque droite
+     — tête arrondie, corps cylindrique, disque à la base, rouge
+     brillant, aiguille plantée près du bord haut, ombre courte vers le
+     bas à droite.
+
+   Réservé aux chiffres clés, un ou deux par écran. Le papier reste du
+   papier en thème sombre : ses jetons de couleur sont redéfinis ici. */
+.app-feuille {
+  --foreground: oklch(0.3 0.025 150);
+  --muted-foreground: oklch(0.48 0.02 140);
+  --success: oklch(0.56 0.14 160);
+  --warning: oklch(0.52 0.13 70);
+  --danger: oklch(0.52 0.19 25);
+  --info: oklch(0.5 0.16 255);
+  --border: oklch(0.86 0.02 85);
+  --card: #f8f3e6;
+
+  position: relative;
+  isolation: isolate;
+  margin-top: 4px;
+  padding: 20px 18px 17px;
+  border: 0;
+  border-radius: 0;
+  color: var(--foreground);
+  background: transparent;
+  box-shadow:
+    0 1px 2px -1px rgb(30 30 25 / 30%),
+    -2px 8px 10px -6px rgb(30 30 25 / 38%),
+    -4px 18px 24px -14px rgb(30 30 25 / 30%);
+  transform: rotate(-1.2deg);
+}
+.dark .app-feuille {
+  box-shadow:
+    0 1px 2px -1px rgb(0 0 0 / 60%),
+    1px 10px 12px -7px rgb(0 0 0 / 75%),
+    4px 20px 24px -16px rgb(0 0 0 / 60%);
+}
+.app-feuille::before,
+.app-feuille.app-grand-chiffre::before {
+  content: "";
+  display: block;
+  position: absolute;
+  z-index: -1;
+  inset: 0;
+  width: auto;
+  border-radius: 0;
+  box-shadow: none;
+  background-color: #f3f2ef;
+  background-image:
+    url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='240' height='240'%3E%3Cfilter id='g'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.3 0 0 0 0 0.3 0 0 0 0 0.28 0 0 0 0.09 0'/%3E%3C/filter%3E%3Cfilter id='p'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.018' numOctaves='3' seed='9' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.25 0 0 0 0 0.25 0 0 0 0 0.24 0 0 0 0.16 -0.04'/%3E%3C/filter%3E%3Cfilter id='f'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.01 0.12' numOctaves='2' seed='4' stitchTiles='stitch'/%3E%3CfeColorMatrix values='0 0 0 0 0.35 0 0 0 0 0.34 0 0 0 0 0.32 0 0 0 0.05 0'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23p)'/%3E%3Crect width='100%25' height='100%25' filter='url(%23g)'/%3E%3Crect width='100%25' height='100%25' filter='url(%23f)'/%3E%3C/svg%3E"),
+    radial-gradient(120% 140% at 30% 15%, rgb(255 255 255 / 70%) 0%, transparent 60%),
+    radial-gradient(90% 120% at 85% 95%, rgb(220 218 212 / 35%) 0%, transparent 60%),
+    linear-gradient(178deg, #f7f6f3 0%, #efeeea 100%);
+  background-size:
+    240px 240px,
+    100% 100%,
+    100% 100%,
+    100% 100%;
+  clip-path: polygon(
+    0% 0.26px,
+    3.57% 0.12px,
+    7.14% 0.52px,
+    10.71% 0.06px,
+    14.29% 0.43px,
+    17.86% 0.29px,
+    21.43% 0.05px,
+    25% 0.41px,
+    28.57% 0.03px,
+    32.14% 0.35px,
+    35.71% 0.06px,
+    39.29% 0.07px,
+    42.86% 0.34px,
+    46.43% 0.66px,
+    50% 0.1px,
+    53.57% 0.18px,
+    57.14% 0.5px,
+    60.71% 0.76px,
+    64.29% 0.46px,
+    67.86% 0.32px,
+    71.43% 0.78px,
+    75% 0.04px,
+    78.57% 0.69px,
+    82.14% 0.23px,
+    85.71% 0.12px,
+    89.29% 0.09px,
+    92.86% 0.25px,
+    96.43% 0.65px,
+    100% 0.14px,
+    calc(100% - 0.7px) 6.25%,
+    calc(100% - 0.77px) 12.5%,
+    calc(100% - 0.45px) 18.75%,
+    calc(100% - 0.66px) 25%,
+    calc(100% - 0.08px) 31.25%,
+    calc(100% - 0.07px) 37.5%,
+    calc(100% - 0.25px) 43.75%,
+    calc(100% - 0.82px) 50%,
+    calc(100% - 0.51px) 56.25%,
+    calc(100% - 0.38px) 62.5%,
+    calc(100% - 0.7px) 68.75%,
+    calc(100% - 0.54px) 75%,
+    calc(100% - 0.36px) 81.25%,
+    calc(100% - 0.95px) 87.5%,
+    calc(100% - 0.84px) 93.75%,
+    100% calc(100% - 0.34px),
+    96.43% calc(100% - 0.8px),
+    92.86% calc(100% - 0.74px),
+    89.29% calc(100% - 1.23px),
+    85.71% calc(100% - 1.02px),
+    82.14% calc(100% - 0.4px),
+    78.57% calc(100% - 1.37px),
+    75% calc(100% - 0.17px),
+    71.43% calc(100% - 0.59px),
+    67.86% calc(100% - 1.06px),
+    64.29% calc(100% - 0.21px),
+    60.71% calc(100% - 0.68px),
+    57.14% calc(100% - 0.05px),
+    53.57% calc(100% - 0.94px),
+    50% calc(100% - 1.07px),
+    46.43% calc(100% - 0.8px),
+    42.86% calc(100% - 1.23px),
+    39.29% calc(100% - 0.44px),
+    35.71% calc(100% - 0.97px),
+    32.14% calc(100% - 0.83px),
+    28.57% calc(100% - 0.81px),
+    25% calc(100% - 0.64px),
+    21.43% calc(100% - 1.18px),
+    17.86% calc(100% - 1.32px),
+    14.29% calc(100% - 0.66px),
+    10.71% calc(100% - 0.93px),
+    7.14% calc(100% - 0.08px),
+    3.57% calc(100% - 0.98px),
+    0% calc(100% - 0.91px),
+    4.17px 93.75%,
+    3.52px 87.5%,
+    1.48px 81.25%,
+    1.87px 75%,
+    2.94px 68.75%,
+    0.49px 62.5%,
+    2.15px 56.25%,
+    1.04px 50%,
+    0.84px 43.75%,
+    0.62px 37.5%,
+    3.32px 31.25%,
+    0.89px 25%,
+    1.34px 18.75%,
+    1.89px 12.5%,
+    3.71px 6.25%
+  );
+}
+.app-feuille::after {
+  content: "";
+  position: absolute;
+  z-index: 2;
+  top: -13px;
+  left: 48%;
+  width: 40px;
+  height: 48px;
+  margin-left: -14px;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 50 60'%3E%3Cdefs%3E%3Cfilter id='o' x='-40%25' y='-60%25' width='180%25' height='220%25'%3E%3CfeGaussianBlur stdDeviation='1.6'/%3E%3C/filter%3E%3Cfilter id='h' x='-50%25' y='-50%25' width='200%25' height='200%25'%3E%3CfeGaussianBlur stdDeviation='0.6'/%3E%3C/filter%3E%3ClinearGradient id='cy' x1='0' x2='1'%3E%3Cstop offset='0' stop-color='%237a0703'/%3E%3Cstop offset='.2' stop-color='%23c2170d'/%3E%3Cstop offset='.38' stop-color='%23ff5b4b'/%3E%3Cstop offset='.52' stop-color='%23e8291d'/%3E%3Cstop offset='.82' stop-color='%23a80f08'/%3E%3Cstop offset='1' stop-color='%23650502'/%3E%3C/linearGradient%3E%3CradialGradient id='tp' cx='36%25' cy='38%25' r='72%25'%3E%3Cstop offset='0' stop-color='%23ff9486'/%3E%3Cstop offset='.4' stop-color='%23ec2d20'/%3E%3Cstop offset='1' stop-color='%23a10e07'/%3E%3C/radialGradient%3E%3CradialGradient id='dk' cx='38%25' cy='36%25' r='75%25'%3E%3Cstop offset='0' stop-color='%23ff7a6b'/%3E%3Cstop offset='.4' stop-color='%23e52c1e'/%3E%3Cstop offset='1' stop-color='%238e0b05'/%3E%3C/radialGradient%3E%3ClinearGradient id='n' x1='0' x2='1'%3E%3Cstop offset='0' stop-color='%235d6369'/%3E%3Cstop offset='.45' stop-color='%23eef0f2'/%3E%3Cstop offset='1' stop-color='%2350565c'/%3E%3C/linearGradient%3E%3C/defs%3E%3Cg fill='%23262420' opacity='.3' filter='url(%23o)'%3E%3Cellipse cx='22' cy='55' rx='6.5' ry='2.6'/%3E%3Cpath d='M22 53.8 L38 50 L39 53 L22 56.2 Z'/%3E%3Cellipse cx='40' cy='51' rx='6' ry='3.6'/%3E%3C/g%3E%3Cg transform='rotate(22 18 54)'%3E%3Crect x='17' y='46' width='2' height='7' rx='.9' fill='url(%23n)'/%3E%3Cpath d='M17 52.6 L18 55 L19 52.6 Z' fill='%234b5156'/%3E%3Cellipse cx='18' cy='46.6' rx='8' ry='3' fill='%237a0804'/%3E%3Cpath d='M10 45 L10 46.6 A8 3 0 0 0 26 46.6 L26 45 Z' fill='url(%23cy)'/%3E%3Cellipse cx='18' cy='45' rx='8' ry='3' fill='url(%23dk)'/%3E%3Cellipse cx='15.2' cy='44.2' rx='3.4' ry='1.1' fill='%23fff' opacity='.4' filter='url(%23h)'/%3E%3Cpath d='M15.4 45 L15.4 28 L20.6 28 L20.6 45 Z' fill='url(%23cy)'/%3E%3Crect x='16.2' y='29' width='1' height='14' rx='.5' fill='%23fff' opacity='.45' filter='url(%23h)'/%3E%3Cpath d='M9.5 28 L9.5 22 L26.5 22 L26.5 28 A8.5 3.2 0 0 1 9.5 28 Z' fill='url(%23cy)'/%3E%3Cellipse cx='18' cy='22' rx='8.5' ry='4' fill='url(%23tp)'/%3E%3Cellipse cx='15' cy='20.8' rx='3.4' ry='1.3' fill='%23fff' opacity='.62' filter='url(%23h)'/%3E%3Crect x='11.2' y='23' width='1.3' height='4.4' rx='.6' fill='%23fff' opacity='.5' filter='url(%23h)'/%3E%3C/g%3E%3C/svg%3E")
+    center / contain no-repeat;
+  pointer-events: none;
+}
+.app-feuille .app-head-metric-label {
+  font-size: 11.5px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  color: oklch(0.42 0.03 180);
+}
+.app-feuille .app-head-metric-value {
+  font-size: 1.25rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+.app-feuille .app-head-metric-value + div {
+  margin-top: 1px;
+  font-size: 11.5px;
+}
+/* Sur la feuille, le chiffre s'écrit en bleu, comme à l'encre d'un
+   stylo. Le rouge et l'orange d'une alerte gardent leur sens. */
+.app-feuille .app-head-metric-value:not(.t-danger):not(.t-warning),
+.app-feuille.app-grand-chiffre .font-mono:not(.t-danger):not(.t-warning) {
+  color: var(--info);
+}
+.app-feuille.app-grand-chiffre .font-mono {
+  font-size: 1.5rem;
+}
+.app-feuille.app-grand-chiffre {
+  width: calc(100% - 12px);
+  margin: 4px auto 6px;
+  padding: 20px 18px 17px;
+}
+/* L'indicateur d'en-tête : libellé à gauche, montants à droite, sur
+   toutes les largeurs — comme sur la feuille de référence. */
+.app-head-metric.app-feuille {
+  flex-direction: row;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+@media (min-width: 640px) {
+  .app-head-metric.app-feuille {
+    min-width: 260px;
+  }
+}
+/* Sur téléphone, la feuille se pose entre le titre et le bouton vert :
+   un peu moins large que la colonne, centrée, avec de l'air dessous
+   pour son ombre. */
+@media (max-width: 639px) {
+  .app-page-actions > .app-head-metric.app-feuille {
+    flex-basis: calc(100% - 12px);
+    margin: 4px 6px 12px;
+  }
+}
+
+/* ── Le grand chiffre d'un écran ──
+   Trésorerie disponible, solde des vendeurs, reste à payer : le chiffre
+   qui décide, posé seul avant le reste. Il était dans une carte blanche
+   à filet vert ; il se pose maintenant sur le fond, agrandi, avec une
+   barre d'accent en dégradé à sa gauche. */
+.app-grand-chiffre {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  padding: 0.375rem 0 0.375rem 1.125rem;
+  --accent-chiffre: var(--primary);
+}
+/* Un grand chiffre qui porte aussi une phrase sous lui (la trésorerie
+   et son seuil) : en bloc, la phrase passe dessous. */
+.app-grand-chiffre--bloc {
+  display: block;
+}
+.app-grand-chiffre--danger {
+  --accent-chiffre: var(--danger);
+}
+.app-grand-chiffre--warning {
+  --accent-chiffre: var(--warning);
+}
+.app-grand-chiffre::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 0.25rem;
+  bottom: 0.25rem;
+  width: 4px;
+  border-radius: 9999px;
+  background: linear-gradient(
+    to bottom,
+    var(--accent-chiffre),
+    color-mix(in srgb, var(--accent-chiffre) 25%, transparent)
+  );
+  box-shadow: 0 0 12px -2px color-mix(in srgb, var(--accent-chiffre) 50%, transparent);
+}
+.app-grand-chiffre .font-mono {
+  font-size: 1.75rem;
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+}
+
 /* ── La bande d'indicateurs sur téléphone ──
-   Deux colonnes, toujours : une colonne par chiffre empilait trois ou
-   quatre cartes pleine largeur avant la liste. Le dernier d'un nombre
-   impair prend toute la ligne plutôt que de laisser une case vide. */
+   Deux chiffres par rangée, dans la même carte : au-delà de deux, les
+   suivants passent à la rangée du dessous, séparés d'un filet. Rien ne
+   défile — un chiffre caché hors du cadre ne se lit pas. Le dernier
+   d'un nombre impair prend toute la rangée plutôt que de laisser une
+   case vide. */
 @media (max-width: 639px) {
   .app-statbar {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -2023,18 +2377,77 @@ td {
   .app-statbar > :last-child:nth-child(odd) {
     grid-column: 1 / -1;
   }
+  .app-statbar-item {
+    gap: 0.625rem;
+    padding: 0.75rem;
+  }
   .app-statbar-value {
     font-size: 1.0625rem;
   }
 }
-/* Trois indicateurs tiennent sur une ligne dès que l'écran le permet :
-   mieux vaut trois colonnes qu'une rangée de deux et une orpheline. */
-@media (min-width: 480px) and (max-width: 639px) {
-  .app-statbar:has(> :nth-child(3):last-child) {
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+
+/* ── Les indicateurs d'un écran, sur téléphone : une liste ──
+   Sur la page elle-même (pas dans une fenêtre), la bande quitte son
+   cadre et devient une liste : un chiffre par ligne, l'icône à gauche
+   dans la couleur de la marque, le libellé, le montant en grand et sa
+   précision dessous, un chevron à droite, un filet entre les lignes.
+   Sur ordinateur, rien ne change. */
+@media (max-width: 639px) {
+  .app-vue .app-statbar {
+    display: flex;
+    flex-direction: column;
+    overflow: visible;
+    border: 0;
+    border-radius: 0;
   }
-  .app-statbar:has(> :nth-child(3):last-child) > :last-child {
-    grid-column: auto;
+  .app-vue .app-statbar > .app-statbar-item {
+    gap: 1rem;
+    padding: 0.875rem 0.5rem 0.875rem 0.375rem;
+    box-shadow: none;
+    border-bottom: 1px solid var(--border);
+  }
+  .app-vue .app-statbar .app-statbar-ico {
+    color: var(--primary);
+  }
+  .app-vue .app-statbar .app-statbar-ico.app-statbar-ico-alerte {
+    color: var(--warning);
+  }
+  .app-vue .app-statbar .app-statbar-ico > svg {
+    width: 28px;
+    height: 28px;
+    stroke-width: 1.75;
+  }
+  .app-vue .app-statbar .app-statbar-texte {
+    flex: 1 1 auto;
+    gap: 0.125rem;
+  }
+  .app-vue .app-statbar .app-statbar-label {
+    font-size: 12px;
+  }
+  .app-vue .app-statbar .app-statbar-value {
+    font-size: 1.25rem;
+  }
+  .app-vue .app-statbar .app-statbar-hint {
+    font-size: 13px;
+  }
+  .app-vue .app-statbar > .app-statbar-item::after {
+    content: "";
+    position: static;
+    flex: none;
+    width: 18px;
+    height: 18px;
+    border-radius: 0;
+    background-color: var(--muted-foreground);
+    -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m9 18 6-6-6-6'/%3E%3C/svg%3E")
+      center / contain no-repeat;
+    mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m9 18 6-6-6-6'/%3E%3C/svg%3E")
+      center / contain no-repeat;
+    opacity: 0.7;
+  }
+  /* L'indicateur sur lequel la liste est filtrée : la ligne se teinte,
+     puisque le chevron occupe la place du filet vert. */
+  .app-vue .app-statbar > .app-statbar-item-actif {
+    background: var(--success-soft);
   }
 }
 
@@ -2136,9 +2549,13 @@ td {
 /* ── Contrôle segmenté ──
    Des choix exclusifs (une période, une vue) rangés dans une même
    coque grise ; le choix posé ressort en blanc. */
+/* Sur une ligne, comme les onglets : ce qui ne tient pas défile. */
 .app-seg {
   display: inline-flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
+  max-width: 100%;
+  overflow-x: auto;
+  scrollbar-width: none;
   align-items: center;
   gap: 2px;
   padding: 3px;
@@ -2146,7 +2563,11 @@ td {
   background: var(--muted);
   border: 1px solid var(--border);
 }
+.app-seg::-webkit-scrollbar {
+  display: none;
+}
 .app-seg-item {
+  flex: none;
   min-height: 30px;
   padding: 0 0.75rem;
   border-radius: 7px;
@@ -2183,16 +2604,29 @@ td {
 }
 
 /* ── Les onglets d'un univers (SousNavigation) ── */
+/* Une seule ligne, toujours : sur téléphone, les onglets qui ne tiennent
+   pas se font défiler du doigt plutôt que de passer à la ligne. Le
+   composant amène l'onglet courant en vue. */
 .app-sous-nav {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scrollbar-width: none;
   column-gap: 0.25rem;
   margin-bottom: 1.25rem;
-  border-bottom: 1px solid var(--border);
+  /* Le filet est une ombre intérieure et non une bordure : avec le
+     défilement, un onglet qui débordait d'un pixel sur la bordure
+     ouvrait un défilement vertical parasite. */
+  box-shadow: inset 0 -1px 0 var(--border);
+}
+.app-sous-nav::-webkit-scrollbar {
+  display: none;
 }
 .app-sous-nav-item {
+  flex: none;
+  white-space: nowrap;
   position: relative;
-  margin-bottom: -1px;
   padding: 0.5rem 0.75rem 0.625rem;
   font-size: 13.5px;
   font-weight: 500;

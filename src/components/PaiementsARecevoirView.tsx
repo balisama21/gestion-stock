@@ -167,7 +167,7 @@ export const PaiementsARecevoirView: React.FC<PaiementsARecevoirViewProps> = ({
       />
 
       {/* Bandeau total à recevoir */}
-      <div className="app-card flex items-center justify-between overflow-hidden border-l-2 border-l-danger p-4">
+      <div className="app-grand-chiffre app-grand-chiffre--danger app-feuille">
         <div>
           <div className="mb-0.5 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
             Total à recevoir

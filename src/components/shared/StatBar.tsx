@@ -7,7 +7,7 @@ export interface StatItem {
   value: string;
   /** Information secondaire, en gris sous le chiffre. */
   hint?: string;
-  /** Icône fine et monochrome. Jamais de pastille colorée. */
+  /** Icône fine, posée dans une pastille en relief à gauche du chiffre. */
   icon?: React.ReactNode;
   onClick?: () => void;
   /** Évolution vs période précédente, quand elle est calculable. */
@@ -131,12 +131,21 @@ export const StatCol: React.FC<StatColProps> = ({
         : {})}
       className={`app-statbar-item ${actif ? "app-statbar-item-actif" : ""}`}
     >
-      <span className="app-statbar-label">
-        {icon && <span className="shrink-0 opacity-70">{icon}</span>}
-        <span className="truncate">{label}</span>
+      {icon && (
+        <span
+          className={`app-statbar-ico ${alert ? "app-statbar-ico-alerte" : ""}`}
+          aria-hidden="true"
+        >
+          {icon}
+        </span>
+      )}
+      <span className="app-statbar-texte">
+        <span className="app-statbar-label">
+          <span className="truncate">{label}</span>
+        </span>
+        <span className="app-statbar-value truncate">{value}</span>
+        {hint && <span className={`app-statbar-hint ${alert ? "t-warning" : ""}`}>{hint}</span>}
       </span>
-      <span className="app-statbar-value truncate">{value}</span>
-      {hint && <span className={`app-statbar-hint ${alert ? "t-warning" : ""}`}>{hint}</span>}
     </Wrapper>
   );
 };
@@ -160,22 +169,31 @@ export const StatBar: React.FC<StatBarProps> = ({ items, className = "" }) => (
           {...(item.onClick ? { onClick: item.onClick, type: "button" as const } : {})}
           className="app-statbar-item"
         >
-          <span className="app-statbar-label">
-            {item.icon && <span className="shrink-0 opacity-70">{item.icon}</span>}
-            <span className="truncate">{item.label}</span>
-          </span>
-
-          <span className="app-statbar-value truncate">{item.value}</span>
-
-          {item.trend ? (
-            <Tendance trend={item.trend} />
-          ) : (
-            item.hint && (
-              <span className={`app-statbar-hint ${item.alert ? "t-warning" : ""}`}>
-                {item.hint}
-              </span>
-            )
+          {item.icon && (
+            <span
+              className={`app-statbar-ico ${item.alert ? "app-statbar-ico-alerte" : ""}`}
+              aria-hidden="true"
+            >
+              {item.icon}
+            </span>
           )}
+          <span className="app-statbar-texte">
+            <span className="app-statbar-label">
+              <span className="truncate">{item.label}</span>
+            </span>
+
+            <span className="app-statbar-value truncate">{item.value}</span>
+
+            {item.trend ? (
+              <Tendance trend={item.trend} />
+            ) : (
+              item.hint && (
+                <span className={`app-statbar-hint ${item.alert ? "t-warning" : ""}`}>
+                  {item.hint}
+                </span>
+              )
+            )}
+          </span>
         </Wrapper>
       );
     })}
@@ -243,18 +261,29 @@ export const BarreIndicateurs: React.FC<StatBarProps> = ({ items, className = ""
           {...(item.onClick ? { onClick: item.onClick, type: "button" as const } : {})}
           className="app-statbar-item"
         >
-          <span className="app-statbar-label">
-            {item.icon && <span className="shrink-0 opacity-70">{item.icon}</span>}
-            <span className="truncate">{item.label}</span>
-          </span>
-
-          <span className="app-statbar-value truncate">{item.value}</span>
-
-          {item.hint && (
-            <span className={`app-statbar-hint ${item.alert ? "t-warning" : ""}`}>{item.hint}</span>
+          {item.icon && (
+            <span
+              className={`app-statbar-ico ${item.alert ? "app-statbar-ico-alerte" : ""}`}
+              aria-hidden="true"
+            >
+              {item.icon}
+            </span>
           )}
+          <span className="app-statbar-texte">
+            <span className="app-statbar-label">
+              <span className="truncate">{item.label}</span>
+            </span>
 
-          {item.trend && <Tendance trend={item.trend} />}
+            <span className="app-statbar-value truncate">{item.value}</span>
+
+            {item.hint && (
+              <span className={`app-statbar-hint ${item.alert ? "t-warning" : ""}`}>
+                {item.hint}
+              </span>
+            )}
+
+            {item.trend && <Tendance trend={item.trend} />}
+          </span>
         </Wrapper>
       );
     })}
