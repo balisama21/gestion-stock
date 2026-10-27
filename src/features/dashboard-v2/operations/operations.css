@@ -9,8 +9,11 @@
    de fond, et ses bords s'effacent dans celui de la page (deux dégradés
    croisés, gardés là où ils se recouvrent). */
 .tn .op-banniere {
-  position: relative;
   margin-bottom: var(--ecart);
+}
+/* L'image et ses données, toujours à la même échelle. */
+.tn .op-scene {
+  position: relative;
 }
 /* Les vraies données, à la place de celles de la maquette : la couche
    a exactement la taille de l'image. */
@@ -21,7 +24,7 @@
   height: 100%;
   pointer-events: none;
 }
-.tn .op-banniere img {
+.tn .op-scene img {
   display: block;
   width: 100%;
   height: auto;
@@ -31,6 +34,23 @@
   -webkit-mask-composite: source-in;
   mask-image: var(--fondu-x), var(--fondu-y);
   mask-composite: intersect;
+}
+/* Sur téléphone, l'image entière tiendrait en 340 px : la date, les
+   jours et les nombres y feraient 5 px. Elle garde donc une largeur
+   lisible et se fait glisser de côté, comme un panorama ; la page, elle,
+   ne défile pas en largeur. */
+@media (max-width: 640px) {
+  .tn .op-banniere {
+    overflow-x: auto;
+    overscroll-behavior-x: contain;
+    scrollbar-width: none;
+  }
+  .tn .op-banniere::-webkit-scrollbar {
+    display: none;
+  }
+  .tn .op-scene {
+    width: 780px;
+  }
 }
 /* ── Les cartes illustrées ── */
 .tn .op-carte {
