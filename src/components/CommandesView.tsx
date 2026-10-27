@@ -61,7 +61,7 @@ function getOrderItemLabel(
   );
 }
 import type { Database } from "../lib/database.types";
-import { useFicheInitiale, useRechercheInitiale } from "../lib/cibleRecherche";
+import { useFicheInitiale, useFiltreInitial, useRechercheInitiale } from "../lib/cibleRecherche";
 import { AvisIntrouvable } from "./shared/AvisIntrouvable";
 import { AideLigneLibre, LIBELLE_LIGNE_LIBRE } from "./shared/LigneLibre";
 import { useConfirmation } from "../hooks/useConfirmation";
@@ -191,6 +191,15 @@ export const CommandesView: React.FC<CommandesViewProps> = ({
   useRechercheInitiale("commandes", setSearch);
   const [filterStatus, setFilterStatus] = useState<OrderStatus | "all">("all");
   const [filterPayment, setFilterPayment] = useState<PaymentStatus | "all">("all");
+  // Une étape du suivi des commandes (tableau de bord) arrive avec le
+  // statut à afficher : « en_attente » pour les reçues, « en_cours »
+  // pour celles en préparation.
+  useFiltreInitial("commandes", (f) => {
+    if (f === "en_attente" || f === "en_cours" || f === "livre" || f === "annule") {
+      setFilterStatus(f);
+      setFilterPayment("all");
+    }
+  });
   const [selectedOrder, setSelectedOrder] = useState<Order | null>(null);
 
   // La commande dont parle une notification : filtres retirés, ligne

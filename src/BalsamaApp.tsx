@@ -30,6 +30,7 @@ import { avancesPrisesSurLaCaisse, demandesEnAttente } from "./lib/salaires";
 import { delaisDeRappel } from "./lib/rappels";
 import { useJournalActivite } from "./hooks/useJournalActivite";
 import { useRafraichissementDiscret } from "./hooks/useRafraichissementDiscret";
+import { useTempsReel } from "./hooks/useTempsReel";
 import { useTaches } from "./hooks/useTaches";
 import { useParametres } from "./hooks/useParametres";
 import { useNotesDeFrais } from "./hooks/useNotesDeFrais";
@@ -385,6 +386,26 @@ function AppInner() {
 
   const [activeTab, setActiveTab] = useState<ActiveTab>("dashboard");
 
+  /*
+   * ET TOUT DE SUITE, SUR LE TABLEAU DE BORD.
+   *
+   * Tant que le tableau de bord est à l'écran, une tâche cochée, une
+   * commande qui avance ou une livraison qui part chez un collègue s'y
+   * reflètent dans la seconde (Supabase Realtime, voir
+   * `useTempsReel`). Ailleurs, le battement d'une minute suffit : le
+   * canal n'est ouvert que là où il sert.
+   */
+  useTempsReel(workspace.activeStore?.id ?? null, activeTab === "dashboard" && !estLivreur, [
+    { table: "taches", relire: rechargerTaches },
+    { table: "evenements", relire: rechargerAgenda },
+    { table: "rappels", relire: rechargerRappels },
+    { table: "orders", relire: rafraichirBoutique },
+    { table: "deliveries", relire: rafraichirBoutique },
+    { table: "sales", relire: rafraichirBoutique },
+    { table: "payments", relire: rafraichirBoutique },
+    { table: "products", relire: rafraichirBoutique },
+    { table: "quotes", relire: rafraichirBoutique },
+  ]);
   /**
    * Ouvrir un écran EN VISANT une ligne, quand une notification en
    * désigne une : l'écran s'ouvre avec sa recherche remplie sur
