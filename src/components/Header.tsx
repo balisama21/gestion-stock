@@ -4,8 +4,6 @@ import {
   Store,
   Settings,
   Bell,
-  Moon,
-  Sun,
   HelpCircle,
   Menu,
   X,
@@ -116,15 +114,6 @@ interface HeaderProps {
    */
   onActionNotification?: (action: ActionNotification) => void;
   /**
-   * Le thème courant, et de quoi en changer.
-   *
-   * La barre du haut ne détient pas ce réglage : il vit dans
-   * `BalsamaApp`, qui l'écrit sur `<html>` et le mémorise. Elle n'en
-   * est qu'un interrupteur de plus, à côté de celui des Paramètres.
-   */
-  theme: "light" | "dark";
-  setTheme: (t: "light" | "dark") => void;
-  /**
    * État replié de la sidebar. Il est détenu par BalsamaApp car le
    * décalage du contenu principal doit suivre la largeur de la sidebar :
    * la barre du haut et le <main> l'appliquent tous les deux.
@@ -144,10 +133,10 @@ interface HeaderProps {
 /**
  * La barre du haut.
  *
- * Elle ne garde que ce dont on se sert sans y penser : le nom de la
- * boutique — qui ouvre le choix d'espace de travail et porte le solde de
- * trésorerie —, la bascule clair/sombre, la cloche des alertes, et
- * l'accès aux réglages.
+ * Elle ne garde que ce dont on se sert sans y penser : le logo de la
+ * marque et le nom de la boutique — qui ouvre le choix d'espace de
+ * travail et porte le solde de trésorerie —, la recherche, la cloche
+ * des alertes et le profil.
  *
  * UNE CHOSE EN EST SORTIE, et elle n'a pas été perdue : la mention
  * « Espace Fondateur / Collaborateur », qui répétait à longueur de
@@ -155,15 +144,9 @@ interface HeaderProps {
  * travail la porte déjà, boutique par boutique, et la ligne qu'elle
  * occupait porte maintenant la trésorerie.
  *
- * LA BASCULE CLAIR/SOMBRE, ELLE, EST REVENUE. Elle était partie d'ici
- * au motif qu'on choisit son thème une fois et qu'il se règle aussi
- * dans Paramètres → Préférences ; elle avait alors trouvé place dans
- * la barre d'outils du tableau de bord. À l'usage, elle n'y était
- * bonne pour personne : un réglage qui vaut pour les quinze écrans
- * n'a pas à vivre sur un seul d'entre eux, et il s'y trouvait en
- * compagnie de chiffres, qu'on vient lire, plutôt que de gestes,
- * qu'on vient faire. Elle est donc ici, avec les deux autres gestes
- * qui valent partout.
+ * La bascule clair/sombre en est sortie : le thème se choisit une fois,
+ * dans Paramètres → Préférences. L'aide de l'écran est passée dans le
+ * menu du profil.
  *
  * La trésorerie, elle, avait une ligne d'en-tête à elle seule sur
  * mobile, sur chacun des quinze écrans, dans un cadre étiqueté en
@@ -182,19 +165,19 @@ export const Header: React.FC<HeaderProps> = ({
   surPhoto = false,
   notifications,
   onActionNotification,
-  theme,
-  setTheme,
   sidebarCollapsed,
   onToggleSidebar,
   sansBarreLaterale = false,
   badgesNav,
 }) => {
   const marque = useMarque();
-  const sombre = theme === "dark";
 
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);
   const [aideOuverte, setAideOuverte] = useState(false);
+  // Sur téléphone, la recherche est une icône ; ouverte, son champ
+  // recouvre la barre.
+  const [rechercheOuverte, setRechercheOuverte] = useState(false);
 
   /**
    * La zone qui englobe la cloche ET son panneau. Cliquer ailleurs le
@@ -461,17 +444,13 @@ export const Header: React.FC<HeaderProps> = ({
   // Le logo lui-même. Il ne portait aucune action : on le regardait, et
   // pour le changer il fallait passer par la roue dentée, puis « Ma
   // boutique ». C'est pourtant là qu'on pense d'abord à cliquer.
+  //
+  // C'est le logo de la marque (Tantana Suite, ou celui d'une marque
+  // blanche), pas celui que la boutique a importé : ce dernier est fait
+  // pour ses factures et ses documents, il n'habille pas l'application.
   const vignetteLogo = (
-    <span className="coq-logo">
-      {settings.logoUrl ? (
-        <img
-          src={settings.logoUrl}
-          alt={settings.storeName || "Logo"}
-          className="h-full w-full object-cover"
-        />
-      ) : (
-        <span className="coq-logo-initiales">{(settings.storeName || "BA").slice(0, 2)}</span>
-      )}
+    <span className="coq-logo coq-logo-marque">
+      <img src={marque.logoUrl} alt={marque.nom} />
     </span>
   );
 
@@ -482,21 +461,6 @@ export const Header: React.FC<HeaderProps> = ({
       <div className="fixed inset-0 z-40" onClick={() => setWorkspaceMenuOpen(false)} />
       <div className="absolute left-0 top-full mt-2 w-64 bg-card border border-border rounded-xl shadow-2xl z-50 overflow-hidden animate-in fade-in slide-in-from-top-2">
         <div className="px-3 py-2 border-b border-border bg-muted/30">
-          {/* Sur téléphone, la barre du haut ne montre que le logo : le
-                nom et la trésorerie se retrouvent ici. */}
-          <div className="lg:hidden pb-1.5">
-            <div className="truncate text-sm font-bold text-foreground">
-              {settings.storeName || marque.nom}
-            </div>
-            {hasCapitalAccess && (
-              <div className="text-xs text-muted-foreground">
-                Trésorerie{" "}
-                <span className="font-semibold tabular-nums t-success">
-                  {formatCurrency(tresorerie)}
-                </span>
-              </div>
-            )}
-          </div>
           <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider">
             Espaces de travail
           </div>
@@ -556,18 +520,41 @@ export const Header: React.FC<HeaderProps> = ({
     </>
   );
 
-  // Sur téléphone la barre du haut ne garde que le logo, à gauche de la
-  // recherche : il ouvre le même menu que le nom de la boutique.
+  // La trésorerie sous le nom de la boutique. Elle ne se colore que
+  // lorsqu'elle a quelque chose à dire : orange sous le seuil d'alerte,
+  // rouge à découvert.
+  const ligneTresorerie = hasCapitalAccess && (
+    <span className="coq-treso">
+      <span className="shrink-0">Trésorerie</span>
+      <span
+        className={`truncate tabular-nums ${
+          tresorerie < 0 ? "t-danger" : tresorerie < seuilAlerte ? "t-warning" : "ok"
+        }`}
+      >
+        {formatCurrency(tresorerie)}
+      </span>
+    </span>
+  );
+
+  // Sur téléphone, la marque, le nom de la boutique et sa trésorerie,
+  // d'un seul bouton : il ouvre le choix d'espace de travail.
   const brandMobile = (
-    <div className="relative shrink-0">
+    <div className="coq-marque">
       <button
         type="button"
         onClick={() => setWorkspaceMenuOpen(!workspaceMenuOpen)}
         aria-label="Changer d'espace de travail"
         aria-expanded={workspaceMenuOpen}
-        className="coq-logo-bouton"
+        className="coq-marque-bouton"
       >
         {vignetteLogo}
+        <span className="coq-marque-texte">
+          <span className="coq-nom">
+            <span className="truncate">{settings.storeName || marque.nom}</span>
+            <ChevronDown className="w-4 h-4 shrink-0 text-muted-foreground" />
+          </span>
+          {ligneTresorerie}
+        </span>
       </button>
       {menuEspaces}
     </div>
@@ -627,18 +614,7 @@ export const Header: React.FC<HeaderProps> = ({
               <span className="truncate">{settings.storeName || marque.nom}</span>
               <ChevronDown className="w-4 h-4 shrink-0 text-muted-foreground group-hover:text-foreground transition-colors" />
             </h1>
-            {hasCapitalAccess && (
-              <p className="coq-treso">
-                <span className="shrink-0">Trésorerie</span>
-                <span
-                  className={`truncate tabular-nums ${
-                    tresorerie < 0 ? "t-danger" : tresorerie < seuilAlerte ? "t-warning" : "ok"
-                  }`}
-                >
-                  {formatCurrency(tresorerie)}
-                </span>
-              </p>
-            )}
+            {ligneTresorerie}
           </div>
         </button>
 
@@ -680,22 +656,27 @@ export const Header: React.FC<HeaderProps> = ({
           surPhoto ? ` sur-photo${enHautDePage ? " transparente" : ""}` : ""
         }`}
       >
-        <div className="coq-top-in">
-          {/* Sur téléphone : le logo seul, qui ouvre le choix d'espace. Sur
-              ordinateur, la marque vit dans la sidebar — sauf quand
-              celle-ci est retirée (Paramètres) : le logo revient ici. */}
-          <div className={sansBarreLaterale ? undefined : "lg:hidden"}>{brandMobile}</div>
+        <div className={`coq-top-in${rechercheOuverte ? " recherche-ouverte" : ""}`}>
+          {/* Sur téléphone : la marque, le nom et la trésorerie. Sur
+              ordinateur, ils vivent dans la sidebar — sauf quand
+              celle-ci est retirée (Paramètres) : ils reviennent ici. */}
+          <div className={`coq-marque-zone${sansBarreLaterale ? "" : " lg:hidden"}`}>
+            {brandMobile}
+          </div>
 
           {/* La recherche ouvre l'écran courant — ou le catalogue depuis
               un écran qui n'a pas de liste — avec sa recherche déjà
               remplie : c'est le mécanisme des notifications
-              (src/lib/cibleRecherche.ts), rien de plus. */}
+              (src/lib/cibleRecherche.ts), rien de plus.
+              Sur ordinateur, c'est un champ. Sur téléphone, une icône :
+              le champ se déplie par-dessus la barre quand on la touche. */}
           <form
             className="coq-search"
             role="search"
             onSubmit={(e) => {
               e.preventDefault();
               lancerRecherche();
+              setRechercheOuverte(false);
             }}
           >
             <Icone nom="search" />
@@ -704,39 +685,36 @@ export const Header: React.FC<HeaderProps> = ({
               type="search"
               value={recherche}
               onChange={(e) => setRecherche(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === "Escape") setRechercheOuverte(false);
+              }}
               placeholder="Rechercher…"
               aria-label="Rechercher"
               aria-keyshortcuts={surMac ? "Meta+K" : "Control+K"}
               enterKeyHint="search"
             />
+            <button
+              type="button"
+              className="coq-search-fermer"
+              onClick={() => setRechercheOuverte(false)}
+              aria-label="Fermer la recherche"
+            >
+              <X aria-hidden="true" />
+            </button>
           </form>
 
           <div className="coq-tools">
-            {/* Aide de l'écran affiché, toujours au même endroit. */}
             <button
               type="button"
-              onClick={() => setAideOuverte(true)}
-              className="coq-tool"
-              title="Aide sur cet écran"
-              aria-label="Aide sur cet écran"
+              onClick={() => {
+                setRechercheOuverte(true);
+                requestAnimationFrame(() => champRecherche.current?.focus());
+              }}
+              className="coq-tool coq-tool-recherche"
+              title="Rechercher"
+              aria-label="Ouvrir la recherche"
             >
-              <HelpCircle className="text-primary" />
-            </button>
-            <PanneauAide
-              ouvert={aideOuverte}
-              onFermer={() => setAideOuverte(false)}
-              ecran={activeTab}
-            />
-
-            {/* Clair / sombre. L'icône annonce ce que le clic FERA. */}
-            <button
-              type="button"
-              onClick={() => setTheme(sombre ? "light" : "dark")}
-              className="coq-tool"
-              title={sombre ? "Passer en mode clair" : "Passer en mode sombre"}
-              aria-label={sombre ? "Passer en mode clair" : "Passer en mode sombre"}
-            >
-              {sombre ? <Sun className="text-primary" /> : <Moon className="text-primary" />}
+              <Icone nom="search" />
             </button>
 
             {/* Notifications */}
@@ -830,6 +808,21 @@ export const Header: React.FC<HeaderProps> = ({
                       Paramètres
                     </button>
                   )}
+                  {/* L'aide de l'écran affiché. Elle avait son bouton dans
+                      la barre ; la barre ne garde plus que la recherche,
+                      la cloche et le profil. */}
+                  <button
+                    type="button"
+                    role="menuitem"
+                    className="coq-menu-item"
+                    onClick={() => {
+                      setProfilOuvert(false);
+                      setAideOuverte(true);
+                    }}
+                  >
+                    <HelpCircle aria-hidden="true" />
+                    Aide sur cet écran
+                  </button>
                   <div className="coq-menu-sep" role="separator" />
                   <button
                     type="button"
@@ -843,6 +836,11 @@ export const Header: React.FC<HeaderProps> = ({
                 </div>
               )}
             </div>
+            <PanneauAide
+              ouvert={aideOuverte}
+              onFermer={() => setAideOuverte(false)}
+              ecran={activeTab}
+            />
           </div>
         </div>
       </header>

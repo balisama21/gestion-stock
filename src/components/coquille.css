@@ -236,8 +236,7 @@
   flex: none;
 }
 /* Les outils : des boutons carrés aux coins doux, sans cadre au repos ;
-   un fond vert très léger au survol. L'aide, premier d'entre eux, porte
-   un filet fin : c'est le geste qu'on cherche quand on est perdu. */
+   un fond vert très léger au survol. */
 .coq-tool {
   position: relative;
   width: 40px;
@@ -254,9 +253,6 @@
   width: 20px;
   height: 20px;
   stroke-width: 2;
-}
-.coq-tools > .coq-tool:first-child {
-  border: 1px solid var(--border);
 }
 .coq-tool:hover,
 .coq-tool.actif {
@@ -516,10 +512,6 @@
     width: 19px;
     height: 19px;
   }
-  /* Sur téléphone l'aide perd son filet : la rangée reste légère. */
-  .coq-tools > .coq-tool:first-child {
-    border-color: transparent;
-  }
   .coq-profil {
     margin-left: 2px;
     padding: 0 2px;
@@ -551,5 +543,187 @@
   }
   .coq-search {
     padding: 0 8px 0 10px;
+  }
+}
+
+/* ── Le logo de la marque ──
+   Tantana Suite (ou la marque blanche) : la feuille verte posée telle
+   quelle, sans rond ni fond. Le logo importé par la boutique, lui, est
+   réservé à ses factures. */
+.coq-logo.coq-logo-marque {
+  border: 0;
+  border-radius: 0;
+  background: none;
+  overflow: visible;
+}
+.coq-logo-marque > img {
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+}
+
+/* ── La marque dans la barre du haut ──
+   Le logo, puis le nom de la boutique et sa trésorerie dessous : un
+   seul bouton, qui ouvre le choix d'espace de travail. */
+.coq-marque {
+  position: relative;
+  min-width: 0;
+}
+.coq-marque-bouton {
+  display: flex;
+  min-width: 0;
+  max-width: 100%;
+  align-items: center;
+  gap: 10px;
+  padding: 2px 8px 2px 0;
+  border-radius: 12px;
+  text-align: left;
+  transition: background-color 0.15s;
+}
+@media (hover: hover) {
+  .coq-marque-bouton:hover {
+    background: color-mix(in srgb, var(--coq-ink) 4%, transparent);
+  }
+}
+.coq-marque-bouton .coq-logo {
+  width: 42px;
+  height: 42px;
+}
+.coq-marque-texte {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+}
+.coq-marque-texte .coq-nom {
+  gap: 4px;
+  font-size: 1rem;
+  font-weight: 700;
+  line-height: 1.25;
+}
+.coq-marque-texte .coq-treso {
+  margin-top: 1px;
+  font-size: 11.5px;
+}
+
+/* La recherche dépliée se ferme d'une croix — sur téléphone seulement. */
+.coq-search-fermer {
+  display: none;
+}
+
+/* ── Sur téléphone et tablette ──
+   La marque à gauche, et trois gestes à droite : la recherche, la
+   cloche et le profil. Recherche et cloche sont deux pastilles
+   carrées, teintées de vert, filet fin ; un point rouge sur la cloche
+   dit qu'il y a du nouveau. Le champ de recherche ne paraît qu'une
+   fois l'icône touchée, par-dessus la barre. */
+@media (max-width: 1023px) {
+  .coq-top-in {
+    position: relative;
+  }
+  .coq-marque-zone {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+  .coq-search {
+    display: none;
+  }
+  .coq-top-in.recherche-ouverte .coq-search {
+    display: flex;
+    position: absolute;
+    inset: 0;
+    z-index: 2;
+    max-width: none;
+    height: auto;
+    margin: 8px 14px;
+    background: var(--card);
+    border-color: var(--coq-g);
+    box-shadow: 0 0 0 3px color-mix(in srgb, var(--coq-g) 16%, transparent);
+  }
+  .coq-search-fermer {
+    display: grid;
+    place-items: center;
+    width: 32px;
+    height: 32px;
+    flex: none;
+    border-radius: 8px;
+    color: var(--coq-muted);
+  }
+  .coq-search-fermer > svg {
+    width: 18px;
+    height: 18px;
+  }
+  /* Les deux pastilles et la photo du profil ont exactement la même
+     taille, `--coq-pastille`. Le bouton, lui, garde ses 44 pixels — la
+     cible tactile minimale imposée à tous les boutons — mais reste
+     transparent : la pastille qu'on voit est dessinée en son centre. */
+  .coq-top-in {
+    --coq-pastille: 36px;
+  }
+  .coq-tools {
+    gap: 0;
+  }
+  .coq-tools > .coq-tool,
+  .coq-tools > .relative > .coq-tool {
+    width: 44px;
+    height: 44px;
+    min-width: 44px;
+    min-height: 44px;
+    border: 0;
+    border-radius: 0;
+    background: none;
+  }
+  .coq-tools > .coq-tool::before,
+  .coq-tools > .relative > .coq-tool::before {
+    content: "";
+    position: absolute;
+    inset: calc((44px - var(--coq-pastille)) / 2);
+    border: 1px solid color-mix(in srgb, var(--coq-g) 22%, var(--border));
+    border-radius: 11px;
+    background: color-mix(in srgb, var(--coq-gsoft) 70%, var(--card));
+    transition: background-color 0.15s;
+  }
+  .coq-tools > .coq-tool:hover::before,
+  .coq-tools > .relative > .coq-tool:hover::before,
+  .coq-tools > .relative > .coq-tool.actif::before {
+    background: var(--coq-gsoft);
+  }
+  .coq-tools > .coq-tool > svg,
+  .coq-tools > .relative > .coq-tool > svg,
+  .coq-tool-recherche > .ico {
+    position: relative;
+    width: 18px;
+    height: 18px;
+  }
+  /* Le point rouge, posé sur le coin haut droit de la pastille. */
+  .coq-badge {
+    top: calc((44px - var(--coq-pastille)) / 2 - 3px);
+    right: calc((44px - var(--coq-pastille)) / 2 - 3px);
+    width: 9px;
+    height: 9px;
+    padding: 0;
+    font-size: 0;
+    border: 2px solid var(--card);
+    box-sizing: content-box;
+  }
+  .coq-profil {
+    margin-left: 0;
+    padding: 0 2px 0 4px;
+  }
+  .coq-avatar {
+    width: var(--coq-pastille);
+    height: var(--coq-pastille);
+  }
+  .coq-profil-chev {
+    display: block;
+    width: 14px;
+    height: 14px;
+  }
+}
+@media (min-width: 1024px) {
+  .coq-tool-recherche {
+    display: none;
+  }
+  .coq-marque-zone {
+    flex: none;
   }
 }

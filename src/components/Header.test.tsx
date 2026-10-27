@@ -82,8 +82,6 @@ async function afficher(
       seuilAlerte={0}
       onOuvrirIdentiteBoutique={() => {}}
       notifications={[]}
-      theme="light"
-      setTheme={() => {}}
       sidebarCollapsed={false}
       onToggleSidebar={() => {}}
       {...props}

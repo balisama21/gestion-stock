@@ -2387,50 +2387,52 @@ td {
 }
 
 /* ── Les indicateurs d'un écran, sur téléphone : une liste ──
-   Sur la page elle-même (pas dans une fenêtre), la bande quitte son
-   cadre et devient une liste : un chiffre par ligne, l'icône à gauche
-   dans la couleur de la marque, le libellé, le montant en grand et sa
-   précision dessous, un chevron à droite, un filet entre les lignes.
-   Sur ordinateur, rien ne change. */
+   Sur la page elle-même (pas dans une fenêtre), une bande de trois
+   chiffres au plus quitte son cadre et devient une liste : un chiffre
+   par ligne, l'icône à gauche dans la couleur de la marque, le
+   libellé, le montant en grand et sa précision dessous, un chevron à
+   droite, un filet entre les lignes. À partir de quatre, la liste
+   serait trop longue : la bande garde sa carte, deux chiffres par
+   rangée. Sur ordinateur, rien ne change. */
 @media (max-width: 639px) {
-  .app-vue .app-statbar {
+  .app-vue .app-statbar:not(:has(> :nth-child(4))) {
     display: flex;
     flex-direction: column;
     overflow: visible;
     border: 0;
     border-radius: 0;
   }
-  .app-vue .app-statbar > .app-statbar-item {
+  .app-vue .app-statbar:not(:has(> :nth-child(4))) > .app-statbar-item {
     gap: 1rem;
     padding: 0.875rem 0.5rem 0.875rem 0.375rem;
     box-shadow: none;
     border-bottom: 1px solid var(--border);
   }
-  .app-vue .app-statbar .app-statbar-ico {
+  .app-vue .app-statbar:not(:has(> :nth-child(4))) .app-statbar-ico {
     color: var(--primary);
   }
-  .app-vue .app-statbar .app-statbar-ico.app-statbar-ico-alerte {
+  .app-vue .app-statbar:not(:has(> :nth-child(4))) .app-statbar-ico.app-statbar-ico-alerte {
     color: var(--warning);
   }
-  .app-vue .app-statbar .app-statbar-ico > svg {
+  .app-vue .app-statbar:not(:has(> :nth-child(4))) .app-statbar-ico > svg {
     width: 28px;
     height: 28px;
     stroke-width: 1.75;
   }
-  .app-vue .app-statbar .app-statbar-texte {
+  .app-vue .app-statbar:not(:has(> :nth-child(4))) .app-statbar-texte {
     flex: 1 1 auto;
     gap: 0.125rem;
   }
-  .app-vue .app-statbar .app-statbar-label {
+  .app-vue .app-statbar:not(:has(> :nth-child(4))) .app-statbar-label {
     font-size: 12px;
   }
-  .app-vue .app-statbar .app-statbar-value {
+  .app-vue .app-statbar:not(:has(> :nth-child(4))) .app-statbar-value {
     font-size: 1.25rem;
   }
-  .app-vue .app-statbar .app-statbar-hint {
+  .app-vue .app-statbar:not(:has(> :nth-child(4))) .app-statbar-hint {
     font-size: 13px;
   }
-  .app-vue .app-statbar > .app-statbar-item::after {
+  .app-vue .app-statbar:not(:has(> :nth-child(4))) > .app-statbar-item::after {
     content: "";
     position: static;
     flex: none;
@@ -2446,7 +2448,7 @@ td {
   }
   /* L'indicateur sur lequel la liste est filtrée : la ligne se teinte,
      puisque le chevron occupe la place du filet vert. */
-  .app-vue .app-statbar > .app-statbar-item-actif {
+  .app-vue .app-statbar:not(:has(> :nth-child(4))) > .app-statbar-item-actif {
     background: var(--success-soft);
   }
 }
