@@ -30,21 +30,23 @@ export const SectionOperations: React.FC<{
       <h2 id="operations-titre" className="sr-only">
         Opérations
       </h2>
-      <img
-        src="/illustrations/operations.webp"
-        alt="Espace de gestion : agenda, confirmations, préparation, livraisons et encaissements de la boutique."
-        width={1812}
-        height={868}
-        decoding="async"
-      />
-      {jour && (
-        <DonneesBanniere
-          jour={jour}
-          joursCharges={joursCharges}
-          commandes={commandes}
-          taches={taches}
+      <div className="op-scene">
+        <img
+          src="/illustrations/operations.webp"
+          alt="Espace de gestion : agenda, confirmations, préparation, livraisons et encaissements de la boutique."
+          width={1812}
+          height={868}
+          decoding="async"
         />
-      )}
+        {jour && (
+          <DonneesBanniere
+            jour={jour}
+            joursCharges={joursCharges}
+            commandes={commandes}
+            taches={taches}
+          />
+        )}
+      </div>
     </div>
 
     <div className="blk-corps">{children}</div>
