@@ -1,0 +1,576 @@
+/* ═══════════════════════════════════════════════════════════════════
+   OPÉRATIONS — la bannière et les quatre cartes illustrées. Tout vit sous `.tn`, comme le reste de l'écran,
+   et reprend ses jetons (`tantana.css`) : rien ne touche les autres
+   sections.
+   ═══════════════════════════════════════════════════════════════════ */
+
+/* ── La bannière ──
+   Posée directement sur la page, sans cadre ni fond : le titre à gauche,
+   l'illustration à droite, les cartes de la section juste en dessous. */
+.tn .op-banniere {
+  position: relative;
+  display: grid;
+  grid-template-columns: minmax(260px, 0.8fr) minmax(0, 1.6fr);
+  align-items: stretch;
+  min-height: clamp(168px, calc(200 * var(--us)), 214px);
+  margin-bottom: var(--ecart);
+}
+.tn .op-banniere-txt {
+  position: relative;
+  z-index: 1;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  padding: 18px 0;
+}
+.tn .op-banniere h2 {
+  font-size: clamp(26px, calc(38 * var(--us)), 40px);
+  font-weight: 800;
+  letter-spacing: -0.025em;
+  line-height: 1.1;
+  color: var(--ink);
+}
+.tn .op-banniere p {
+  margin-top: 8px;
+  color: var(--muted);
+  font-size: var(--fs-corps);
+  line-height: 1.5;
+}
+.tn .op-date {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 14px;
+  font-weight: 600;
+  font-size: var(--fs-corps);
+  color: var(--ink);
+}
+.tn .op-date .ico {
+  width: 18px;
+  height: 18px;
+  color: var(--g2);
+}
+.tn .op-banniere-ill {
+  position: relative;
+  min-width: 0;
+  display: flex;
+  align-items: flex-end;
+  justify-content: flex-end;
+  padding: 6px 0 0;
+}
+.tn .op-banniere-ill .ill3d {
+  width: 100%;
+  height: 100%;
+  max-height: 214px;
+}
+/* ── Les cartes illustrées ── */
+.tn .op-carte {
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  container: op / inline-size;
+}
+.tn .op-carte .card-h {
+  position: relative;
+  z-index: 1;
+}
+.tn .op-corps {
+  flex: 1;
+  display: grid;
+  grid-template-columns: minmax(0, 1.08fr) minmax(0, 0.92fr);
+  gap: 6px;
+  align-items: stretch;
+}
+.tn .op-contenu {
+  position: relative;
+  z-index: 1;
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.tn .op-ill {
+  position: relative;
+  min-width: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: -8px calc(-1 * var(--marge)) calc(-1 * var(--marge)) 0;
+  pointer-events: none;
+}
+.tn .op-ill .ill3d {
+  width: 100%;
+  height: auto;
+  max-height: 250px;
+}
+.dark .tn .op-ill {
+  background: radial-gradient(
+    ellipse at 55% 55%,
+    color-mix(in srgb, var(--success) 16%, transparent),
+    transparent 72%
+  );
+}
+.dark .tn .ill3d .halo {
+  opacity: 0.18;
+}
+
+/* Le titre de carte qui mène quelque part, avec son chevron. */
+.tn .op-titre-lien {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  font-weight: inherit;
+}
+.tn .op-titre-lien .ico {
+  width: 16px;
+  height: 16px;
+  color: var(--muted);
+}
+.tn .op-titre-lien:hover {
+  color: var(--g2);
+  text-decoration: underline;
+}
+.tn .link.fleche {
+  display: inline-flex;
+  align-items: center;
+  gap: 2px;
+}
+.tn .link.fleche .ico {
+  width: 14px;
+  height: 14px;
+}
+.tn .card-h .sub .alerte {
+  color: var(--red);
+  font-weight: 600;
+}
+
+.tn .op-label {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  font-weight: 700;
+  font-size: var(--fs-sec);
+}
+.tn .op-label span {
+  font-weight: 500;
+  color: var(--muted);
+  font-size: var(--fs-micro);
+}
+.tn .op-note {
+  color: var(--muted);
+  font-size: var(--fs-sec);
+}
+
+/* Une liste de lignes cliquables : activités, tâches, courses. */
+.tn .op-liste {
+  display: grid;
+  gap: 8px;
+}
+.tn .op-liste.serree {
+  gap: 6px;
+}
+.tn .op-ligne,
+.tn .op-tache {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 9px 12px;
+  border-radius: 12px;
+  background: var(--card);
+  border: 1px solid var(--line);
+  text-align: left;
+  min-width: 0;
+  transition:
+    border-color 0.15s,
+    background-color 0.15s;
+}
+.tn button.op-ligne:hover:not(:disabled) {
+  border-color: var(--gsoft2);
+  background: var(--surface-douce);
+}
+.tn .op-ic {
+  flex: none;
+  width: 34px;
+  height: 34px;
+  border-radius: 10px;
+  display: grid;
+  place-items: center;
+  background: var(--gsoft);
+  color: var(--g2);
+}
+.tn .op-ic .ico {
+  width: 17px;
+  height: 17px;
+}
+.tn .op-txt {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  flex: 1;
+}
+.tn .op-txt b {
+  font-weight: 600;
+  font-size: var(--fs-nom);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.tn .op-txt b em {
+  font-style: normal;
+  color: var(--g2);
+  margin-right: 8px;
+}
+.tn .op-txt small {
+  font-size: var(--fs-micro);
+  color: var(--muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.tn .op-ligne .amt {
+  flex: none;
+  font-weight: 600;
+  font-size: var(--fs-micro);
+}
+.tn .op-ligne .tag,
+.tn .op-tache .tag {
+  flex: none;
+  padding: 2px 9px;
+}
+
+/* Une tâche : la case ronde, son statut, son titre. */
+.tn .op-tache {
+  cursor: default;
+}
+.tn .op-tache input {
+  flex: none;
+  appearance: none;
+  width: 18px;
+  height: 18px;
+  margin: 0;
+  border-radius: 50%;
+  border: 2px solid var(--gsoft2);
+  background: var(--card);
+  display: grid;
+  place-items: center;
+  cursor: pointer;
+}
+.tn .op-tache input:hover:not(:disabled) {
+  border-color: var(--g);
+}
+.tn .op-tache input:checked {
+  background: var(--g);
+  border-color: var(--g);
+}
+.tn .op-tache input:checked::after {
+  content: "";
+  width: 5px;
+  height: 9px;
+  margin-top: -2px;
+  border: solid #fff;
+  border-width: 0 2px 2px 0;
+  transform: rotate(45deg);
+}
+.tn .op-tache input:disabled:not(:checked) {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+.tn .op-tache label {
+  cursor: pointer;
+}
+.tn .op-tache.done .op-txt b {
+  color: var(--muted);
+  text-decoration: line-through;
+}
+.tn .op-chev-btn {
+  flex: none;
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  color: var(--muted);
+}
+.tn .op-chev-btn:hover {
+  background: var(--surface-douce);
+  color: var(--g2);
+}
+.tn .op-chev-btn .ico {
+  width: 16px;
+  height: 16px;
+}
+.tn .op-meta {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+  margin-top: 2px;
+}
+.tn .op-meta .tag {
+  flex: none;
+  padding: 1px 8px;
+  font-size: 11px;
+}
+
+/* Une course : le rond à gauche, plein quand le livreur est parti. */
+.tn .op-puce {
+  flex: none;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 2px solid var(--gsoft2);
+}
+.tn .op-puce.on {
+  border-color: var(--blue);
+  background: var(--bluesoft);
+}
+.tn .op-course {
+  padding: 8px 12px;
+}
+
+/* L'état vide d'une liste. */
+.tn .op-vide {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  padding: 14px 16px;
+  border-radius: 14px;
+  background: var(--surface-douce);
+}
+.tn .op-vide-ic {
+  flex: none;
+  width: 38px;
+  height: 38px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: var(--card);
+  color: var(--g2);
+}
+.tn .op-vide-ic .ico {
+  width: 18px;
+  height: 18px;
+}
+.tn .op-vide b {
+  display: block;
+  font-size: var(--fs-nom);
+}
+.tn .op-vide > div > span {
+  display: block;
+  color: var(--muted);
+  font-size: var(--fs-micro);
+}
+
+/* Le message d'état d'une carte : commandes, livraisons du jour. */
+.tn .op-message {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 14px;
+  border-radius: 14px;
+  background: var(--surface-douce);
+}
+.tn .op-message .c {
+  flex: none;
+  width: 34px;
+  height: 34px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: var(--g);
+  color: #fff;
+}
+.tn .op-message .c .ico {
+  width: 17px;
+  height: 17px;
+}
+.tn .op-message {
+  flex-wrap: wrap;
+}
+.tn .op-message > div {
+  min-width: 0;
+  flex: 1 1 150px;
+}
+.tn .op-message b {
+  display: block;
+  font-size: var(--fs-nom);
+}
+.tn .op-message > div > span {
+  display: block;
+  color: var(--muted);
+  font-size: var(--fs-micro);
+}
+.tn .op-message .btn {
+  flex: none;
+  gap: 4px;
+  margin-left: auto;
+}
+.tn .op-message .btn .ico {
+  width: 14px;
+  height: 14px;
+}
+
+/* ── Les étapes des commandes ── */
+.tn .op-etapes {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  padding: 6px 0 4px;
+}
+.tn .op-etapes::before {
+  content: "";
+  position: absolute;
+  top: 30px;
+  left: 12.5%;
+  right: 12.5%;
+  height: 3px;
+  border-radius: 3px;
+  background: var(--line);
+}
+.tn .op-etape {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+  text-align: center;
+  color: var(--muted);
+  border-radius: 12px;
+  padding: 2px 0 6px;
+}
+.tn button.op-etape:hover i {
+  box-shadow: 0 0 0 5px var(--gsoft);
+}
+.tn .op-etape i {
+  position: relative;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  background: var(--card);
+  border: 2px solid var(--line);
+  color: var(--muted);
+  transition: box-shadow 0.15s;
+}
+.tn .op-etape i .ico {
+  width: 20px;
+  height: 20px;
+}
+.tn .op-etape i .op-badge {
+  position: absolute;
+  right: -6px;
+  bottom: -4px;
+  min-width: 20px;
+  height: 20px;
+  padding: 0 5px;
+  border-radius: 999px;
+  display: grid;
+  place-items: center;
+  font-style: normal;
+  font-size: 11px;
+  font-weight: 700;
+  background: var(--g2);
+  color: #fff;
+  border: 2px solid var(--card);
+}
+.tn .op-etape.on {
+  color: var(--ink);
+}
+.tn .op-etape.on i {
+  background: var(--g);
+  border-color: var(--g);
+  color: #fff;
+  box-shadow: 0 6px 14px -6px color-mix(in srgb, var(--g) 60%, transparent);
+}
+.tn .op-etape small {
+  font-size: var(--fs-micro);
+  font-weight: 600;
+  line-height: 1.25;
+}
+
+/* ── Les animations des dessins ── */
+.tn .ill3d .roule {
+  animation: op-roule 1.4s ease-in-out infinite;
+}
+.tn .ill3d .pouls {
+  transform-box: fill-box;
+  transform-origin: 50% 100%;
+  animation: op-pouls 1.8s ease-in-out infinite;
+}
+@keyframes op-roule {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-1.5px);
+  }
+}
+@keyframes op-pouls {
+  0%,
+  100% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(1.14);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .tn .ill3d .roule,
+  .tn .ill3d .pouls {
+    animation: none;
+  }
+}
+
+/* ── Les largeurs ── */
+/* Une carte étroite : le dessin passe au-dessus du contenu, en bandeau. */
+/* Une carte moyenne : le dessin reste à droite, en plus petit. */
+@container op (max-width: 500px) {
+  .tn .op-corps {
+    grid-template-columns: minmax(0, 1.3fr) minmax(0, 0.7fr);
+  }
+}
+@container op (max-width: 360px) {
+  .tn .op-corps {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .tn .op-ill {
+    order: -1;
+    margin: -4px 0 4px;
+    max-height: 150px;
+  }
+  .tn .op-ill .ill3d {
+    max-height: 150px;
+  }
+}
+@container op (max-width: 300px) {
+  .tn .op-ill {
+    display: none;
+  }
+  .tn .op-etape i {
+    width: 40px;
+    height: 40px;
+  }
+  .tn .op-etapes::before {
+    top: 26px;
+  }
+}
+@media (max-width: 999px) {
+  .tn .op-banniere {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .tn .op-banniere-ill {
+    max-height: 170px;
+    padding: 0 10px;
+  }
+}
+@media (max-width: 640px) {
+  .tn .op-banniere-ill {
+    display: none;
+  }
+  .tn .op-banniere {
+    min-height: 0;
+  }
+}

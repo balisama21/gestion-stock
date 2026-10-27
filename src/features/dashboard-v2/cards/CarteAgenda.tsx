@@ -1,12 +1,19 @@
 import React, { useMemo, useState } from "react";
-import { Icone } from "../../../components/shared/Icone";
+import { Icone, type NomIcone } from "../../../components/shared/Icone";
 import { BoutonRepli } from "../components/BoutonRepli";
 import { Lead, TeteCarte } from "../components/Tn";
 import { dateLocale, pluriel } from "../lib/format";
 import { dateDuJour } from "../../../lib/dates";
-import { agendaDuMois, joursDuMois, prochainsDepuis, type SourcesAgenda } from "../lib/agenda";
+import {
+  agendaDuMois,
+  joursDuMois,
+  prochainsDepuis,
+  type ItemAgenda,
+  type NatureAgenda,
+  type SourcesAgenda,
+} from "../lib/agenda";
 import { useRepli } from "../lib/repli";
-import { illCalendrier } from "../assets/images";
+import { IllAgenda } from "../operations/Illustrations";
 
 /**
  * AGENDA — le mois de la boutique
@@ -15,11 +22,25 @@ import { illCalendrier } from "../assets/images";
  * de tâches, livraisons prévues et rappels autonomes. Les flèches
  * changent de mois ; le calendrier du mois se déplie sous le titre, et
  * un jour choisi fait commencer la liste à ce jour-là.
+ *
+ * À droite, le calendrier de bureau illustré montre le même mois : le
+ * jour cerclé, les jours chargés pointés, et le carnet « Aujourd'hui »
+ * ce qui est vraiment prévu ce jour.
  */
 
 const CLE_REPLI = "tantana.dash.agenda-replie";
 
 const JOURS = ["L", "M", "M", "J", "V", "S", "D"];
+
+const ICONE_NATURE: Record<NatureAgenda, NomIcone> = {
+  evenement: "calendar",
+  tache: "tasks",
+  livraison: "truck",
+  rappel: "bell",
+};
+
+/** « 09:00 » quand la précision porte une heure, sinon rien. */
+const heureDe = (precision: string): string | null => precision.match(/\d{2}:\d{2}/)?.[0] ?? null;
 
 export const CarteAgenda: React.FC<{
   sources: SourcesAgenda;
@@ -64,19 +85,46 @@ export const CarteAgenda: React.FC<{
   });
   const titre = nomDuMois.charAt(0).toUpperCase() + nomDuMois.slice(1);
 
+  /** Ce qui est prévu aujourd'hui, pour le carnet du dessin. */
+  const duJour = useMemo(() => {
+    if (aujourdhui.slice(0, 7) === jours[0].slice(0, 7)) {
+      return (table.get(aujourdhui) ?? []).map((it) => it.titre);
+    }
+    // Un autre mois est affiché : le carnet lit quand même aujourd'hui.
+    const d = dateLocale(aujourdhui);
+    const courant = agendaDuMois(sources, d.getFullYear(), d.getMonth(), aujourdhui);
+    return (courant.get(aujourdhui) ?? []).map((it) => it.titre);
+  }, [table, jours, aujourdhui, sources]);
+  const charges = useMemo(() => new Set(table.keys()), [table]);
+
   const changer = (n: number) => {
     setDecalage((d) => d + n);
     setSelection(null);
   };
 
+  const quand = (it: ItemAgenda) => {
+    if (it.jour === aujourdhui) return "Aujourd'hui";
+    return dateLocale(it.jour).toLocaleDateString("fr-FR", {
+      weekday: "short",
+      day: "numeric",
+      month: "short",
+    });
+  };
+
   return (
-    <article className="card agenda" id="carte-agenda">
+    <article className="card agenda op-carte" id="carte-agenda">
       <TeteCarte
         lead={<Lead nom="calendar" />}
         grand
         titre={
           <span className="titre-mois">
-            Agenda de la boutique
+            {onOuvrir ? (
+              <button type="button" className="op-titre-lien" onClick={onOuvrir}>
+                Agenda de la boutique
+              </button>
+            ) : (
+              "Agenda de la boutique"
+            )}
             <BoutonRepli
               replie={replie}
               onBasculer={basculer}
@@ -85,7 +133,6 @@ export const CarteAgenda: React.FC<{
             />
           </span>
         }
-        sous={aVenir > 0 ? `${pluriel(aVenir, "élément")} à venir` : undefined}
         action={
           <div className="nav2">
             <button type="button" aria-label="Mois précédent" onClick={() => changer(-1)}>
@@ -146,44 +193,76 @@ export const CarteAgenda: React.FC<{
         </div>
       )}
 
-      {prochains.length === 0 ? (
-        <div className="agenda-vide">
-          <img className="art-cal" src={illCalendrier} alt="" />
-          <div>
-            <b>Rien de prévu</b>
-            <span>Journée libre</span>
-            <span className="puce-feuille">
-              <Icone nom="leaf" />
-              Aucune activité planifiée
-            </span>
+      <div className="op-corps">
+        <div className="op-contenu">
+          <div className="op-label">
+            Prochaines activités
+            {aVenir > 0 && <span>{pluriel(aVenir, "élément")} à venir</span>}
           </div>
+          {prochains.length === 0 ? (
+            <div className="op-vide">
+              <span className="op-vide-ic">
+                <Icone nom="leaf" />
+              </span>
+              <div>
+                <b>Rien de prévu</b>
+                <span>
+                  {decalage === 0 && !selection
+                    ? "Journée libre : aucune activité planifiée."
+                    : "Aucune activité planifiée sur cette période."}
+                </span>
+              </div>
+            </div>
+          ) : (
+            <div className="op-liste">
+              {prochains.map((it) => {
+                const heure = heureDe(it.precision);
+                const detail = heure
+                  ? it.precision.replace(heure, "").replace(/\s*·\s*$/, "")
+                  : it.precision;
+                return (
+                  <button
+                    type="button"
+                    className="op-ligne"
+                    key={it.id}
+                    onClick={onOuvrir}
+                    disabled={!onOuvrir}
+                  >
+                    <span className="op-ic">
+                      <Icone nom={ICONE_NATURE[it.nature]} />
+                    </span>
+                    <span className="op-txt">
+                      <b>
+                        {heure && <em className="num">{heure}</em>}
+                        {it.titre}
+                      </b>
+                      <small>
+                        {quand(it)}
+                        {detail ? ` · ${detail}` : ""}
+                      </small>
+                    </span>
+                    {onOuvrir && <Icone nom="chevright" className="op-chev" />}
+                  </button>
+                );
+              })}
+            </div>
+          )}
+          {onOuvrir && prochains.length > 1 && (
+            <button type="button" className="link bas" onClick={onOuvrir}>
+              Tout le mois
+            </button>
+          )}
         </div>
-      ) : (
-        <div className="row">
-          <div className="evlist">
-            {prochains.map((it) => (
-              <button type="button" className="evi" key={it.id} onClick={onOuvrir}>
-                <div className="dash">
-                  <b>{Number(it.jour.slice(8))}</b>
-                  <small>
-                    {dateLocale(it.jour).toLocaleDateString("fr-FR", { month: "short" })}
-                  </small>
-                </div>
-                <div className="txt">
-                  <b>{it.titre}</b>
-                  <div className="sub">{it.precision}</div>
-                </div>
-              </button>
-            ))}
-          </div>
-          {prochains.length === 1 && <img className="art-cal" src={illCalendrier} alt="" />}
+        <div className="op-ill">
+          <IllAgenda
+            titreMois={titre}
+            jours={jours}
+            aujourdhui={aujourdhui}
+            charges={charges}
+            notes={duJour}
+          />
         </div>
-      )}
-      {onOuvrir && prochains.length > 1 && (
-        <button type="button" className="link bas" onClick={onOuvrir}>
-          Tout le mois
-        </button>
-      )}
+      </div>
     </article>
   );
 };

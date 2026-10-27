@@ -1,100 +1,165 @@
 import React from "react";
-import { Icone } from "../../../components/shared/Icone";
+import { Icone, type NomIcone } from "../../../components/shared/Icone";
 import { Lead, Lien, TeteCarte } from "../components/Tn";
 import type { ChiffresCommandes } from "../lib/chiffres";
-import { illCarton } from "../assets/images";
+import { IllCommandes } from "../operations/Illustrations";
 
 /**
  * SUIVI DES COMMANDES — où en sont les commandes clients, étape par étape.
  *
- * Une étape qui porte des commandes affiche leur nombre ; une étape vide,
- * un cercle vide. Quand rien n'est en cours, la première étape est cochée :
- * tout ce qui a été reçu est parti.
+ * Les quatre étapes sont celles de l'application : reçue (en attente),
+ * en préparation (en cours), en livraison (course en cours), à encaisser
+ * (reste à payer). Une étape qui porte des commandes s'allume et affiche
+ * leur nombre ; un clic mène aux commandes concernées. Rien n'est coché
+ * pour faire joli : une étape vide reste grise.
+ *
+ * L'atelier dessiné à droite pose sur sa table autant de cartons qu'il y
+ * a de commandes reçues ou en préparation.
  */
+
+export type EtapeCommande = "recues" | "enPreparation" | "enLivraison" | "aEncaisser";
+
+const ETAPES: { cle: EtapeCommande; libelle: React.ReactNode; icone: NomIcone; nom: string }[] = [
+  { cle: "recues", libelle: "Reçues", icone: "check", nom: "Reçues" },
+  {
+    cle: "enPreparation",
+    libelle: (
+      <>
+        En
+        <br />
+        préparation
+      </>
+    ),
+    icone: "box",
+    nom: "En préparation",
+  },
+  {
+    cle: "enLivraison",
+    libelle: (
+      <>
+        En
+        <br />
+        livraison
+      </>
+    ),
+    icone: "truck",
+    nom: "En livraison",
+  },
+  {
+    cle: "aEncaisser",
+    libelle: (
+      <>
+        À<br />
+        encaisser
+      </>
+    ),
+    icone: "card",
+    nom: "À encaisser",
+  },
+];
+
+const s = (n: number) => (n > 1 ? "s" : "");
+
 export const CarteCommandes: React.FC<{
   commandes: ChiffresCommandes;
   onOuvrir?: () => void;
-}> = ({ commandes, onOuvrir }) => {
-  const etapes: { n: number; libelle: React.ReactNode }[] = [
-    { n: commandes.recues, libelle: "Reçues" },
-    {
-      n: commandes.enPreparation,
-      libelle: (
-        <>
-          En
-          <br />
-          préparation
-        </>
-      ),
-    },
-    {
-      n: commandes.enLivraison,
-      libelle: (
-        <>
-          En
-          <br />
-          livraison
-        </>
-      ),
-    },
-    {
-      n: commandes.aEncaisser,
-      libelle: (
-        <>
-          À<br />
-          encaisser
-        </>
-      ),
-    },
-  ];
+  /** Ouvrir les commandes d'une étape : la page, déjà filtrée. */
+  onEtape?: (etape: EtapeCommande) => void;
+}> = ({ commandes, onOuvrir, onEtape }) => {
   const rien = commandes.total === 0;
+  const aPreparer = commandes.recues + commandes.enPreparation;
+
+  // Le message dit l'étape la plus pressante, avec ses vrais nombres.
+  let titre: string;
+  let detail: string;
+  let icone: NomIcone = "bag";
+  if (rien) {
+    titre = "Aucune commande en cours";
+    detail = "Tout est livré. Les nouvelles commandes apparaîtront ici, étape par étape.";
+    icone = "check";
+  } else if (commandes.enPreparation > 0) {
+    titre = `${commandes.enPreparation} commande${s(commandes.enPreparation)} en cours de préparation`;
+    detail =
+      commandes.recues > 0
+        ? `et ${commandes.recues} reçue${s(commandes.recues)} à préparer.`
+        : "Les produits sont préparés pour l'expédition.";
+    icone = "box";
+  } else if (commandes.recues > 0) {
+    titre = `${commandes.recues} commande${s(commandes.recues)} reçue${s(commandes.recues)} à préparer`;
+    detail = "Passez-les en préparation depuis la page Commandes.";
+  } else if (commandes.enLivraison > 0) {
+    titre = `${commandes.enLivraison} livraison${s(commandes.enLivraison)} en route`;
+    detail = "Suivez chaque course depuis la page Livraisons.";
+    icone = "truck";
+  } else {
+    titre = `${commandes.aEncaisser} commande${s(commandes.aEncaisser)} à encaisser`;
+    detail = "Suivez chaque commande jusqu'à son encaissement.";
+    icone = "card";
+  }
+  if (!rien && commandes.aEncaisser > 0 && icone !== "card") {
+    detail = `${detail} Dont ${commandes.aEncaisser} à encaisser.`;
+  }
 
   return (
-    <article className="card" id="carte-commandes">
+    <article className="card op-carte" id="carte-commandes">
       <TeteCarte
-        lead={<Lead nom="truck" />}
+        lead={<Lead nom="bag" />}
         titre="Suivi des commandes"
         className="h20"
         action={<Lien onClick={onOuvrir}>Tout voir</Lien>}
       />
 
-      <div className="steps">
-        {etapes.map((e, i) => {
-          const fait = rien ? i === 0 : e.n > 0;
-          return (
-            <div className={`step${fait ? " done" : ""}`} key={i}>
-              <i>{rien && i === 0 ? <Icone nom="check" /> : e.n > 0 ? e.n : null}</i>
-              {e.libelle}
-            </div>
-          );
-        })}
-      </div>
+      <div className="op-corps">
+        <div className="op-contenu">
+          <div className="op-etapes">
+            {ETAPES.map((e) => {
+              const n = commandes[e.cle];
+              const contenu = (
+                <>
+                  <i>
+                    <Icone nom={e.icone} />
+                    {n > 0 && <span className="op-badge num">{n}</span>}
+                  </i>
+                  <small>{e.libelle}</small>
+                </>
+              );
+              const classe = `op-etape${n > 0 ? " on" : ""}`;
+              return onEtape ? (
+                <button
+                  type="button"
+                  key={e.cle}
+                  className={classe}
+                  onClick={() => onEtape(e.cle)}
+                  aria-label={`${e.nom} : ${n} commande${s(n)}`}
+                >
+                  {contenu}
+                </button>
+              ) : (
+                <div key={e.cle} className={classe}>
+                  {contenu}
+                </div>
+              );
+            })}
+          </div>
 
-      <div className="okbar">
-        {rien && <img className="art-carton" src={illCarton} alt="" />}
-        <div className="c">
-          <Icone nom={rien ? "check" : "bag"} />
+          <div className="op-message">
+            <span className="c">
+              <Icone nom={icone} />
+            </span>
+            <div>
+              <b>{titre}</b>
+              <span>{detail}</span>
+            </div>
+            {onOuvrir && !rien && (
+              <button type="button" className="btn soft petit" onClick={onOuvrir}>
+                Voir les commandes
+                <Icone nom="chevright" />
+              </button>
+            )}
+          </div>
         </div>
-        <div>
-          {rien ? (
-            <>
-              <b>Aucune commande en cours</b>
-              <span>
-                Tout est livré. Les nouvelles commandes apparaîtront ici, étape par étape.
-              </span>
-            </>
-          ) : (
-            <>
-              <b>
-                {commandes.total} commande{commandes.total > 1 ? "s" : ""} en cours
-              </b>
-              <span>
-                {commandes.aEncaisser > 0
-                  ? `dont ${commandes.aEncaisser} à encaisser`
-                  : "Suivez chaque commande jusqu'à son encaissement."}
-              </span>
-            </>
-          )}
+        <div className="op-ill">
+          <IllCommandes aPreparer={aPreparer} enPreparation={commandes.enPreparation} />
         </div>
       </div>
     </article>

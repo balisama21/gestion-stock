@@ -10,6 +10,7 @@ import { Card, CardHeader } from "./components/Card";
 import { EtatErreur } from "./components/States";
 import { Chip } from "./components/Chip";
 import { Section } from "./components/Tn";
+import { SectionOperations } from "./operations/SectionOperations";
 import { HeroTableauDeBord, type PointVentes } from "./components/HeroTableauDeBord";
 import { CarteTresorerie } from "./cards/CarteTresorerie";
 import { CarteArgentMinis } from "./cards/CarteArgentMinis";
@@ -19,7 +20,7 @@ import { CarteStock } from "./cards/CarteStock";
 import { CarteStockChiffres } from "./cards/CarteStockChiffres";
 import { CarteTaches } from "./cards/CarteTaches";
 import { CarteVendeurs } from "./cards/CarteVendeurs";
-import { CarteCommandes } from "./cards/CarteCommandes";
+import { CarteCommandes, type EtapeCommande } from "./cards/CarteCommandes";
 import { CarteFilVentes } from "./cards/CarteFilVentes";
 import { CarteResultat } from "./cards/CarteResultat";
 import { CartePaiements } from "./cards/CartePaiements";
@@ -61,7 +62,6 @@ import { CARTE_PAR_CLE, type CleCarte, type CleTuile } from "./registry";
 import {
   banniereArgent,
   banniereFournisseurs,
-  banniereOperations,
   banniereStock,
   banniereVentes,
   photoDeSection,
@@ -145,7 +145,8 @@ export interface DashboardV2PageProps {
   payments: SourcesChiffres["payments"];
   sellers: SourcesChiffres["sellers"];
   capital: SourcesChiffres["capital"];
-  orders: SourcesChiffres["orders"];
+  /** Avec leur identifiant et leur numéro, pour nommer les livraisons. */
+  orders: (SourcesChiffres["orders"][number] & { id?: string; numero?: string | null })[];
   clients: SourcesChiffres["clients"];
   quotes: SourcesChiffres["quotes"];
   /** Les avoirs sur ces ventes : ils retranchent du chiffre d'affaires. */
@@ -158,9 +159,18 @@ export interface DashboardV2PageProps {
     statut: string;
     date_prevue?: string | null;
     montant_a_encaisser?: number;
+    numero?: string | null;
+    order_id?: string | null;
   }[];
-  /** Les tâches, avec de quoi les nommer et les cocher. */
-  taches: { id: string; titre: string; statut: string; echeance: string | null }[];
+  /** Les tâches, avec de quoi les nommer, les cocher et dire leur statut. */
+  taches: {
+    id: string;
+    titre: string;
+    statut: string;
+    echeance: string | null;
+    priorite?: string | null;
+    termine_le?: string | null;
+  }[];
   /** Les photos de produits, pour le fil des ventes. */
   productImages: { product_id: string | null; chemin: string; ordre: number }[];
   /** L'agenda de la boutique. */
@@ -646,6 +656,27 @@ export const DashboardV2Page: React.FC<DashboardV2PageProps> = ({
         }
       : undefined;
 
+  /**
+   * Une étape du suivi des commandes ouvre les commandes concernées :
+   * la page Commandes filtrée sur le statut, la page Livraisons pour les
+   * courses en route, les paiements à recevoir pour ce qui reste dû.
+   */
+  const versEtape = aller
+    ? (etape: EtapeCommande) => {
+        if (etape === "enLivraison") return aller("livraisons");
+        if (etape === "aEncaisser") return aller("paiements");
+        aller("commandes");
+        viser("commandes", "", etape === "recues" ? "en_attente" : "en_cours");
+      }
+    : undefined;
+
+  /** « C021 » par identifiant de commande, pour nommer les livraisons. */
+  const numerosCommandes = useMemo(() => {
+    const m = new Map<string, string>();
+    for (const o of orders) if (o.id && o.numero) m.set(o.id, o.numero);
+    return m;
+  }, [orders]);
+
   /* ── Les sections, dans l'ordre de la maquette ── */
 
   const operations = (["agenda", "taches", "commandes", "livraisons"] as CleCarte[]).filter(voit);
@@ -687,12 +718,20 @@ export const DashboardV2Page: React.FC<DashboardV2PageProps> = ({
         onVoirDevis={vers("devis")}
       />
     ),
-    commandes: <CarteCommandes commandes={chiffres.commandes} onOuvrir={vers("commandes")} />,
+    commandes: (
+      <CarteCommandes
+        commandes={chiffres.commandes}
+        onOuvrir={vers("commandes")}
+        onEtape={versEtape}
+      />
+    ),
     livraisons: (
       <CarteLivraisons
         livraisons={deliveries}
         visible={droits.champVisible("livraisons", "montant")}
+        numerosCommandes={numerosCommandes}
         onOuvrir={vers("livraisons")}
+        onLivraison={versFiche("livraisons")}
       />
     ),
   };
@@ -791,15 +830,13 @@ export const DashboardV2Page: React.FC<DashboardV2PageProps> = ({
       )}
 
       {operations.length > 0 && (
-        <Section
-          id="operations"
-          image={banniereOperations}
-          photo={photoSection("operations")}
-          titre="Opérations"
-          sousTitre="Une vue claire sur l'activité de la boutique."
+        <SectionOperations
+          jour={jourPhotos}
+          commandesAPreparer={chiffres.commandes.recues + chiffres.commandes.enPreparation}
+          livraisonsEnRoute={chiffres.commandes.enLivraison > 0}
         >
           {grille(operations, carteOperation)}
-        </Section>
+        </SectionOperations>
       )}
 
       {ventesCartes.length > 0 && (
