@@ -2136,8 +2136,6 @@ function AppInner() {
               surPhoto={vue === "dashboard" && hasDashboardAccess && dashboardV2}
               notifications={notifications}
               onActionNotification={actionNotification}
-              theme={theme}
-              setTheme={setTheme}
               sidebarCollapsed={sidebarCollapsed}
               onToggleSidebar={toggleSidebar}
               sansBarreLaterale={vue === "settings"}
