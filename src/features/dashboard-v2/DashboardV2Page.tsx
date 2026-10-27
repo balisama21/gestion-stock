@@ -462,6 +462,12 @@ export const DashboardV2Page: React.FC<DashboardV2PageProps> = ({
       .flatMap(([, items]) => items);
   }, [evenements, taches, deliveries, rappels, aujourdhui]);
 
+  /** Les jours chargés du mois, pointés sur le calendrier de la bannière. */
+  const joursCharges = useMemo(
+    () => new Set(agendaDuMoisCourant.map((it) => it.jour)),
+    [agendaDuMoisCourant],
+  );
+
   const vueCourante = VUE_PAR_CLE.get(droits.vue);
 
   /** Un montant que cette personne n'a pas le droit de voir. */
@@ -830,7 +836,14 @@ export const DashboardV2Page: React.FC<DashboardV2PageProps> = ({
       )}
 
       {operations.length > 0 && (
-        <SectionOperations>{grille(operations, carteOperation)}</SectionOperations>
+        <SectionOperations
+          jour={jourPhotos}
+          joursCharges={joursCharges}
+          commandes={chiffres.commandes}
+          taches={taches}
+        >
+          {grille(operations, carteOperation)}
+        </SectionOperations>
       )}
 
       {ventesCartes.length > 0 && (
