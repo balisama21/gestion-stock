@@ -830,13 +830,7 @@ export const DashboardV2Page: React.FC<DashboardV2PageProps> = ({
       )}
 
       {operations.length > 0 && (
-        <SectionOperations
-          jour={jourPhotos}
-          commandesAPreparer={chiffres.commandes.recues + chiffres.commandes.enPreparation}
-          livraisonsEnRoute={chiffres.commandes.enLivraison > 0}
-        >
-          {grille(operations, carteOperation)}
-        </SectionOperations>
+        <SectionOperations>{grille(operations, carteOperation)}</SectionOperations>
       )}
 
       {ventesCartes.length > 0 && (

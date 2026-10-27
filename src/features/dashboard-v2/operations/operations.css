@@ -5,63 +5,22 @@
    ═══════════════════════════════════════════════════════════════════ */
 
 /* ── La bannière ──
-   Posée directement sur la page, sans cadre ni fond : le titre à gauche,
-   l'illustration à droite, les cartes de la section juste en dessous. */
+   L'image de la maquette, posée directement sur la page : pas de cadre ni
+   de fond, et ses bords s'effacent dans celui de la page (deux dégradés
+   croisés, gardés là où ils se recouvrent). */
 .tn .op-banniere {
-  position: relative;
-  display: grid;
-  grid-template-columns: minmax(260px, 0.8fr) minmax(0, 1.6fr);
-  align-items: stretch;
-  min-height: clamp(168px, calc(200 * var(--us)), 214px);
   margin-bottom: var(--ecart);
 }
-.tn .op-banniere-txt {
-  position: relative;
-  z-index: 1;
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  padding: 18px 0;
-}
-.tn .op-banniere h2 {
-  font-size: clamp(26px, calc(38 * var(--us)), 40px);
-  font-weight: 800;
-  letter-spacing: -0.025em;
-  line-height: 1.1;
-  color: var(--ink);
-}
-.tn .op-banniere p {
-  margin-top: 8px;
-  color: var(--muted);
-  font-size: var(--fs-corps);
-  line-height: 1.5;
-}
-.tn .op-date {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  margin-top: 14px;
-  font-weight: 600;
-  font-size: var(--fs-corps);
-  color: var(--ink);
-}
-.tn .op-date .ico {
-  width: 18px;
-  height: 18px;
-  color: var(--g2);
-}
-.tn .op-banniere-ill {
-  position: relative;
-  min-width: 0;
-  display: flex;
-  align-items: flex-end;
-  justify-content: flex-end;
-  padding: 6px 0 0;
-}
-.tn .op-banniere-ill .ill3d {
+.tn .op-banniere img {
+  display: block;
   width: 100%;
-  height: 100%;
-  max-height: 214px;
+  height: auto;
+  --fondu-x: linear-gradient(to right, transparent, #000 3%, #000 95%, transparent);
+  --fondu-y: linear-gradient(to bottom, transparent, #000 5%, #000 92%, transparent);
+  -webkit-mask-image: var(--fondu-x), var(--fondu-y);
+  -webkit-mask-composite: source-in;
+  mask-image: var(--fondu-x), var(--fondu-y);
+  mask-composite: intersect;
 }
 /* ── Les cartes illustrées ── */
 .tn .op-carte {
@@ -555,22 +514,5 @@
   }
   .tn .op-etapes::before {
     top: 26px;
-  }
-}
-@media (max-width: 999px) {
-  .tn .op-banniere {
-    grid-template-columns: minmax(0, 1fr);
-  }
-  .tn .op-banniere-ill {
-    max-height: 170px;
-    padding: 0 10px;
-  }
-}
-@media (max-width: 640px) {
-  .tn .op-banniere-ill {
-    display: none;
-  }
-  .tn .op-banniere {
-    min-height: 0;
   }
 }
