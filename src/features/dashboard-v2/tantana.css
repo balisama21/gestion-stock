@@ -4552,7 +4552,8 @@
 }
 
 /* La bannière à scène détourée : le titre à gauche, la scène posée à
-   droite sur la page même — pas de cadre, pas de voile, pas de fondu.
+   droite sur la page même — pas de cadre, pas de voile, pas de fondu :
+   la scène est nette jusqu'au bord.
    Son pied (le bas du comptoir) repose sur le haut des cartes. */
 .tn .banner.scene {
   display: flex;
@@ -4578,14 +4579,6 @@
   width: min(62%, calc(var(--h) * var(--ratio, 1.5)));
   height: auto;
   user-select: none;
-  /* Les objets coupés par le cadre de la photo s'effacent sur le bord,
-     comme ceux de l'image des opérations. */
-  --fondu-x: linear-gradient(to right, transparent, #000 4%, #000 96%, transparent);
-  --fondu-y: linear-gradient(to bottom, transparent, #000 5%, #000 92%, transparent);
-  -webkit-mask-image: var(--fondu-x), var(--fondu-y);
-  -webkit-mask-composite: source-in;
-  mask-image: var(--fondu-x), var(--fondu-y);
-  mask-composite: intersect;
 }
 /* Sur téléphone, la scène passe sous le titre, sur toute la largeur. */
 @media (max-width: 640px) {

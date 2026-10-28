@@ -99,7 +99,7 @@ const SCENE_FOURNISSEURS: Scene = {
   src: "/illustrations/fournisseurs.webp",
   alt: "Un camion de livraison sur une route bordée d'arbres.",
   largeur: 1400,
-  hauteur: 762,
+  hauteur: 712,
 };
 
 /** Une seule liste vide : une nouvelle à chaque rendu relancerait tous les calculs. */
