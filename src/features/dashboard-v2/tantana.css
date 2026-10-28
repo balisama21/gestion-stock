@@ -5001,14 +5001,14 @@
 }
 
 /* ═══════════════════════════════════════════════════════════════════
-   LES CARTES : UN SABLE CLAIR, UNE BORDURE VERTE
-   Chaque carte, et le panneau des opérations, prend un fond sable très
-   clair — une pointe de marron, pour que tout ne soit pas vert, moins vif
-   que le blanc — et une bordure verte, sans ombre. Les cinq cartes du
+   LES CARTES : UN BLANC ADOUCI, UNE BORDURE VERTE
+   Chaque carte, et le panneau des opérations, prend un blanc un peu
+   assourdi — entre le blanc des cartes et le fond de la page, moins vif
+   que le blanc pur — et une bordure verte, sans ombre. Les cinq cartes du
    jour gardent ce fond plein puisqu'elles chevauchent la photo.
    ═══════════════════════════════════════════════════════════════════ */
 .tn {
-  --carte-fond: color-mix(in oklab, var(--card) 90%, #b07a50);
+  --carte-fond: color-mix(in oklab, var(--card) 45%, var(--background));
   --carte-bord: color-mix(in srgb, var(--g) 50%, transparent);
 }
 .tn .card,
