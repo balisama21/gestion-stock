@@ -75,20 +75,22 @@ import { chiffreAffairesParJour } from "../../lib/ventes";
 /**
  * Les bannières des sections : des objets entiers, détourés, posés sur la
  * page avec leur ombre au sol, comme l'illustration des opérations — aucun
- * bord de photo ne se voit (`public/illustrations/`, photos Unsplash
- * libres de droits, sauf le stock fourni par la boutique).
+ * bord de photo ne se voit. Là où la photo coupait un sujet, un élément
+ * dessiné le porte : socle vert (ventes), pile de pièces (argent), îlot
+ * de route (fournisseurs). Photos fournies par la boutique (ventes,
+ * stock) ou Unsplash libres de droits (argent, fournisseurs).
  */
 const SCENE_VENTES: Scene = {
   src: "/illustrations/ventes.webp",
-  alt: "Deux sacs de courses en papier kraft.",
-  largeur: 900,
-  hauteur: 958,
+  alt: "Une vendeuse souriante encaisse un client au comptoir, posés sur un socle vert.",
+  largeur: 1200,
+  hauteur: 827,
 };
 const SCENE_ARGENT: Scene = {
   src: "/illustrations/argent.webp",
-  alt: "Un verre rempli de pièces d'où sort une jeune pousse.",
-  largeur: 569,
-  hauteur: 1120,
+  alt: "Une femme souriante tient une liasse de billets derrière une pile de grandes pièces d'euro.",
+  largeur: 716,
+  hauteur: 1419,
 };
 const SCENE_STOCK: Scene = {
   src: "/illustrations/stock.webp",
@@ -98,7 +100,7 @@ const SCENE_STOCK: Scene = {
 };
 const SCENE_FOURNISSEURS: Scene = {
   src: "/illustrations/fournisseurs.webp",
-  alt: "Un camion de livraison sur une route bordée d'arbres.",
+  alt: "Un camion de livraison sur un îlot de route bordée d'arbres.",
   largeur: 1400,
   hauteur: 794,
 };
