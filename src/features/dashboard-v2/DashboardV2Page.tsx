@@ -73,33 +73,34 @@ import { vignettesParProduit } from "../../components/shared/VignetteProduit";
 import { chiffreAffairesParJour } from "../../lib/ventes";
 
 /**
- * Les bannières des sections : chaque photo garde tous ses objets, seuls
- * les vides (murs, plafond, sol, ciel, jardin) sont retirés ; elle se pose
- * sur la page comme l'image des opérations (`public/illustrations/`).
+ * Les bannières des sections : des objets entiers, détourés, posés sur la
+ * page avec leur ombre au sol, comme l'illustration des opérations — aucun
+ * bord de photo ne se voit (`public/illustrations/`, photos Unsplash
+ * libres de droits, sauf le stock fourni par la boutique).
  */
 const SCENE_VENTES: Scene = {
   src: "/illustrations/ventes.webp",
-  alt: "Une vendeuse encaisse une cliente au comptoir de la boutique, entre plantes et étagères.",
-  largeur: 1400,
-  hauteur: 933,
+  alt: "Deux sacs de courses en papier kraft.",
+  largeur: 900,
+  hauteur: 958,
 };
 const SCENE_ARGENT: Scene = {
   src: "/illustrations/argent.webp",
-  alt: "Des mains comptent une liasse de billets en ariary sur une table, près d'un pot fleuri.",
-  largeur: 1500,
-  hauteur: 516,
+  alt: "Un verre rempli de pièces d'où sort une jeune pousse.",
+  largeur: 569,
+  hauteur: 1120,
 };
 const SCENE_STOCK: Scene = {
   src: "/illustrations/stock.webp",
-  alt: "Une réserve : étagères garnies de produits, palette de cartons et petit bureau.",
-  largeur: 1400,
-  hauteur: 788,
+  alt: "Des étagères garnies de produits et une palette de cartons.",
+  largeur: 743,
+  hauteur: 749,
 };
 const SCENE_FOURNISSEURS: Scene = {
   src: "/illustrations/fournisseurs.webp",
   alt: "Un camion de livraison sur une route bordée d'arbres.",
   largeur: 1400,
-  hauteur: 712,
+  hauteur: 794,
 };
 
 /** Une seule liste vide : une nouvelle à chaque rendu relancerait tous les calculs. */

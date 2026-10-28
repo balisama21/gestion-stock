@@ -4571,7 +4571,7 @@
   font-size: clamp(26px, 2.4vw, 38px);
 }
 .tn .banner.scene .bn-scene {
-  --h: clamp(210px, 22vw, 320px);
+  --h: clamp(220px, 23vw, 330px);
   display: block;
   flex: none;
   /* La hauteur voulue, sauf si la scène est trop large : elle cède alors
@@ -4593,8 +4593,11 @@
   .tn .banner.scene h2 {
     font-size: 28px;
   }
+  /* Sur téléphone, la scène garde une hauteur raisonnable : un objet
+     haut (le verre de pièces) ne prend pas tout l'écran. */
   .tn .banner.scene .bn-scene {
-    width: 100%;
+    width: min(100%, calc(240px * var(--ratio, 1.5)));
+    align-self: center;
   }
 }
 
