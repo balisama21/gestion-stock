@@ -5001,22 +5001,25 @@
 }
 
 /* ═══════════════════════════════════════════════════════════════════
-   LES CARTES SUR LE FOND DE LA PAGE
-   Comme la section Opérations : chaque carte prend le fond de la page et
-   une bordure verte, sans ombre. Les cinq cartes du jour gardent un fond
-   plein (le fond de la page) puisqu'elles chevauchent la photo.
+   LES CARTES : UN VERT D'EAU CLAIR, UNE BORDURE VERTE
+   Chaque carte, et le panneau des opérations, prend un fond vert d'eau
+   très clair — plus frais que la page, moins vif que le blanc — et une
+   bordure verte, sans ombre. Les cinq cartes du jour gardent ce fond
+   plein puisqu'elles chevauchent la photo.
    ═══════════════════════════════════════════════════════════════════ */
 .tn {
+  --carte-fond: color-mix(in oklab, var(--card) 35%, var(--success-soft));
   --carte-bord: color-mix(in srgb, var(--g) 50%, transparent);
 }
-.tn .card {
-  background-color: var(--background);
+.tn .card,
+.tn .op-section .g2 {
+  background-color: var(--carte-fond);
   border: 2px solid var(--carte-bord);
   box-shadow: none;
 }
 .tn .tbi,
 .dark .tn .tbi {
-  --kc-bg: var(--background);
+  --kc-bg: var(--carte-fond);
   --kc-line: var(--carte-bord);
   --verre-ombre: none;
   --verre-ombre-survol: none;
@@ -5028,7 +5031,7 @@
 @media (max-width: 640px) {
   .tn .g4.minis,
   .tn .g4.f-top {
-    background: var(--background);
+    background: var(--carte-fond);
     border: 2px solid var(--carte-bord);
     box-shadow: none;
   }
