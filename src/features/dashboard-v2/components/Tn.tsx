@@ -16,21 +16,59 @@ import { sourcePhoto, srcsetPhoto, type Photo } from "../assets/images";
  * L'illustration locale (`image`) reste dessous : si la photo ne charge
  * pas, c'est elle qu'on voit. La photo n'est demandée qu'à l'approche de
  * la section — les bannières du bas ne retardent pas le haut de page.
+ *
+ * Avec une `scene` (une photo détourée, sans fond), la bannière n'a ni
+ * photo plein cadre ni voile : le titre à gauche, la scène posée à droite
+ * directement sur la page, nette.
  */
+export interface Scene {
+  src: string;
+  alt: string;
+  largeur: number;
+  hauteur: number;
+}
+
 export const Banniere: React.FC<{
   id: string;
   image: string;
   photo?: Photo;
+  scene?: Scene;
   titre: string;
   sousTitre?: string;
   /** La petite ligne au-dessus du titre. */
   surtitre?: string;
-}> = ({ id, image, photo, titre, sousTitre, surtitre = "Espace de gestion" }) => {
+}> = ({ id, image, photo, scene, titre, sousTitre, surtitre = "Espace de gestion" }) => {
   const [echec, setEchec] = useState(false);
   // Une autre photo (le lendemain, ou choisie dans les paramètres) : on
   // retente l'affichage.
   useEffect(() => setEchec(false), [photo?.id]);
   const avecPhoto = photo && !echec;
+  if (scene) {
+    return (
+      <div className="banner scene">
+        <div className="blk-h">
+          {surtitre && (
+            <span className="blk-sur" aria-hidden="true">
+              <Icone nom="leaf" />
+              {surtitre}
+            </span>
+          )}
+          <h2 id={id}>{titre}</h2>
+          {sousTitre && <p>{sousTitre}</p>}
+        </div>
+        <img
+          className="bn-scene"
+          src={scene.src}
+          alt={scene.alt}
+          width={scene.largeur}
+          height={scene.hauteur}
+          loading="lazy"
+          decoding="async"
+          draggable={false}
+        />
+      </div>
+    );
+  }
   return (
     <div
       className={`banner full${avecPhoto ? " photo" : ""}`}
@@ -70,12 +108,20 @@ export const Section: React.FC<{
   id: string;
   image: string;
   photo?: Photo;
+  scene?: Scene;
   titre: string;
   sousTitre?: string;
   children: React.ReactNode;
-}> = ({ id, image, photo, titre, sousTitre, children }) => (
+}> = ({ id, image, photo, scene, titre, sousTitre, children }) => (
   <section className="blk" id={id} aria-labelledby={`${id}-titre`}>
-    <Banniere id={`${id}-titre`} image={image} photo={photo} titre={titre} sousTitre={sousTitre} />
+    <Banniere
+      id={`${id}-titre`}
+      image={image}
+      photo={photo}
+      scene={scene}
+      titre={titre}
+      sousTitre={sousTitre}
+    />
     <div className="blk-corps">{children}</div>
   </section>
 );

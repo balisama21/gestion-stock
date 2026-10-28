@@ -9,7 +9,7 @@ import { MenuOption, MenuPill } from "./components/Pill";
 import { Card, CardHeader } from "./components/Card";
 import { EtatErreur } from "./components/States";
 import { Chip } from "./components/Chip";
-import { Section } from "./components/Tn";
+import { Section, type Scene } from "./components/Tn";
 import { SectionOperations } from "./operations/SectionOperations";
 import { HeroTableauDeBord, type PointVentes } from "./components/HeroTableauDeBord";
 import { CarteTresorerie } from "./cards/CarteTresorerie";
@@ -74,6 +74,17 @@ import { REGLAGES_PAR_DEFAUT, type ReglagesAlertesStock } from "../../lib/preale
 import { Icone } from "../../components/shared/Icone";
 import { vignettesParProduit } from "../../components/shared/VignetteProduit";
 import { chiffreAffairesParJour } from "../../lib/ventes";
+
+/**
+ * La bannière des ventes : une vendeuse qui encaisse une cliente au
+ * comptoir, détourée (photo Unsplash, licence libre), posée sur la page.
+ */
+const SCENE_VENTES: Scene = {
+  src: "/illustrations/ventes.webp",
+  alt: "Une vendeuse encaisse une cliente au comptoir de la boutique.",
+  largeur: 1100,
+  hauteur: 778,
+};
 
 /** Une seule liste vide : une nouvelle à chaque rendu relancerait tous les calculs. */
 const AUCUN_AVOIR: NonNullable<SourcesChiffres["avoirs"]> = [];
@@ -850,7 +861,7 @@ export const DashboardV2Page: React.FC<DashboardV2PageProps> = ({
         <Section
           id="ventes"
           image={banniereVentes}
-          photo={photoSection("ventes")}
+          scene={SCENE_VENTES}
           titre={aSoi ? "Mes ventes" : "Ventes"}
           sousTitre="Les ventes, les clients et les produits qui partent le mieux."
         >
