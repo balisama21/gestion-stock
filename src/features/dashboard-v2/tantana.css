@@ -4600,6 +4600,39 @@
     align-self: center;
   }
 }
+/* Plusieurs scènes au même endroit, l'une après l'autre en fondu. La
+   boîte prend la largeur de la plus large et la hauteur de la plus haute ;
+   chaque scène s'y pose en bas, au milieu. */
+.tn .banner.scene .bn-scenes {
+  --h: clamp(220px, 23vw, 330px);
+  display: grid;
+  flex: none;
+  width: min(62%, calc(var(--h) * var(--ratio, 1.5)));
+}
+.tn .banner.scene .bn-scenes .bn-scene {
+  --h: inherit;
+  grid-area: 1 / 1;
+  align-self: end;
+  justify-self: center;
+  width: min(100%, calc(var(--h) * var(--ratio, 1.5)));
+  opacity: 0;
+  transition: opacity 0.9s ease;
+}
+.tn .banner.scene .bn-scenes .bn-scene.actif {
+  opacity: 1;
+}
+@media (max-width: 640px) {
+  .tn .banner.scene .bn-scenes {
+    --h: 240px;
+    width: min(100%, calc(var(--h) * var(--ratio, 1.5)));
+    align-self: center;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .tn .banner.scene .bn-scenes .bn-scene {
+    transition: none;
+  }
+}
 
 /* ═══════════════════════════════════════════════════════════════════
    REFONTE DU HAUT DE PAGE — la photo sous la barre, les cartes dessus.

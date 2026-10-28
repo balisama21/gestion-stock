@@ -19,7 +19,8 @@ import { sourcePhoto, srcsetPhoto, type Photo } from "../assets/images";
  *
  * Avec une `scene` (une photo dont les vides sont retirés), la bannière
  * n'a ni photo plein cadre ni voile : le titre à gauche, la scène posée à
- * droite directement sur la page, nette.
+ * droite directement sur la page, nette. Avec plusieurs scènes, elles
+ * se relaient en fondu (voir `ScenesEnFondu`).
  */
 export interface Scene {
   src: string;
@@ -32,7 +33,7 @@ export const Banniere: React.FC<{
   id: string;
   image: string;
   photo?: Photo;
-  scene?: Scene;
+  scene?: Scene | Scene[];
   titre: string;
   sousTitre?: string;
   /** La petite ligne au-dessus du titre. */
@@ -56,17 +57,11 @@ export const Banniere: React.FC<{
           <h2 id={id}>{titre}</h2>
           {sousTitre && <p>{sousTitre}</p>}
         </div>
-        <img
-          className="bn-scene"
-          src={scene.src}
-          alt={scene.alt}
-          width={scene.largeur}
-          height={scene.hauteur}
-          style={{ ["--ratio" as string]: scene.largeur / scene.hauteur }}
-          loading="lazy"
-          decoding="async"
-          draggable={false}
-        />
+        {Array.isArray(scene) && scene.length > 1 ? (
+          <ScenesEnFondu scenes={scene} />
+        ) : (
+          <ImageScene scene={Array.isArray(scene) ? scene[0] : scene} />
+        )}
       </div>
     );
   }
@@ -104,12 +99,66 @@ export const Banniere: React.FC<{
   );
 };
 
+const ratio = (s: Scene) => s.largeur / s.hauteur;
+
+const ImageScene: React.FC<{ scene: Scene; className?: string; cachee?: boolean }> = ({
+  scene,
+  className = "bn-scene",
+  cachee,
+}) => (
+  <img
+    className={className}
+    src={scene.src}
+    alt={scene.alt}
+    width={scene.largeur}
+    height={scene.hauteur}
+    style={{ ["--ratio" as string]: ratio(scene) }}
+    aria-hidden={cachee || undefined}
+    loading="lazy"
+    decoding="async"
+    draggable={false}
+  />
+);
+
+/** Le temps passé sur chaque scène d'une bannière qui en a plusieurs. */
+export const DELAI_SCENE = 15_000;
+
+/**
+ * PLUSIEURS SCÈNES, EN FONDU ENCHAÎNÉ
+ *
+ * Les scènes sont empilées au même endroit ; la place réservée est celle
+ * de la plus grande, pour que la page ne bouge pas quand elles changent.
+ * Le relais ne démarre pas quand le système demande de réduire les
+ * animations : la première scène reste.
+ */
+const ScenesEnFondu: React.FC<{ scenes: Scene[] }> = ({ scenes }) => {
+  const [courante, setCourante] = useState(0);
+  const n = scenes.length;
+  useEffect(() => {
+    if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return;
+    const id = window.setInterval(() => setCourante((c) => (c + 1) % n), DELAI_SCENE);
+    return () => window.clearInterval(id);
+  }, [n]);
+  return (
+    <div className="bn-scenes" style={{ ["--ratio" as string]: Math.max(...scenes.map(ratio)) }}>
+      {scenes.map((s, i) => (
+        <ImageScene
+          key={s.src}
+          scene={s}
+          className={`bn-scene${i === courante ? " actif" : ""}`}
+          cachee={i !== courante}
+        />
+      ))}
+    </div>
+  );
+};
+
 /** Une section du tableau de bord, avec sa bannière. */
 export const Section: React.FC<{
   id: string;
   image: string;
   photo?: Photo;
-  scene?: Scene;
+  scene?: Scene | Scene[];
   titre: string;
   sousTitre?: string;
   children: React.ReactNode;
