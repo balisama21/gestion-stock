@@ -5,7 +5,7 @@ import { Tag } from "../components/Tag";
 import { dateLocale, montant, montantMasque } from "../lib/format";
 import { dateDuJour } from "../../../lib/dates";
 import { estEnCours } from "../../../lib/livraisons";
-import { IllLivraisons } from "../operations/Illustrations";
+import { PhotoLivraisons } from "../operations/PhotosOperations";
 
 /**
  * LIVRAISONS — la tournée du jour, puis les suivantes.
@@ -14,8 +14,7 @@ import { IllLivraisons } from "../operations/Illustrations";
  * une course échouée est close). Chaque ligne ouvre la fiche de la
  * livraison quand l'application sait le faire.
  *
- * Le plan dessiné à droite pose un repère par course à venir, et le
- * camion roule quand l'une d'elles est en route.
+ * À droite, la photo du camion au quai.
  */
 
 export interface LivraisonAffichee {
@@ -54,7 +53,6 @@ export const CarteLivraisons: React.FC<{
   // En retard : prévue avant aujourd'hui et toujours ouverte.
   const enRetard = ouvertes.filter((l) => l.date_prevue && l.date_prevue < aujourdhui);
   const liste = [...enRetard, ...duJour, ...aVenirToutes].slice(0, LIGNES);
-  const enRoute = ouvertes.some((l) => l.statut === "en_cours");
 
   const aEncaisserDuJour = duJour.reduce((a, l) => a + (l.montant_a_encaisser ?? 0), 0);
 
@@ -158,11 +156,7 @@ export const CarteLivraisons: React.FC<{
           )}
         </div>
         <div className="op-ill">
-          <IllLivraisons
-            duJour={duJour.length}
-            aVenir={aVenirToutes.length + enRetard.length}
-            enRoute={enRoute}
-          />
+          <PhotoLivraisons />
         </div>
       </div>
     </article>

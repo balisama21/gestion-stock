@@ -13,7 +13,7 @@ import {
   type SourcesAgenda,
 } from "../lib/agenda";
 import { useRepli } from "../lib/repli";
-import { IllAgenda } from "../operations/Illustrations";
+import { PhotoAgenda } from "../operations/PhotosOperations";
 
 /**
  * AGENDA — le mois de la boutique
@@ -23,9 +23,8 @@ import { IllAgenda } from "../operations/Illustrations";
  * changent de mois ; le calendrier du mois se déplie sous le titre, et
  * un jour choisi fait commencer la liste à ce jour-là.
  *
- * À droite, le calendrier de bureau illustré montre le même mois : le
- * jour cerclé, les jours chargés pointés, et le carnet « Aujourd'hui »
- * ce qui est vraiment prévu ce jour.
+ * À droite, la photo du calendrier de bureau montre le même mois que
+ * les flèches : le jour cerclé de vert, les jours chargés pointés.
  */
 
 const CLE_REPLI = "tantana.dash.agenda-replie";
@@ -85,16 +84,6 @@ export const CarteAgenda: React.FC<{
   });
   const titre = nomDuMois.charAt(0).toUpperCase() + nomDuMois.slice(1);
 
-  /** Ce qui est prévu aujourd'hui, pour le carnet du dessin. */
-  const duJour = useMemo(() => {
-    if (aujourdhui.slice(0, 7) === jours[0].slice(0, 7)) {
-      return (table.get(aujourdhui) ?? []).map((it) => it.titre);
-    }
-    // Un autre mois est affiché : le carnet lit quand même aujourd'hui.
-    const d = dateLocale(aujourdhui);
-    const courant = agendaDuMois(sources, d.getFullYear(), d.getMonth(), aujourdhui);
-    return (courant.get(aujourdhui) ?? []).map((it) => it.titre);
-  }, [table, jours, aujourdhui, sources]);
   const charges = useMemo(() => new Set(table.keys()), [table]);
 
   const changer = (n: number) => {
@@ -254,13 +243,7 @@ export const CarteAgenda: React.FC<{
           )}
         </div>
         <div className="op-ill">
-          <IllAgenda
-            titreMois={titre}
-            jours={jours}
-            aujourdhui={aujourdhui}
-            charges={charges}
-            notes={duJour}
-          />
+          <PhotoAgenda titreMois={titre} jours={jours} aujourdhui={aujourdhui} charges={charges} />
         </div>
       </div>
     </article>

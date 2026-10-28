@@ -6,7 +6,7 @@ import { dateLocale, montant } from "../lib/format";
 import { decalerJours } from "../hooks/useDashboardPeriod";
 import { dateDuJour } from "../../../lib/dates";
 import { estEnAttenteDeReponse } from "../../../lib/devis";
-import { IllTaches } from "../operations/Illustrations";
+import { PhotoTaches } from "../operations/PhotosOperations";
 
 /**
  * À FAIRE — les tâches ouvertes, et les devis qui attendent une réponse.
@@ -19,6 +19,9 @@ import { IllTaches } from "../operations/Illustrations";
  * venir, terminé — et jamais un statut inventé pour remplir l'écran.
  * Les tâches terminées aujourd'hui restent visibles, cochées, en bas de
  * la liste : on voit ce qui a été fait, pas seulement ce qui reste.
+ *
+ * Le bloc-notes « Tâches du jour » de la photo écrit les mêmes lignes,
+ * cochées comme dans la liste.
  */
 
 export interface TacheAffichee {
@@ -195,7 +198,7 @@ export const CarteTaches: React.FC<{
           )}
         </div>
         <div className="op-ill">
-          <IllTaches
+          <PhotoTaches
             lignes={[...ouvertes, ...terminees].map((t) => ({
               texte: t.titre,
               fait: t.statut === "termine" || cochees.has(t.id),

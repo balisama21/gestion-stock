@@ -10,7 +10,7 @@ import { dateDuJour } from "../../../lib/dates";
  * LA SECTION « OPÉRATIONS » DIT CE QUI EST VRAI
  *
  * Les statuts viennent des colonnes de la tâche, les étapes ouvrent les
- * commandes concernées, une étape vide ne s'allume pas, et les dessins
+ * commandes concernées, une étape vide ne s'allume pas, et les photos
  * reprennent les mêmes données que les listes.
  */
 afterEach(cleanup);
@@ -46,8 +46,9 @@ describe("CarteTaches", () => {
     expect(screen.getByText("À venir")).toBeTruthy();
     // Aucune tâche terminée : aucun « Terminé » inventé.
     expect(screen.queryByText("Terminé")).toBeNull();
-    // Le presse-papiers dessiné liste les mêmes tâches.
-    expect(document.querySelector(".ill3d")?.textContent).toContain("Payer le loyer");
+    // Le bloc-notes de la photo liste les mêmes tâches, sans cocher.
+    expect(document.querySelector(".op-photo")?.textContent).toContain("Payer le loyer");
+    expect(document.querySelectorAll(".op-photo .op-case.cochee")).toHaveLength(0);
   });
 
   it("montre une tâche terminée aujourd'hui, cochée", () => {
@@ -84,10 +85,12 @@ describe("CarteTaches", () => {
     expect(terminer).toHaveBeenCalledWith("t1");
   });
 
-  it("sans tâche, l'état vide et un presse-papiers à jour", () => {
+  it("sans tâche, l'état vide et un bloc-notes à jour", () => {
     render(<CarteTaches taches={[]} devis={[]} />);
     expect(screen.getByText("Rien à faire")).toBeTruthy();
-    expect(document.querySelector(".ill3d")?.textContent).toContain("Tout est à jour");
+    expect(document.querySelector(".op-photo")?.textContent).toContain("Tout est à jour");
+    // La case du titre est cochée : il ne reste rien à faire.
+    expect(document.querySelectorAll(".op-photo .op-case.cochee").length).toBeGreaterThan(0);
   });
 });
 
@@ -149,7 +152,7 @@ describe("CarteLivraisons", () => {
 });
 
 describe("CarteAgenda", () => {
-  it("le carnet du dessin lit ce qui est prévu aujourd'hui", () => {
+  it("le calendrier de la photo cercle aujourd'hui et pointe les jours chargés", () => {
     render(
       <CarteAgenda
         sources={{
@@ -160,6 +163,12 @@ describe("CarteAgenda", () => {
               debut: `${jour(0)}T09:00:00`,
               journee_entiere: false,
             },
+            {
+              id: "e2",
+              titre: "Inventaire",
+              debut: `${jour(1)}T10:00:00`,
+              journee_entiere: false,
+            },
           ],
           taches: [],
           deliveries: [],
@@ -168,12 +177,19 @@ describe("CarteAgenda", () => {
       />,
     );
     expect(screen.getByText("09:00")).toBeTruthy();
-    expect(document.querySelector(".ill3d")?.textContent).toContain("Réunion équipe");
+    const photo = document.querySelector(".op-photo")!;
+    const mois = new Date().toLocaleDateString("fr-FR", { month: "long", year: "numeric" });
+    expect(photo.textContent?.toLowerCase()).toContain(mois);
+    expect(photo.querySelectorAll(".op-aujourdhui")).toHaveLength(1);
+    // Demain est pointé quand il tombe dans le même mois ; aujourd'hui,
+    // déjà cerclé, ne l'est pas.
+    const demainDansLeMois = jour(1).slice(0, 7) === jour(0).slice(0, 7);
+    expect(photo.querySelectorAll(".op-charge")).toHaveLength(demainDansLeMois ? 1 : 0);
   });
 
   it("agenda vide : journée libre, sans rendez-vous inventé", () => {
     render(<CarteAgenda sources={{ evenements: [], taches: [], deliveries: [], rappels: [] }} />);
     expect(screen.getByText("Rien de prévu")).toBeTruthy();
-    expect(document.querySelector(".ill3d")?.textContent).toContain("Journée libre");
+    expect(document.querySelectorAll(".op-photo .op-charge")).toHaveLength(0);
   });
 });
