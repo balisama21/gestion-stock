@@ -88,9 +88,9 @@ const SCENE_VENTES: Scene = {
 };
 const SCENE_ARGENT: Scene = {
   src: "/illustrations/argent.webp",
-  alt: "Une femme souriante tient une liasse de billets derrière une pile de grandes pièces d'euro.",
-  largeur: 716,
-  hauteur: 1419,
+  alt: "Un homme compte des billets en euros à sa table, près de son portefeuille et d'une tasse.",
+  largeur: 1400,
+  hauteur: 683,
 };
 const SCENE_STOCK: Scene = {
   src: "/illustrations/stock.webp",
