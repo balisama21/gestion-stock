@@ -514,15 +514,15 @@
 }
 
 /* ── Les quatre cartes, posées sur la page ──
-   Ni fond ni ombre : les cartes reposent sur le fond de la page, dans une
-   simple bordure verte, et seuls des filets fins les séparent — un filet
+   Sans ombre, dans la bordure commune des cartes (`--carte-bord`, voir
+   la fin de `tantana.css`), et seuls des filets fins les séparent — un filet
    vertical au milieu de l'écart entre deux cartes d'une ligne, un filet
    horizontal sous la première ligne. */
 .tn .op-section .g2 {
   column-gap: calc(var(--marge) * 2);
   row-gap: 0;
   padding: 0 calc(var(--marge) * 1.1);
-  border: 2px solid color-mix(in srgb, var(--g) 50%, transparent);
+  border: 2px solid var(--carte-bord);
   border-radius: var(--rayon);
 }
 .tn .op-section .g2 > .op-carte {
