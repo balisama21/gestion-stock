@@ -76,9 +76,11 @@ import { chiffreAffairesParJour } from "../../lib/ventes";
  * Les bannières des sections : des objets entiers, détourés, posés sur la
  * page avec leur ombre au sol, comme l'illustration des opérations — aucun
  * bord de photo ne se voit. Là où la photo coupait un sujet, un élément
- * dessiné le porte : socle vert (ventes), pile de pièces (argent), îlot
- * de route (fournisseurs). Photos fournies par la boutique (ventes,
- * stock) ou Unsplash libres de droits (argent, fournisseurs).
+ * dessiné ou complété le porte : socle vert (ventes), table et pile de
+ * pièces (argent), îlot de route (fournisseurs). L'argent alterne deux
+ * scènes en fondu. Photos fournies par la boutique (ventes, stock,
+ * l'homme à sa table) ou Unsplash libres de droits (la femme aux billets,
+ * fournisseurs).
  */
 const SCENE_VENTES: Scene = {
   src: "/illustrations/ventes.webp",
@@ -86,12 +88,20 @@ const SCENE_VENTES: Scene = {
   largeur: 1200,
   hauteur: 827,
 };
-const SCENE_ARGENT: Scene = {
-  src: "/illustrations/argent.webp",
-  alt: "Un homme compte des billets en euros à sa table, entre un arbre, des plantes et une plante en pot.",
-  largeur: 1600,
-  hauteur: 600,
-};
+const SCENES_ARGENT: Scene[] = [
+  {
+    src: "/illustrations/argent.webp",
+    alt: "Un homme compte des billets en euros à sa table, entre un arbre, des plantes et une plante en pot.",
+    largeur: 1600,
+    hauteur: 600,
+  },
+  {
+    src: "/illustrations/argent-femme.webp",
+    alt: "Une femme souriante tient une liasse de billets derrière une pile de grandes pièces d'euro.",
+    largeur: 716,
+    hauteur: 1419,
+  },
+];
 const SCENE_STOCK: Scene = {
   src: "/illustrations/stock.webp",
   alt: "Des étagères garnies de produits et une palette de cartons.",
@@ -884,7 +894,7 @@ export const DashboardV2Page: React.FC<DashboardV2PageProps> = ({
         <Section
           id="argent"
           image={banniereArgent}
-          scene={SCENE_ARGENT}
+          scene={SCENES_ARGENT}
           titre="L'argent"
           sousTitre="La trésorerie, ce qui entre, ce qui sort et ce qui reste."
         >
