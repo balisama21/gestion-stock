@@ -4999,3 +4999,37 @@
     );
   }
 }
+
+/* ═══════════════════════════════════════════════════════════════════
+   LES CARTES SUR LE FOND DE LA PAGE
+   Comme la section Opérations : chaque carte prend le fond de la page et
+   une bordure verte, sans ombre. Les cinq cartes du jour gardent un fond
+   plein (le fond de la page) puisqu'elles chevauchent la photo.
+   ═══════════════════════════════════════════════════════════════════ */
+.tn {
+  --carte-bord: color-mix(in srgb, var(--g) 50%, transparent);
+}
+.tn .card {
+  background-color: var(--background);
+  border: 2px solid var(--carte-bord);
+  box-shadow: none;
+}
+.tn .tbi,
+.dark .tn .tbi {
+  --kc-bg: var(--background);
+  --kc-line: var(--carte-bord);
+  --verre-ombre: none;
+  --verre-ombre-survol: none;
+}
+.tn .kc,
+.tn .tc {
+  border-width: 2px;
+}
+@media (max-width: 640px) {
+  .tn .g4.minis,
+  .tn .g4.f-top {
+    background: var(--background);
+    border: 2px solid var(--carte-bord);
+    box-shadow: none;
+  }
+}
