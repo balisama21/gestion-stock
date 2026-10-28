@@ -4999,3 +4999,41 @@
     );
   }
 }
+
+/* ═══════════════════════════════════════════════════════════════════
+   LES CARTES : UN BLANC ADOUCI, UNE BORDURE GRIS PIERRE
+   Chaque carte, et le panneau des opérations, prend un blanc un peu
+   assourdi — entre le blanc des cartes et le fond de la page, moins vif
+   que le blanc pur — et une bordure gris pierre, sans ombre : neutre, elle
+   laisse le vert aux icônes, aux chiffres et aux boutons. Les cinq cartes
+   du jour gardent ce fond plein puisqu'elles chevauchent la photo.
+   ═══════════════════════════════════════════════════════════════════ */
+.tn {
+  --carte-fond: color-mix(in oklab, var(--card) 45%, var(--background));
+  --carte-bord: color-mix(in oklab, var(--foreground) 14%, var(--background));
+}
+.tn .card,
+.tn .op-section .g2 {
+  background-color: var(--carte-fond);
+  border: 2px solid var(--carte-bord);
+  box-shadow: none;
+}
+.tn .tbi,
+.dark .tn .tbi {
+  --kc-bg: var(--carte-fond);
+  --kc-line: var(--carte-bord);
+  --verre-ombre: none;
+  --verre-ombre-survol: none;
+}
+.tn .kc,
+.tn .tc {
+  border-width: 2px;
+}
+@media (max-width: 640px) {
+  .tn .g4.minis,
+  .tn .g4.f-top {
+    background: var(--carte-fond);
+    border: 2px solid var(--carte-bord);
+    box-shadow: none;
+  }
+}
