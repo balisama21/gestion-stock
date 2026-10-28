@@ -513,23 +513,22 @@
   }
 }
 
-/* ── Les quatre cartes, en un seul panneau ──
-   Une surface partagée en quatre par des filets fins, au lieu de quatre
-   cartes encadrées : un filet vertical entre deux cartes d'une ligne, un
-   filet horizontal sous la première ligne. */
+/* ── Les quatre cartes, posées sur la page ──
+   Ni cadre, ni fond, ni ombre : les cartes reposent sur le fond de la
+   page, alignées sur le titre de la section, et seuls des filets fins
+   les séparent — un filet vertical au milieu de l'écart entre deux
+   cartes d'une ligne, un filet horizontal sous la première ligne. */
 .tn .op-section .g2 {
-  gap: 0;
-  background: var(--card);
-  border: 1px solid var(--line);
-  border-radius: var(--rayon);
-  box-shadow: var(--shadow);
+  column-gap: calc(var(--marge) * 2);
+  row-gap: 0;
 }
 .tn .op-section .g2 > .op-carte {
   background: none;
   border: 0;
   border-radius: 0;
   box-shadow: none;
-  padding: calc(var(--marge) * 1.2);
+  overflow: visible;
+  padding: calc(var(--marge) * 1.1) 0;
 }
 .tn .op-section .g2 > .op-carte::before,
 .tn .op-section .g2 > .op-carte::after {
@@ -541,14 +540,14 @@
   content: "";
   top: 24px;
   bottom: 24px;
-  right: 0;
+  right: calc(-1 * var(--marge));
   width: 1px;
 }
 .tn .op-section .g2 > .op-carte:nth-child(1):nth-last-child(n + 3)::after,
 .tn .op-section .g2 > .op-carte:nth-child(2):nth-last-child(n + 2)::after {
   content: "";
-  left: 24px;
-  right: 24px;
+  left: 0;
+  right: 0;
   bottom: 0;
   height: 1px;
 }
@@ -559,8 +558,8 @@
   }
   .tn .op-section .g2 > .op-carte:not(:last-child)::after {
     content: "";
-    left: 20px;
-    right: 20px;
+    left: 0;
+    right: 0;
     bottom: 0;
     height: 1px;
   }
@@ -611,7 +610,7 @@
 /* Une carte étroite : le dessin passe au-dessus du contenu, en bandeau. */
 /* Une carte moyenne : le dessin reste à droite, en plus petit. */
 @container op (max-width: 500px) {
-  .tn .op-corps:not(:has(.op-photo)) {
+  .tn .op-corps:not(.seul):not(:has(.op-photo)) {
     grid-template-columns: minmax(0, 1.3fr) minmax(0, 0.7fr);
   }
 }
