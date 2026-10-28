@@ -73,32 +73,33 @@ import { vignettesParProduit } from "../../components/shared/VignetteProduit";
 import { chiffreAffairesParJour } from "../../lib/ventes";
 
 /**
- * Les bannières des sections : chaque photo est détourée et posée sur la
- * page, sans fond ni voile (`public/illustrations/`).
+ * Les bannières des sections : chaque photo garde tous ses objets, seuls
+ * les vides (murs, plafond, sol, ciel, jardin) sont retirés ; elle se pose
+ * sur la page comme l'image des opérations (`public/illustrations/`).
  */
 const SCENE_VENTES: Scene = {
   src: "/illustrations/ventes.webp",
-  alt: "Une vendeuse encaisse une cliente au comptoir de la boutique.",
-  largeur: 1100,
-  hauteur: 778,
+  alt: "Une vendeuse encaisse une cliente au comptoir de la boutique, entre plantes et étagères.",
+  largeur: 1400,
+  hauteur: 933,
 };
 const SCENE_ARGENT: Scene = {
   src: "/illustrations/argent.webp",
-  alt: "Des mains comptent une liasse de billets en ariary.",
-  largeur: 1200,
-  hauteur: 579,
+  alt: "Des mains comptent une liasse de billets en ariary sur une table, près d'un pot fleuri.",
+  largeur: 1500,
+  hauteur: 516,
 };
 const SCENE_STOCK: Scene = {
   src: "/illustrations/stock.webp",
-  alt: "Des étagères garnies de produits et une palette de cartons.",
-  largeur: 686,
-  hauteur: 700,
+  alt: "Une réserve : étagères garnies de produits, palette de cartons et petit bureau.",
+  largeur: 1400,
+  hauteur: 788,
 };
 const SCENE_FOURNISSEURS: Scene = {
   src: "/illustrations/fournisseurs.webp",
-  alt: "Un camion de livraison sur la route.",
-  largeur: 720,
-  hauteur: 795,
+  alt: "Un camion de livraison sur une route bordée d'arbres.",
+  largeur: 1400,
+  hauteur: 762,
 };
 
 /** Une seule liste vide : une nouvelle à chaque rendu relancerait tous les calculs. */

@@ -17,9 +17,9 @@ import { sourcePhoto, srcsetPhoto, type Photo } from "../assets/images";
  * pas, c'est elle qu'on voit. La photo n'est demandée qu'à l'approche de
  * la section — les bannières du bas ne retardent pas le haut de page.
  *
- * Avec une `scene` (une photo détourée, sans fond), la bannière n'a ni
- * photo plein cadre ni voile : le titre à gauche, la scène posée à droite
- * directement sur la page, nette.
+ * Avec une `scene` (une photo dont les vides sont retirés), la bannière
+ * n'a ni photo plein cadre ni voile : le titre à gauche, la scène posée à
+ * droite directement sur la page, nette.
  */
 export interface Scene {
   src: string;
@@ -62,6 +62,7 @@ export const Banniere: React.FC<{
           alt={scene.alt}
           width={scene.largeur}
           height={scene.hauteur}
+          style={{ ["--ratio" as string]: scene.largeur / scene.hauteur }}
           loading="lazy"
           decoding="async"
           draggable={false}

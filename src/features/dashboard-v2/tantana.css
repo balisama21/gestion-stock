@@ -4570,17 +4570,22 @@
   font-size: clamp(26px, 2.4vw, 38px);
 }
 .tn .banner.scene .bn-scene {
+  --h: clamp(210px, 22vw, 320px);
   display: block;
-  flex: 0 1 auto;
-  width: auto;
-  min-width: 0;
-  height: clamp(200px, 21vw, 300px);
-  /* Une scène large (les billets) cède la place au titre : elle rétrécit
-     sans se déformer, calée en bas à droite. */
-  max-width: 60%;
-  object-fit: contain;
-  object-position: right bottom;
+  flex: none;
+  /* La hauteur voulue, sauf si la scène est trop large : elle cède alors
+     la place au titre, sans se déformer. */
+  width: min(62%, calc(var(--h) * var(--ratio, 1.5)));
+  height: auto;
   user-select: none;
+  /* Les objets coupés par le cadre de la photo s'effacent sur le bord,
+     comme ceux de l'image des opérations. */
+  --fondu-x: linear-gradient(to right, transparent, #000 4%, #000 96%, transparent);
+  --fondu-y: linear-gradient(to bottom, transparent, #000 5%, #000 92%, transparent);
+  -webkit-mask-image: var(--fondu-x), var(--fondu-y);
+  -webkit-mask-composite: source-in;
+  mask-image: var(--fondu-x), var(--fondu-y);
+  mask-composite: intersect;
 }
 /* Sur téléphone, la scène passe sous le titre, sur toute la largeur. */
 @media (max-width: 640px) {
@@ -4596,11 +4601,7 @@
     font-size: 28px;
   }
   .tn .banner.scene .bn-scene {
-    width: auto;
-    max-width: 100%;
-    height: auto;
-    max-height: 240px;
-    align-self: center;
+    width: 100%;
   }
 }
 
