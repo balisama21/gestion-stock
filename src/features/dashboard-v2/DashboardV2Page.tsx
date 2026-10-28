@@ -64,10 +64,7 @@ import {
   banniereFournisseurs,
   banniereStock,
   banniereVentes,
-  photoDeSection,
-  type CleSection,
 } from "./assets/images";
-import { usePhotosSections } from "./lib/photosSections";
 import { dateDuJour } from "../../lib/dates";
 import { useAuth } from "../../hooks/useAuth";
 import { REGLAGES_PAR_DEFAUT, type ReglagesAlertesStock } from "../../lib/prealerteStock";
@@ -76,14 +73,32 @@ import { vignettesParProduit } from "../../components/shared/VignetteProduit";
 import { chiffreAffairesParJour } from "../../lib/ventes";
 
 /**
- * La bannière des ventes : une vendeuse qui encaisse une cliente au
- * comptoir, détourée (photo Unsplash, licence libre), posée sur la page.
+ * Les bannières des sections : chaque photo est détourée et posée sur la
+ * page, sans fond ni voile (`public/illustrations/`).
  */
 const SCENE_VENTES: Scene = {
   src: "/illustrations/ventes.webp",
   alt: "Une vendeuse encaisse une cliente au comptoir de la boutique.",
   largeur: 1100,
   hauteur: 778,
+};
+const SCENE_ARGENT: Scene = {
+  src: "/illustrations/argent.webp",
+  alt: "Des mains comptent une liasse de billets en ariary.",
+  largeur: 1200,
+  hauteur: 579,
+};
+const SCENE_STOCK: Scene = {
+  src: "/illustrations/stock.webp",
+  alt: "Des étagères garnies de produits et une palette de cartons.",
+  largeur: 686,
+  hauteur: 700,
+};
+const SCENE_FOURNISSEURS: Scene = {
+  src: "/illustrations/fournisseurs.webp",
+  alt: "Un camion de livraison sur la route.",
+  largeur: 720,
+  hauteur: 795,
 };
 
 /** Une seule liste vide : une nouvelle à chaque rendu relancerait tous les calculs. */
@@ -295,20 +310,12 @@ export const DashboardV2Page: React.FC<DashboardV2PageProps> = ({
   const aujourdhui = dateDuJour();
 
   /**
-   * La photo du jour de chaque bannière de section. La date n'est lue
+   * La date du jour pour la bannière des opérations. Elle n'est lue
    * qu'après le premier rendu : le serveur et le navigateur doivent
-   * d'abord dessiner la même photo.
+   * d'abord dessiner la même chose.
    */
-  const photosSections = usePhotosSections();
   const [jourPhotos, setJourPhotos] = useState<Date | null>(null);
   useEffect(() => setJourPhotos(new Date()), []);
-  const photoSection = (cle: CleSection) =>
-    photoDeSection(
-      cle,
-      jourPhotos ?? new Date(2026, 9, 11),
-      photosSections.ajoutees[cle],
-      photosSections.choix[cle],
-    );
   const { periode, choisir, choisirIntervalle, apercus, intervalleLibre } =
     useDashboardPeriod(aujourdhui);
   const droits = useDashboardPermissions();
@@ -873,7 +880,7 @@ export const DashboardV2Page: React.FC<DashboardV2PageProps> = ({
         <Section
           id="argent"
           image={banniereArgent}
-          photo={photoSection("argent")}
+          scene={SCENE_ARGENT}
           titre="L'argent"
           sousTitre="La trésorerie, ce qui entre, ce qui sort et ce qui reste."
         >
@@ -961,7 +968,7 @@ export const DashboardV2Page: React.FC<DashboardV2PageProps> = ({
         <Section
           id="stock"
           image={banniereStock}
-          photo={photoSection("stock")}
+          scene={SCENE_STOCK}
           titre="Le stock"
           sousTitre="Les quantités, les alertes et les mouvements de la marchandise."
         >
@@ -1015,7 +1022,7 @@ export const DashboardV2Page: React.FC<DashboardV2PageProps> = ({
         <Section
           id="fournisseurs"
           image={banniereFournisseurs}
-          photo={photoSection("fournisseurs")}
+          scene={SCENE_FOURNISSEURS}
           titre="Fournisseurs & Prestataires"
           sousTitre="Gérez vos fournisseurs de produits et vos prestataires de services facilement."
         >

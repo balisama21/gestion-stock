@@ -4571,9 +4571,15 @@
 }
 .tn .banner.scene .bn-scene {
   display: block;
-  flex: none;
+  flex: 0 1 auto;
   width: auto;
+  min-width: 0;
   height: clamp(200px, 21vw, 300px);
+  /* Une scène large (les billets) cède la place au titre : elle rétrécit
+     sans se déformer, calée en bas à droite. */
+  max-width: 60%;
+  object-fit: contain;
+  object-position: right bottom;
   user-select: none;
 }
 /* Sur téléphone, la scène passe sous le titre, sur toute la largeur. */
@@ -4590,9 +4596,10 @@
     font-size: 28px;
   }
   .tn .banner.scene .bn-scene {
-    width: 100%;
-    max-width: 420px;
+    width: auto;
+    max-width: 100%;
     height: auto;
+    max-height: 240px;
     align-self: center;
   }
 }
