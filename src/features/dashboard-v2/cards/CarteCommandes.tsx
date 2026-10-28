@@ -2,7 +2,6 @@ import React from "react";
 import { Icone, type NomIcone } from "../../../components/shared/Icone";
 import { Lead, Lien, TeteCarte } from "../components/Tn";
 import type { ChiffresCommandes } from "../lib/chiffres";
-import { IllCommandes } from "../operations/Illustrations";
 
 /**
  * SUIVI DES COMMANDES — où en sont les commandes clients, étape par étape.
@@ -13,8 +12,7 @@ import { IllCommandes } from "../operations/Illustrations";
  * leur nombre ; un clic mène aux commandes concernées. Rien n'est coché
  * pour faire joli : une étape vide reste grise.
  *
- * L'atelier dessiné à droite pose sur sa table autant de cartons qu'il y
- * a de commandes reçues ou en préparation.
+ * Sans photo : les étapes prennent toute la largeur.
  */
 
 export type EtapeCommande = "recues" | "enPreparation" | "enLivraison" | "aEncaisser";
@@ -67,7 +65,6 @@ export const CarteCommandes: React.FC<{
   onEtape?: (etape: EtapeCommande) => void;
 }> = ({ commandes, onOuvrir, onEtape }) => {
   const rien = commandes.total === 0;
-  const aPreparer = commandes.recues + commandes.enPreparation;
 
   // Le message dit l'étape la plus pressante, avec ses vrais nombres.
   let titre: string;
@@ -109,7 +106,7 @@ export const CarteCommandes: React.FC<{
         action={<Lien onClick={onOuvrir}>Tout voir</Lien>}
       />
 
-      <div className="op-corps">
+      <div className="op-corps seul">
         <div className="op-contenu">
           <div className="op-etapes">
             {ETAPES.map((e) => {
@@ -157,9 +154,6 @@ export const CarteCommandes: React.FC<{
               </button>
             )}
           </div>
-        </div>
-        <div className="op-ill">
-          <IllCommandes aPreparer={aPreparer} enPreparation={commandes.enPreparation} />
         </div>
       </div>
     </article>

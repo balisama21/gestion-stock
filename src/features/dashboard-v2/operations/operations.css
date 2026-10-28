@@ -513,11 +513,107 @@
   }
 }
 
+/* ── Les quatre cartes, posées sur la page ──
+   Ni fond ni ombre : les cartes reposent sur le fond de la page, dans une
+   simple bordure verte, et seuls des filets fins les séparent — un filet
+   vertical au milieu de l'écart entre deux cartes d'une ligne, un filet
+   horizontal sous la première ligne. */
+.tn .op-section .g2 {
+  column-gap: calc(var(--marge) * 2);
+  row-gap: 0;
+  padding: 0 calc(var(--marge) * 1.1);
+  border: 2px solid color-mix(in srgb, var(--g) 50%, transparent);
+  border-radius: var(--rayon);
+}
+.tn .op-section .g2 > .op-carte {
+  background: none;
+  border: 0;
+  border-radius: 0;
+  box-shadow: none;
+  overflow: visible;
+  padding: calc(var(--marge) * 1.1) 0;
+}
+.tn .op-section .g2 > .op-carte::before,
+.tn .op-section .g2 > .op-carte::after {
+  position: absolute;
+  background: var(--line);
+  pointer-events: none;
+}
+.tn .op-section .g2 > .op-carte:nth-child(odd):not(:last-child)::before {
+  content: "";
+  top: 24px;
+  bottom: 24px;
+  right: calc(-1 * var(--marge));
+  width: 1px;
+}
+.tn .op-section .g2 > .op-carte:nth-child(1):nth-last-child(n + 3)::after,
+.tn .op-section .g2 > .op-carte:nth-child(2):nth-last-child(n + 2)::after {
+  content: "";
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 1px;
+}
+/* Une seule colonne : un filet sous chaque carte, sauf la dernière. */
+@media (max-width: 999px) {
+  .tn .op-section .g2 > .op-carte:nth-child(odd):not(:last-child)::before {
+    content: none;
+  }
+  .tn .op-section .g2 > .op-carte:not(:last-child)::after {
+    content: "";
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 1px;
+  }
+}
+
+/* ── Les photos des cartes ──
+   La photo occupe la moitié droite de la carte, entière : sa boîte a ses
+   proportions, et sa couche de données la recouvre exactement. Le bord
+   gauche se fond dans la carte, assez court pour garder les données. */
+.tn .op-corps.seul {
+  grid-template-columns: minmax(0, 1fr);
+}
+.tn .op-corps:has(.op-photo) {
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  gap: 18px;
+}
+.tn .op-ill:has(.op-photo) {
+  margin: 0;
+  background: none;
+}
+.tn .op-photo {
+  position: relative;
+  width: 100%;
+  aspect-ratio: var(--ratio);
+  margin: 0;
+  overflow: hidden;
+  border-radius: 14px;
+  --fondu: 16%;
+  -webkit-mask-image: linear-gradient(to right, transparent, #000 var(--fondu));
+  mask-image: linear-gradient(to right, transparent, #000 var(--fondu));
+}
+.tn .op-photo img,
+.tn .op-photo svg {
+  position: absolute;
+  inset: 0;
+  display: block;
+  width: 100%;
+  height: 100%;
+}
+.tn #carte-taches .op-photo {
+  --fondu: 5%;
+}
+.tn #carte-livraisons .op-photo {
+  --fondu: 12%;
+}
+
 /* ── Les largeurs ── */
 /* Une carte étroite : le dessin passe au-dessus du contenu, en bandeau. */
 /* Une carte moyenne : le dessin reste à droite, en plus petit. */
 @container op (max-width: 500px) {
-  .tn .op-corps {
+  .tn .op-corps:not(.seul):not(:has(.op-photo)) {
     grid-template-columns: minmax(0, 1.3fr) minmax(0, 0.7fr);
   }
 }
@@ -532,6 +628,18 @@
   }
   .tn .op-ill .ill3d {
     max-height: 150px;
+  }
+  .tn .op-corps:has(.op-photo) {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 6px;
+  }
+  .tn .op-ill:has(.op-photo) {
+    max-height: none;
+    margin: 0 0 4px;
+  }
+  .tn .op-photo {
+    width: min(100%, 320px);
+    margin: 0 auto;
   }
 }
 @container op (max-width: 300px) {
