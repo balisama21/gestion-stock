@@ -88,18 +88,19 @@ const SCENE_VENTES: Scene = {
   largeur: 1200,
   hauteur: 827,
 };
+/** La femme d'abord, à l'ouverture ; l'homme à sa table prend le relais. */
 const SCENES_ARGENT: Scene[] = [
-  {
-    src: "/illustrations/argent.webp",
-    alt: "Un homme compte des billets en euros à sa table, entre un arbre, des plantes et une plante en pot.",
-    largeur: 1600,
-    hauteur: 600,
-  },
   {
     src: "/illustrations/argent-femme.webp",
     alt: "Une femme souriante tient une liasse de billets derrière une pile de grandes pièces d'euro.",
     largeur: 716,
     hauteur: 1419,
+  },
+  {
+    src: "/illustrations/argent.webp",
+    alt: "Un homme compte des billets en euros à sa table, à côté d'une plante en pot.",
+    largeur: 1600,
+    hauteur: 655,
   },
 ];
 const SCENE_STOCK: Scene = {
