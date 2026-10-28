@@ -4551,6 +4551,56 @@
   }
 }
 
+/* La bannière à scène détourée : le titre à gauche, la scène posée à
+   droite sur la page même — pas de cadre, pas de voile, pas de fondu :
+   la scène est nette jusqu'au bord.
+   Son pied (le bas du comptoir) repose sur le haut des cartes. */
+.tn .banner.scene {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 24px;
+  margin-bottom: var(--ecart);
+}
+.tn .banner.scene .blk-h {
+  align-self: center;
+  max-width: 560px;
+  padding-bottom: 12px;
+}
+.tn .banner.scene h2 {
+  font-size: clamp(26px, 2.4vw, 38px);
+}
+.tn .banner.scene .bn-scene {
+  --h: clamp(220px, 23vw, 330px);
+  display: block;
+  flex: none;
+  /* La hauteur voulue, sauf si la scène est trop large : elle cède alors
+     la place au titre, sans se déformer. */
+  width: min(62%, calc(var(--h) * var(--ratio, 1.5)));
+  height: auto;
+  user-select: none;
+}
+/* Sur téléphone, la scène passe sous le titre, sur toute la largeur. */
+@media (max-width: 640px) {
+  .tn .banner.scene {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 14px;
+  }
+  .tn .banner.scene .blk-h {
+    padding-bottom: 0;
+  }
+  .tn .banner.scene h2 {
+    font-size: 28px;
+  }
+  /* Sur téléphone, la scène garde une hauteur raisonnable : un objet
+     haut (le verre de pièces) ne prend pas tout l'écran. */
+  .tn .banner.scene .bn-scene {
+    width: min(100%, calc(240px * var(--ratio, 1.5)));
+    align-self: center;
+  }
+}
+
 /* ═══════════════════════════════════════════════════════════════════
    REFONTE DU HAUT DE PAGE — la photo sous la barre, les cartes dessus.
 
