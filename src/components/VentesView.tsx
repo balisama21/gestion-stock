@@ -114,14 +114,16 @@ interface VentesViewProps {
   /** Les fiches clients de la boutique, pour rattacher la vente à l'une d'elles. */
   clients: Client[];
   sellers: Seller[];
-  /** L'équipe, les fiches « hors équipe », et les noms déjà écrits. */
+  /** Qui peut être le vendeur : le responsable du compte et l'équipe invitée. */
   personnes: Personne[];
-  /** Créer une fiche « hors équipe » sans quitter la vente. */
-  onCreerPersonne?: (data: {
-    nom: string;
-    telephone: string;
-    role: string | null;
-  }) => Promise<{ personne: { id: string; nom: string } | null; error: string | null }>;
+  /** Le nom de qui tient la caisse : le vendeur proposé d'office. */
+  moiNom?: string;
+  /**
+   * Le vendeur, quand celui qui tient la caisse n'a pas le droit d'en
+   * choisir un autre : un invité vend toujours à son propre nom. Seul
+   * le responsable du compte choisit.
+   */
+  vendeurImpose?: string | null;
   locale: LocaleSetting;
   settings?: StoreSettings;
   /**
@@ -203,7 +205,8 @@ export const VentesView: React.FC<VentesViewProps> = ({
   clients,
   sellers,
   personnes,
-  onCreerPersonne,
+  moiNom,
+  vendeurImpose = null,
   locale,
   settings,
   documentsV2 = false,
@@ -440,7 +443,7 @@ export const VentesView: React.FC<VentesViewProps> = ({
   const [selectedProductId, setSelectedProductId] = useState(products[0]?.id || "");
   const [prixVenteUnit, setPrixVenteUnit] = useState<number>(products[0]?.prixVenteDefaut || 0);
   const [isCustomPrice, setIsCustomPrice] = useState(false);
-  const [vendeur, setVendeur] = useState(sellers[0]?.nom || "");
+  const [vendeur, setVendeur] = useState(vendeurImpose || moiNom || sellers[0]?.nom || "");
   const [clientCredit, setClientCredit] = useState("");
   // La fiche choisie. Vide = client de passage, et le nom se saisit à
   // la main comme avant : on ne force personne à créer une fiche pour
@@ -614,7 +617,7 @@ export const VentesView: React.FC<VentesViewProps> = ({
       setFormError("Ajoutez au moins un produit au panier.");
       return;
     }
-    if (!vendeur) {
+    if (!(vendeurImpose || vendeur)) {
       setFormError("Choisissez le vendeur.");
       return;
     }
@@ -640,7 +643,7 @@ export const VentesView: React.FC<VentesViewProps> = ({
     setSaving(true);
     const result = await onAddSaleTicket({
       date,
-      vendeur,
+      vendeur: vendeurImpose || vendeur,
       clientCredit: clientCredit.trim() || null,
       clientId: clientChoisi || null,
       montantPaye: paye,
@@ -1250,10 +1253,15 @@ export const VentesView: React.FC<VentesViewProps> = ({
             <SelecteurPersonne
               label="Vendeur"
               personnes={personnes}
-              valeur={vendeur}
+              valeur={vendeurImpose || vendeur}
               requis
+              desactive={Boolean(vendeurImpose)}
+              aide={
+                vendeurImpose
+                  ? "La vente est à votre nom. Seul le responsable du compte choisit un autre vendeur."
+                  : undefined
+              }
               onChange={(choix) => setVendeur(choix.nom)}
-              onCreer={onCreerPersonne}
             />
           </div>
 

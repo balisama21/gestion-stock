@@ -145,6 +145,9 @@ export const SelecteurListe: React.FC<SelecteurListeProps> = ({
   const peutCreer =
     Boolean(onCreer || onDemanderCreation) && Boolean(cleDeListe(recherche)) && !dejaLa;
 
+  /** Un seul groupe n'a pas besoin d'intertitre : il ne distingue rien. */
+  const plusieursGroupes = new Set(toutes.map((o) => o.groupe ?? "")).size > 1;
+
   /** Les lignes, dans l'ordre où les flèches les parcourent. */
   const lignes = useMemo(() => {
     const l: { type: "vide" | "option" | "creer"; option?: OptionDeSelecteur }[] = [];
@@ -374,7 +377,8 @@ export const SelecteurListe: React.FC<SelecteurListeProps> = ({
 
               const o = ligne.option!;
               const precedent = lignes[i - 1]?.option?.groupe;
-              const intertitre = o.groupe && o.groupe !== precedent ? o.groupe : null;
+              const intertitre =
+                plusieursGroupes && o.groupe && o.groupe !== precedent ? o.groupe : null;
 
               return (
                 <li key={o.id} role="option" aria-selected={o.id === valeur}>

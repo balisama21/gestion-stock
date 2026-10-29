@@ -23,6 +23,10 @@ interface SelecteurPersonneProps {
   requis?: boolean;
   compact?: boolean;
   id?: string;
+  /** Le nom se lit mais ne se change pas. */
+  desactive?: boolean;
+  /** Remplace la phrase d'aide sous le champ. */
+  aide?: React.ReactNode;
 }
 
 /**
@@ -43,6 +47,8 @@ export const SelecteurPersonne: React.FC<SelecteurPersonneProps> = ({
   requis = false,
   compact = false,
   id,
+  desactive = false,
+  aide,
 }) => {
   const [aCreer, setACreer] = useState<string | null>(null);
   const [telephone, setTelephone] = useState("");
@@ -116,6 +122,7 @@ export const SelecteurPersonne: React.FC<SelecteurPersonneProps> = ({
         valeur={choisie?.cle ?? null}
         requis={requis}
         compact={compact}
+        desactive={desactive}
         libelleVide={libelleVide}
         placeholder="Chercher une personne…"
         onChange={(cle) => {
@@ -137,7 +144,8 @@ export const SelecteurPersonne: React.FC<SelecteurPersonneProps> = ({
             : undefined
         }
         aide={
-          onCreer ? "Quelqu'un hors équipe ? Tapez son nom pour lui créer une fiche." : undefined
+          aide ??
+          (onCreer ? "Quelqu'un hors équipe ? Tapez son nom pour lui créer une fiche." : undefined)
         }
       />
 

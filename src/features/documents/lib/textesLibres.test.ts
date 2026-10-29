@@ -11,7 +11,11 @@ const doc = documentDeVente({
   client: CLIENT,
   paiements: [PAIEMENT],
   boutique: BOUTIQUE,
-  reglages: REGLAGES_DOCUMENTS_PAR_DEFAUT,
+  // Le vendeur, masqué par défaut, est allumé ici : c'est lui qu'on retire.
+  reglages: {
+    ...REGLAGES_DOCUMENTS_PAR_DEFAUT,
+    pages: { facture: { "infos.vendeur": { visible: true } } },
+  },
 });
 
 let d = creerDisposition("facture", "classique", "x");

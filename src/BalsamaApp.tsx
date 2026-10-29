@@ -18,7 +18,13 @@ import type { Json, OrderStatus } from "./lib/database.types";
 import { calculerTresorerie } from "./lib/tresorerie";
 import { avoirsDesVentes, chiffreAffairesNet } from "./lib/ventes";
 import { formatCurrency, getProductLabel } from "./utils/formulas";
-import { getModuleScope, isFieldVisible, hasModuleAction } from "./lib/permissions";
+import {
+  getModuleScope,
+  isFieldVisible,
+  hasModuleAction,
+  ROLE_LABELS,
+  type RoleKey,
+} from "./lib/permissions";
 import { downloadExcelWorkbook } from "./utils/exportExcel";
 import { Header } from "./components/Header";
 import { NAV_GROUPS, universDe, visibleNavItems } from "./components/navigation";
@@ -1047,6 +1053,28 @@ function AppInner() {
     sales,
     expenses,
   ]);
+
+  /**
+   * Qui peut être le VENDEUR d'une vente ou d'une facture : le
+   * responsable du compte et l'équipe invitée, chacun avec son rôle.
+   * Ni les fiches « hors équipe » ni les noms d'anciennes saisies :
+   * on vend sous le nom d'un compte, pas d'un contact.
+   */
+  const vendeursDeLEquipe = useMemo(() => {
+    const membres = storeMembers.map((m) => ({
+      id: m.user_id,
+      nom: m.full_name || m.email,
+      mention: ROLE_LABELS[m.role as RoleKey] ?? null,
+    }));
+    if (workspace.isOwner && user?.id) {
+      membres.unshift({
+        id: user.id,
+        nom: (profile?.full_name || user.email || "Propriétaire").trim(),
+        mention: "Responsable",
+      });
+    }
+    return listerLesPersonnes({ membres, externes: [], nomsHerites: [] });
+  }, [storeMembers, workspace.isOwner, user, profile]);
 
   /** Un contact, jamais un compte : aucun accès n'est créé. */
   const creerPersonneExterne = useCallback(
@@ -2591,7 +2619,8 @@ function AppInner() {
                         fournisseurs={storeData.suppliers}
                         produits={products}
                         lignesFactureAchat={storeData.supplierInvoiceItems}
-                        vendeurs={computedSellers.map((v) => v.nom)}
+                        vendeurs={vendeursDeLEquipe}
+                        peutChoisirVendeur={workspace.isOwner}
                         settings={storeSettings}
                         locale={locale}
                         reglagesDocuments={reglagesDocuments}
@@ -2661,8 +2690,11 @@ function AppInner() {
                     )}
                     {vue === "ventes" && (
                       <VentesView
-                        personnes={personnesDeLaBoutique}
-                        onCreerPersonne={peutCompleterLesListes ? creerPersonneExterne : undefined}
+                        personnes={vendeursDeLEquipe}
+                        moiNom={myName}
+                        // Seul le responsable du compte choisit le vendeur ;
+                        // un invité vend à son nom.
+                        vendeurImpose={workspace.isOwner ? null : myName}
                         documentsV2={documentsV2}
                         reglagesDocuments={reglagesDocuments}
                         productImages={storeData.productImages}

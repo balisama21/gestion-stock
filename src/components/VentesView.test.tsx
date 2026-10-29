@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { VentesView } from "./VentesView";
 import type { Product, Sale, Seller } from "../types";
 
@@ -222,6 +222,52 @@ describe("la quantité se règle dans le panier", () => {
     fireEvent.click(screen.getByRole("button", { name: /Valider la vente/ }));
     await waitFor(() => expect(onAddSaleTicket).toHaveBeenCalledTimes(1));
     expect(onAddSaleTicket.mock.calls[0][0].lignes[0]).toMatchObject({ quantite: 7 });
+  });
+});
+
+describe("le vendeur de la vente", () => {
+  const HANTA = {
+    cle: "membre:u2",
+    nom: "Hanta",
+    nature: "membre" as const,
+    membreId: "u2",
+    personneId: null,
+    mention: "Vendeur",
+  };
+  const RESPONSABLE = { ...HANTA, cle: "membre:u1", nom: "Mamy", membreId: "u1" };
+
+  it("un invité vend à son nom, sans pouvoir en choisir un autre", async () => {
+    const { onAddSaleTicket } = afficher({
+      personnes: [RESPONSABLE, HANTA],
+      moiNom: "Hanta",
+      vendeurImpose: "Hanta",
+    });
+    fireEvent.click(screen.getByRole("button", { name: /Nouvelle vente/ }));
+    const champ = screen.getByRole("button", { name: /^Vendeur\s*\*/ }) as HTMLButtonElement;
+    expect(champ.disabled).toBe(true);
+    expect(champ.textContent).toContain("Hanta");
+    expect(screen.getByText(/Seul le responsable du compte/)).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: /Ajouter au panier/ }));
+    fireEvent.click(screen.getByRole("button", { name: /Valider la vente/ }));
+    await waitFor(() => expect(onAddSaleTicket).toHaveBeenCalledTimes(1));
+    expect(onAddSaleTicket.mock.calls[0][0].vendeur).toBe("Hanta");
+  });
+
+  it("le responsable part de son nom, et choisit dans l'équipe", async () => {
+    const { onAddSaleTicket } = afficher({ personnes: [RESPONSABLE, HANTA], moiNom: "Mamy" });
+    fireEvent.click(screen.getByRole("button", { name: /Nouvelle vente/ }));
+    const champ = screen.getByRole("button", { name: /^Vendeur\s*\*/ }) as HTMLButtonElement;
+    expect(champ.disabled).toBe(false);
+    expect(champ.textContent).toContain("Mamy");
+    fireEvent.click(champ);
+    // Une seule équipe : pas d'intertitre « Équipe » au-dessus des noms.
+    expect(screen.queryByText("Équipe")).toBeNull();
+    const option = within(screen.getByRole("listbox")).getByRole("option", { name: /Hanta/ });
+    fireEvent.click(within(option).getByRole("button"));
+    fireEvent.click(screen.getByRole("button", { name: /Ajouter au panier/ }));
+    fireEvent.click(screen.getByRole("button", { name: /Valider la vente/ }));
+    await waitFor(() => expect(onAddSaleTicket).toHaveBeenCalledTimes(1));
+    expect(onAddSaleTicket.mock.calls[0][0].vendeur).toBe("Hanta");
   });
 });
 

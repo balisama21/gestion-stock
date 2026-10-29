@@ -72,9 +72,26 @@ describe("sans éditeur ouvert, rien ne change", () => {
     ]);
   });
 
-  it("garde les repères d'hier", () => {
+  it("garde les repères d'hier, sauf le vendeur, masqué tant qu'on ne l'allume pas", () => {
     const d = documentDeVente({ ...base, ventes: [V024] });
-    expect(d.meta.map((m) => m.libelle)).toEqual(["N°", "Date", "Échéance", "Vendeur"]);
+    expect(d.meta.map((m) => m.libelle)).toEqual(["N°", "Date", "Échéance"]);
+    const allume = documentDeVente({
+      ...base,
+      ventes: [V024],
+      reglages: avec({ "infos.vendeur": { visible: true } }),
+    });
+    expect(allume.meta.map((m) => m.libelle)).toEqual(["N°", "Date", "Échéance", "Vendeur"]);
+  });
+
+  it("garde le vendeur sur le relevé de commission, qui n'a de sens qu'avec lui", () => {
+    const vendeur = resoudrePage({}, R.options, "commission").find(
+      (e) => e.cle === "infos.vendeur",
+    );
+    expect(vendeur?.visible).toBe(true);
+    const surFacture = resoudrePage({}, R.options, "facture").find(
+      (e) => e.cle === "infos.vendeur",
+    );
+    expect(surFacture?.visible).toBe(false);
   });
 
   it("suit encore les interrupteurs de la boutique", () => {
@@ -177,7 +194,7 @@ describe("le libellé personnalisé", () => {
     const d = documentDeVente({
       ...base,
       ventes: [V024],
-      reglages: avec({ "infos.vendeur": { libelle: "Votre conseiller" } }),
+      reglages: avec({ "infos.vendeur": { visible: true, libelle: "Votre conseiller" } }),
     });
     expect(d.meta.find((m) => m.valeur === "Lanto")?.libelle).toBe("Votre conseiller");
   });
@@ -215,7 +232,7 @@ describe("l'ordre des éléments", () => {
       ...base,
       ventes: [V024],
       reglages: avec({
-        "infos.vendeur": { ordre: 0 },
+        "infos.vendeur": { visible: true, ordre: 0 },
         "infos.numero": { ordre: 1 },
         "infos.date": { ordre: 2 },
         "infos.echeance": { ordre: 3 },
