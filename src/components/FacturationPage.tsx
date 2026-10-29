@@ -1,4 +1,5 @@
 import React, { useMemo, useState } from "react";
+import type { Personne } from "../lib/personnes";
 import type { LocaleSetting, Payment, Product, Sale, StoreSettings } from "../types";
 import type { Database } from "../lib/database.types";
 import type { ReglagesDocuments } from "../features/documents/lib/reglages";
@@ -50,7 +51,10 @@ export interface FacturationPageProps {
   fournisseurs: Fournisseur[];
   produits: Product[];
   lignesFactureAchat: LigneFactureAchat[];
-  vendeurs: string[];
+  /** Qui peut être le vendeur : le responsable du compte et l'équipe invitée. */
+  vendeurs: Personne[];
+  /** Le responsable du compte choisit le vendeur ; un invité facture à son nom. */
+  peutChoisirVendeur?: boolean;
   settings: StoreSettings;
   locale: LocaleSetting;
   reglagesDocuments: ReglagesDocuments;
@@ -108,6 +112,7 @@ export const FacturationPage: React.FC<FacturationPageProps> = ({
   produits,
   lignesFactureAchat,
   vendeurs,
+  peutChoisirVendeur = true,
   settings,
   locale,
   reglagesDocuments,
@@ -471,6 +476,7 @@ export const FacturationPage: React.FC<FacturationPageProps> = ({
           produits={produits}
           clients={clients}
           vendeurs={vendeurs}
+          peutChoisirVendeur={peutChoisirVendeur}
           moiNom={moiNom}
           aujourdhui={facturation.aujourdhui}
           devise={devise}

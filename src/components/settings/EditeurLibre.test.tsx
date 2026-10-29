@@ -521,7 +521,11 @@ describe("retirer une ligne d'un clic", () => {
     client: CLIENT,
     paiements: [PAIEMENT],
     boutique: BOUTIQUE,
-    reglages: REGLAGES_DOCUMENTS_PAR_DEFAUT,
+    // Le vendeur, masqué par défaut, est allumé : c'est lui qu'on retire.
+    reglages: {
+      ...REGLAGES_DOCUMENTS_PAR_DEFAUT,
+      pages: { facture: { "infos.vendeur": { visible: true } } },
+    },
   });
 
   function toucherLaLigne(texte: string) {

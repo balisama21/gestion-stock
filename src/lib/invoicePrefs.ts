@@ -38,7 +38,8 @@ export const DEFAULT_INVOICE_PREFS: InvoicePrefs = {
   showPhone: true,
   showEmail: false,
   showNif: true,
-  showSeller: true,
+  // Le client n'a pas à savoir qui l'a servi : à allumer au besoin.
+  showSeller: false,
   showTva: true,
   showFooter: true,
 };
@@ -71,7 +72,11 @@ export function writeInvoicePrefs(prefs: InvoicePrefs): void {
   }
 }
 
-export function useInvoicePrefs(): [InvoicePrefs, (patch: Partial<InvoicePrefs>) => void, () => void] {
+export function useInvoicePrefs(): [
+  InvoicePrefs,
+  (patch: Partial<InvoicePrefs>) => void,
+  () => void,
+] {
   const [prefs, setPrefs] = useState<InvoicePrefs>(DEFAULT_INVOICE_PREFS);
 
   useEffect(() => {

@@ -61,6 +61,8 @@ export interface ElementCatalogue {
   verrouille?: "tous" | TypeDocumentV3[];
   /** Ce type de document n'a pas cet élément du tout. */
   absentDe?: TypeDocumentV3[];
+  /** Visible par défaut sur ces types-là, quoi que dise `defaut`. */
+  visibleSur?: TypeDocumentV3[];
 }
 
 export const CATALOGUE: ElementCatalogue[] = [
@@ -143,7 +145,12 @@ export const CATALOGUE: ElementCatalogue[] = [
     zone: "infos",
     nom: "Vendeur",
     libelleParDefaut: "Vendeur",
-    defaut: true,
+    // Le client n'a pas à savoir qui l'a servi : masqué tant que la
+    // boutique ne l'allume pas. Le relevé de commission, lui, n'a de
+    // sens qu'avec le nom de celui qu'il paie.
+    note: "Masqué par défaut. Allumez-le pour imprimer le nom de qui a fait la vente.",
+    defaut: false,
+    visibleSur: ["commission"],
     absentDe: ["devis", "commande", "achat", "facture_achat"],
   },
   {
@@ -448,7 +455,11 @@ export function resoudrePage(
   const resolus = CATALOGUE.filter((e) => !(e.absentDe ?? []).includes(type)).map((e, rang) => {
     const reglage = page[e.cle];
     const verrouille = estVerrouille(e, type);
-    const defaut = typeof e.defaut === "boolean" ? e.defaut : options[e.defaut];
+    const defaut = e.visibleSur?.includes(type)
+      ? true
+      : typeof e.defaut === "boolean"
+        ? e.defaut
+        : options[e.defaut];
     return {
       element: e,
       rang: reglage?.ordre ?? rang,

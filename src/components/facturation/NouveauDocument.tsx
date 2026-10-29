@@ -8,6 +8,8 @@ import { montant as formaterMontant } from "../../features/documents/lib/format"
 import { MODES_DE_PAIEMENT } from "./paiement";
 import { commissionParDefaut } from "../../lib/ventes";
 import { AideLigneLibre, LIBELLE_LIGNE_LIBRE } from "../shared/LigneLibre";
+import { SelecteurPersonne } from "../shared/SelecteurPersonne";
+import type { Personne } from "../../lib/personnes";
 import { SelecteurProduit, versProduitAChoisir } from "../shared/SelecteurProduit";
 
 type Client = Database["public"]["Tables"]["clients"]["Row"];
@@ -164,7 +166,9 @@ export const FormulaireNouveauDocument: React.FC<{
   nature: SaisieNouveauDocument["nature"];
   produits: Product[];
   clients: Client[];
-  vendeurs: string[];
+  vendeurs: Personne[];
+  /** Faux pour un invité : il facture à son nom, sans choisir. */
+  peutChoisirVendeur?: boolean;
   moiNom: string;
   aujourdhui: string;
   devise: string;
@@ -182,6 +186,7 @@ export const FormulaireNouveauDocument: React.FC<{
   produits,
   clients,
   vendeurs,
+  peutChoisirVendeur = true,
   moiNom,
   aujourdhui,
   devise,
@@ -250,7 +255,7 @@ export const FormulaireNouveauDocument: React.FC<{
             date,
             clientId: clientId || null,
             clientNom: clientNom.trim(),
-            vendeur: vendeur.trim(),
+            vendeur: (peutChoisirVendeur ? vendeur : moiNom).trim(),
             lignes: valides,
             montantPaye,
             methode,
@@ -309,24 +314,19 @@ export const FormulaireNouveauDocument: React.FC<{
           </div>
         </div>
 
-        <div>
-          <label htmlFor="nd-vendeur" className="mb-1.5 block text-sm font-medium">
-            Vendeur
-          </label>
-          <input
-            id="nd-vendeur"
-            type="text"
-            list="nd-vendeurs"
-            value={vendeur}
-            onChange={(e) => setVendeur(e.target.value)}
-            className="app-field"
-          />
-          <datalist id="nd-vendeurs">
-            {vendeurs.map((v) => (
-              <option key={v} value={v} />
-            ))}
-          </datalist>
-        </div>
+        <SelecteurPersonne
+          id="nd-vendeur"
+          label="Vendeur"
+          personnes={vendeurs}
+          valeur={peutChoisirVendeur ? vendeur : moiNom}
+          desactive={!peutChoisirVendeur}
+          aide={
+            peutChoisirVendeur
+              ? undefined
+              : "Le document est à votre nom. Seul le responsable du compte choisit un autre vendeur."
+          }
+          onChange={(choix) => setVendeur(choix.nom)}
+        />
 
         <div>
           <div className="mb-2 flex items-center justify-between">

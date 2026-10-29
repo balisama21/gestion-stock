@@ -139,7 +139,16 @@ function afficher(p: Partial<React.ComponentProps<typeof FacturationPage>> = {})
       fournisseurs={[]}
       produits={[PRODUIT]}
       lignesFactureAchat={[]}
-      vendeurs={["Hanta"]}
+      vendeurs={[
+        {
+          cle: "membre:u1",
+          nom: "Hanta",
+          nature: "membre",
+          membreId: "u1",
+          personneId: null,
+          mention: null,
+        },
+      ]}
       settings={BOUTIQUE}
       locale="FR"
       reglagesDocuments={REGLAGES_DOCUMENTS_PAR_DEFAUT}
