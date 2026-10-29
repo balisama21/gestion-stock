@@ -18,6 +18,7 @@ import {
   Download,
   Wallet,
   Save,
+  UserPlus,
 } from "lucide-react";
 import { formatCurrency, formatDateLocale, getSaleLabel, quantiteEnMots } from "../utils/formulas";
 import { PageHeader } from "./shared/PageHeader";
@@ -28,6 +29,7 @@ import { exporterPdf, exporterImage, imprimerDocument, nomDeFichier } from "../l
 import { reprendreApresDeploiement, messageDErreurExport } from "../lib/chunkRecovery";
 import { PAPER_FORMATS, getPaperFormat, type PaperFormatId } from "../lib/paperFormats";
 import { dateDuJour } from "../lib/dates";
+import { collaborateurs, estResponsable, libelleNature, natureDe } from "../lib/vendeurs";
 import { symboleDeSaisie } from "../lib/affichageDevise";
 import { AvatarModifiable } from "./shared/ChoixAvatar";
 import { useConfirmation } from "../hooks/useConfirmation";
@@ -45,6 +47,8 @@ interface VendeursViewProps {
   onDeleteSale?: (saleId: string) => void;
   onEditExpense?: (updatedExpense: Expense) => void;
   onDeleteExpense?: (expenseId: string) => void;
+  /** Ouvrir la liste des ventes : l'action utile quand on vend seul. */
+  onVoirVentes?: () => void;
   /**
    * L'argent déjà rendu à la caisse, et de quoi en enregistrer.
    *
@@ -76,6 +80,7 @@ export const VendeursView: React.FC<VendeursViewProps> = ({
   onDeleteSale,
   onEditExpense,
   onDeleteExpense,
+  onVoirVentes,
 }) => {
   const { confirmer, modaleConfirmation } = useConfirmation();
   const marque = useMarque();
@@ -182,9 +187,17 @@ export const VendeursView: React.FC<VendeursViewProps> = ({
     }
   };
 
-  const grandTotalSales = sellers.reduce((acc, v) => acc + v.totalVentesMontant, 0);
-  const grandTotalExpenses = sellers.reduce((acc, v) => acc + v.totalDepenses, 0);
-  const grandTotalPocket = sellers.reduce((acc, v) => acc + v.soldeNetEnPoche, 0);
+  /*
+   * L'équipe, sans le responsable. Ce qu'il encaisse est déjà dans sa
+   * caisse : l'ajouter au « solde en poche » gonflait un chiffre censé
+   * dire combien l'équipe détient et n'a pas encore rendu.
+   */
+  const equipe = useMemo(() => collaborateurs(sellers), [sellers]);
+  const responsable = sellers.find(estResponsable) ?? null;
+  const seul = equipe.length === 0;
+  const totalVentesEquipe = equipe.reduce((acc, v) => acc + v.totalVentesMontant, 0);
+  const totalDepensesEquipe = equipe.reduce((acc, v) => acc + v.totalDepenses, 0);
+  const totalPocheEquipe = equipe.reduce((acc, v) => acc + v.soldeNetEnPoche, 0);
 
   // Today & Month strings
   const todayStr = useMemo(() => dateDuJour(), []);
@@ -281,9 +294,9 @@ export const VendeursView: React.FC<VendeursViewProps> = ({
     return activeSellerSales.reduce((acc, s) => acc + s.margeTotale, 0);
   }, [activeSellerSales]);
 
-  const totalSalesCount = useMemo(
-    () => sellers.reduce((acc, v) => acc + v.totalVentesNombre, 0),
-    [sellers],
+  const nombreVentesEquipe = useMemo(
+    () => equipe.reduce((acc, v) => acc + v.totalVentesNombre, 0),
+    [equipe],
   );
 
   // Recherche à l'intérieur de la fiche vendeur. Elle porte sur le
@@ -343,158 +356,233 @@ export const VendeursView: React.FC<VendeursViewProps> = ({
         icon={<Users className="h-5 w-5 text-muted-foreground" />}
         module="vendeurs"
         title="Vendeurs"
-        subtitle="Ce que chaque vendeur a vendu, ce qu'il a dépensé, et ce qui lui reste en poche."
+        subtitle={
+          seul
+            ? "Suivez ici l'activité de vos vendeurs dès qu'ils rejoignent la boutique."
+            : "Ce que chaque vendeur a vendu, ce qu'il a dépensé, et ce qui lui reste en poche."
+        }
         actions={
-          <>
-            <button
-              onClick={() => {
-                setSelectedReportSeller("all");
-                setIsReportModalOpen(true);
-              }}
-              className="app-btn-secondary"
-              title="Imprimer ou télécharger le bilan d'activité vendeur"
-            >
-              <Printer className="h-4 w-4" />
-              Relevé &amp; bilan
-            </button>
+          seul ? undefined : (
+            <>
+              <button
+                onClick={() => {
+                  setSelectedReportSeller("all");
+                  setIsReportModalOpen(true);
+                }}
+                className="app-btn-secondary"
+                title="Imprimer ou télécharger le bilan d'activité vendeur"
+              >
+                <Printer className="h-4 w-4" />
+                Relevé &amp; bilan
+              </button>
 
-            <button onClick={() => setIsAddModalOpen(true)} className="app-btn-primary">
-              <Plus className="h-4 w-4" />
-              Ajouter un vendeur
-            </button>
-          </>
+              <button onClick={() => setIsAddModalOpen(true)} className="app-btn-primary">
+                <UserPlus className="h-4 w-4" />
+                Inviter un vendeur
+              </button>
+            </>
+          )
         }
       />
 
-      {/* ── Ce que « en poche » veut dire, quand on est encore seul ──
-          Le solde répond à « combien cette personne détient-elle et
-          n'a pas rendu ». Seul dans sa boutique, on est à la fois celui
-          qui encaisse et celui qui garde la caisse : le chiffre est
-          juste mais ne désigne rien d'autre que le cumul de ses propres
-          ventes. Le dire ici évite de le lire comme un solde
-          disponible — c'est la trésorerie qui porte celui-là. */}
-      {sellers.length <= 1 && (
-        <p className="app-card px-4 py-3 text-sm leading-relaxed text-muted-foreground">
-          Tant que vous vendez seul, ce solde n&apos;est que le cumul de vos propres encaissements :
-          votre poche et votre caisse sont le même argent. Il prend tout son sens dès qu&apos;un
-          collaborateur encaisse à votre place — il dira alors combien il détient et ne vous a pas
-          encore remis. L&apos;argent réellement disponible, lui, se lit dans la trésorerie.
-        </p>
-      )}
-
-      {/* Le solde net cumulé est le chiffre qui décide s'il faut aller
-          récupérer de l'argent : il est posé seul, avant tout le reste. */}
-      <div className="app-grand-chiffre app-feuille">
-        <div className="min-w-0">
-          <div className="mb-0.5 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
-            Solde net en poche — tous vendeurs
+      {seul ? (
+        /* ── Seul dans sa boutique ──
+           Pas de vendeur à suivre : le responsable encaisse lui-même,
+           son argent est déjà dans la caisse. Aucun solde, aucun
+           classement — ils ne diraient rien de vrai. On dit ce que la
+           page fera, et comment y arriver. */
+        <section className="app-card px-5 py-8 text-center sm:px-8 sm:py-10">
+          <span className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-muted text-muted-foreground">
+            <UserPlus className="h-6 w-6" aria-hidden="true" />
+          </span>
+          <h2 className="text-base font-semibold text-foreground">
+            Vous vendez seul pour l&apos;instant
+          </h2>
+          <p className="mx-auto mt-2 max-w-md text-sm leading-relaxed text-muted-foreground">
+            Vos ventes sont à votre nom et l&apos;argent encaissé va directement dans votre
+            trésorerie : il n&apos;y a pas de solde « en poche » à suivre.
+          </p>
+          <p className="mx-auto mt-2 max-w-md text-sm leading-relaxed text-muted-foreground">
+            Invitez un vendeur : vous verrez ici ce qu&apos;il vend, ce qu&apos;il dépense et
+            l&apos;argent qu&apos;il doit vous remettre.
+          </p>
+          <div className="mt-5 flex flex-col items-stretch justify-center gap-2 sm:flex-row sm:items-center">
+            <button onClick={() => setIsAddModalOpen(true)} className="app-btn-primary">
+              <UserPlus className="h-4 w-4" />
+              Inviter un vendeur
+            </button>
+            {onVoirVentes && (
+              <button onClick={onVoirVentes} className="app-btn-secondary">
+                <DollarSign className="h-4 w-4" />
+                {responsable && responsable.totalVentesNombre > 0
+                  ? `Voir mes ventes (${responsable.totalVentesNombre})`
+                  : "Voir mes ventes"}
+              </button>
+            )}
           </div>
-          <div className="font-mono text-xl font-semibold tabular-nums text-foreground">
-            {formatCurrency(grandTotalPocket)}
-          </div>
-        </div>
-        <div className="shrink-0 text-right text-xs text-muted-foreground">
-          {sellers.length} vendeur{sellers.length > 1 ? "s" : ""}
-        </div>
-      </div>
-
-      {/* Les deux composantes de ce solde, en second rang. */}
-      <div className="app-statbar grid-cols-1 sm:grid-cols-2">
-        <StatCol
-          label="Ventes réalisées"
-          value={formatCurrency(grandTotalSales)}
-          hint={`${totalSalesCount} vente${totalSalesCount > 1 ? "s" : ""}`}
-          icon={<DollarSign className="h-3.5 w-3.5" />}
-        />
-        <StatCol
-          label="Dépenses & retraits"
-          value={formatCurrency(grandTotalExpenses)}
-          hint="Sorties de caisse vendeur"
-          icon={<ArrowRightLeft className="h-3.5 w-3.5" />}
-        />
-      </div>
-
-      {/* Une ligne par vendeur : le nom à gauche, son activité résumée
-          en dessous, le solde en poche à droite. Le clic ouvre la fiche
-          détaillée plutôt que d'étaler l'information en colonnes. */}
-      <div className="app-card overflow-hidden">
-        {sellers.length === 0 ? (
-          <div className="px-4 py-12 text-center">
-            <Users className="mx-auto mb-3 h-10 w-10 text-muted-foreground opacity-30" />
-            <p className="text-sm text-muted-foreground">
-              Aucun vendeur pour l'instant. Invitez votre premier vendeur pour suivre son activité.
-            </p>
-          </div>
-        ) : (
-          <div className="app-list">
-            {sellers.map((v) => (
-              <div key={v.id} className="app-list-row gap-3">
-                <AvatarModifiable nom={v.nom} taille={36} />
-
-                <button
-                  type="button"
-                  onClick={() => setActiveSellerModal(v)}
-                  className="flex min-w-0 flex-1 items-center justify-between gap-3 text-left"
-                >
-                  <span className="min-w-0 flex-1">
-                    <span className="app-list-primary block">{v.nom}</span>
-                    <span className="app-list-secondary block">
-                      {[
-                        `${v.totalVentesNombre} vente${v.totalVentesNombre > 1 ? "s" : ""}`,
-                        `${formatCurrency(v.totalVentesMontant)} vendus`,
-                        v.totalDepenses > 0
-                          ? `${formatCurrency(v.totalDepenses)} de dépenses`
-                          : null,
-                        v.totalAvancesSurCaisse > 0
-                          ? `${formatCurrency(v.totalAvancesSurCaisse)} d'avance gardée`
-                          : null,
-                      ]
-                        .filter(Boolean)
-                        .join(" · ")}
-                    </span>
-                  </span>
-
-                  <span className="flex shrink-0 items-center gap-2 sm:gap-3">
-                    <span className="text-right">
-                      <span className="block font-mono text-base font-medium tabular-nums text-foreground">
-                        {formatCurrency(v.soldeNetEnPoche)}
-                      </span>
-                      <span className="app-list-secondary block">en poche</span>
-                    </span>
-                    {v.statut === "Inactif" && (
-                      <span className="app-badge app-badge-neutral">Inactif</span>
-                    )}
-                    <ChevronRight className="hidden h-4 w-4 shrink-0 text-muted-foreground/50 sm:block" />
-                  </span>
-                </button>
-
-                <button
-                  type="button"
-                  onClick={async () => {
-                    if (
-                      // Ce geste retire un MEMBRE de l'équipe : il perd l'accès
-                      // à la boutique. Rien de ce qu'il a enregistré ne
-                      // disparaît — la question doit le dire.
-                      await confirmer(
-                        `Retirer « ${v.nom} » de l'équipe ?
-Il ne pourra plus ouvrir la boutique. Ses ventes, dépenses et remises restent enregistrées.`,
-                        { titre: "Retirer de l'équipe", danger: true, libelle: "Retirer" },
-                      )
-                    ) {
-                      onDeleteSeller(v.id);
-                    }
-                  }}
-                  className="app-btn-icon h-9 w-9 shrink-0"
-                  title="Retirer de l'équipe"
-                  aria-label={`Retirer ${v.nom} de l'équipe`}
-                >
-                  <Trash2 className="h-4 w-4" />
-                </button>
+        </section>
+      ) : (
+        <>
+          {/* Ce que l'équipe détient et n'a pas rendu : le chiffre qui
+              décide s'il faut aller récupérer de l'argent. Posé seul,
+              avant tout le reste. */}
+          <div className="app-grand-chiffre app-feuille">
+            <div className="min-w-0">
+              <div className="mb-0.5 text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
+                Argent détenu par l&apos;équipe
               </div>
-            ))}
+              <div className="font-mono text-xl font-semibold tabular-nums text-foreground">
+                {formatCurrency(totalPocheEquipe)}
+              </div>
+            </div>
+            <div className="shrink-0 text-right text-xs text-muted-foreground">
+              {equipe.length} collaborateur{equipe.length > 1 ? "s" : ""}
+            </div>
           </div>
-        )}
-      </div>
+
+          {/* Les deux composantes de ce solde, en second rang. */}
+          <div className="app-statbar grid-cols-1 sm:grid-cols-2">
+            <StatCol
+              label="Ventes de l'équipe"
+              value={formatCurrency(totalVentesEquipe)}
+              hint={`${nombreVentesEquipe} vente${nombreVentesEquipe > 1 ? "s" : ""}`}
+              icon={<DollarSign className="h-3.5 w-3.5" />}
+            />
+            <StatCol
+              label="Dépenses & retraits"
+              value={formatCurrency(totalDepensesEquipe)}
+              hint="Payés par l'équipe sur sa caisse"
+              icon={<ArrowRightLeft className="h-3.5 w-3.5" />}
+            />
+          </div>
+
+          {/* Une ligne par collaborateur : le nom et son rôle, son
+              activité résumée, ce qu'il détient à droite. Le clic ouvre
+              sa fiche. Le responsable vient à part, en dernier : il vend
+              aussi, mais n'a rien à rendre. */}
+          <div className="app-card overflow-hidden">
+            <div className="app-list">
+              {equipe.map((v) => (
+                <div key={v.id} className="app-list-row gap-3">
+                  <AvatarModifiable nom={v.nom} taille={36} />
+
+                  <button
+                    type="button"
+                    onClick={() => setActiveSellerModal(v)}
+                    className="flex min-w-0 flex-1 items-center justify-between gap-3 text-left"
+                  >
+                    <span className="min-w-0 flex-1">
+                      <span className="flex min-w-0 items-center gap-2">
+                        <span className="app-list-primary truncate">{v.nom}</span>
+                        <span
+                          className={`app-badge shrink-0 px-2 py-0.5 text-[10.5px] ${
+                            natureDe(v) === "sans_compte" ? "app-badge-neutral" : "app-badge-info"
+                          }`}
+                        >
+                          {libelleNature(v)}
+                        </span>
+                      </span>
+                      <span className="app-list-secondary block">
+                        {[
+                          `${v.totalVentesNombre} vente${v.totalVentesNombre > 1 ? "s" : ""}`,
+                          `${formatCurrency(v.totalVentesMontant)} vendus`,
+                          v.totalDepenses > 0
+                            ? `${formatCurrency(v.totalDepenses)} de dépenses`
+                            : null,
+                          v.totalAvancesSurCaisse > 0
+                            ? `${formatCurrency(v.totalAvancesSurCaisse)} d'avance gardée`
+                            : null,
+                        ]
+                          .filter(Boolean)
+                          .join(" · ")}
+                      </span>
+                    </span>
+
+                    <span className="flex shrink-0 items-center gap-2 sm:gap-3">
+                      <span className="text-right">
+                        <span className="block font-mono text-base font-medium tabular-nums text-foreground">
+                          {formatCurrency(v.soldeNetEnPoche)}
+                        </span>
+                        <span className="app-list-secondary block">
+                          {v.soldeNetEnPoche < 0 ? "à lui rendre" : "en poche"}
+                        </span>
+                      </span>
+                      {v.statut === "Inactif" && (
+                        <span className="app-badge app-badge-neutral">Inactif</span>
+                      )}
+                      <ChevronRight className="hidden h-4 w-4 shrink-0 text-muted-foreground/50 sm:block" />
+                    </span>
+                  </button>
+
+                  {/* Seul un membre se retire de l'équipe : un nom sans
+                      compte n'a pas d'accès à retirer. */}
+                  {natureDe(v) === "membre" ? (
+                    <button
+                      type="button"
+                      onClick={async () => {
+                        if (
+                          // Ce geste retire un MEMBRE de l'équipe : il perd l'accès
+                          // à la boutique. Rien de ce qu'il a enregistré ne
+                          // disparaît — la question doit le dire.
+                          await confirmer(
+                            `Retirer « ${v.nom} » de l'équipe ?
+Il ne pourra plus ouvrir la boutique. Ses ventes, dépenses et remises restent enregistrées.`,
+                            { titre: "Retirer de l'équipe", danger: true, libelle: "Retirer" },
+                          )
+                        ) {
+                          onDeleteSeller(v.id);
+                        }
+                      }}
+                      className="app-btn-icon h-9 w-9 shrink-0"
+                      title="Retirer de l'équipe"
+                      aria-label={`Retirer ${v.nom} de l'équipe`}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </button>
+                  ) : (
+                    <span className="h-9 w-9 shrink-0" aria-hidden="true" />
+                  )}
+                </div>
+              ))}
+
+              {responsable && (
+                <div className="app-list-row gap-3 bg-muted/30">
+                  <AvatarModifiable nom={responsable.nom} taille={36} />
+                  <button
+                    type="button"
+                    onClick={() => setActiveSellerModal(responsable)}
+                    className="flex min-w-0 flex-1 items-center justify-between gap-3 text-left"
+                  >
+                    <span className="min-w-0 flex-1">
+                      <span className="flex min-w-0 items-center gap-2">
+                        <span className="app-list-primary truncate">{responsable.nom}</span>
+                        <span className="app-badge app-badge-neutral shrink-0 px-2 py-0.5 text-[10.5px]">
+                          Responsable
+                        </span>
+                      </span>
+                      <span className="app-list-secondary block">
+                        {`${responsable.totalVentesNombre} vente${
+                          responsable.totalVentesNombre > 1 ? "s" : ""
+                        } · encaissé directement en caisse`}
+                      </span>
+                    </span>
+                    <span className="flex shrink-0 items-center gap-2 sm:gap-3">
+                      <span className="text-right">
+                        <span className="block font-mono text-base font-medium tabular-nums text-foreground">
+                          {formatCurrency(responsable.totalVentesMontant)}
+                        </span>
+                        <span className="app-list-secondary block">vendus</span>
+                      </span>
+                      <ChevronRight className="hidden h-4 w-4 shrink-0 text-muted-foreground/50 sm:block" />
+                    </span>
+                  </button>
+                  <span className="h-9 w-9 shrink-0" aria-hidden="true" />
+                </div>
+              )}
+            </div>
+          </div>
+        </>
+      )}
 
       {/* ── Invitation d'un vendeur ── */}
       <Modal
@@ -590,13 +678,17 @@ Il ne pourra plus ouvrir la boutique. Ses ventes, dépenses et remises restent e
           size="3xl"
           icon={<Users className="h-4 w-4" />}
           title={activeSellerModal.nom}
-          description="Journal des ventes et des dépenses de ce vendeur."
+          description={
+            estResponsable(activeSellerModal)
+              ? "Vos ventes et dépenses. Encaissées directement en caisse : rien à rendre."
+              : "Journal des ventes et des dépenses de ce vendeur."
+          }
           bodyClassName="space-y-5"
           headerAside={
             <div className="flex items-center gap-2">
               {/* Proposé seulement à qui peut encaisser : inutile de
                   montrer un geste que la base refusera. */}
-              {onAddRemise && (
+              {onAddRemise && !estResponsable(activeSellerModal) && (
                 <button
                   onClick={() => ouvrirRemise(activeSellerModal)}
                   className="app-btn-secondary h-9 px-3 text-xs"
@@ -628,7 +720,11 @@ Il ne pourra plus ouvrir la boutique. Ses ventes, dépenses et remises restent e
               prend la place des autres. */}
           <div
             className={`app-statbar grid-cols-2 ${
-              activeSellerModal.totalAvancesSurCaisse > 0 ? "sm:grid-cols-6" : "sm:grid-cols-5"
+              estResponsable(activeSellerModal)
+                ? "sm:grid-cols-3"
+                : activeSellerModal.totalAvancesSurCaisse > 0
+                  ? "sm:grid-cols-6"
+                  : "sm:grid-cols-5"
             }`}
           >
             <StatCol
@@ -646,27 +742,35 @@ Il ne pourra plus ouvrir la boutique. Ses ventes, dépenses et remises restent e
               value={formatCurrency(activeSellerModal.totalDepenses)}
               hint={`${activeSellerExpenses.length} retrait${activeSellerExpenses.length > 1 ? "s" : ""}`}
             />
-            <StatCol
-              label="Rendu à la caisse"
-              value={formatCurrency(activeSellerModal.totalRemis)}
-              hint={`${remises.filter((r) => r.vendeur === activeSellerModal.nom).length} remise${
-                remises.filter((r) => r.vendeur === activeSellerModal.nom).length > 1 ? "s" : ""
-              }`}
-            />
-            {activeSellerModal.totalAvancesSurCaisse > 0 && (
-              <StatCol
-                label="Avance gardée"
-                value={formatCurrency(activeSellerModal.totalAvancesSurCaisse)}
-                hint="Sur salaire, prise ici"
-              />
+            {/* Le responsable encaisse dans sa propre caisse : ni
+                remise, ni avance, ni solde à rendre ne le concernent. */}
+            {!estResponsable(activeSellerModal) && (
+              <>
+                <StatCol
+                  label="Rendu à la caisse"
+                  value={formatCurrency(activeSellerModal.totalRemis)}
+                  hint={`${remises.filter((r) => r.vendeur === activeSellerModal.nom).length} remise${
+                    remises.filter((r) => r.vendeur === activeSellerModal.nom).length > 1 ? "s" : ""
+                  }`}
+                />
+                {activeSellerModal.totalAvancesSurCaisse > 0 && (
+                  <StatCol
+                    label="Avance gardée"
+                    value={formatCurrency(activeSellerModal.totalAvancesSurCaisse)}
+                    hint="Sur salaire, prise ici"
+                  />
+                )}
+                <StatCol
+                  label="Solde en poche"
+                  value={formatCurrency(activeSellerModal.soldeNetEnPoche)}
+                  hint={
+                    activeSellerModal.soldeNetEnPoche < 0
+                      ? "la boutique lui doit"
+                      : "reste à rendre"
+                  }
+                />
+              </>
             )}
-            <StatCol
-              label="Solde en poche"
-              value={formatCurrency(activeSellerModal.soldeNetEnPoche)}
-              hint={
-                activeSellerModal.soldeNetEnPoche < 0 ? "la boutique lui doit" : "reste à rendre"
-              }
-            />
           </div>
 
           {/* Filtres */}

@@ -271,6 +271,19 @@ describe("le vendeur de la vente", () => {
   });
 });
 
+describe("seul dans sa boutique", () => {
+  it("ni filtre « Vendeur », ni son propre nom répété sur chaque vente", () => {
+    afficher({ sellers: [{ ...VENDEUR, nature: "responsable" }] });
+    expect(screen.queryByRole("option", { name: "Tous les vendeurs" })).toBeNull();
+    expect(screen.queryByText(/Hanta/)).toBeNull();
+  });
+
+  it("avec une équipe, le filtre revient", () => {
+    afficher();
+    expect(screen.getByRole("option", { name: "Tous les vendeurs" })).toBeTruthy();
+  });
+});
+
 describe("le devis repris à la caisse", () => {
   it("revient avec la vente qui en est née", async () => {
     const { onVenteEnregistree } = afficher({

@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from "react";
 import { resteDuCommande } from "../lib/commandes";
+import { collaborateurs } from "../lib/vendeurs";
 import { estSousLeSeuil, stockEstSuivi } from "../lib/prealerteStock";
 import { Product, Sale, Expense, Seller, Purchase, CapitalSummary, LocaleSetting } from "../types";
 import {
@@ -557,8 +558,9 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
           {/* ── Solde net vendeurs ──
               Ce bloc répond à une seule question : « combien d'argent
               encaissé une personne détient-elle encore, et n'a pas
-              rendu à la caisse ? » Il n'a donc de sens qu'à partir de
-              DEUX vendeurs.
+              rendu à la caisse ? » Il ne concerne donc que l'équipe :
+              le responsable n'y figure pas, et le bloc n'apparaît
+              qu'avec un premier collaborateur.
 
               Seul dans sa boutique, le commerçant est à la fois celui
               qui encaisse et celui qui garde la caisse : sa poche et sa
@@ -570,7 +572,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
               Le calcul n'est pas modifié, et l'écran Vendeurs reste
               accessible : c'est l'affichage qui se tait tant que la
               question ne se pose pas. */}
-          {sellers.length > 1 && (
+          {collaborateurs(sellers).length > 0 && (
             <div className="app-card overflow-hidden">
               <div className="flex items-center justify-between border-b border-border px-4 py-3">
                 <h3 className="app-section-title">
@@ -584,7 +586,7 @@ export const DashboardView: React.FC<DashboardViewProps> = ({
                 </button>
               </div>
               <div className="app-list">
-                {sellers.map((v) => (
+                {collaborateurs(sellers).map((v) => (
                   <div key={v.id} className="app-list-row justify-between">
                     <div className="min-w-0">
                       <div className="app-list-primary">{v.nom}</div>

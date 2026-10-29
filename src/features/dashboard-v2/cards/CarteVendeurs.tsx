@@ -4,11 +4,16 @@ import { Lead, Lien, TeteCarte, Vide } from "../components/Tn";
 import { montant, montantMasque } from "../lib/format";
 import type { Seller } from "../../../types";
 import { illTrophee } from "../assets/images";
+import { collaborateurs } from "../../../lib/vendeurs";
 
 /**
  * CLASSEMENT VENDEURS — le solde net que chacun a en poche.
  *
  * La barre donne la part de chacun dans le total des soldes positifs.
+ *
+ * Le responsable n'y figure pas : ce qu'il encaisse est déjà dans sa
+ * caisse. Sans équipe, la carte ne classe personne — elle invite à en
+ * former une.
  */
 
 export const CarteVendeurs: React.FC<{
@@ -16,7 +21,8 @@ export const CarteVendeurs: React.FC<{
   montantsVisibles: boolean;
   onGerer?: () => void;
 }> = ({ vendeurs, montantsVisibles, onGerer }) => {
-  const classement = [...vendeurs]
+  const equipe = collaborateurs(vendeurs);
+  const classement = [...equipe]
     .filter((v) => v.totalVentesMontant > 0 || v.soldeNetEnPoche !== 0)
     .sort((a, b) => b.soldeNetEnPoche - a.soldeNetEnPoche)
     .slice(0, 5);
@@ -28,10 +34,24 @@ export const CarteVendeurs: React.FC<{
       <TeteCarte
         lead={<Lead nom="trophy" />}
         titre="Classement vendeurs"
-        action={<Lien onClick={onGerer}>Gérer</Lien>}
+        action={<Lien onClick={onGerer}>{equipe.length === 0 ? "Inviter" : "Gérer"}</Lien>}
       />
 
-      {classement.length === 0 ? (
+      {equipe.length === 0 ? (
+        <Vide
+          image={illTrophee}
+          largeur={184}
+          titre="Pas encore d'équipe"
+          detail="Vous vendez seul : votre argent est déjà en caisse. Invitez un vendeur pour suivre ici ce qu'il encaisse et ce qu'il doit vous remettre."
+          action={
+            onGerer && (
+              <button type="button" className="link" onClick={onGerer}>
+                Inviter un vendeur
+              </button>
+            )
+          }
+        />
+      ) : classement.length === 0 ? (
         <Vide
           image={illTrophee}
           largeur={184}
