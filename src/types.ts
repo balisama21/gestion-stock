@@ -158,9 +158,25 @@ export interface CapitalApport {
   auteurId?: string | null;
 }
 
+/**
+ * Qui est un « vendeur » pour la boutique.
+ *
+ *  - `responsable` : celui qui tient le compte. Il vend aussi, mais ce
+ *    qu'il encaisse est déjà dans sa caisse : il n'a pas de « poche » à
+ *    rendre, et ne doit pas être présenté comme un vendeur de l'équipe.
+ *  - `membre` : un collaborateur invité, avec son compte et son rôle.
+ *  - `sans_compte` : un nom écrit sur des ventes ou des dépenses, sans
+ *    compte derrière — un ancien membre, ou un nom saisi à la main.
+ */
+export type NatureVendeur = "responsable" | "membre" | "sans_compte";
+
 export interface Seller {
   id: string;
   nom: string;
+  /** Absente : traité comme un membre, comme avant que la nature existe. */
+  nature?: NatureVendeur;
+  /** Le rôle d'un membre invité : « vendeur », « manager »… */
+  role?: string | null;
   statut: "Actif" | "Inactif";
   totalVentesMontant: number;
   totalVentesNombre: number;

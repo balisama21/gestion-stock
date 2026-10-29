@@ -1,5 +1,6 @@
 import React from "react";
 import { Sale, Product, Seller, Expense, LocaleSetting } from "../types";
+import { aUneEquipe, estResponsable, libelleNature } from "../lib/vendeurs";
 import { Store, Users, Package } from "lucide-react";
 import { formatCurrency, getProductLabel } from "../utils/formulas";
 import { PageHeader } from "./shared/PageHeader";
@@ -70,14 +71,29 @@ export const StatistiquesView: React.FC<StatistiquesViewProps> = ({
     .filter((p) => p.qtySold > 0)
     .sort((a, b) => b.caSold - a.caSold);
 
-  const rankedSellers = [...sellers].sort((a, b) => b.totalVentesMontant - a.totalVentesMontant);
+  /*
+   * Un classement suppose des concurrents. Seul dans sa boutique, le
+   * responsable serait « premier sur un », à 100 % du chiffre : la
+   * section se tait et dit quand elle parlera. Avec une équipe, il
+   * figure dans le classement — il vend aussi — marqué comme tel.
+   */
+  const equipe = aUneEquipe(sellers);
+  const rankedSellers = equipe
+    ? [...sellers]
+        .filter((v) => v.totalVentesNombre > 0 || !estResponsable(v))
+        .sort((a, b) => b.totalVentesMontant - a.totalVentesMontant)
+    : [];
 
   return (
     <div className="space-y-6">
       <PageHeader
         icon={<Store className="h-5 w-5 text-muted-foreground" />}
         title="Statistiques"
-        subtitle="Vos meilleurs vendeurs, vos produits les plus rentables."
+        subtitle={
+          equipe
+            ? "Vos meilleurs vendeurs, vos produits les plus rentables."
+            : "Vos produits les plus vendus et les plus rentables."
+        }
       />
 
       <div className="app-statbar grid-cols-1 sm:grid-cols-3">
@@ -107,9 +123,18 @@ export const StatistiquesView: React.FC<StatistiquesViewProps> = ({
             </h3>
           </div>
 
-          {rankedSellers.length === 0 ? (
+          {!equipe ? (
+            <div className="px-4 py-10 text-center">
+              <Users className="mx-auto mb-3 h-8 w-8 text-muted-foreground opacity-40" />
+              <p className="text-sm font-medium text-foreground">Pas encore d&apos;équipe</p>
+              <p className="mx-auto mt-1 max-w-xs text-xs leading-relaxed text-muted-foreground">
+                Vous vendez seul. Le classement comparera vos vendeurs dès qu&apos;un premier
+                collaborateur rejoindra la boutique.
+              </p>
+            </div>
+          ) : rankedSellers.length === 0 ? (
             <p className="px-4 py-10 text-center text-sm text-muted-foreground">
-              Aucun vendeur enregistré.
+              Aucune vente de l&apos;équipe pour l&apos;instant.
             </p>
           ) : (
             <div className="app-list">
@@ -122,7 +147,10 @@ export const StatistiquesView: React.FC<StatistiquesViewProps> = ({
                         <span className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full bg-muted font-mono text-[10px] text-muted-foreground">
                           {idx + 1}
                         </span>
-                        <span className="app-list-primary">{v.nom}</span>
+                        <span className="app-list-primary truncate">{v.nom}</span>
+                        <span className="app-badge app-badge-neutral shrink-0 px-2 py-0.5 text-[10px]">
+                          {libelleNature(v)}
+                        </span>
                       </span>
                       <span className="app-list-amount">
                         {formatCurrency(v.totalVentesMontant)}

@@ -1,5 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef } from "react";
 import { Sale, Product, Seller, LocaleSetting, StoreSettings } from "../types";
+import { aUneEquipe } from "../lib/vendeurs";
 import type { Database } from "../lib/database.types";
 import { BoutonScan } from "./shared/BoutonScan";
 import { useMarque } from "../hooks/useMarque";
@@ -538,6 +539,8 @@ export const VentesView: React.FC<VentesViewProps> = ({
 
   // Keep montantPaye updated to Total Vente by default unless partial credit
   const currentProduct = products.find((p) => p.id === selectedProductId);
+  /** Une équipe vend avec le responsable : le nom du vendeur dit alors quelque chose. */
+  const avecEquipe = aUneEquipe(sellers);
   const produitsAChoisir = useMemo(
     () => products.map((p) => versProduitAChoisir(p, products)),
     [products],
@@ -752,7 +755,8 @@ export const VentesView: React.FC<VentesViewProps> = ({
         // format de catalogue plutot que comme une quantite.
         quantiteEnMots(s.quantite, prod?.unite),
         formatDateLocale(s.date, locale),
-        s.vendeur,
+        // Seul, le responsable lirait son propre nom sur chaque ligne.
+        avecEquipe ? s.vendeur : null,
         showMontant ? `${formatCurrency(s.prixVenteUnit)} / u` : null,
         showMargeLigne ? `marge +${formatCurrency(s.margeTotale)}` : null,
         s.clientCredit || null,
@@ -908,7 +912,7 @@ export const VentesView: React.FC<VentesViewProps> = ({
       primary: <span className="block truncate">{noms}</span>,
       meta: [
         formatDateLocale(premiere.date, locale),
-        premiere.vendeur,
+        avecEquipe ? premiere.vendeur : null,
         `${lignes.length} produits · ${articles} articles`,
         showMargeLigne ? `marge +${formatCurrency(marge)}` : null,
         premiere.clientCredit || null,
@@ -1154,20 +1158,23 @@ export const VentesView: React.FC<VentesViewProps> = ({
           setSearchQuery("");
         }}
       >
-        <FilterField label="Vendeur">
-          <select
-            value={selectedSellerFilter}
-            onChange={(e) => setSelectedSellerFilter(e.target.value)}
-            className="app-field-sm lg:w-auto"
-          >
-            <option value="Tous">Tous les vendeurs</option>
-            {sellers.map((s) => (
-              <option key={s.id} value={s.nom}>
-                {s.nom}
-              </option>
-            ))}
-          </select>
-        </FilterField>
+        {/* Filtrer par vendeur n'a de sens qu'avec une équipe. */}
+        {avecEquipe && (
+          <FilterField label="Vendeur">
+            <select
+              value={selectedSellerFilter}
+              onChange={(e) => setSelectedSellerFilter(e.target.value)}
+              className="app-field-sm lg:w-auto"
+            >
+              <option value="Tous">Tous les vendeurs</option>
+              {sellers.map((s) => (
+                <option key={s.id} value={s.nom}>
+                  {s.nom}
+                </option>
+              ))}
+            </select>
+          </FilterField>
+        )}
 
         <FilterField label="Paiement">
           <select

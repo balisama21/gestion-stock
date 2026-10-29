@@ -1,5 +1,6 @@
 import React, { useState, useMemo, useRef } from "react";
 import { Expense, Seller, LocaleSetting, StoreSettings } from "../types";
+import { aUneEquipe, estResponsable } from "../lib/vendeurs";
 import { useMarque } from "../hooks/useMarque";
 import {
   ArrowRightLeft,
@@ -145,11 +146,17 @@ export const DepensesView: React.FC<DepensesViewProps> = ({
    * Ce que chacune détient encore en caisse : une avance se prend sur ce
    * qu'on détient, et « 0 Ar en poche » évite un retrait impossible.
    */
+  /** Une équipe dépense avec le responsable : le nom de qui a payé dit alors quelque chose. */
+  const avecEquipe = aUneEquipe(sellers);
+
   const personnesAvecSolde = useMemo(
     () =>
       personnes.map((p) => {
         const s = sellers.find((v) => cleDeListe(v.nom) === cleDeListe(p.nom));
-        return s ? { ...p, mention: `${formatCurrency(s.soldeNetEnPoche)} en poche` } : p;
+        // Le responsable n'a pas de poche à part : sa caisse est la boutique.
+        return s && !estResponsable(s)
+          ? { ...p, mention: `${formatCurrency(s.soldeNetEnPoche)} en poche` }
+          : p;
       }),
     [personnes, sellers],
   );
@@ -335,7 +342,7 @@ export const DepensesView: React.FC<DepensesViewProps> = ({
   const versItemDepense = (e: Expense): DataListItem => ({
     id: e.id,
     primary: e.note?.trim() || e.type,
-    meta: [formatDateLocale(e.date, locale), e.vendeur],
+    meta: [formatDateLocale(e.date, locale), avecEquipe ? e.vendeur : null],
     amount: `- ${formatCurrency(e.montant)}`,
     badge: (
       <span
@@ -422,7 +429,11 @@ export const DepensesView: React.FC<DepensesViewProps> = ({
         icon={<ArrowRightLeft className="w-5 h-5 t-danger" />}
         module="depenses"
         title="Dépenses"
-        subtitle="Sorties d'argent et retraits de caisse de vos vendeurs."
+        subtitle={
+          avecEquipe
+            ? "Sorties d'argent et retraits de caisse de vos vendeurs."
+            : "Les sorties d'argent de votre boutique."
+        }
         actions={
           <>
             <button
@@ -487,20 +498,22 @@ export const DepensesView: React.FC<DepensesViewProps> = ({
           setTypeFilter("Tous");
         }}
       >
-        <FilterField label="Vendeur">
-          <select
-            value={sellerFilter}
-            onChange={(e) => setSellerFilter(e.target.value)}
-            className="app-field-sm lg:w-auto"
-          >
-            <option value="Tous">Tous les vendeurs</option>
-            {sellers.map((s) => (
-              <option key={s.id} value={s.nom}>
-                {s.nom}
-              </option>
-            ))}
-          </select>
-        </FilterField>
+        {avecEquipe && (
+          <FilterField label="Vendeur">
+            <select
+              value={sellerFilter}
+              onChange={(e) => setSellerFilter(e.target.value)}
+              className="app-field-sm lg:w-auto"
+            >
+              <option value="Tous">Tous les vendeurs</option>
+              {sellers.map((s) => (
+                <option key={s.id} value={s.nom}>
+                  {s.nom}
+                </option>
+              ))}
+            </select>
+          </FilterField>
+        )}
 
         <FilterField label="Type">
           <select

@@ -485,6 +485,11 @@
 }
 .tn .empty .s {
   font-size: var(--fs-sec);
+  max-width: 34ch;
+}
+/* Le geste qui sort de l'état vide, sous la phrase. */
+.tn .empty .link {
+  margin: 10px auto 0;
 }
 .tn .sous-titre {
   font-size: var(--fs-micro);

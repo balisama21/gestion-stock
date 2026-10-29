@@ -52,7 +52,7 @@ export const CarteTresorerie: React.FC<{
     { cle: "achats", libelle: "Achats de stock réglés", signe: "−", valeur: capital.achatsTotal },
     {
       cle: "depenses",
-      libelle: "Dépenses vendeurs",
+      libelle: "Dépenses",
       signe: "−",
       valeur: capital.depensesVendeursTotal,
     },

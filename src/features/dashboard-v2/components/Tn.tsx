@@ -230,12 +230,15 @@ export const Vide: React.FC<{
   largeur?: number;
   titre: string;
   detail?: string;
+  /** Le geste qui fait sortir de l'état vide : « Inviter un vendeur ». */
+  action?: React.ReactNode;
   className?: string;
-}> = ({ image, largeur = 140, titre, detail, className = "" }) => (
+}> = ({ image, largeur = 140, titre, detail, action, className = "" }) => (
   <div className={`empty${className ? ` ${className}` : ""}`}>
     {image && <img src={image} alt="" style={{ width: largeur }} />}
     <b>{titre}</b>
     {detail && <span className="s">{detail}</span>}
+    {action}
   </div>
 );
 

@@ -1,5 +1,6 @@
 import * as XLSX from "xlsx";
 import { Product, Purchase, Sale, Expense, Seller, CapitalSummary } from "../types";
+import { estResponsable, libelleNature } from "../lib/vendeurs";
 import { getProductLabel, getPurchaseLabel, getSaleLabel } from "./formulas";
 import { codeAppsScriptV3 } from "../data/appsScriptCode";
 import { APP_NAME } from "../lib/appConfig";
@@ -75,7 +76,7 @@ export function downloadExcelWorkbook(
     return [
       p.id,
       p.date,
-     p.productId,
+      p.productId,
       getPurchaseLabel(p, products),
       p.quantite,
       p.prixAchatUnit,
@@ -109,7 +110,7 @@ export function downloadExcelWorkbook(
     return [
       s.id,
       s.date,
-     s.productId,
+      s.productId,
       getSaleLabel(s, products),
       s.quantite,
       s.prixVenteUnit,
@@ -131,7 +132,7 @@ export function downloadExcelWorkbook(
   const vendeursHeaders = [
     "ID Vendeur",
     "Nom Vendeur",
-    "Statut",
+    "Rôle",
     "Total Ventes Realisées (Ar)",
     "Nb Ventes",
     "Total Dépenses & Retraits (Ar)",
@@ -142,11 +143,12 @@ export function downloadExcelWorkbook(
     return [
       s.id,
       s.nom,
-      s.statut,
+      libelleNature(s),
       { f: `SUMIFS(Ventes!G:G, Ventes!K:K, B${rowNum})` },
       { f: `COUNTIFS(Ventes!K:K, B${rowNum})` },
       { f: `SUMIFS(Dépenses!E:E, Dépenses!C:C, B${rowNum})` },
-      { f: `D${rowNum}-F${rowNum}` },
+      // Le responsable encaisse dans sa propre caisse : pas de poche à rendre.
+      estResponsable(s) ? "—" : { f: `D${rowNum}-F${rowNum}` },
     ];
   });
   const wsVendeurs = XLSX.utils.aoa_to_sheet([vendeursHeaders, ...vendeursRows]);

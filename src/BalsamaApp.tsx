@@ -325,9 +325,11 @@ function AppInner() {
   );
   const calendrier = useEvenements(workspace.activeStore?.id ?? null, user?.id ?? null);
   const memos = useRappels(workspace.activeStore?.id ?? null, user?.id ?? null);
-  const { members: storeMembers, removeMember: removeStoreMember } = useStoreMembers(
-    workspace.activeStore?.id ?? null,
-  );
+  const {
+    members: storeMembers,
+    proprietaire: proprietaireBoutique,
+    removeMember: removeStoreMember,
+  } = useStoreMembers(workspace.activeStore?.id ?? null);
 
   /**
    * La préalerte de stock : ses réglages, et ce que la base a laissé
@@ -1101,6 +1103,9 @@ function AppInner() {
     // (cette table ne contient que les collaborateurs invités), donc on
     // l'ajoute manuellement à la liste ici.
     const ownerName = (profile?.full_name || user?.email || "Propriétaire").trim();
+    // Le nom du responsable, connu aussi d'un invité : sans lui, ses
+    // ventes passeraient pour celles d'un vendeur sans compte.
+    const nomDuResponsable = workspace.isOwner ? ownerName : (proprietaireBoutique?.nom ?? null);
     const namesSet = new Set<string>([...memberNames, ...legacyNames]);
     if (workspace.isOwner && ownerName) {
       namesSet.add(ownerName);
@@ -1135,6 +1140,13 @@ function AppInner() {
       return {
         id,
         nom,
+        nature:
+          nom === nomDuResponsable
+            ? ("responsable" as const)
+            : member
+              ? ("membre" as const)
+              : ("sans_compte" as const),
+        role: member?.role ?? null,
         statut: "Actif" as const,
         totalVentesMontant: totalSalesMontant,
         totalVentesNombre: sellerSales.length,
@@ -1151,6 +1163,7 @@ function AppInner() {
     storeData.remises,
     storeData.paiementsSalaire,
     storeMembers,
+    proprietaireBoutique,
     profile,
     user,
     workspace.isOwner,
@@ -2737,6 +2750,7 @@ function AppInner() {
                           setActiveTab("settings");
                         }}
                         onDeleteSeller={handleDeleteSeller}
+                        onVoirVentes={() => setActiveTab("ventes")}
                         remises={storeData.remises}
                         // Encaisser une remise n'est proposé qu'à qui peut le
                         // faire. La base refuserait de toute façon, mais un

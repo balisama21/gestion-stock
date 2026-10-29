@@ -173,8 +173,8 @@ export const CapitalView: React.FC<CapitalViewProps> = ({
     },
     {
       key: "depenses",
-      label: "Dépenses vendeurs",
-      hint: "Retraits et frais de terrain",
+      label: "Dépenses",
+      hint: "Frais et retraits de caisse",
       sign: "−",
       value: capital.depensesVendeursTotal,
     },
