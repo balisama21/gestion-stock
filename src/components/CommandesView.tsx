@@ -64,6 +64,7 @@ import type { Database } from "../lib/database.types";
 import { useFicheInitiale, useFiltreInitial, useRechercheInitiale } from "../lib/cibleRecherche";
 import { AvisIntrouvable } from "./shared/AvisIntrouvable";
 import { AideLigneLibre, LIBELLE_LIGNE_LIBRE } from "./shared/LigneLibre";
+import { SelecteurProduit } from "./shared/SelecteurProduit";
 import { useConfirmation } from "../hooks/useConfirmation";
 import { signalerErreur } from "../lib/messages";
 import { useDefilerVers } from "../hooks/useDefilerVers";
@@ -1060,20 +1061,24 @@ export const CommandesView: React.FC<CommandesViewProps> = ({
                           <label htmlFor={`cmd-ligne-${idx}-produit`}>Produit</label>
                           <AideLigneLibre />
                         </span>
-                        <select
-                          id={`cmd-ligne-${idx}-produit`}
-                          value={item.product_id}
-                          onChange={(e) => updateItem(idx, "product_id", e.target.value)}
-                          className="app-field-sm sm:col-span-2"
-                        >
-                          <option value="">{LIBELLE_LIGNE_LIBRE}</option>
-                          {products.map((p) => (
-                            <option key={p.id} value={p.id}>
-                              {getProdLabel(p, products)} —{" "}
-                              {p.stock_actuel <= 0 ? "rupture" : `stock ${p.stock_actuel}`}
-                            </option>
-                          ))}
-                        </select>
+                        <div className="sm:col-span-2">
+                          <SelecteurProduit
+                            id={`cmd-ligne-${idx}-produit`}
+                            compact
+                            produits={products.map((p) => ({
+                              id: p.id,
+                              nom: getProdLabel(p, products),
+                              numero: p.numero,
+                              prix: p.prix_vente_defaut,
+                              stock: p.stock_actuel,
+                              seuil: p.seuil_alerte,
+                              codes: [p.sku, p.code_barres],
+                            }))}
+                            valeur={item.product_id}
+                            libelleVide={LIBELLE_LIGNE_LIBRE}
+                            onChange={(id) => updateItem(idx, "product_id", id)}
+                          />
+                        </div>
 
                         {!item.product_id && (
                           <input
