@@ -2,6 +2,7 @@ import React, { useMemo, useState } from "react";
 import { FileText, Printer } from "lucide-react";
 import type { StoreSettings } from "../../types";
 import { DataList } from "../shared/DataList";
+import { Deux, Stock, Texte } from "../shared/Cellules";
 import { Modal } from "../shared/Modal";
 import { Toggle } from "../shared/Toggle";
 import type { ProduitARecommander } from "../../lib/bonDeCommande";
@@ -66,6 +67,22 @@ export const ReapproVue: React.FC<ReapproVueProps> = ({
         {l.stock <= 0 ? "Rupture" : `${nombre(l.stock)} en stock`}
       </span>
     ),
+    sousTitre: l.reference || undefined,
+    cellules: {
+      fournisseur: !grouper ? <Texte valeur={l.fournisseur || null} /> : null,
+      stock: <Stock quantite={l.stock} seuil={l.seuil} unite={l.unite} />,
+      seuil: <span className="tabular-nums text-muted-foreground">{nombre(l.seuil)}</span>,
+      cible: (
+        <Deux haut={nombre(l.cible)} bas={l.cibleDeLaFiche ? undefined : "règle de la boutique"} />
+      ),
+      commander: (
+        <Deux
+          haut={`${nombre(l.quantite)}${l.unite ? ` ${l.unite}` : ""}`}
+          bas="à commander"
+          tonHaut="succes"
+        />
+      ),
+    },
     detailTitle: l.produit,
     detailSubtitle: l.reference,
     details: [
@@ -130,7 +147,17 @@ export const ReapproVue: React.FC<ReapproVueProps> = ({
               </h3>
             )}
             <div className="app-card overflow-hidden">
-              <DataList items={g.lignes.map(item)} />
+              <DataList
+                items={g.lignes.map(item)}
+                titrePrincipal="Produit"
+                colonnes={[
+                  ...(!grouper ? [{ cle: "fournisseur", titre: "Fournisseur" }] : []),
+                  { cle: "stock", titre: "Stock", align: "droite" as const, largeur: "7.5rem" },
+                  { cle: "seuil", titre: "Seuil", align: "droite" as const },
+                  { cle: "cible", titre: "Cible", align: "droite" as const },
+                  { cle: "commander", titre: "À commander", align: "droite" as const },
+                ]}
+              />
             </div>
           </section>
         ))

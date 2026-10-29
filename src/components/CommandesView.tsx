@@ -65,6 +65,8 @@ import { useFicheInitiale, useFiltreInitial, useRechercheInitiale } from "../lib
 import { AvisIntrouvable } from "./shared/AvisIntrouvable";
 import { AideLigneLibre, LIBELLE_LIGNE_LIBRE } from "./shared/LigneLibre";
 import { SelecteurProduit } from "./shared/SelecteurProduit";
+import { DateJour, Deux, Texte } from "./shared/Cellules";
+import { useEcranTableau } from "../hooks/useEcranTableau";
 import { useConfirmation } from "../hooks/useConfirmation";
 import { signalerErreur } from "../lib/messages";
 import { useDefilerVers } from "../hooks/useDefilerVers";
@@ -304,6 +306,9 @@ export const CommandesView: React.FC<CommandesViewProps> = ({
     }[]
   >([]);
 
+  /** Sur PC, la liste devient un tableau ; sur téléphone, elle reste en cartes. */
+  const ecranTableau = useEcranTableau();
+
   const filtered = useMemo(() => {
     let result = orders;
     if (search.trim()) {
@@ -469,6 +474,110 @@ export const CommandesView: React.FC<CommandesViewProps> = ({
     setPaymentAttemptKey("");
   };
 
+  /**
+   * Le détail d'une commande, déplié sous sa ligne : produits, règlement,
+   * actions. Le même sur téléphone (sous la carte) et sur PC (sous la
+   * ligne du tableau).
+   */
+  const detailCommande = (order: Order) => (
+    <div className="border-t border-border px-4 pb-4 pt-3 space-y-3">
+      {/* Items */}
+      {order.items && order.items.length > 0 && (
+        <div>
+          <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
+            Produits commandés
+          </div>
+          <div className="space-y-1">
+            {order.items.map((item) => (
+              <div
+                key={item.id}
+                className="flex justify-between text-xs p-2 bg-muted/40 rounded-lg"
+              >
+                <span className="text-foreground font-medium">
+                  {getOrderItemLabel(item, products)} ·{" "}
+                  {quantiteEnMots(
+                    item.quantite,
+                    products.find((x) => x.id === item.product_id)?.unite,
+                  )}
+                </span>
+                <span className="font-mono text-foreground">
+                  {formatCurrency(item.total_vente)}
+                </span>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Payment summary */}
+      <div className="grid grid-cols-3 gap-2 text-xs">
+        <div className="bg-muted/50 rounded-lg p-2 text-center">
+          <div className="font-mono font-bold text-foreground">
+            {formatCurrency(order.montant_total)}
+          </div>
+          <div className="text-muted-foreground">Total</div>
+        </div>
+        <div className="bg-emerald-500/10 rounded-lg p-2 text-center border border-emerald-500/20">
+          <div className="font-mono font-bold t-success">{formatCurrency(order.montant_paye)}</div>
+          <div className="text-muted-foreground">Payé</div>
+        </div>
+        <div
+          className={`rounded-lg p-2 text-center border ${(order.reste_a_payer ?? 0) > 0 ? "bg-red-500/10 border-red-500/20" : "bg-muted/50 border-border"}`}
+        >
+          <div
+            className={`font-mono font-bold ${(order.reste_a_payer ?? 0) > 0 ? "t-danger" : "text-muted-foreground"}`}
+          >
+            {formatCurrency(order.reste_a_payer ?? 0)}
+          </div>
+          <div className="text-muted-foreground">Reste</div>
+        </div>
+      </div>
+
+      {order.note && <p className="text-xs text-muted-foreground italic">{order.note}</p>}
+
+      {/* Actions */}
+      <div className="flex flex-wrap gap-2 pt-1">
+        {(order.reste_a_payer ?? 0) > 0 && (
+          <button
+            onClick={() => {
+              setSelectedOrder(order);
+              setPaymentAttemptKey(
+                typeof crypto !== "undefined" && crypto.randomUUID
+                  ? crypto.randomUUID()
+                  : `payment-${Date.now()}-${Math.random()}`,
+              );
+              setShowPaymentModal(true);
+            }}
+            className="app-btn-primary text-xs"
+          >
+            <CreditCard className="w-3.5 h-3.5" />
+            Enregistrer paiement
+          </button>
+        )}
+        {order.statut_commande !== "livre" && order.statut_commande !== "annule" && (
+          <button
+            onClick={() => handleDeliver(order)}
+            disabled={processingOrderId === order.id}
+            className="app-btn-secondary text-xs"
+          >
+            <Truck className="w-3.5 h-3.5" />
+            {processingOrderId === order.id ? "..." : "Marquer livré"}
+          </button>
+        )}
+        {isOwner && order.statut_commande !== "annule" && (
+          <button
+            onClick={() => requestCancel(order)}
+            disabled={processingOrderId === order.id}
+            className="app-btn-danger text-xs"
+          >
+            <XCircle className="w-3.5 h-3.5" />
+            {processingOrderId === order.id ? "..." : "Annuler"}
+          </button>
+        )}
+      </div>
+    </div>
+  );
+
   return (
     <div className="space-y-6">
       <PageHeader
@@ -571,6 +680,140 @@ export const CommandesView: React.FC<CommandesViewProps> = ({
             + Créer une commande
           </button>
         </div>
+      ) : ecranTableau ? (
+        /* ── Sur PC : un tableau ──
+           Une ligne par commande, ses statuts en colonnes ; le clic la
+           déplie sur place, comme la carte sur téléphone. */
+        <div className="app-card overflow-hidden">
+          <div className="app-grille-cadre">
+            <table className="app-grille">
+              <thead>
+                <tr>
+                  <th scope="col">Commande</th>
+                  <th scope="col">Client</th>
+                  <th scope="col" style={{ width: "8.5rem" }}>
+                    Date
+                  </th>
+                  <th scope="col" className="a-droite app-grille-large">
+                    Articles
+                  </th>
+                  <th scope="col" className="a-centre">
+                    Livraison
+                  </th>
+                  <th scope="col" className="a-centre">
+                    Paiement
+                  </th>
+                  <th scope="col" className="a-droite">
+                    Total
+                  </th>
+                  <th scope="col" className="a-droite">
+                    Reste
+                  </th>
+                  <th scope="col" aria-label="Actions" style={{ width: "5.5rem" }} />
+                </tr>
+              </thead>
+              <tbody>
+                {filtered.map((order) => {
+                  const sc = statusConfig[order.statut_commande] ?? statusConfig.en_attente;
+                  const pc = paymentConfig[order.statut_paiement] ?? paymentConfig.impaye;
+                  const isSelected = selectedOrder?.id === order.id;
+                  const reste = order.reste_a_payer ?? 0;
+                  return (
+                    <React.Fragment key={order.id}>
+                      <tr
+                        id={`commande-${order.id}`}
+                        className="est-cliquable"
+                        aria-expanded={isSelected}
+                        onClick={() => setSelectedOrder(isSelected ? null : order)}
+                      >
+                        <td className="app-grille-principal app-grille-court">
+                          <button
+                            type="button"
+                            className="app-grille-titre font-mono"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              setSelectedOrder(isSelected ? null : order);
+                            }}
+                          >
+                            {order.numero}
+                          </button>
+                        </td>
+                        <td>
+                          <Texte valeur={order.client?.nom ?? null} />
+                        </td>
+                        <td>
+                          <DateJour iso={order.created_at.slice(0, 10)} locale="FR" />
+                        </td>
+                        <td className="a-droite app-grille-large tabular-nums text-muted-foreground">
+                          {order.items?.length ?? 0}
+                        </td>
+                        <td className="a-centre">
+                          <span className={`app-badge ${sc.badge}`}>
+                            {sc.icon}
+                            {sc.label}
+                          </span>
+                        </td>
+                        <td className="a-centre">
+                          <span className={`app-badge ${pc.badge}`}>{pc.label}</span>
+                        </td>
+                        <td className="a-droite">
+                          <Deux haut={formatCurrency(order.montant_total)} />
+                        </td>
+                        <td className="a-droite">
+                          {reste > 0 ? (
+                            <Deux haut={formatCurrency(reste)} tonHaut="danger" />
+                          ) : (
+                            <span className="app-grille-vide">—</span>
+                          )}
+                        </td>
+                        <td className="a-droite" onClick={(e) => e.stopPropagation()}>
+                          <span className="inline-flex items-center gap-1">
+                            {bonImprimable && (
+                              <button
+                                type="button"
+                                onClick={() => setBonAImprimer(order)}
+                                className="app-btn-icon h-8 w-8"
+                                title="Imprimer le bon de commande"
+                                aria-label={`Imprimer le bon de la commande ${order.numero}`}
+                              >
+                                <Printer className="h-3.5 w-3.5" />
+                              </button>
+                            )}
+                            {onDeleteOrder && (
+                              <button
+                                type="button"
+                                onClick={async () => {
+                                  if (
+                                    await confirmer(
+                                      `Supprimer définitivement la commande ${order.numero} ?\n\nCeci ne modifie pas le stock (le produit reste sorti si la commande avait déjà été livrée).`,
+                                      { danger: true, libelle: "Supprimer" },
+                                    )
+                                  ) {
+                                    onDeleteOrder(order.id);
+                                  }
+                                }}
+                                className="app-btn-icon h-8 w-8"
+                                title="Supprimer la commande"
+                                aria-label={`Supprimer la commande ${order.numero}`}
+                              >
+                                <Trash2 className="h-3.5 w-3.5" />
+                              </button>
+                            )}
+                          </span>
+                        </td>
+                      </tr>
+                      {isSelected && (
+                        <tr className="app-grille-deplie">
+                          <td colSpan={9}>{detailCommande(order)}</td>
+                        </tr>
+                      )}
+                    </React.Fragment>
+                  );
+                })}
+              </tbody>
+            </table>
+          </div>
+        </div>
       ) : (
         <div className="space-y-3">
           {filtered.map((order) => {
@@ -658,108 +901,7 @@ export const CommandesView: React.FC<CommandesViewProps> = ({
                 </div>
 
                 {/* Expanded detail */}
-                {isSelected && (
-                  <div className="border-t border-border px-4 pb-4 pt-3 space-y-3">
-                    {/* Items */}
-                    {order.items && order.items.length > 0 && (
-                      <div>
-                        <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
-                          Produits commandés
-                        </div>
-                        <div className="space-y-1">
-                          {order.items.map((item) => (
-                            <div
-                              key={item.id}
-                              className="flex justify-between text-xs p-2 bg-muted/40 rounded-lg"
-                            >
-                              <span className="text-foreground font-medium">
-                                {getOrderItemLabel(item, products)} ·{" "}
-                                {quantiteEnMots(
-                                  item.quantite,
-                                  products.find((x) => x.id === item.product_id)?.unite,
-                                )}
-                              </span>
-                              <span className="font-mono text-foreground">
-                                {formatCurrency(item.total_vente)}
-                              </span>
-                            </div>
-                          ))}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Payment summary */}
-                    <div className="grid grid-cols-3 gap-2 text-xs">
-                      <div className="bg-muted/50 rounded-lg p-2 text-center">
-                        <div className="font-mono font-bold text-foreground">
-                          {formatCurrency(order.montant_total)}
-                        </div>
-                        <div className="text-muted-foreground">Total</div>
-                      </div>
-                      <div className="bg-emerald-500/10 rounded-lg p-2 text-center border border-emerald-500/20">
-                        <div className="font-mono font-bold t-success">
-                          {formatCurrency(order.montant_paye)}
-                        </div>
-                        <div className="text-muted-foreground">Payé</div>
-                      </div>
-                      <div
-                        className={`rounded-lg p-2 text-center border ${(order.reste_a_payer ?? 0) > 0 ? "bg-red-500/10 border-red-500/20" : "bg-muted/50 border-border"}`}
-                      >
-                        <div
-                          className={`font-mono font-bold ${(order.reste_a_payer ?? 0) > 0 ? "t-danger" : "text-muted-foreground"}`}
-                        >
-                          {formatCurrency(order.reste_a_payer ?? 0)}
-                        </div>
-                        <div className="text-muted-foreground">Reste</div>
-                      </div>
-                    </div>
-
-                    {order.note && (
-                      <p className="text-xs text-muted-foreground italic">{order.note}</p>
-                    )}
-
-                    {/* Actions */}
-                    <div className="flex flex-wrap gap-2 pt-1">
-                      {(order.reste_a_payer ?? 0) > 0 && (
-                        <button
-                          onClick={() => {
-                            setSelectedOrder(order);
-                            setPaymentAttemptKey(
-                              typeof crypto !== "undefined" && crypto.randomUUID
-                                ? crypto.randomUUID()
-                                : `payment-${Date.now()}-${Math.random()}`,
-                            );
-                            setShowPaymentModal(true);
-                          }}
-                          className="app-btn-primary text-xs"
-                        >
-                          <CreditCard className="w-3.5 h-3.5" />
-                          Enregistrer paiement
-                        </button>
-                      )}
-                      {order.statut_commande !== "livre" && order.statut_commande !== "annule" && (
-                        <button
-                          onClick={() => handleDeliver(order)}
-                          disabled={processingOrderId === order.id}
-                          className="app-btn-secondary text-xs"
-                        >
-                          <Truck className="w-3.5 h-3.5" />
-                          {processingOrderId === order.id ? "..." : "Marquer livré"}
-                        </button>
-                      )}
-                      {isOwner && order.statut_commande !== "annule" && (
-                        <button
-                          onClick={() => requestCancel(order)}
-                          disabled={processingOrderId === order.id}
-                          className="app-btn-danger text-xs"
-                        >
-                          <XCircle className="w-3.5 h-3.5" />
-                          {processingOrderId === order.id ? "..." : "Annuler"}
-                        </button>
-                      )}
-                    </div>
-                  </div>
-                )}
+                {isSelected && detailCommande(order)}
               </div>
             );
           })}

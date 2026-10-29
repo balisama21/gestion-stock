@@ -7,6 +7,8 @@ import { Modal } from "./shared/Modal";
 import { Sale, Payment, Product } from "../types";
 import type { Database } from "../lib/database.types";
 import { useRechercheInitiale } from "../lib/cibleRecherche";
+import { DateJour, Deux, Texte } from "./shared/Cellules";
+import { useEcranTableau } from "../hooks/useEcranTableau";
 
 type Order = Database["public"]["Tables"]["orders"]["Row"] & {
   client?: Database["public"]["Tables"]["clients"]["Row"] | null;
@@ -49,6 +51,8 @@ export const PaiementsARecevoirView: React.FC<PaiementsARecevoirViewProps> = ({
   onAddPaymentToOrder,
 }) => {
   const [search, setSearch] = useState("");
+  /** Sur PC, la liste devient un tableau ; sur téléphone, elle ne change pas. */
+  const ecranTableau = useEcranTableau();
   // Une notification peut viser une ligne précise : la recherche
   // s'ouvre alors remplie dessus. Voir `src/lib/cibleRecherche.ts`.
   useRechercheInitiale("paiements", setSearch);
@@ -204,6 +208,91 @@ export const PaiementsARecevoirView: React.FC<PaiementsARecevoirViewProps> = ({
             <p className="text-sm text-muted-foreground">
               Aucun paiement en attente. Tout est à jour.
             </p>
+          </div>
+        ) : ecranTableau ? (
+          /* ── Sur PC : un tableau ──
+             Le reste dû en avant, et une barre qui dit d'un regard la
+             part déjà réglée. « Recevoir » reste au bout de la ligne. */
+          <div className="app-grille-cadre">
+            <table className="app-grille">
+              <thead>
+                <tr>
+                  <th scope="col">Créance</th>
+                  <th scope="col">Client</th>
+                  <th scope="col" style={{ width: "8.5rem" }}>
+                    Date
+                  </th>
+                  <th scope="col" className="a-droite app-grille-large">
+                    Total
+                  </th>
+                  <th scope="col" style={{ width: "10rem" }}>
+                    Déjà réglé
+                  </th>
+                  <th scope="col" className="a-droite">
+                    Reste dû
+                  </th>
+                  <th scope="col" aria-label="Actions" style={{ width: "10.5rem" }} />
+                </tr>
+              </thead>
+              <tbody>
+                {receivables.map((r) => {
+                  const part = r.total > 0 ? Math.min(1, r.paye / r.total) : 0;
+                  return (
+                    <tr key={r.key}>
+                      <td className="app-grille-principal">
+                        <span className="app-grille-titre">{r.label}</span>
+                        <div className="app-grille-sous">
+                          {r.type === "vente" ? "Vente" : "Commande"}
+                        </div>
+                      </td>
+                      <td>
+                        <Texte valeur={r.clientLabel || null} />
+                      </td>
+                      <td>{r.date ? <DateJour iso={r.date.slice(0, 10)} locale="FR" /> : null}</td>
+                      <td className="a-droite app-grille-large">
+                        <Deux haut={formatCurrency(r.total)} />
+                      </td>
+                      <td>
+                        <Deux
+                          haut={formatCurrency(r.paye)}
+                          bas={`${Math.round(part * 100)} % réglé`}
+                        />
+                        <span className="app-jauge" style={{ marginLeft: 0, width: "100%" }}>
+                          <i
+                            style={{
+                              width: `${Math.round(part * 100)}%`,
+                              background: "var(--success)",
+                            }}
+                          />
+                        </span>
+                      </td>
+                      <td className="a-droite">
+                        <Deux haut={formatCurrency(r.reste)} tonHaut="danger" />
+                      </td>
+                      <td className="a-droite">
+                        <span className="inline-flex items-center gap-2">
+                          <button
+                            onClick={() => openHistoryModal(r)}
+                            className="app-btn-icon h-9 w-9 shrink-0"
+                            title="Historique des paiements"
+                            aria-label="Historique des paiements"
+                          >
+                            <History className="h-4 w-4" />
+                          </button>
+                          <button
+                            onClick={() => openPaymentModal(r)}
+                            className="app-btn-primary shrink-0 text-xs"
+                          >
+                            <Banknote className="h-3.5 w-3.5" />
+                            Recevoir
+                          </button>
+                        </span>
+                      </td>
+                    </tr>
+                  );
+                })}
+              </tbody>
+            </table>
           </div>
         ) : (
           <div className="app-list">

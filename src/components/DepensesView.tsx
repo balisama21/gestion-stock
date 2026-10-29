@@ -27,6 +27,7 @@ import { cleDeListe } from "../lib/listes";
 import type { Personne } from "../lib/personnes";
 import { FilterBar, FilterField } from "./shared/FilterBar";
 import { DataList, type DataListItem } from "./shared/DataList";
+import { DateJour, Deux, Texte } from "./shared/Cellules";
 import { adresseDocument, envoyerFichier, reduireImage } from "../lib/stockageFichiers";
 import { StatCol } from "./shared/StatBar";
 import { Modal } from "./shared/Modal";
@@ -357,6 +358,26 @@ export const DepensesView: React.FC<DepensesViewProps> = ({
         {e.type}
       </span>
     ),
+    sousTitre: e.numero,
+    cellules: {
+      date: <DateJour iso={e.date} locale={locale} />,
+      type: (
+        <span
+          className={`app-badge ${
+            e.type === "Achat de stock"
+              ? "app-badge-info"
+              : e.type === "Retrait d'argent"
+                ? "app-badge-warning"
+                : "app-badge-neutral"
+          }`}
+        >
+          {e.type}
+        </span>
+      ),
+      payePar: <Texte valeur={e.vendeur || null} />,
+      justificatif: e.justificatif ? <span className="app-cellule-bas">joint</span> : null,
+      montant: <Deux haut={`− ${formatCurrency(e.montant)}`} tonHaut="danger" />,
+    },
     detailTitle: e.note?.trim() || e.type,
     detailSubtitle: `Dépense ${e.numero}`,
     details: [
@@ -537,6 +558,14 @@ export const DepensesView: React.FC<DepensesViewProps> = ({
         <DataList
           emptyLabel="Aucune dépense ne correspond à ces filtres."
           ouvrir={ficheAOuvrir}
+          titrePrincipal="Dépense"
+          colonnes={[
+            { cle: "date", titre: "Date", largeur: "8.5rem" },
+            { cle: "type", titre: "Type" },
+            ...(avecEquipe ? [{ cle: "payePar", titre: "Payée par" }] : []),
+            { cle: "justificatif", titre: "Reçu", align: "centre" as const, large: true },
+            { cle: "montant", titre: "Montant", align: "droite" as const },
+          ]}
           items={filteredExpenses.map(versItemDepense)}
         />
       </div>

@@ -6,6 +6,7 @@ import { montant as formaterMontant } from "../features/documents/lib/format";
 import { PageHeader } from "./shared/PageHeader";
 import { FilterBar, FilterField } from "./shared/FilterBar";
 import { DataList, type DataListItem } from "./shared/DataList";
+import { DateJour, Deux, Texte } from "./shared/Cellules";
 import { StatCol } from "./shared/StatBar";
 import { SquelettePage } from "./shared/SquelettePage";
 import {
@@ -287,6 +288,26 @@ export const FacturationView: React.FC<FacturationViewProps> = ({
       amount: argent(d.montant),
       amountHint: d.reste > 0 ? `reste ${argent(d.reste)}` : undefined,
       badge: <span className={CLASSE_STATUT[d.statut]}>{LIBELLE_STATUT[d.statut]}</span>,
+      sousTitre: NOM_TYPE[d.type],
+      cellules: {
+        tiers: <Texte valeur={d.tiers || null} />,
+        date: <DateJour iso={d.date} locale={locale} />,
+        echeance: d.echeance ? (
+          <Deux
+            haut={formatDateLocale(d.echeance, locale)}
+            bas={retard ? `${jours} jour${jours > 1 ? "s" : ""} de retard` : undefined}
+            tonBas="danger"
+          />
+        ) : null,
+        montant: <Deux haut={argent(d.montant)} />,
+        reste:
+          d.reste > 0 ? (
+            <Deux haut={argent(d.reste)} tonHaut={retard ? "danger" : "alerte"} />
+          ) : d.paye > 0 ? (
+            <span className="app-cellule-bas t-success">soldé</span>
+          ) : null,
+        statut: <span className={CLASSE_STATUT[d.statut]}>{LIBELLE_STATUT[d.statut]}</span>,
+      },
       detailTitle: d.numero || NOM_TYPE[d.type],
       detailSubtitle: `${NOM_TYPE[d.type]} · ${d.tiers}`,
       details,
@@ -303,7 +324,11 @@ export const FacturationView: React.FC<FacturationViewProps> = ({
         <p className="text-sm text-muted-foreground">
           Les documents n&apos;ont pas pu être chargés.
         </p>
-        <button type="button" onClick={() => void facturation.recharger()} className="app-btn-secondary">
+        <button
+          type="button"
+          onClick={() => void facturation.recharger()}
+          className="app-btn-secondary"
+        >
           <RotateCw className="h-4 w-4" />
           Réessayer
         </button>
@@ -327,8 +352,8 @@ export const FacturationView: React.FC<FacturationViewProps> = ({
         <div className="app-card mt-4 flex flex-col items-center gap-3 px-4 py-14 text-center">
           <FileText className="h-8 w-8 text-muted-foreground/50" />
           <p className="max-w-md text-sm text-muted-foreground">
-            Les factures, devis, proformas et avoirs de la boutique se rangeront ici. Chaque pièce
-            y garde son numéro, son statut et ce qu&apos;il reste à encaisser.
+            Les factures, devis, proformas et avoirs de la boutique se rangeront ici. Chaque pièce y
+            garde son numéro, son statut et ce qu&apos;il reste à encaisser.
           </p>
           {peutCreer && onCreerPremiere && (
             <button type="button" onClick={onCreerPremiere} className="app-btn-primary">
@@ -467,7 +492,9 @@ export const FacturationView: React.FC<FacturationViewProps> = ({
                     type="button"
                     onClick={() => setDescendant((d) => !d)}
                     className="app-chip shrink-0"
-                    aria-label={descendant ? "Trier par ordre croissant" : "Trier par ordre décroissant"}
+                    aria-label={
+                      descendant ? "Trier par ordre croissant" : "Trier par ordre décroissant"
+                    }
                   >
                     {descendant ? "↓" : "↑"}
                   </button>
@@ -493,10 +520,20 @@ export const FacturationView: React.FC<FacturationViewProps> = ({
                   </button>
                 </div>
               ) : (
-                <DataList items={lignes} />
+                <DataList
+                  items={lignes}
+                  titrePrincipal="Document"
+                  colonnes={[
+                    { cle: "tiers", titre: "Client ou fournisseur" },
+                    { cle: "date", titre: "Date", largeur: "8.5rem" },
+                    { cle: "echeance", titre: "Échéance", largeur: "9rem", large: true },
+                    { cle: "montant", titre: "Montant", align: "droite" },
+                    { cle: "reste", titre: "Reste à payer", align: "droite" },
+                    { cle: "statut", titre: "Statut", align: "centre", largeur: "8rem" },
+                  ]}
+                />
               )}
             </div>
-
           </div>
         </>
       )}

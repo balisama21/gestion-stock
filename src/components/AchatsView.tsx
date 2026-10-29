@@ -49,6 +49,7 @@ import {
   type ReglagesPrixAuto,
 } from "../lib/prixAuto";
 import { VignetteProduit, vignettesParProduit } from "./shared/VignetteProduit";
+import { DateJour, Deux, Montant, Texte } from "./shared/Cellules";
 import { StatCol } from "./shared/StatBar";
 import { Modal } from "./shared/Modal";
 import { exporterPdf, exporterImage, imprimerDocument, nomDeFichier } from "../lib/documentExport";
@@ -722,6 +723,25 @@ export const AchatsView: React.FC<AchatsViewProps> = ({
         <span className="t-danger">−{formatCurrency(p.montantPaye)} en caisse</span>
       )
     ) : undefined,
+    sousTitre: [
+      p.numero,
+      quantiteEnMots(p.quantite, products.find((x) => x.id === p.productId)?.unite),
+    ].join(" · "),
+    cellules: {
+      date: <DateJour iso={p.date} locale={locale} />,
+      fournisseur: showFournisseur ? <Texte valeur={p.fournisseur || null} /> : null,
+      quantite: <span className="tabular-nums">{p.quantite}</span>,
+      pu: showPrix ? <Deux haut={formatCurrency(p.prixAchatUnit)} /> : null,
+      total: showPrix ? <Montant valeur={p.totalAchat} /> : null,
+      // Ce qui est sorti de la caisse, ou ce qui reste dû au fournisseur.
+      reglement: showPrix ? (
+        p.soldeDu > 0 ? (
+          <Deux haut={formatCurrency(p.soldeDu)} bas="à payer" tonHaut="alerte" />
+        ) : (
+          <Deux haut={`−${formatCurrency(p.montantPaye)}`} bas="réglé en caisse" tonHaut="danger" />
+        )
+      ) : null,
+    },
     detailTitle: getPurchaseLabel(p, products),
     detailSubtitle: `Achat ${p.numero}`,
     details: [
@@ -941,6 +961,19 @@ export const AchatsView: React.FC<AchatsViewProps> = ({
         <DataList
           emptyLabel="Aucun achat ne correspond à ces filtres."
           ouvrir={ficheAOuvrir}
+          titrePrincipal="Produit"
+          colonnes={[
+            { cle: "date", titre: "Date", largeur: "8.5rem" },
+            ...(showFournisseur ? [{ cle: "fournisseur", titre: "Fournisseur" }] : []),
+            { cle: "quantite", titre: "Quantité", align: "droite" as const, large: true },
+            ...(showPrix
+              ? [
+                  { cle: "pu", titre: "Prix unitaire", align: "droite" as const },
+                  { cle: "total", titre: "Total", align: "droite" as const },
+                  { cle: "reglement", titre: "Règlement", align: "droite" as const },
+                ]
+              : []),
+          ]}
           items={filteredPurchases.map(versItemAchat)}
         />
       </div>
