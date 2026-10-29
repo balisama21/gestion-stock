@@ -12,11 +12,39 @@ export interface OptionDeSelecteur {
   archive?: boolean;
   /** Regroupe les options sous un intertitre. Sans groupe, elles se suivent. */
   groupe?: string;
+  /** Une seconde ligne, petite et grise, sous le nom : référence, prix. */
+  detail?: string | null;
+  /** Une pastille à droite, sur la liste comme sur le champ : le stock. */
+  pastille?: { texte: string; ton: "ok" | "bas" | "vide" } | null;
+  /** Ce que la recherche trouve en plus du nom : référence, code-barres. */
+  motsCles?: string | null;
 }
 
+const TON_PASTILLE = {
+  ok: "app-badge-success",
+  bas: "app-badge-warning",
+  vide: "app-badge-danger",
+} as const;
+
+const Pastille: React.FC<{ p: NonNullable<OptionDeSelecteur["pastille"]> }> = ({ p }) => (
+  <span className={`app-badge ${TON_PASTILLE[p.ton]} shrink-0 px-2 py-0.5 text-[10.5px]`}>
+    {p.texte}
+  </span>
+);
+
+/**
+ * Sur un écran tactile, ouvrir la liste ne fait pas surgir le clavier :
+ * il en cacherait la moitié. On touche la recherche pour taper.
+ */
+const ecranTactile = () =>
+  typeof window !== "undefined" && window.matchMedia?.("(pointer: coarse)").matches === true;
+
 interface SelecteurListeProps {
-  /** L'intitulé du champ. Rendu en `<label>` lié au bouton d'ouverture. */
-  label: string;
+  /**
+   * L'intitulé du champ. Rendu en `<label>` lié au bouton d'ouverture.
+   * Absent, l'appelant pose le sien avec `htmlFor={id}`.
+   */
+  label?: string;
   options: OptionDeSelecteur[];
   valeur: string | null;
   onChange: (id: string | null) => void;
@@ -37,6 +65,8 @@ interface SelecteurListeProps {
   /** Rendu compact, pour une ligne de tableau ou un formulaire dense. */
   compact?: boolean;
   id?: string;
+  /** Ce que dit une recherche sans résultat, quand on ne peut rien ajouter. */
+  messageVide?: string;
 }
 
 /**
@@ -61,6 +91,7 @@ export const SelecteurListe: React.FC<SelecteurListeProps> = ({
   desactive = false,
   compact = false,
   id,
+  messageVide = "Rien ne correspond. Cette liste se complète dans Paramètres → Listes.",
 }) => {
   const idAuto = useId();
   const idChamp = id ?? idAuto;
@@ -102,7 +133,10 @@ export const SelecteurListe: React.FC<SelecteurListeProps> = ({
 
   const filtrees = useMemo(() => {
     if (!recherche.trim()) return toutes;
-    return toutes.filter((o) => correspond(o.nom, recherche));
+    return toutes.filter(
+      (o) =>
+        correspond(o.nom, recherche) || (o.motsCles ? correspond(o.motsCles, recherche) : false),
+    );
   }, [toutes, recherche]);
 
   // Pas de création si la valeur existe déjà, même archivée, même hors
@@ -127,6 +161,7 @@ export const SelecteurListe: React.FC<SelecteurListeProps> = ({
     setAnnoncer(false);
     setSurvol(0);
     // Au tour suivant : le champ n'est pas encore dans le document.
+    if (ecranTactile()) return;
     const t = window.setTimeout(() => champRecherche.current?.focus(), 0);
     return () => window.clearTimeout(t);
   }, [ouvert]);
@@ -219,10 +254,12 @@ export const SelecteurListe: React.FC<SelecteurListeProps> = ({
 
   return (
     <div ref={zone} className="relative" onKeyDown={surToucheZone}>
-      <label htmlFor={idChamp} className="mb-1.5 block text-sm font-medium text-foreground">
-        {label}
-        {requis && <span className="t-danger"> *</span>}
-      </label>
+      {label && (
+        <label htmlFor={idChamp} className="mb-1.5 block text-sm font-medium text-foreground">
+          {label}
+          {requis && <span className="t-danger"> *</span>}
+        </label>
+      )}
 
       <button
         type="button"
@@ -233,9 +270,10 @@ export const SelecteurListe: React.FC<SelecteurListeProps> = ({
         aria-expanded={ouvert}
         className={`${champ} flex items-center justify-between gap-2 text-left disabled:opacity-50`}
       >
-        <span className={`min-w-0 truncate ${choisie ? "" : "text-muted-foreground"}`}>
+        <span className={`min-w-0 flex-1 truncate ${choisie ? "" : "text-muted-foreground"}`}>
           {choisie ? choisie.nom : (libelleVide ?? placeholder)}
         </span>
+        {choisie?.pastille && <Pastille p={choisie.pastille} />}
         <ChevronDown className="h-4 w-4 shrink-0 text-muted-foreground" aria-hidden="true" />
       </button>
 
@@ -265,7 +303,7 @@ export const SelecteurListe: React.FC<SelecteurListeProps> = ({
               onChange={(e) => setRecherche(e.target.value)}
               onKeyDown={surTouche}
               placeholder={placeholder}
-              aria-label={`Rechercher dans ${label.toLowerCase()}`}
+              aria-label={label ? `Rechercher dans ${label.toLowerCase()}` : "Rechercher"}
               aria-controls={`${idChamp}-liste`}
               className="w-full bg-transparent py-1 text-sm text-foreground outline-none placeholder:text-muted-foreground/70"
             />
@@ -357,11 +395,21 @@ export const SelecteurListe: React.FC<SelecteurListeProps> = ({
                       ) : (
                         <span className="w-3.5 shrink-0" aria-hidden="true" />
                       )}
-                      <span className="min-w-0 truncate">{o.nom}</span>
+                      {o.detail ? (
+                        <span className="flex min-w-0 flex-col">
+                          <span className="truncate">{o.nom}</span>
+                          <span className="truncate text-[11px] text-muted-foreground">
+                            {o.detail}
+                          </span>
+                        </span>
+                      ) : (
+                        <span className="min-w-0 truncate">{o.nom}</span>
+                      )}
                     </span>
                     {o.mention && (
                       <span className="shrink-0 text-xs text-muted-foreground">{o.mention}</span>
                     )}
+                    {o.pastille && <Pastille p={o.pastille} />}
                   </button>
                 </li>
               );
@@ -369,9 +417,7 @@ export const SelecteurListe: React.FC<SelecteurListeProps> = ({
 
             {lignes.length === 0 && (
               <li className="px-3 py-3 text-sm text-muted-foreground">
-                {onCreer || onDemanderCreation
-                  ? "Tapez un nom pour l'ajouter."
-                  : "Rien ne correspond. Cette liste se complète dans Paramètres → Listes."}
+                {onCreer || onDemanderCreation ? "Tapez un nom pour l'ajouter." : messageVide}
               </li>
             )}
           </ul>

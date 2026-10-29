@@ -8,6 +8,7 @@ import { montant as formaterMontant } from "../../features/documents/lib/format"
 import { MODES_DE_PAIEMENT } from "./paiement";
 import { commissionParDefaut } from "../../lib/ventes";
 import { AideLigneLibre, LIBELLE_LIGNE_LIBRE } from "../shared/LigneLibre";
+import { SelecteurProduit, versProduitAChoisir } from "../shared/SelecteurProduit";
 
 type Client = Database["public"]["Tables"]["clients"]["Row"];
 
@@ -347,19 +348,16 @@ export const FormulaireNouveauDocument: React.FC<{
                       Produit
                     </label>
                     <AideLigneLibre />
-                    <select
+                    <SelecteurProduit
                       id={`nd-produit-${i}`}
-                      value={ligne.productId}
-                      onChange={(e) => choisirProduit(i, e.target.value)}
-                      className="app-field"
-                    >
-                      <option value="">{LIBELLE_LIGNE_LIBRE}</option>
-                      {produits.map((p) => (
-                        <option key={p.id} value={p.id}>
-                          {p.displayName} · {p.stockDisponible} en stock
-                        </option>
-                      ))}
-                    </select>
+                      produits={produits.map((p) => ({
+                        ...versProduitAChoisir(p, produits),
+                        nom: p.displayName,
+                      }))}
+                      valeur={ligne.productId}
+                      libelleVide={LIBELLE_LIGNE_LIBRE}
+                      onChange={(id) => choisirProduit(i, id)}
+                    />
                   </div>
                   <div>
                     <label

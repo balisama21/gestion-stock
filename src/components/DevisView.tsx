@@ -25,6 +25,7 @@ import {
 import { dateDuJour, dateDansNJours } from "../lib/dates";
 import { useOuvertureFiche, useRechercheInitiale } from "../lib/cibleRecherche";
 import { AideLigneLibre, LIBELLE_LIGNE_LIBRE } from "./shared/LigneLibre";
+import { SelecteurProduit, versProduitAChoisir } from "./shared/SelecteurProduit";
 import { AvatarPersonne } from "./shared/AvatarPersonne";
 import { useConfirmation } from "../hooks/useConfirmation";
 
@@ -748,19 +749,13 @@ export const DevisView: React.FC<DevisViewProps> = ({
                       <label htmlFor={`dev-ligne-${i}-produit`}>Produit du catalogue</label>
                       <AideLigneLibre />
                     </span>
-                    <select
+                    <SelecteurProduit
                       id={`dev-ligne-${i}-produit`}
-                      value={ligne.productId}
-                      onChange={(e) => choisirProduit(i, e.target.value)}
-                      className="app-field"
-                    >
-                      <option value="">{LIBELLE_LIGNE_LIBRE}</option>
-                      {products.map((p) => (
-                        <option key={p.id} value={p.id}>
-                          {getProductLabel(p, products)}
-                        </option>
-                      ))}
-                    </select>
+                      produits={products.map((p) => versProduitAChoisir(p, products))}
+                      valeur={ligne.productId}
+                      libelleVide={LIBELLE_LIGNE_LIBRE}
+                      onChange={(id) => choisirProduit(i, id)}
+                    />
                   </div>
                   <div>
                     <label

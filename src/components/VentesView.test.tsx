@@ -201,6 +201,30 @@ describe("le montant payé à la caisse", () => {
   });
 });
 
+describe("la quantité se règle dans le panier", () => {
+  it("la caisse n'a plus de champ quantité : chaque ajout pose une unité", () => {
+    afficher();
+    fireEvent.click(screen.getByRole("button", { name: /Nouvelle vente/ }));
+    expect(screen.queryByLabelText("Quantité")).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: /Ajouter au panier/ }));
+    fireEvent.click(screen.getByRole("button", { name: /Ajouter au panier/ }));
+    expect((screen.getByLabelText("Quantité de Ciment") as HTMLInputElement).value).toBe("2");
+  });
+
+  it("une quantité se tape, et ne dépasse pas le disponible", async () => {
+    const { onAddSaleTicket } = afficher();
+    fireEvent.click(screen.getByRole("button", { name: /Nouvelle vente/ }));
+    fireEvent.click(screen.getByRole("button", { name: /Ajouter au panier/ }));
+    const champ = screen.getByLabelText("Quantité de Ciment");
+    fireEvent.change(champ, { target: { value: "12" } });
+    expect(screen.getByRole("alert").textContent).toMatch(/Il ne reste que 10/);
+    fireEvent.change(champ, { target: { value: "7" } });
+    fireEvent.click(screen.getByRole("button", { name: /Valider la vente/ }));
+    await waitFor(() => expect(onAddSaleTicket).toHaveBeenCalledTimes(1));
+    expect(onAddSaleTicket.mock.calls[0][0].lignes[0]).toMatchObject({ quantite: 7 });
+  });
+});
+
 describe("le devis repris à la caisse", () => {
   it("revient avec la vente qui en est née", async () => {
     const { onVenteEnregistree } = afficher({

@@ -38,6 +38,7 @@ import { PageHeader } from "./shared/PageHeader";
 import { FilterBar, FilterField } from "./shared/FilterBar";
 import { DataList, type DataListItem } from "./shared/DataList";
 import { SelecteurFournisseur } from "./shared/SelecteurFournisseur";
+import { SelecteurProduit, versProduitAChoisir } from "./shared/SelecteurProduit";
 import { cleDeListe } from "../lib/listes";
 import {
   PRIX_AUTO_DEFAUT,
@@ -352,6 +353,12 @@ export const AchatsView: React.FC<AchatsViewProps> = ({
   // Form State
   const [date, setDate] = useState(dateDuJour());
   const [designation, setDesignation] = useState("");
+  /** Le produit repris du catalogue : la saisie se remplit à partir de lui. */
+  const [produitRecharge, setProduitRecharge] = useState("");
+  const produitsAChoisir = useMemo(
+    () => products.map((p) => versProduitAChoisir(p, products, { prix: "achat" })),
+    [products],
+  );
   // Vides au départ : un achat de « 10 × 1 000 » proposé d'office finissait
   // enregistré tel quel quand on ne relisait pas. Le navigateur exige une
   // quantité et un prix d'au moins 1 avant d'envoyer.
@@ -401,6 +408,7 @@ export const AchatsView: React.FC<AchatsViewProps> = ({
     setEcheance("");
     setErreurAchat(null);
     setDetailsProduit(DETAILS_VIDES);
+    setProduitRecharge("");
     setIsModalOpen(true);
     onReapprovisionnementOuvert?.();
   }, [reapprovisionner, onReapprovisionnementOuvert, fournisseurs]);
@@ -574,6 +582,7 @@ export const AchatsView: React.FC<AchatsViewProps> = ({
     setDetailsProduit(DETAILS_VIDES);
     setPhotosProduit([]);
     setDesignation("");
+    setProduitRecharge("");
     setFournisseur("");
     setSupplierId(null);
     setQuantite(0);
@@ -1376,22 +1385,17 @@ export const AchatsView: React.FC<AchatsViewProps> = ({
         }
       >
         <form id="purchase-add-form" onSubmit={handleSubmit} className="space-y-4">
-          <div>
-            <label className="mb-1.5 block text-sm font-medium text-foreground">
-              Recharge rapide depuis le catalogue
-            </label>
-            <select
-              onChange={(e) => handleSelectExistingProduct(e.target.value)}
-              className="app-field"
-            >
-              <option value="">Choisir un produit existant...</option>
-              {products.map((p) => (
-                <option key={p.id} value={p.id}>
-                  {p.numero} — {getProductLabel(p, products)} ({formatCurrency(p.prixAchat)})
-                </option>
-              ))}
-            </select>
-          </div>
+          <SelecteurProduit
+            id="achat-recharge"
+            label="Recharge rapide depuis le catalogue"
+            produits={produitsAChoisir}
+            valeur={produitRecharge}
+            libelleVide="Choisir un produit existant…"
+            onChange={(id) => {
+              setProduitRecharge(id);
+              handleSelectExistingProduct(id);
+            }}
+          />
 
           <div className="space-y-4 border-t border-border pt-4">
             <div>

@@ -43,6 +43,7 @@ import {
 import { VariantBadge } from "./shared/VariantBadge";
 import { PageHeader, HeaderMetric } from "./shared/PageHeader";
 import { SelecteurPersonne } from "./shared/SelecteurPersonne";
+import { SelecteurProduit, versProduitAChoisir } from "./shared/SelecteurProduit";
 import type { Personne } from "../lib/personnes";
 import { FilterBar, FilterField } from "./shared/FilterBar";
 import { DataList, type DataListItem } from "./shared/DataList";
@@ -437,7 +438,6 @@ export const VentesView: React.FC<VentesViewProps> = ({
   // Form State for New Sale
   const [date, setDate] = useState(dateDuJour());
   const [selectedProductId, setSelectedProductId] = useState(products[0]?.id || "");
-  const [quantite, setQuantite] = useState(1);
   const [prixVenteUnit, setPrixVenteUnit] = useState<number>(products[0]?.prixVenteDefaut || 0);
   const [isCustomPrice, setIsCustomPrice] = useState(false);
   const [vendeur, setVendeur] = useState(sellers[0]?.nom || "");
@@ -535,6 +535,10 @@ export const VentesView: React.FC<VentesViewProps> = ({
 
   // Keep montantPaye updated to Total Vente by default unless partial credit
   const currentProduct = products.find((p) => p.id === selectedProductId);
+  const produitsAChoisir = useMemo(
+    () => products.map((p) => versProduitAChoisir(p, products)),
+    [products],
+  );
   const produitDe = (id: string) => products.find((p) => p.id === id);
   const totalPanier = panier.reduce((n, l) => n + l.quantite * l.prixVenteUnit, 0);
   const equivalentsPanier = texteEquivalents(totalPanier, devisesAffichees);
@@ -589,7 +593,14 @@ export const VentesView: React.FC<VentesViewProps> = ({
       if (panier.length <= 1) setOrigineDuPanier(null);
       return;
     }
-    if (prod && quantite > prod.stockDisponible) return;
+    // Tapée dans le panier, une quantité trop forte se dit au lieu de
+    // rester sans effet.
+    if (prod && quantite > prod.stockDisponible) {
+      setFormError(
+        `Il ne reste que ${prod.stockDisponible} unité(s) disponible(s) de « ${getProductLabel(prod, products)} ».`,
+      );
+      return;
+    }
     setFormError(null);
     setPanier((lignes) => lignes.map((l) => (l.productId === productId ? { ...l, quantite } : l)));
   };
@@ -1294,53 +1305,34 @@ export const VentesView: React.FC<VentesViewProps> = ({
             )}
           </div>
 
-          <div>
-            <label className="mb-1.5 block text-sm font-medium text-foreground">Produit</label>
-            <select
-              value={selectedProductId}
-              onChange={(e) => {
-                setSelectedProductId(e.target.value);
+          {/* Pas de quantité ici : chaque ajout pose une unité, et le
+              nombre se règle dans le panier, où il se voit. */}
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-[minmax(0,1fr)_11rem]">
+            <SelecteurProduit
+              id="vente-produit"
+              label="Produit"
+              produits={produitsAChoisir}
+              valeur={selectedProductId}
+              onChange={(id) => {
+                setSelectedProductId(id);
                 setIsCustomPrice(false);
               }}
-              className="app-field font-mono"
-            >
-              {products.map((p) => (
-                <option key={p.id} value={p.id}>
-                  [{p.numero}] {getProductLabel(p, products)} (réf{" "}
-                  {formatCurrency(p.prixVenteDefaut)} | disponible {p.stockDisponible}
-                  {p.stockReserve > 0 ? ` / ${p.stockActuel} total` : ""})
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <div>
-              <label className="mb-1.5 block text-sm font-medium text-foreground">Quantité</label>
-              <input
-                type="number"
-                required
-                min="1"
-                max={currentProduct?.stockDisponible || 999}
-                value={quantite}
-                onChange={(e) => setQuantite(Number(e.target.value))}
-                className="app-field font-mono"
-              />
-              {currentProduct && (
-                <p className="mt-1 text-xs text-muted-foreground">
-                  Disponible : {currentProduct.stockDisponible}
-                  {currentProduct.stockReserve > 0
-                    ? ` (${currentProduct.stockActuel} en stock, ${currentProduct.stockReserve} réservés par des commandes)`
-                    : ""}
-                </p>
-              )}
-            </div>
+              aide={
+                currentProduct && currentProduct.stockReserve > 0
+                  ? `${currentProduct.stockReserve} réservé(s) par des commandes, sur ${currentProduct.stockActuel} en stock.`
+                  : undefined
+              }
+            />
 
             <div>
-              <label className="mb-1.5 block text-sm font-medium text-foreground">
-                Prix de vente unitaire
+              <label
+                htmlFor="vente-prix"
+                className="mb-1.5 block text-sm font-medium text-foreground"
+              >
+                Prix unitaire
               </label>
               <input
+                id="vente-prix"
                 type="number"
                 required
                 min="0"
@@ -1352,19 +1344,19 @@ export const VentesView: React.FC<VentesViewProps> = ({
                 className="app-field font-mono"
               />
               <Equivalents montant={prixVenteUnit} className="mt-1" saisie />
-              <p className="mt-1 text-xs text-muted-foreground">
-                Prérempli au prix de référence (
-                {formatCurrency(currentProduct?.prixVenteDefaut ?? 0)}).
-              </p>
+              {isCustomPrice && currentProduct && (
+                <p className="mt-1 text-[11px] text-muted-foreground">
+                  Référence : {formatCurrency(currentProduct.prixVenteDefaut)}
+                </p>
+              )}
             </div>
           </div>
 
           <button
             type="button"
             onClick={() => {
-              if (ajouterAuPanier(selectedProductId, Number(quantite), Number(prixVenteUnit))) {
+              if (ajouterAuPanier(selectedProductId, 1, Number(prixVenteUnit))) {
                 setIsCustomPrice(false);
-                setQuantite(1);
               }
             }}
             disabled={!selectedProductId}
@@ -1415,9 +1407,24 @@ export const VentesView: React.FC<VentesViewProps> = ({
                           >
                             <Minus className="h-3.5 w-3.5" />
                           </button>
-                          <span className="w-8 text-center font-mono text-sm tabular-nums">
-                            {ligne.quantite}
-                          </span>
+                          {/* Se tape aussi : quarante cartons ne se
+                              comptent pas au « + ». */}
+                          <input
+                            type="number"
+                            inputMode="numeric"
+                            min="1"
+                            max={prod?.stockDisponible}
+                            value={ligne.quantite}
+                            onFocus={(e) => e.target.select()}
+                            onChange={(e) => {
+                              const n = Number(e.target.value);
+                              if (e.target.value !== "" && Number.isFinite(n) && n > 0) {
+                                changerQuantite(ligne.productId, n);
+                              }
+                            }}
+                            aria-label={`Quantité de ${nom}`}
+                            className="h-7 w-14 rounded-lg border border-border bg-transparent text-center font-mono text-sm tabular-nums [appearance:textfield] focus:outline-none focus:ring-2 focus:ring-ring [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
+                          />
                           <button
                             type="button"
                             onClick={() => ajouterAuPanier(ligne.productId, 1, ligne.prixVenteUnit)}
@@ -1522,7 +1529,10 @@ export const VentesView: React.FC<VentesViewProps> = ({
           </div>
 
           {formError && (
-            <div className="flex items-center gap-2 rounded-xl border border-danger-border bg-danger-soft px-3 py-2.5 text-sm t-danger">
+            <div
+              role="alert"
+              className="flex items-center gap-2 rounded-xl border border-danger-border bg-danger-soft px-3 py-2.5 text-sm t-danger"
+            >
               <AlertCircle className="h-4 w-4 shrink-0" />
               {formError}
             </div>

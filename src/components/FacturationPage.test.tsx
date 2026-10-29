@@ -173,6 +173,13 @@ function ouvrirLeMenu() {
   fireEvent.click(screen.getByRole("button", { name: /Nouveau document/ }));
 }
 
+/** Le produit se choisit dans la liste qui s'ouvre sous le champ. */
+function choisirLeProduit(nom: string) {
+  fireEvent.click(screen.getByLabelText(/^Produit$/i));
+  const option = screen.getByRole("option", { name: new RegExp(nom) });
+  fireEvent.click(within(option).getByRole("button"));
+}
+
 function ouvrirLeFormulaire(libelle: RegExp) {
   ouvrirLeMenu();
   fireEvent.click(screen.getByRole("menuitem", { name: libelle }));
@@ -185,7 +192,7 @@ describe("établir une facture n'écrit qu'une vente", () => {
     const { onAddSaleTicket } = afficher();
     ouvrirLeFormulaire(/^Facture Produits du catalogue/);
 
-    fireEvent.change(screen.getByLabelText(/^Produit$/i), { target: { value: "p1" } });
+    choisirLeProduit("Ciment");
     fireEvent.change(screen.getByLabelText(/^Quantité$/i), { target: { value: "2" } });
     fireEvent.click(screen.getByRole("button", { name: /Établir le document/ }));
 
@@ -219,7 +226,7 @@ describe("établir une facture n'écrit qu'une vente", () => {
     const { onAddSaleTicket } = afficher();
     ouvrirLeFormulaire(/^Reçu/);
 
-    fireEvent.change(screen.getByLabelText(/^Produit$/i), { target: { value: "p1" } });
+    choisirLeProduit("Ciment");
     fireEvent.click(screen.getByRole("button", { name: /Établir le document/ }));
 
     await waitFor(() => expect(onAddSaleTicket).toHaveBeenCalledTimes(1));
