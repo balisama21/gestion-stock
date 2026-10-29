@@ -20,6 +20,7 @@ import { PageHeader } from "./shared/PageHeader";
 import { FilterBar, FilterField } from "./shared/FilterBar";
 import { DataList, type DataListItem } from "./shared/DataList";
 import { VignetteProduit, vignettesParProduit } from "./shared/VignetteProduit";
+import { Deux, Stock, Texte } from "./shared/Cellules";
 import { StatCol } from "./shared/StatBar";
 import { Modal } from "./shared/Modal";
 import { DetailsProduit } from "./produits/DetailsProduit";
@@ -611,6 +612,28 @@ export const ProduitsView: React.FC<ProduitsViewProps> = ({
           {rupture ? "Rupture" : `${p.stockActuel} en stock`}
         </span>
       ),
+      sousTitre: p.numero,
+      cellules: {
+        fournisseur: showFournisseur ? <Texte valeur={p.fournisseur || null} /> : null,
+        vente: <Deux haut={formatCurrency(p.prixVenteDefaut)} />,
+        achat: showPrixAchat ? (
+          <Deux
+            haut={formatCurrency(p.prixAchat)}
+            bas={
+              p.prixVenteDefaut > 0
+                ? `marge ${Math.round(((p.prixVenteDefaut - p.prixAchat) / p.prixVenteDefaut) * 100)} %`
+                : undefined
+            }
+            tonBas={p.prixVenteDefaut >= p.prixAchat ? "succes" : "danger"}
+          />
+        ) : null,
+        stock: <Stock quantite={p.stockActuel} seuil={p.seuilAlerte} suivi={suivi} />,
+        reserve:
+          p.stockReserve > 0 ? (
+            <Deux haut={p.stockDisponible} bas={`${p.stockReserve} réservé(s)`} />
+          ) : null,
+        seuil: <span className="tabular-nums text-muted-foreground">{p.seuilAlerte}</span>,
+      },
       detailTitle: getProductLabel(p, products),
       detailSubtitle: p.numero,
       details: [
@@ -825,6 +848,22 @@ export const ProduitsView: React.FC<ProduitsViewProps> = ({
             <DataList
               emptyLabel="Aucun produit ne correspond à ces filtres."
               ouvrir={ficheAOuvrir}
+              titrePrincipal="Produit"
+              colonnes={[
+                ...(showFournisseur ? [{ cle: "fournisseur", titre: "Fournisseur" }] : []),
+                { cle: "vente", titre: "Prix de vente", align: "droite" as const },
+                ...(showPrixAchat
+                  ? [{ cle: "achat", titre: "Prix d'achat", align: "droite" as const }]
+                  : []),
+                { cle: "stock", titre: "Stock", align: "droite" as const, largeur: "7.5rem" },
+                {
+                  cle: "reserve",
+                  titre: "Disponible",
+                  align: "droite" as const,
+                  large: true,
+                },
+                { cle: "seuil", titre: "Seuil", align: "droite" as const, large: true },
+              ]}
               items={filteredProducts.map(versItemProduit)}
             />
           </div>

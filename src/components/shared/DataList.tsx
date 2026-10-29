@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { ChevronRight, Inbox } from "lucide-react";
 import { Modal } from "./Modal";
 import { AvisIntrouvable } from "./AvisIntrouvable";
+import { useEcranTableau } from "../../hooks/useEcranTableau";
 
 export interface DetailField {
   label: string;
@@ -47,6 +48,25 @@ export interface DataListItem {
   /** Titre du panneau de détails (par défaut : la valeur principale). */
   detailTitle?: string;
   detailSubtitle?: string;
+  /**
+   * EN TABLEAU (PC) — la petite ligne sous le nom, dans la première
+   * colonne : une référence, une quantité. Le reste vit dans les
+   * colonnes, pas dans une ligne grise interminable.
+   */
+  sousTitre?: React.ReactNode;
+  /** EN TABLEAU (PC) — le contenu de chaque colonne, par sa clé. */
+  cellules?: Record<string, React.ReactNode>;
+}
+
+/** Une colonne du tableau affiché sur PC. */
+export interface ColonneTableau {
+  cle: string;
+  titre: string;
+  align?: "gauche" | "droite" | "centre";
+  /** Largeur CSS de la colonne : « 9rem », « 12% ». Absente : selon le contenu. */
+  largeur?: string;
+  /** Seulement sur grand écran (≥ 1440 px) : une colonne utile mais secondaire. */
+  large?: boolean;
 }
 
 interface DataListProps {
@@ -61,13 +81,29 @@ interface DataListProps {
    * Chaque nouvelle `cle` rouvre, même vers la même fiche.
    */
   ouvrir?: { cle: number; item: DataListItem | null } | null;
+  /**
+   * Les colonnes du tableau, sur PC. Absentes, la liste reste une liste
+   * partout. Sur téléphone et tablette, la liste ne change jamais.
+   */
+  colonnes?: ColonneTableau[];
+  /** L'en-tête de la première colonne, celle du nom : « Produit », « Client ». */
+  titrePrincipal?: string;
 }
+
+const classeColonne = (c: ColonneTableau) =>
+  [
+    c.align === "droite" ? "a-droite" : c.align === "centre" ? "a-centre" : "",
+    c.large ? "app-grille-large" : "",
+  ]
+    .filter(Boolean)
+    .join(" ");
 
 const isEmpty = (v: React.ReactNode) =>
   v === null || v === undefined || v === "" || v === "-" || v === "0";
 
 /**
- * Liste dense, identique sur mobile et sur desktop.
+ * Liste dense sur téléphone ; tableau sur PC quand l'écran fournit des
+ * `colonnes` (voir `useEcranTableau`).
  *
  * Elle remplace les tableaux à dix colonnes et plus, qui imposaient un
  * défilement horizontal aussi bien sur téléphone que sur grand écran :
@@ -96,7 +132,11 @@ export const DataList: React.FC<DataListProps> = ({
   emptyLabel,
   className = "",
   ouvrir,
+  colonnes,
+  titrePrincipal = "Élément",
 }) => {
+  const ecranTableau = useEcranTableau();
+  const enTableau = Boolean(colonnes?.length) && ecranTableau;
   /*
    * LA FICHE OUVERTE SUIT LA LISTE.
    *
@@ -137,6 +177,89 @@ export const DataList: React.FC<DataListProps> = ({
           <p className="text-sm text-muted-foreground">
             {emptyLabel ?? "Aucun élément à afficher."}
           </p>
+        </div>
+      ) : enTableau && colonnes ? (
+        /* ── Sur PC : un tableau ──
+           Chaque information a sa colonne, alignée d'une ligne à
+           l'autre : on compare les montants d'un regard au lieu de les
+           chercher au bout d'une ligne grise. Le nom reste un vrai
+           bouton (clavier, lecteur d'écran) ; le clic n'importe où sur
+           la ligne ouvre la même fiche. */
+        <div className={`app-grille-cadre ${className}`}>
+          <table className="app-grille">
+            <thead>
+              <tr>
+                <th scope="col">{titrePrincipal}</th>
+                {colonnes.map((c) => (
+                  <th
+                    key={c.cle}
+                    scope="col"
+                    className={classeColonne(c)}
+                    style={c.largeur ? { width: c.largeur } : undefined}
+                  >
+                    {c.titre}
+                  </th>
+                ))}
+                <th aria-hidden="true" className="app-grille-chevron" />
+              </tr>
+            </thead>
+            <tbody>
+              {items.slice(0, affichees).map((item) => {
+                const clickable = Boolean(item.details?.length || item.actions);
+                return (
+                  <tr
+                    key={item.id}
+                    className={clickable ? "est-cliquable" : undefined}
+                    onClick={clickable ? () => setOpenItem(item) : undefined}
+                  >
+                    <td className="app-grille-principal">
+                      <div className="flex min-w-0 items-center gap-3">
+                        {item.leading && (
+                          // Une case à cocher ou une vignette ne doivent
+                          // pas ouvrir la fiche.
+                          <span className="shrink-0" onClick={(e) => e.stopPropagation()}>
+                            {item.leading}
+                          </span>
+                        )}
+                        <div className="min-w-0">
+                          {clickable ? (
+                            <button
+                              type="button"
+                              className="app-grille-titre"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                setOpenItem(item);
+                              }}
+                            >
+                              {item.primary}
+                            </button>
+                          ) : (
+                            <span className="app-grille-titre">{item.primary}</span>
+                          )}
+                          {item.sousTitre && (
+                            <div className="app-grille-sous">{item.sousTitre}</div>
+                          )}
+                        </div>
+                      </div>
+                    </td>
+                    {colonnes.map((c) => {
+                      const v = item.cellules?.[c.cle];
+                      return (
+                        <td key={c.cle} className={classeColonne(c)}>
+                          {isEmpty(v) ? <span className="app-grille-vide">—</span> : v}
+                        </td>
+                      );
+                    })}
+                    <td className="app-grille-chevron">
+                      {clickable && (
+                        <ChevronRight className="h-4 w-4 text-muted-foreground/50" aria-hidden />
+                      )}
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
         </div>
       ) : (
         <div className={`app-list ${className}`}>

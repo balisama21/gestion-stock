@@ -17,6 +17,7 @@ import { formatCurrency, formatDateLocale, getProductLabel } from "../utils/form
 import { PageHeader, HeaderMetric } from "./shared/PageHeader";
 import { FilterBar, FilterField } from "./shared/FilterBar";
 import { DataList, type DataListItem } from "./shared/DataList";
+import { DateJour, Deux } from "./shared/Cellules";
 import { Modal } from "./shared/Modal";
 import { SortieDocument } from "../features/documents/SortieDocument";
 import { documentDeFactureAchat } from "../features/documents/lib/buildDocument";
@@ -329,6 +330,26 @@ export const FacturesAchatView: React.FC<Props> = ({
           {reste > 0 ? "À régler" : "Réglée"}
         </span>
       ),
+      sousTitre: [f.numero, f.numero_fournisseur ? `n° ${f.numero_fournisseur}` : null]
+        .filter(Boolean)
+        .join(" · "),
+      cellules: {
+        date: <DateJour iso={f.date} locale="FR" />,
+        echeance: f.date_echeance ? <Deux haut={formatDateLocale(f.date_echeance, "FR")} /> : null,
+        lignes: (
+          <span className="tabular-nums text-muted-foreground">
+            {ses.length} ligne{ses.length > 1 ? "s" : ""}
+          </span>
+        ),
+        piece: f.piece_jointe ? <span className="app-cellule-bas">jointe</span> : null,
+        total: <Deux haut={formatCurrency(f.total ?? 0)} />,
+        reste: reste > 0 ? <Deux haut={formatCurrency(reste)} tonHaut="alerte" /> : null,
+        statut: (
+          <span className={`app-badge ${reste > 0 ? "app-badge-warning" : "app-badge-success"}`}>
+            {reste > 0 ? "À régler" : "Réglée"}
+          </span>
+        ),
+      },
       detailTitle: f.fournisseur || "Fournisseur inconnu",
       detailSubtitle: `Facture ${f.numero ?? ""}`,
       detailBody:
@@ -479,6 +500,16 @@ export const FacturesAchatView: React.FC<Props> = ({
       <div className="app-card overflow-hidden">
         <DataList
           emptyLabel="Aucune facture reçue ne correspond à ces filtres."
+          titrePrincipal="Fournisseur"
+          colonnes={[
+            { cle: "date", titre: "Date", largeur: "8.5rem" },
+            { cle: "echeance", titre: "Échéance", largeur: "8.5rem" },
+            { cle: "lignes", titre: "Lignes", align: "droite", large: true },
+            { cle: "piece", titre: "Pièce", align: "centre", large: true },
+            { cle: "total", titre: "Total", align: "droite" },
+            { cle: "reste", titre: "Reste à régler", align: "droite" },
+            { cle: "statut", titre: "Statut", align: "centre", largeur: "7rem" },
+          ]}
           items={filtrees.map(item)}
         />
       </div>

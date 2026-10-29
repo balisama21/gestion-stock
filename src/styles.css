@@ -1927,6 +1927,149 @@ td {
     @apply shrink-0 text-sm font-semibold tabular-nums text-foreground;
   }
 
+  /* ── Tableaux de PC (DataList en mode tableau) ──
+     Sur grand écran, les listes deviennent des tableaux : chaque
+     information a sa colonne, les nombres s'alignent à droite et se
+     comparent d'un regard. En-tête discret et collant, filets légers,
+     une ligne sur deux à peine teintée pour guider l'œil, et le survol
+     en vert très pâle. */
+  .app-grille-cadre {
+    overflow-x: auto;
+  }
+  .app-grille {
+    width: 100%;
+    border-collapse: separate;
+    border-spacing: 0;
+    font-size: 13.5px;
+  }
+  .app-grille thead th {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+    padding: 10px 14px;
+    background: color-mix(in oklab, var(--muted) 60%, var(--card));
+    border-bottom: 1px solid var(--border);
+    color: var(--muted-foreground);
+    font-size: 10.5px;
+    font-weight: 600;
+    letter-spacing: 0.07em;
+    text-align: left;
+    text-transform: uppercase;
+    white-space: nowrap;
+  }
+  .app-grille tbody td {
+    padding: 11px 14px;
+    border-bottom: 1px solid color-mix(in oklab, var(--border) 65%, transparent);
+    color: var(--foreground);
+    vertical-align: middle;
+  }
+  .app-grille tbody tr:last-child td {
+    border-bottom: 0;
+  }
+  .app-grille tbody tr:nth-child(even) td {
+    background: color-mix(in oklab, var(--muted) 30%, transparent);
+  }
+  .app-grille tbody tr.est-cliquable {
+    cursor: pointer;
+  }
+  @media (hover: hover) {
+    .app-grille tbody tr.est-cliquable:hover td {
+      background: color-mix(in oklab, var(--primary) 7%, var(--card));
+    }
+  }
+  .app-grille .a-droite {
+    text-align: right;
+  }
+  .app-grille .a-centre {
+    text-align: center;
+  }
+  .app-grille-principal {
+    min-width: 220px;
+    max-width: 360px;
+  }
+  /* Un numéro de commande n'a pas besoin de la place d'un nom. */
+  .app-grille-principal.app-grille-court {
+    min-width: 7rem;
+  }
+  .app-grille-titre {
+    display: block;
+    max-width: 100%;
+    overflow: hidden;
+    color: var(--foreground);
+    font-weight: 600;
+    text-align: left;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .app-grille-titre:focus-visible {
+    border-radius: 6px;
+    outline: 2px solid var(--ring);
+    outline-offset: 2px;
+  }
+  .app-grille-sous {
+    overflow: hidden;
+    margin-top: 1px;
+    color: var(--muted-foreground);
+    font-size: 12px;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  .app-grille-vide {
+    color: color-mix(in oklab, var(--muted-foreground) 45%, transparent);
+  }
+  .app-grille-chevron {
+    width: 34px;
+    padding-left: 0 !important;
+  }
+  /* Le détail déplié sous sa ligne : posé sur la carte, sans rayure. */
+  .app-grille tbody tr.app-grille-deplie td {
+    padding: 0;
+    background: color-mix(in oklab, var(--primary) 3%, var(--card));
+  }
+  /* Une colonne secondaire ne s'affiche que s'il y a de la place. */
+  @media (max-width: 1439px) {
+    .app-grille .app-grille-large {
+      display: none;
+    }
+  }
+  /* Les cellules : un chiffre en gras, sa note en petit dessous. */
+  .app-cellule-haut {
+    display: block;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+  .app-cellule-bas {
+    display: block;
+    margin-top: 1px;
+    color: var(--muted-foreground);
+    font-size: 11.5px;
+    white-space: nowrap;
+  }
+  .app-cellule-texte {
+    display: block;
+    max-width: 220px;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+  /* La jauge de stock : la réserve comparée au seuil d'alerte. */
+  .app-jauge {
+    display: block;
+    width: 64px;
+    height: 4px;
+    margin-top: 5px;
+    margin-left: auto;
+    overflow: hidden;
+    border-radius: 9999px;
+    background: color-mix(in oklab, var(--muted-foreground) 16%, transparent);
+  }
+  .app-jauge > i {
+    display: block;
+    height: 100%;
+    border-radius: inherit;
+  }
+
   /* ── Tableaux : filets fins, en-tête discret ── */
   .app-table thead tr {
     @apply border-b border-border bg-transparent;

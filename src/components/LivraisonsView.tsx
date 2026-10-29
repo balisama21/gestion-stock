@@ -4,6 +4,7 @@ import { formatCurrency, formatDateLocale, quantiteEnMots } from "../utils/formu
 import { PageHeader, HeaderMetric } from "./shared/PageHeader";
 import { FilterBar, FilterField } from "./shared/FilterBar";
 import { DataList, type DataListItem } from "./shared/DataList";
+import { DateJour, Deux, Texte } from "./shared/Cellules";
 import { ChampAvecSuggestions } from "./shared/ChampAvecSuggestions";
 import { cleDeListe } from "../lib/listes";
 import { StatCol } from "./shared/StatBar";
@@ -336,6 +337,25 @@ export const LivraisonsView: React.FC<LivraisonsViewProps> = ({
           {libelleStatutLivraison(l.statut)}
         </span>
       ),
+      sousTitre: l.numero,
+      cellules: {
+        date: l.date_prevue ? <DateJour iso={l.date_prevue} locale="FR" /> : null,
+        adresse: <Texte valeur={l.adresse || null} note={l.telephone || undefined} />,
+        livreur: livreur ? (
+          <Texte valeur={livreur} />
+        ) : (
+          <span className="app-cellule-bas t-warning">à confier</span>
+        ),
+        encaisser:
+          l.montant_a_encaisser > 0 ? (
+            <Deux haut={formatCurrency(l.montant_a_encaisser)} bas="à encaisser" />
+          ) : null,
+        statut: (
+          <span className={`app-badge ${classeStatutLivraison(l.statut)}`}>
+            {libelleStatutLivraison(l.statut)}
+          </span>
+        ),
+      },
       detailTitle: l.destinataire || "Sans destinataire",
       detailSubtitle: `Course ${l.numero ?? ""}`,
       detailBody: (
@@ -563,6 +583,14 @@ export const LivraisonsView: React.FC<LivraisonsViewProps> = ({
         <DataList
           emptyLabel="Aucune course ne correspond à ces filtres."
           ouvrir={ficheAOuvrir}
+          titrePrincipal="Destinataire"
+          colonnes={[
+            { cle: "date", titre: "Prévue le", largeur: "8.5rem" },
+            { cle: "adresse", titre: "Adresse" },
+            { cle: "livreur", titre: "Livreur" },
+            { cle: "encaisser", titre: "À encaisser", align: "droite" },
+            { cle: "statut", titre: "Statut", align: "centre", largeur: "8rem" },
+          ]}
           items={filtrees.map(item)}
         />
       </div>

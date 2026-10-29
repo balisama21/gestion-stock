@@ -6,6 +6,7 @@ import { formatCurrency, formatDateLocale, getProductLabel } from "../utils/form
 import { PageHeader, HeaderMetric } from "./shared/PageHeader";
 import { FilterBar, FilterField } from "./shared/FilterBar";
 import { DataList, type DataListItem } from "./shared/DataList";
+import { DateJour, Deux } from "./shared/Cellules";
 import { StatCol } from "./shared/StatBar";
 import { Modal } from "./shared/Modal";
 import { DocumentDevis } from "./devis/DocumentDevis";
@@ -398,6 +399,22 @@ export const DevisView: React.FC<DevisViewProps> = ({
       ],
       amount: formatCurrency(devis.total),
       badge: <span className={`app-badge ${classeStatut(devis)}`}>{texteStatut(devis)}</span>,
+      sousTitre: [typeDe(devis) === "proforma" ? "Proforma" : null, devis.numero]
+        .filter(Boolean)
+        .join(" · "),
+      cellules: {
+        date: <DateJour iso={devis.date} locale="FR" />,
+        validite: devis.valide_jusqu_au ? (
+          <Deux haut={formatDateLocale(devis.valide_jusqu_au, "FR")} bas="valable jusqu'au" />
+        ) : null,
+        lignes: (
+          <span className="tabular-nums text-muted-foreground">
+            {sesLignes.length} ligne{sesLignes.length > 1 ? "s" : ""}
+          </span>
+        ),
+        total: <Deux haut={formatCurrency(devis.total)} />,
+        statut: <span className={`app-badge ${classeStatut(devis)}`}>{texteStatut(devis)}</span>,
+      },
       detailTitle: devis.client_nom || "Sans nom",
       detailSubtitle: `${PIECES[typeDe(devis)].nom} ${devis.numero ?? ""}`,
       detailBody: (
@@ -599,6 +616,14 @@ export const DevisView: React.FC<DevisViewProps> = ({
         <DataList
           emptyLabel="Aucun devis ne correspond à ces filtres."
           ouvrir={ficheAOuvrir}
+          titrePrincipal="Client"
+          colonnes={[
+            { cle: "date", titre: "Date", largeur: "8.5rem" },
+            { cle: "validite", titre: "Validité", largeur: "9rem" },
+            { cle: "lignes", titre: "Lignes", align: "droite", large: true },
+            { cle: "total", titre: "Total", align: "droite" },
+            { cle: "statut", titre: "Statut", align: "centre", largeur: "8rem" },
+          ]}
           items={filtres.map(item)}
         />
       </div>

@@ -49,6 +49,7 @@ import type { Personne } from "../lib/personnes";
 import { FilterBar, FilterField } from "./shared/FilterBar";
 import { DataList, type DataListItem } from "./shared/DataList";
 import { VignetteProduit, vignettesParProduit } from "./shared/VignetteProduit";
+import { DateJour, Deux, Marge, Montant, Texte } from "./shared/Cellules";
 import { StatBar, StatCol } from "./shared/StatBar";
 import { Modal } from "./shared/Modal";
 import { useInvoicePrefs } from "../lib/invoicePrefs";
@@ -86,6 +87,21 @@ const AUCUNE_COMMANDE: Sale[] = [];
 const AUCUN_AVOIR: AvoirDeVente[] = [];
 
 type Client = Database["public"]["Tables"]["clients"]["Row"];
+
+/** Le statut de règlement, seule couleur de la ligne. */
+const badgePaiement = (statut: string) => (
+  <span
+    className={`app-badge ${
+      statut === "Payé"
+        ? "app-badge-success"
+        : statut === "Partiel"
+          ? "app-badge-warning"
+          : "app-badge-danger"
+    }`}
+  >
+    {statut}
+  </span>
+);
 
 /** Un produit posé dans le panier, avec son prix tel qu'il sera vendu. */
 interface LignePanier {
@@ -779,6 +795,22 @@ export const VentesView: React.FC<VentesViewProps> = ({
           {s.statutCredit}
         </span>
       ),
+      sousTitre: quantiteEnMots(s.quantite, prod?.unite),
+      cellules: {
+        date: <DateJour iso={s.date} locale={locale} />,
+        client: <Texte valeur={s.clientCredit || null} />,
+        vendeur: <Texte valeur={s.vendeur || null} />,
+        pu: showMontant ? <Deux haut={formatCurrency(s.prixVenteUnit)} /> : null,
+        marge: showMargeLigne ? <Marge marge={s.margeTotale} total={s.totalVente} /> : null,
+        total: showMontant ? (
+          <Montant
+            valeur={s.totalVente}
+            note={showSolde && s.soldeDu > 0 ? `reste ${formatCurrency(s.soldeDu)}` : undefined}
+            tonNote="alerte"
+          />
+        ) : null,
+        statut: badgePaiement(s.statutCredit),
+      },
       detailTitle: nom,
       detailSubtitle: `Vente ${s.numero}`,
       details: [
@@ -935,6 +967,21 @@ export const VentesView: React.FC<VentesViewProps> = ({
           {statut}
         </span>
       ),
+      sousTitre: `${lignes.length} produits · ${articles} articles`,
+      cellules: {
+        date: <DateJour iso={premiere.date} locale={locale} />,
+        client: <Texte valeur={premiere.clientCredit || null} />,
+        vendeur: <Texte valeur={premiere.vendeur || null} />,
+        marge: showMargeLigne ? <Marge marge={marge} total={total} /> : null,
+        total: showMontant ? (
+          <Montant
+            valeur={total}
+            note={showSolde && du > 0 ? `reste ${formatCurrency(du)}` : undefined}
+            tonNote="alerte"
+          />
+        ) : null,
+        statut: badgePaiement(statut),
+      },
       detailTitle: `${lignes.length} produits`,
       detailSubtitle: `Vente du ${formatDateLocale(premiere.date, locale)}`,
       detailBody: (
@@ -1200,6 +1247,18 @@ export const VentesView: React.FC<VentesViewProps> = ({
         <DataList
           emptyLabel="Aucune vente ne correspond à ces filtres."
           ouvrir={ficheAOuvrir}
+          titrePrincipal="Produit"
+          colonnes={[
+            { cle: "date", titre: "Date", largeur: "8.5rem" },
+            { cle: "client", titre: "Client" },
+            ...(avecEquipe ? [{ cle: "vendeur", titre: "Vendeur", large: true }] : []),
+            ...(showMontant
+              ? [{ cle: "pu", titre: "Prix unitaire", align: "droite" as const, large: true }]
+              : []),
+            ...(showMargeLigne ? [{ cle: "marge", titre: "Marge", align: "droite" as const }] : []),
+            ...(showMontant ? [{ cle: "total", titre: "Total", align: "droite" as const }] : []),
+            { cle: "statut", titre: "Paiement", align: "centre" as const, largeur: "7rem" },
+          ]}
           items={ventesGroupees.map((groupe) =>
             groupe.length === 1 ? itemVente(groupe[0]) : itemTicket(groupe),
           )}
