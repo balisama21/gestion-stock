@@ -10,9 +10,10 @@ import "./operations.css";
  * la page.
  *
  * Sur ordinateur et tablette, les cartes forment un seul panneau en
- * quatre. Sur téléphone, elles deviennent quatre feuilles qu'on fait
- * défiler du doigt, chacune avec son papier (voir `operations.css`) ; les
- * onglets dessous disent laquelle est devant et mènent aux autres.
+ * quatre. Sur téléphone, elles deviennent les pages d'un cahier ouvert,
+ * deux par deux autour de la reliure, qu'on tourne du doigt (voir
+ * `operations.css`) ; les onglets dessous disent laquelle est devant et
+ * mènent aux autres.
  *
  * Le titre reste dans le document pour les lecteurs d'écran et pour
  * `aria-labelledby`.
