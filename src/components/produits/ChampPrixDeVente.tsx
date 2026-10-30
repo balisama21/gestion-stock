@@ -26,6 +26,8 @@ interface ChampPrixDeVenteProps {
   tauxCategorie: number | null;
   reglages: ReglagesPrixAuto;
   id?: string;
+  /** « Prix de vente du paquet » ; sans unité, « Prix de vente ». */
+  label?: string;
 }
 
 /**
@@ -47,6 +49,7 @@ export const ChampPrixDeVente: React.FC<ChampPrixDeVenteProps> = ({
   tauxCategorie,
   reglages,
   id = "prix-vente",
+  label = "Prix de vente",
 }) => {
   const applique = useMemo(
     () => tauxApplicable(tauxProduit, tauxCategorie, reglages.taux),
@@ -87,7 +90,7 @@ export const ChampPrixDeVente: React.FC<ChampPrixDeVenteProps> = ({
   return (
     <div>
       <label htmlFor={id} className="mb-1.5 block text-sm font-medium text-foreground">
-        Prix de vente ({symboleDeSaisie()})
+        {label} ({symboleDeSaisie()})
       </label>
       <input
         id={id}

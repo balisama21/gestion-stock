@@ -29,7 +29,7 @@ import { Deux, Stock, Texte } from "./shared/Cellules";
 import { StatCol } from "./shared/StatBar";
 import { Modal } from "./shared/Modal";
 import { DetailsProduit } from "./produits/DetailsProduit";
-import { ChampPrixDeVente } from "./produits/ChampPrixDeVente";
+import { ChampPrixAchat, ChoixUnite, PrixDeVenteDuProduit } from "./produits/UniteEtPrix";
 import { PRIX_AUTO_DEFAUT, type ReglagesPrixAuto } from "../lib/prixAuto";
 import { SelecteurFournisseur } from "./shared/SelecteurFournisseur";
 import {
@@ -41,8 +41,19 @@ import {
   type ValeursDetails,
 } from "../lib/detailsProduit";
 import {
-  erreurConditionnements,
+  PRIX_VIDES,
+  contenuDe,
+  depuisFiche,
+  erreurDeLaFiche,
+  saisieUniteVide,
+  uniteDuStock,
+  versFiche,
+  type PrixSaisis,
+  type SaisieUnite,
+} from "../lib/uniteDeVente";
+import {
   libelleConditionnement,
+  libelleUnite,
   prixVenteDe,
   stockEnConditionnements,
 } from "../lib/conditionnements";
@@ -251,8 +262,12 @@ export const ProduitsView: React.FC<ProduitsViewProps> = ({
   // initial de 20 et un seuil de 5 : un produit enregistré sans relire
   // entrait avec vingt unités qui n'existaient pas, et des prix inventés.
   const [designation, setDesignation] = useState("");
-  const [prixAchat, setPrixAchat] = useState(0);
-  const [prixVenteDefaut, setPrixVenteDefaut] = useState(0);
+  /**
+   * L'unité et les prix, saisis comme on les dit — « un paquet de 12,
+   * acheté 12 000 » — puis rangés en unité de stock par `versFiche`.
+   */
+  const [addUnite, setAddUnite] = useState<SaisieUnite>(saisieUniteVide);
+  const [addPrix, setAddPrix] = useState<PrixSaisis>(PRIX_VIDES);
   /**
    * Un produit créé ici part en « manuel » : son prix par défaut est un
    * nombre écrit à la main. Toucher un bouton de taux le passe en auto.
@@ -285,8 +300,8 @@ export const ProduitsView: React.FC<ProduitsViewProps> = ({
   const [editModePrix, setEditModePrix] = useState<"auto" | "manuel">("manuel");
   const [editTauxProduit, setEditTauxProduit] = useState<number | null>(null);
   const [editDesignation, setEditDesignation] = useState("");
-  const [editPrixAchat, setEditPrixAchat] = useState(0);
-  const [editPrixVenteDefaut, setEditPrixVenteDefaut] = useState(0);
+  const [editUnite, setEditUnite] = useState<SaisieUnite>(saisieUniteVide);
+  const [editPrix, setEditPrix] = useState<PrixSaisis>(PRIX_VIDES);
   const [editFournisseur, setEditFournisseur] = useState("");
   const [editSeuilAlerte, setEditSeuilAlerte] = useState(0);
   const [editSaving, setEditSaving] = useState(false);
@@ -439,11 +454,17 @@ export const ProduitsView: React.FC<ProduitsViewProps> = ({
 
     // Avant toute écriture : un carton « de 0 pièce » serait refusé par
     // la base APRÈS la création du produit, qui naîtrait sans sa fiche.
-    const erreurCond = erreurConditionnements(addDetails.conditionnements, addDetails.unite);
+    const erreurCond = erreurDeLaFiche(addUnite, addPrix);
     if (erreurCond) {
       setAddErreur(erreurCond);
       return;
     }
+    const fiche = versFiche(addUnite, addPrix);
+    const details: ValeursDetails = {
+      ...addDetails,
+      unite: fiche.unite,
+      conditionnements: fiche.conditionnements,
+    };
 
     setSaving(true);
     setAddErreur(null);
@@ -455,8 +476,8 @@ export const ProduitsView: React.FC<ProduitsViewProps> = ({
     // première vient de rendre.
     const result = await onAddProduct({
       designation: designation.trim(),
-      prixAchat: Number(prixAchat),
-      prixVenteDefaut: Number(prixVenteDefaut),
+      prixAchat: fiche.prixAchat,
+      prixVenteDefaut: fiche.prixVenteDefaut,
       fournisseur: fournisseur.trim(),
       stockInitial: Number(stockInitial),
       stockActuel: Number(stockInitial),
@@ -473,18 +494,17 @@ export const ProduitsView: React.FC<ProduitsViewProps> = ({
     // écriture de plus pour n'y inscrire que des valeurs par défaut.
     // Mode et taux sont descriptifs : écrits hors du chemin verrouillé.
     const prixARegler = prixAuto.actif && (modePrix === "auto" || tauxProduit !== null);
-    const ficheRemplie =
-      JSON.stringify(addDetails) !== JSON.stringify(DETAILS_VIDES) || prixARegler;
+    const ficheRemplie = JSON.stringify(details) !== JSON.stringify(DETAILS_VIDES) || prixARegler;
     if (ficheRemplie && onEditProductDetails && result.id) {
-      const details = await onEditProductDetails(result.id, {
-        ...detailsVersBase(addDetails),
+      const ecrit = await onEditProductDetails(result.id, {
+        ...detailsVersBase(details),
         ...(prixAuto.actif ? { mode_prix: modePrix, taux_marge: tauxProduit } : {}),
       });
-      if (details.error) {
+      if (ecrit.error) {
         setSaving(false);
         // Le produit existe : le dire, sinon l'utilisateur croirait
         // avoir tout perdu et le créerait une seconde fois.
-        setAddErreur(`${details.error} Le produit, lui, a bien été créé.`);
+        setAddErreur(`${ecrit.error} Le produit, lui, a bien été créé.`);
         return;
       }
     }
@@ -512,8 +532,8 @@ export const ProduitsView: React.FC<ProduitsViewProps> = ({
    */
   const remettreCreationAZero = () => {
     setDesignation("");
-    setPrixAchat(0);
-    setPrixVenteDefaut(0);
+    setAddUnite(saisieUniteVide());
+    setAddPrix(PRIX_VIDES);
     setModePrix("manuel");
     setTauxProduit(null);
     setFournisseur("");
@@ -538,8 +558,9 @@ export const ProduitsView: React.FC<ProduitsViewProps> = ({
   const openEditModal = (p: Product) => {
     setEditingProduct(p);
     setEditDesignation(p.designation);
-    setEditPrixAchat(p.prixAchat);
-    setEditPrixVenteDefaut(p.prixVenteDefaut);
+    const relu = depuisFiche(p);
+    setEditUnite(relu.saisie);
+    setEditPrix(relu.prix);
     setEditFournisseur(p.fournisseur);
     setEditModePrix(p.modePrix === "auto" ? "auto" : "manuel");
     setEditTauxProduit(p.tauxMarge);
@@ -581,11 +602,12 @@ export const ProduitsView: React.FC<ProduitsViewProps> = ({
     e.preventDefault();
     if (!editingProduct || !onEditProduct || editSaving || !editDesignation.trim()) return;
 
-    const erreurCond = erreurConditionnements(editDetails.conditionnements, editDetails.unite);
+    const erreurCond = erreurDeLaFiche(editUnite, editPrix);
     if (erreurCond) {
       setEditErreur(erreurCond);
       return;
     }
+    const fiche = versFiche(editUnite, editPrix);
 
     setEditSaving(true);
     setEditErreur(null);
@@ -597,8 +619,8 @@ export const ProduitsView: React.FC<ProduitsViewProps> = ({
     // n'a pas lieu d'être tentée.
     const result = await onEditProduct(editingProduct.id, {
       designation: editDesignation.trim(),
-      prixAchat: Number(editPrixAchat),
-      prixVenteDefaut: Number(editPrixVenteDefaut),
+      prixAchat: fiche.prixAchat,
+      prixVenteDefaut: fiche.prixVenteDefaut,
       fournisseur: editFournisseur.trim(),
       seuilAlerte: Number(editSeuilAlerte),
     });
@@ -610,7 +632,11 @@ export const ProduitsView: React.FC<ProduitsViewProps> = ({
 
     if (onEditProductDetails) {
       const details = await onEditProductDetails(editingProduct.id, {
-        ...detailsVersBase(editDetails),
+        ...detailsVersBase({
+          ...editDetails,
+          unite: fiche.unite,
+          conditionnements: fiche.conditionnements,
+        }),
         ...(prixAuto.actif ? { mode_prix: editModePrix, taux_marge: editTauxProduit } : {}),
       });
       if (details.error) {
@@ -1033,8 +1059,14 @@ export const ProduitsView: React.FC<ProduitsViewProps> = ({
       >
         <form id="product-add-form" onSubmit={handleSubmit} className="space-y-4">
           <div>
-            <label className="mb-1.5 block text-sm font-medium text-foreground">Désignation</label>
+            <label
+              htmlFor="prod-add-designation"
+              className="mb-1.5 block text-sm font-medium text-foreground"
+            >
+              Désignation
+            </label>
             <input
+              id="prod-add-designation"
               type="text"
               required
               value={designation}
@@ -1044,24 +1076,23 @@ export const ProduitsView: React.FC<ProduitsViewProps> = ({
             />
           </div>
 
+          {/* Le nom, puis l'unité, puis les prix — dans l'ordre où on les
+              dit. Un paquet ou un carton demande ce qu'il contient ; une
+              pièce ou un kg, rien de plus. */}
+          <ChoixUnite id="prod-add" valeur={addUnite} onChange={setAddUnite} />
+
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-            <div>
-              <label className="mb-1.5 block text-sm font-medium text-foreground">
-                Prix d'achat ({symboleDeSaisie()})
-              </label>
-              <input
-                type="number"
-                required
-                value={prixAchat}
-                onChange={(e) => setPrixAchat(Number(e.target.value))}
-                className="app-field font-mono"
-              />
-            </div>
-            <ChampPrixDeVente
+            <ChampPrixAchat
+              id="prod-add-prix-achat"
+              saisie={addUnite}
+              valeur={addPrix.achat}
+              onChange={(achat) => setAddPrix((p) => ({ ...p, achat }))}
+            />
+            <PrixDeVenteDuProduit
               id="prod-add-prix-vente"
-              prixAchat={Number(prixAchat)}
-              prixVente={Number(prixVenteDefaut)}
-              onPrixVente={setPrixVenteDefaut}
+              saisie={addUnite}
+              prix={addPrix}
+              onPrix={setAddPrix}
               mode={modePrix}
               onMode={setModePrix}
               tauxProduit={tauxProduit}
@@ -1086,10 +1117,14 @@ export const ProduitsView: React.FC<ProduitsViewProps> = ({
 
           <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
             <div>
-              <label className="mb-1.5 block text-sm font-medium text-foreground">
-                Stock initial
+              <label
+                htmlFor="prod-add-stock"
+                className="mb-1.5 block text-sm font-medium text-foreground"
+              >
+                Stock initial ({libelleUnite(uniteDuStock(addUnite) || null, 2)})
               </label>
               <input
+                id="prod-add-stock"
                 type="number"
                 required
                 min="0"
@@ -1097,10 +1132,19 @@ export const ProduitsView: React.FC<ProduitsViewProps> = ({
                 onChange={(e) => setStockInitial(Number(e.target.value))}
                 className="app-field font-mono"
               />
+              {contenuDe(addUnite) && Number(stockInitial) > 0 && (
+                <p className="mt-1 text-xs text-muted-foreground">
+                  {stockEnConditionnements(
+                    Number(stockInitial),
+                    uniteDuStock(addUnite),
+                    versFiche(addUnite, addPrix).conditionnements,
+                  ) ?? "Moins d'un " + addUnite.unite.trim()}
+                </p>
+              )}
             </div>
             <div>
               <label className="mb-1.5 block text-sm font-medium text-foreground">
-                Seuil d'alerte
+                Seuil d'alerte ({libelleUnite(uniteDuStock(addUnite) || null, 2)})
               </label>
               <input
                 type="number"
@@ -1123,8 +1167,15 @@ export const ProduitsView: React.FC<ProduitsViewProps> = ({
             onChange={setAddDetails}
             categories={categories}
             onCreerCategorie={onCreerCategorie}
-            prix={{ vente: Number(prixVenteDefaut), achat: Number(prixAchat) }}
-            montrerPrixAchat={showPrixAchat}
+            codeBarresLot={
+              contenuDe(addUnite)
+                ? {
+                    nom: addUnite.unite.trim(),
+                    valeur: addUnite.codeBarresLot,
+                    onChange: (code) => setAddUnite((u) => ({ ...u, codeBarresLot: code })),
+                  }
+                : undefined
+            }
             // Le produit n'existe pas encore, donc aucune image ne lui
             // est rattachee : celles qu'on choisit ici attendent dans
             // `addPhotos` et partent des sa creation.
@@ -1189,10 +1240,10 @@ export const ProduitsView: React.FC<ProduitsViewProps> = ({
             <div className="mb-4 flex items-start gap-2 rounded-xl border border-warning-border bg-warning-soft px-3 py-2.5 text-xs t-warning">
               <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
               <span>
-                Ce produit a encore <strong>{editingProduct.stockActuel}</strong> unité
-                {editingProduct.stockActuel > 1 ? "s" : ""} en stock. Vous pouvez modifier ses
-                informations sans risque : les ventes et achats déjà enregistrés ne sont pas
-                affectés.
+                Ce produit a encore{" "}
+                <strong>{quantiteEnMots(editingProduct.stockActuel, editingProduct.unite)}</strong>{" "}
+                en stock. Vous pouvez modifier ses informations sans risque : les ventes et achats
+                déjà enregistrés ne sont pas affectés.
               </span>
             </div>
           )}
@@ -1210,7 +1261,7 @@ export const ProduitsView: React.FC<ProduitsViewProps> = ({
               <div className="mb-2 flex items-baseline justify-between gap-3">
                 <span className="text-sm font-medium text-foreground">Corriger le stock</span>
                 <span className="text-xs text-muted-foreground">
-                  actuellement {editingProduct.stockActuel}
+                  actuellement {quantiteEnMots(editingProduct.stockActuel, editingProduct.unite)}
                   {editingProduct.stockReserve > 0 && (
                     <> · dont {editingProduct.stockReserve} réservé</>
                   )}
@@ -1277,24 +1328,37 @@ export const ProduitsView: React.FC<ProduitsViewProps> = ({
               />
             </div>
 
+            <ChoixUnite id="prod-edit" valeur={editUnite} onChange={setEditUnite} />
+            {/* Le stock n'est pas converti quand l'unité de compte change :
+                « 4 paquets » deviendrait « 4 pièces ». On le dit avant. */}
+            {editingProduct.stockActuel !== 0 &&
+              (uniteDuStock(editUnite) || "") !== (editingProduct.unite?.trim() ?? "") && (
+                <p
+                  role="status"
+                  className="flex items-start gap-2 rounded-xl border border-warning-border bg-warning-soft px-3 py-2.5 text-xs t-warning"
+                >
+                  <AlertTriangle className="mt-0.5 h-4 w-4 shrink-0" />
+                  <span>
+                    Le stock n&apos;est pas converti : «{" "}
+                    {quantiteEnMots(editingProduct.stockActuel, editingProduct.unite)} » se lira «{" "}
+                    {quantiteEnMots(editingProduct.stockActuel, uniteDuStock(editUnite) || null)} ».
+                    Corrigez-le au-dessus si besoin.
+                  </span>
+                </p>
+              )}
+
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-              <div>
-                <label className="mb-1.5 block text-sm font-medium text-foreground">
-                  Prix d'achat ({symboleDeSaisie()})
-                </label>
-                <input
-                  type="number"
-                  required
-                  value={editPrixAchat}
-                  onChange={(e) => setEditPrixAchat(Number(e.target.value))}
-                  className="app-field font-mono"
-                />
-              </div>
-              <ChampPrixDeVente
+              <ChampPrixAchat
+                id="prod-edit-prix-achat"
+                saisie={editUnite}
+                valeur={editPrix.achat}
+                onChange={(achat) => setEditPrix((p) => ({ ...p, achat }))}
+              />
+              <PrixDeVenteDuProduit
                 id="prod-edit-prix-vente"
-                prixAchat={Number(editPrixAchat)}
-                prixVente={Number(editPrixVenteDefaut)}
-                onPrixVente={setEditPrixVenteDefaut}
+                saisie={editUnite}
+                prix={editPrix}
+                onPrix={setEditPrix}
                 mode={editModePrix}
                 onMode={setEditModePrix}
                 tauxProduit={editTauxProduit}
@@ -1333,8 +1397,15 @@ export const ProduitsView: React.FC<ProduitsViewProps> = ({
               onChange={setEditDetails}
               categories={categories}
               onCreerCategorie={onCreerCategorie}
-              prix={{ vente: Number(editPrixVenteDefaut), achat: Number(editPrixAchat) }}
-              montrerPrixAchat={showPrixAchat}
+              codeBarresLot={
+                contenuDe(editUnite)
+                  ? {
+                      nom: editUnite.unite.trim(),
+                      valeur: editUnite.codeBarresLot,
+                      onChange: (code) => setEditUnite((u) => ({ ...u, codeBarresLot: code })),
+                    }
+                  : undefined
+              }
               images={productImages.filter((i) => i.product_id === editingProduct.id)}
               storeId={storeId}
               productId={editingProduct.id}

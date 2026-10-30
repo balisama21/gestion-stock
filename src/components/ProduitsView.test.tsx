@@ -1,5 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { ProduitsView } from "./ProduitsView";
 import { REGLAGES_PAR_DEFAUT } from "../lib/prealerteStock";
 import type { Database } from "../lib/database.types";
@@ -124,5 +124,104 @@ describe("le catalogue", () => {
     fireEvent.click(screen.getByText("Eau 1,5 L"));
     expect(screen.getByText("30 bouteilles (2 cartons + 6 bouteilles)")).toBeTruthy();
     expect(screen.getByText(/carton de 12 bouteilles · 7\s000/)).toBeTruthy();
+  });
+});
+
+/**
+ * L'UNITÉ À LA CRÉATION ET À LA MODIFICATION
+ *
+ * Une pièce n'ouvre rien ; un paquet demande ce qu'il contient, son
+ * prix d'achat, et un prix de vente saisi au paquet OU à la pièce.
+ */
+function creer() {
+  const onAddProduct = vi.fn().mockResolvedValue({ error: null, id: "n" });
+  const onEditProductDetails = vi.fn().mockResolvedValue({ error: null });
+  render(
+    <ProduitsView
+      products={[base, RIZ]}
+      locale="FR"
+      reglagesAlertes={REGLAGES_PAR_DEFAUT}
+      onAddProduct={onAddProduct}
+      onEditProduct={vi.fn().mockResolvedValue({ error: null })}
+      onEditProductDetails={onEditProductDetails}
+      categories={CATEGORIES}
+    />,
+  );
+  return { onAddProduct, onEditProductDetails };
+}
+
+const ecrire = (label: RegExp | string, valeur: string) =>
+  fireEvent.change(screen.getByLabelText(label), { target: { value: valeur } });
+
+describe("l'unité d'un nouveau produit", () => {
+  it("à la pièce ou au kg, aucun champ de plus", () => {
+    creer();
+    fireEvent.click(screen.getByRole("button", { name: /Nouveau produit/ }));
+    expect(screen.getByRole("radio", { name: "Pièce" }).getAttribute("aria-checked")).toBe("true");
+    expect(screen.queryByLabelText(/Combien de/)).toBeNull();
+    fireEvent.click(screen.getByRole("radio", { name: "Kg" }));
+    expect(screen.queryByLabelText(/Combien de/)).toBeNull();
+    expect(screen.getByLabelText(/Prix d'achat \(par kg\)/)).toBeTruthy();
+  });
+
+  it("un paquet de 12 acheté 12 000 et vendu 15 000 : 1 000 et 1 250 la pièce, et inversement", async () => {
+    const { onAddProduct, onEditProductDetails } = creer();
+    fireEvent.click(screen.getByRole("button", { name: /Nouveau produit/ }));
+    ecrire(/Désignation/, "Cahier");
+    fireEvent.click(screen.getByRole("radio", { name: "Paquet" }));
+    ecrire(/Combien de pièces contient un paquet/, "12");
+    ecrire(/Prix d'achat du paquet/, "12000");
+    expect(screen.getByText(/Soit 1\s000.*par pièce/)).toBeTruthy();
+
+    ecrire(/Prix de vente du paquet/, "15000");
+    expect(screen.getByText(/Soit 1\s250.*la pièce/)).toBeTruthy();
+
+    // L'autre référence : le prix affiché est converti, un seul champ reste.
+    fireEvent.click(screen.getByRole("radio", { name: "De la pièce" }));
+    expect((screen.getByLabelText(/Prix de vente de la pièce/) as HTMLInputElement).value).toBe(
+      "1250",
+    );
+    expect(screen.queryByLabelText(/Prix de vente du paquet/)).toBeNull();
+    ecrire(/Prix de vente de la pièce/, "1300");
+    expect(screen.getByText(/Soit 15\s600.*le paquet/)).toBeTruthy();
+
+    ecrire(/Stock initial \(pièces\)/, "30");
+    expect(screen.getByText("2 paquets + 6 pièces")).toBeTruthy();
+
+    fireEvent.submit(document.getElementById("product-add-form")!);
+    await waitFor(() => expect(onEditProductDetails).toHaveBeenCalledTimes(1));
+    expect(onAddProduct.mock.calls[0][0]).toMatchObject({
+      designation: "Cahier",
+      prixAchat: 1000,
+      prixVenteDefaut: 1300,
+      stockInitial: 30,
+    });
+    expect(onEditProductDetails.mock.calls[0][1]).toMatchObject({
+      unite: "pièce",
+      conditionnements: [
+        expect.objectContaining({
+          nom: "paquet",
+          quantite: 12,
+          prix_achat: 12000,
+          prix_vente: null,
+        }),
+      ],
+    });
+  });
+});
+
+describe("modifier un produit au carton", () => {
+  it("relit son carton comme l'unité choisie, et prévient si l'unité du stock change", () => {
+    creer();
+    fireEvent.click(screen.getByText("Eau 1,5 L"));
+    fireEvent.click(screen.getByRole("button", { name: /Modifier/ }));
+    expect(screen.getByRole("radio", { name: "Carton" }).getAttribute("aria-checked")).toBe("true");
+    expect(
+      (screen.getByLabelText(/Combien de bouteilles contient un carton/) as HTMLInputElement).value,
+    ).toBe("12");
+    expect(screen.queryByText(/n'est pas converti/)).toBeNull();
+    // Vider le contenu : le carton se vendrait entier, et 30 bouteilles se liraient 30 cartons.
+    ecrire(/Combien de bouteilles contient un carton/, "");
+    expect(screen.getByText(/n'est pas converti/).textContent).toMatch(/30 cartons/);
   });
 });

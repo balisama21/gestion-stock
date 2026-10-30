@@ -4,9 +4,8 @@ import { adresseImageProduit, envoyerFichier, supprimerFichier } from "../../lib
 import { BoutonScan } from "../shared/BoutonScan";
 import { SelecteurListe } from "../shared/SelecteurListe";
 import { DetourerPhoto } from "./DetourerPhoto";
-import { EditeurConditionnements } from "./EditeurConditionnements";
-import { SelecteurUnite } from "./SelecteurUnite";
 import type { Database } from "../../lib/database.types";
+import { duOuDeLa, unOuUne } from "../../lib/uniteDeVente";
 import { TYPES_PRODUIT, optionsCategories, type ValeursDetails } from "../../lib/detailsProduit";
 
 type Categorie = Database["public"]["Tables"]["categories"]["Row"];
@@ -49,21 +48,14 @@ interface DetailsProduitProps {
   /** Réapprovisionnement activé : `stock_max` devient le niveau cible. */
   reappro?: { seuil: number; cibleParDefaut: number };
   /**
-   * Les prix de l'unité de base, saisis au-dessus : un conditionnement
-   * sans prix propre les multiplie. Absents, comptés à zéro.
+   * L'étiquette du paquet, du carton… quand le produit en a un : elle
+   * se scanne à la caisse pour vendre le paquet entier.
    */
-  prix?: { vente: number; achat: number };
-  /** Le prix d'achat est une colonne sensible : masquée, ses champs disparaissent. */
-  montrerPrixAchat?: boolean;
-  /**
-   * L'unité et les conditionnements sont posés ailleurs par l'écran : à
-   * l'achat, ils viennent AVANT la quantité, qui en dépend.
-   */
-  sansUniteNiConditionnements?: boolean;
+  codeBarresLot?: { nom: string; valeur: string; onChange: (code: string) => void };
 }
 
 /** Deux à trois choix exclusifs, posés côte à côte plutôt qu'en liste. */
-const Segments: React.FC<{
+export const Segments: React.FC<{
   id: string;
   label: string;
   options: readonly { valeur: string; libelle: string }[];
@@ -125,9 +117,7 @@ export const DetailsProduit: React.FC<DetailsProduitProps> = ({
   photosEnAttente = [],
   onPhotosEnAttenteChange,
   reappro,
-  prix,
-  montrerPrixAchat = true,
-  sansUniteNiConditionnements = false,
+  codeBarresLot,
 }) => {
   const [envoi, setEnvoi] = useState(false);
   const [erreurImage, setErreurImage] = useState<string | null>(null);
@@ -337,6 +327,35 @@ export const DetailsProduit: React.FC<DetailsProduitProps> = ({
             Scannez l&apos;étiquette une fois ici, et le produit se retrouvera au code à la caisse.
           </p>
         </div>
+        {codeBarresLot && (
+          <div>
+            <label
+              htmlFor="pd-code-lot"
+              className="mb-1 block text-xs font-medium text-muted-foreground"
+            >
+              Code-barres {duOuDeLa(codeBarresLot.nom)}
+            </label>
+            <div className="flex gap-2">
+              <input
+                id="pd-code-lot"
+                type="text"
+                inputMode="numeric"
+                placeholder="Optionnel"
+                className="app-field font-mono"
+                value={codeBarresLot.valeur}
+                onChange={(e) => codeBarresLot.onChange(e.target.value)}
+              />
+              <BoutonScan
+                onCode={codeBarresLot.onChange}
+                libelle={`Scanner le code-barres ${duOuDeLa(codeBarresLot.nom)}`}
+                titre={`Code-barres ${duOuDeLa(codeBarresLot.nom)}`}
+              />
+            </div>
+            <p className="mt-1 text-[11px] text-muted-foreground">
+              Scanné à la caisse, il ajoute directement {unOuUne(codeBarresLot.nom)}.
+            </p>
+          </div>
+        )}
 
         <SelecteurListe
           id="pd-cat"
@@ -369,13 +388,6 @@ export const DetailsProduit: React.FC<DetailsProduitProps> = ({
             {TYPES_PRODUIT.find((t) => t.valeur === valeurs.type_produit)?.aide}
           </p>
         </div>
-        {!sansUniteNiConditionnements && (
-          <SelecteurUnite
-            id="pd-unite"
-            valeur={valeurs.unite}
-            onChange={(unite) => modifier({ unite })}
-          />
-        )}
 
         <div>
           <label htmlFor="pd-tva" className="mb-1 block text-xs font-medium text-muted-foreground">
@@ -449,18 +461,6 @@ export const DetailsProduit: React.FC<DetailsProduitProps> = ({
           onChange={(v) => modifier({ statut: v })}
         />
       </div>
-
-      {/* Un service ne se compte pas : il n'a ni carton ni sac. */}
-      {valeurs.type_produit !== "service" && !sansUniteNiConditionnements && (
-        <EditeurConditionnements
-          valeur={valeurs.conditionnements}
-          onChange={(conditionnements) => modifier({ conditionnements })}
-          unite={valeurs.unite}
-          prixVenteUnite={prix?.vente ?? 0}
-          prixAchatUnite={prix?.achat ?? 0}
-          montrerPrixAchat={montrerPrixAchat}
-        />
-      )}
 
       {/* ── Les photos ── */}
       <div>

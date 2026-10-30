@@ -38,12 +38,20 @@ import {
   nomsDesCategories,
   type ValeursDetails,
 } from "../lib/detailsProduit";
-import { EditeurConditionnements } from "./produits/EditeurConditionnements";
-import { SelecteurUnite } from "./produits/SelecteurUnite";
-import { ChampPrixDeVente } from "./produits/ChampPrixDeVente";
+import { ChoixUnite, PrixDeVenteDuProduit } from "./produits/UniteEtPrix";
+import {
+  auCentime,
+  contenuDe,
+  erreurDeLaFiche,
+  saisieUniteVide,
+  uniteDuStock,
+  versFiche,
+  type PrixSaisis,
+  type ReferenceVente,
+  type SaisieUnite,
+} from "../lib/uniteDeVente";
 import {
   auPluriel,
-  erreurConditionnements,
   libelleUnite,
   prixAchatDe,
   prixUnitaireDepuis,
@@ -412,6 +420,10 @@ export const AchatsView: React.FC<AchatsViewProps> = ({
   /** "" = à l'unité de base ; sinon l'identifiant du conditionnement. */
   const [conditionnementId, setConditionnementId] = useState("");
   // Le produit à créer : ce que la fiche « Nouveau produit » demande.
+  /** Son unité : « pièce », ou « paquet de 12 pièces ». */
+  const [uniteNouveau, setUniteNouveau] = useState<SaisieUnite>(saisieUniteVide);
+  /** Le prix de vente saisi est celui du paquet, ou celui de la pièce. */
+  const [referenceNouveau, setReferenceNouveau] = useState<ReferenceVente>("lot");
   const [prixVenteNouveau, setPrixVenteNouveau] = useState(0);
   const [modePrixNouveau, setModePrixNouveau] = useState<"auto" | "manuel">(
     prixAuto.actif ? "auto" : "manuel",
@@ -485,6 +497,8 @@ export const AchatsView: React.FC<AchatsViewProps> = ({
     setEcheance("");
     setErreurAchat(null);
     setDetailsProduit(DETAILS_VIDES);
+    setUniteNouveau(saisieUniteVide());
+    setReferenceNouveau("lot");
     setProduitRecharge(vise?.id ?? "");
     setIsModalOpen(true);
     onReapprovisionnementOuvert?.();
@@ -514,19 +528,31 @@ export const AchatsView: React.FC<AchatsViewProps> = ({
   const creeUnProduit = modeProduit === "nouveau";
 
   /**
-   * Les conditionnements proposés : ceux du produit rechargé, ou ceux
-   * que l'on déclare pour le nouveau — ceux-là seulement une fois
-   * complets, pour ne pas proposer « de 0 ».
+   * Les conditionnements proposés : ceux du produit rechargé, ou le
+   * paquet que l'on décrit pour le nouveau — une fois son contenu dit,
+   * pour ne pas proposer « de 0 ».
    */
+  const contenuNouveau = creeUnProduit ? contenuDe(uniteNouveau) : null;
   const conditionnementsProposes: Conditionnement[] = useMemo(
     () =>
       creeUnProduit
-        ? detailsProduit.conditionnements.filter((c) => c.nom.trim() && c.quantite >= 2)
+        ? contenuNouveau
+          ? [
+              {
+                id: uniteNouveau.idLot,
+                nom: uniteNouveau.unite.trim(),
+                quantite: contenuNouveau,
+                prixVente: null,
+                prixAchat: null,
+                codeBarres: null,
+              },
+            ]
+          : []
         : (produitChoisi?.conditionnements ?? []),
-    [creeUnProduit, detailsProduit.conditionnements, produitChoisi],
+    [creeUnProduit, contenuNouveau, uniteNouveau.idLot, uniteNouveau.unite, produitChoisi],
   );
   const uniteAchat = creeUnProduit
-    ? detailsProduit.unite.trim() || null
+    ? uniteDuStock(uniteNouveau) || null
     : (produitChoisi?.unite ?? null);
   const conditionnement = conditionnementsProposes.find((c) => c.id === conditionnementId) ?? null;
   const facteur = conditionnement?.quantite ?? 1;
@@ -539,6 +565,27 @@ export const AchatsView: React.FC<AchatsViewProps> = ({
   useEffect(() => {
     if (conditionnementId && !conditionnement) setConditionnementId("");
   }, [conditionnementId, conditionnement]);
+
+  /**
+   * Les prix du nouveau produit, au niveau où on les a saisis : le
+   * paquet s'achète au prix tapé plus bas quand on l'achète au paquet,
+   * sinon au prix de la pièce multiplié.
+   */
+  const prixNouveau: PrixSaisis = {
+    achat: contenuNouveau
+      ? conditionnement
+        ? Number(prixAchatUnit) || 0
+        : auCentime((Number(prixParUnite) || 0) * contenuNouveau)
+      : Number(prixParUnite) || 0,
+    vente: Number(prixVenteNouveau) || 0,
+    reference: referenceNouveau,
+  };
+
+  /** Dire ce que contient le paquet propose aussitôt de l'acheter au paquet. */
+  const changerUniteNouveau = (s: SaisieUnite) => {
+    if (contenuDe(s) && !contenuDe(uniteNouveau)) setConditionnementId(s.idLot);
+    setUniteNouveau(s);
+  };
 
   /** Choisir le conditionnement propose son prix d'achat habituel. */
   const choisirConditionnement = (id: string) => {
@@ -617,6 +664,8 @@ export const AchatsView: React.FC<AchatsViewProps> = ({
   const remettreAZero = () => {
     setReporterPrix(false);
     setDetailsProduit(DETAILS_VIDES);
+    setUniteNouveau(saisieUniteVide());
+    setReferenceNouveau("lot");
     setPhotosProduit([]);
     setDesignation("");
     setProduitRecharge("");
@@ -670,10 +719,7 @@ export const AchatsView: React.FC<AchatsViewProps> = ({
         );
         return;
       }
-      const erreurCond = erreurConditionnements(
-        detailsProduit.conditionnements,
-        detailsProduit.unite,
-      );
+      const erreurCond = erreurDeLaFiche(uniteNouveau, prixNouveau);
       if (erreurCond) {
         setErreurAchat(erreurCond);
         return;
@@ -699,10 +745,11 @@ export const AchatsView: React.FC<AchatsViewProps> = ({
     let cible = produitChoisi;
     let idProduit = produitChoisi?.id ?? null;
     if (creeUnProduit) {
+      const fiche = versFiche(uniteNouveau, prixNouveau);
       const cree = await onCreerProduit!({
         designation: designation.trim(),
-        prixAchat: prixParUnite,
-        prixVenteDefaut: Number(prixVenteNouveau) || 0,
+        prixAchat: fiche.prixAchat,
+        prixVenteDefaut: fiche.prixVenteDefaut,
         fournisseur: fournisseur.trim(),
         stockInitial: 0,
         stockActuel: 0,
@@ -718,7 +765,11 @@ export const AchatsView: React.FC<AchatsViewProps> = ({
 
       if (onEditProductDetails) {
         const details = await onEditProductDetails(idProduit, {
-          ...detailsVersBase(detailsProduit),
+          ...detailsVersBase({
+            ...detailsProduit,
+            unite: fiche.unite,
+            conditionnements: fiche.conditionnements,
+          }),
           supplier_id: supplierId ?? (detailsProduit.supplier_id.trim() || null),
           ...(prixAuto.actif ? { mode_prix: modePrixNouveau, taux_marge: tauxNouveau } : {}),
         });
@@ -782,15 +833,29 @@ export const AchatsView: React.FC<AchatsViewProps> = ({
         fournisseur: produitChoisi.fournisseur,
         seuilAlerte: produitChoisi.seuilAlerte,
       });
-      // Le carton avait son propre prix d'achat : il suit, lui aussi.
-      if (!report.error && conditionnement?.prixAchat != null && onEditProductDetails) {
+      // Le carton avait son propre prix d'achat : il suit, lui aussi —
+      // celui qu'on vient d'acheter au prix payé, les autres au nouveau
+      // prix de l'unité. Et en prix automatique, un prix de vente propre
+      // est recalculé sur ce nouveau prix d'achat, comme celui de l'unité.
+      const auto = ecartDePrix.nouveauVente !== null;
+      const prixAchatDuLot = (c: Conditionnement) =>
+        c.id === conditionnement?.id
+          ? Number(prixAchatUnit)
+          : auCentime(c.quantite * ecartDePrix.nouvelAchat);
+      const lotsAReecrire = produitChoisi.conditionnements.some(
+        (c) => c.prixAchat !== null || (auto && c.prixVente !== null),
+      );
+      if (!report.error && lotsAReecrire && onEditProductDetails) {
         await onEditProductDetails(produitChoisi.id, {
           conditionnements: produitChoisi.conditionnements.map((c) => ({
             id: c.id,
             nom: c.nom,
             quantite: c.quantite,
-            prix_vente: c.prixVente,
-            prix_achat: c.id === conditionnement.id ? Number(prixAchatUnit) : c.prixAchat,
+            prix_vente:
+              auto && c.prixVente !== null
+                ? prixDepuisAchat(prixAchatDuLot(c), ecartDePrix.taux, prixAuto.arrondi)
+                : c.prixVente,
+            prix_achat: c.prixAchat !== null ? prixAchatDuLot(c) : null,
             code_barres: c.codeBarres,
           })),
         });
@@ -1825,21 +1890,7 @@ export const AchatsView: React.FC<AchatsViewProps> = ({
                   achète « 2 cartons » d'un produit dont on vient de dire
                   qu'un carton en contient 12. */}
               <div className="space-y-4 rounded-xl border border-border p-3">
-                <SelecteurUnite
-                  id="achat-unite"
-                  valeur={detailsProduit.unite}
-                  onChange={(unite) => setDetailsProduit((d) => ({ ...d, unite }))}
-                />
-                <EditeurConditionnements
-                  valeur={detailsProduit.conditionnements}
-                  onChange={(conditionnements) =>
-                    setDetailsProduit((d) => ({ ...d, conditionnements }))
-                  }
-                  unite={detailsProduit.unite}
-                  prixVenteUnite={Number(prixVenteNouveau) || 0}
-                  prixAchatUnite={Number(prixParUnite) || 0}
-                  montrerPrixAchat={showPrix}
-                />
+                <ChoixUnite id="achat" valeur={uniteNouveau} onChange={changerUniteNouveau} />
               </div>
             </div>
           )}
@@ -1970,11 +2021,14 @@ export const AchatsView: React.FC<AchatsViewProps> = ({
                 avant, ils étaient inventés (achat × 1,3 et 5 unités). */}
             {creeUnProduit && (
               <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
-                <ChampPrixDeVente
+                <PrixDeVenteDuProduit
                   id="achat-prix-vente"
-                  prixAchat={Number(prixParUnite) || 0}
-                  prixVente={Number(prixVenteNouveau) || 0}
-                  onPrixVente={setPrixVenteNouveau}
+                  saisie={uniteNouveau}
+                  prix={prixNouveau}
+                  onPrix={(p) => {
+                    setPrixVenteNouveau(p.vente);
+                    setReferenceNouveau(p.reference);
+                  }}
                   mode={modePrixNouveau}
                   onMode={setModePrixNouveau}
                   tauxProduit={tauxNouveau}
@@ -2178,9 +2232,15 @@ export const AchatsView: React.FC<AchatsViewProps> = ({
                 images={[]}
                 storeId={storeId}
                 productId={null}
-                sansUniteNiConditionnements
-                montrerPrixAchat={showPrix}
-                prix={{ vente: Number(prixVenteNouveau) || 0, achat: Number(prixParUnite) || 0 }}
+                codeBarresLot={
+                  contenuNouveau
+                    ? {
+                        nom: uniteNouveau.unite.trim(),
+                        valeur: uniteNouveau.codeBarresLot,
+                        onChange: (code) => setUniteNouveau((u) => ({ ...u, codeBarresLot: code })),
+                      }
+                    : undefined
+                }
                 photosEnAttente={onAddProductImage ? photosProduit : undefined}
                 onPhotosEnAttenteChange={onAddProductImage ? setPhotosProduit : undefined}
                 onAddImage={async () => ({ error: "Envoi indisponible." })}
