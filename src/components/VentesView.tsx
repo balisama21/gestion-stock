@@ -45,6 +45,15 @@ import { VariantBadge } from "./shared/VariantBadge";
 import { PageHeader, HeaderMetric } from "./shared/PageHeader";
 import { SelecteurPersonne } from "./shared/SelecteurPersonne";
 import { SelecteurProduit, versProduitAChoisir } from "./shared/SelecteurProduit";
+import { categorieEtSesEnfants, nomsDesCategories } from "../lib/detailsProduit";
+import {
+  auPluriel,
+  libelleUnite,
+  prixVenteDe,
+  quantiteDeLigne,
+  stockEnConditionnements,
+  trouverParCode,
+} from "../lib/conditionnements";
 import type { Personne } from "../lib/personnes";
 import { FilterBar, FilterField } from "./shared/FilterBar";
 import { DataList, type DataListItem } from "./shared/DataList";
@@ -103,12 +112,23 @@ const badgePaiement = (statut: string) => (
   </span>
 );
 
-/** Un produit posé dans le panier, avec son prix tel qu'il sera vendu. */
+/**
+ * Un produit posé dans le panier, avec son prix tel qu'il sera vendu.
+ *
+ * Vendu au carton, au pack… : `quantite` compte alors des cartons et
+ * `prixVenteUnit` est le prix d'UN carton. Le même produit peut tenir
+ * deux lignes — 1 carton et 3 pièces —, mais une seule par conditionnement.
+ */
 interface LignePanier {
   productId: string;
   quantite: number;
   prixVenteUnit: number;
+  /** Vide : à l'unité de base. */
+  conditionnementId?: string;
 }
+
+const cleDeLigne = (l: { productId: string; conditionnementId?: string }) =>
+  `${l.productId}|${l.conditionnementId ?? ""}`;
 
 interface VentesViewProps {
   sales: Sale[];
@@ -123,6 +143,11 @@ interface VentesViewProps {
   /** Les avoirs sur ces ventes : le chiffre d'affaires de l'en-tête en est net. */
   avoirs?: AvoirDeVente[];
   products: Product[];
+  /**
+   * Les catégories de produits : la caisse les montre sous chaque produit
+   * et la liste des ventes se filtre par elles. Absentes, rien ne change.
+   */
+  categories?: Database["public"]["Tables"]["categories"]["Row"][];
   /**
    * Les photos des produits, pour que la caisse montre l'article plutot
    * que son seul nom. Absentes : le carre a initiale prend la place.
@@ -164,7 +189,16 @@ interface VentesViewProps {
     /** La fiche client, quand la vente est rattachée à l'une d'elles. */
     clientId?: string | null;
     montantPaye: number;
-    lignes: { productId: string; quantite: number; prixVenteUnit: number }[];
+    lignes: {
+      productId: string;
+      /** En unités de base, toujours : c'est ce qui sort du stock. */
+      quantite: number;
+      prixVenteUnit: number;
+      /** Vendue au carton : la base relit le facteur et prend le total exact. */
+      conditionnementId?: string;
+      nombre?: number;
+      prixConditionnement?: number;
+    }[];
   }) => Promise<{ ventes: Sale[]; error: string | null }>;
   /**
    * Un panier préparé ailleurs — les lignes d'un devis accepté, par
@@ -218,6 +252,7 @@ export const VentesView: React.FC<VentesViewProps> = ({
   facturesRemisesEnStock,
   avoirs = AUCUN_AVOIR,
   products,
+  categories = [],
   productImages = [],
   clients,
   sellers,
@@ -459,7 +494,10 @@ export const VentesView: React.FC<VentesViewProps> = ({
   const [date, setDate] = useState(dateDuJour());
   const [selectedProductId, setSelectedProductId] = useState(products[0]?.id || "");
   const [prixVenteUnit, setPrixVenteUnit] = useState<number>(products[0]?.prixVenteDefaut || 0);
+  const nomsCategories = useMemo(() => nomsDesCategories(categories), [categories]);
   const [isCustomPrice, setIsCustomPrice] = useState(false);
+  /** Vendu à l'unité ("") ou dans l'un des conditionnements du produit. */
+  const [conditionnementVente, setConditionnementVente] = useState("");
   const [vendeur, setVendeur] = useState(vendeurImpose || moiNom || sellers[0]?.nom || "");
   const [clientCredit, setClientCredit] = useState("");
   // La fiche choisie. Vide = client de passage, et le nom se saisit à
@@ -508,20 +546,25 @@ export const VentesView: React.FC<VentesViewProps> = ({
   const chercherParCode = (code: string) => {
     const propre = code.trim();
     if (!propre) return;
-    const trouve = products.find(
-      (p) => (p.codeBarres ?? "").trim() === propre || (p.sku ?? "").trim() === propre,
-    );
-    if (!trouve) {
+    // Le code du produit, ou celui de son carton : le second dit qu'on
+    // vend le carton entier.
+    const resultat = trouverParCode(products, propre);
+    if (!resultat) {
       setMessageCode(`Aucun produit ne porte le code « ${propre} ».`);
       return;
     }
+    const { produit: trouve, conditionnement: cond } = resultat;
     setSelectedProductId(trouve.id);
+    setConditionnementVente(cond?.id ?? "");
     setIsCustomPrice(false);
     setCodeSaisi("");
     // Scanner, c'est vouloir vendre : l'article part directement dans le
     // panier, et un second passage sur le même code l'y compte deux fois.
-    if (ajouterAuPanier(trouve.id, 1, trouve.prixVenteDefaut)) {
-      setMessageCode(`${getProductLabel(trouve, products)} ajouté au panier.`);
+    const prix = cond ? prixVenteDe(cond, trouve) : trouve.prixVenteDefaut;
+    if (ajouterAuPanier(trouve.id, 1, prix, cond?.id ?? "")) {
+      setMessageCode(
+        `${getProductLabel(trouve, products)}${cond ? ` (${cond.nom})` : ""} ajouté au panier.`,
+      );
     } else {
       setMessageCode(null);
     }
@@ -546,22 +589,58 @@ export const VentesView: React.FC<VentesViewProps> = ({
   };
 
   // Auto pre-fill default price when product changes (Demand 2)
+  // — celui du conditionnement choisi, le carton n'ayant pas le prix
+  // de la pièce.
   useEffect(() => {
     const prod = products.find((p) => p.id === selectedProductId);
     if (prod && !isCustomPrice) {
-      setPrixVenteUnit(prod.prixVenteDefaut);
+      const cond = prod.conditionnements.find((c) => c.id === conditionnementVente);
+      setPrixVenteUnit(cond ? prixVenteDe(cond, prod) : prod.prixVenteDefaut);
     }
-  }, [selectedProductId, products, isCustomPrice]);
+  }, [selectedProductId, products, isCustomPrice, conditionnementVente]);
 
   // Keep montantPaye updated to Total Vente by default unless partial credit
   const currentProduct = products.find((p) => p.id === selectedProductId);
+  const condChoisi =
+    currentProduct?.conditionnements.find((c) => c.id === conditionnementVente) ?? null;
   /** Une équipe vend avec le responsable : le nom du vendeur dit alors quelque chose. */
   const avecEquipe = aUneEquipe(sellers);
   const produitsAChoisir = useMemo(
-    () => products.map((p) => versProduitAChoisir(p, products)),
-    [products],
+    () => products.map((p) => versProduitAChoisir(p, products, { categories: nomsCategories })),
+    [products, nomsCategories],
   );
   const produitDe = (id: string) => products.find((p) => p.id === id);
+  /** Le conditionnement d'une ligne, ou rien pour l'unité de base. */
+  const conditionnementDe = (l: { productId: string; conditionnementId?: string }) =>
+    l.conditionnementId
+      ? (produitDe(l.productId)?.conditionnements.find((c) => c.id === l.conditionnementId) ?? null)
+      : null;
+  const facteurDe = (l: LignePanier) => conditionnementDe(l)?.quantite ?? 1;
+  /**
+   * Ce que le panier fait sortir du stock pour un produit, toutes lignes
+   * confondues, en unités de base. `remplacer` substitue une ligne par
+   * une version modifiée, pour tester une quantité avant de l'accepter.
+   */
+  const sortieDuStock = (productId: string, remplacer?: LignePanier) => {
+    const lignes = panier.filter((l) => l.productId === productId);
+    const avec =
+      remplacer && !lignes.some((l) => cleDeLigne(l) === cleDeLigne(remplacer))
+        ? [...lignes, remplacer]
+        : lignes.map((l) => (remplacer && cleDeLigne(l) === cleDeLigne(remplacer) ? remplacer : l));
+    return avec.reduce((n, l) => n + l.quantite * facteurDe(l), 0);
+  };
+  /** Le message d'un stock insuffisant, dans l'unité du produit. */
+  const messageStock = (prod: Product) => {
+    const reste = quantiteEnMots(prod.stockDisponible, prod.unite);
+    const enCartons = stockEnConditionnements(
+      prod.stockDisponible,
+      prod.unite,
+      prod.conditionnements,
+    );
+    return prod.stockReserve > 0
+      ? `Il ne reste que ${reste}${enCartons ? ` (${enCartons})` : ""} disponible(s) de « ${getProductLabel(prod, products)} » (${prod.stockReserve} réservée(s) par des commandes).`
+      : `Il ne reste que ${reste}${enCartons ? ` (${enCartons})` : ""} de « ${getProductLabel(prod, products)} ».`;
+  };
   const totalPanier = panier.reduce((n, l) => n + l.quantite * l.prixVenteUnit, 0);
   const equivalentsPanier = texteEquivalents(totalPanier, devisesAffichees);
 
@@ -585,46 +664,81 @@ export const VentesView: React.FC<VentesViewProps> = ({
    * le contrôle de stock alors qu'ensemble elles le dépassent. C'est
    * aussi le geste attendu quand on scanne deux fois le même article.
    */
-  const ajouterAuPanier = (productId: string, ajout: number, prix: number) => {
+  const ajouterAuPanier = (
+    productId: string,
+    ajout: number,
+    prix: number,
+    conditionnementId = "",
+  ) => {
     const prod = produitDe(productId);
     if (!prod || ajout <= 0) return false;
-    const existante = panier.find((l) => l.productId === productId);
-    const voulu = (existante?.quantite ?? 0) + ajout;
-    if (voulu > prod.stockDisponible) {
-      setFormError(
-        prod.stockReserve > 0
-          ? `Il ne reste que ${prod.stockDisponible} unité(s) disponible(s) de « ${getProductLabel(prod, products)} » (${prod.stockReserve} réservée(s) par des commandes).`
-          : `Il ne reste que ${prod.stockDisponible} unité(s) de « ${getProductLabel(prod, products)} ».`,
-      );
+    const cle = cleDeLigne({ productId, conditionnementId });
+    const existante = panier.find((l) => cleDeLigne(l) === cle);
+    const nouvelle: LignePanier = existante
+      ? { ...existante, quantite: existante.quantite + ajout }
+      : { productId, quantite: ajout, prixVenteUnit: prix, conditionnementId };
+    // Le carton et les pièces du même produit puisent dans le même stock.
+    if (sortieDuStock(productId, nouvelle) > prod.stockDisponible) {
+      setFormError(messageStock(prod));
       return false;
     }
     setFormError(null);
     setPanier((lignes) =>
-      existante
-        ? lignes.map((l) => (l.productId === productId ? { ...l, quantite: voulu } : l))
-        : [...lignes, { productId, quantite: ajout, prixVenteUnit: prix }],
+      existante ? lignes.map((l) => (cleDeLigne(l) === cle ? nouvelle : l)) : [...lignes, nouvelle],
     );
     return true;
   };
 
-  const changerQuantite = (productId: string, quantite: number) => {
-    const prod = produitDe(productId);
+  const changerQuantite = (cle: string, quantite: number) => {
+    const ligne = panier.find((l) => cleDeLigne(l) === cle);
+    if (!ligne) return;
+    const prod = produitDe(ligne.productId);
     if (quantite <= 0) {
-      setPanier((lignes) => lignes.filter((l) => l.productId !== productId));
+      setPanier((lignes) => lignes.filter((l) => cleDeLigne(l) !== cle));
       // Un panier vidé n'est plus celui du devis.
       if (panier.length <= 1) setOrigineDuPanier(null);
       return;
     }
     // Tapée dans le panier, une quantité trop forte se dit au lieu de
     // rester sans effet.
-    if (prod && quantite > prod.stockDisponible) {
-      setFormError(
-        `Il ne reste que ${prod.stockDisponible} unité(s) disponible(s) de « ${getProductLabel(prod, products)} ».`,
-      );
+    if (prod && sortieDuStock(prod.id, { ...ligne, quantite }) > prod.stockDisponible) {
+      setFormError(messageStock(prod));
       return;
     }
     setFormError(null);
-    setPanier((lignes) => lignes.map((l) => (l.productId === productId ? { ...l, quantite } : l)));
+    setPanier((lignes) => lignes.map((l) => (cleDeLigne(l) === cle ? { ...l, quantite } : l)));
+  };
+
+  /**
+   * Passer une ligne de la pièce au carton, ou l'inverse. Le prix suit
+   * le conditionnement ; une ligne déjà ouverte pour lui s'y ajoute.
+   */
+  const changerConditionnement = (cle: string, conditionnementId: string) => {
+    const ligne = panier.find((l) => cleDeLigne(l) === cle);
+    const prod = ligne ? produitDe(ligne.productId) : undefined;
+    if (!ligne || !prod) return;
+    const cond = prod.conditionnements.find((c) => c.id === conditionnementId) ?? null;
+    const prix = cond ? prixVenteDe(cond, prod) : prod.prixVenteDefaut;
+    const cible = cleDeLigne({ productId: prod.id, conditionnementId });
+    const dejaLa = panier.find((l) => cleDeLigne(l) === cible);
+    const apres = dejaLa
+      ? panier
+          .filter((l) => cleDeLigne(l) !== cle)
+          .map((l) =>
+            cleDeLigne(l) === cible ? { ...l, quantite: l.quantite + ligne.quantite } : l,
+          )
+      : panier.map((l) =>
+          cleDeLigne(l) === cle ? { ...l, conditionnementId, prixVenteUnit: prix } : l,
+        );
+    const sortie = apres
+      .filter((l) => l.productId === prod.id)
+      .reduce((n, l) => n + l.quantite * facteurDe(l), 0);
+    if (sortie > prod.stockDisponible) {
+      setFormError(messageStock(prod));
+      return;
+    }
+    setFormError(null);
+    setPanier(apres);
   };
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -645,9 +759,9 @@ export const VentesView: React.FC<VentesViewProps> = ({
     // Ce contrôle-ci sert à répondre tout de suite, pas à faire autorité.
     for (const ligne of panier) {
       const prod = produitDe(ligne.productId);
-      if (prod && ligne.quantite > prod.stockDisponible) {
+      if (prod && sortieDuStock(prod.id) > prod.stockDisponible) {
         setFormError(
-          `Il ne reste que ${prod.stockDisponible} unité(s) de « ${getProductLabel(prod, products)} », et le panier en demande ${ligne.quantite}.`,
+          `${messageStock(prod)} Le panier en demande ${quantiteEnMots(sortieDuStock(prod.id), prod.unite)}.`,
         );
         return;
       }
@@ -666,7 +780,21 @@ export const VentesView: React.FC<VentesViewProps> = ({
       clientCredit: clientCredit.trim() || null,
       clientId: clientChoisi || null,
       montantPaye: paye,
-      lignes: panier,
+      // La quantité part toujours en unités de base ; une ligne au carton
+      // porte en plus de quoi la base relit le facteur et le prix exact.
+      lignes: panier.map((l) => {
+        const cond = conditionnementDe(l);
+        return cond
+          ? {
+              productId: l.productId,
+              quantite: l.quantite * cond.quantite,
+              prixVenteUnit: l.prixVenteUnit / cond.quantite,
+              conditionnementId: cond.id,
+              nombre: l.quantite,
+              prixConditionnement: l.prixVenteUnit,
+            }
+          : { productId: l.productId, quantite: l.quantite, prixVenteUnit: l.prixVenteUnit };
+      }),
     });
     setSaving(false);
 
@@ -699,6 +827,15 @@ export const VentesView: React.FC<VentesViewProps> = ({
   useRechercheInitiale("ventes", setSearchQuery);
   const [selectedSellerFilter, setSelectedSellerFilter] = useState("Tous");
   const [selectedStatusFilter, setSelectedStatusFilter] = useState("Tous");
+  /** « Tous », ou l'identifiant d'une catégorie (sous-catégories comprises). */
+  const [categorieFiltre, setCategorieFiltre] = useState("Tous");
+  const produitsDeLaCategorie = useMemo(() => {
+    if (categorieFiltre === "Tous") return null;
+    const visees = categorieEtSesEnfants(categories, categorieFiltre);
+    return new Set(
+      products.filter((p) => p.categoryId && visees.has(p.categoryId)).map((p) => p.id),
+    );
+  }, [categorieFiltre, categories, products]);
 
   // Filtered sales logic
   const filteredSales = useMemo(() => {
@@ -715,9 +852,11 @@ export const VentesView: React.FC<VentesViewProps> = ({
       const matchStatus =
         selectedStatusFilter === "Tous" || s.statutCredit === selectedStatusFilter;
 
-      return matchSearch && matchSeller && matchStatus;
+      const matchCategorie = !produitsDeLaCategorie || produitsDeLaCategorie.has(s.productId);
+
+      return matchSearch && matchSeller && matchStatus && matchCategorie;
     });
-  }, [sales, searchQuery, selectedSellerFilter, selectedStatusFilter]);
+  }, [sales, searchQuery, selectedSellerFilter, selectedStatusFilter, produitsDeLaCategorie]);
 
   /**
    * Les lignes passées ensemble ne font qu'une entrée.
@@ -752,6 +891,11 @@ export const VentesView: React.FC<VentesViewProps> = ({
   const itemVente = (s: Sale): DataListItem => {
     const prod = products.find((p) => p.id === s.productId);
     const nom = prod ? getProductLabel(prod, products) : getSaleLabel(s, products);
+    // « 1 carton · 12 pièces » : la quantité telle qu'on l'a vendue.
+    const qte = quantiteDeLigne(s.quantite, prod?.unite, s.conditionnement);
+    const prixAffiche = s.conditionnement
+      ? `${formatCurrency(s.totalVente / s.conditionnement.nombre)} / ${s.conditionnement.nom}`
+      : `${formatCurrency(s.prixVenteUnit)} / u`;
     return {
       id: s.id,
       leading: (
@@ -769,11 +913,11 @@ export const VentesView: React.FC<VentesViewProps> = ({
         // La quantite descend dans le rang secondaire et se dit en
         // toutes lettres : collee au nom, « ×20 » se lisait comme un
         // format de catalogue plutot que comme une quantite.
-        quantiteEnMots(s.quantite, prod?.unite),
+        qte.principal,
         formatDateLocale(s.date, locale),
         // Seul, le responsable lirait son propre nom sur chaque ligne.
         avecEquipe ? s.vendeur : null,
-        showMontant ? `${formatCurrency(s.prixVenteUnit)} / u` : null,
+        showMontant ? prixAffiche : null,
         showMargeLigne ? `marge +${formatCurrency(s.margeTotale)}` : null,
         s.clientCredit || null,
       ],
@@ -795,12 +939,18 @@ export const VentesView: React.FC<VentesViewProps> = ({
           {s.statutCredit}
         </span>
       ),
-      sousTitre: quantiteEnMots(s.quantite, prod?.unite),
+      sousTitre: qte.detail ? `${qte.principal} · ${qte.detail}` : qte.principal,
       cellules: {
         date: <DateJour iso={s.date} locale={locale} />,
         client: <Texte valeur={s.clientCredit || null} />,
         vendeur: <Texte valeur={s.vendeur || null} />,
-        pu: showMontant ? <Deux haut={formatCurrency(s.prixVenteUnit)} /> : null,
+        pu: showMontant ? (
+          s.conditionnement ? (
+            <Deux haut={prixAffiche} bas={`${formatCurrency(s.prixVenteUnit)} / u`} />
+          ) : (
+            <Deux haut={formatCurrency(s.prixVenteUnit)} />
+          )
+        ) : null,
         marge: showMargeLigne ? <Marge marge={s.margeTotale} total={s.totalVente} /> : null,
         total: showMontant ? (
           <Montant
@@ -817,7 +967,10 @@ export const VentesView: React.FC<VentesViewProps> = ({
         { label: "Date", value: formatDateLocale(s.date, locale) },
         { label: "Référence", value: s.numero },
         { label: "Code produit", value: prod?.numero ?? "—" },
-        { label: "Quantité", value: `${s.quantite}` },
+        {
+          label: "Quantité",
+          value: qte.detail ? `${qte.principal} (${qte.detail})` : qte.principal,
+        },
         ...(showMontant
           ? [
               { label: "Prix unitaire", value: formatCurrency(s.prixVenteUnit) },
@@ -999,8 +1152,13 @@ export const VentesView: React.FC<VentesViewProps> = ({
                 </div>
                 <div className="flex w-full items-center justify-between gap-2">
                   <span className="app-list-secondary truncate">
-                    {quantiteEnMots(v.quantite, prod?.unite)} · {v.numero}
-                    {showMontant ? ` · ${formatCurrency(v.prixVenteUnit)} / u` : ""}
+                    {quantiteDeLigne(v.quantite, prod?.unite, v.conditionnement).principal} ·{" "}
+                    {v.numero}
+                    {showMontant
+                      ? v.conditionnement
+                        ? ` · ${formatCurrency(v.totalVente / v.conditionnement.nombre)} / ${v.conditionnement.nom}`
+                        : ` · ${formatCurrency(v.prixVenteUnit)} / u`
+                      : ""}
                   </span>
                   <span className="flex shrink-0 items-center gap-1">
                     {onEditSale && (
@@ -1197,11 +1355,14 @@ export const VentesView: React.FC<VentesViewProps> = ({
         onSearchChange={setSearchQuery}
         searchPlaceholder="Rechercher un produit, un client, une référence…"
         activeFilterCount={
-          (selectedSellerFilter !== "Tous" ? 1 : 0) + (selectedStatusFilter !== "Tous" ? 1 : 0)
+          (selectedSellerFilter !== "Tous" ? 1 : 0) +
+          (selectedStatusFilter !== "Tous" ? 1 : 0) +
+          (categorieFiltre !== "Tous" ? 1 : 0)
         }
         onReset={() => {
           setSelectedSellerFilter("Tous");
           setSelectedStatusFilter("Tous");
+          setCategorieFiltre("Tous");
           setSearchQuery("");
         }}
       >
@@ -1217,6 +1378,24 @@ export const VentesView: React.FC<VentesViewProps> = ({
               {sellers.map((s) => (
                 <option key={s.id} value={s.nom}>
                   {s.nom}
+                </option>
+              ))}
+            </select>
+          </FilterField>
+        )}
+
+        {nomsCategories.size > 0 && (
+          <FilterField label="Catégorie">
+            <select
+              value={categorieFiltre}
+              onChange={(e) => setCategorieFiltre(e.target.value)}
+              className="app-field-sm lg:w-auto"
+              aria-label="Catégorie"
+            >
+              <option value="Tous">Toutes les catégories</option>
+              {[...nomsCategories].map(([id, nom]) => (
+                <option key={id} value={id}>
+                  {nom}
                 </option>
               ))}
             </select>
@@ -1389,6 +1568,7 @@ export const VentesView: React.FC<VentesViewProps> = ({
               valeur={selectedProductId}
               onChange={(id) => {
                 setSelectedProductId(id);
+                setConditionnementVente("");
                 setIsCustomPrice(false);
               }}
               aide={
@@ -1403,7 +1583,7 @@ export const VentesView: React.FC<VentesViewProps> = ({
                 htmlFor="vente-prix"
                 className="mb-1.5 block text-sm font-medium text-foreground"
               >
-                Prix unitaire
+                {condChoisi ? `Prix du ${condChoisi.nom}` : "Prix unitaire"}
               </label>
               <input
                 id="vente-prix"
@@ -1420,16 +1600,79 @@ export const VentesView: React.FC<VentesViewProps> = ({
               <Equivalents montant={prixVenteUnit} className="mt-1" saisie />
               {isCustomPrice && currentProduct && (
                 <p className="mt-1 text-[11px] text-muted-foreground">
-                  Référence : {formatCurrency(currentProduct.prixVenteDefaut)}
+                  Référence :{" "}
+                  {formatCurrency(
+                    condChoisi
+                      ? prixVenteDe(condChoisi, currentProduct)
+                      : currentProduct.prixVenteDefaut,
+                  )}
                 </p>
               )}
             </div>
           </div>
 
+          {/* Vendu à la pièce, ou au carton : seulement pour un produit
+              qui déclare des conditionnements. */}
+          {currentProduct && currentProduct.conditionnements.length > 0 && (
+            <div>
+              <p id="vente-par" className="mb-1.5 block text-sm font-medium text-foreground">
+                Vendu par
+              </p>
+              <div role="radiogroup" aria-labelledby="vente-par" className="flex flex-wrap gap-2">
+                {[
+                  {
+                    id: "",
+                    libelle: libelleUnite(currentProduct.unite, 1),
+                    prix: currentProduct.prixVenteDefaut,
+                    note: null as string | null,
+                  },
+                  ...currentProduct.conditionnements.map((c) => ({
+                    id: c.id,
+                    libelle: c.nom,
+                    prix: prixVenteDe(c, currentProduct),
+                    note: quantiteEnMots(c.quantite, currentProduct.unite),
+                  })),
+                ].map((o) => (
+                  <button
+                    key={o.id || "unite"}
+                    type="button"
+                    role="radio"
+                    aria-checked={conditionnementVente === o.id}
+                    onClick={() => {
+                      setConditionnementVente(o.id);
+                      setIsCustomPrice(false);
+                    }}
+                    className={`rounded-full border px-3.5 py-1.5 text-left text-xs font-semibold transition-colors ${
+                      conditionnementVente === o.id
+                        ? "border-success-border bg-success-soft t-success"
+                        : "border-border text-muted-foreground hover:text-foreground"
+                    }`}
+                  >
+                    {o.libelle.charAt(0).toUpperCase() + o.libelle.slice(1)}
+                    {o.note && (
+                      <>
+                        {" "}
+                        <span className="font-normal opacity-80">de {o.note}</span>
+                      </>
+                    )}{" "}
+                    <span className="font-normal opacity-80">· {formatCurrency(o.prix)}</span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
+
           <button
             type="button"
             onClick={() => {
-              if (ajouterAuPanier(selectedProductId, 1, Number(prixVenteUnit))) {
+              if (
+                ajouterAuPanier(
+                  selectedProductId,
+                  1,
+                  Number(prixVenteUnit),
+                  condChoisi ? condChoisi.id : "",
+                )
+              ) {
                 setIsCustomPrice(false);
               }
             }}
@@ -1454,11 +1697,13 @@ export const VentesView: React.FC<VentesViewProps> = ({
                 {panier.map((ligne) => {
                   const prod = produitDe(ligne.productId);
                   const nom = prod ? getProductLabel(prod, products) : ligne.productId;
+                  const cle = cleDeLigne(ligne);
+                  const cond = conditionnementDe(ligne);
+                  // Les libellés d'accessibilité nomment le carton, pour
+                  // distinguer « 1 carton » de « 3 pièces » du même produit.
+                  const nomLigne = cond ? `${nom} (${cond.nom})` : nom;
                   return (
-                    <div
-                      key={ligne.productId}
-                      className="app-list-row flex-col items-stretch gap-2"
-                    >
+                    <div key={cle} className="app-list-row flex-col items-stretch gap-2">
                       <div className="flex w-full items-center gap-2.5">
                         <VignetteProduit
                           nom={nom}
@@ -1475,9 +1720,9 @@ export const VentesView: React.FC<VentesViewProps> = ({
                         <span className="flex items-center gap-1">
                           <button
                             type="button"
-                            onClick={() => changerQuantite(ligne.productId, ligne.quantite - 1)}
+                            onClick={() => changerQuantite(cle, ligne.quantite - 1)}
                             className="app-btn-icon h-7 w-7"
-                            aria-label={`Une unité de moins de ${nom}`}
+                            aria-label={`Une unité de moins de ${nomLigne}`}
                           >
                             <Minus className="h-3.5 w-3.5" />
                           </button>
@@ -1487,39 +1732,80 @@ export const VentesView: React.FC<VentesViewProps> = ({
                             type="number"
                             inputMode="numeric"
                             min="1"
-                            max={prod?.stockDisponible}
+                            max={
+                              prod ? Math.floor(prod.stockDisponible / facteurDe(ligne)) : undefined
+                            }
                             value={ligne.quantite}
                             onFocus={(e) => e.target.select()}
                             onChange={(e) => {
                               const n = Number(e.target.value);
                               if (e.target.value !== "" && Number.isFinite(n) && n > 0) {
-                                changerQuantite(ligne.productId, n);
+                                changerQuantite(cle, n);
                               }
                             }}
-                            aria-label={`Quantité de ${nom}`}
+                            aria-label={`Quantité de ${nomLigne}`}
                             className="h-7 w-14 rounded-lg border border-border bg-transparent text-center font-mono text-sm tabular-nums [appearance:textfield] focus:outline-none focus:ring-2 focus:ring-ring [&::-webkit-inner-spin-button]:appearance-none [&::-webkit-outer-spin-button]:appearance-none"
                           />
                           <button
                             type="button"
-                            onClick={() => ajouterAuPanier(ligne.productId, 1, ligne.prixVenteUnit)}
+                            onClick={() =>
+                              ajouterAuPanier(
+                                ligne.productId,
+                                1,
+                                ligne.prixVenteUnit,
+                                ligne.conditionnementId ?? "",
+                              )
+                            }
                             className="app-btn-icon h-7 w-7"
-                            aria-label={`Une unité de plus de ${nom}`}
+                            aria-label={`Une unité de plus de ${nomLigne}`}
                           >
                             <Plus className="h-3.5 w-3.5" />
                           </button>
                         </span>
                         <span className="app-list-secondary truncate">
-                          {formatCurrency(ligne.prixVenteUnit)} / u
+                          {formatCurrency(ligne.prixVenteUnit)} /{" "}
+                          {cond ? cond.nom : prod?.unite || "u"}
+                          {cond && (
+                            <> · {quantiteEnMots(ligne.quantite * cond.quantite, prod?.unite)}</>
+                          )}
                         </span>
                         <button
                           type="button"
-                          onClick={() => changerQuantite(ligne.productId, 0)}
+                          onClick={() => changerQuantite(cle, 0)}
                           className="app-btn-icon h-7 w-7"
-                          aria-label={`Retirer ${nom} du panier`}
+                          aria-label={`Retirer ${nomLigne} du panier`}
                         >
                           <Trash2 className="h-3.5 w-3.5" />
                         </button>
                       </div>
+                      {/* Passer la ligne de la pièce au carton, sans la refaire. */}
+                      {prod && prod.conditionnements.length > 0 && (
+                        <div
+                          role="radiogroup"
+                          aria-label={`Conditionnement de ${nom}`}
+                          className="flex flex-wrap gap-1.5"
+                        >
+                          {[
+                            { id: "", libelle: libelleUnite(prod.unite, 1) },
+                            ...prod.conditionnements.map((c) => ({ id: c.id, libelle: c.nom })),
+                          ].map((o) => (
+                            <button
+                              key={o.id || "unite"}
+                              type="button"
+                              role="radio"
+                              aria-checked={(ligne.conditionnementId ?? "") === o.id}
+                              onClick={() => changerConditionnement(cle, o.id)}
+                              className={`rounded-full border px-2.5 py-1 text-[11px] font-medium transition-colors ${
+                                (ligne.conditionnementId ?? "") === o.id
+                                  ? "border-success-border bg-success-soft t-success"
+                                  : "border-border text-muted-foreground hover:text-foreground"
+                              }`}
+                            >
+                              {o.libelle}
+                            </button>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   );
                 })}
@@ -1739,7 +2025,9 @@ export const VentesView: React.FC<VentesViewProps> = ({
               <StatCol label="Déjà payé" value={formatCurrency(editingSale.montantPaye)} />
               <StatCol
                 label="Nouveau total"
-                value={formatCurrency(editingSale.quantite * editingSale.prixVenteUnit)}
+                value={formatCurrency(
+                  Math.round(editingSale.quantite * editingSale.prixVenteUnit * 100) / 100,
+                )}
               />
             </div>
 
@@ -1783,6 +2071,14 @@ export const VentesView: React.FC<VentesViewProps> = ({
                   }
                   className="app-field font-mono"
                 />
+                {editingSale.conditionnement && (
+                  <p className="mt-1 text-[11px] text-muted-foreground">
+                    Vendue en {editingSale.conditionnement.nombre}{" "}
+                    {auPluriel(editingSale.conditionnement.nom, editingSale.conditionnement.nombre)}{" "}
+                    de {editingSale.conditionnement.facteur} : la quantité se corrige en{" "}
+                    {libelleUnite(produitDe(editingSale.productId)?.unite, 2)}.
+                  </p>
+                )}
               </div>
 
               <div>

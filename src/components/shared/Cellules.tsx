@@ -1,5 +1,5 @@
 import React from "react";
-import { formatCurrency, formatDateLocale } from "../../utils/formulas";
+import { formatCurrency, formatDateLocale, quantiteEnMots } from "../../utils/formulas";
 import type { LocaleSetting } from "../../types";
 
 /**
@@ -87,7 +87,9 @@ export const Stock: React.FC<{
   seuil: number;
   suivi?: boolean;
   unite?: string | null;
-}> = ({ quantite, seuil, suivi = true, unite }) => {
+  /** Une note sous la jauge : le même stock en cartons, en sacs… */
+  detail?: string | null;
+}> = ({ quantite, seuil, suivi = true, unite, detail }) => {
   if (!suivi) return <span className="app-cellule-bas">non suivi</span>;
   const rupture = quantite <= 0;
   const bas = !rupture && quantite <= seuil;
@@ -96,11 +98,12 @@ export const Stock: React.FC<{
   return (
     <>
       <span className={`app-cellule-haut ${rupture ? "t-danger" : bas ? "t-warning" : ""}`}>
-        {rupture ? "Rupture" : `${quantite}${unite ? ` ${unite}` : ""}`}
+        {rupture ? "Rupture" : unite ? quantiteEnMots(quantite, unite) : `${quantite}`}
       </span>
       <span className="app-jauge" aria-hidden="true">
         <i style={{ width: `${Math.round(plein * 100)}%`, background: couleur }} />
       </span>
+      {detail && !rupture && <span className="app-cellule-bas">{detail}</span>}
     </>
   );
 };

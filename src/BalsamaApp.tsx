@@ -93,6 +93,7 @@ import { FournisseurAvatarsPersonnes } from "./components/shared/FournisseurAvat
 import { signalerAvertissement, signalerErreur } from "./lib/messages";
 import { Toaster } from "./components/ui/sonner";
 import { oublierSessionAvantRendu } from "./lib/sessionAvantRendu";
+import { conditionnementDeLigne, lireConditionnements } from "./lib/conditionnements";
 
 /**
  * Les écrans internes arrivent à la demande.
@@ -814,6 +815,7 @@ function AppInner() {
       statut: p.statut,
       modePrix: p.mode_prix,
       tauxMarge: p.taux_marge,
+      conditionnements: lireConditionnements(p.conditionnements),
     }));
   }, [storeData.products, storeData.categories]);
 
@@ -885,6 +887,7 @@ function AppInner() {
         statutCredit: s.statut_credit as any,
         auteurId: s.owner_id,
         saisieLe: s.created_at,
+        conditionnement: conditionnementDeLigne(s),
       })),
     [storeData.sales],
   );
@@ -926,6 +929,7 @@ function AppInner() {
         statutPaiement: p.statut_paiement ?? "paye",
         dateEcheance: p.date_echeance,
         auteurId: p.owner_id,
+        conditionnement: conditionnementDeLigne(p),
       })),
     [storeData.purchases],
   );
@@ -1738,16 +1742,30 @@ function AppInner() {
     // produit + insertion de l'achat + mouvement de stock) est désormais une
     // seule opération atomique côté base (RPC add_purchase). Si l'achat échoue,
     // aucune modification de stock ni de produit n'est appliquée.
-    const matchingProd = products.find(
-      (p) =>
-        p.designation.toLowerCase() === newPurchase.designation.toLowerCase() &&
-        Math.abs(p.prixAchat - newPurchase.prixAchatUnit) < 0.01 &&
-        p.fournisseur.toLowerCase() === newPurchase.fournisseur.toLowerCase(),
-    );
+    //
+    // L'écran des achats désigne désormais le produit lui-même
+    // (`productId`) : recharger à un autre prix ne crée plus de doublon.
+    // La correspondance par nom, prix et fournisseur ne sert plus qu'aux
+    // appels qui n'en donnent pas.
+    const matchingProd = newPurchase.productId
+      ? products.find((p) => p.id === newPurchase.productId)
+      : products.find(
+          (p) =>
+            p.designation.toLowerCase() === newPurchase.designation.toLowerCase() &&
+            Math.abs(p.prixAchat - newPurchase.prixAchatUnit) < 0.01 &&
+            p.fournisseur.toLowerCase() === newPurchase.fournisseur.toLowerCase(),
+        );
+    if (newPurchase.productId && !matchingProd) {
+      const error = "Ce produit n'existe plus dans la boutique. Rouvrez l'achat.";
+      signalerErreur(error);
+      return { error, productId: null };
+    }
 
     const newDisplayName = newPurchase.designation;
     const prodDisplayName = matchingProd ? matchingProd.designation : newDisplayName;
-    const totalAchat = newPurchase.quantite * newPurchase.prixAchatUnit;
+    const totalAchat = newPurchase.conditionnement
+      ? newPurchase.conditionnement.nombre * newPurchase.conditionnement.prix
+      : newPurchase.quantite * newPurchase.prixAchatUnit;
 
     const res = await storeData.addPurchase({
       date: newPurchase.date,
@@ -1764,8 +1782,10 @@ function AppInner() {
       quantite: newPurchase.quantite,
       prix_achat_unit: newPurchase.prixAchatUnit,
       fournisseur: newPurchase.fournisseur,
+      supplier_id: newPurchase.supplier_id ?? null,
       montant_paye: newPurchase.montantPaye ?? null,
       date_echeance: newPurchase.dateEcheance ?? null,
+      conditionnement: newPurchase.conditionnement ?? null,
     });
 
     if (res.error) {
@@ -1818,6 +1838,10 @@ function AppInner() {
       prixVenteUnit: number;
       /** Le libelle d une prestation. Ignore quand la ligne a un produit. */
       designation?: string;
+      /** Vendue au carton : `quantite` est alors deja en unites de base. */
+      conditionnementId?: string;
+      nombre?: number;
+      prixConditionnement?: number;
     }[];
   }) => {
     const res = await storeData.addSaleTicket({
@@ -1832,6 +1856,14 @@ function AppInner() {
         quantite: l.quantite,
         prix_vente_unit: l.prixVenteUnit,
         designation: l.designation,
+        // Au carton : la base relit le facteur et prend le total exact.
+        ...(l.conditionnementId
+          ? {
+              conditionnement_id: l.conditionnementId,
+              nombre: l.nombre,
+              prix_conditionnement: l.prixConditionnement,
+            }
+          : {}),
       })),
     });
 
@@ -2437,6 +2469,7 @@ function AppInner() {
                         onAddProductImage={storeData.addProductImage}
                         productImages={storeData.productImages}
                         onAddPurchase={handleAddPurchase}
+                        onCreerProduit={handleAddProduct}
                         // Supprimer un achat saisi par erreur. La base
                         // remet le stock comme avant et efface le règlement
                         // attaché ; la trésorerie remonte d'elle-même,
@@ -2705,6 +2738,7 @@ function AppInner() {
                     )}
                     {vue === "ventes" && (
                       <VentesView
+                        categories={storeData.categories}
                         personnes={vendeursDeLEquipe}
                         moiNom={myName}
                         // Seul le responsable du compte choisit le vendeur ;
@@ -2891,6 +2925,7 @@ function AppInner() {
                     )}
                     {vue === "statistiques" && (
                       <StatistiquesView
+                        categories={storeData.categories}
                         sales={ventesPourChiffres}
                         avoirs={avoirsVisibles}
                         lignesAvoir={facturation.lignesAvoir}

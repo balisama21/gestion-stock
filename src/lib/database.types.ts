@@ -1870,6 +1870,7 @@ export type Database = {
           category_id: string | null;
           champs_perso: Json;
           code_barres: string | null;
+          conditionnements: Json;
           created_at: string;
           description: string | null;
           designation: string;
@@ -1903,6 +1904,7 @@ export type Database = {
           category_id?: string | null;
           champs_perso?: Json;
           code_barres?: string | null;
+          conditionnements?: Json;
           created_at?: string;
           description?: string | null;
           designation: string;
@@ -1936,6 +1938,7 @@ export type Database = {
           category_id?: string | null;
           champs_perso?: Json;
           code_barres?: string | null;
+          conditionnements?: Json;
           created_at?: string;
           description?: string | null;
           designation?: string;
@@ -2183,6 +2186,9 @@ export type Database = {
       purchases: {
         Row: {
           created_at: string;
+          conditionnement: string | null;
+          conditionnement_facteur: number | null;
+          conditionnement_nombre: number | null;
           date: string;
           date_echeance: string | null;
           designation: string;
@@ -2205,6 +2211,9 @@ export type Database = {
         };
         Insert: {
           created_at?: string;
+          conditionnement?: string | null;
+          conditionnement_facteur?: number | null;
+          conditionnement_nombre?: number | null;
           date?: string;
           date_echeance?: string | null;
           designation: string;
@@ -2227,6 +2236,9 @@ export type Database = {
         };
         Update: {
           created_at?: string;
+          conditionnement?: string | null;
+          conditionnement_facteur?: number | null;
+          conditionnement_nombre?: number | null;
           date?: string;
           date_echeance?: string | null;
           designation?: string;
@@ -2718,6 +2730,9 @@ export type Database = {
           client_credit: string | null;
           client_id: string | null;
           commission: number;
+          conditionnement: string | null;
+          conditionnement_facteur: number | null;
+          conditionnement_nombre: number | null;
           created_at: string;
           date: string;
           designation: string;
@@ -2746,6 +2761,9 @@ export type Database = {
           client_credit?: string | null;
           client_id?: string | null;
           commission?: number;
+          conditionnement?: string | null;
+          conditionnement_facteur?: number | null;
+          conditionnement_nombre?: number | null;
           created_at?: string;
           date?: string;
           designation: string;
@@ -2774,6 +2792,9 @@ export type Database = {
           client_credit?: string | null;
           client_id?: string | null;
           commission?: number;
+          conditionnement?: string | null;
+          conditionnement_facteur?: number | null;
+          conditionnement_nombre?: number | null;
           created_at?: string;
           date?: string;
           designation?: string;
@@ -3539,6 +3560,21 @@ export type Database = {
           p_prix_achat_unit: number;
           p_product_id: string;
           p_quantite: number;
+          p_store_id: string;
+        };
+        Returns: Json;
+      };
+      add_purchase_conditionne: {
+        Args: {
+          p_conditionnement_id: string;
+          p_date: string;
+          p_date_echeance?: string;
+          p_fournisseur: string;
+          p_idempotency_key: string;
+          p_montant_paye?: number;
+          p_nombre: number;
+          p_prix_conditionnement: number;
+          p_product_id: string;
           p_store_id: string;
         };
         Returns: Json;

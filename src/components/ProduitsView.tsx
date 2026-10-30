@@ -14,7 +14,12 @@ import {
   Pencil,
   Trash2,
 } from "lucide-react";
-import { formatCurrency, getProductLabel, getProductVariant } from "../utils/formulas";
+import {
+  formatCurrency,
+  getProductLabel,
+  getProductVariant,
+  quantiteEnMots,
+} from "../utils/formulas";
 import { VariantBadge } from "./shared/VariantBadge";
 import { PageHeader } from "./shared/PageHeader";
 import { FilterBar, FilterField } from "./shared/FilterBar";
@@ -27,7 +32,20 @@ import { DetailsProduit } from "./produits/DetailsProduit";
 import { ChampPrixDeVente } from "./produits/ChampPrixDeVente";
 import { PRIX_AUTO_DEFAUT, type ReglagesPrixAuto } from "../lib/prixAuto";
 import { SelecteurFournisseur } from "./shared/SelecteurFournisseur";
-import { DETAILS_VIDES, detailsVersBase, type ValeursDetails } from "../lib/detailsProduit";
+import {
+  DETAILS_VIDES,
+  detailsVersBase,
+  categorieEtSesEnfants,
+  nomsDesCategories,
+  optionsCategories,
+  type ValeursDetails,
+} from "../lib/detailsProduit";
+import {
+  erreurConditionnements,
+  libelleConditionnement,
+  prixVenteDe,
+  stockEnConditionnements,
+} from "../lib/conditionnements";
 import { envoyerFichier, supprimerFichier } from "../lib/stockageFichiers";
 import type { Database } from "../lib/database.types";
 import { useFiltreInitial, useOuvertureFiche, useRechercheInitiale } from "../lib/cibleRecherche";
@@ -213,6 +231,8 @@ export const ProduitsView: React.FC<ProduitsViewProps> = ({
   // qu'il faut commander. Voir `src/lib/cibleRecherche.ts`.
   useFiltreInitial("produits", (f) => setStockFilter(f as FiltreStock));
   const [supplierFilter, setSupplierFilter] = useState<string>("Tous");
+  /** « Tous », « aucune », ou l'identifiant d'une catégorie. */
+  const [categoryFilter, setCategoryFilter] = useState<string>("Tous");
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [vueReappro, setVueReappro] = useState(false);
   const reapproVisible = reglagesAlertes.reapproActive && vueReappro;
@@ -300,14 +320,48 @@ export const ProduitsView: React.FC<ProduitsViewProps> = ({
     return Array.from(list);
   }, [products]);
 
+  /**
+   * Les catégories, avec leur chemin : « Alimentaire › Huiles ».
+   *
+   * Une sous-catégorie filtre aussi sur elle-même seulement ; sa famille,
+   * elle, ramène tout ce qui est rangé dessous — c'est ce qu'on attend en
+   * cherchant « Alimentaire ».
+   */
+  const optionsCategorie = useMemo(() => optionsCategories(categories), [categories]);
+  const nomCategorie = useMemo(() => nomsDesCategories(categories), [categories]);
+  const categoriesVisees = useMemo(
+    () =>
+      categoryFilter === "Tous" || categoryFilter === "aucune"
+        ? null
+        : categorieEtSesEnfants(categories, categoryFilter),
+    [categoryFilter, categories],
+  );
+
   // Dynamic Filtering
   const filteredProducts = useMemo(() => {
+    const cherche = searchTerm.trim().toLowerCase();
     return products.filter((p) => {
+      // Le nom, la référence, le fournisseur, mais aussi ce qu'on a
+      // sous la main au rayon : le code-barres — du produit ou de son
+      // carton — et la catégorie.
       const matchSearch =
-        getProductLabel(p, products).toLowerCase().includes(searchTerm.toLowerCase()) ||
-        p.numero.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        p.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        p.fournisseur.toLowerCase().includes(searchTerm.toLowerCase());
+        !cherche ||
+        getProductLabel(p, products).toLowerCase().includes(cherche) ||
+        p.numero.toLowerCase().includes(cherche) ||
+        p.id.toLowerCase().includes(cherche) ||
+        p.fournisseur.toLowerCase().includes(cherche) ||
+        (p.sku ?? "").toLowerCase().includes(cherche) ||
+        (p.codeBarres ?? "").toLowerCase().includes(cherche) ||
+        p.conditionnements.some((c) => (c.codeBarres ?? "").toLowerCase().includes(cherche)) ||
+        (p.categoryId ? (nomCategorie.get(p.categoryId) ?? "") : "")
+          .toLowerCase()
+          .includes(cherche);
+
+      const matchCategorie =
+        categoryFilter === "Tous" ||
+        (categoryFilter === "aucune"
+          ? !p.categoryId || !nomCategorie.has(p.categoryId)
+          : Boolean(p.categoryId && categoriesVisees?.has(p.categoryId)));
 
       const isLow =
         stockEstSuivi(p) &&
@@ -326,9 +380,18 @@ export const ProduitsView: React.FC<ProduitsViewProps> = ({
 
       const matchSupplier = supplierFilter === "Tous" || p.fournisseur === supplierFilter;
 
-      return matchSearch && matchStock && matchSupplier;
+      return matchSearch && matchStock && matchSupplier && matchCategorie;
     });
-  }, [products, searchTerm, stockFilter, supplierFilter, reglagesAlertes]);
+  }, [
+    products,
+    searchTerm,
+    stockFilter,
+    supplierFilter,
+    reglagesAlertes,
+    categoryFilter,
+    categoriesVisees,
+    nomCategorie,
+  ]);
 
   // Key KPI Computations
   const totalReferences = products.length;
@@ -373,6 +436,14 @@ export const ProduitsView: React.FC<ProduitsViewProps> = ({
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (saving || !designation.trim()) return;
+
+    // Avant toute écriture : un carton « de 0 pièce » serait refusé par
+    // la base APRÈS la création du produit, qui naîtrait sans sa fiche.
+    const erreurCond = erreurConditionnements(addDetails.conditionnements, addDetails.unite);
+    if (erreurCond) {
+      setAddErreur(erreurCond);
+      return;
+    }
 
     setSaving(true);
     setAddErreur(null);
@@ -488,6 +559,7 @@ export const ProduitsView: React.FC<ProduitsViewProps> = ({
       stock_max: p.stockMax === null ? "" : String(p.stockMax),
       type_produit: p.typeProduit ?? "revendu",
       statut: p.statut ?? "actif",
+      conditionnements: p.conditionnements,
     });
   };
 
@@ -508,6 +580,12 @@ export const ProduitsView: React.FC<ProduitsViewProps> = ({
   const handleEditSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!editingProduct || !onEditProduct || editSaving || !editDesignation.trim()) return;
+
+    const erreurCond = erreurConditionnements(editDetails.conditionnements, editDetails.unite);
+    if (erreurCond) {
+      setEditErreur(erreurCond);
+      return;
+    }
 
     setEditSaving(true);
     setEditErreur(null);
@@ -587,6 +665,8 @@ export const ProduitsView: React.FC<ProduitsViewProps> = ({
     const suivi = stockEstSuivi(p);
     const rupture = suivi && estEnRupture(p.stockActuel);
     const bas = suivi && !rupture && estSousLeSeuil(p.stockActuel, p.seuilAlerte);
+    const categorie = p.categoryId ? (nomCategorie.get(p.categoryId) ?? null) : null;
+    const enCartons = stockEnConditionnements(p.stockActuel, p.unite, p.conditionnements);
     return {
       id: p.id,
       // La vignette seule, pour reconnaitre la ligne qu'on lit.
@@ -600,7 +680,12 @@ export const ProduitsView: React.FC<ProduitsViewProps> = ({
           <VariantBadge prix={getProductVariant(p, products)} autorise={showPrixAchat} />
         </span>
       ),
-      meta: [p.numero, showFournisseur ? p.fournisseur || null : null, `seuil ${p.seuilAlerte}`],
+      meta: [
+        p.numero,
+        categorie,
+        showFournisseur ? p.fournisseur || null : null,
+        `seuil ${p.seuilAlerte}`,
+      ],
       amount: formatCurrency(p.prixVenteDefaut),
       amountHint: showPrixAchat ? `achat ${formatCurrency(p.prixAchat)}` : undefined,
       badge: (
@@ -609,11 +694,12 @@ export const ProduitsView: React.FC<ProduitsViewProps> = ({
             rupture ? "app-badge-danger" : bas ? "app-badge-warning" : "app-badge-neutral"
           }`}
         >
-          {rupture ? "Rupture" : `${p.stockActuel} en stock`}
+          {rupture ? "Rupture" : `${quantiteEnMots(p.stockActuel, p.unite)} en stock`}
         </span>
       ),
       sousTitre: p.numero,
       cellules: {
+        categorie: <Texte valeur={categorie} />,
         fournisseur: showFournisseur ? <Texte valeur={p.fournisseur || null} /> : null,
         vente: <Deux haut={formatCurrency(p.prixVenteDefaut)} />,
         achat: showPrixAchat ? (
@@ -627,7 +713,15 @@ export const ProduitsView: React.FC<ProduitsViewProps> = ({
             tonBas={p.prixVenteDefaut >= p.prixAchat ? "succes" : "danger"}
           />
         ) : null,
-        stock: <Stock quantite={p.stockActuel} seuil={p.seuilAlerte} suivi={suivi} />,
+        stock: (
+          <Stock
+            quantite={p.stockActuel}
+            seuil={p.seuilAlerte}
+            suivi={suivi}
+            unite={p.unite}
+            detail={enCartons}
+          />
+        ),
         reserve:
           p.stockReserve > 0 ? (
             <Deux haut={p.stockDisponible} bas={`${p.stockReserve} réservé(s)`} />
@@ -638,12 +732,23 @@ export const ProduitsView: React.FC<ProduitsViewProps> = ({
       detailSubtitle: p.numero,
       details: [
         { label: "Référence", value: p.numero },
-        { label: "Stock actuel", value: `${p.stockActuel}` },
+        {
+          label: "Stock actuel",
+          value: `${quantiteEnMots(p.stockActuel, p.unite)}${enCartons ? ` (${enCartons})` : ""}`,
+        },
         { label: "Stock réservé", value: `${p.stockReserve}`, hideIfEmpty: true },
         { label: "Stock disponible", value: `${p.stockDisponible}` },
         { label: "Seuil d'alerte", value: `${p.seuilAlerte}` },
         ...(showPrixAchat ? [{ label: "Prix d'achat", value: formatCurrency(p.prixAchat) }] : []),
-        { label: "Prix de vente", value: formatCurrency(p.prixVenteDefaut) },
+        {
+          label: p.unite ? `Prix de vente (${p.unite})` : "Prix de vente",
+          value: formatCurrency(p.prixVenteDefaut),
+        },
+        ...p.conditionnements.map((c) => ({
+          label: c.nom.charAt(0).toUpperCase() + c.nom.slice(1),
+          value: `${libelleConditionnement(c, p.unite)} · ${formatCurrency(prixVenteDe(c, p))}`,
+        })),
+        { label: "Catégorie", value: categorie ?? "", hideIfEmpty: true },
         ...(showFournisseur
           ? [{ label: "Fournisseur", value: p.fournisseur || "-", hideIfEmpty: true }]
           : []),
@@ -777,11 +882,14 @@ export const ProduitsView: React.FC<ProduitsViewProps> = ({
             onSearchChange={setSearchTerm}
             searchPlaceholder="Rechercher un produit, une référence, un fournisseur…"
             activeFilterCount={
-              (stockFilter !== "Tous" ? 1 : 0) + (supplierFilter !== "Tous" ? 1 : 0)
+              (stockFilter !== "Tous" ? 1 : 0) +
+              (supplierFilter !== "Tous" ? 1 : 0) +
+              (categoryFilter !== "Tous" ? 1 : 0)
             }
             onReset={() => {
               setStockFilter("Tous");
               setSupplierFilter("Tous");
+              setCategoryFilter("Tous");
               setSearchTerm("");
             }}
           >
@@ -823,6 +931,25 @@ export const ProduitsView: React.FC<ProduitsViewProps> = ({
               </div>
             </FilterField>
 
+            {optionsCategorie.length > 0 && (
+              <FilterField label="Catégorie">
+                <select
+                  value={categoryFilter}
+                  onChange={(e) => setCategoryFilter(e.target.value)}
+                  className="app-field-sm lg:w-auto"
+                  aria-label="Catégorie"
+                >
+                  <option value="Tous">Toutes les catégories</option>
+                  {optionsCategorie.map((o) => (
+                    <option key={o.id} value={o.id}>
+                      {o.libelle}
+                    </option>
+                  ))}
+                  <option value="aucune">Sans catégorie</option>
+                </select>
+              </FilterField>
+            )}
+
             <FilterField label="Fournisseur">
               <select
                 value={supplierFilter}
@@ -850,6 +977,9 @@ export const ProduitsView: React.FC<ProduitsViewProps> = ({
               ouvrir={ficheAOuvrir}
               titrePrincipal="Produit"
               colonnes={[
+                ...(optionsCategorie.length > 0
+                  ? [{ cle: "categorie", titre: "Catégorie", large: showFournisseur }]
+                  : []),
                 ...(showFournisseur ? [{ cle: "fournisseur", titre: "Fournisseur" }] : []),
                 { cle: "vente", titre: "Prix de vente", align: "droite" as const },
                 ...(showPrixAchat
@@ -993,6 +1123,8 @@ export const ProduitsView: React.FC<ProduitsViewProps> = ({
             onChange={setAddDetails}
             categories={categories}
             onCreerCategorie={onCreerCategorie}
+            prix={{ vente: Number(prixVenteDefaut), achat: Number(prixAchat) }}
+            montrerPrixAchat={showPrixAchat}
             // Le produit n'existe pas encore, donc aucune image ne lui
             // est rattachee : celles qu'on choisit ici attendent dans
             // `addPhotos` et partent des sa creation.
@@ -1201,6 +1333,8 @@ export const ProduitsView: React.FC<ProduitsViewProps> = ({
               onChange={setEditDetails}
               categories={categories}
               onCreerCategorie={onCreerCategorie}
+              prix={{ vente: Number(editPrixVenteDefaut), achat: Number(editPrixAchat) }}
+              montrerPrixAchat={showPrixAchat}
               images={productImages.filter((i) => i.product_id === editingProduct.id)}
               storeId={storeId}
               productId={editingProduct.id}

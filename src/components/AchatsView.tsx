@@ -32,7 +32,25 @@ import {
 } from "../utils/formulas";
 import { VariantBadge } from "./shared/VariantBadge";
 import { DetailsProduit } from "./produits/DetailsProduit";
-import { DETAILS_VIDES, detailsVersBase, type ValeursDetails } from "../lib/detailsProduit";
+import {
+  DETAILS_VIDES,
+  detailsVersBase,
+  nomsDesCategories,
+  type ValeursDetails,
+} from "../lib/detailsProduit";
+import { EditeurConditionnements } from "./produits/EditeurConditionnements";
+import { SelecteurUnite } from "./produits/SelecteurUnite";
+import { ChampPrixDeVente } from "./produits/ChampPrixDeVente";
+import {
+  auPluriel,
+  erreurConditionnements,
+  libelleUnite,
+  prixAchatDe,
+  prixUnitaireDepuis,
+  quantiteDeLigne,
+  stockEnConditionnements,
+  type Conditionnement,
+} from "../lib/conditionnements";
 import type { Database } from "../lib/database.types";
 import { PageHeader } from "./shared/PageHeader";
 import { FilterBar, FilterField } from "./shared/FilterBar";
@@ -81,6 +99,14 @@ interface AchatsViewProps {
     /** Ce qui sort de la caisse maintenant. Omis = réglé en totalité. */
     montantPaye?: number | null;
     dateEcheance?: string | null;
+    /**
+     * Le produit rechargé, désigné par son identifiant. Présent, l'achat
+     * va à CE produit, quel que soit son prix : c'est ce qui empêche un
+     * réapprovisionnement à un autre prix de créer un doublon.
+     */
+    productId?: string | null;
+    /** Acheté au carton, au sac… `quantite` est alors en unités de base. */
+    conditionnement?: { id: string; nombre: number; prix: number } | null;
     // `productId` est celui du produit touché par l'achat — qu'il vienne
     // d'être créé ou qu'il existait déjà. C'est sur lui que la fiche
     // descriptive s'écrit ensuite.
@@ -168,6 +194,22 @@ interface AchatsViewProps {
   onReapprovisionnementOuvert?: () => void;
   onEditProductDetails?: (id: string, data: any) => Promise<{ error: string | null }>;
   /**
+   * Créer le produit qu'achète cet achat, avec sa fiche complète.
+   *
+   * Le produit naît d'abord — prix de vente, seuil, unité, conditionnements
+   * —, l'achat le recharge ensuite. Si l'achat échoue, le produit reste et
+   * le formulaire bascule dessus : réessayer le recharge, sans doublon.
+   */
+  onCreerProduit?: (p: {
+    designation: string;
+    prixAchat: number;
+    prixVenteDefaut: number;
+    fournisseur: string;
+    stockInitial: number;
+    stockActuel: number;
+    seuilAlerte: number;
+  }) => Promise<{ error: string | null; id?: string | null }>;
+  /**
    * Rattacher une photo au produit que cet achat vient de creer.
    *
    * Un achat dont la designation ne correspond a rien CREE un produit :
@@ -214,6 +256,7 @@ export const AchatsView: React.FC<AchatsViewProps> = ({
   reapprovisionner = null,
   onReapprovisionnementOuvert,
   onEditProductDetails,
+  onCreerProduit,
   onAddProductImage,
   productImages = [],
   visibleFields,
@@ -353,13 +396,36 @@ export const AchatsView: React.FC<AchatsViewProps> = ({
 
   // Form State
   const [date, setDate] = useState(dateDuJour());
-  const [designation, setDesignation] = useState("");
-  /** Le produit repris du catalogue : la saisie se remplit à partir de lui. */
-  const [produitRecharge, setProduitRecharge] = useState("");
-  const produitsAChoisir = useMemo(
-    () => products.map((p) => versProduitAChoisir(p, products, { prix: "achat" })),
-    [products],
+  /**
+   * Recharger un produit du catalogue, ou en créer un.
+   *
+   * Deux chemins séparés, choisis explicitement. Avant, la base devinait
+   * à partir du nom, du prix et du fournisseur : un réapprovisionnement à
+   * un autre prix créait en silence un second produit du même nom.
+   */
+  const [modeProduit, setModeProduit] = useState<"catalogue" | "nouveau">(
+    products.length > 0 ? "catalogue" : "nouveau",
   );
+  const [designation, setDesignation] = useState("");
+  /** Le produit repris du catalogue : l'achat va à lui, et à nul autre. */
+  const [produitRecharge, setProduitRecharge] = useState("");
+  /** "" = à l'unité de base ; sinon l'identifiant du conditionnement. */
+  const [conditionnementId, setConditionnementId] = useState("");
+  // Le produit à créer : ce que la fiche « Nouveau produit » demande.
+  const [prixVenteNouveau, setPrixVenteNouveau] = useState(0);
+  const [modePrixNouveau, setModePrixNouveau] = useState<"auto" | "manuel">(
+    prixAuto.actif ? "auto" : "manuel",
+  );
+  const [tauxNouveau, setTauxNouveau] = useState<number | null>(null);
+  const [seuilNouveau, setSeuilNouveau] = useState(0);
+  /** Un homonyme existe, et l'on veut quand même un produit distinct. */
+  const [varianteVoulue, setVarianteVoulue] = useState(false);
+  const produitsAChoisir = useMemo(() => {
+    const noms = nomsDesCategories(categories);
+    return products.map((p) =>
+      versProduitAChoisir(p, products, { prix: showPrix ? "achat" : null, categories: noms }),
+    );
+  }, [products, categories, showPrix]);
   // Vides au départ : un achat de « 10 × 1 000 » proposé d'office finissait
   // enregistré tel quel quand on ne relisait pas. Le navigateur exige une
   // quantité et un prix d'au moins 1 avant d'envoyer.
@@ -395,6 +461,16 @@ export const AchatsView: React.FC<AchatsViewProps> = ({
   useEffect(() => {
     if (!reapprovisionner) return;
     setDesignation(reapprovisionner.designation);
+    // Le produit lui-même, retrouvé à son nom : l'achat le rechargera.
+    const vise =
+      products.find(
+        (p) =>
+          cleDeListe(p.designation) === cleDeListe(reapprovisionner.designation) &&
+          Math.abs(p.prixAchat - reapprovisionner.prixAchat) < 0.01,
+      ) ??
+      products.find((p) => cleDeListe(p.designation) === cleDeListe(reapprovisionner.designation));
+    setModeProduit(vise ? "catalogue" : "nouveau");
+    setConditionnementId("");
     setPrixAchatUnit(reapprovisionner.prixAchat);
     setFournisseur(reapprovisionner.fournisseur);
     // Le tableau de bord ne transmet qu'un nom : on retrouve sa fiche.
@@ -409,9 +485,11 @@ export const AchatsView: React.FC<AchatsViewProps> = ({
     setEcheance("");
     setErreurAchat(null);
     setDetailsProduit(DETAILS_VIDES);
-    setProduitRecharge("");
+    setProduitRecharge(vise?.id ?? "");
     setIsModalOpen(true);
     onReapprovisionnementOuvert?.();
+    // `products` change à chaque écriture : seule la demande rouvre le formulaire.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [reapprovisionner, onReapprovisionnementOuvert, fournisseurs]);
 
   // Ce que la saisie du règlement a d'impossible, dit tout de suite plutôt
@@ -427,61 +505,104 @@ export const AchatsView: React.FC<AchatsViewProps> = ({
     }
   }
 
-  /**
-   * Cet achat va-t-il créer un produit, ou recharger un existant ?
-   *
-   * La règle est recopiée telle quelle depuis l'écriture — désignation,
-   * prix d'achat et fournisseur identiques — et c'est délibéré : si
-   * l'écran jugeait autrement que la base, il montrerait une fiche pour
-   * un produit qui ne sera jamais créé, ou la cacherait pour un produit
-   * qui va l'être.
-   */
-  const produitCorrespondant = products.find(
-    (p) =>
-      p.designation.toLowerCase() === designation.trim().toLowerCase() &&
-      Math.abs(p.prixAchat - Number(prixAchatUnit)) < 0.01 &&
-      p.fournisseur.toLowerCase() === fournisseur.trim().toLowerCase(),
+  /** Le produit rechargé, en mode catalogue. */
+  const produitChoisi = useMemo(
+    () =>
+      modeProduit === "catalogue" ? (products.find((p) => p.id === produitRecharge) ?? null) : null,
+    [modeProduit, products, produitRecharge],
   );
-  const creeUnProduit = !produitCorrespondant && designation.trim() !== "";
+  const creeUnProduit = modeProduit === "nouveau";
 
   /**
-   * `produitCorrespondant` ne suffit pas : il exige le même prix
-   * d'achat, et c'est le cas où ils diffèrent qui nous intéresse.
+   * Les conditionnements proposés : ceux du produit rechargé, ou ceux
+   * que l'on déclare pour le nouveau — ceux-là seulement une fois
+   * complets, pour ne pas proposer « de 0 ».
    */
-  const produitVise = useMemo(
+  const conditionnementsProposes: Conditionnement[] = useMemo(
     () =>
-      products.find(
-        (p) => cleDeListe(p.designation) === cleDeListe(designation) && designation.trim() !== "",
-      ) ?? null,
-    [products, designation],
+      creeUnProduit
+        ? detailsProduit.conditionnements.filter((c) => c.nom.trim() && c.quantite >= 2)
+        : (produitChoisi?.conditionnements ?? []),
+    [creeUnProduit, detailsProduit.conditionnements, produitChoisi],
   );
+  const uniteAchat = creeUnProduit
+    ? detailsProduit.unite.trim() || null
+    : (produitChoisi?.unite ?? null);
+  const conditionnement = conditionnementsProposes.find((c) => c.id === conditionnementId) ?? null;
+  const facteur = conditionnement?.quantite ?? 1;
+  /** Ce qui entre réellement en stock, en unités de base. */
+  const quantiteBase = Math.max(0, Math.trunc(quantite)) * facteur;
+  /** Le prix d'achat d'UNE unité de base, celui de la fiche produit. */
+  const prixParUnite = facteur > 1 ? prixUnitaireDepuis(prixAchatUnit, facteur) : prixAchatUnit;
+
+  // Un conditionnement retiré de la fiche ne reste pas choisi.
+  useEffect(() => {
+    if (conditionnementId && !conditionnement) setConditionnementId("");
+  }, [conditionnementId, conditionnement]);
+
+  /** Choisir le conditionnement propose son prix d'achat habituel. */
+  const choisirConditionnement = (id: string) => {
+    setConditionnementId(id);
+    if (!produitChoisi) return;
+    const c = produitChoisi.conditionnements.find((x) => x.id === id);
+    setPrixAchatUnit(c ? prixAchatDe(c, produitChoisi) : produitChoisi.prixAchat);
+  };
+
+  /**
+   * Un produit du même nom — ou du même code-barres — existe déjà.
+   *
+   * On le dit, et l'on propose de le recharger : c'est presque toujours
+   * ce que l'on voulait. Créer une variante distincte reste possible,
+   * mais se demande.
+   */
+  const homonymes = useMemo(() => {
+    if (!creeUnProduit) return [];
+    const cle = cleDeListe(designation);
+    const code = detailsProduit.code_barres.trim().toLowerCase();
+    return products.filter(
+      (p) =>
+        (cle !== "" && (cleDeListe(p.designation) === cle || cleDeListe(p.displayName) === cle)) ||
+        (code !== "" && (p.codeBarres ?? "").trim().toLowerCase() === code),
+    );
+  }, [creeUnProduit, designation, detailsProduit.code_barres, products]);
+
+  const rechargerHomonyme = (p: Product) => {
+    setModeProduit("catalogue");
+    setProduitRecharge(p.id);
+    setConditionnementId("");
+    setPrixAchatUnit(p.prixAchat);
+    if (p.fournisseur) setFournisseur(p.fournisseur);
+    if (p.supplierId) setSupplierId(p.supplierId);
+    setVarianteVoulue(false);
+  };
 
   /** Pour que la décision se prenne en voyant le prix qui en découle. */
   const ecartDePrix = useMemo(() => {
-    if (!produitVise) return null;
-    const nouvelAchat = Number(prixAchatUnit);
+    if (!produitChoisi) return null;
+    const nouvelAchat = Math.round(Number(prixParUnite) * 100) / 100;
     if (!Number.isFinite(nouvelAchat) || nouvelAchat <= 0) return null;
-    if (Math.abs(produitVise.prixAchat - nouvelAchat) < 0.01) return null;
+    if (Math.abs(produitChoisi.prixAchat - nouvelAchat) < 0.01) return null;
 
-    const enAuto = prixAuto.actif && produitVise.modePrix === "auto";
+    const enAuto = prixAuto.actif && produitChoisi.modePrix === "auto";
     const { taux } = tauxApplicable(
-      produitVise.tauxMarge,
-      categories.find((c) => c.id === produitVise.categoryId)?.taux_marge ?? null,
+      produitChoisi.tauxMarge,
+      categories.find((c) => c.id === produitChoisi.categoryId)?.taux_marge ?? null,
       prixAuto.taux,
     );
     return {
-      id: produitVise.id,
-      nom: produitVise.displayName,
-      ancienAchat: produitVise.prixAchat,
+      id: produitChoisi.id,
+      nom: produitChoisi.displayName,
+      ancienAchat: produitChoisi.prixAchat,
       nouvelAchat,
-      ancienVente: produitVise.prixVenteDefaut,
+      ancienVente: produitChoisi.prixVenteDefaut,
       nouveauVente: enAuto ? prixDepuisAchat(nouvelAchat, taux, prixAuto.arrondi) : null,
       taux,
     };
-  }, [produitVise, prixAchatUnit, prixAuto, categories]);
+  }, [produitChoisi, prixParUnite, prixAuto, categories]);
 
   // Auto-fill form when selecting an existing product
   const handleSelectExistingProduct = (prodId: string) => {
+    setConditionnementId("");
     if (!prodId) return;
     const prod = products.find((p) => p.id === prodId);
     if (prod) {
@@ -493,13 +614,78 @@ export const AchatsView: React.FC<AchatsViewProps> = ({
     }
   };
 
+  const remettreAZero = () => {
+    setReporterPrix(false);
+    setDetailsProduit(DETAILS_VIDES);
+    setPhotosProduit([]);
+    setDesignation("");
+    setProduitRecharge("");
+    setConditionnementId("");
+    setPrixVenteNouveau(0);
+    setModePrixNouveau(prixAuto.actif ? "auto" : "manuel");
+    setTauxNouveau(null);
+    setSeuilNouveau(0);
+    setVarianteVoulue(false);
+    setFournisseur("");
+    setSupplierId(null);
+    setQuantite(0);
+    setPrixAchatUnit(0);
+    setReglement("comptant");
+    setMontantRegle(0);
+    setEcheance("");
+  };
+
+  /**
+   * Le produit est né mais la suite a échoué : on bascule dessus, pour
+   * qu'un nouvel essai le recharge au lieu d'en créer un second.
+   */
+  const basculerSurLeProduitCree = (id: string, message: string) => {
+    setModeProduit("catalogue");
+    setProduitRecharge(id);
+    setVarianteVoulue(false);
+    setSaving(false);
+    setErreurAchat(message);
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (saving || !designation.trim() || quantite <= 0 || prixAchatUnit <= 0) return;
+    if (saving || quantite <= 0 || prixAchatUnit <= 0) return;
 
     if (messageRegle) {
       setErreurAchat(messageRegle);
       return;
+    }
+    if (!creeUnProduit && !produitChoisi) {
+      setErreurAchat("Choisissez le produit à recharger, ou passez sur « Nouveau produit ».");
+      return;
+    }
+    if (creeUnProduit) {
+      if (!designation.trim()) {
+        setErreurAchat("Donnez un nom au nouveau produit.");
+        return;
+      }
+      if (homonymes.length > 0 && !varianteVoulue) {
+        setErreurAchat(
+          `« ${homonymes[0].displayName} » existe déjà : rechargez-le, ou cochez « créer un produit distinct ».`,
+        );
+        return;
+      }
+      const erreurCond = erreurConditionnements(
+        detailsProduit.conditionnements,
+        detailsProduit.unite,
+      );
+      if (erreurCond) {
+        setErreurAchat(erreurCond);
+        return;
+      }
+      if (!(prixVenteNouveau > 0) && detailsProduit.type_produit !== "service") {
+        setErreurAchat("Indiquez son prix de vente : il entre au catalogue avec.");
+        return;
+      }
+      if (!onCreerProduit) {
+        setErreurAchat("La création de produit n'est pas disponible ici.");
+        return;
+      }
     }
     // `null` veut dire « réglé en totalité » : la base s'en charge, et
     // c'est ce que faisaient tous les achats jusqu'ici.
@@ -507,11 +693,55 @@ export const AchatsView: React.FC<AchatsViewProps> = ({
 
     setSaving(true);
     setErreurAchat(null);
+
+    // 1. Le nouveau produit d'abord, avec toute sa fiche : un achat au
+    //    carton a besoin que le carton existe déjà sur le produit.
+    let cible = produitChoisi;
+    let idProduit = produitChoisi?.id ?? null;
+    if (creeUnProduit) {
+      const cree = await onCreerProduit!({
+        designation: designation.trim(),
+        prixAchat: prixParUnite,
+        prixVenteDefaut: Number(prixVenteNouveau) || 0,
+        fournisseur: fournisseur.trim(),
+        stockInitial: 0,
+        stockActuel: 0,
+        seuilAlerte: Math.max(0, Math.trunc(Number(seuilNouveau) || 0)),
+      });
+      if (cree.error || !cree.id) {
+        setSaving(false);
+        setErreurAchat(cree.error ?? "Le produit n'a pas pu être créé. Rien n'a été enregistré.");
+        return;
+      }
+      idProduit = cree.id;
+      cible = null;
+
+      if (onEditProductDetails) {
+        const details = await onEditProductDetails(idProduit, {
+          ...detailsVersBase(detailsProduit),
+          supplier_id: supplierId ?? (detailsProduit.supplier_id.trim() || null),
+          ...(prixAuto.actif ? { mode_prix: modePrixNouveau, taux_marge: tauxNouveau } : {}),
+        });
+        if (details.error) {
+          basculerSurLeProduitCree(
+            idProduit,
+            `${details.error} Le produit a été créé, mais ni sa fiche ni l'achat : complétez-le depuis Produits, puis réessayez — il sera rechargé, pas recréé.`,
+          );
+          return;
+        }
+      }
+    }
+
+    // 2. L'achat, toujours sur un produit désigné.
     const result = await onAddPurchase({
       date,
-      designation: designation.trim(),
-      quantite: Number(quantite),
-      prixAchatUnit: Number(prixAchatUnit),
+      productId: idProduit,
+      designation: (cible?.designation ?? designation).trim(),
+      quantite: quantiteBase,
+      prixAchatUnit: prixParUnite,
+      conditionnement: conditionnement
+        ? { id: conditionnement.id, nombre: Math.trunc(quantite), prix: Number(prixAchatUnit) }
+        : null,
       fournisseur: fournisseur.trim(),
       supplier_id: supplierId,
       montantPaye: regle,
@@ -519,30 +749,22 @@ export const AchatsView: React.FC<AchatsViewProps> = ({
     });
 
     if (result.error) {
+      if (creeUnProduit && idProduit) {
+        basculerSurLeProduitCree(
+          idProduit,
+          `${result.error} Le produit « ${designation.trim()} » est créé, mais l'achat n'est pas passé : réessayez, il sera rechargé, pas recréé.`,
+        );
+        return;
+      }
       setSaving(false);
       setErreurAchat(result.error);
       return;
     }
 
-    // L'achat est passé. Si c'est lui qui vient de créer le produit et
-    // que sa fiche a été remplie, on l'enregistre maintenant — sur
-    // l'identifiant que l'achat rapporte, pas sur une recherche.
-    const ficheRemplie = JSON.stringify(detailsProduit) !== JSON.stringify(DETAILS_VIDES);
-    if (creeUnProduit && ficheRemplie && onEditProductDetails && result.productId) {
-      const details = await onEditProductDetails(result.productId, detailsVersBase(detailsProduit));
-      if (details.error) {
-        setSaving(false);
-        // L'achat et le stock, eux, sont bien enregistrés : le dire,
-        // sinon l'utilisateur ressaisirait l'achat en double.
-        setErreurAchat(`${details.error} L'achat, lui, a bien été enregistré.`);
-        return;
-      }
-    }
-
     // Les photos en dernier : les plus lourdes et les plus faillibles.
     // Un réseau qui lâche ne doit pas emporter l'achat avec lui.
-    if (creeUnProduit && photosProduit.length > 0 && result.productId && onAddProductImage) {
-      const echec = await envoyerLesPhotosDuProduit(result.productId, photosProduit);
+    if (creeUnProduit && photosProduit.length > 0 && idProduit && onAddProductImage) {
+      const echec = await envoyerLesPhotosDuProduit(idProduit, photosProduit);
       if (echec) {
         setSaving(false);
         setErreurAchat(`${echec} L'achat, lui, a bien été enregistré.`);
@@ -552,14 +774,27 @@ export const AchatsView: React.FC<AchatsViewProps> = ({
 
     // En dernier : l'achat est déjà passé, un échec ici ne doit pas
     // donner à croire le contraire.
-    if (reporterPrix && ecartDePrix && onReporterPrixAchat) {
+    if (reporterPrix && ecartDePrix && onReporterPrixAchat && produitChoisi) {
       const report = await onReporterPrixAchat(ecartDePrix.id, {
-        designation: produitVise!.designation,
+        designation: produitChoisi.designation,
         prixAchat: ecartDePrix.nouvelAchat,
         prixVenteDefaut: ecartDePrix.nouveauVente ?? ecartDePrix.ancienVente,
-        fournisseur: produitVise!.fournisseur,
-        seuilAlerte: produitVise!.seuilAlerte,
+        fournisseur: produitChoisi.fournisseur,
+        seuilAlerte: produitChoisi.seuilAlerte,
       });
+      // Le carton avait son propre prix d'achat : il suit, lui aussi.
+      if (!report.error && conditionnement?.prixAchat != null && onEditProductDetails) {
+        await onEditProductDetails(produitChoisi.id, {
+          conditionnements: produitChoisi.conditionnements.map((c) => ({
+            id: c.id,
+            nom: c.nom,
+            quantite: c.quantite,
+            prix_vente: c.prixVente,
+            prix_achat: c.id === conditionnement.id ? Number(prixAchatUnit) : c.prixAchat,
+            code_barres: c.codeBarres,
+          })),
+        });
+      }
       if (report.error) {
         setSaving(false);
         setErreurAchat(`${report.error} L'achat, lui, a bien été enregistré.`);
@@ -579,18 +814,7 @@ export const AchatsView: React.FC<AchatsViewProps> = ({
     }
 
     setSaving(false);
-    setReporterPrix(false);
-    setDetailsProduit(DETAILS_VIDES);
-    setPhotosProduit([]);
-    setDesignation("");
-    setProduitRecharge("");
-    setFournisseur("");
-    setSupplierId(null);
-    setQuantite(0);
-    setPrixAchatUnit(0);
-    setReglement("comptant");
-    setMontantRegle(0);
-    setEcheance("");
+    remettreAZero();
     setIsModalOpen(false);
   };
 
@@ -690,6 +914,14 @@ export const AchatsView: React.FC<AchatsViewProps> = ({
     }
   };
 
+  /** « 2 cartons · 24 pièces », ou « 24 pièces » : la quantité telle qu'achetée. */
+  const quantiteAchetee = (p: Purchase) =>
+    quantiteDeLigne(
+      p.quantite,
+      products.find((x) => x.id === p.productId)?.unite,
+      p.conditionnement,
+    );
+
   /** Une ligne de la liste ; sert aussi à ouvrir la fiche visée par une notification. */
   const versItemAchat = (p: Purchase): DataListItem => ({
     id: p.id,
@@ -708,10 +940,14 @@ export const AchatsView: React.FC<AchatsViewProps> = ({
     meta: [
       // En toutes lettres dans le rang secondaire, comme sur le
       // tableau de bord et dans les ventes.
-      quantiteEnMots(p.quantite, products.find((x) => x.id === p.productId)?.unite),
+      quantiteAchetee(p).principal,
       formatDateLocale(p.date, locale),
       showFournisseur ? p.fournisseur || null : null,
-      showPrix ? `${formatCurrency(p.prixAchatUnit)} / u` : null,
+      showPrix
+        ? p.conditionnement
+          ? `${formatCurrency(p.totalAchat / p.conditionnement.nombre)} / ${p.conditionnement.nom}`
+          : `${formatCurrency(p.prixAchatUnit)} / u`
+        : null,
     ],
     amount: showPrix ? formatCurrency(p.totalAchat) : undefined,
     // Ce qui est réellement sorti de la caisse, et ce qui reste dû :
@@ -723,15 +959,23 @@ export const AchatsView: React.FC<AchatsViewProps> = ({
         <span className="t-danger">−{formatCurrency(p.montantPaye)} en caisse</span>
       )
     ) : undefined,
-    sousTitre: [
-      p.numero,
-      quantiteEnMots(p.quantite, products.find((x) => x.id === p.productId)?.unite),
-    ].join(" · "),
+    sousTitre: [p.numero, quantiteAchetee(p).principal].join(" · "),
     cellules: {
       date: <DateJour iso={p.date} locale={locale} />,
       fournisseur: showFournisseur ? <Texte valeur={p.fournisseur || null} /> : null,
-      quantite: <span className="tabular-nums">{p.quantite}</span>,
-      pu: showPrix ? <Deux haut={formatCurrency(p.prixAchatUnit)} /> : null,
+      quantite: (
+        <Deux haut={quantiteAchetee(p).principal} bas={quantiteAchetee(p).detail ?? undefined} />
+      ),
+      pu: showPrix ? (
+        p.conditionnement ? (
+          <Deux
+            haut={`${formatCurrency(p.totalAchat / p.conditionnement.nombre)} / ${p.conditionnement.nom}`}
+            bas={`${formatCurrency(p.prixAchatUnit)} / u`}
+          />
+        ) : (
+          <Deux haut={formatCurrency(p.prixAchatUnit)} />
+        )
+      ) : null,
       total: showPrix ? <Montant valeur={p.totalAchat} /> : null,
       // Ce qui est sorti de la caisse, ou ce qui reste dû au fournisseur.
       reglement: showPrix ? (
@@ -747,7 +991,12 @@ export const AchatsView: React.FC<AchatsViewProps> = ({
     details: [
       { label: "Date", value: formatDateLocale(p.date, locale) },
       { label: "Référence", value: p.numero },
-      { label: "Quantité", value: `${p.quantite}` },
+      {
+        label: "Quantité",
+        value: quantiteAchetee(p).detail
+          ? `${quantiteAchetee(p).principal} (${quantiteAchetee(p).detail})`
+          : quantiteAchetee(p).principal,
+      },
       ...(showPrix
         ? [
             { label: "Prix unitaire", value: formatCurrency(p.prixAchatUnit) },
@@ -878,7 +1127,14 @@ export const AchatsView: React.FC<AchatsViewProps> = ({
               Imprimer
             </button>
             <button
-              onClick={() => setIsModalOpen(true)}
+              onClick={() => {
+                // Sans produit choisi ni nom tapé, on part du bon côté :
+                // le catalogue s'il existe, sinon la création.
+                if (!produitRecharge && !designation.trim()) {
+                  setModeProduit(products.length > 0 ? "catalogue" : "nouveau");
+                }
+                setIsModalOpen(true);
+              }}
               className="app-btn-primary w-full sm:w-auto"
             >
               <Plus className="w-4 h-4" />
@@ -1086,6 +1342,17 @@ export const AchatsView: React.FC<AchatsViewProps> = ({
                   onChange={(e) => setModQuantite(e.target.value)}
                   className="app-field"
                 />
+                {achatAModifier.conditionnement && (
+                  <p className="mt-1 text-[11px] text-muted-foreground">
+                    Acheté en {achatAModifier.conditionnement.nombre}{" "}
+                    {auPluriel(
+                      achatAModifier.conditionnement.nom,
+                      achatAModifier.conditionnement.nombre,
+                    )}{" "}
+                    de {achatAModifier.conditionnement.facteur} : la quantité et le prix se
+                    corrigent à l&apos;unité.
+                  </p>
+                )}
               </div>
             </div>
 
@@ -1418,24 +1685,175 @@ export const AchatsView: React.FC<AchatsViewProps> = ({
         }
       >
         <form id="purchase-add-form" onSubmit={handleSubmit} className="space-y-4">
-          <SelecteurProduit
-            id="achat-recharge"
-            label="Recharge rapide depuis le catalogue"
-            produits={produitsAChoisir}
-            valeur={produitRecharge}
-            libelleVide="Choisir un produit existant…"
-            onChange={(id) => {
-              setProduitRecharge(id);
-              handleSelectExistingProduct(id);
-            }}
-          />
+          {/* ── Quel produit ── */}
+          <div
+            role="radiogroup"
+            aria-label="Produit acheté"
+            className="flex w-full items-center gap-1 rounded-xl border border-border bg-muted p-1"
+          >
+            {(
+              [
+                ["catalogue", "Produit du catalogue"],
+                ["nouveau", "Nouveau produit"],
+              ] as const
+            ).map(([valeur, libelle]) => (
+              <button
+                key={valeur}
+                type="button"
+                role="radio"
+                aria-checked={modeProduit === valeur}
+                onClick={() => {
+                  setModeProduit(valeur);
+                  setConditionnementId("");
+                  setErreurAchat(null);
+                }}
+                className={`min-h-9 flex-1 whitespace-nowrap rounded-lg px-3 py-1.5 text-xs font-medium transition-colors ${
+                  modeProduit === valeur
+                    ? "bg-card font-semibold text-primary shadow-sm"
+                    : "text-muted-foreground hover:text-foreground"
+                }`}
+              >
+                {libelle}
+              </button>
+            ))}
+          </div>
+
+          {modeProduit === "catalogue" ? (
+            <div>
+              <SelecteurProduit
+                id="achat-recharge"
+                label="Produit à recharger"
+                produits={produitsAChoisir}
+                valeur={produitRecharge}
+                libelleVide="Choisir un produit…"
+                onChange={(id) => {
+                  setProduitRecharge(id);
+                  handleSelectExistingProduct(id);
+                }}
+              />
+              {produitChoisi ? (
+                <p className="mt-1.5 text-xs text-muted-foreground">
+                  En stock :{" "}
+                  <strong className="font-semibold text-foreground">
+                    {quantiteEnMots(produitChoisi.stockActuel, produitChoisi.unite)}
+                  </strong>
+                  {(() => {
+                    const enCartons = stockEnConditionnements(
+                      produitChoisi.stockActuel,
+                      produitChoisi.unite,
+                      produitChoisi.conditionnements,
+                    );
+                    return enCartons ? ` (${enCartons})` : "";
+                  })()}
+                  {showPrix && <> · achat {formatCurrency(produitChoisi.prixAchat)}</>} · vente{" "}
+                  {formatCurrency(produitChoisi.prixVenteDefaut)}
+                </p>
+              ) : (
+                <p className="mt-1.5 text-xs text-muted-foreground">
+                  Introuvable ? Passez sur « Nouveau produit » pour le créer avec sa fiche.
+                </p>
+              )}
+            </div>
+          ) : (
+            <div className="space-y-4">
+              <div>
+                <label
+                  htmlFor="achat-designation"
+                  className="mb-1.5 block text-sm font-medium text-foreground"
+                >
+                  Désignation
+                </label>
+                <input
+                  id="achat-designation"
+                  type="text"
+                  required
+                  value={designation}
+                  onChange={(e) => {
+                    setDesignation(e.target.value);
+                    setVarianteVoulue(false);
+                  }}
+                  placeholder="ex : eau minérale 1,5 L"
+                  className="app-field"
+                />
+              </div>
+
+              {homonymes.length > 0 && (
+                <div
+                  role="status"
+                  className="rounded-xl border border-warning-border bg-warning-soft p-3 text-sm"
+                >
+                  <p className="font-medium text-foreground">
+                    {homonymes.length > 1
+                      ? `${homonymes.length} produits portent déjà ce nom ou ce code-barres`
+                      : "Ce produit existe déjà au catalogue"}
+                  </p>
+                  <ul className="mt-2 space-y-1.5">
+                    {homonymes.slice(0, 4).map((h) => (
+                      <li key={h.id} className="flex flex-wrap items-center justify-between gap-2">
+                        <span className="min-w-0 text-xs text-foreground">
+                          <strong className="font-semibold">{h.displayName}</strong>{" "}
+                          <span className="text-muted-foreground">
+                            · {h.numero} · {quantiteEnMots(h.stockActuel, h.unite)}
+                          </span>
+                        </span>
+                        <button
+                          type="button"
+                          onClick={() => rechargerHomonyme(h)}
+                          className="app-btn-secondary px-3 py-1.5 text-xs"
+                        >
+                          Recharger celui-ci
+                        </button>
+                      </li>
+                    ))}
+                  </ul>
+                  <label className="mt-3 flex cursor-pointer items-start gap-2">
+                    <input
+                      type="checkbox"
+                      checked={varianteVoulue}
+                      onChange={(e) => setVarianteVoulue(e.target.checked)}
+                      className="mt-0.5"
+                    />
+                    <span className="text-xs text-foreground">
+                      Créer quand même un produit distinct (une variante, avec son propre stock et
+                      son propre prix)
+                    </span>
+                  </label>
+                </div>
+              )}
+
+              {/* L'unité et les conditionnements AVANT la quantité : on
+                  achète « 2 cartons » d'un produit dont on vient de dire
+                  qu'un carton en contient 12. */}
+              <div className="space-y-4 rounded-xl border border-border p-3">
+                <SelecteurUnite
+                  id="achat-unite"
+                  valeur={detailsProduit.unite}
+                  onChange={(unite) => setDetailsProduit((d) => ({ ...d, unite }))}
+                />
+                <EditeurConditionnements
+                  valeur={detailsProduit.conditionnements}
+                  onChange={(conditionnements) =>
+                    setDetailsProduit((d) => ({ ...d, conditionnements }))
+                  }
+                  unite={detailsProduit.unite}
+                  prixVenteUnite={Number(prixVenteNouveau) || 0}
+                  prixAchatUnite={Number(prixParUnite) || 0}
+                  montrerPrixAchat={showPrix}
+                />
+              </div>
+            </div>
+          )}
 
           <div className="space-y-4 border-t border-border pt-4">
             <div>
-              <label className="mb-1.5 block text-sm font-medium text-foreground">
+              <label
+                htmlFor="achat-date"
+                className="mb-1.5 block text-sm font-medium text-foreground"
+              >
                 Date d'achat
               </label>
               <input
+                id="achat-date"
                 type="date"
                 required
                 value={date}
@@ -1444,47 +1862,101 @@ export const AchatsView: React.FC<AchatsViewProps> = ({
               />
             </div>
 
-            <div>
-              <label className="mb-1.5 block text-sm font-medium text-foreground">
-                Désignation
-              </label>
-              <input
-                type="text"
-                required
-                value={designation}
-                onChange={(e) => setDesignation(e.target.value)}
-                placeholder="ex : cahier"
-                className="app-field"
-              />
-            </div>
+            {/* ── Acheté à l'unité, ou au carton ── */}
+            {conditionnementsProposes.length > 0 && (
+              <div>
+                <p id="achat-par" className="mb-1.5 block text-sm font-medium text-foreground">
+                  Acheté par
+                </p>
+                <div role="radiogroup" aria-labelledby="achat-par" className="flex flex-wrap gap-2">
+                  {[
+                    { id: "", libelle: libelleUnite(uniteAchat, 1), note: null as string | null },
+                    ...conditionnementsProposes.map((c) => ({
+                      id: c.id,
+                      libelle: c.nom,
+                      note: `${c.quantite} ${libelleUnite(uniteAchat, c.quantite)}`,
+                    })),
+                  ].map((o) => (
+                    <button
+                      key={o.id || "unite"}
+                      type="button"
+                      role="radio"
+                      aria-checked={conditionnementId === o.id}
+                      onClick={() => choisirConditionnement(o.id)}
+                      className={`rounded-full border px-3.5 py-1.5 text-xs font-semibold transition-colors ${
+                        conditionnementId === o.id
+                          ? "border-success-border bg-success-soft t-success"
+                          : "border-border text-muted-foreground hover:text-foreground"
+                      }`}
+                    >
+                      {o.libelle.charAt(0).toUpperCase() + o.libelle.slice(1)}
+                      {o.note && (
+                        <>
+                          {" "}
+                          <span className="font-normal opacity-80">· {o.note}</span>
+                        </>
+                      )}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
 
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <div>
-                <label className="mb-1.5 block text-sm font-medium text-foreground">Quantité</label>
+                <label
+                  htmlFor="achat-quantite"
+                  className="mb-1.5 block text-sm font-medium text-foreground"
+                >
+                  {conditionnement
+                    ? `Nombre de ${auPluriel(conditionnement.nom, 2)}`
+                    : uniteAchat
+                      ? `Quantité (${libelleUnite(uniteAchat, 2)})`
+                      : "Quantité"}
+                </label>
                 <input
+                  id="achat-quantite"
                   type="number"
                   required
                   min="1"
+                  step="1"
                   placeholder="0"
                   value={quantite || ""}
                   onChange={(e) => setQuantite(Number(e.target.value))}
                   className="app-field font-mono"
                 />
+                {conditionnement && quantite > 0 && (
+                  <span className="mt-1 block text-xs font-medium t-success">
+                    = {quantiteEnMots(quantiteBase, uniteAchat)} en stock
+                  </span>
+                )}
               </div>
               <div>
-                <label className="mb-1.5 block text-sm font-medium text-foreground">
-                  Prix d'achat unitaire ({symboleDeSaisie()})
+                <label
+                  htmlFor="achat-prix"
+                  className="mb-1.5 block text-sm font-medium text-foreground"
+                >
+                  {conditionnement
+                    ? `Prix d'achat par ${conditionnement.nom} (${symboleDeSaisie()})`
+                    : `Prix d'achat unitaire (${symboleDeSaisie()})`}
                 </label>
                 <input
+                  id="achat-prix"
                   type="number"
                   required
                   min="1"
+                  step="any"
                   placeholder="0"
                   value={prixAchatUnit || ""}
                   onChange={(e) => setPrixAchatUnit(Number(e.target.value))}
                   className="app-field font-mono"
                 />
                 <Equivalents montant={prixAchatUnit} className="mt-1" saisie />
+                {conditionnement && prixAchatUnit > 0 && (
+                  <span className="mt-0.5 block text-xs text-muted-foreground">
+                    Soit {formatCurrency(prixParUnite)} par {libelleUnite(uniteAchat, 1)}
+                  </span>
+                )}
                 {quantite > 1 && totalSaisi > 0 && (
                   <span className="mt-0.5 block text-xs text-muted-foreground">
                     Total {formatCurrency(totalSaisi)}
@@ -1494,6 +1966,48 @@ export const AchatsView: React.FC<AchatsViewProps> = ({
               </div>
             </div>
 
+            {/* Le prix de vente et le seuil du produit qui va naître :
+                avant, ils étaient inventés (achat × 1,3 et 5 unités). */}
+            {creeUnProduit && (
+              <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+                <ChampPrixDeVente
+                  id="achat-prix-vente"
+                  prixAchat={Number(prixParUnite) || 0}
+                  prixVente={Number(prixVenteNouveau) || 0}
+                  onPrixVente={setPrixVenteNouveau}
+                  mode={modePrixNouveau}
+                  onMode={setModePrixNouveau}
+                  tauxProduit={tauxNouveau}
+                  onTauxProduit={setTauxNouveau}
+                  tauxCategorie={
+                    categories.find((c) => c.id === detailsProduit.category_id)?.taux_marge ?? null
+                  }
+                  reglages={prixAuto}
+                />
+                <div>
+                  <label
+                    htmlFor="achat-seuil"
+                    className="mb-1.5 block text-sm font-medium text-foreground"
+                  >
+                    Seuil d&apos;alerte{uniteAchat ? ` (${libelleUnite(uniteAchat, 2)})` : ""}
+                  </label>
+                  <input
+                    id="achat-seuil"
+                    type="number"
+                    min="0"
+                    step="1"
+                    value={seuilNouveau || ""}
+                    placeholder="0"
+                    onChange={(e) => setSeuilNouveau(Number(e.target.value))}
+                    className="app-field font-mono"
+                  />
+                  <p className="mt-1 text-[11px] text-muted-foreground">
+                    En dessous, le produit passe en alerte de stock.
+                  </p>
+                </div>
+              </div>
+            )}
+
             {ecartDePrix && (
               <div className="rounded-xl border border-border p-3 sm:col-span-2">
                 <p className="text-sm font-medium text-foreground">
@@ -1501,9 +2015,9 @@ export const AchatsView: React.FC<AchatsViewProps> = ({
                 </p>
                 <p className="mt-1 text-xs text-muted-foreground">
                   La fiche de « {ecartDePrix.nom} » porte {formatCurrency(ecartDePrix.ancienAchat)}{" "}
-                  ; vous saisissez {formatCurrency(ecartDePrix.nouvelAchat)}. Sans rien faire,
-                  l&apos;achat est enregistré tel quel et la fiche ne bouge pas — c&apos;est ce qui
-                  se passait jusqu&apos;ici.
+                  {conditionnement ? `par ${libelleUnite(uniteAchat, 1)} ` : ""}; cet achat revient
+                  à {formatCurrency(ecartDePrix.nouvelAchat)}. Sans rien faire, le stock est
+                  rechargé et la fiche garde son prix.
                 </p>
                 <label className="mt-3 flex cursor-pointer items-start gap-2">
                   <input
@@ -1645,20 +2159,16 @@ export const AchatsView: React.FC<AchatsViewProps> = ({
             />
           </div>
 
-          {/* ── La fiche du produit que cet achat va créer ──
-              Elle n'apparaît QUE dans ce cas. Recharger un produit qui
-              existe déjà ne doit pas proposer une fiche vide : on
-              écraserait sa catégorie et son code-barres par du blanc,
-              et personne ne comprendrait pourquoi. */}
+          {/* ── La suite de la fiche du produit qui va naître ──
+              Elle n'apparaît QUE dans ce cas : recharger un produit qui
+              existe ne doit pas proposer une fiche vide, qui écraserait
+              sa catégorie et son code-barres par du blanc. */}
           {creeUnProduit && (
             <div className="border-t border-border pt-4">
-              <p className="mb-1 text-sm font-medium text-foreground">
-                Nouveau produit au catalogue
-              </p>
+              <p className="mb-1 text-sm font-medium text-foreground">Fiche du nouveau produit</p>
               <p className="mb-4 text-xs leading-relaxed text-muted-foreground">
-                Cette désignation ne correspond à aucun produit existant : elle en créera un.
-                Décrivez-le maintenant si vous le souhaitez — tout est facultatif, et modifiable
-                ensuite depuis l&apos;écran Produits.
+                Référence, code-barres, catégorie, TVA, photos : la même fiche que dans l&apos;écran
+                Produits. Tout est facultatif et modifiable ensuite.
               </p>
               <DetailsProduit
                 valeurs={detailsProduit}
@@ -1668,6 +2178,9 @@ export const AchatsView: React.FC<AchatsViewProps> = ({
                 images={[]}
                 storeId={storeId}
                 productId={null}
+                sansUniteNiConditionnements
+                montrerPrixAchat={showPrix}
+                prix={{ vente: Number(prixVenteNouveau) || 0, achat: Number(prixParUnite) || 0 }}
                 photosEnAttente={onAddProductImage ? photosProduit : undefined}
                 onPhotosEnAttenteChange={onAddProductImage ? setPhotosProduit : undefined}
                 onAddImage={async () => ({ error: "Envoi indisponible." })}

@@ -1,4 +1,5 @@
 import type { Database } from "./database.types";
+import { conditionnementsVersBase, type Conditionnement } from "./conditionnements";
 
 /**
  * Ce qui décrit un produit, par opposition à ce qui le compte.
@@ -22,6 +23,8 @@ export interface ValeursDetails {
   stock_max: string;
   type_produit: string;
   statut: string;
+  /** Carton, sac, pack… : voir `lib/conditionnements.ts`. */
+  conditionnements: Conditionnement[];
 }
 
 export const DETAILS_VIDES: ValeursDetails = {
@@ -35,6 +38,7 @@ export const DETAILS_VIDES: ValeursDetails = {
   stock_max: "",
   type_produit: "revendu",
   statut: "actif",
+  conditionnements: [],
 };
 
 /** Ce que la base attend, une fois les chaînes vides ramenées à `null`. */
@@ -52,6 +56,7 @@ export const detailsVersBase = (v: ValeursDetails) => {
     stock_max: nombre(v.stock_max),
     type_produit: v.type_produit,
     statut: v.statut,
+    conditionnements: conditionnementsVersBase(v.conditionnements),
   };
 };
 
@@ -61,8 +66,42 @@ export const TYPES_PRODUIT = [
   { valeur: "fabrique", libelle: "Fabriqué", aide: "Produit sur commande." },
 ] as const;
 
-/** Quelques unités courantes, sans fermer la saisie. */
-export const UNITES = ["pièce", "kg", "g", "litre", "ml", "mètre", "carton", "sac", "paquet"];
+/**
+ * Les unités de base courantes, sans fermer la saisie.
+ *
+ * L'unité de base est celle dans laquelle le stock se compte : la plus
+ * petite quantité que l'on vend. Ce qui en contient plusieurs — carton,
+ * sac, pack — se déclare comme conditionnement, avec son nombre.
+ */
+export const UNITES = [
+  "pièce",
+  "kg",
+  "g",
+  "litre",
+  "ml",
+  "mètre",
+  "m²",
+  "boîte",
+  "bouteille",
+  "sachet",
+  "paquet",
+  "sac",
+  "carton",
+  "rouleau",
+  "paire",
+  "lot",
+];
+
+/** Les conditionnements que l'on propose d'un geste. */
+export const CONDITIONNEMENTS_COURANTS = [
+  "carton",
+  "pack",
+  "paquet",
+  "sac",
+  "boîte",
+  "lot",
+  "douzaine",
+];
 
 /**
  * Les catégories mises à plat pour une liste déroulante.
@@ -91,3 +130,14 @@ export const optionsCategories = (categories: Categorie[]): { id: string; libell
         .map((c) => ({ id: c.id, libelle: `${racine.nom} › ${c.nom}` })),
     ]);
 };
+
+/** Le nom de chaque catégorie de produit — chemin compris —, par identifiant. */
+export const nomsDesCategories = (categories: Categorie[]): Map<string, string> =>
+  new Map(optionsCategories(categories).map((o) => [o.id, o.libelle]));
+
+/**
+ * Une catégorie et ses sous-catégories : choisir « Alimentaire » ramène
+ * aussi ce qui est rangé sous « Alimentaire › Huiles ».
+ */
+export const categorieEtSesEnfants = (categories: Categorie[], id: string): Set<string> =>
+  new Set([id, ...categories.filter((c) => c.parent_id === id).map((c) => c.id)]);
