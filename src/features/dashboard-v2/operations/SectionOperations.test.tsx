@@ -51,6 +51,13 @@ describe("SectionOperations", () => {
     fireEvent.click(screen.getByRole("button", { name: "À faire" }));
     expect(courant()).toEqual(["À faire"]);
     expect(camera().dataset.cote).toBe("droite");
+    // Les deux onglets du double ouvert restent marqués.
+    expect(
+      screen
+        .getAllByRole("button")
+        .filter((b) => b.dataset.ouvert)
+        .map((b) => b.textContent),
+    ).toEqual(["Agenda", "À faire"]);
     expect(bande().dataset.sens).toBeUndefined();
     expect(bande().dataset.double).toBe("0");
   });

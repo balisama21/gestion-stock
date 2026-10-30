@@ -9,12 +9,12 @@ import "./operations.css";
  * « Inspiration du moment », posée juste au-dessus, qui ouvre la fin de
  * la page.
  *
- * Sur ordinateur et tablette, les cartes forment un seul panneau en
- * quatre. Sur téléphone, elles deviennent les pages d'un bloc-notes à
- * spirale, ouvert, deux par deux : agenda | à faire, puis commandes |
- * livraisons (voir `operations.css`). On passe d'une page à l'autre du
- * doigt ou par les onglets dessous :
- * - dans un même double, la vue glisse d'une page à l'autre ;
+ * Les cartes sont les pages d'un bloc-notes à spirale, ouvert, deux par
+ * deux : agenda | à faire, puis commandes | livraisons (voir
+ * `operations.css`). Sur ordinateur et tablette, le double entier se voit ;
+ * sur téléphone, une page à la fois. On passe d'une page à l'autre du
+ * doigt, à la souris ou par les onglets dessous :
+ * - dans un même double, la vue glisse d'une page à l'autre (téléphone) ;
  * - d'un double à l'autre, on tourne la page : elle se soulève autour de
  *   la spirale, passe de l'autre côté et se rabat, et la page suivante
  *   apparaît dessous.
@@ -98,6 +98,7 @@ export const SectionOperations: React.FC<{ feuilles: FeuilleOperation[] }> = ({ 
                 type="button"
                 key={f.cle}
                 aria-current={i === vue ? "true" : undefined}
+                data-ouvert={Math.floor(i / 2) === Math.floor(vue / 2) || undefined}
                 onClick={() => aller(i)}
               >
                 {f.nom}
