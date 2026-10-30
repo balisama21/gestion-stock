@@ -110,6 +110,19 @@ describe("un document déjà émis", () => {
   });
 });
 
+describe("les taux de TVA d'une pièce émise", () => {
+  it("sont figés ligne par ligne, et relus tels quels", () => {
+    const taux = { "s-024": 20, "s-025": 5 };
+    const copie = commeEnBase(figer(AU_DEPART, BOUTIQUE, "facture", "2026-10-30", undefined, taux));
+    expect(lireCopieFigee(copie, AU_DEPART, "facture")!.taux).toEqual(taux);
+  });
+
+  it("une copie rangée avant les taux par ligne le dit", () => {
+    const copie = commeEnBase(figer(AU_DEPART, BOUTIQUE, "facture", "2026-09-26"));
+    expect(lireCopieFigee(copie, AU_DEPART, "facture")!.taux).toBe("avant");
+  });
+});
+
 describe("les copies d'avant le mode libre", () => {
   it("s'appliquent en mode simple, avec leur identité et leur titre", () => {
     const v1 = {

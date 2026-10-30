@@ -22,6 +22,7 @@ import type { DocumentCommercial } from "./documents";
 import {
   construireLaPiece,
   coordonneesDuTiers,
+  tauxDeLaPiece,
   type SortieVoulue,
   type SourcesDeLaPiece,
 } from "./construireLaPiece";
@@ -95,6 +96,7 @@ export const ActionsDocument: React.FC<ActionsDocumentProps> = ({
         ...sources,
         reglages: fige.reglages,
         boutique: { ...sources.boutique, ...fige.boutique },
+        tauxFiges: fige.taux,
       }
     : sources;
   const piece = sortie ? construireLaPiece(d, sourcesDeLaPiece, sortie) : null;
@@ -130,7 +132,17 @@ export const ActionsDocument: React.FC<ActionsDocumentProps> = ({
       const logo = preparerLogo
         ? await preparerLogo(sources.boutique.logoUrl).catch(() => undefined)
         : undefined;
-      onEmis(type, figer(reglages, sources.boutique, type, aujourdhui, logo));
+      onEmis(
+        type,
+        figer(
+          reglages,
+          sources.boutique,
+          type,
+          aujourdhui,
+          logo,
+          tauxDeLaPiece(d, sources, voulue),
+        ),
+      );
     }
     setSortie(voulue);
   };

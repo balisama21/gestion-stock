@@ -897,6 +897,7 @@ export const DevisView: React.FC<DevisViewProps> = ({
         devis={devisAImprimer}
         lignes={devisAImprimer ? (lignesDe[devisAImprimer.id] ?? []) : []}
         settings={settings}
+        produits={products}
         onClose={() => setDevisAImprimer(null)}
       />
       {modaleConfirmation}

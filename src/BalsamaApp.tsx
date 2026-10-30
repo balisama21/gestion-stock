@@ -785,38 +785,40 @@ function AppInner() {
   }, [theme]);
 
   // Transform Database types → Local types for legacy components
-  const products: Product[] = useMemo(
-    () =>
-      storeData.products.map((p) => ({
-        id: p.id,
-        numero: p.numero || `P-${p.id.slice(0, 6)}`,
-        designation: p.designation,
-        variantSuffix: p.variant_suffix,
-        displayName: p.display_name,
-        prixAchat: p.prix_achat,
-        prixVenteDefaut: p.prix_vente_defaut,
-        fournisseur: p.fournisseur,
-        stockInitial: p.stock_initial,
-        stockActuel: p.stock_actuel,
-        stockReserve: p.stock_reserve,
-        stockDisponible: p.stock_disponible ?? p.stock_actuel - p.stock_reserve,
-        seuilAlerte: p.seuil_alerte,
-        sku: p.sku,
-        codeBarres: p.code_barres,
-        categoryId: p.category_id,
-        supplierId: p.supplier_id,
-        description: p.description,
-        unite: p.unite,
-        tvaRate: p.tva_rate,
-        stockMax: p.stock_max,
-        typeProduit: p.type_produit,
-        statut: p.statut,
-        modePrix: p.mode_prix,
-        tauxMarge: p.taux_marge,
-        conditionnements: lireConditionnements(p.conditionnements),
-      })),
-    [storeData.products],
-  );
+  const products: Product[] = useMemo(() => {
+    // Le taux de TVA de la catégorie voyage avec le produit : chaque
+    // document le lit là, sans qu'on lui passe la liste des catégories.
+    const tvaParCategorie = new Map(storeData.categories.map((c) => [c.id, c.tva_rate ?? null]));
+    return storeData.products.map((p) => ({
+      id: p.id,
+      numero: p.numero || `P-${p.id.slice(0, 6)}`,
+      designation: p.designation,
+      variantSuffix: p.variant_suffix,
+      displayName: p.display_name,
+      prixAchat: p.prix_achat,
+      prixVenteDefaut: p.prix_vente_defaut,
+      fournisseur: p.fournisseur,
+      stockInitial: p.stock_initial,
+      stockActuel: p.stock_actuel,
+      stockReserve: p.stock_reserve,
+      stockDisponible: p.stock_disponible ?? p.stock_actuel - p.stock_reserve,
+      seuilAlerte: p.seuil_alerte,
+      sku: p.sku,
+      codeBarres: p.code_barres,
+      categoryId: p.category_id,
+      supplierId: p.supplier_id,
+      description: p.description,
+      unite: p.unite,
+      tvaRate: p.tva_rate,
+      tvaCategorie: p.category_id ? (tvaParCategorie.get(p.category_id) ?? null) : null,
+      stockMax: p.stock_max,
+      typeProduit: p.type_produit,
+      statut: p.statut,
+      modePrix: p.mode_prix,
+      tauxMarge: p.taux_marge,
+      conditionnements: lireConditionnements(p.conditionnements),
+    }));
+  }, [storeData.products, storeData.categories]);
 
   /**
    * Le catalogue, réduit à ce que la phrase d'exemple des réglages
@@ -2958,6 +2960,7 @@ function AppInner() {
                         orders={visibleOrders}
                         clients={storeData.clients}
                         products={storeData.products}
+                        catalogue={products}
                         isOwner={workspace.isOwner}
                         onAddOrder={storeData.addOrder}
                         onUpdateOrder={handleUpdateOrder}

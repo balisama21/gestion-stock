@@ -405,7 +405,8 @@ export const DetailsProduit: React.FC<DetailsProduitProps> = ({
             onChange={(e) => modifier({ tva_rate: e.target.value })}
           />
           <p className="mt-1 text-[11px] text-muted-foreground">
-            Laissez vide pour appliquer le taux de la boutique.
+            Laissez vide pour appliquer celui de la catégorie, ou à défaut celui de la boutique.
+            Sert aux factures, devis et reçus.
           </p>
         </div>
         <div>
