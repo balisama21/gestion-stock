@@ -11,6 +11,7 @@ import { EtatErreur } from "./components/States";
 import { Chip } from "./components/Chip";
 import { Section, type Scene } from "./components/Tn";
 import { SectionOperations } from "./operations/SectionOperations";
+import { InspirationDuMoment } from "./components/InspirationDuMoment";
 import { HeroTableauDeBord, type PointVentes } from "./components/HeroTableauDeBord";
 import { CarteTresorerie } from "./cards/CarteTresorerie";
 import { CarteArgentMinis } from "./cards/CarteArgentMinis";
@@ -325,7 +326,7 @@ export const DashboardV2Page: React.FC<DashboardV2PageProps> = ({
   const aujourdhui = dateDuJour();
 
   /**
-   * La date du jour pour la bannière des opérations. Elle n'est lue
+   * La date du jour, pour les photos de l'inspiration du moment. Elle n'est lue
    * qu'après le premier rendu : le serveur et le navigateur doivent
    * d'abord dessiner la même chose.
    */
@@ -494,12 +495,6 @@ export const DashboardV2Page: React.FC<DashboardV2PageProps> = ({
       .sort(([a], [b]) => a.localeCompare(b))
       .flatMap(([, items]) => items);
   }, [evenements, taches, deliveries, rappels, aujourdhui]);
-
-  /** Les jours chargés du mois, pointés sur le calendrier de la bannière. */
-  const joursCharges = useMemo(
-    () => new Set(agendaDuMoisCourant.map((it) => it.jour)),
-    [agendaDuMoisCourant],
-  );
 
   const vueCourante = VUE_PAR_CLE.get(droits.vue);
 
@@ -1052,15 +1047,12 @@ export const DashboardV2Page: React.FC<DashboardV2PageProps> = ({
         </Section>
       )}
 
+      {/* L'inspiration du moment ouvre la fin de la page, juste avant les
+          opérations du jour. */}
+      <InspirationDuMoment maintenant={jourPhotos} />
+
       {operations.length > 0 && (
-        <SectionOperations
-          jour={jourPhotos}
-          joursCharges={joursCharges}
-          commandes={chiffres.commandes}
-          taches={taches}
-        >
-          {grille(operations, carteOperation)}
-        </SectionOperations>
+        <SectionOperations>{grille(operations, carteOperation)}</SectionOperations>
       )}
 
       {controle && (

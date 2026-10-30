@@ -1,57 +1,9 @@
 /* ═══════════════════════════════════════════════════════════════════
-   OPÉRATIONS — la bannière et les quatre cartes illustrées. Tout vit sous `.tn`, comme le reste de l'écran,
+   OPÉRATIONS — les quatre cartes illustrées. Tout vit sous `.tn`, comme le reste de l'écran,
    et reprend ses jetons (`tantana.css`) : rien ne touche les autres
    sections.
    ═══════════════════════════════════════════════════════════════════ */
 
-/* ── La bannière ──
-   L'image de la maquette, posée directement sur la page : pas de cadre ni
-   de fond, et ses bords s'effacent dans celui de la page (deux dégradés
-   croisés, gardés là où ils se recouvrent). */
-.tn .op-banniere {
-  margin-bottom: var(--ecart);
-}
-/* L'image et ses données, toujours à la même échelle. */
-.tn .op-scene {
-  position: relative;
-}
-/* Les vraies données, à la place de celles de la maquette : la couche
-   a exactement la taille de l'image. */
-.tn .op-donnees {
-  position: absolute;
-  inset: 0;
-  width: 100%;
-  height: 100%;
-  pointer-events: none;
-}
-.tn .op-scene img {
-  display: block;
-  width: 100%;
-  height: auto;
-  --fondu-x: linear-gradient(to right, transparent, #000 3%, #000 95%, transparent);
-  --fondu-y: linear-gradient(to bottom, transparent, #000 5%, #000 92%, transparent);
-  -webkit-mask-image: var(--fondu-x), var(--fondu-y);
-  -webkit-mask-composite: source-in;
-  mask-image: var(--fondu-x), var(--fondu-y);
-  mask-composite: intersect;
-}
-/* Sur téléphone, l'image entière tiendrait en 340 px : la date, les
-   jours et les nombres y feraient 5 px. Elle garde donc une largeur
-   lisible et se fait glisser de côté, comme un panorama ; la page, elle,
-   ne défile pas en largeur. */
-@media (max-width: 640px) {
-  .tn .op-banniere {
-    overflow-x: auto;
-    overscroll-behavior-x: contain;
-    scrollbar-width: none;
-  }
-  .tn .op-banniere::-webkit-scrollbar {
-    display: none;
-  }
-  .tn .op-scene {
-    width: 780px;
-  }
-}
 /* ── Les cartes illustrées ── */
 .tn .op-carte {
   display: flex;
