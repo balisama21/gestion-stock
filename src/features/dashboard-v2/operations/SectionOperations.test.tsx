@@ -1,15 +1,21 @@
-import { afterEach, describe, expect, it, vi } from "vitest";
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
-import { SectionOperations } from "./SectionOperations";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
+import { act, cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { DUREE_TOUR, SectionOperations } from "./SectionOperations";
 
 /**
- * LES QUATRE FEUILLES
+ * LE BLOC-NOTES
  *
- * Chaque carte est une feuille de la bande, et chacune a son onglet. Sur
- * téléphone, l'onglet de la feuille devant suit le doigt, et un onglet
- * touché amène sa feuille au milieu.
+ * Chaque carte est une page du bloc, et chacune a son onglet. Dans un
+ * même double, on glisse d'une page à l'autre ; d'un double à l'autre, on
+ * tourne la page, le temps du tour, avant d'ouvrir le nouveau double.
  */
-afterEach(cleanup);
+beforeEach(() => {
+  vi.useFakeTimers();
+});
+afterEach(() => {
+  cleanup();
+  vi.useRealTimers();
+});
 
 const feuilles = ["Agenda", "À faire", "Commandes", "Livraisons"].map((nom, i) => ({
   cle: `f${i}`,
@@ -17,15 +23,8 @@ const feuilles = ["Agenda", "À faire", "Commandes", "Livraisons"].map((nom, i) 
   carte: <article className="op-carte">{nom}</article>,
 }));
 
-/** Des feuilles de 300 px tous les 320 px, dans une bande de 375 px. */
-const mesurer = (bande: HTMLElement) => {
-  Object.defineProperty(bande, "clientWidth", { value: 375 });
-  Array.from(bande.children).forEach((f, i) => {
-    Object.defineProperty(f, "offsetLeft", { value: 16 + i * 320 });
-    Object.defineProperty(f, "offsetWidth", { value: 300 });
-  });
-};
-
+const bande = () => document.querySelector<HTMLElement>(".op-bande")!;
+const camera = () => document.querySelector<HTMLElement>(".op-camera")!;
 const courant = () =>
   screen
     .getAllByRole("button")
@@ -33,7 +32,7 @@ const courant = () =>
     .map((b) => b.textContent);
 
 describe("SectionOperations", () => {
-  it("met chaque carte dans la bande, avec son onglet", () => {
+  it("met chaque carte dans le bloc, avec son onglet, le premier double ouvert", () => {
     render(<SectionOperations feuilles={feuilles} />);
     expect(document.querySelectorAll(".op-bande > .op-carte")).toHaveLength(4);
     expect(screen.getAllByRole("button").map((b) => b.textContent)).toEqual([
@@ -43,25 +42,50 @@ describe("SectionOperations", () => {
       "Livraisons",
     ]);
     expect(courant()).toEqual(["Agenda"]);
+    expect(bande().dataset.double).toBe("0");
+    expect(camera().dataset.cote).toBe("gauche");
   });
 
-  it("l'onglet suit la feuille amenée au milieu", () => {
+  it("dans un même double, la vue glisse sans tourner la page", () => {
     render(<SectionOperations feuilles={feuilles} />);
-    const bande = document.querySelector<HTMLElement>(".op-bande")!;
-    mesurer(bande);
-    bande.scrollLeft = 640;
-    fireEvent.scroll(bande);
+    fireEvent.click(screen.getByRole("button", { name: "À faire" }));
+    expect(courant()).toEqual(["À faire"]);
+    expect(camera().dataset.cote).toBe("droite");
+    expect(bande().dataset.sens).toBeUndefined();
+    expect(bande().dataset.double).toBe("0");
+  });
+
+  it("vers le double suivant, la page tourne, puis le nouveau double s'ouvre", () => {
+    render(<SectionOperations feuilles={feuilles} />);
+    fireEvent.click(screen.getByRole("button", { name: "Commandes" }));
     expect(courant()).toEqual(["Commandes"]);
+    expect(bande().dataset.sens).toBe("avant");
+    expect(bande().dataset.double).toBeUndefined();
+
+    // Pendant le tour, un autre onglet n'interrompt pas la page.
+    fireEvent.click(screen.getByRole("button", { name: "Agenda" }));
+    expect(courant()).toEqual(["Commandes"]);
+
+    act(() => {
+      vi.advanceTimersByTime(DUREE_TOUR);
+    });
+    expect(bande().dataset.sens).toBeUndefined();
+    expect(bande().dataset.double).toBe("1");
+
+    fireEvent.click(screen.getByRole("button", { name: "À faire" }));
+    expect(bande().dataset.sens).toBe("arriere");
   });
 
-  it("un onglet touché centre sa feuille", () => {
+  it("un glissement du doigt vers la gauche passe à la page suivante", () => {
     render(<SectionOperations feuilles={feuilles} />);
-    const bande = document.querySelector<HTMLElement>(".op-bande")!;
-    mesurer(bande);
-    const scrollTo = vi.fn();
-    bande.scrollTo = scrollTo;
-    fireEvent.click(screen.getByRole("button", { name: "Livraisons" }));
-    expect(scrollTo).toHaveBeenCalledWith(expect.objectContaining({ left: 16 + 3 * 320 - 37.5 }));
+    const cadre = document.querySelector<HTMLElement>(".op-cadre")!;
+    fireEvent.pointerDown(cadre, { clientX: 300, clientY: 100 });
+    fireEvent.pointerUp(cadre, { clientX: 200, clientY: 110 });
+    expect(courant()).toEqual(["À faire"]);
+    // Un geste surtout vertical laisse la page défiler.
+    fireEvent.pointerDown(cadre, { clientX: 300, clientY: 100 });
+    fireEvent.pointerUp(cadre, { clientX: 250, clientY: 300 });
+    expect(courant()).toEqual(["À faire"]);
   });
 
   it("une seule carte : pas d'onglets", () => {

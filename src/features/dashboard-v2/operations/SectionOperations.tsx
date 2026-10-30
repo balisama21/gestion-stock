@@ -10,10 +10,14 @@ import "./operations.css";
  * la page.
  *
  * Sur ordinateur et tablette, les cartes forment un seul panneau en
- * quatre. Sur téléphone, elles deviennent les pages d'un cahier ouvert,
- * deux par deux autour de la reliure, qu'on tourne du doigt (voir
- * `operations.css`) ; les onglets dessous disent laquelle est devant et
- * mènent aux autres.
+ * quatre. Sur téléphone, elles deviennent les pages d'un bloc-notes à
+ * spirale, ouvert, deux par deux : agenda | à faire, puis commandes |
+ * livraisons (voir `operations.css`). On passe d'une page à l'autre du
+ * doigt ou par les onglets dessous :
+ * - dans un même double, la vue glisse d'une page à l'autre ;
+ * - d'un double à l'autre, on tourne la page : elle se soulève autour de
+ *   la spirale, passe de l'autre côté et se rabat, et la page suivante
+ *   apparaît dessous.
  *
  * Le titre reste dans le document pour les lecteurs d'écran et pour
  * `aria-labelledby`.
@@ -26,43 +30,31 @@ export interface FeuilleOperation {
   carte: React.ReactNode;
 }
 
+/** La durée d'une page tournée : elle se soulève, puis se rabat. */
+export const DUREE_TOUR = 1000;
+
+/** Le glissement du doigt, en pixels, qui tourne la page. */
+const SEUIL = 40;
+
 export const SectionOperations: React.FC<{ feuilles: FeuilleOperation[] }> = ({ feuilles }) => {
-  const bande = useRef<HTMLDivElement>(null);
-  const [devant, setDevant] = useState(0);
+  const [choisie, setVue] = useState(0);
+  // Une carte retirée (droits changés) ne laisse pas la vue dans le vide.
+  const vue = Math.min(choisie, Math.max(0, feuilles.length - 1));
+  const [tour, setTour] = useState<"avant" | "arriere" | null>(null);
+  const depart = useRef<{ x: number; y: number } | null>(null);
+  const fin = useRef<number>(0);
 
-  // La feuille devant : celle dont le milieu est le plus près du milieu
-  // de la bande. Quatre feuilles à mesurer : on le fait à chaque
-  // défilement, et React ignore un état inchangé.
-  useEffect(() => {
-    const el = bande.current;
-    if (!el) return;
-    const mesurer = () => {
-      const milieu = el.scrollLeft + el.clientWidth / 2;
-      let meilleure = 0;
-      let ecart = Infinity;
-      Array.from(el.children).forEach((c, i) => {
-        const f = c as HTMLElement;
-        const d = Math.abs(f.offsetLeft + f.offsetWidth / 2 - milieu);
-        if (d < ecart) {
-          ecart = d;
-          meilleure = i;
-        }
-      });
-      setDevant(meilleure);
-    };
-    el.addEventListener("scroll", mesurer, { passive: true });
-    return () => el.removeEventListener("scroll", mesurer);
-  }, []);
+  useEffect(() => () => window.clearTimeout(fin.current), []);
 
-  const montrer = (i: number) => {
-    const el = bande.current;
-    const f = el?.children[i] as HTMLElement | undefined;
-    if (!el || !f) return;
-    const doux = !window.matchMedia?.("(prefers-reduced-motion: reduce)").matches;
-    el.scrollTo?.({
-      left: f.offsetLeft - (el.clientWidth - f.offsetWidth) / 2,
-      behavior: doux ? "smooth" : "auto",
-    });
+  const aller = (i: number) => {
+    if (tour || i < 0 || i >= feuilles.length || i === vue) return;
+    const de = Math.floor(vue / 2);
+    const vers = Math.floor(i / 2);
+    setVue(i);
+    if (de === vers) return;
+    if (window.matchMedia?.("(prefers-reduced-motion: reduce)").matches) return;
+    setTour(vers > de ? "avant" : "arriere");
+    fin.current = window.setTimeout(() => setTour(null), DUREE_TOUR);
   };
 
   return (
@@ -71,19 +63,42 @@ export const SectionOperations: React.FC<{ feuilles: FeuilleOperation[] }> = ({ 
         Opérations
       </h2>
       <div className="blk-corps">
-        <div className="g2 op-bande" ref={bande}>
-          {feuilles.map((f) => (
-            <React.Fragment key={f.cle}>{f.carte}</React.Fragment>
-          ))}
+        <div
+          className="op-cadre"
+          onPointerDown={(e) => {
+            depart.current = { x: e.clientX, y: e.clientY };
+          }}
+          onPointerUp={(e) => {
+            const d = depart.current;
+            depart.current = null;
+            if (!d) return;
+            const dx = e.clientX - d.x;
+            if (Math.abs(dx) > SEUIL && Math.abs(dx) > Math.abs(e.clientY - d.y)) {
+              aller(vue + (dx < 0 ? 1 : -1));
+            }
+          }}
+        >
+          <div className="op-camera" data-cote={vue % 2 === 0 ? "gauche" : "droite"}>
+            <div
+              className="g2 op-bande"
+              data-double={tour ? undefined : Math.floor(vue / 2)}
+              data-sens={tour ?? undefined}
+            >
+              {feuilles.map((f) => (
+                <React.Fragment key={f.cle}>{f.carte}</React.Fragment>
+              ))}
+            </div>
+            <span className="op-spirale" aria-hidden="true" />
+          </div>
         </div>
         {feuilles.length > 1 && (
-          <nav className="op-onglets" aria-label="Feuilles des opérations">
+          <nav className="op-onglets" aria-label="Pages des opérations">
             {feuilles.map((f, i) => (
               <button
                 type="button"
                 key={f.cle}
-                aria-current={i === devant ? "true" : undefined}
-                onClick={() => montrer(i)}
+                aria-current={i === vue ? "true" : undefined}
+                onClick={() => aller(i)}
               >
                 {f.nom}
               </button>
