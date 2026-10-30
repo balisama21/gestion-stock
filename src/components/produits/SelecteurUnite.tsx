@@ -7,6 +7,7 @@ interface SelecteurUniteProps {
   valeur: string;
   onChange: (unite: string) => void;
   label?: string;
+  aide?: string;
 }
 
 /**
@@ -20,6 +21,7 @@ export const SelecteurUnite: React.FC<SelecteurUniteProps> = ({
   valeur,
   onChange,
   label = "Unité de base",
+  aide = "Celle dans laquelle le stock se compte : la plus petite quantité vendue.",
 }) => {
   const options = React.useMemo(() => {
     const u = valeur.trim();
@@ -38,7 +40,7 @@ export const SelecteurUnite: React.FC<SelecteurUniteProps> = ({
       onCreer={async (nom) => ({ id: nom.trim(), error: null })}
       libelleVide="Non précisée"
       placeholder="Chercher ou saisir une unité…"
-      aide="Celle dans laquelle le stock se compte : la plus petite quantité vendue."
+      aide={aide}
     />
   );
 };

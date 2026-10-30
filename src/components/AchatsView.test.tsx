@@ -152,13 +152,21 @@ describe("acheter un produit qui n'existe pas encore", () => {
     const { onAddPurchase, onCreerProduit, onEditProductDetails } = afficher([]);
     // Sans catalogue, le formulaire part directement sur la création.
     saisir("Désignation", "Jus de mangue");
-    fireEvent.click(screen.getByRole("button", { name: /^Carton$/ }));
-    const carton = screen.getAllByTestId("conditionnement")[0];
-    fireEvent.change(within(carton).getByLabelText("Contient"), { target: { value: "24" } });
-    fireEvent.click(screen.getByRole("radio", { name: /^Carton · 24/ }));
+    // À la pièce, rien de plus n'est demandé.
+    expect(screen.queryByLabelText(/Combien de/)).toBeNull();
+    fireEvent.click(screen.getByRole("radio", { name: "Carton" }));
+    saisir(/Combien de pièces contient un carton/, "24");
+    // Dire le contenu propose aussitôt d'acheter au carton.
+    expect(screen.getByRole("radio", { name: /^Carton · 24/ }).getAttribute("aria-checked")).toBe(
+      "true",
+    );
     saisir(/Nombre de cartons/, "3");
     saisir(/Prix d'achat par carton/, "24000");
+    expect(screen.getByText(/Soit 1\s000.*par pièce/)).toBeTruthy();
+    // Le prix de vente, saisi à la pièce : le carton s'en déduit.
+    fireEvent.click(screen.getByRole("radio", { name: "De la pièce" }));
     prixDeVente("1500");
+    expect(screen.getByText(/Soit 36\s000.*le carton/)).toBeTruthy();
     saisir(/Seuil d'alerte/, "12");
     fireEvent.click(screen.getByRole("button", { name: /Enregistrer l'achat/ }));
 
@@ -172,8 +180,9 @@ describe("acheter un produit qui n'existe pas encore", () => {
     });
     // La fiche — et le carton — avant l'achat, qui en a besoin.
     const fiche = onEditProductDetails.mock.calls[0][1];
+    expect(fiche.unite).toBe("pièce");
     expect(fiche.conditionnements).toEqual([
-      expect.objectContaining({ nom: "carton", quantite: 24 }),
+      expect.objectContaining({ nom: "carton", quantite: 24, prix_achat: 24000, prix_vente: null }),
     ]);
     expect(onAddPurchase.mock.calls[0][0]).toMatchObject({
       productId: "nouveau",
@@ -208,5 +217,41 @@ describe("acheter un produit qui n'existe pas encore", () => {
     fireEvent.click(screen.getByRole("button", { name: /Enregistrer l'achat/ }));
     expect(messageDuFormulaire()).toMatch(/Indiquez son prix de vente/);
     expect(onCreerProduit).not.toHaveBeenCalled();
+  });
+});
+
+describe("un nouveau prix d'achat reporté sur un produit au carton", () => {
+  it("en prix automatique, le prix propre du carton suit, comme celui de la bouteille", async () => {
+    const onAddPurchase = vi.fn().mockResolvedValue({ error: null, productId: "p1" });
+    const onReporterPrixAchat = vi.fn().mockResolvedValue({ error: null });
+    const onEditProductDetails = vi.fn().mockResolvedValue({ error: null });
+    render(
+      <AchatsView
+        purchases={[]}
+        products={[{ ...EAU, modePrix: "auto" }]}
+        locale="FR"
+        onAddPurchase={onAddPurchase}
+        onReporterPrixAchat={onReporterPrixAchat}
+        onEditProductDetails={onEditProductDetails}
+        prixAuto={{ actif: true, taux: 20, tauxRapides: [], arrondi: 0 }}
+      />,
+    );
+    fireEvent.click(screen.getByRole("button", { name: /Nouvel achat/ }));
+    recharger("Eau 1,5 L");
+    fireEvent.click(screen.getByRole("radio", { name: /^Carton · 12 bouteilles/ }));
+    saisir(/Nombre de cartons/, "1");
+    saisir(/Prix d'achat par carton/, "7200");
+    fireEvent.click(screen.getByRole("checkbox", { name: /Mettre la fiche à jour/ }));
+    fireEvent.click(screen.getByRole("button", { name: /Enregistrer l'achat/ }));
+
+    await waitFor(() => expect(onEditProductDetails).toHaveBeenCalledTimes(1));
+    expect(onReporterPrixAchat.mock.calls[0][1]).toMatchObject({
+      prixAchat: 600,
+      prixVenteDefaut: 720,
+    });
+    expect(onEditProductDetails.mock.calls[0][1].conditionnements[0]).toMatchObject({
+      prix_achat: 7200,
+      prix_vente: 8640,
+    });
   });
 });
