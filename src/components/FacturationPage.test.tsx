@@ -55,6 +55,7 @@ const PRODUIT: Product = {
   statut: "actif",
   modePrix: "manuel",
   tauxMarge: null,
+  conditionnements: [],
 };
 
 const VENTE: Sale = {

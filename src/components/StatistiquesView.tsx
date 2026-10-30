@@ -1,8 +1,10 @@
 import React from "react";
 import { Sale, Product, Seller, Expense, LocaleSetting } from "../types";
 import { aUneEquipe, estResponsable, libelleNature } from "../lib/vendeurs";
-import { Store, Users, Package } from "lucide-react";
-import { formatCurrency, getProductLabel } from "../utils/formulas";
+import { Store, Users, Package, Tags } from "lucide-react";
+import { formatCurrency, getProductLabel, quantiteEnMots } from "../utils/formulas";
+import type { Database } from "../lib/database.types";
+import { nomsDesCategories } from "../lib/detailsProduit";
 import { PageHeader } from "./shared/PageHeader";
 import { StatCol } from "./shared/StatBar";
 import { DataList } from "./shared/DataList";
@@ -25,6 +27,8 @@ interface StatistiquesViewProps {
   sellers: Seller[];
   expenses: Expense[];
   locale: LocaleSetting;
+  /** Les catégories de produits : le chiffre d'affaires se répartit par elles. */
+  categories?: Database["public"]["Tables"]["categories"]["Row"][];
 }
 
 export const StatistiquesView: React.FC<StatistiquesViewProps> = ({
@@ -34,6 +38,7 @@ export const StatistiquesView: React.FC<StatistiquesViewProps> = ({
   facturesRemisesEnStock,
   products,
   sellers,
+  categories = [],
 }) => {
   // Nets des avoirs : la règle du tableau de bord et du Bilan.
   const totalCA = chiffreAffairesNet(sales, avoirs);
@@ -58,6 +63,8 @@ export const StatistiquesView: React.FC<StatistiquesViewProps> = ({
     return {
       id: p.id,
       displayName: getProductLabel(p, products),
+      unite: p.unite,
+      categoryId: p.categoryId,
       qtySold,
       caSold,
       margeSold,
@@ -70,6 +77,32 @@ export const StatistiquesView: React.FC<StatistiquesViewProps> = ({
   const soldProducts = [...productStats]
     .filter((p) => p.qtySold > 0)
     .sort((a, b) => b.caSold - a.caSold);
+
+  /**
+   * Le chiffre d'affaires par catégorie, net des avoirs comme le reste.
+   *
+   * Chaque produit compte dans la catégorie où il est rangé — une
+   * sous-catégorie se lit avec son chemin, « Alimentaire › Huiles ». Les
+   * produits sans catégorie forment leur propre ligne : les cacher ferait
+   * croire que les catégories couvrent tout le chiffre.
+   */
+  const nomsCategories = nomsDesCategories(categories);
+  const parCategorie = [
+    ...soldProducts
+      .reduce((acc, p) => {
+        const nom = (p.categoryId && nomsCategories.get(p.categoryId)) || "Sans catégorie";
+        const ligne = acc.get(nom) ?? { nom, ca: 0, marge: 0, produits: 0 };
+        ligne.ca += p.caSold;
+        ligne.marge += p.margeSold;
+        ligne.produits += 1;
+        acc.set(nom, ligne);
+        return acc;
+      }, new Map<string, { nom: string; ca: number; marge: number; produits: number }>())
+      .values(),
+  ].sort((a, b) => b.ca - a.ca);
+  const caDesProduits = soldProducts.reduce((n, p) => n + p.caSold, 0);
+  const montrerCategories =
+    nomsCategories.size > 0 && parCategorie.some((c) => c.nom !== "Sans catégorie");
 
   /*
    * Un classement suppose des concurrents. Seul dans sa boutique, le
@@ -192,7 +225,9 @@ export const StatistiquesView: React.FC<StatistiquesViewProps> = ({
               id: p.id,
               primary: p.displayName,
               meta: [
-                `${p.qtySold} unité${p.qtySold > 1 ? "s" : ""} vendue${p.qtySold > 1 ? "s" : ""}`,
+                // Sans « vendu » accordé : « 3 pièces vendus » sonnerait faux.
+                quantiteEnMots(p.qtySold, p.unite),
+                p.categoryId ? (nomsCategories.get(p.categoryId) ?? null) : null,
               ],
               amount: formatCurrency(p.caSold),
               amountHint:
@@ -201,7 +236,7 @@ export const StatistiquesView: React.FC<StatistiquesViewProps> = ({
                 ) : undefined,
               detailTitle: p.displayName,
               details: [
-                { label: "Quantité vendue", value: `${p.qtySold}` },
+                { label: "Quantité vendue", value: quantiteEnMots(p.qtySold, p.unite) },
                 { label: "Chiffre d'affaires", value: formatCurrency(p.caSold) },
                 {
                   label: "Marge générée",
@@ -211,6 +246,49 @@ export const StatistiquesView: React.FC<StatistiquesViewProps> = ({
             }))}
           />
         </div>
+
+        {/* Par catégorie : où se fait le chiffre, d'un regard. */}
+        {montrerCategories && (
+          <div className="app-card overflow-hidden lg:col-span-2">
+            <div className="border-b border-border px-4 py-3">
+              <h3 className="app-section-title">
+                <Tags className="h-4 w-4" />
+                Ventes par catégorie
+              </h3>
+            </div>
+            <div className="app-list">
+              {parCategorie.map((c) => {
+                const part = caDesProduits > 0 ? (c.ca / caDesProduits) * 100 : 0;
+                return (
+                  <div key={c.nom} className="px-4 py-2.5">
+                    <div className="flex items-center justify-between gap-3">
+                      <span className="app-list-primary min-w-0 truncate">{c.nom}</span>
+                      <span className="app-list-amount">{formatCurrency(c.ca)}</span>
+                    </div>
+                    <div className="mt-1.5 h-1 w-full overflow-hidden rounded-full bg-muted">
+                      <div
+                        className="h-full rounded-full bg-primary"
+                        style={{ width: `${Math.min(Math.max(part, 0), 100)}%` }}
+                      />
+                    </div>
+                    <div className="mt-1 flex justify-between gap-3 text-xs text-muted-foreground">
+                      <span className="truncate">
+                        {c.produits} produit{c.produits > 1 ? "s" : ""}
+                        {c.marge !== 0 && (
+                          <>
+                            {" "}
+                            · marge <span className="t-success">+{formatCurrency(c.marge)}</span>
+                          </>
+                        )}
+                      </span>
+                      <span className="shrink-0">{part.toFixed(1)} % du CA produits</span>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

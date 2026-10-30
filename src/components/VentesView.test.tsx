@@ -43,6 +43,7 @@ const PRODUIT: Product = {
   statut: "actif",
   modePrix: "manuel",
   tauxMarge: null,
+  conditionnements: [],
 };
 
 const VENTE: Sale = {
@@ -304,5 +305,107 @@ describe("le devis repris à la caisse", () => {
     fireEvent.click(screen.getByRole("button", { name: /Ajouter au panier/ }));
     fireEvent.click(screen.getByRole("button", { name: /Valider la vente/ }));
     await waitFor(() => expect(onVenteEnregistree).toHaveBeenCalledWith("T9", null));
+  });
+});
+
+describe("vendre au carton", () => {
+  // 30 bouteilles en stock ; le carton de 12 se vend 7 000 au lieu de 7 800.
+  const EAU: Product = {
+    ...PRODUIT,
+    id: "p2",
+    numero: "P002",
+    designation: "Eau 1,5 L",
+    displayName: "Eau 1,5 L",
+    prixAchat: 500,
+    prixVenteDefaut: 650,
+    stockActuel: 30,
+    stockDisponible: 30,
+    codeBarres: "111",
+    unite: "bouteille",
+    conditionnements: [
+      {
+        id: "c1",
+        nom: "carton",
+        quantite: 12,
+        prixVente: 7000,
+        prixAchat: null,
+        codeBarres: "999",
+      },
+    ],
+  };
+
+  function ouvrirLaCaisse() {
+    const r = afficher({ products: [EAU], sales: [] });
+    fireEvent.click(screen.getByRole("button", { name: /Nouvelle vente/ }));
+    return r;
+  }
+
+  it("le code du carton pose un carton, à son prix", async () => {
+    const { onAddSaleTicket } = ouvrirLaCaisse();
+    const champ = screen.getByLabelText("Code-barres");
+    fireEvent.change(champ, { target: { value: "999" } });
+    fireEvent.keyDown(champ, { key: "Enter" });
+    expect(screen.getByLabelText("Quantité de Eau 1,5 L (carton)")).toBeTruthy();
+
+    fireEvent.click(screen.getByRole("button", { name: /Valider la vente/ }));
+    await waitFor(() => expect(onAddSaleTicket).toHaveBeenCalledTimes(1));
+    // La quantité part en bouteilles, avec de quoi relire le carton.
+    expect(onAddSaleTicket.mock.calls[0][0].lignes[0]).toMatchObject({
+      productId: "p2",
+      quantite: 12,
+      conditionnementId: "c1",
+      nombre: 1,
+      prixConditionnement: 7000,
+    });
+    expect(onAddSaleTicket.mock.calls[0][0].montantPaye).toBe(7000);
+  });
+
+  it("un carton et trois bouteilles puisent dans le même stock", () => {
+    ouvrirLaCaisse();
+    fireEvent.click(screen.getByRole("radio", { name: /Carton de 12 bouteilles/ }));
+    fireEvent.click(screen.getByRole("button", { name: /Ajouter au panier/ }));
+    fireEvent.click(screen.getByRole("radio", { name: /^Bouteille/ }));
+    fireEvent.click(screen.getByRole("button", { name: /Ajouter au panier/ }));
+    fireEvent.change(screen.getByLabelText("Quantité de Eau 1,5 L"), { target: { value: "3" } });
+    // 2 cartons = 24, plus 3 bouteilles : 27 sur 30, ça passe…
+    fireEvent.change(screen.getByLabelText("Quantité de Eau 1,5 L (carton)"), {
+      target: { value: "2" },
+    });
+    expect(screen.queryByRole("alert")).toBeNull();
+    // … 3 cartons = 36, non : il n'en reste que 30.
+    fireEvent.change(screen.getByLabelText("Quantité de Eau 1,5 L (carton)"), {
+      target: { value: "3" },
+    });
+    expect(screen.getByRole("alert").textContent).toMatch(/30 bouteilles/);
+  });
+
+  it("une ligne passe de la bouteille au carton, et son prix suit", () => {
+    ouvrirLaCaisse();
+    fireEvent.click(screen.getByRole("button", { name: /Ajouter au panier/ }));
+    const choix = screen.getByRole("radiogroup", { name: "Conditionnement de Eau 1,5 L" });
+    fireEvent.click(within(choix).getByRole("radio", { name: "carton" }));
+    expect(screen.getByLabelText("Quantité de Eau 1,5 L (carton)")).toBeTruthy();
+    expect(screen.getAllByText(/7\s000/).length).toBeGreaterThan(0);
+  });
+
+  it("l'historique dit « 1 carton », et ce qui est sorti du stock", () => {
+    afficher({
+      products: [EAU],
+      sales: [
+        {
+          ...VENTE,
+          productId: "p2",
+          designation: "Eau 1,5 L",
+          quantite: 12,
+          prixVenteUnit: 7000 / 12,
+          totalVente: 7000,
+          conditionnement: { nom: "carton", nombre: 1, facteur: 12 },
+        },
+      ],
+    });
+    // Sur téléphone, la ligne dit « 1 carton » ; la fiche, le détail en bouteilles.
+    expect(screen.getByText(/^1 carton ·/)).toBeTruthy();
+    fireEvent.click(screen.getByText("Eau 1,5 L"));
+    expect(screen.getByText("1 carton (12 bouteilles)")).toBeTruthy();
   });
 });

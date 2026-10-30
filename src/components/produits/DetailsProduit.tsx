@@ -4,13 +4,10 @@ import { adresseImageProduit, envoyerFichier, supprimerFichier } from "../../lib
 import { BoutonScan } from "../shared/BoutonScan";
 import { SelecteurListe } from "../shared/SelecteurListe";
 import { DetourerPhoto } from "./DetourerPhoto";
+import { EditeurConditionnements } from "./EditeurConditionnements";
+import { SelecteurUnite } from "./SelecteurUnite";
 import type { Database } from "../../lib/database.types";
-import {
-  TYPES_PRODUIT,
-  UNITES,
-  optionsCategories,
-  type ValeursDetails,
-} from "../../lib/detailsProduit";
+import { TYPES_PRODUIT, optionsCategories, type ValeursDetails } from "../../lib/detailsProduit";
 
 type Categorie = Database["public"]["Tables"]["categories"]["Row"];
 type ImageProduit = Database["public"]["Tables"]["product_images"]["Row"];
@@ -51,7 +48,56 @@ interface DetailsProduitProps {
   onPhotosEnAttenteChange?: (fichiers: File[]) => void;
   /** Réapprovisionnement activé : `stock_max` devient le niveau cible. */
   reappro?: { seuil: number; cibleParDefaut: number };
+  /**
+   * Les prix de l'unité de base, saisis au-dessus : un conditionnement
+   * sans prix propre les multiplie. Absents, comptés à zéro.
+   */
+  prix?: { vente: number; achat: number };
+  /** Le prix d'achat est une colonne sensible : masquée, ses champs disparaissent. */
+  montrerPrixAchat?: boolean;
+  /**
+   * L'unité et les conditionnements sont posés ailleurs par l'écran : à
+   * l'achat, ils viennent AVANT la quantité, qui en dépend.
+   */
+  sansUniteNiConditionnements?: boolean;
 }
+
+/** Deux à trois choix exclusifs, posés côte à côte plutôt qu'en liste. */
+const Segments: React.FC<{
+  id: string;
+  label: string;
+  options: readonly { valeur: string; libelle: string }[];
+  valeur: string;
+  onChange: (v: string) => void;
+}> = ({ id, label, options, valeur, onChange }) => (
+  <div>
+    <p id={id} className="mb-1 block text-xs font-medium text-muted-foreground">
+      {label}
+    </p>
+    <div
+      role="radiogroup"
+      aria-labelledby={id}
+      className="flex w-full items-center gap-1 rounded-xl border border-border bg-muted p-1"
+    >
+      {options.map((o) => (
+        <button
+          key={o.valeur}
+          type="button"
+          role="radio"
+          aria-checked={valeur === o.valeur}
+          onClick={() => onChange(o.valeur)}
+          className={`min-h-9 flex-1 whitespace-nowrap rounded-lg px-2.5 py-1.5 text-xs font-medium transition-colors ${
+            valeur === o.valeur
+              ? "bg-card font-semibold text-primary shadow-sm"
+              : "text-muted-foreground hover:text-foreground"
+          }`}
+        >
+          {o.libelle}
+        </button>
+      ))}
+    </div>
+  </div>
+);
 
 /**
  * Ce qui décrit un produit, par opposition à ce qui le compte.
@@ -79,6 +125,9 @@ export const DetailsProduit: React.FC<DetailsProduitProps> = ({
   photosEnAttente = [],
   onPhotosEnAttenteChange,
   reappro,
+  prix,
+  montrerPrixAchat = true,
+  sansUniteNiConditionnements = false,
 }) => {
   const [envoi, setEnvoi] = useState(false);
   const [erreurImage, setErreurImage] = useState<string | null>(null);
@@ -308,48 +357,25 @@ export const DetailsProduit: React.FC<DetailsProduitProps> = ({
         {/* Le fournisseur n'est plus ici : il l'était en double, et le
             champ du haut écrit désormais les deux colonnes. */}
 
-        <div>
-          <label htmlFor="pd-type" className="mb-1 block text-xs font-medium text-muted-foreground">
-            Type
-          </label>
-          <select
+        <div className="sm:col-span-2">
+          <Segments
             id="pd-type"
-            className="app-field"
-            value={valeurs.type_produit}
-            onChange={(e) => modifier({ type_produit: e.target.value })}
-          >
-            {TYPES_PRODUIT.map((t) => (
-              <option key={t.valeur} value={t.valeur}>
-                {t.libelle}
-              </option>
-            ))}
-          </select>
+            label="Type"
+            options={TYPES_PRODUIT}
+            valeur={valeurs.type_produit}
+            onChange={(v) => modifier({ type_produit: v })}
+          />
           <p className="mt-1 text-[11px] text-muted-foreground">
             {TYPES_PRODUIT.find((t) => t.valeur === valeurs.type_produit)?.aide}
           </p>
         </div>
-        <div>
-          <label
-            htmlFor="pd-unite"
-            className="mb-1 block text-xs font-medium text-muted-foreground"
-          >
-            Unité
-          </label>
-          <input
+        {!sansUniteNiConditionnements && (
+          <SelecteurUnite
             id="pd-unite"
-            type="text"
-            list="pd-unites"
-            placeholder="pièce, kg, litre…"
-            className="app-field"
-            value={valeurs.unite}
-            onChange={(e) => modifier({ unite: e.target.value })}
+            valeur={valeurs.unite}
+            onChange={(unite) => modifier({ unite })}
           />
-          <datalist id="pd-unites">
-            {UNITES.map((u) => (
-              <option key={u} value={u} />
-            ))}
-          </datalist>
-        </div>
+        )}
 
         <div>
           <label htmlFor="pd-tva" className="mb-1 block text-xs font-medium text-muted-foreground">
@@ -412,24 +438,29 @@ export const DetailsProduit: React.FC<DetailsProduitProps> = ({
           />
         </div>
 
-        <div>
-          <label
-            htmlFor="pd-statut"
-            className="mb-1 block text-xs font-medium text-muted-foreground"
-          >
-            Statut
-          </label>
-          <select
-            id="pd-statut"
-            className="app-field"
-            value={valeurs.statut}
-            onChange={(e) => modifier({ statut: e.target.value })}
-          >
-            <option value="actif">Actif</option>
-            <option value="inactif">Inactif</option>
-          </select>
-        </div>
+        <Segments
+          id="pd-statut"
+          label="Statut"
+          options={[
+            { valeur: "actif", libelle: "Actif" },
+            { valeur: "inactif", libelle: "Inactif" },
+          ]}
+          valeur={valeurs.statut}
+          onChange={(v) => modifier({ statut: v })}
+        />
       </div>
+
+      {/* Un service ne se compte pas : il n'a ni carton ni sac. */}
+      {valeurs.type_produit !== "service" && !sansUniteNiConditionnements && (
+        <EditeurConditionnements
+          valeur={valeurs.conditionnements}
+          onChange={(conditionnements) => modifier({ conditionnements })}
+          unite={valeurs.unite}
+          prixVenteUnite={prix?.vente ?? 0}
+          prixAchatUnite={prix?.achat ?? 0}
+          montrerPrixAchat={montrerPrixAchat}
+        />
+      )}
 
       {/* ── Les photos ── */}
       <div>

@@ -71,7 +71,10 @@ export function preparerModificationVente(
   if (!Number.isFinite(prixVenteUnit) || prixVenteUnit < 0) {
     return { erreur: "Le prix unitaire doit être un nombre positif ou nul." };
   }
-  const totalVente = quantite * prixVenteUnit;
+  // Au centime : une vente au carton (7 000 les 12, soit 583,33… l'unité)
+  // redonnerait sinon 6 999,999… ou 7 000,000…1, et la base la croirait
+  // à jamais « partielle ». Un prix entier ne bouge pas.
+  const totalVente = Math.round(quantite * prixVenteUnit * 100) / 100;
   // La base refuse un total sous ce qui est payé + annulé par avoir.
   if (vente.montantPaye + (vente.montantAvoire ?? 0) > totalVente) {
     return {
