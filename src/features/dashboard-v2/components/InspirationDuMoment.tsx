@@ -63,7 +63,10 @@ export const InspirationDuMoment: React.FC<{ maintenant: Date | null }> = ({ mai
             Un peu de vert
           </span>
           <h2 id="inspiration-titre">Inspiration du moment</h2>
-          <p>Trois plantes choisies pour aujourd&apos;hui, trois autres demain.</p>
+          <p>
+            Une plante suffit pour réchauffer un salon, adoucir un bureau ou égayer une entrée.
+            Faites entrer un peu de nature chez vous.
+          </p>
         </div>
 
         <div
@@ -105,8 +108,8 @@ export const InspirationDuMoment: React.FC<{ maintenant: Date | null }> = ({ mai
 
         {/* La porte de la galerie : les trois photos du jour en
             médaillons, un anneau de couleurs qui tourne lentement, et une
-            flèche qui avance au survol. Sur téléphone, elle passe sous
-            les tirages. */}
+            flèche verte sur un rond blanc, qui avance au survol. Sur
+            téléphone, elle passe sous les tirages. */}
         <button type="button" className="insp-lien" onClick={() => setGalerie(true)}>
           <span className="insp-lien-medaillons" aria-hidden="true">
             {trio.map((photo, i) => (
@@ -115,7 +118,7 @@ export const InspirationDuMoment: React.FC<{ maintenant: Date | null }> = ({ mai
           </span>
           <span className="insp-lien-texte">
             <b>Voir toutes les photos</b>
-            <small>{photos.length} plantes · 3 nouvelles par jour</small>
+            <small>Votre prochaine plante vous attend</small>
           </span>
           <span className="insp-lien-fleche" aria-hidden="true">
             <Icone nom="chevright" />

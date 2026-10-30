@@ -4975,8 +4975,9 @@
    Pas un bouton vert de plus : une capsule claire, cerclée d'un anneau
    de couleurs (vert profond, menthe, or) qui tourne lentement. Dedans,
    les trois photos du jour en médaillons qui se chevauchent, le titre
-   et sa ligne, et une flèche dans un rond vert qui avance au survol.
-   Un reflet traverse la capsule quand on la survole. */
+   et sa ligne, et une flèche verte sur un rond blanc, qui avance au
+   survol. Le survol ne fait que soulever la capsule : aucune couleur ne
+   la traverse. */
 @property --insp-angle {
   syntax: "<angle>";
   inherits: false;
@@ -5000,8 +5001,6 @@
       border-box;
   color: var(--ink);
   text-align: left;
-  overflow: hidden;
-  isolation: isolate;
   box-shadow:
     0 10px 26px -12px rgba(15, 107, 70, 0.55),
     0 2px 6px -2px rgba(15, 60, 40, 0.15);
@@ -5015,29 +5014,11 @@
     --insp-angle: 360deg;
   }
 }
-/* Le reflet : une bande claire qui passe d'un bord à l'autre. */
-.tn .insp-lien::after {
-  content: "";
-  position: absolute;
-  inset: 0;
-  z-index: -1;
-  background: linear-gradient(
-    105deg,
-    transparent 30%,
-    rgba(185, 236, 208, 0.55) 48%,
-    transparent 66%
-  );
-  transform: translateX(-110%);
-  transition: transform 0.8s ease;
-}
 .tn .insp-lien:hover {
   transform: translateY(-2px);
   box-shadow:
     0 16px 32px -12px rgba(15, 107, 70, 0.6),
     0 3px 8px -2px rgba(15, 60, 40, 0.18);
-}
-.tn .insp-lien:hover::after {
-  transform: translateX(110%);
 }
 .tn .insp-lien:focus-visible {
   outline: 2px solid var(--g);
@@ -5088,9 +5069,11 @@
   height: 34px;
   margin-left: 4px;
   border-radius: 50%;
-  background: linear-gradient(140deg, #1f9a66, #0f6b46);
-  color: #fff;
-  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.25);
+  background: #fff;
+  color: var(--g);
+  box-shadow:
+    0 0 0 1px rgba(15, 107, 70, 0.16),
+    0 3px 8px -3px rgba(15, 60, 40, 0.3);
   transition: transform 0.3s ease;
 }
 .tn .insp-lien-fleche .ico {
@@ -5104,7 +5087,6 @@
 @media (prefers-reduced-motion: reduce) {
   .tn .insp .tirage,
   .tn .insp-lien,
-  .tn .insp-lien::after,
   .tn .insp-lien-medaillons img,
   .tn .insp-lien-fleche {
     transition: none;
@@ -5114,9 +5096,14 @@
   }
 }
 
-/* Sur téléphone : l'en-tête, puis les tirages, puis la porte de la
-   galerie, centrée sous eux. */
-@media (max-width: 640px) {
+/* Quand la section manque de largeur (téléphone, ou écran moyen avec la
+   barre latérale ouverte) : l'en-tête, puis les tirages, puis la porte
+   de la galerie, centrée sous eux. C'est la largeur de la section qui
+   décide, pas celle de l'écran. */
+.tn .insp {
+  container-type: inline-size;
+}
+@container (max-width: 780px) {
   .tn .insp-tete {
     grid-template-columns: minmax(0, 1fr);
     grid-template-areas:
@@ -5125,14 +5112,19 @@
       "bouton";
     row-gap: 26px;
   }
-  .tn .insp h2 {
-    font-size: 28px;
+  .tn .insp .blk-h {
+    max-width: none;
   }
   .tn .insp-tirages {
-    --insp-l: min(100%, 420px);
+    --insp-l: min(100%, 460px);
     justify-self: center;
   }
   .tn .insp-lien {
     justify-self: center;
+  }
+}
+@media (max-width: 640px) {
+  .tn .insp h2 {
+    font-size: 28px;
   }
 }
