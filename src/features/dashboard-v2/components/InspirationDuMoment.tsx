@@ -17,7 +17,8 @@ import { usePhotosInspiration } from "../lib/photosInspiration";
  * du clavier. Le survol arrête la rotation, et elle ne démarre pas du
  * tout quand le système demande de réduire les animations.
  *
- * « Voir toutes les photos » ouvre la galerie.
+ * « Voir toutes les photos » ouvre la galerie. Les photos s'affichent
+ * entières dans leur tirage, à leurs proportions : rien n'est recadré.
  *
  * Les photos sont celles importées par l'administrateur de la plateforme
  * (Paramètres → Inspiration du moment), sinon celles livrées avec
@@ -63,10 +64,6 @@ export const InspirationDuMoment: React.FC<{ maintenant: Date | null }> = ({ mai
           </span>
           <h2 id="inspiration-titre">Inspiration du moment</h2>
           <p>Trois plantes choisies pour aujourd&apos;hui, trois autres demain.</p>
-          <button type="button" className="insp-lien" onClick={() => setGalerie(true)}>
-            Voir toutes les photos
-            <Icone nom="chevright" />
-          </button>
         </div>
 
         <div
@@ -105,6 +102,25 @@ export const InspirationDuMoment: React.FC<{ maintenant: Date | null }> = ({ mai
             </button>
           ))}
         </div>
+
+        {/* La porte de la galerie : les trois photos du jour en
+            médaillons, un anneau de couleurs qui tourne lentement, et une
+            flèche qui avance au survol. Sur téléphone, elle passe sous
+            les tirages. */}
+        <button type="button" className="insp-lien" onClick={() => setGalerie(true)}>
+          <span className="insp-lien-medaillons" aria-hidden="true">
+            {trio.map((photo, i) => (
+              <img key={`${photo}-${i}`} src={photo} alt="" draggable={false} />
+            ))}
+          </span>
+          <span className="insp-lien-texte">
+            <b>Voir toutes les photos</b>
+            <small>{photos.length} plantes · 3 nouvelles par jour</small>
+          </span>
+          <span className="insp-lien-fleche" aria-hidden="true">
+            <Icone nom="chevright" />
+          </span>
+        </button>
       </div>
 
       {galerie && <Galerie photos={photos} duJour={trio} onFermer={() => setGalerie(false)} />}
