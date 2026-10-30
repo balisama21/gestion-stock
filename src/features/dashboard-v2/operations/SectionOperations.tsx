@@ -1,4 +1,5 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState, useSyncExternalStore } from "react";
+import { Icone } from "../../../components/shared/Icone";
 import "./operations.css";
 
 /**
@@ -12,12 +13,16 @@ import "./operations.css";
  * Les cartes sont les pages d'un bloc-notes à spirale, ouvert, deux par
  * deux : agenda | à faire, puis commandes | livraisons (voir
  * `operations.css`). Sur ordinateur et tablette, le double entier se voit ;
- * sur téléphone, une page à la fois. On passe d'une page à l'autre du
- * doigt, à la souris ou par les onglets dessous :
- * - dans un même double, la vue glisse d'une page à l'autre (téléphone) ;
- * - d'un double à l'autre, on tourne la page : elle se soulève autour de
- *   la spirale, passe de l'autre côté et se rabat, et la page suivante
- *   apparaît dessous.
+ * sur téléphone, une page à la fois.
+ *
+ * On tourne la page comme sur un vrai bloc : par son coin. Le coin bas de
+ * la page, un peu relevé, porte une flèche et se soulève de temps en
+ * temps pour le rappeler ; on peut aussi glisser du doigt ou à la souris.
+ * - sur ordinateur, on passe d'un double à l'autre ;
+ * - sur téléphone, d'une page à l'autre : la vue glisse dans un même
+ *   double, et la page tourne pour passer au double suivant.
+ * La page tournée se soulève autour de la spirale, passe de l'autre côté
+ * et se rabat, et la page suivante apparaît dessous.
  *
  * Le titre reste dans le document pour les lecteurs d'écran et pour
  * `aria-labelledby`.
@@ -25,7 +30,7 @@ import "./operations.css";
 
 export interface FeuilleOperation {
   cle: string;
-  /** Le nom de l'onglet : « Agenda », « À faire »… */
+  /** Le nom de la page : « Agenda », « À faire »… */
   nom: string;
   carte: React.ReactNode;
 }
@@ -36,11 +41,21 @@ export const DUREE_TOUR = 1000;
 /** Le glissement du doigt, en pixels, qui tourne la page. */
 const SEUIL = 40;
 
+/** Sur téléphone, une page à la fois (comme `operations.css`). */
+const TELEPHONE = "(max-width: 640px)";
+const suivreTelephone = (rappel: () => void) => {
+  const m = window.matchMedia?.(TELEPHONE);
+  m?.addEventListener?.("change", rappel);
+  return () => m?.removeEventListener?.("change", rappel);
+};
+const estTelephone = () => window.matchMedia?.(TELEPHONE).matches ?? false;
+
 export const SectionOperations: React.FC<{ feuilles: FeuilleOperation[] }> = ({ feuilles }) => {
   const [choisie, setVue] = useState(0);
   // Une carte retirée (droits changés) ne laisse pas la vue dans le vide.
   const vue = Math.min(choisie, Math.max(0, feuilles.length - 1));
   const [tour, setTour] = useState<"avant" | "arriere" | null>(null);
+  const telephone = useSyncExternalStore(suivreTelephone, estTelephone, () => false);
   const depart = useRef<{ x: number; y: number } | null>(null);
   const fin = useRef<number>(0);
 
@@ -56,6 +71,21 @@ export const SectionOperations: React.FC<{ feuilles: FeuilleOperation[] }> = ({ 
     setTour(vers > de ? "avant" : "arriere");
     fin.current = window.setTimeout(() => setTour(null), DUREE_TOUR);
   };
+
+  // Où mène chaque coin : la page voisine sur téléphone, le double voisin
+  // ailleurs (on l'ouvre sur sa page de gauche).
+  const double = Math.floor(vue / 2);
+  const suivant = telephone ? vue + 1 : 2 * (double + 1);
+  const precedent = telephone ? vue - 1 : 2 * (double - 1);
+  const versSuivant = suivant < feuilles.length ? suivant : null;
+  const versPrecedent = precedent >= 0 ? precedent : null;
+  const libelle = (i: number) =>
+    telephone
+      ? feuilles[i].nom
+      : feuilles
+          .slice(i, i + 2)
+          .map((f) => f.nom)
+          .join(" et ");
 
   return (
     <section className="blk op-section" id="operations" aria-labelledby="operations-titre">
@@ -74,14 +104,19 @@ export const SectionOperations: React.FC<{ feuilles: FeuilleOperation[] }> = ({ 
             if (!d) return;
             const dx = e.clientX - d.x;
             if (Math.abs(dx) > SEUIL && Math.abs(dx) > Math.abs(e.clientY - d.y)) {
-              aller(vue + (dx < 0 ? 1 : -1));
+              const cible = dx < 0 ? versSuivant : versPrecedent;
+              if (cible !== null) aller(cible);
             }
           }}
         >
-          <div className="op-camera" data-cote={vue % 2 === 0 ? "gauche" : "droite"}>
+          <div
+            className="op-camera"
+            data-cote={vue % 2 === 0 ? "gauche" : "droite"}
+            data-tourne={tour ? "" : undefined}
+          >
             <div
               className="g2 op-bande"
-              data-double={tour ? undefined : Math.floor(vue / 2)}
+              data-double={tour ? undefined : double}
               data-sens={tour ?? undefined}
             >
               {feuilles.map((f) => (
@@ -89,23 +124,30 @@ export const SectionOperations: React.FC<{ feuilles: FeuilleOperation[] }> = ({ 
               ))}
             </div>
             <span className="op-spirale" aria-hidden="true" />
-          </div>
-        </div>
-        {feuilles.length > 1 && (
-          <nav className="op-onglets" aria-label="Pages des opérations">
-            {feuilles.map((f, i) => (
+            {versPrecedent !== null && (
               <button
                 type="button"
-                key={f.cle}
-                aria-current={i === vue ? "true" : undefined}
-                data-ouvert={Math.floor(i / 2) === Math.floor(vue / 2) || undefined}
-                onClick={() => aller(i)}
+                className="op-coin precedent"
+                aria-label={`Revenir à la page : ${libelle(versPrecedent)}`}
+                title={libelle(versPrecedent)}
+                onClick={() => aller(versPrecedent)}
               >
-                {f.nom}
+                <Icone nom="chevleft" />
               </button>
-            ))}
-          </nav>
-        )}
+            )}
+            {versSuivant !== null && (
+              <button
+                type="button"
+                className="op-coin suivant"
+                aria-label={`Tourner la page : ${libelle(versSuivant)}`}
+                title={libelle(versSuivant)}
+                onClick={() => aller(versSuivant)}
+              >
+                <Icone nom="chevright" />
+              </button>
+            )}
+          </div>
+        </div>
       </div>
     </section>
   );

@@ -617,7 +617,7 @@
    `SectionOperations`). Le papier est ligné sous un bandeau uni pour le
    titre ; l'épaisseur du bloc se lit sur la tranche, une ombre douce le
    pose sur la page, et le coin haut extérieur de chaque page est corné.
-   Les onglets dessous disent quelle page est ouverte.
+   On la tourne par son coin bas, un peu relevé (`.op-coin`).
 
    Sur ordinateur et tablette, le double entier tient à l'écran. Sur
    téléphone, une page à la fois : la vue glisse de l'une à l'autre d'un
@@ -824,38 +824,93 @@
   display: flex;
 }
 
-/* Les onglets : celui de la page de devant est plein. */
-.tn .op-onglets {
-  display: flex;
-  justify-content: center;
-  flex-wrap: wrap;
-  gap: 6px;
+/* Le coin à tourner : le coin bas de la page, un peu relevé, montre son
+   envers et une flèche. Il se soulève de temps en temps pour rappeler
+   qu'on tourne la page par là, et davantage sous la souris. Vers
+   l'avant, le coin bas droit ; vers l'arrière, le coin bas gauche. */
+.tn .op-cadre {
+  --envers: color-mix(in oklab, var(--gsoft) 75%, var(--carte-bord));
 }
-.tn .op-onglets button {
-  min-height: 34px;
-  padding: 6px 12px;
-  border: 1.5px solid var(--carte-bord);
-  border-radius: 10px;
-  background: none;
-  color: var(--muted);
-  font-size: 12.5px;
-  font-weight: 600;
+.tn .op-coin {
+  --taille: 48px;
+  position: absolute;
+  bottom: -1.5px;
+  z-index: 6;
+  display: grid;
+  width: var(--taille);
+  height: var(--taille);
+  min-height: 0;
+  padding: 8px;
+  border: 0;
+  color: var(--g);
+  cursor: pointer;
   transition:
-    background-color 0.2s,
-    border-color 0.2s,
-    color 0.2s;
+    width 0.25s ease,
+    height 0.25s ease,
+    left 0.25s ease,
+    opacity 0.2s;
+  animation: op-coin-invite 6s ease-in-out 2s infinite;
 }
-/* Les onglets du double ouvert, en clair ; celui de la page de devant,
-   plein. */
-.tn .op-onglets button[data-ouvert] {
-  background: var(--gsoft);
-  border-color: var(--gsoft2);
-  color: var(--g2);
+.tn .op-coin .ico {
+  width: 17px;
+  height: 17px;
 }
-.tn .op-onglets button[aria-current="true"] {
-  background: var(--g);
-  border-color: var(--g);
-  color: #fff;
+.tn .op-coin .ico svg {
+  stroke-width: 2.6;
+}
+.tn .op-coin:hover,
+.tn .op-coin:focus-visible {
+  --taille: 62px;
+  animation: none;
+}
+.tn .op-coin:focus-visible {
+  outline: 2px solid var(--g);
+  outline-offset: 2px;
+}
+.tn .op-coin.suivant {
+  left: calc(2 * var(--page) + var(--pli) - var(--taille) + 1.5px);
+  place-items: start start;
+  transform-origin: bottom right;
+  border-top-left-radius: 14px;
+  background:
+    linear-gradient(315deg, var(--bg) 0 50%, transparent 0),
+    linear-gradient(
+      135deg,
+      var(--envers) 0 calc(50% - 1.5px),
+      var(--carte-bord) calc(50% - 1.5px) 50%,
+      transparent 0
+    );
+  filter: drop-shadow(-3px -3px 4px rgba(15, 60, 40, 0.22));
+}
+.tn .op-coin.precedent {
+  left: -1.5px;
+  place-items: start end;
+  transform-origin: bottom left;
+  border-top-right-radius: 14px;
+  background:
+    linear-gradient(45deg, var(--bg) 0 50%, transparent 0),
+    linear-gradient(
+      225deg,
+      var(--envers) 0 calc(50% - 1.5px),
+      var(--carte-bord) calc(50% - 1.5px) 50%,
+      transparent 0
+    );
+  filter: drop-shadow(3px -3px 4px rgba(15, 60, 40, 0.22));
+}
+/* Pendant que la page tourne, les coins s'effacent. */
+.tn .op-camera[data-tourne] .op-coin {
+  opacity: 0;
+  pointer-events: none;
+}
+@keyframes op-coin-invite {
+  0%,
+  84%,
+  100% {
+    transform: scale(1);
+  }
+  90% {
+    transform: scale(1.22);
+  }
 }
 
 /* Une page étroite : la photo, entière, passe sous le titre. */
@@ -900,29 +955,47 @@
   .tn .op-camera[data-cote="droite"] {
     --x: calc(28px - var(--page) - var(--pli));
   }
+  .tn .op-camera[data-cote="gauche"] .op-coin.suivant {
+    left: calc(var(--page) - var(--taille) + 1.5px);
+  }
+  .tn .op-camera[data-cote="droite"] .op-coin.precedent {
+    left: calc(var(--page) + var(--pli) - 1.5px);
+  }
   .tn .op-section .g2.op-bande {
     perspective: 1200px;
   }
 }
 
+/* Dressée, la page ne se voit plus que par la tranche : elle s'efface
+   juste avant, et la suivante n'apparaît que juste après, pour qu'aucun
+   trait ne reste sur la spirale. */
 @keyframes op-se-leve {
   from {
     transform: rotateY(var(--de));
     filter: brightness(1);
   }
+  88% {
+    opacity: 1;
+  }
   to {
     transform: rotateY(var(--a));
     filter: brightness(0.72);
+    opacity: 0;
   }
 }
 @keyframes op-se-pose {
   from {
     transform: rotateY(var(--de));
     filter: brightness(0.72);
+    opacity: 0;
+  }
+  12% {
+    opacity: 1;
   }
   to {
     transform: rotateY(var(--a));
     filter: brightness(1);
+    opacity: 1;
   }
 }
 @keyframes op-sort-de-l-ombre {
@@ -934,8 +1007,11 @@
   }
 }
 @media (prefers-reduced-motion: reduce) {
-  .tn .op-onglets button,
-  .tn .op-camera {
+  .tn .op-camera,
+  .tn .op-coin {
     transition: none;
+  }
+  .tn .op-coin {
+    animation: none;
   }
 }

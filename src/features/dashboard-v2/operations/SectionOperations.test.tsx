@@ -5,16 +5,27 @@ import { DUREE_TOUR, SectionOperations } from "./SectionOperations";
 /**
  * LE BLOC-NOTES
  *
- * Chaque carte est une page du bloc, et chacune a son onglet. Dans un
- * même double, on glisse d'une page à l'autre ; d'un double à l'autre, on
- * tourne la page, le temps du tour, avant d'ouvrir le nouveau double.
+ * Chaque carte est une page du bloc. On tourne la page par son coin :
+ * sur ordinateur, d'un double à l'autre ; sur téléphone, d'une page à
+ * l'autre, la page ne tournant qu'au passage d'un double au suivant.
  */
+const matchMedia = window.matchMedia;
+const telephone = (oui: boolean) => {
+  window.matchMedia = ((q: string) => ({
+    matches: oui && q.includes("max-width"),
+    addEventListener: () => {},
+    removeEventListener: () => {},
+  })) as unknown as typeof window.matchMedia;
+};
+
 beforeEach(() => {
   vi.useFakeTimers();
+  telephone(false);
 });
 afterEach(() => {
   cleanup();
   vi.useRealTimers();
+  window.matchMedia = matchMedia;
 });
 
 const feuilles = ["Agenda", "À faire", "Commandes", "Livraisons"].map((nom, i) => ({
@@ -25,78 +36,73 @@ const feuilles = ["Agenda", "À faire", "Commandes", "Livraisons"].map((nom, i) 
 
 const bande = () => document.querySelector<HTMLElement>(".op-bande")!;
 const camera = () => document.querySelector<HTMLElement>(".op-camera")!;
-const courant = () =>
-  screen
-    .getAllByRole("button")
-    .filter((b) => b.getAttribute("aria-current") === "true")
-    .map((b) => b.textContent);
+const coins = () => screen.queryAllByRole("button").map((b) => b.getAttribute("aria-label"));
+const finDuTour = () =>
+  act(() => {
+    vi.advanceTimersByTime(DUREE_TOUR);
+  });
 
-describe("SectionOperations", () => {
-  it("met chaque carte dans le bloc, avec son onglet, le premier double ouvert", () => {
+describe("SectionOperations, sur ordinateur", () => {
+  it("ouvre le premier double, avec le coin pour tourner la page", () => {
     render(<SectionOperations feuilles={feuilles} />);
     expect(document.querySelectorAll(".op-bande > .op-carte")).toHaveLength(4);
-    expect(screen.getAllByRole("button").map((b) => b.textContent)).toEqual([
-      "Agenda",
-      "À faire",
-      "Commandes",
-      "Livraisons",
-    ]);
-    expect(courant()).toEqual(["Agenda"]);
     expect(bande().dataset.double).toBe("0");
-    expect(camera().dataset.cote).toBe("gauche");
+    expect(coins()).toEqual(["Tourner la page : Commandes et Livraisons"]);
+    // Plus d'onglets sous le bloc.
+    expect(screen.queryByRole("navigation")).toBeNull();
   });
 
-  it("dans un même double, la vue glisse sans tourner la page", () => {
+  it("le coin tourne la page, puis le coin d'en face la ramène", () => {
     render(<SectionOperations feuilles={feuilles} />);
-    fireEvent.click(screen.getByRole("button", { name: "À faire" }));
-    expect(courant()).toEqual(["À faire"]);
-    expect(camera().dataset.cote).toBe("droite");
-    // Les deux onglets du double ouvert restent marqués.
-    expect(
-      screen
-        .getAllByRole("button")
-        .filter((b) => b.dataset.ouvert)
-        .map((b) => b.textContent),
-    ).toEqual(["Agenda", "À faire"]);
-    expect(bande().dataset.sens).toBeUndefined();
-    expect(bande().dataset.double).toBe("0");
-  });
-
-  it("vers le double suivant, la page tourne, puis le nouveau double s'ouvre", () => {
-    render(<SectionOperations feuilles={feuilles} />);
-    fireEvent.click(screen.getByRole("button", { name: "Commandes" }));
-    expect(courant()).toEqual(["Commandes"]);
+    fireEvent.click(screen.getByRole("button", { name: /Tourner la page/ }));
     expect(bande().dataset.sens).toBe("avant");
     expect(bande().dataset.double).toBeUndefined();
+    expect(camera().dataset.tourne).toBe("");
 
-    // Pendant le tour, un autre onglet n'interrompt pas la page.
-    fireEvent.click(screen.getByRole("button", { name: "Agenda" }));
-    expect(courant()).toEqual(["Commandes"]);
-
-    act(() => {
-      vi.advanceTimersByTime(DUREE_TOUR);
-    });
+    finDuTour();
     expect(bande().dataset.sens).toBeUndefined();
     expect(bande().dataset.double).toBe("1");
+    expect(coins()).toEqual(["Revenir à la page : Agenda et À faire"]);
 
-    fireEvent.click(screen.getByRole("button", { name: "À faire" }));
+    fireEvent.click(screen.getByRole("button", { name: /Revenir/ }));
     expect(bande().dataset.sens).toBe("arriere");
+    finDuTour();
+    expect(bande().dataset.double).toBe("0");
   });
 
-  it("un glissement du doigt vers la gauche passe à la page suivante", () => {
+  it("un glissement vers la gauche tourne la page ; un geste vertical, non", () => {
     render(<SectionOperations feuilles={feuilles} />);
     const cadre = document.querySelector<HTMLElement>(".op-cadre")!;
     fireEvent.pointerDown(cadre, { clientX: 300, clientY: 100 });
-    fireEvent.pointerUp(cadre, { clientX: 200, clientY: 110 });
-    expect(courant()).toEqual(["À faire"]);
-    // Un geste surtout vertical laisse la page défiler.
-    fireEvent.pointerDown(cadre, { clientX: 300, clientY: 100 });
     fireEvent.pointerUp(cadre, { clientX: 250, clientY: 300 });
-    expect(courant()).toEqual(["À faire"]);
+    expect(bande().dataset.sens).toBeUndefined();
+    fireEvent.pointerDown(cadre, { clientX: 300, clientY: 100 });
+    fireEvent.pointerUp(cadre, { clientX: 200, clientY: 110 });
+    expect(bande().dataset.sens).toBe("avant");
+  });
+});
+
+describe("SectionOperations, sur téléphone", () => {
+  it("le coin mène à la page voisine : on glisse dans le double, on tourne au suivant", () => {
+    telephone(true);
+    render(<SectionOperations feuilles={feuilles} />);
+    expect(coins()).toEqual(["Tourner la page : À faire"]);
+
+    fireEvent.click(screen.getByRole("button", { name: "Tourner la page : À faire" }));
+    expect(camera().dataset.cote).toBe("droite");
+    expect(bande().dataset.sens).toBeUndefined();
+    expect(coins()).toEqual(["Revenir à la page : Agenda", "Tourner la page : Commandes"]);
+
+    fireEvent.click(screen.getByRole("button", { name: "Tourner la page : Commandes" }));
+    expect(bande().dataset.sens).toBe("avant");
+    finDuTour();
+    expect(camera().dataset.cote).toBe("gauche");
+    expect(bande().dataset.double).toBe("1");
   });
 
-  it("une seule carte : pas d'onglets", () => {
+  it("une seule carte : aucun coin à tourner", () => {
+    telephone(true);
     render(<SectionOperations feuilles={feuilles.slice(0, 1)} />);
-    expect(screen.queryByRole("navigation")).toBeNull();
+    expect(coins()).toEqual([]);
   });
 });
