@@ -12,7 +12,7 @@ import type { TypeDocumentV3 } from "./typesDocument";
  *
  * C'est la règle la plus importante de ce fichier, et elle écarte une
  * partie de ce que le cahier des charges énumère. Une remise par
- * ligne, une TVA par ligne, une miniature de produit, un objet, une
+ * ligne, une miniature de produit, un objet, une
  * référence client, un lieu de livraison : aucune de ces données
  * n'existe en base aujourd'hui. Un interrupteur qui ne montrerait
  * jamais rien est pire que pas d'interrupteur — il fait croire que la
@@ -217,6 +217,15 @@ export const CATALOGUE: ElementCatalogue[] = [
     nom: "Prix unitaire",
     libelleParDefaut: "Prix unitaire",
     defaut: true,
+  },
+  {
+    cle: "tableau.tva",
+    zone: "tableau",
+    nom: "Taux de TVA de la ligne",
+    libelleParDefaut: "TVA",
+    note: "Le taux du produit, de sa catégorie ou de la boutique. La colonne ne s'imprime que si les lignes n'ont pas toutes le même taux : sinon, les totaux le disent déjà.",
+    defaut: "tva",
+    absentDe: ["achat", "facture_achat"],
   },
   {
     cle: "tableau.total",

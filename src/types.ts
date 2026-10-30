@@ -23,6 +23,11 @@ export interface Product {
   description: string | null;
   unite: string | null;
   tvaRate: number | null;
+  /**
+   * Le taux de TVA de sa catégorie, recopié au chargement. Lu quand la
+   * fiche n'a pas le sien ; absent ou `null`, la boutique décide.
+   */
+  tvaCategorie?: number | null;
   stockMax: number | null;
   typeProduit: string;
   statut: string;

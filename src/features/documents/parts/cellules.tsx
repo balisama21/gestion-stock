@@ -1,6 +1,6 @@
 import React from "react";
 import type { CleColonne, LigneDocument } from "../lib/buildDocument";
-import { montantOuTiret, nombre, quantite } from "../lib/format";
+import { montantOuTiret, nombre, quantite, taux } from "../lib/format";
 import { convertir, type DeviseAffichee } from "../../../lib/contexteDevises";
 
 /** Le montant, puis ses équivalents en petit dessous. */
@@ -39,6 +39,7 @@ export const COLONNE: Record<CleColonne, { largeur?: string; align?: "center" | 
   quantite: { largeur: "28mm", align: "center" },
   unite: { largeur: "22mm", align: "center" },
   prixUnitaire: { largeur: "30mm", align: "right" },
+  tva: { largeur: "16mm", align: "center" },
   total: { largeur: "32mm", align: "right" },
 };
 
@@ -73,6 +74,8 @@ export function celluleDeLigne(
        de commande, zéro se lit « gratuit » chez le fournisseur. */
     case "prixUnitaire":
       return avecEquivalents(montantOuTiret(l.prixUnitaire, devise), l.prixUnitaire, equivalents);
+    case "tva":
+      return l.tva === null ? "" : `${taux(l.tva)} %`;
     case "total":
       return <b>{avecEquivalents(montantOuTiret(l.total, devise), l.total, equivalents)}</b>;
   }
@@ -83,5 +86,6 @@ export const CLASSE: Record<CleColonne, string> = {
   quantite: "doc-qte",
   unite: "doc-qte",
   prixUnitaire: "doc-montant",
+  tva: "doc-qte",
   total: "doc-montant",
 };

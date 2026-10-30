@@ -61,7 +61,10 @@ describe("la TVA est comprise, elle ne s'ajoute pas", () => {
   it("extrait la part de taxe du total", () => {
     const d = documentDeVente({ ...base, ventes: [V024], reglages: avecTva });
     // 300 000 TTC à 20 % : 250 000 HT et 50 000 de taxe.
-    expect(d.totaux.tva).toEqual({ taux: 20, montant: 50000 });
+    expect(d.totaux.tva).toEqual({
+      montant: 50000,
+      parTaux: [{ taux: 20, horsTaxe: 250000, montant: 50000 }],
+    });
     expect(d.totaux.horsTaxe).toBe(250000);
   });
 

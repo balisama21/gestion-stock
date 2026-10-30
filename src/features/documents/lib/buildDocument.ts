@@ -20,6 +20,13 @@ import type { ChampTiers } from "./coordonnees";
 import type { PageResolue } from "./miseEnPage";
 import { resoudreMiseEnPage, resoudreType } from "./resolveur";
 import { numeroDuDocument, type TypeDocumentV3 } from "./typesDocument";
+import {
+  tauxDuProduit,
+  ventilerTva,
+  type ProduitTva,
+  type TauxFiges,
+  type TvaParTaux,
+} from "./tva";
 
 type Client = Database["public"]["Tables"]["clients"]["Row"];
 type Paiement = Database["public"]["Tables"]["payments"]["Row"];
@@ -111,10 +118,17 @@ export interface LigneDocument {
    */
   prixUnitaire: number | null;
   total: number | null;
+  /**
+   * Le taux de TVA de la ligne, en pourcentage : celui du produit, de
+   * sa catégorie ou de la boutique — voir `tva.ts`. `null` sur un
+   * document qui ne parle pas de notre TVA : un bon de commande
+   * fournisseur, une facture reçue.
+   */
+  tva: number | null;
 }
 
 /** Les colonnes que le tableau porte vraiment, dans l'ordre choisi. */
-export type CleColonne = "designation" | "quantite" | "unite" | "prixUnitaire" | "total";
+export type CleColonne = "designation" | "quantite" | "unite" | "prixUnitaire" | "tva" | "total";
 
 export interface ColonneDocument {
   cle: CleColonne;
@@ -135,7 +149,12 @@ export interface TotauxDocument {
    * Il est DÉDUIT du total et non l'inverse — voir `totauxDeVente`.
    */
   horsTaxe: number | null;
-  tva: { taux: number; montant: number } | null;
+  /**
+   * La TVA comprise, ventilée par taux. Une seule entrée quand toutes
+   * les lignes ont le même taux ; une par taux sinon, du plus fort au
+   * plus faible. `montant` est leur somme.
+   */
+  tva: { montant: number; parTaux: TvaParTaux[] } | null;
   /**
    * Le total tel qu'il est en base. Jamais recalculé.
    *
@@ -429,6 +448,52 @@ export function destinataireDeVente(
  * Les lignes et les totaux
  * ───────────────────────────────────────────────────────────── */
 
+/** Ce qu'une source de document dit des taux de ses lignes. */
+interface SourceDesTaux {
+  boutique?: StoreSettings;
+  /** Le catalogue, pour le taux de chaque produit et de sa catégorie. */
+  produits?: readonly ProduitTva[];
+  /** Absent : les taux du moment, tirés du catalogue. */
+  tauxFiges?: TauxFiges;
+}
+
+/** Le taux de chaque ligne, d'où qu'il vienne. */
+function tauxDesLignes(
+  source: SourceDesTaux,
+  avant: "boutique" | "aucune",
+): (id: string, productId: string | null | undefined) => number | null {
+  const { boutique, produits = [], tauxFiges } = source;
+  const tauxBoutique = boutique?.tvaRate ?? 0;
+  if (tauxFiges === "avant") return () => (avant === "boutique" ? tauxBoutique : null);
+  if (tauxFiges) return (id) => tauxFiges[id] ?? tauxBoutique;
+  return (_id, productId) => tauxDuProduit(productId, produits, tauxBoutique);
+}
+
+/**
+ * Le hors-taxe et la TVA d'un document, extraits de ses lignes.
+ *
+ * Rien ne s'affiche quand aucune ligne n'est taxée : un hors-taxe égal
+ * au total, et une TVA de zéro, ne diraient rien. Dès qu'une ligne
+ * l'est, les lignes exonérées apparaissent dans la ventilation, à 0 %.
+ */
+function tvaDuDocument(
+  lignes: LigneDocument[],
+  total: number | null,
+  reglages: ReglagesDocuments,
+  page?: PageResolue,
+): Pick<TotauxDocument, "horsTaxe" | "tva"> {
+  const montre = (cle: string) => (page ? page.visible(cle) : reglages.options.tva);
+  const parTaux = total === null ? null : ventilerTva(lignes, total);
+  if (total === null || !parTaux || !parTaux.some((t) => t.taux > 0)) {
+    return { horsTaxe: null, tva: null };
+  }
+  const montant = parTaux.reduce((n, t) => n + t.montant, 0);
+  return {
+    horsTaxe: montre("totaux.horsTaxe") ? total - montant : null,
+    tva: montre("totaux.tva") ? { montant, parTaux } : null,
+  };
+}
+
 /**
  * Les lignes d'un ticket.
  *
@@ -444,6 +509,7 @@ export function lignesDeVente(
   ventes: Sale[],
   produits: Product[],
   page?: PageResolue,
+  tvaDe: (id: string, productId: string) => number | null = () => null,
 ): LigneDocument[] {
   const avecReference = page ? page.visible("tableau.reference") : true;
   const parId = new Map(produits.map((p) => [p.id, p]));
@@ -458,6 +524,7 @@ export function lignesDeVente(
       unite: util(p?.unite),
       prixUnitaire: v.prixVenteUnit,
       total: v.totalVente,
+      tva: tvaDe(v.id, v.productId),
     };
   });
 }
@@ -480,11 +547,14 @@ export function lignesDeVente(
  * quelle part de ce total est de la taxe. L'addition reste juste —
  * `horsTaxe + tva === total`, exactement — parce que le hors-taxe est
  * obtenu par soustraction et non par une seconde division.
+ *
+ * Chaque ligne porte son propre taux : la TVA est extraite taux par
+ * taux, puis additionnée — voir `ventilerTva`.
  */
 export function totauxDeVente(
   ventes: Sale[],
+  lignes: LigneDocument[],
   paiements: Paiement[],
-  boutique: StoreSettings | undefined,
   reglages: ReglagesDocuments,
   type: "facture" | "recu" = "facture",
   page?: PageResolue,
@@ -501,18 +571,15 @@ export function totauxDeVente(
   // l'additionne comme le reste, et le total ne bouge pas.
   const commission = ventes.reduce((n, v) => n + (v.commission ?? 0), 0);
 
-  const taux = boutique?.tvaRate ?? 0;
-  const montreHt = taux > 0 && montre("totaux.horsTaxe", reglages.options.tva);
-  const montreTva = taux > 0 && montre("totaux.tva", reglages.options.tva);
-  const montantTva = montreHt || montreTva ? Math.round(total - total / (1 + taux / 100)) : 0;
+  const { horsTaxe, tva } = tvaDuDocument(lignes, total, reglages, page);
 
   // Le dernier règlement connu donne le moyen de paiement. Les
   // paiements arrivent déjà triés du plus récent au plus ancien.
   const mode = libelleMethode(paiements[0]?.methode);
 
   return {
-    horsTaxe: montreHt ? total - montantTva : null,
-    tva: montreTva ? { taux, montant: montantTva } : null,
+    horsTaxe,
+    tva,
     total,
     paye: montre("totaux.paye", true) ? paye : null,
     reste: montre("totaux.reste", true) ? reste : null,
@@ -559,6 +626,7 @@ const LIBELLES_COLONNE: Record<CleColonne, string> = {
   quantite: "Quantité",
   unite: "Unité",
   prixUnitaire: "Prix unitaire",
+  tva: "TVA",
   total: "Total",
 };
 
@@ -569,6 +637,7 @@ const CELLULE_VIDE: Record<CleColonne, (l: LigneDocument) => boolean> = {
   // Une colonne de prix dont AUCUNE ligne n'est chiffrée ne porte que
   // des tirets : elle s'efface, comme la colonne d'unité.
   prixUnitaire: (l) => l.prixUnitaire === null,
+  tva: (l) => l.tva === null,
   total: (l) => l.total === null,
 };
 
@@ -582,6 +651,10 @@ const CELLULE_VIDE: Record<CleColonne, (l: LigneDocument) => boolean> = {
  * porte, la colonne ne dirait rien et volerait la largeur de la
  * désignation. Elle est retirée de CE document, sans rien changer au
  * réglage : le suivant l'aura si ses lignes la remplissent.
+ *
+ * La colonne de TVA va plus loin : elle disparaît aussi quand toutes
+ * les lignes ont le même taux. Les totaux le disent déjà une fois ;
+ * le répéter à chaque ligne ne servirait qu'à rétrécir la désignation.
  */
 export function colonnesDuDocument(page: PageResolue, lignes: LigneDocument[]): ColonneDocument[] {
   const possibles = new Set<string>(Object.keys(LIBELLES_COLONNE));
@@ -593,7 +666,8 @@ export function colonnesDuDocument(page: PageResolue, lignes: LigneDocument[]): 
       const libelle = page.libelle(cle, LIBELLES_COLONNE[c]);
       return { cle: c, libelle, personnalise: libelle !== LIBELLES_COLONNE[c] };
     })
-    .filter((c) => lignes.length === 0 || !lignes.every((l) => CELLULE_VIDE[c.cle](l)));
+    .filter((c) => lignes.length === 0 || !lignes.every((l) => CELLULE_VIDE[c.cle](l)))
+    .filter((c) => c.cle !== "tva" || new Set(lignes.map((l) => l.tva)).size > 1);
 }
 
 /* ─────────────────────────────────────────────────────────────
@@ -644,6 +718,8 @@ export interface SourceVente {
   boutique?: StoreSettings;
   reglages: ReglagesDocuments;
   locale?: LocaleSetting;
+  /** Les taux de la pièce telle qu'elle est partie, quand elle a déjà été émise. */
+  tauxFiges?: TauxFiges;
 }
 
 /**
@@ -677,10 +753,11 @@ export function documentDeVente(source: SourceVente): Document {
 
   const regle = resoudreType(reglages, typeReglages);
   const page = resoudreMiseEnPage(reglages, typeReglages);
+  const lignes = lignesDeVente(ventes, produits, page, tauxDesLignes(source, "boutique"));
   const totaux = totauxDeVente(
     ventes,
+    lignes,
     paiements,
-    boutique,
     reglages,
     type,
     page,
@@ -738,7 +815,6 @@ export function documentDeVente(source: SourceVente): Document {
   const enLettres = page.visible("totaux.montantEnLettres")
     ? montantEnLettres(totaux.total ?? 0, deviseEnToutesLettres(devise))
     : null;
-  const lignes = lignesDeVente(ventes, produits, page);
 
   const nomBoutique = util(boutique?.storeName);
 
@@ -821,6 +897,10 @@ export interface SourceDevis {
   boutique?: StoreSettings;
   reglages: ReglagesDocuments;
   locale?: LocaleSetting;
+  /** Le catalogue, pour le taux de TVA de chaque ligne. */
+  produits?: readonly ProduitTva[];
+  /** Les taux de la pièce telle qu'elle est partie, quand elle a déjà été émise. */
+  tauxFiges?: TauxFiges;
 }
 
 /**
@@ -871,6 +951,7 @@ export function documentDeDevis(source: SourceDevis): Document {
     .map((cle) => repere[cle] ?? null)
     .filter((l): l is LigneMeta => l !== null);
 
+  const tvaDe = tauxDesLignes(source, "aucune");
   const lignesDevis: LigneDocument[] = lignes.map((l) => ({
     id: l.id,
     designation: util(l.designation) ?? "Article",
@@ -879,6 +960,7 @@ export function documentDeDevis(source: SourceDevis): Document {
     unite: null,
     prixUnitaire: l.prix_unitaire,
     total: l.total ?? l.quantite * l.prix_unitaire,
+    tva: tvaDe(l.id, l.product_id),
   }));
 
   return {
@@ -896,8 +978,7 @@ export function documentDeDevis(source: SourceDevis): Document {
     lignes: lignesDevis,
     colonnes: colonnesDuDocument(page, lignesDevis),
     totaux: {
-      horsTaxe: null,
-      tva: null,
+      ...tvaDuDocument(lignesDevis, total, reglages, page),
       total,
       paye: null,
       reste: null,
@@ -952,6 +1033,10 @@ export interface SourceCommande {
   boutique?: StoreSettings;
   reglages: ReglagesDocuments;
   locale?: LocaleSetting;
+  /** Le catalogue, pour le taux de TVA de chaque ligne. */
+  produits?: readonly ProduitTva[];
+  /** Les taux de la pièce telle qu'elle est partie, quand elle a déjà été émise. */
+  tauxFiges?: TauxFiges;
 }
 
 /**
@@ -998,6 +1083,7 @@ export function documentDeCommande(source: SourceCommande): Document {
     .map((cle) => repere[cle] ?? null)
     .filter((l): l is LigneMeta => l !== null);
 
+  const tvaDe = tauxDesLignes(source, "aucune");
   const lignesCommande: LigneDocument[] = lignes.map((l) => ({
     id: l.id,
     designation: util(l.designation) ?? "Article",
@@ -1006,6 +1092,7 @@ export function documentDeCommande(source: SourceCommande): Document {
     unite: null,
     prixUnitaire: l.prix_vente_unit,
     total: l.total_vente,
+    tva: tvaDe(l.id, l.product_id),
   }));
 
   return {
@@ -1018,8 +1105,7 @@ export function documentDeCommande(source: SourceCommande): Document {
     lignes: lignesCommande,
     colonnes: colonnesDuDocument(page, lignesCommande),
     totaux: {
-      horsTaxe: null,
-      tva: null,
+      ...tvaDuDocument(lignesCommande, total, reglages, page),
       total,
       paye: page.visible("totaux.paye") ? paye : null,
       reste: page.visible("totaux.reste") ? reste : null,
@@ -1178,6 +1264,8 @@ export function documentDeFactureAchat(source: SourceFactureAchat): Document {
     unite: util(l.unite),
     prixUnitaire: l.prix_unitaire,
     total: l.total ?? l.quantite * l.prix_unitaire,
+    // La TVA d'une facture reçue est celle du fournisseur, pas la nôtre.
+    tva: null,
   }));
 
   return {
@@ -1257,6 +1345,10 @@ export interface SourceAvoir {
   boutique?: StoreSettings;
   reglages: ReglagesDocuments;
   locale?: LocaleSetting;
+  /** Le catalogue, pour le taux de TVA de chaque ligne. */
+  produits?: readonly ProduitTva[];
+  /** Les taux de la pièce telle qu'elle est partie, quand elle a déjà été émise. */
+  tauxFiges?: TauxFiges;
 }
 
 export function documentDAvoir(source: SourceAvoir): Document {
@@ -1291,6 +1383,7 @@ export function documentDAvoir(source: SourceAvoir): Document {
    * montant, pas des articles. Le motif tient alors lieu de ligne
    * unique, plutôt que de laisser un tableau vide sur le papier.
    */
+  const tvaDe = tauxDesLignes(source, "aucune");
   const lignesAvoir: LigneDocument[] =
     lignes.length > 0
       ? lignes.map((l) => ({
@@ -1301,6 +1394,7 @@ export function documentDAvoir(source: SourceAvoir): Document {
           unite: null,
           prixUnitaire: l.prix_unitaire,
           total: l.total ?? l.quantite * l.prix_unitaire,
+          tva: tvaDe(l.id, l.product_id),
         }))
       : [
           {
@@ -1311,6 +1405,7 @@ export function documentDAvoir(source: SourceAvoir): Document {
             unite: null,
             prixUnitaire: avoir.montant,
             total: avoir.montant,
+            tva: tvaDe(avoir.id, null),
           },
         ];
 
@@ -1324,8 +1419,7 @@ export function documentDAvoir(source: SourceAvoir): Document {
     lignes: lignesAvoir,
     colonnes: colonnesDuDocument(page, lignesAvoir),
     totaux: {
-      horsTaxe: null,
-      tva: null,
+      ...tvaDuDocument(lignesAvoir, avoir.montant, reglages, page),
       total: avoir.montant,
       // Ni payé ni reste : un avoir n'appelle aucun règlement.
       paye: null,
@@ -1467,6 +1561,7 @@ export function documentDAchat(source: SourceAchat): Document {
     unite: l.unite,
     prixUnitaire: l.prixUnitaire,
     total: l.total,
+    tva: null,
   }));
 
   /*
