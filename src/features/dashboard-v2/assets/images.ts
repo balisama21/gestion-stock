@@ -196,15 +196,15 @@ export function paysagesDuMoment(
   return Array.from({ length: Math.min(combien, n) }, (_, k) => serie[(depart + k) % n]);
 }
 
-/** Les grandes sections du tableau de bord, chacune avec sa bannière. */
+/** Les grandes sections du tableau de bord, chacune avec sa bannière, dans l'ordre de la page. */
 export type CleSection = "operations" | "ventes" | "argent" | "stock" | "fournisseurs";
 
 export const SECTIONS: { cle: CleSection; nom: string }[] = [
-  { cle: "operations", nom: "Opérations" },
-  { cle: "ventes", nom: "Ventes" },
   { cle: "argent", nom: "L'argent" },
+  { cle: "ventes", nom: "Ventes" },
   { cle: "stock", nom: "Le stock" },
   { cle: "fournisseurs", nom: "Fournisseurs & Prestataires" },
+  { cle: "operations", nom: "Opérations" },
 ];
 
 /**
