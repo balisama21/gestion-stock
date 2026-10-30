@@ -31,7 +31,6 @@ import {
   type Photo,
 } from "../assets/images";
 import { usePhotosHautDePage } from "../lib/photosHautDePage";
-import { InspirationDuMoment } from "./InspirationDuMoment";
 import { MenuOption, MenuPill } from "./Pill";
 import { VILLES, useMeteo, type Ciel } from "../lib/meteo";
 import { phraseDuMoment } from "../lib/phrases";
@@ -43,7 +42,7 @@ import { usePhrasesAjoutees } from "../lib/phrasesTableau";
  * Reproduction de la maquette `docs/maquette/dashboard-tantana.html` :
  * le bonjour sur sa photo (jour ou nuit, une photo par jour de la
  * semaine), les cinq cartes du jour qui chevauchent le bas de la photo,
- * l'aperçu des ventes et la carte « Inspiration du moment ».
+ * l'aperçu des ventes.
  *
  * Tout est dessiné dans une unité `--u` qui suit la largeur de la zone
  * (1546 unités de large sur ordinateur), pour garder les proportions de
@@ -809,8 +808,10 @@ export const HeroTableauDeBord: React.FC<HeroProps> = ({
             </div>
           )}
 
-          <div className={`tb-bottom${graphique ? "" : " seule"}`}>
-            {graphique && (
+          {/* L'aperçu des ventes, seul sur toute la largeur : l'inspiration
+              du moment a sa propre section, en bas de page. */}
+          {graphique && (
+            <div className="tb-bottom">
               <article className="tc" id="tcChart">
                 <div className="tc-h">
                   <span className="pastille vert">
@@ -831,10 +832,8 @@ export const HeroTableauDeBord: React.FC<HeroProps> = ({
                   />
                 </div>
               </article>
-            )}
-
-            <InspirationDuMoment maintenant={maintenant} />
-          </div>
+            </div>
+          )}
         </div>
       </div>
     </section>

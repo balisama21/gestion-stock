@@ -83,7 +83,7 @@ function afficher(instant: string, sombre = false) {
   act(() => {});
   const hero = rendu.container.querySelector(".tb-hero") as HTMLElement;
   const fond = rendu.container.querySelector(".tb-hero-bg") as HTMLElement;
-  const plantes = [...rendu.container.querySelectorAll(".pf img")].map((i) =>
+  const plantes = [...rendu.container.querySelectorAll("#inspiration img, .pf img")].map((i) =>
     i.getAttribute("src"),
   );
   return { hero, fond, plantes };
@@ -166,11 +166,9 @@ describe("le haut du tableau de bord", () => {
     expect(paysagesDuMoment(new Date(2026, 9, 12, 10, 0))).not.toEqual(jour);
   });
 
-  it("l'inspiration du moment montre les trois photos du jour", () => {
+  it("l'inspiration du moment n'est plus dans le haut de page : elle a sa section", () => {
     const { plantes } = afficher("2026-10-04T10:00:00");
-    expect(plantes).toHaveLength(3);
-    expect(new Set(plantes)).toEqual(new Set(plantesDuJour(new Date(2026, 9, 4))));
-    expect(PHOTOS_PLANTES.length).toBeGreaterThanOrEqual(3);
+    expect(plantes).toHaveLength(0);
   });
 
   it("chaque jour prend les trois photos suivantes du dossier", () => {
