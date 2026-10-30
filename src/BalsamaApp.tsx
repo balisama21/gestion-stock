@@ -94,6 +94,7 @@ import { signalerAvertissement, signalerErreur } from "./lib/messages";
 import { Toaster } from "./components/ui/sonner";
 import { oublierSessionAvantRendu } from "./lib/sessionAvantRendu";
 import { conditionnementDeLigne, lireConditionnements } from "./lib/conditionnements";
+import { cibleDeLAchat } from "./lib/cibleAchat";
 
 /**
  * Les écrans internes arrivent à la demande.
@@ -1744,20 +1745,9 @@ function AppInner() {
     // L'écran des achats désigne désormais le produit lui-même
     // (`productId`) : recharger à un autre prix ne crée plus de doublon.
     // La correspondance par nom, prix et fournisseur ne sert plus qu'aux
-    // appels qui n'en donnent pas.
-    const matchingProd = newPurchase.productId
-      ? products.find((p) => p.id === newPurchase.productId)
-      : products.find(
-          (p) =>
-            p.designation.toLowerCase() === newPurchase.designation.toLowerCase() &&
-            Math.abs(p.prixAchat - newPurchase.prixAchatUnit) < 0.01 &&
-            p.fournisseur.toLowerCase() === newPurchase.fournisseur.toLowerCase(),
-        );
-    if (newPurchase.productId && !matchingProd) {
-      const error = "Ce produit n'existe plus dans la boutique. Rouvrez l'achat.";
-      signalerErreur(error);
-      return { error, productId: null };
-    }
+    // appels qui n'en donnent pas. Un produit créé à l'instant n'est pas
+    // encore dans `products` : voir `cibleDeLAchat`.
+    const { productId, produit: matchingProd } = cibleDeLAchat(newPurchase, products);
 
     const newDisplayName = newPurchase.designation;
     const prodDisplayName = matchingProd ? matchingProd.designation : newDisplayName;
@@ -1767,8 +1757,8 @@ function AppInner() {
 
     const res = await storeData.addPurchase({
       date: newPurchase.date,
-      product_id: matchingProd ? matchingProd.id : null,
-      new_product: matchingProd
+      product_id: productId,
+      new_product: productId
         ? null
         : {
             designation: newPurchase.designation,
