@@ -5,6 +5,7 @@ import { supabase } from "../lib/supabase";
 import type { Database } from "../lib/database.types";
 import type { Sale as AppSale } from "../types";
 import type { PaiementSalaire, Salaire, StatutPaiement, TypePaiement } from "../lib/salaires";
+import { conditionnementDeLigne } from "../lib/conditionnements";
 
 type Product = Database["public"]["Tables"]["products"]["Row"];
 type Sale = Database["public"]["Tables"]["sales"]["Row"];
@@ -80,6 +81,7 @@ const versVente = (row: SaleRow): AppSale => ({
   soldeDu: row.solde_du,
   statutCredit: row.statut_credit as AppSale["statutCredit"],
   saisieLe: row.created_at,
+  conditionnement: conditionnementDeLigne(row),
 });
 
 /**
@@ -411,6 +413,11 @@ export interface StoreData {
     /** Ce qui sort de la caisse maintenant. Omis = réglé en totalité. */
     montant_paye?: number | null;
     date_echeance?: string | null;
+    /**
+     * Acheté au carton, au sac… sur un produit qui existe (`product_id`).
+     * La base relit le facteur sur la fiche ; le total est `nombre` × `prix`.
+     */
+    conditionnement?: { id: string; nombre: number; prix: number } | null;
   }) => Promise<{ error: string | null }>;
 
   deletePurchase: (id: string) => Promise<{ error: string | null }>;
@@ -1249,6 +1256,14 @@ export function useStoreData(storeId: string | null, userId: string | null): Sto
         prix_vente_unit: number;
         /** Le libellé d'une prestation. Ignoré quand la ligne porte un produit. */
         designation?: string;
+        /**
+         * Vendue au carton, au sac… La base relit le facteur sur la fiche
+         * du produit et fait sortir `nombre` × facteur unités du stock ;
+         * le total est `nombre` × `prix_conditionnement`, au centime près.
+         */
+        conditionnement_id?: string;
+        nombre?: number;
+        prix_conditionnement?: number;
       }[];
     }) => {
       if (!storeId || !userId) return { ventes: [], error: "Non autorisé" };
@@ -1343,24 +1358,39 @@ export function useStoreData(storeId: string | null, userId: string | null): Sto
       // ligne écrite. On en garde le `product_id` : quand l'achat vient
       // de créer le produit, c'est le seul moyen d'enregistrer ensuite
       // sa fiche descriptive sans avoir à le retrouver dans la liste.
-      const { data: ecrit, error } = await supabase.rpc("add_purchase", {
-        p_store_id: storeId,
-        p_date: data.date,
-        p_product_id: data.product_id ?? null,
-        p_new_designation: data.new_product?.designation ?? null,
-        p_new_variant_suffix: data.new_product?.variant_suffix ?? null,
-        p_new_display_name: data.new_product?.display_name ?? null,
-        p_new_prix_vente_defaut: data.new_product?.prix_vente_defaut ?? null,
-        p_new_seuil_alerte: data.new_product?.seuil_alerte ?? null,
-        p_quantite: data.quantite,
-        p_prix_achat_unit: data.prix_achat_unit,
-        p_fournisseur: data.fournisseur,
-        p_idempotency_key: idempotencyKey,
-        // Non transmis, la base retient « réglé en totalité » —
-        // exactement ce que faisait la version d'avant.
-        p_montant_paye: data.montant_paye ?? null,
-        p_date_echeance: data.date_echeance ?? null,
-      });
+      // Au carton, au sac… : un produit qui existe déjà, et le total
+      // exact du conditionnement. Voir `add_purchase_conditionne`.
+      const { data: ecrit, error } = data.conditionnement
+        ? await supabase.rpc("add_purchase_conditionne", {
+            p_store_id: storeId,
+            p_date: data.date,
+            p_product_id: data.product_id,
+            p_conditionnement_id: data.conditionnement.id,
+            p_nombre: data.conditionnement.nombre,
+            p_prix_conditionnement: data.conditionnement.prix,
+            p_fournisseur: data.fournisseur ?? "",
+            p_idempotency_key: idempotencyKey,
+            p_montant_paye: data.montant_paye ?? undefined,
+            p_date_echeance: data.date_echeance ?? undefined,
+          })
+        : await supabase.rpc("add_purchase", {
+            p_store_id: storeId,
+            p_date: data.date,
+            p_product_id: data.product_id ?? null,
+            p_new_designation: data.new_product?.designation ?? null,
+            p_new_variant_suffix: data.new_product?.variant_suffix ?? null,
+            p_new_display_name: data.new_product?.display_name ?? null,
+            p_new_prix_vente_defaut: data.new_product?.prix_vente_defaut ?? null,
+            p_new_seuil_alerte: data.new_product?.seuil_alerte ?? null,
+            p_quantite: data.quantite,
+            p_prix_achat_unit: data.prix_achat_unit,
+            p_fournisseur: data.fournisseur,
+            p_idempotency_key: idempotencyKey,
+            // Non transmis, la base retient « réglé en totalité » —
+            // exactement ce que faisait la version d'avant.
+            p_montant_paye: data.montant_paye ?? null,
+            p_date_echeance: data.date_echeance ?? null,
+          });
 
       const productId =
         ecrit && typeof ecrit === "object" && "product_id" in ecrit

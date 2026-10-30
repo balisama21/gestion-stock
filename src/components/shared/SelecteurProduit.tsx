@@ -16,6 +16,10 @@ export interface ProduitAChoisir {
   seuil?: number | null;
   /** Retrouvés par la recherche sans être affichés : SKU, code-barres. */
   codes?: (string | null | undefined)[];
+  /** L'unité de base : le prix se lit « 650 Ar / pièce ». */
+  unite?: string | null;
+  /** « Boissons › Eaux » : affichée, et trouvée par la recherche. */
+  categorie?: string | null;
 }
 
 /**
@@ -28,7 +32,16 @@ export interface ProduitAChoisir {
 export const versProduitAChoisir = (
   p: Product,
   produits: Product[],
-  { prix = "vente", stock = true }: { prix?: "vente" | "achat" | null; stock?: boolean } = {},
+  {
+    prix = "vente",
+    stock = true,
+    categories,
+  }: {
+    prix?: "vente" | "achat" | null;
+    stock?: boolean;
+    /** Le nom de chaque catégorie, par identifiant. */
+    categories?: ReadonlyMap<string, string>;
+  } = {},
 ): ProduitAChoisir => ({
   id: p.id,
   nom: getProductLabel(p, produits),
@@ -36,7 +49,10 @@ export const versProduitAChoisir = (
   prix: prix === "vente" ? p.prixVenteDefaut : prix === "achat" ? p.prixAchat : null,
   stock: stock ? p.stockDisponible : null,
   seuil: p.seuilAlerte,
-  codes: [p.sku, p.codeBarres],
+  // Le code du carton aussi : on scanne souvent l'étiquette du carton.
+  codes: [p.sku, p.codeBarres, ...(p.conditionnements ?? []).flatMap((c) => [c.codeBarres, c.nom])],
+  unite: p.unite,
+  categorie: p.categoryId ? (categories?.get(p.categoryId) ?? null) : null,
 });
 
 const pastilleDe = (stock: number, seuil: number | null | undefined) =>
@@ -88,10 +104,17 @@ export const SelecteurProduit: React.FC<SelecteurProduitProps> = ({
         id: p.id,
         nom: p.nom,
         detail:
-          [p.numero, p.prix != null ? formatCurrency(p.prix) : null].filter(Boolean).join(" · ") ||
-          null,
+          [
+            p.numero,
+            p.prix != null
+              ? `${formatCurrency(p.prix)}${p.unite?.trim() ? ` / ${p.unite.trim()}` : ""}`
+              : null,
+            p.categorie,
+          ]
+            .filter(Boolean)
+            .join(" · ") || null,
         pastille: p.stock != null ? pastilleDe(p.stock, p.seuil) : null,
-        motsCles: [p.numero, ...(p.codes ?? [])].filter(Boolean).join(" ") || null,
+        motsCles: [p.numero, p.categorie, ...(p.codes ?? [])].filter(Boolean).join(" ") || null,
       })),
     [produits],
   );

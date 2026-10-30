@@ -1,3 +1,5 @@
+import type { Conditionnement, ConditionnementDeLigne } from "./lib/conditionnements";
+
 export type LocaleSetting = "FR" | "US";
 
 export interface Product {
@@ -33,6 +35,11 @@ export interface Product {
   modePrix: string;
   /** Le taux propre a ce produit. Null = herite de sa categorie, puis de la boutique. */
   tauxMarge: number | null;
+  /**
+   * Carton, sac, pack… propres a ce produit. Le stock reste compte en
+   * `unite` ; voir `lib/conditionnements.ts`.
+   */
+  conditionnements: Conditionnement[];
 }
 
 export interface Purchase {
@@ -55,6 +62,8 @@ export interface Purchase {
   dateEcheance: string | null;
   /** Qui a enregistre la ligne. Sert au journal d activite. */
   auteurId?: string | null;
+  /** Achete au carton, au sac… `quantite` reste en unites de base. */
+  conditionnement?: ConditionnementDeLigne | null;
 }
 
 export interface Sale {
@@ -111,6 +120,8 @@ export interface Sale {
    * heure, sans quoi il daterait la vente de sa saisie.
    */
   saisieLe?: string;
+  /** Vendue au carton, au sac… `quantite` reste en unites de base. */
+  conditionnement?: ConditionnementDeLigne | null;
 }
 
 export interface Payment {
