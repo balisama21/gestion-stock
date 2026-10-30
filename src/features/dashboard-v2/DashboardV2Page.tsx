@@ -98,9 +98,9 @@ const SCENES_ARGENT: Scene[] = [
   },
   {
     src: "/illustrations/argent.webp",
-    alt: "Un homme compte des billets en euros à sa table, à côté d'une plante en pot.",
+    alt: "Un homme compte des billets en euros à sa table, à côté d'une plante grasse en pot.",
     largeur: 1600,
-    hauteur: 655,
+    hauteur: 687,
   },
 ];
 const SCENE_STOCK: Scene = {
