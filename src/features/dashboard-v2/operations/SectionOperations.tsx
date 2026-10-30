@@ -15,12 +15,14 @@ import "./operations.css";
  * `operations.css`). Sur ordinateur et tablette, le double entier se voit ;
  * sur téléphone, une page à la fois.
  *
- * On tourne la page comme sur un vrai bloc : par son coin. Le coin bas de
- * la page, un peu relevé, porte une flèche et se soulève de temps en
- * temps pour le rappeler ; on peut aussi glisser du doigt ou à la souris.
- * - sur ordinateur, on passe d'un double à l'autre ;
- * - sur téléphone, d'une page à l'autre : la vue glisse dans un même
- *   double, et la page tourne pour passer au double suivant.
+ * On tourne la page comme sur un vrai bloc : par son coin extérieur. Le
+ * coin bas de la page, un peu relevé, porte une flèche et se soulève de
+ * temps en temps pour le rappeler ; on peut aussi glisser du doigt ou à
+ * la souris. Il mène au double suivant (coin droit) ou précédent (coin
+ * gauche).
+ *
+ * Sur téléphone, une seule page se voit : une flèche sous la page mène à
+ * celle d'en face, dans le même double, et la vue glisse jusqu'à elle.
  * La page tournée se soulève autour de la spirale, passe de l'autre côté
  * et se rabat, et la page suivante apparaît dessous.
  *
@@ -72,13 +74,18 @@ export const SectionOperations: React.FC<{ feuilles: FeuilleOperation[] }> = ({ 
     fin.current = window.setTimeout(() => setTour(null), DUREE_TOUR);
   };
 
-  // Où mène chaque coin : la page voisine sur téléphone, le double voisin
-  // ailleurs (on l'ouvre sur sa page de gauche).
+  // Où mène chaque coin : au double voisin. Sur ordinateur, on l'ouvre sur
+  // sa page de gauche ; sur téléphone, sur la page qui touche le coin, et
+  // le coin n'est que sur le bord extérieur de la page montrée.
   const double = Math.floor(vue / 2);
-  const suivant = telephone ? vue + 1 : 2 * (double + 1);
-  const precedent = telephone ? vue - 1 : 2 * (double - 1);
-  const versSuivant = suivant < feuilles.length ? suivant : null;
-  const versPrecedent = precedent >= 0 ? precedent : null;
+  const aGauche = vue % 2 === 0;
+  const suivant = telephone ? (aGauche ? null : vue + 1) : 2 * (double + 1);
+  const precedent = telephone ? (aGauche ? vue - 1 : null) : 2 * (double - 1);
+  const versSuivant = suivant !== null && suivant < feuilles.length ? suivant : null;
+  const versPrecedent = precedent !== null && precedent >= 0 ? precedent : null;
+  // Sur téléphone, la page d'en face, dans le même double.
+  const enFace = aGauche ? vue + 1 : vue - 1;
+  const versEnFace = telephone && enFace < feuilles.length ? enFace : null;
   const libelle = (i: number) =>
     telephone
       ? feuilles[i].nom
@@ -104,14 +111,18 @@ export const SectionOperations: React.FC<{ feuilles: FeuilleOperation[] }> = ({ 
             if (!d) return;
             const dx = e.clientX - d.x;
             if (Math.abs(dx) > SEUIL && Math.abs(dx) > Math.abs(e.clientY - d.y)) {
-              const cible = dx < 0 ? versSuivant : versPrecedent;
+              const cible = telephone
+                ? vue + (dx < 0 ? 1 : -1)
+                : dx < 0
+                  ? versSuivant
+                  : versPrecedent;
               if (cible !== null) aller(cible);
             }
           }}
         >
           <div
             className="op-camera"
-            data-cote={vue % 2 === 0 ? "gauche" : "droite"}
+            data-cote={aGauche ? "gauche" : "droite"}
             data-tourne={tour ? "" : undefined}
           >
             <div
@@ -147,6 +158,17 @@ export const SectionOperations: React.FC<{ feuilles: FeuilleOperation[] }> = ({ 
               </button>
             )}
           </div>
+          {versEnFace !== null && (
+            <button
+              type="button"
+              className={`op-en-face ${aGauche ? "droite" : "gauche"}`}
+              aria-label={`Voir la page : ${feuilles[versEnFace].nom}`}
+              title={feuilles[versEnFace].nom}
+              onClick={() => aller(versEnFace)}
+            >
+              <Icone nom="arrowleft" />
+            </button>
+          )}
         </div>
       </div>
     </section>

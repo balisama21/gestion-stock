@@ -630,6 +630,7 @@
   --page: calc((100cqw - var(--pli) - 16px) / 2);
   --x: 8px;
   container-type: inline-size;
+  position: relative;
   padding: 6px 0 46px;
   touch-action: pan-y;
 }
@@ -897,6 +898,9 @@
     );
   filter: drop-shadow(3px -3px 4px rgba(15, 60, 40, 0.22));
 }
+.tn .op-en-face {
+  display: none;
+}
 /* Pendant que la page tourne, les coins s'effacent. */
 .tn .op-camera[data-tourne] .op-coin {
   opacity: 0;
@@ -955,11 +959,46 @@
   .tn .op-camera[data-cote="droite"] {
     --x: calc(28px - var(--page) - var(--pli));
   }
-  .tn .op-camera[data-cote="gauche"] .op-coin.suivant {
-    left: calc(var(--page) - var(--taille) + 1.5px);
+  /* La flèche vers la page d'en face, sous la page, du côté de la
+     spirale. */
+  .tn .op-en-face {
+    position: absolute;
+    bottom: 12px;
+    display: grid;
+    place-items: center;
+    width: 52px;
+    height: 34px;
+    min-height: 0;
+    padding: 0;
+    border: 0;
+    border-radius: 999px;
+    background: none;
+    color: var(--g);
+    cursor: pointer;
+    transition: transform 0.2s ease;
   }
-  .tn .op-camera[data-cote="droite"] .op-coin.precedent {
-    left: calc(var(--page) + var(--pli) - 1.5px);
+  .tn .op-en-face .ico {
+    width: 26px;
+    height: 26px;
+  }
+  .tn .op-en-face .ico svg {
+    stroke-width: 2.4;
+  }
+  .tn .op-en-face.droite {
+    right: 30px;
+  }
+  .tn .op-en-face.droite .ico {
+    transform: scaleX(-1);
+  }
+  .tn .op-en-face.gauche {
+    left: 30px;
+  }
+  .tn .op-en-face:active {
+    transform: scale(0.92);
+  }
+  .tn .op-en-face:focus-visible {
+    outline: 2px solid var(--g);
+    outline-offset: 2px;
   }
   .tn .op-section .g2.op-bande {
     perspective: 1200px;

@@ -83,24 +83,35 @@ describe("SectionOperations, sur ordinateur", () => {
 });
 
 describe("SectionOperations, sur téléphone", () => {
-  it("le coin mène à la page voisine : on glisse dans le double, on tourne au suivant", () => {
+  it("une flèche sous la page mène à celle d'en face ; le coin extérieur tourne la page", () => {
     telephone(true);
     render(<SectionOperations feuilles={feuilles} />);
-    expect(coins()).toEqual(["Tourner la page : À faire"]);
+    // Sur la page de gauche, pas de coin côté spirale : la flèche seule.
+    expect(coins()).toEqual(["Voir la page : À faire"]);
 
-    fireEvent.click(screen.getByRole("button", { name: "Tourner la page : À faire" }));
+    fireEvent.click(screen.getByRole("button", { name: "Voir la page : À faire" }));
     expect(camera().dataset.cote).toBe("droite");
     expect(bande().dataset.sens).toBeUndefined();
-    expect(coins()).toEqual(["Revenir à la page : Agenda", "Tourner la page : Commandes"]);
+    expect(coins()).toEqual(["Tourner la page : Commandes", "Voir la page : Agenda"]);
 
     fireEvent.click(screen.getByRole("button", { name: "Tourner la page : Commandes" }));
     expect(bande().dataset.sens).toBe("avant");
     finDuTour();
     expect(camera().dataset.cote).toBe("gauche");
     expect(bande().dataset.double).toBe("1");
+    expect(coins()).toEqual(["Revenir à la page : À faire", "Voir la page : Livraisons"]);
   });
 
-  it("une seule carte : aucun coin à tourner", () => {
+  it("un glissement du doigt va à la page voisine", () => {
+    telephone(true);
+    render(<SectionOperations feuilles={feuilles} />);
+    const cadre = document.querySelector<HTMLElement>(".op-cadre")!;
+    fireEvent.pointerDown(cadre, { clientX: 300, clientY: 100 });
+    fireEvent.pointerUp(cadre, { clientX: 200, clientY: 110 });
+    expect(camera().dataset.cote).toBe("droite");
+  });
+
+  it("une seule carte : ni coin ni flèche", () => {
     telephone(true);
     render(<SectionOperations feuilles={feuilles.slice(0, 1)} />);
     expect(coins()).toEqual([]);
