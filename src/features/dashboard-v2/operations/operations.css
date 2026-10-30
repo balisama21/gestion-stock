@@ -616,7 +616,7 @@
    tourne la page, en volume, pour passer d'un double à l'autre (voir
    `SectionOperations`). Le papier est ligné sous un bandeau uni pour le
    titre ; l'épaisseur du bloc se lit sur la tranche, une ombre douce le
-   pose sur la page, et le coin haut extérieur de chaque page est corné.
+   pose sur la page.
    On la tourne par son coin bas, un peu relevé (`.op-coin`).
 
    Sur ordinateur et tablette, le double entier tient à l'écran. Sur
@@ -669,7 +669,6 @@
 .tn .op-section .g2.op-bande > .op-carte.card {
   --papier: color-mix(in oklab, var(--card) 88%, #f3e7c4);
   --tranche: color-mix(in oklab, var(--papier) 80%, var(--carte-bord));
-  --corne: color-mix(in oklab, var(--papier) 72%, var(--carte-bord));
   --reglure: rgba(70, 125, 180, 0.17);
   --bandeau: 66px;
   grid-row: 1;
@@ -711,41 +710,10 @@
     0 34px 30px -16px rgba(15, 40, 30, 0.42),
     0 10px 16px -8px rgba(15, 40, 30, 0.22);
 }
-/* Le coin corné, en haut, côté extérieur. */
+/* Aucun ornement en haut des pages : seuls les coins du bas, pour
+   tourner la page (`.op-coin`). */
 .tn .op-section .g2.op-bande > .op-carte.card:nth-child(n)::before {
-  content: "";
-  position: absolute;
-  inset: auto;
-  top: -1.5px;
-  width: 36px;
-  height: 36px;
-  pointer-events: none;
-}
-.tn .op-section .g2.op-bande > .op-carte.card:nth-child(even)::before {
-  right: -1.5px;
-  background:
-    linear-gradient(225deg, var(--bg) 0 50%, transparent 0),
-    linear-gradient(
-      45deg,
-      var(--corne) 0 calc(50% - 1.5px),
-      var(--carte-bord) calc(50% - 1.5px) 50%,
-      transparent 0
-    );
-  border-bottom-left-radius: 10px;
-  filter: drop-shadow(-3px 4px 4px rgba(15, 60, 40, 0.2));
-}
-.tn .op-section .g2.op-bande > .op-carte.card:nth-child(odd)::before {
-  left: -1.5px;
-  background:
-    linear-gradient(135deg, var(--bg) 0 50%, transparent 0),
-    linear-gradient(
-      -45deg,
-      var(--corne) 0 calc(50% - 1.5px),
-      var(--carte-bord) calc(50% - 1.5px) 50%,
-      transparent 0
-    );
-  border-bottom-right-radius: 10px;
-  filter: drop-shadow(3px 4px 4px rgba(15, 60, 40, 0.2));
+  content: none;
 }
 .tn .op-section .g2.op-bande > .op-carte.card:nth-child(n)::after {
   content: none;
