@@ -716,7 +716,7 @@ export const DashboardV2Page: React.FC<DashboardV2PageProps> = ({
     return m;
   }, [orders]);
 
-  /* ── Les sections, dans l'ordre de la maquette ── */
+  /* ── Les sections ── */
 
   const operations = (["agenda", "taches", "commandes", "livraisons"] as CleCarte[]).filter(voit);
   const ventesCartes = (["fil", "clients", "top", "vendeurs"] as CleCarte[]).filter(voit);
@@ -868,29 +868,9 @@ export const DashboardV2Page: React.FC<DashboardV2PageProps> = ({
         </p>
       )}
 
-      {operations.length > 0 && (
-        <SectionOperations
-          jour={jourPhotos}
-          joursCharges={joursCharges}
-          commandes={chiffres.commandes}
-          taches={taches}
-        >
-          {grille(operations, carteOperation)}
-        </SectionOperations>
-      )}
-
-      {ventesCartes.length > 0 && (
-        <Section
-          id="ventes"
-          image={banniereVentes}
-          scene={SCENE_VENTES}
-          titre={aSoi ? "Mes ventes" : "Ventes"}
-          sousTitre="Les ventes, les clients et les produits qui partent le mieux."
-        >
-          {grille(ventesCartes, carteVente)}
-        </Section>
-      )}
-
+      {/* L'ordre des sections : l'argent d'abord, puis les ventes, le
+          stock et les fournisseurs ; les opérations du jour ferment la
+          page. */}
       {avecArgent && (
         <Section
           id="argent"
@@ -979,6 +959,18 @@ export const DashboardV2Page: React.FC<DashboardV2PageProps> = ({
         </Section>
       )}
 
+      {ventesCartes.length > 0 && (
+        <Section
+          id="ventes"
+          image={banniereVentes}
+          scene={SCENE_VENTES}
+          titre={aSoi ? "Mes ventes" : "Ventes"}
+          sousTitre="Les ventes, les clients et les produits qui partent le mieux."
+        >
+          {grille(ventesCartes, carteVente)}
+        </Section>
+      )}
+
       {avecStock && (
         <Section
           id="stock"
@@ -1058,6 +1050,17 @@ export const DashboardV2Page: React.FC<DashboardV2PageProps> = ({
             onAjouterPrestataire={versCreation("prestataires")}
           />
         </Section>
+      )}
+
+      {operations.length > 0 && (
+        <SectionOperations
+          jour={jourPhotos}
+          joursCharges={joursCharges}
+          commandes={chiffres.commandes}
+          taches={taches}
+        >
+          {grille(operations, carteOperation)}
+        </SectionOperations>
       )}
 
       {controle && (

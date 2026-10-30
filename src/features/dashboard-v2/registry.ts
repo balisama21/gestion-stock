@@ -82,11 +82,11 @@ export type GroupeCarte = "tete" | "aujourdhui" | "argent" | "ventes" | "stock" 
 
 /** Dans l'ordre d'affichage. La tête n'y figure pas : elle n'a pas de titre. */
 export const GROUPES: { cle: Exclude<GroupeCarte, "tete">; titre: string }[] = [
-  { cle: "aujourdhui", titre: "Opérations" },
-  { cle: "ventes", titre: "Les ventes" },
   { cle: "argent", titre: "L’argent" },
+  { cle: "ventes", titre: "Les ventes" },
   { cle: "stock", titre: "Le stock" },
   { cle: "partenaires", titre: "Fournisseurs & Prestataires" },
+  { cle: "aujourdhui", titre: "Opérations" },
 ];
 
 export interface DefinitionCarte {
