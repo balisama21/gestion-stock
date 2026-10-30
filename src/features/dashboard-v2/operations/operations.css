@@ -606,3 +606,419 @@
     top: 26px;
   }
 }
+
+/* ── Un bloc-notes à spirale, ouvert ──
+   Les quatre cartes sont les pages d'un bloc-notes ouvert, deux par
+   deux : l'agenda à gauche et « À faire » à droite, puis les commandes à
+   gauche et les livraisons à droite. Les deux pages d'un double sont
+   reliées au milieu par une spirale d'acier
+   (`public/illustrations/spirale.svg`) qui passe dans leurs trous. On
+   tourne la page, en volume, pour passer d'un double à l'autre (voir
+   `SectionOperations`). Le papier est ligné sous un bandeau uni pour le
+   titre ; l'épaisseur du bloc se lit sur la tranche, une ombre douce le
+   pose sur la page.
+   On la tourne par son coin bas, un peu relevé (`.op-coin`).
+
+   Sur ordinateur et tablette, le double entier tient à l'écran. Sur
+   téléphone, une page à la fois : la vue glisse de l'une à l'autre d'un
+   même double, la voisine dépassant au bord, et la photo de chaque carte
+   passe sous son titre. */
+/* Le cadre : la fenêtre sur le bloc ouvert. Sur ordinateur, le double
+   entier, avec la place de la tranche de chaque côté. */
+.tn .op-cadre {
+  --pli: 22px;
+  --page: calc((100cqw - var(--pli) - 16px) / 2);
+  --x: 8px;
+  container-type: inline-size;
+  position: relative;
+  padding: 6px 0 46px;
+  touch-action: pan-y;
+}
+.tn .op-camera {
+  position: relative;
+  width: calc(2 * var(--page) + var(--pli));
+  transform: translateX(var(--x));
+}
+/* Les pages : celles de gauche dans la première colonne, celles de
+   droite dans la dernière, toutes sur la même ligne, empilées. Seul le
+   double ouvert se voit ; pendant qu'on tourne la page, les deux. */
+.tn .op-section .g2.op-bande {
+  display: grid;
+  /* `!important` : la règle des grilles sur téléphone (`tantana.css`)
+     met toutes les grilles sur une colonne. */
+  grid-template-columns: var(--page) var(--pli) var(--page) !important;
+  gap: 0;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  perspective: 2400px;
+}
+.tn .op-spirale {
+  display: block;
+  position: absolute;
+  top: 12px;
+  bottom: 12px;
+  left: calc(var(--page) - 12.5px);
+  width: 44px;
+  background: url("/illustrations/spirale.svg") 0 0 / 44px 18px repeat-y;
+  pointer-events: none;
+  z-index: 5;
+}
+
+.tn .op-section .g2.op-bande > .op-carte.card {
+  --papier: color-mix(in oklab, var(--card) 88%, #f3e7c4);
+  --tranche: color-mix(in oklab, var(--papier) 80%, var(--carte-bord));
+  --reglure: rgba(70, 125, 180, 0.17);
+  --bandeau: 66px;
+  grid-row: 1;
+  visibility: hidden;
+  z-index: 1;
+  padding: 26px 18px 22px;
+  border: 1.5px solid var(--carte-bord);
+  /* Le papier ligné d'un bloc-notes, sous un bandeau uni pour le titre. */
+  background:
+    linear-gradient(var(--papier), var(--papier)) 0 0 / 100% var(--bandeau) no-repeat,
+    linear-gradient(transparent 27px, var(--reglure) 27px) 0 var(--bandeau) / 100% 28px,
+    var(--papier);
+}
+/* Une page de gauche : la spirale à droite, la tranche à gauche. */
+.tn .op-section .g2.op-bande > .op-carte.card:nth-child(odd) {
+  grid-column: 1;
+  transform-origin: right center;
+  padding-right: 26px;
+  border-radius: 14px 4px 4px 14px;
+  box-shadow:
+    -3px 3px 0 -1px var(--tranche),
+    -3px 3px 0 0 var(--carte-bord),
+    -6px 6px 0 -1px var(--tranche),
+    -6px 6px 0 0 var(--carte-bord),
+    0 34px 30px -16px rgba(15, 40, 30, 0.42),
+    0 10px 16px -8px rgba(15, 40, 30, 0.22);
+}
+/* Une page de droite : la spirale à gauche, la tranche à droite. */
+.tn .op-section .g2.op-bande > .op-carte.card:nth-child(even) {
+  grid-column: 3;
+  transform-origin: left center;
+  padding-left: 26px;
+  border-radius: 4px 14px 14px 4px;
+  box-shadow:
+    3px 3px 0 -1px var(--tranche),
+    3px 3px 0 0 var(--carte-bord),
+    6px 6px 0 -1px var(--tranche),
+    6px 6px 0 0 var(--carte-bord),
+    0 34px 30px -16px rgba(15, 40, 30, 0.42),
+    0 10px 16px -8px rgba(15, 40, 30, 0.22);
+}
+/* Aucun ornement en haut des pages : seuls les coins du bas, pour
+   tourner la page (`.op-coin`). */
+.tn .op-section .g2.op-bande > .op-carte.card:nth-child(n)::before {
+  content: none;
+}
+.tn .op-section .g2.op-bande > .op-carte.card:nth-child(n)::after {
+  content: none;
+}
+
+/* Le double ouvert. */
+.tn .op-section .g2.op-bande[data-double="0"] > .op-carte.card:nth-child(-n + 2),
+.tn .op-section .g2.op-bande[data-double="1"] > .op-carte.card:nth-child(n + 3) {
+  visibility: visible;
+}
+
+/* On tourne la page vers l'avant : la page de droite se soulève autour
+   de la spirale jusqu'à se dresser, puis la suivante se rabat à plat à
+   gauche ; dessous, la nouvelle page de droite sort de son ombre. Vers
+   l'arrière, l'inverse. Chaque moitié prend la moitié du tour
+   (`DUREE_TOUR`). */
+.tn .op-section .g2.op-bande[data-sens] > .op-carte.card {
+  visibility: visible;
+}
+.tn .op-section .g2.op-bande[data-sens="avant"] > .op-carte.card:nth-child(2),
+.tn .op-section .g2.op-bande[data-sens="arriere"] > .op-carte.card:nth-child(3) {
+  z-index: 3;
+  animation: op-se-leve 0.5s cubic-bezier(0.5, 0, 0.75, 0.4) forwards;
+}
+.tn .op-section .g2.op-bande[data-sens="avant"] > .op-carte.card:nth-child(3),
+.tn .op-section .g2.op-bande[data-sens="arriere"] > .op-carte.card:nth-child(2) {
+  z-index: 3;
+  animation: op-se-pose 0.5s cubic-bezier(0.25, 0.6, 0.5, 1) 0.5s both;
+}
+.tn .op-section .g2.op-bande[data-sens="avant"] > .op-carte.card:nth-child(2) {
+  --de: 0deg;
+  --a: -90deg;
+}
+.tn .op-section .g2.op-bande[data-sens="arriere"] > .op-carte.card:nth-child(3) {
+  --de: 0deg;
+  --a: 90deg;
+}
+.tn .op-section .g2.op-bande[data-sens="avant"] > .op-carte.card:nth-child(3) {
+  --de: 90deg;
+  --a: 0deg;
+}
+.tn .op-section .g2.op-bande[data-sens="arriere"] > .op-carte.card:nth-child(2) {
+  --de: -90deg;
+  --a: 0deg;
+}
+/* L'ombre de la page qui se soulève, sur celle qu'elle découvre. */
+.tn .op-section .g2.op-bande[data-sens="avant"] > .op-carte.card:nth-child(4)::after,
+.tn .op-section .g2.op-bande[data-sens="arriere"] > .op-carte.card:nth-child(1)::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  pointer-events: none;
+  animation: op-sort-de-l-ombre 0.5s ease-in forwards;
+}
+.tn .op-section .g2.op-bande[data-sens="avant"] > .op-carte.card:nth-child(4)::after {
+  background: linear-gradient(to right, rgba(15, 30, 25, 0.3), rgba(15, 30, 25, 0.08) 70%);
+}
+.tn .op-section .g2.op-bande[data-sens="arriere"] > .op-carte.card:nth-child(1)::after {
+  background: linear-gradient(to left, rgba(15, 30, 25, 0.3), rgba(15, 30, 25, 0.08) 70%);
+}
+
+/* Le titre à côté de son icône, le lien en dessous s'il manque de
+   place. */
+.tn .op-bande .card-h {
+  flex-wrap: wrap;
+}
+.tn .op-bande .card-h .card-t {
+  flex: 1 1 150px;
+}
+.tn .op-bande .card-h > .link {
+  margin-left: auto;
+}
+
+/* Sur une page, la photo se voit toujours, même étroite. */
+.tn .op-bande .op-ill:has(.op-photo) {
+  display: flex;
+}
+
+/* Le coin à tourner : le coin bas de la page, un peu relevé, montre son
+   envers et une flèche. Il se soulève de temps en temps pour rappeler
+   qu'on tourne la page par là, et davantage sous la souris. Vers
+   l'avant, le coin bas droit ; vers l'arrière, le coin bas gauche. */
+.tn .op-cadre {
+  --envers: color-mix(in oklab, var(--gsoft) 75%, var(--carte-bord));
+}
+.tn .op-coin {
+  --taille: 48px;
+  position: absolute;
+  bottom: -1.5px;
+  z-index: 6;
+  display: grid;
+  width: var(--taille);
+  height: var(--taille);
+  min-height: 0;
+  padding: 8px;
+  border: 0;
+  color: var(--g);
+  cursor: pointer;
+  transition:
+    width 0.25s ease,
+    height 0.25s ease,
+    left 0.25s ease,
+    opacity 0.2s;
+  animation: op-coin-invite 6s ease-in-out 2s infinite;
+}
+.tn .op-coin .ico {
+  width: 17px;
+  height: 17px;
+}
+.tn .op-coin .ico svg {
+  stroke-width: 2.6;
+}
+.tn .op-coin:hover,
+.tn .op-coin:focus-visible {
+  --taille: 62px;
+  animation: none;
+}
+.tn .op-coin:focus-visible {
+  outline: 2px solid var(--g);
+  outline-offset: 2px;
+}
+.tn .op-coin.suivant {
+  left: calc(2 * var(--page) + var(--pli) - var(--taille) + 1.5px);
+  place-items: start start;
+  transform-origin: bottom right;
+  border-top-left-radius: 14px;
+  background:
+    linear-gradient(315deg, var(--bg) 0 50%, transparent 0),
+    linear-gradient(
+      135deg,
+      var(--envers) 0 calc(50% - 1.5px),
+      var(--carte-bord) calc(50% - 1.5px) 50%,
+      transparent 0
+    );
+  filter: drop-shadow(-3px -3px 4px rgba(15, 60, 40, 0.22));
+}
+.tn .op-coin.precedent {
+  left: -1.5px;
+  place-items: start end;
+  transform-origin: bottom left;
+  border-top-right-radius: 14px;
+  background:
+    linear-gradient(45deg, var(--bg) 0 50%, transparent 0),
+    linear-gradient(
+      225deg,
+      var(--envers) 0 calc(50% - 1.5px),
+      var(--carte-bord) calc(50% - 1.5px) 50%,
+      transparent 0
+    );
+  filter: drop-shadow(3px -3px 4px rgba(15, 60, 40, 0.22));
+}
+.tn .op-en-face {
+  display: none;
+}
+/* Pendant que la page tourne, les coins s'effacent. */
+.tn .op-camera[data-tourne] .op-coin {
+  opacity: 0;
+  pointer-events: none;
+}
+@keyframes op-coin-invite {
+  0%,
+  84%,
+  100% {
+    transform: scale(1);
+  }
+  90% {
+    transform: scale(1.22);
+  }
+}
+
+/* Une page étroite : la photo, entière, passe sous le titre. */
+@container op (max-width: 420px) {
+  .tn .op-bande .op-corps,
+  .tn .op-bande .op-corps:has(.op-photo) {
+    grid-template-columns: minmax(0, 1fr);
+    gap: 14px;
+  }
+  .tn .op-bande .op-ill,
+  .tn .op-bande .op-ill:has(.op-photo) {
+    display: flex;
+    order: -1;
+    max-height: none;
+    margin: 0;
+  }
+  .tn .op-bande .op-photo {
+    width: 100%;
+    margin: 0;
+    border-radius: 12px;
+    -webkit-mask-image: none;
+    mask-image: none;
+    box-shadow: 0 0 0 1px color-mix(in oklab, var(--carte-bord) 70%, transparent);
+  }
+}
+
+/* Sur téléphone : une page à la fois. La caméra glisse dans le cadre pour
+   montrer la page de gauche ou celle de droite, la voisine dépassant au
+   bord. De la marge en haut et en bas : la page qui se soulève grandit
+   vers l'œil et ne doit pas être rognée. */
+@media (max-width: 640px) {
+  .tn .op-cadre {
+    --page: calc(100cqw - 56px);
+    --x: 28px;
+    margin: -24px calc(-1 * var(--gut)) -16px;
+    padding: 40px 0 60px;
+    overflow: hidden;
+  }
+  .tn .op-camera {
+    transition: transform 0.6s cubic-bezier(0.45, 0.05, 0.25, 1);
+  }
+  .tn .op-camera[data-cote="droite"] {
+    --x: calc(28px - var(--page) - var(--pli));
+  }
+  /* La flèche vers la page d'en face, sous la page, du côté de la
+     spirale. */
+  .tn .op-en-face {
+    position: absolute;
+    bottom: 12px;
+    display: grid;
+    place-items: center;
+    width: 52px;
+    height: 34px;
+    min-height: 0;
+    padding: 0;
+    border: 0;
+    border-radius: 999px;
+    background: none;
+    color: var(--g);
+    cursor: pointer;
+    transition: transform 0.2s ease;
+  }
+  .tn .op-en-face .ico {
+    width: 26px;
+    height: 26px;
+  }
+  .tn .op-en-face .ico svg {
+    stroke-width: 2.4;
+  }
+  .tn .op-en-face.droite {
+    right: 30px;
+  }
+  .tn .op-en-face.droite .ico {
+    transform: scaleX(-1);
+  }
+  .tn .op-en-face.gauche {
+    left: 30px;
+  }
+  .tn .op-en-face:active {
+    transform: scale(0.92);
+  }
+  .tn .op-en-face:focus-visible {
+    outline: 2px solid var(--g);
+    outline-offset: 2px;
+  }
+  .tn .op-section .g2.op-bande {
+    perspective: 1200px;
+  }
+}
+
+/* Dressée, la page ne se voit plus que par la tranche : elle s'efface
+   juste avant, et la suivante n'apparaît que juste après, pour qu'aucun
+   trait ne reste sur la spirale. */
+@keyframes op-se-leve {
+  from {
+    transform: rotateY(var(--de));
+    filter: brightness(1);
+  }
+  88% {
+    opacity: 1;
+  }
+  to {
+    transform: rotateY(var(--a));
+    filter: brightness(0.72);
+    opacity: 0;
+  }
+}
+@keyframes op-se-pose {
+  from {
+    transform: rotateY(var(--de));
+    filter: brightness(0.72);
+    opacity: 0;
+  }
+  12% {
+    opacity: 1;
+  }
+  to {
+    transform: rotateY(var(--a));
+    filter: brightness(1);
+    opacity: 1;
+  }
+}
+@keyframes op-sort-de-l-ombre {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .tn .op-camera,
+  .tn .op-coin {
+    transition: none;
+  }
+  .tn .op-coin {
+    animation: none;
+  }
+}

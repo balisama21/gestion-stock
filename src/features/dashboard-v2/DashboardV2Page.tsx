@@ -117,6 +117,14 @@ const SCENE_FOURNISSEURS: Scene = {
   hauteur: 794,
 };
 
+/** Le nom de chaque feuille des opérations, dans ses onglets sur téléphone. */
+const NOM_OPERATION: Record<string, string> = {
+  agenda: "Agenda",
+  taches: "À faire",
+  commandes: "Commandes",
+  livraisons: "Livraisons",
+};
+
 /** Une seule liste vide : une nouvelle à chaque rendu relancerait tous les calculs. */
 const AUCUN_AVOIR: NonNullable<SourcesChiffres["avoirs"]> = [];
 
@@ -1052,7 +1060,13 @@ export const DashboardV2Page: React.FC<DashboardV2PageProps> = ({
       <InspirationDuMoment maintenant={jourPhotos} />
 
       {operations.length > 0 && (
-        <SectionOperations>{grille(operations, carteOperation)}</SectionOperations>
+        <SectionOperations
+          feuilles={operations.map((cle) => ({
+            cle,
+            nom: NOM_OPERATION[cle] ?? cle,
+            carte: carteOperation[cle],
+          }))}
+        />
       )}
 
       {controle && (
