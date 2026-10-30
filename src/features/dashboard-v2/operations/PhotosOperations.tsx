@@ -141,8 +141,13 @@ export const PhotoAgenda: React.FC<{
    Chaque case est relevée sur la photo (coin haut gauche, haut droit,
    bas gauche) ; chaque ligne d'écriture part de sa ligne de base, dans
    le sens de la feuille. Le titre garde sa case : cochée quand il ne
-   reste rien à faire. */
+   reste rien à faire.
+
+   Les repères sont pris sur le bloc-notes seul ; la photo, elle, montre
+   aussi le bureau autour (tasse, stylo, plante). Le bloc-notes commence à
+   `DECALAGE_BLOC` du coin de la photo. */
 type Pt = [number, number];
+const DECALAGE_BLOC: Pt = [140, 250];
 const CASE_TITRE: [Pt, Pt, Pt] = [
   [38, 117],
   [117, 104],
@@ -231,26 +236,28 @@ export const PhotoTaches: React.FC<{ lignes: LigneBloc[] }> = ({ lignes }) => {
   const affichees = lignes.length > 0 ? lignes : [{ texte: "Tout est à jour", fait: true }];
   const resteAFaire = lignes.some((l) => !l.fait);
   return (
-    <Photo src="/illustrations/ops-taches.webp" largeur={720} hauteur={562}>
-      <Case coins={CASE_TITRE} cochee={!resteAFaire} />
-      {affichees.slice(0, LIGNES_BLOC.length).map((l, i) => {
-        const { case: coins, base, max } = LIGNES_BLOC[i];
-        const [ux, uy] = unitaire(base[0], base[1]);
-        const [vx, vy] = unitaire(coins[0], coins[2]);
-        return (
-          <g key={i}>
-            <Case coins={coins} cochee={l.fait} />
-            <text
-              transform={`matrix(${ux.toFixed(4)} ${uy.toFixed(4)} ${vx.toFixed(4)} ${vy.toFixed(4)} ${base[0][0]} ${base[0][1]})`}
-              fontSize="42"
-              fontWeight="600"
-              fill={C.encre}
-            >
-              {court(l.texte, max)}
-            </text>
-          </g>
-        );
-      })}
+    <Photo src="/illustrations/ops-taches.webp" largeur={1180} hauteur={812}>
+      <g transform={`translate(${DECALAGE_BLOC[0]} ${DECALAGE_BLOC[1]})`}>
+        <Case coins={CASE_TITRE} cochee={!resteAFaire} />
+        {affichees.slice(0, LIGNES_BLOC.length).map((l, i) => {
+          const { case: coins, base, max } = LIGNES_BLOC[i];
+          const [ux, uy] = unitaire(base[0], base[1]);
+          const [vx, vy] = unitaire(coins[0], coins[2]);
+          return (
+            <g key={i}>
+              <Case coins={coins} cochee={l.fait} />
+              <text
+                transform={`matrix(${ux.toFixed(4)} ${uy.toFixed(4)} ${vx.toFixed(4)} ${vy.toFixed(4)} ${base[0][0]} ${base[0][1]})`}
+                fontSize="42"
+                fontWeight="600"
+                fill={C.encre}
+              >
+                {court(l.texte, max)}
+              </text>
+            </g>
+          );
+        })}
+      </g>
     </Photo>
   );
 };
