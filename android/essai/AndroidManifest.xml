@@ -1,5 +1,5 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="com.tantanasuite.app.essai" android:versionCode="8" android:versionName="1.9">
+    package="com.tantanasuite.app.essai" android:versionCode="9" android:versionName="1.10">
     <uses-sdk android:minSdkVersion="26" android:targetSdkVersion="35"/>
     <uses-permission android:name="android.permission.INTERNET"/>
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
@@ -17,7 +17,7 @@
                 <action android:name="android.app.action.SCHEDULE_EXACT_ALARM_PERMISSION_STATE_CHANGED"/>
             </intent-filter>
         </receiver>
-        <activity android:name="com.tantanasuite.app.EcranTantana" android:launchMode="singleTask" android:exported="true" android:windowSoftInputMode="adjustResize">
+        <activity android:name="com.tantanasuite.app.EcranTantana" android:launchMode="singleTask" android:configChanges="orientation|keyboardHidden|screenSize" android:exported="true" android:windowSoftInputMode="adjustResize">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN"/>
                 <category android:name="android.intent.category.LAUNCHER"/>

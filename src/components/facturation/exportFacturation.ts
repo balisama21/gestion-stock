@@ -76,8 +76,8 @@ export function exporterCsv(
   documents: DocumentCommercial[],
   devise: string,
   nomDeFichier: string,
-): void {
-  telechargerCsv(nomDeFichier, entetesFacturation(devise), lignesFacturation(documents));
+): Promise<void> {
+  return telechargerCsv(nomDeFichier, entetesFacturation(devise), lignesFacturation(documents));
 }
 
 export async function exporterTableur(

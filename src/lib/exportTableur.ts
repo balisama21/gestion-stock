@@ -1,3 +1,4 @@
+import { telechargerBlob, sauverClasseur } from "./telechargement";
 /**
  * TÉLÉCHARGER UNE LISTE POUR LA RETRAVAILLER.
  *
@@ -28,18 +29,6 @@ const SEPARATEUR = ";";
 /** La marque d'ordre des octets, que Excel réclame pour lire de l'UTF-8. */
 const BOM = "﻿";
 
-const telechargerBlob = (blob: Blob, nom: string) => {
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = nom;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  // Révoqué après coup : certains navigateurs lisent l'URL de façon
-  // asynchrone et récupéreraient un objet déjà libéré.
-  setTimeout(() => URL.revokeObjectURL(url), 10_000);
-};
 
 export type CelluleTableur = string | number | null;
 
@@ -73,8 +62,8 @@ export function telechargerCsv(
   nomDeFichier: string,
   entetes: readonly string[],
   lignes: CelluleTableur[][],
-): void {
-  telechargerBlob(
+): Promise<void> {
+  return telechargerBlob(
     new Blob([composerCsv(entetes, lignes)], { type: "text/csv;charset=utf-8;" }),
     `${nomDeFichier}.csv`,
   );
@@ -108,5 +97,5 @@ export async function telechargerTableur(
 
   const classeur = XLSX.utils.book_new();
   XLSX.utils.book_append_sheet(classeur, feuille, nomDeFeuille.slice(0, 31));
-  XLSX.writeFile(classeur, `${nomDeFichier}.xlsx`);
+  await sauverClasseur(XLSX, classeur, `${nomDeFichier}.xlsx`);
 }

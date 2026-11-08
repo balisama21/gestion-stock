@@ -1,3 +1,4 @@
+import { sauverClasseur } from "../lib/telechargement";
 import * as XLSX from "xlsx";
 import { Product, Purchase, Sale, Expense, Seller, CapitalSummary } from "../types";
 import { estResponsable, libelleNature } from "../lib/vendeurs";
@@ -197,5 +198,5 @@ export function downloadExcelWorkbook(
   XLSX.utils.book_append_sheet(wb, wsCodeGS, "Code_Apps_Script_GS");
 
   // Write file and trigger download
-  XLSX.writeFile(wb, "Gestions_Stock_Export.xlsx");
+  return sauverClasseur(XLSX, wb, "Gestions_Stock_Export.xlsx");
 }

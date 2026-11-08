@@ -196,7 +196,7 @@ export const BonDeCommande: React.FC<BonDeCommandeProps> = ({
     setExportErreur(null);
     try {
       const cellules = bonAffiche.map(cellulesDeLigne);
-      if (type === "csv") telechargerCsv(nom, COLONNES_BON_DE_COMMANDE, cellules);
+      if (type === "csv") await telechargerCsv(nom, COLONNES_BON_DE_COMMANDE, cellules);
       else await telechargerTableur(nom, "À commander", COLONNES_BON_DE_COMMANDE, cellules);
     } catch (err) {
       // Un morceau manquant signifie que l'onglet exécute une version

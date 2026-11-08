@@ -33,6 +33,7 @@ public final class EcranTantana extends Activity {
         reessayer.setVisibility(View.VISIBLE);
     };
     private WebView page;
+    private ExportAndroid exports;
     private WebMessagePort colors;
     private ValueCallback<Uri[]> files;
     private int topInset;
@@ -50,6 +51,7 @@ public final class EcranTantana extends Activity {
         window.getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
             | View.SYSTEM_UI_FLAG_LAYOUT_STABLE | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION);
         frame = new FrameLayout(this);
+        exports = new ExportAndroid(this);
         page = new WebView(this);
         frame.addView(page, -1, -1);
         preparerConnexion();
@@ -69,7 +71,7 @@ public final class EcranTantana extends Activity {
         settings.setAllowFileAccess(false);
         settings.setAllowContentAccess(false);
         settings.setMixedContentMode(WebSettings.MIXED_CONTENT_NEVER_ALLOW);
-        settings.setUserAgentString(settings.getUserAgentString() + (ancienneEdition() ? " TantanaAndroidEssai/2" : " TantanaAndroid/2"));
+        settings.setUserAgentString(settings.getUserAgentString() + (ancienneEdition() ? " TantanaAndroidEssai/2" : " TantanaAndroid/2") + " TantanaExport/1");
         page.setWebViewClient(new WebViewClient() {
             @Override public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
                 Uri url = request.getUrl();
@@ -82,6 +84,11 @@ public final class EcranTantana extends Activity {
             }
             @Override public void onPageStarted(WebView view, String url, Bitmap icon) {
                 if (!trusted(Uri.parse(url))) return;
+                exports.annuler();
+                if (colors != null) {
+                    colors.close();
+                    colors = null;
+                }
                 destination = url;
                 navigationEnErreur = false;
                 afficherChargement();
@@ -100,6 +107,8 @@ public final class EcranTantana extends Activity {
                     masquerConnexion();
                     updateInset();
                     followTheme();
+                    if ("1".equals(Uri.parse(url).getQueryParameter("exportsAndroid")))
+                        getPreferences(MODE_PRIVATE).edit().putBoolean("exportsAndroid", true).apply();
                 }
             }
         });
@@ -112,7 +121,11 @@ public final class EcranTantana extends Activity {
                 return true;
             }
         });
-        if (!resumeGoogle(getIntent()) && (state == null || page.restoreState(state) == null)) page.loadUrl(SITE.toString());
+        if (!resumeGoogle(getIntent()) && (state == null || page.restoreState(state) == null)) {
+            // La première ouverture après mise à jour doit contourner l’ancien accueil en cache.
+            boolean initialise = getPreferences(MODE_PRIVATE).getBoolean("exportsAndroid", false);
+            page.loadUrl(initialise ? SITE.toString() : SITE.buildUpon().path("/").appendQueryParameter("exportsAndroid", "1").build().toString());
+        }
     }
 
     private void preparerConnexion() {
@@ -266,14 +279,15 @@ public final class EcranTantana extends Activity {
     }
 
     private void followTheme() {
-        if (colors != null) colors.close();
+        if (colors != null) return;
         WebMessagePort[] channel = page.createWebMessageChannel();
         colors = channel[0];
         colors.setWebMessageCallback(new WebMessagePort.WebMessageCallback() {
             @Override public void onMessage(WebMessagePort port, WebMessage message) {
                 if (port != colors || message.getData() == null) return;
                 String data = message.getData();
-                if (data.startsWith("{")) handleReminder(data);
+                if (data.startsWith("export:") && page.getUrl() != null && trusted(Uri.parse(page.getUrl()))) exports.recevoir(port, data.substring(7));
+                else if (data.startsWith("{")) handleReminder(data);
                 else paint(data);
             }
         });
@@ -281,7 +295,9 @@ public final class EcranTantana extends Activity {
             + "if(e.data!=='tantana-status' || !e.ports.length)return;"
             + "window.removeEventListener('message',init);const p=e.ports[0];"
             + "window.tantanaRappels=m=>p.postMessage(JSON.stringify(m));"
-            + "p.onmessage=e=>window.dispatchEvent(new CustomEvent('tantana-rappels-etat',{detail:e.data}));"
+            + "window.tantanaExport=m=>p.postMessage('export:'+JSON.stringify(m));"
+            + "p.onmessage=e=>{if(e.data.startsWith('export:'))window.dispatchEvent(new CustomEvent('tantana-export-reponse',{detail:JSON.parse(e.data.slice(7))}));"
+            + "else window.dispatchEvent(new CustomEvent('tantana-rappels-etat',{detail:e.data}));};"
             + "window.dispatchEvent(new Event('tantana-rappels-pret'));"
             + "const sync=()=>{const m=document.querySelector('meta[name=theme-color]');"
             + "if(m)p.postMessage(m.content)};sync();"
@@ -294,6 +310,10 @@ public final class EcranTantana extends Activity {
 
     @Override protected void onActivityResult(int request, int result, Intent data) {
         super.onActivityResult(request, result, data);
+        if (request == ExportAndroid.CHOISIR) {
+            exports.destination(result == RESULT_OK && data != null ? data.getData() : null);
+            return;
+        }
         if (request == 1 && files != null) {
             files.onReceiveValue(WebChromeClient.FileChooserParams.parseResult(result, data));
             files = null;
@@ -309,6 +329,7 @@ public final class EcranTantana extends Activity {
     @Override protected void onDestroy() {
         if (files != null) files.onReceiveValue(null);
         if (colors != null) colors.close();
+        exports.fermer();
         connexion.removeCallbacks(attenteLongue);
         frame.removeView(page);
         page.destroy();

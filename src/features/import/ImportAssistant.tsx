@@ -1,3 +1,4 @@
+import { signalerErreur } from "../../lib/messages";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   AlertTriangle,
@@ -437,7 +438,7 @@ export const ImportAssistant: React.FC<ImportAssistantProps> = ({
         e.ligne || "",
         e.message,
       ]),
-    );
+    ).catch((error) => signalerErreur(error.message));
   };
 
   const pied = (

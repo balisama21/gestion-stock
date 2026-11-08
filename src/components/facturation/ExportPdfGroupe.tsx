@@ -1,3 +1,4 @@
+import { telechargerBlob } from "../../lib/telechargement";
 import React, { useEffect, useRef, useState } from "react";
 import { Modal } from "../shared/Modal";
 import { FileArchive } from "lucide-react";
@@ -80,14 +81,7 @@ export const ExportPdfGroupe: React.FC<{
         const zip = new JSZip();
         for (const f of fichiers.current) zip.file(f.nom, f.blob);
         const blob = await zip.generateAsync({ type: "blob" });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = `${nomDeFichier}.zip`;
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
-        setTimeout(() => URL.revokeObjectURL(url), 10_000);
+        await telechargerBlob(blob, `${nomDeFichier}.zip`);
         onFermer();
       } catch (err) {
         if (reprendreApresDeploiement(err)) return;

@@ -14,7 +14,7 @@
 const VERSION = "tantana-v7";
 const CACHE_STATIQUE = `${VERSION}-statique`;
 const CACHE_POLICES = `${VERSION}-polices`;
-const cacheAccueil = VERSION + "-accueil-logo";
+const cacheAccueil = VERSION + "-accueil-exports";
 const domaineTantana = self.location.hostname === "tantana-suite.com";
 
 async function relireAccueil() {
@@ -70,7 +70,7 @@ self.addEventListener("activate", (event) => {
     (async () => {
       const noms = await caches.keys();
       await Promise.all(
-        noms.filter((n) => !n.startsWith(VERSION) || n === VERSION + "-accueil").map((n) => caches.delete(n)),
+        noms.filter((n) => !n.startsWith(VERSION) || (n.startsWith(VERSION + "-accueil") && n !== cacheAccueil)).map((n) => caches.delete(n)),
       );
       await self.clients.claim();
     })(),

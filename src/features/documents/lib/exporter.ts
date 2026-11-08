@@ -1,3 +1,4 @@
+import { telechargerBlob, sauverPdf } from "../../../lib/telechargement";
 import { capturer } from "../../../lib/documentExport";
 
 /**
@@ -23,18 +24,6 @@ import { capturer } from "../../../lib/documentExport";
 /** A4, en millimètres. Les marges sont dans la feuille, pas dans la page. */
 const A4 = { largeur: 210, hauteur: 297 };
 
-const telecharger = (blob: Blob, nom: string) => {
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = nom;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  // Révoqué après coup : certains navigateurs lisent l'URL de façon
-  // asynchrone et récupéreraient un objet déjà libéré.
-  setTimeout(() => URL.revokeObjectURL(url), 10_000);
-};
 
 /**
  * Enregistre les feuilles en un seul PDF, une feuille par page.
@@ -79,7 +68,7 @@ export async function exporterFeuillesPdf(
     );
   });
 
-  doc.save(`${nomDeFichier}.pdf`);
+  await sauverPdf(doc, `${nomDeFichier}.pdf`);
 }
 
 /**
@@ -98,7 +87,7 @@ export async function exporterFeuillesImage(
     const blob = await new Promise<Blob | null>((r) => canvas.toBlob(r, "image/png"));
     if (!blob) throw new Error("L'image n'a pas pu être produite.");
     const suffixe = feuilles.length > 1 ? `_${i + 1}sur${feuilles.length}` : "";
-    telecharger(blob, `${nomDeFichier}${suffixe}.png`);
+    await telechargerBlob(blob, `${nomDeFichier}${suffixe}.png`);
   }
 }
 
@@ -125,5 +114,5 @@ export async function exporterRouleauPdf(
     orientation: "portrait",
   });
   doc.addImage(canvas.toDataURL("image/jpeg", 0.95), "JPEG", 0, 0, largeurMm, hauteurMm);
-  doc.save(`${nomDeFichier}.pdf`);
+  await sauverPdf(doc, `${nomDeFichier}.pdf`);
 }

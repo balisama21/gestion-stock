@@ -2092,7 +2092,7 @@ function AppInner() {
   };
 
   const handleDownloadExcel = () => {
-    downloadExcelWorkbook(
+    void downloadExcelWorkbook(
       computedCapital,
       products,
       purchases,
@@ -2100,7 +2100,7 @@ function AppInner() {
       computedSellers,
       expenses,
       marque.nom,
-    );
+    ).catch((error) => signalerErreur(error.message));
   };
 
   // ─── Suppression réelle d'un collaborateur (store_members) ───

@@ -1,3 +1,4 @@
+import { telechargerBlob, sauverPdf } from "./telechargement";
 import type { PaperFormat } from "./paperFormats";
 
 /**
@@ -36,18 +37,6 @@ const ECHELLE = 3;
 /** Millimètres → pixels CSS, à 96 points par pouce. */
 const mmEnPx = (mm: number) => (mm * 96) / 25.4;
 
-const telechargerBlob = (blob: Blob, nom: string) => {
-  const url = URL.createObjectURL(blob);
-  const a = document.createElement("a");
-  a.href = url;
-  a.download = nom;
-  document.body.appendChild(a);
-  a.click();
-  document.body.removeChild(a);
-  // Révoqué après coup : certains navigateurs lisent l'URL de façon
-  // asynchrone et récupéreraient un objet déjà libéré.
-  setTimeout(() => URL.revokeObjectURL(url), 10_000);
-};
 
 /**
  * Photographie le document.
@@ -106,7 +95,7 @@ export async function exporterImage(
     canvas.toBlob(resolve, mime, type === "jpg" ? 0.92 : undefined),
   );
   if (!blob) throw new Error("L'image n'a pas pu être produite.");
-  telechargerBlob(blob, `${fileName}.${type}`);
+  await telechargerBlob(blob, `${fileName}.${type}`);
 }
 
 /**
@@ -150,7 +139,7 @@ export async function exporterPdf(
       largeurUtileMm,
       hauteurImageMm,
     );
-    doc.save(`${fileName}.pdf`);
+    await sauverPdf(doc, `${fileName}.pdf`);
     return;
   }
 
@@ -181,7 +170,7 @@ export async function exporterPdf(
     // Recentré horizontalement quand il a été réduit.
     const x = paper.marginMm + (largeurUtileMm - largeur) / 2;
     doc.addImage(canvas.toDataURL("image/jpeg", 0.95), "JPEG", x, paper.marginMm, largeur, hauteur);
-    doc.save(`${fileName}.pdf`);
+    await sauverPdf(doc, `${fileName}.pdf`);
     return;
   }
 
@@ -216,7 +205,7 @@ export async function exporterPdf(
     );
   }
 
-  doc.save(`${fileName}.pdf`);
+  await sauverPdf(doc, `${fileName}.pdf`);
 }
 
 /**

@@ -1,3 +1,4 @@
+import { signalerErreur } from "../lib/messages";
 import React, { useMemo, useState } from "react";
 import type { Personne } from "../lib/personnes";
 import type { LocaleSetting, Payment, Product, Sale, StoreSettings } from "../types";
@@ -414,10 +415,10 @@ export const FacturationPage: React.FC<FacturationPageProps> = ({
           <BoutonsExport
             combien={visibles.length}
             onCsv={() =>
-              exporterCsv(visibles, devise, nomDeLExport("liste", facturation.aujourdhui))
+              exporterCsv(visibles, devise, nomDeLExport("liste", facturation.aujourdhui)).catch((error) => signalerErreur(error.message))
             }
             onTableur={() =>
-              void exporterTableur(visibles, devise, nomDeLExport("liste", facturation.aujourdhui))
+              void exporterTableur(visibles, devise, nomDeLExport("liste", facturation.aujourdhui)).catch((error) => signalerErreur(error.message))
             }
             onPdf={() => setZip(visibles)}
           />
