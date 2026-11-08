@@ -151,6 +151,8 @@ export default {
           !/private|no-store/i.test(response.headers.get("cache-control") ?? "")) {
         const headers = new Headers(response.headers);
         headers.set("Cache-Control", "private, max-age=60, stale-while-revalidate=86400");
+        headers.set("Netlify-CDN-Cache-Control", "public, s-maxage=300, stale-while-revalidate=60");
+        headers.set("Netlify-Vary", "query,header=host|cookie|authorization");
         headers.set("X-Tantana-Accueil-Public", "1");
         headers.append("Vary", "Cookie, Authorization");
         return new Response(response.body, {status: response.status, headers});
