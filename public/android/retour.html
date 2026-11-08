@@ -1,0 +1,31 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="referrer" content="no-referrer">
+  <meta name="robots" content="noindex">
+  <title>Retour à Tantana Essai</title>
+  <style>
+    body { margin: 12vh auto; padding: 1.5rem; max-width: 28rem; background: #f7f8f5; color: #172d24; font: 1rem/1.5 system-ui, sans-serif; }
+    a { color: white; background: #197550; padding: .8rem 1rem; border-radius: .5rem; display: inline-block; }
+    [hidden] { display: none; }
+  </style>
+</head>
+<body>
+  <h1>Retour à Tantana Essai</h1>
+  <p id="message">Relancez la connexion Google depuis Tantana Essai.</p>
+  <a id="ouvrir" hidden>Revenir dans l’application</a>
+  <script>
+    const code = new URL(location.href).searchParams.get("code");
+    history.replaceState(null, "", location.pathname);
+    if (code && /^[A-Za-z0-9_-]{16,256}$/.test(code)) {
+      const ouvrir = document.getElementById("ouvrir");
+      ouvrir.href = "intent://tantana-suite.com/android/retour.html?code=" + encodeURIComponent(code)
+        + "#Intent;scheme=https;package=com.tantanasuite.app.essai;end";
+      ouvrir.hidden = false;
+      document.getElementById("message").textContent = "Touchez le bouton pour terminer votre connexion dans l’application.";
+    }
+  </script>
+</body>
+</html>

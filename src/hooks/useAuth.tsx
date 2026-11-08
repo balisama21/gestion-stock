@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, createContext, useContext } from "react";
 import type { User, Session } from "@supabase/supabase-js";
-import { supabase } from "../lib/supabase";
+import { retourGoogleAndroid, supabase } from "../lib/supabase";
 import { oublierBoutiqueActive } from "../lib/boutiqueActive";
 import type { Database } from "../lib/database.types";
 
@@ -183,7 +183,10 @@ export function useAuthState(): AuthState & AuthActions {
         // App() (BalsamaApp.tsx) prend alors le relais normalement (même
         // logique que pour un compte email/mot de passe : boutique
         // existante → dashboard, aucune boutique → CreateStoreOnboarding).
-        redirectTo: `${window.location.origin}/`,
+        redirectTo: new URL(
+          retourGoogleAndroid ? "/android/retour.html" : "/",
+          window.location.origin,
+        ).href,
       },
     });
     return { error: error?.message ?? null };

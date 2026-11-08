@@ -19,6 +19,7 @@ public final class EcranTantana extends Activity {
     private WebView page;
     private WebMessagePort colors;
     private ValueCallback<Uri[]> files;
+    private int topInset;
 
     @Override protected void onCreate(Bundle state) {
         super.onCreate(state);
@@ -36,8 +37,10 @@ public final class EcranTantana extends Activity {
         page = new WebView(this);
         frame.addView(page, -1, -1);
         frame.setOnApplyWindowInsetsListener((v, insets) -> {
-            frame.setPadding(insets.getSystemWindowInsetLeft(), insets.getSystemWindowInsetTop(),
+            topInset = insets.getSystemWindowInsetTop();
+            frame.setPadding(insets.getSystemWindowInsetLeft(), 0,
                 insets.getSystemWindowInsetRight(), insets.getSystemWindowInsetBottom());
+            updateInset();
             return Build.VERSION.SDK_INT >= 30 ? WindowInsets.CONSUMED : insets.consumeSystemWindowInsets();
         });
         paint("#F7F8F5");
@@ -48,7 +51,7 @@ public final class EcranTantana extends Activity {
         settings.setAllowFileAccess(false);
         settings.setAllowContentAccess(false);
         settings.setMixedContentMode(WebSettings.MIXED_CONTENT_NEVER_ALLOW);
-        settings.setUserAgentString(settings.getUserAgentString() + " TantanaAndroidEssai/1");
+        settings.setUserAgentString(settings.getUserAgentString() + " TantanaAndroidEssai/2");
         page.setWebViewClient(new WebViewClient() {
             @Override public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
                 Uri url = request.getUrl();
@@ -60,7 +63,10 @@ public final class EcranTantana extends Activity {
                 return true;
             }
             @Override public void onPageFinished(WebView view, String url) {
-                if (trusted(Uri.parse(url))) followTheme();
+                if (trusted(Uri.parse(url))) {
+                    updateInset();
+                    followTheme();
+                }
             }
         });
         page.setWebChromeClient(new WebChromeClient() {
@@ -72,7 +78,34 @@ public final class EcranTantana extends Activity {
                 return true;
             }
         });
-        if (state == null || page.restoreState(state) == null) page.loadUrl(SITE.toString());
+        if (!resumeGoogle(getIntent()) && (state == null || page.restoreState(state) == null)) page.loadUrl(SITE.toString());
+    }
+
+    private void updateInset() {
+        if (page.getUrl() == null || !trusted(Uri.parse(page.getUrl()))) return;
+        page.evaluateJavascript("document.documentElement.style.setProperty('--tantana-inset-native',("
+            + topInset + "/window.devicePixelRatio)+'px');document.documentElement.dataset.barreNative='';", null);
+    }
+
+    @Override protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+        setIntent(intent);
+        resumeGoogle(intent);
+    }
+
+    private boolean resumeGoogle(Intent intent) {
+        Uri url = intent.getData();
+        if (!Intent.ACTION_VIEW.equals(intent.getAction()) || url == null || !trusted(url)
+            || !"/android/retour.html".equals(url.getEncodedPath())) return false;
+        // Ne transmettre que le code PKCE. Le vérificateur reste dans le stockage de cette WebView.
+        String code = url.getQueryParameter("code");
+        if (code == null || !code.matches("[A-Za-z0-9_-]{16,256}")) {
+            Toast.makeText(this, "Connexion interrompue. Vous pouvez réessayer.", Toast.LENGTH_LONG).show();
+            return false;
+        }
+        setIntent(new Intent(this, EcranTantana.class));
+        page.loadUrl(SITE.buildUpon().path("/").appendQueryParameter("code", code).build().toString());
+        return true;
     }
 
     private boolean trusted(Uri url) {

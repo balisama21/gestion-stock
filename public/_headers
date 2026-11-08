@@ -22,6 +22,11 @@
   Content-Disposition: attachment; filename="tantana-essai.apk"
   Cache-Control: no-cache
 
+/android/retour.html
+  Cache-Control: no-store
+  Referrer-Policy: no-referrer
+  X-Frame-Options: DENY
+
 # Le service worker ne doit jamais être servi depuis un cache : c'est lui
 # qui porte la logique de mise à jour. Figé, il empêcherait toute version
 # ultérieure de prendre la main — le navigateur continuerait indéfiniment

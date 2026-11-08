@@ -987,7 +987,7 @@
   transition:
     transform 0.22s ease,
     opacity 0.18s ease;
-  padding-top: env(safe-area-inset-top, 0px);
+  padding-top: var(--haut-systeme);
 }
 .dash2-drawer.on {
   transform: none;

@@ -7,6 +7,9 @@ if (!supabaseUrl || !supabaseAnonKey) {
   throw new Error("Missing Supabase environment variables. Check your .env file.");
 }
 
+export const retourGoogleAndroid =
+  typeof navigator !== "undefined" && / TantanaAndroidEssai\/2\b/.test(navigator.userAgent);
+
 export const supabase: SupabaseClient = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
     autoRefreshToken: true,
@@ -17,6 +20,6 @@ export const supabase: SupabaseClient = createClient(supabaseUrl, supabaseAnonKe
     // (PowerShell, ou l'app mobile mail du client) différent du navigateur
     // qui finira par ouvrir le lien. Le flow PKCE échoue dans ce cas car il
     // exige un vérificateur stocké dans le navigateur d'origine.
-    flowType: "implicit",
+    flowType: retourGoogleAndroid ? "pkce" : "implicit",
   },
 });

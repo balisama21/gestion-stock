@@ -376,6 +376,7 @@ html {
    bande qu'on vient d'eclaircir. `pointer-events: none` pour qu'elle
    n'intercepte aucun geste. */
 :root {
+  --haut-systeme: var(--tantana-inset-native, env(safe-area-inset-top, 0px));
   --papier-accueil: #fdfcfa;
   --fond-barre-etat: var(--background);
 }
@@ -388,18 +389,21 @@ body::before {
   top: 0;
   left: 0;
   right: 0;
-  height: env(safe-area-inset-top, 0px);
+  height: var(--haut-systeme);
   background-color: var(--fond-barre-etat);
   z-index: 200;
   pointer-events: none;
 }
 
 @media screen {
+  html[data-barre-native] body::before {
+    background-color: color-mix(in srgb, var(--fond-barre-etat) 56%, transparent);
+  }
   .page-accueil > .sticky:first-child {
-    padding-top: env(safe-area-inset-top, 0px);
+    padding-top: var(--haut-systeme);
   }
   .app-modal-overlay.fixed {
-    top: env(safe-area-inset-top, 0px);
+    top: var(--haut-systeme);
   }
 }
 
@@ -1115,7 +1119,7 @@ td {
    `env()` vaut zero partout ou il n'y a pas d'encoche : sur un
    ordinateur, sur un telephone sans decoupe, rien ne bouge. */
 .app-bar-haut {
-  padding-top: env(safe-area-inset-top, 0px);
+  padding-top: var(--haut-systeme);
 }
 
 .app-bar-haut[data-masquee="true"] {
