@@ -31,6 +31,7 @@ export function enregistrerServiceWorker(): void {
 export function estInstallee(): boolean {
   if (typeof window === "undefined") return false;
   return (
+    navigator.userAgent.includes(" TantanaAndroidEssai/") ||
     window.matchMedia("(display-mode: standalone)").matches ||
     // Safari sur iOS n'expose pas `display-mode` et utilise ce drapeau
     // propriétaire, non standard, absent des types du DOM.

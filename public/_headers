@@ -17,6 +17,11 @@
   Content-Disposition: attachment; filename="tantana.apk"
   Cache-Control: no-cache
 
+/telechargements/tantana-essai.apk
+  Content-Type: application/vnd.android.package-archive
+  Content-Disposition: attachment; filename="tantana-essai.apk"
+  Cache-Control: no-cache
+
 # Le service worker ne doit jamais être servi depuis un cache : c'est lui
 # qui porte la logique de mise à jour. Figé, il empêcherait toute version
 # ultérieure de prendre la main — le navigateur continuerait indéfiniment
