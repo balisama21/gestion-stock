@@ -1,5 +1,5 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="com.tantanasuite.app" android:versionCode="2" android:versionName="1.1">
+    package="com.tantanasuite.app" android:versionCode="3" android:versionName="1.2">
     <uses-sdk android:minSdkVersion="26" android:targetSdkVersion="35"/>
     <uses-permission android:name="android.permission.INTERNET"/>
     <queries>
@@ -7,7 +7,7 @@
         <intent><action android:name="android.intent.action.VIEW"/><data android:scheme="https"/></intent>
     </queries>
     <application android:label="Tantana" android:icon="@drawable/tantana"
-        android:theme="@android:style/Theme.Material.Light.NoActionBar"
+        android:theme="@style/TantanaLaunch"
         android:allowBackup="false" android:usesCleartextTraffic="false">
         <meta-data android:name="asset_statements" android:resource="@string/asset_statements"/>
         <activity android:name=".TantanaActivity" android:exported="true">

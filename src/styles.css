@@ -375,6 +375,13 @@ html {
    une feuille qui monte du bas ne doit pas repeindre en sombre la
    bande qu'on vient d'eclaircir. `pointer-events: none` pour qu'elle
    n'intercepte aucun geste. */
+:root {
+  --papier-accueil: #fdfcfa;
+  --fond-barre-etat: var(--card);
+}
+:root[data-accueil-tantana] {
+  --fond-barre-etat: var(--papier-accueil);
+}
 body::before {
   content: "";
   position: fixed;
@@ -382,7 +389,7 @@ body::before {
   left: 0;
   right: 0;
   height: env(safe-area-inset-top, 0px);
-  background-color: var(--color-card);
+  background-color: var(--fond-barre-etat);
   z-index: 200;
   pointer-events: none;
 }
@@ -2818,7 +2825,7 @@ td {
   /* Fond éclairci : le beige précédent, plus soutenu, assombrissait
      l'ensemble de la page une fois les sections empilées. */
   --papier-fond: #f4f1e9;
-  --papier: #fdfcfa;
+  --papier: var(--papier-accueil);
   --carbone: #1c1b18;
   --carbone-doux: #6b675e;
   --encre: #2b4c7e;

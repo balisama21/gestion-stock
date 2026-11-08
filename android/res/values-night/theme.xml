@@ -1,0 +1,4 @@
+<resources>
+    <color name="launch_surface">#080A14</color>
+    <bool name="dark_status_icons">false</bool>
+</resources>

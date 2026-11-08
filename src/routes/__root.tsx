@@ -13,7 +13,7 @@ import { useEffect, type ReactNode } from "react";
 import appCss from "../styles.css?url";
 import { installerRepriseApresDeploiement } from "../lib/chunkRecovery";
 import { enregistrerServiceWorker } from "../lib/pwa";
-import { accorderLaBarreDEtat } from "../lib/couleurDeBarre";
+import { accorderLaBarreDEtat, viewportTantana } from "../lib/couleurDeBarre";
 import { InstallPrompt } from "../components/shared/InstallPrompt";
 import { APP_TITRE_SEO } from "../lib/appConfig";
 import { metasDeReferencement } from "../lib/seo";
@@ -95,15 +95,10 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     return {
       meta: [
         { charSet: "utf-8" },
-        // `viewport-fit=cover` : la page occupe TOUT l'ecran, y compris
-        // sous la barre d'etat et sous la barre de gestes. Sans lui, le
-        // systeme reserve ces bandes et les peint de sa propre couleur —
-        // un bandeau noir en haut du telephone — et, surtout, toutes les
-        // valeurs `env(safe-area-inset-*)` valent zero : le code qui les
-        // emploie deja pour ecarter la barre du bas ne servait a rien.
+        // Android installé réserve la zone système, y compris sur les écrans à encoche.
         {
           name: "viewport",
-          content: "width=device-width, initial-scale=1, viewport-fit=cover",
+          content: viewportTantana(),
         },
         { title: titre },
         // Référencement et aperçus : lus par les robots, donc dans le

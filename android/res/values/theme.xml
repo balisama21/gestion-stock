@@ -1,0 +1,11 @@
+<resources>
+    <color name="launch_surface">#FDFCFA</color>
+    <bool name="dark_status_icons">true</bool>
+    <style name="TantanaLaunch" parent="@android:style/Theme.Material.Light.NoActionBar">
+        <item name="android:windowBackground">@color/launch_surface</item>
+        <item name="android:colorBackground">@color/launch_surface</item>
+        <item name="android:windowDrawsSystemBarBackgrounds">true</item>
+        <item name="android:statusBarColor">@color/launch_surface</item>
+        <item name="android:windowLightStatusBar">@bool/dark_status_icons</item>
+    </style>
+</resources>

@@ -39,6 +39,9 @@ public final class TantanaActivity extends Activity {
                     Bundle extras = new Bundle();
                     extras.putBinder("android.support.customtabs.extra.SESSION", session);
                     app.putExtras(extras);
+                    android.util.TypedValue surface = new android.util.TypedValue();
+                    getTheme().resolveAttribute(android.R.attr.colorBackground, surface, true);
+                    app.putExtra("android.support.customtabs.extra.TOOLBAR_COLOR", surface.data);
                     app.putExtra("android.support.customtabs.extra.LAUNCH_AS_TRUSTED_WEB_ACTIVITY", true);
                     app.putStringArrayListExtra("android.support.customtabs.extra.ADDITIONAL_TRUSTED_ORIGINS",
                         new ArrayList<>(Collections.singletonList("https://www.tantana-suite.com")));

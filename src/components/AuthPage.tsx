@@ -49,6 +49,11 @@ export const AuthPage: React.FC = () => {
   // Sur un domaine client : sa marque, sans offres, tarifs ni questions.
   // L'inscription reste ouverte ; la création de boutique, non.
   const vitrine = marque.parDefaut;
+  useEffect(() => {
+    if (!vitrine) return;
+    document.documentElement.setAttribute("data-accueil-tantana", "");
+    return () => document.documentElement.removeAttribute("data-accueil-tantana");
+  }, [vitrine]);
   // Marque cliente avec sa propre page d'accueil (branding.landing).
   const landing = vitrine ? null : (marque.landing ?? null);
   const [mode, setMode] = useState<AuthMode>(() => {

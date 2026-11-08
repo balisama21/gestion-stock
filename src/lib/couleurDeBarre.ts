@@ -32,6 +32,18 @@
  */
 const REPLI_CLAIR = "#ffffff";
 
+export function viewportTantana(): string {
+  const androidInstalle =
+    typeof window !== "undefined" &&
+    /Android/i.test(navigator.userAgent) &&
+    (window.matchMedia("(display-mode: standalone)").matches ||
+      document.referrer.startsWith("android-app://com.tantanasuite.app/") ||
+      document.referrer === "android-app://com.tantanasuite.app");
+  return (
+    "width=device-width, initial-scale=1, viewport-fit=" + (androidInstalle ? "contain" : "cover")
+  );
+}
+
 const deuxChiffres = (n: number): string => n.toString(16).padStart(2, "0");
 
 const enHexadecimal = (couleur: string): string | null => {
@@ -63,6 +75,9 @@ const enHexadecimal = (couleur: string): string | null => {
 export function accorderLaBarreDEtat(): () => void {
   if (typeof document === "undefined") return () => {};
 
+  const viewport = document.querySelector<HTMLMetaElement>('meta[name="viewport"]');
+  if (viewport) viewport.content = viewportTantana();
+
   let meta = document.querySelector<HTMLMetaElement>('meta[name="theme-color"]');
   if (!meta) {
     meta = document.createElement("meta");
@@ -72,7 +87,9 @@ export function accorderLaBarreDEtat(): () => void {
   const balise = meta;
 
   const accorder = () => {
-    const carte = getComputedStyle(document.documentElement).getPropertyValue("--card").trim();
+    const carte = getComputedStyle(document.documentElement)
+      .getPropertyValue("--fond-barre-etat")
+      .trim();
     const couleur = (carte && enHexadecimal(carte)) || REPLI_CLAIR;
     if (balise.content !== couleur) balise.content = couleur;
   };
@@ -83,7 +100,7 @@ export function accorderLaBarreDEtat(): () => void {
   const observateur = new MutationObserver(accorder);
   observateur.observe(document.documentElement, {
     attributes: true,
-    attributeFilter: ["class", "data-theme", "style"],
+    attributeFilter: ["class", "data-theme", "data-accueil-tantana", "style"],
   });
 
   const reglageDuTelephone = window.matchMedia("(prefers-color-scheme: dark)");
