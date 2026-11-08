@@ -213,22 +213,9 @@ export const InstallPrompt: React.FC = () => {
                 : "Dans Chrome ou Edge, ouvrez le menu ⋮ ou ⋯ et cherchez l’option pour installer cette page comme application."}
             </p>
           )}
-          <button onClick={fermer} className="mt-2 text-xs underline">
-            Continuer sur le web
-          </button>
-          {(ios || apk) && (
-            <button
-              className="mt-2 block text-xs underline"
-              onClick={() => {
-                try {
-                  localStorage.setItem(cleConfirmation(ios), "1");
-                } catch {
-                  /* Stockage indisponible. */
-                }
-                fermer();
-              }}
-            >
-              J’ai déjà installé l’application
+          {surOrdinateur() && (
+            <button onClick={fermer} className="mt-2 text-xs underline">
+              Continuer sur le web
             </button>
           )}
         </div>

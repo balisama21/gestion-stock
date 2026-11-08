@@ -11,7 +11,23 @@ afterEach(() => {
   sessionStorage.clear();
   localStorage.clear();
   vi.unstubAllGlobals();
+  vi.restoreAllMocks();
   vi.useRealTimers();
+});
+
+it.each(["Android", "iPhone"])("simplifie la bannière sur %s", async (agent) => {
+  vi.useFakeTimers();
+  vi.stubGlobal("matchMedia", () => ({ matches: false }));
+  vi.spyOn(navigator, "userAgent", "get").mockReturnValue(agent);
+  render(<InstallPrompt />);
+  await act(() => vi.advanceTimersByTimeAsync(3000));
+  expect(screen.getByRole("dialog").textContent).toContain(
+    agent === "Android" ? "Télécharger l’APK Android" : "Sur l'écran d'accueil",
+  );
+  expect(screen.queryByText("Continuer sur le web")).toBeNull();
+  expect(screen.queryByText("J’ai déjà installé l’application")).toBeNull();
+  fireEvent.click(screen.getByRole("button", { name: "Ne plus proposer pour l'instant" }));
+  expect(screen.queryByRole("dialog")).toBeNull();
 });
 
 it("propose la version PC même sans événement d’installation et respecte la fermeture", async () => {
