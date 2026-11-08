@@ -3,7 +3,7 @@ import { Download, Share, Plus, X } from "lucide-react";
 import {
   estIOS,
   cheminApkAndroid,
-  apkTantanaInstalle,
+  applicationTantanaInstallee,
   estInstallee,
   evenementInstallationCapte,
   surEvenementInstallation,
@@ -18,9 +18,12 @@ const cleConfirmation = (ios: boolean) =>
 const JOURS_AVANT_NOUVELLE_PROPOSITION = 7;
 /** Laisse à l'utilisateur le temps d'arriver avant de lui proposer quoi que ce soit. */
 const DELAI_AVANT_AFFICHAGE_MS = 3000;
+const surOrdinateur = () => !estIOS() && !/Android/i.test(navigator.userAgent);
+const CLE_SESSION_PC = "tantana-installation-pc-fermee";
 
 const refusRecent = (): boolean => {
   try {
+    if (surOrdinateur()) return sessionStorage.getItem(CLE_SESSION_PC) === "1";
     const brut = localStorage.getItem(CLE_REFUS);
     if (!brut) return false;
     const jours = (Date.now() - Number(brut)) / 86_400_000;
@@ -33,6 +36,10 @@ const refusRecent = (): boolean => {
 
 const memoriserRefus = () => {
   try {
+    if (surOrdinateur()) {
+      sessionStorage.setItem(CLE_SESSION_PC, "1");
+      return;
+    }
     localStorage.setItem(CLE_REFUS, String(Date.now()));
   } catch {
     /* navigation privée : le refus ne vaudra que pour cette session */
@@ -50,6 +57,7 @@ export const InstallPrompt: React.FC = () => {
   const [visible, setVisible] = useState(false);
   const [ios, setIos] = useState(false);
   const [apk, setApk] = useState<string | null>(null);
+  const [aide, setAide] = useState(false);
 
   useEffect(() => {
     setVisible(false);
@@ -75,7 +83,7 @@ export const InstallPrompt: React.FC = () => {
         } catch {
           /* Stockage indisponible. */
         }
-        const installee = chemin ? await apkTantanaInstalle() : false;
+        const installee = chemin ? await applicationTantanaInstallee("play") : false;
         if (revision === demande && !refusRecent()) setVisible(!installee);
       };
       const t = setTimeout(verifier, DELAI_AVANT_AFFICHAGE_MS);
@@ -90,11 +98,20 @@ export const InstallPrompt: React.FC = () => {
     }
     if (marque.parDefaut && /Android/i.test(navigator.userAgent)) return;
 
-    let minuterie: number | undefined;
-
+    let actif = true;
+    const afficher = async () => {
+      const installee = surOrdinateur() && (await applicationTantanaInstallee("webapp"));
+      if (actif && !installee && !estInstallee() && !refusRecent()) setVisible(true);
+    };
+    let minuterie = surOrdinateur()
+      ? window.setTimeout(afficher, DELAI_AVANT_AFFICHAGE_MS)
+      : undefined;
     const retenir = (e: EvenementInstallation) => {
       setEvenement(e);
-      minuterie = window.setTimeout(() => setVisible(true), DELAI_AVANT_AFFICHAGE_MS);
+      if (!surOrdinateur()) {
+        window.clearTimeout(minuterie);
+        minuterie = window.setTimeout(afficher, DELAI_AVANT_AFFICHAGE_MS);
+      }
     };
 
     // L'événement a pu arriver avant ce montage : le module l'a gardé.
@@ -104,10 +121,16 @@ export const InstallPrompt: React.FC = () => {
 
     // L'installation peut aussi se faire par le menu du navigateur :
     // la bannière doit alors disparaître d'elle-même.
-    const surInstallation = () => setVisible(false);
+    const surInstallation = () => {
+      actif = false;
+      window.clearTimeout(minuterie);
+      memoriserRefus();
+      setVisible(false);
+    };
     window.addEventListener("appinstalled", surInstallation);
 
     return () => {
+      actif = false;
       desabonner();
       window.removeEventListener("appinstalled", surInstallation);
       if (minuterie) clearTimeout(minuterie);
@@ -115,14 +138,20 @@ export const InstallPrompt: React.FC = () => {
   }, [marque.parDefaut]);
 
   const installer = async () => {
-    if (!evenement) return;
-    setVisible(false);
-    await evenement.prompt();
-    const { outcome } = await evenement.userChoice;
-    // Un refus dans la fenêtre native compte comme un refus : Chrome ne
-    // réémettra pas l'événement de sitôt, inutile d'insister.
-    if (outcome === "dismissed") memoriserRefus();
-    setEvenement(null);
+    if (!evenement) {
+      setAide(true);
+      return;
+    }
+    try {
+      await evenement.prompt();
+      await evenement.userChoice;
+      memoriserRefus();
+      setVisible(false);
+    } catch {
+      setAide(true);
+    } finally {
+      setEvenement(null);
+    }
   };
 
   const fermer = () => {
@@ -174,6 +203,15 @@ export const InstallPrompt: React.FC = () => {
               <Download className="h-4 w-4" />
               Télécharger l’application
             </button>
+          )}
+          {aide && !evenement && (
+            <p role="status" className="mt-2 text-xs leading-relaxed text-muted-foreground">
+              {/Macintosh/.test(navigator.userAgent) &&
+              /Safari\//.test(navigator.userAgent) &&
+              !/Chrom(e|ium)\//.test(navigator.userAgent)
+                ? "Dans Safari, ouvrez le menu Fichier et choisissez « Ajouter au Dock » si cette option est disponible."
+                : "Dans Chrome ou Edge, ouvrez le menu ⋮ ou ⋯ et cherchez l’option pour installer cette page comme application."}
+            </p>
           )}
           <button onClick={fermer} className="mt-2 text-xs underline">
             Continuer sur le web

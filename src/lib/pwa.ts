@@ -60,7 +60,7 @@ export function cheminApkAndroid(parDefaut: boolean): string | null {
 }
 
 /** L'APK doit déclarer le domaine Tantana dans ses asset_statements. */
-export async function apkTantanaInstalle(): Promise<boolean> {
+export async function applicationTantanaInstallee(plateforme: "play" | "webapp"): Promise<boolean> {
   const navigateur = navigator as Navigator & {
     getInstalledRelatedApps?: () => Promise<{ platform: string; id?: string }[]>;
   };
@@ -69,8 +69,9 @@ export async function apkTantanaInstalle(): Promise<boolean> {
     return (
       applications?.some(
         (app) =>
-          app.platform === "play" &&
-          ["com.tantanasuite.app", "com.tantanasuite.app.essai"].includes(app.id ?? ""),
+          app.platform === plateforme &&
+          (plateforme === "webapp" ||
+            ["com.tantanasuite.app", "com.tantanasuite.app.essai"].includes(app.id ?? "")),
       ) ?? false
     );
   } catch {

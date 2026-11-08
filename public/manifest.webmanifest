@@ -8,7 +8,8 @@
   "scope": "/",
   "related_applications": [
     { "platform": "play", "id": "com.tantanasuite.app" },
-    { "platform": "play", "id": "com.tantanasuite.app.essai" }
+    { "platform": "play", "id": "com.tantanasuite.app.essai" },
+    { "platform": "webapp", "url": "/manifest.webmanifest" }
   ],
   "display": "standalone",
   "orientation": "portrait",
