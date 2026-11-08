@@ -36,6 +36,7 @@ import { avancesPrisesSurLaCaisse, demandesEnAttente } from "./lib/salaires";
 import { delaisDeRappel } from "./lib/rappels";
 import { useJournalActivite } from "./hooks/useJournalActivite";
 import { useRafraichissementDiscret } from "./hooks/useRafraichissementDiscret";
+import { useHorlogeRappels } from './hooks/useHorlogeRappels';
 import { useTempsReel } from "./hooks/useTempsReel";
 import { useTaches } from "./hooks/useTaches";
 import { useParametres } from "./hooks/useParametres";
@@ -405,10 +406,11 @@ function AppInner() {
    * `useTempsReel`). Ailleurs, le battement d'une minute suffit : le
    * canal n'est ouvert que là où il sert.
    */
+  useTempsReel(workspace.activeStore?.id ?? null, true, [{ table: "rappels", relire: rechargerRappels }]);
   useTempsReel(workspace.activeStore?.id ?? null, activeTab === "dashboard" && !estLivreur, [
     { table: "taches", relire: rechargerTaches },
     { table: "evenements", relire: rechargerAgenda },
-    { table: "rappels", relire: rechargerRappels },
+
     { table: "orders", relire: rafraichirBoutique },
     { table: "deliveries", relire: rafraichirBoutique },
     { table: "sales", relire: rafraichirBoutique },
@@ -1605,6 +1607,7 @@ function AppInner() {
   // detail : les notifications se deduisent des ecritures reelles, seul
   // leur etat (vu / lu) est garde en base (lib/notificationsLues.ts), et
   // leur destination est decidee par lib/routageNotifications.ts.
+  const heureNotifications = useHorlogeRappels(memos.rappels, user?.id, workspace.activeStore?.id, !memos.chargement && !memos.erreur);
   const notifications = useMemo(
     () =>
       construireNotifications({
@@ -1652,7 +1655,7 @@ function AppInner() {
         // doit prevenir a l heure que le commercant a choisie.
         delaisRappel: delaisDeRappel(personnalisation.rappels),
         formatMontant: formatCurrency,
-      }),
+      }, heureNotifications),
     [
       products,
       sales,
@@ -1673,6 +1676,7 @@ function AppInner() {
       journalActivite,
       organisation.taches,
       calendrier.evenements,
+      heureNotifications,
       memos.rappels,
       notificationPrefs.stockAlerts,
       prealertes,

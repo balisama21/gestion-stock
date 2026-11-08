@@ -1,6 +1,9 @@
 package com.tantanasuite.app;
 
 import android.app.Activity;
+import android.app.NotificationManager;
+import android.provider.Settings;
+import org.json.*;
 import android.content.ActivityNotFoundException;
 import android.content.Intent;
 import android.graphics.Color;
@@ -125,18 +128,83 @@ public final class EcranTantana extends Activity {
             ? flags | View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR : flags & ~View.SYSTEM_UI_FLAG_LIGHT_STATUS_BAR);
     }
 
+    private void handleReminder(String data) {
+        try {
+            JSONObject msg = new JSONObject(data);
+            String action = msg.getString("action");
+            if ("sync".equals(action)) RappelsAndroid.replace(this, msg.getJSONArray("rows"));
+            if ("clear".equals(action)) {
+                RappelsAndroid.replace(this, new JSONArray());
+                getSystemService(NotificationManager.class).cancelAll();
+            }
+            if ("disable".equals(action)) {
+                RappelsAndroid.prefs(this).edit().putBoolean("enabled", false).apply();
+                RappelsAndroid.cancel(this);
+            }
+            if ("enable".equals(action)) {
+                RappelsAndroid.prefs(this).edit().putBoolean("enabled", true).apply();
+                if (Build.VERSION.SDK_INT >= 33 && checkSelfPermission(android.Manifest.permission.POST_NOTIFICATIONS)
+                        != android.content.pm.PackageManager.PERMISSION_GRANTED && !RappelsAndroid.prefs(this).getBoolean("asked", false)) {
+                    RappelsAndroid.prefs(this).edit().putBoolean("asked", true).apply();
+                    requestPermissions(new String[]{android.Manifest.permission.POST_NOTIFICATIONS}, 2);
+                } else if (!RappelsAndroid.notifications(this)) {
+                    Intent settings = new Intent(Settings.ACTION_CHANNEL_NOTIFICATION_SETTINGS)
+                        .putExtra(Settings.EXTRA_APP_PACKAGE, getPackageName()).putExtra(Settings.EXTRA_CHANNEL_ID, RappelsAndroid.CHANNEL);
+                    if (!getSystemService(NotificationManager.class).areNotificationsEnabled())
+                        settings = new Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).putExtra(Settings.EXTRA_APP_PACKAGE, getPackageName());
+                    startActivity(settings);
+                } else if (!RappelsAndroid.exact(this)) {
+                    startActivity(new Intent(Settings.ACTION_REQUEST_SCHEDULE_EXACT_ALARM, Uri.parse("package:" + getPackageName())));
+                } else RappelsAndroid.scheduleAll(this);
+            }
+            if (!"sync".equals(action)) reminderStatus();
+        } catch (JSONException | SecurityException | ActivityNotFoundException e) {
+            Toast.makeText(this, "Vérifiez les autorisations de rappel dans Android.", Toast.LENGTH_LONG).show();
+        }
+    }
+
+    private void reminderStatus() {
+        if (colors == null) return;
+        String status = !RappelsAndroid.prefs(this).getBoolean("enabled", false) ? "off"
+            : !RappelsAndroid.notifications(this) ? "notifications"
+            : !RappelsAndroid.exact(this) ? "alarms" : "ready";
+        colors.postMessage(new WebMessage(status));
+    }
+
+    @Override protected void onResume() {
+        super.onResume();
+        refreshReminders();
+    }
+
+    private void refreshReminders() {
+        try { RappelsAndroid.scheduleAll(this); }
+        catch (JSONException | SecurityException e) { android.util.Log.w("Tantana", "Synchronisation des rappels indisponible", e); }
+        reminderStatus();
+    }
+
+    @Override public void onRequestPermissionsResult(int request, String[] permissions, int[] results) {
+        super.onRequestPermissionsResult(request, permissions, results);
+        if (request == 2) refreshReminders();
+    }
+
     private void followTheme() {
         if (colors != null) colors.close();
         WebMessagePort[] channel = page.createWebMessageChannel();
         colors = channel[0];
         colors.setWebMessageCallback(new WebMessagePort.WebMessageCallback() {
             @Override public void onMessage(WebMessagePort port, WebMessage message) {
-                if (port == colors) paint(message.getData());
+                if (port != colors || message.getData() == null) return;
+                String data = message.getData();
+                if (data.startsWith("{")) handleReminder(data);
+                else paint(data);
             }
         });
         String script = "window.addEventListener('message',function init(e){"
             + "if(e.data!=='tantana-status' || !e.ports.length)return;"
             + "window.removeEventListener('message',init);const p=e.ports[0];"
+            + "window.tantanaRappels=m=>p.postMessage(JSON.stringify(m));"
+            + "p.onmessage=e=>window.dispatchEvent(new CustomEvent('tantana-rappels-etat',{detail:e.data}));"
+            + "window.dispatchEvent(new Event('tantana-rappels-pret'));"
             + "const sync=()=>{const m=document.querySelector('meta[name=theme-color]');"
             + "if(m)p.postMessage(m.content)};sync();"
             + "new MutationObserver(sync).observe(document.head,{childList:true,subtree:true,attributes:true,attributeFilter:['content']});})";

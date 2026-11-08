@@ -1,3 +1,4 @@
+import { ReglageRappelsAppareil } from "../ReglageRappelsAppareil";
 import React, { useState } from "react";
 import { Bell, Mail, Package, Zap, Wallet, Monitor } from "lucide-react";
 import { SettingsSection, SettingsRow, SettingsToggle, SettingsFeedback } from "./primitives";
@@ -110,6 +111,7 @@ export const NotificationsSection: React.FC<NotificationsSectionProps> = ({
         </div>
       </SettingsRow>
 
+      <ReglageRappelsAppareil />
       {prealerteActive && (
         <SettingsRow
           label="Résumé de préalerte par e-mail"

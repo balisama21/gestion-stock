@@ -1,3 +1,4 @@
+import { desactiverRappelsPush } from "../lib/rappelsPush";
 import { useState, useEffect, useCallback, createContext, useContext } from "react";
 import type { User, Session } from "@supabase/supabase-js";
 import { retourGoogleAndroid, supabase } from "../lib/supabase";
@@ -136,6 +137,10 @@ export function useAuthState(): AuthState & AuthActions {
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (_event, session) => {
+      if (_event === "SIGNED_OUT") {
+        window.tantanaRappels?.({ action: "clear" });
+        void desactiverRappelsPush().catch(() => {});
+      }
       if (_event === "PASSWORD_RECOVERY") {
         // L'utilisateur a cliqué sur le lien de réinitialisation reçu par
         // e-mail. Supabase crée une session temporaire réservée à la
@@ -211,6 +216,7 @@ export function useAuthState(): AuthState & AuthActions {
    *   vient pas quand rien n'a été effacé.
    */
   const signOut = useCallback(async () => {
+    window.tantanaRappels?.({ action: "clear" });
     if (user) oublierBoutiqueActive(user.id);
 
     try {

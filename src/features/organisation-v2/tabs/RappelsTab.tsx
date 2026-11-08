@@ -1,3 +1,4 @@
+import { ReglageRappelsAppareil } from "../../../components/ReglageRappelsAppareil";
 import React from "react";
 import { libelleQuand, prochaineOccurrence } from "../../../lib/rappels";
 import { useNotificationPrefs } from "../../../lib/notificationPrefs";
@@ -128,6 +129,7 @@ export const RappelsTab: React.FC = () => {
             </button>
           )}
         </div>
+        <ReglageRappelsAppareil />
         {erreurs.rappels ? (
           <p className="erreur">Les rappels n'ont pas pu être chargés : {erreurs.rappels}</p>
         ) : chargement.rappels && rappelsPortee.length === 0 ? (

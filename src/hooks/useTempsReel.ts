@@ -59,7 +59,7 @@ export function useTempsReel(
       }, ATTENTE_MS);
     };
 
-    let canal = supabase.channel(`operations:${storeId}`);
+    let canal = supabase.channel(`operations:${storeId}:${tables}`);
     for (const table of tables.split(",")) {
       for (const event of ["INSERT", "UPDATE"] as const) {
         canal = canal.on(

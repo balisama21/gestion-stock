@@ -503,7 +503,7 @@ export function reglementDeLaVente(
   return Number.isFinite(ecart) && ecart <= DELAI_REGLEMENT_COMPTOIR_MS;
 }
 
-export function construireNotifications(s: SourcesActivite): Notification[] {
+export function construireNotifications(s: SourcesActivite, maintenant = new Date()): Notification[] {
   const { formatMontant: fmt } = s;
   const aujourdhui = dateDuJour();
 
@@ -747,7 +747,7 @@ export function construireNotifications(s: SourcesActivite): Notification[] {
   // rappels. La base ne rend de toute façon que ceux-là à un
   // collaborateur.
 
-  const maintenant = new Date();
+
 
   const miennes = s.taches.filter((t) => t.assignee_id === s.moiId && t.statut !== "termine");
   const retards = miennes.filter((t) => estEnRetard(t, aujourdhui));
@@ -886,7 +886,7 @@ export function construireNotifications(s: SourcesActivite): Notification[] {
   }
 
   // Les rappels qu'on s'est posés, échus et pas encore passés minuit.
-  for (const r of s.rappels.filter((x) => estEchu(x, maintenant))) {
+  for (const r of s.rappels.filter((x) => x.destinataire_id === s.moiId && estEchu(x, maintenant))) {
     alertes.push({
       id: `alerte-rappel-${r.id}-${aujourdhui}`,
       genre: "alerte",

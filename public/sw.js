@@ -131,3 +131,23 @@ self.addEventListener("fetch", (event) => {
     );
   }
 });
+
+self.addEventListener("push", (event) => {
+  const tag = event.data?.json()?.tag;
+  if (typeof tag !== "string") return;
+  event.waitUntil(self.registration.showNotification("Tantana · Rappel", {
+    body: "Un rappel vous attend dans Organisation.",
+    icon: "/icon-192.png", tag, data: { rappel: true },
+  }));
+});
+
+self.addEventListener("notificationclick", (event) => {
+  if (!event.notification.data?.rappel) return;
+  event.notification.close();
+  event.waitUntil((async () => {
+    for (const client of await self.clients.matchAll({type:"window"})) {
+      if (new URL(client.url).origin === self.location.origin) return client.focus();
+    }
+    return self.clients.openWindow("/");
+  })());
+});
