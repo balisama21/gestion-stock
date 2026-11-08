@@ -13,12 +13,25 @@ import android.os.Bundle;
 import android.view.*;
 import android.webkit.*;
 import android.widget.LinearLayout;
+import android.widget.FrameLayout;
+import android.widget.TextView;
+import android.widget.Button;
+import android.graphics.Bitmap;
 import android.widget.Toast;
 
 /** Le système dessine les icônes, cette fenêtre dessine la surface derrière elles. */
 public final class EcranTantana extends Activity {
     private static final Uri SITE = Uri.parse("https://tantana-suite.com");
-    private LinearLayout frame;
+    private FrameLayout frame;
+    private LinearLayout connexion;
+    private TextView messageConnexion;
+    private Button reessayer;
+    private boolean navigationEnErreur;
+    private String destination = SITE.toString();
+    private final Runnable attenteLongue = () -> {
+        messageConnexion.setText("La connexion à Tantana prend du temps…");
+        reessayer.setVisibility(View.VISIBLE);
+    };
     private WebView page;
     private WebMessagePort colors;
     private ValueCallback<Uri[]> files;
@@ -36,9 +49,11 @@ public final class EcranTantana extends Activity {
         }
         window.getDecorView().setSystemUiVisibility(View.SYSTEM_UI_FLAG_LAYOUT_FULLSCREEN
             | View.SYSTEM_UI_FLAG_LAYOUT_STABLE | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION);
-        frame = new LinearLayout(this);
+        frame = new FrameLayout(this);
         page = new WebView(this);
         frame.addView(page, -1, -1);
+        preparerConnexion();
+        afficherChargement();
         frame.setOnApplyWindowInsetsListener((v, insets) -> {
             topInset = insets.getSystemWindowInsetTop();
             frame.setPadding(insets.getSystemWindowInsetLeft(), 0,
@@ -65,8 +80,24 @@ public final class EcranTantana extends Activity {
                 }
                 return true;
             }
+            @Override public void onPageStarted(WebView view, String url, Bitmap icon) {
+                if (!trusted(Uri.parse(url))) return;
+                destination = url;
+                navigationEnErreur = false;
+                afficherChargement();
+            }
+            @Override public void onReceivedError(WebView view, WebResourceRequest request, WebResourceError error) {
+                if (request.isForMainFrame()) echecConnexion(request);
+            }
+            @Override public void onReceivedHttpError(WebView view, WebResourceRequest request, WebResourceResponse response) {
+                if (request.isForMainFrame() && response.getStatusCode() >= 500) echecConnexion(request);
+            }
+            @Override public void onPageCommitVisible(WebView view, String url) {
+                if (!navigationEnErreur && trusted(Uri.parse(url))) masquerConnexion();
+            }
             @Override public void onPageFinished(WebView view, String url) {
-                if (trusted(Uri.parse(url))) {
+                if (!navigationEnErreur && trusted(Uri.parse(url))) {
+                    masquerConnexion();
                     updateInset();
                     followTheme();
                 }
@@ -82,6 +113,53 @@ public final class EcranTantana extends Activity {
             }
         });
         if (!resumeGoogle(getIntent()) && (state == null || page.restoreState(state) == null)) page.loadUrl(SITE.toString());
+    }
+
+    private void preparerConnexion() {
+        connexion = new LinearLayout(this);
+        connexion.setOrientation(LinearLayout.VERTICAL);
+        connexion.setGravity(Gravity.CENTER);
+        int marge = (int) (24 * getResources().getDisplayMetrics().density);
+        connexion.setPadding(marge, marge, marge, marge);
+        connexion.setBackgroundColor(Color.parseColor("#F7F8F5"));
+        connexion.setClickable(true);
+        messageConnexion = new TextView(this);
+        messageConnexion.setTextSize(18);
+        messageConnexion.setGravity(Gravity.CENTER);
+        messageConnexion.setTextColor(Color.parseColor("#243B31"));
+        messageConnexion.setAccessibilityLiveRegion(View.ACCESSIBILITY_LIVE_REGION_POLITE);
+        connexion.addView(messageConnexion);
+        reessayer = new Button(this);
+        reessayer.setText("Réessayer");
+        reessayer.setOnClickListener(v -> {
+            afficherChargement();
+            page.loadUrl(destination);
+        });
+        connexion.addView(reessayer);
+        frame.addView(connexion, -1, -1);
+    }
+
+    private void afficherChargement() {
+        connexion.removeCallbacks(attenteLongue);
+        messageConnexion.setText("Ouverture de Tantana…");
+        reessayer.setVisibility(View.GONE);
+        connexion.setVisibility(View.VISIBLE);
+        connexion.postDelayed(attenteLongue, 8000);
+    }
+
+    private void masquerConnexion() {
+        connexion.removeCallbacks(attenteLongue);
+        connexion.setVisibility(View.GONE);
+    }
+
+    private void echecConnexion(WebResourceRequest request) {
+        navigationEnErreur = true;
+        destination = trusted(request.getUrl()) && "GET".equals(request.getMethod())
+            ? request.getUrl().toString() : SITE.toString();
+        connexion.removeCallbacks(attenteLongue);
+        messageConnexion.setText("Impossible de joindre Tantana. Vérifiez votre connexion Internet, puis réessayez.");
+        reessayer.setVisibility(View.VISIBLE);
+        connexion.setVisibility(View.VISIBLE);
     }
 
     private boolean ancienneEdition() { return "com.tantanasuite.app.essai".equals(getPackageName()); }
@@ -231,6 +309,7 @@ public final class EcranTantana extends Activity {
     @Override protected void onDestroy() {
         if (files != null) files.onReceiveValue(null);
         if (colors != null) colors.close();
+        connexion.removeCallbacks(attenteLongue);
         frame.removeView(page);
         page.destroy();
         super.onDestroy();
