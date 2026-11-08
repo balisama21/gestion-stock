@@ -81,7 +81,7 @@ interface HeaderProps {
   onViserLigne?: (onglet: ActiveTab, texte: string, filtre?: string, id?: string) => void;
   settings: StoreSettings;
   /** Solde de trésorerie, affiché sous le nom de la boutique. */
-  tresorerie: number;
+  tresorerie: number | null;
   /** Seuil sous lequel ce solde passe en orange. */
   seuilAlerte: number;
   /**
@@ -523,7 +523,7 @@ export const Header: React.FC<HeaderProps> = ({
   // La trésorerie sous le nom de la boutique. Elle ne se colore que
   // lorsqu'elle a quelque chose à dire : orange sous le seuil d'alerte,
   // rouge à découvert.
-  const ligneTresorerie = hasCapitalAccess && (
+  const ligneTresorerie = hasCapitalAccess && tresorerie !== null && (
     <span className="coq-treso">
       <span className="shrink-0">Trésorerie</span>
       <span

@@ -18,13 +18,17 @@ export function enregistrerServiceWorker(): void {
 
   // Après le chargement : l'enregistrement entre en concurrence avec le
   // téléchargement des ressources de la page, et rien ne presse.
-  window.addEventListener("load", () => {
-    navigator.serviceWorker.register("/sw.js", { scope: "/" }).catch(() => {
-      // Un enregistrement refusé — navigation privée, réglage du
-      // navigateur — n'empêche pas l'application de fonctionner. Elle
-      // perd seulement l'installation et la mise en cache.
-    });
-  });
+  const enregistrer = async () => {
+    try {
+      await navigator.serviceWorker.register("/sw.js", { scope: "/" });
+      if (/ TantanaAndroid(?:Essai)?\//.test(navigator.userAgent)) {
+        const registration = await navigator.serviceWorker.ready;
+        registration.active?.postMessage("preparer-accueil-apk");
+      }
+    } catch { /* Le démarrage reste possible sans cache. */ }
+  };
+  if (document.readyState === "complete") void enregistrer();
+  else window.addEventListener("load", enregistrer, { once: true });
 }
 
 /** Vrai quand l'application tourne déjà installée, hors du navigateur. */

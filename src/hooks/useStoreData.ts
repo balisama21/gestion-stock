@@ -2489,7 +2489,7 @@ export function useStoreData(storeId: string | null, userId: string | null): Sto
     updateSupplierInvoice,
     deleteSupplierInvoice,
     fixerCommission,
-    loading,
+    loading: loading || Boolean(storeId && boutiqueChargee.current !== storeId && !error),
     error,
     addProduct,
     updateProduct,

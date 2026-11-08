@@ -55,7 +55,8 @@ import { CreateStoreOnboarding } from "./components/CreateStoreOnboarding";
 import { StoreLockedScreen } from "./components/StoreLockedScreen";
 import { boutiqueEstVerrouillee, vueAffichee, VUE_VERROUILLEE } from "./lib/verrouillage";
 import { PinLockScreen } from "./components/PinLockScreen";
-import { AppLoader } from "./components/shared/AppLoader";
+import { OuvertureEspace } from "./components/shared/OuvertureEspace";
+
 import { LimiteChargement } from "./components/shared/LimiteChargement";
 import { MarqueDeLaBoutique, useMarque } from "./hooks/useMarque";
 import { useAuth } from "./hooks/useAuth";
@@ -397,6 +398,7 @@ function AppInner() {
 
   const [activeTab, setActiveTab] = useState<ActiveTab>("dashboard");
 
+
   /*
    * ET TOUT DE SUITE, SUR LE TABLEAU DE BORD.
    *
@@ -492,6 +494,20 @@ function AppInner() {
     setSectionParametres("compte");
     setActiveTab("settings");
   }, []);
+
+  useEffect(() => {
+    if (!workspace.activeStore || workspace.loading) return;
+    const appliquerChoix = () => {
+      const choix = window.location.hash;
+      if (choix !== "#ouvrir-compte" && choix !== "#ouvrir-accueil") return;
+      if (choix === "#ouvrir-compte" && !estLivreur) ouvrirMonCompte();
+      else setActiveTab("dashboard");
+      window.history.replaceState(window.history.state, "", window.location.pathname + window.location.search);
+    };
+    appliquerChoix();
+    window.addEventListener("hashchange", appliquerChoix);
+    return () => window.removeEventListener("hashchange", appliquerChoix);
+  }, [workspace.activeStore?.id, workspace.loading, estLivreur, ouvrirMonCompte]);
 
   useEffect(() => {
     if (activeTab !== "settings" && sectionParametres) setSectionParametres(undefined);
@@ -1261,6 +1277,14 @@ function AppInner() {
   // seul suffisait à tout révéler même sans "Capital" — faille corrigée
   // le 21/08/2026.
   const hasDashboardAccess = hasDashboardPermission && hasCapitalAccess;
+  // Le module se télécharge pendant la lecture des écritures de la boutique.
+  useEffect(() => {
+    if (!workspace.activeStore || estLivreur || !hasDashboardAccess || activeTab !== "dashboard") return;
+    const module = dashboardV2
+      ? import("./features/dashboard-v2/DashboardV2Page")
+      : import("./components/DashboardView");
+    void module.catch(() => {});
+  }, [workspace.activeStore?.id, estLivreur, hasDashboardAccess, activeTab, dashboardV2]);
 
   const hasVentesAccess =
     workspace.isOwner ||
@@ -2116,7 +2140,7 @@ function AppInner() {
   };
 
   if (workspace.loading) {
-    return <AppLoader etape="Ouverture de votre boutique…" />;
+    return <OuvertureEspace etape="Ouverture de votre boutique…" />;
   }
 
   // Nouveau compte sans boutique (ancien blocage par paiement supprimé) :
@@ -2134,7 +2158,7 @@ function AppInner() {
   if (estLivreur) {
     return (
       <LimiteChargement>
-        <Suspense fallback={<AppLoader etape="Vos courses…" />}>
+        <Suspense fallback={<EcranQuiArrive />}>
           <EspaceLivreur
             storeId={workspace.activeStore.id}
             storeName={workspace.activeStore.name}
@@ -2189,9 +2213,7 @@ function AppInner() {
     .filter((b) => b.id !== boutiqueActive.id)
     .map((b) => ({ id: b.id, nom: b.name, verrouillee: boutiqueEstVerrouillee(b) }));
 
-  if (storeData.loading) {
-    return <AppLoader etape="Chargement de vos données…" />;
-  }
+
 
   return (
     /* Le vocabulaire de la boutique enveloppe toute l'application : la
@@ -2217,17 +2239,17 @@ function AppInner() {
               setActiveTab={setActiveTab}
               onViserLigne={viserLigne}
               settings={storeSettings}
-              tresorerie={computedCapital.tresorerieGlobaleActuelle}
+              tresorerie={storeData.loading ? null : computedCapital.tresorerieGlobaleActuelle}
               seuilAlerte={computedCapital.seuilAlerteTresorerie}
               onOuvrirIdentiteBoutique={ouvrirIdentiteBoutique}
               onOuvrirMonCompte={ouvrirMonCompte}
-              surPhoto={vue === "dashboard" && hasDashboardAccess && dashboardV2}
-              notifications={notifications}
+              surPhoto={!storeData.loading && vue === "dashboard" && hasDashboardAccess && dashboardV2}
+              notifications={storeData.loading ? [] : notifications}
               onActionNotification={actionNotification}
               sidebarCollapsed={sidebarCollapsed}
               onToggleSidebar={toggleSidebar}
               sansBarreLaterale={vue === "settings"}
-              badgesNav={badgesNav}
+              badgesNav={storeData.loading ? undefined : badgesNav}
             />
 
             <main
@@ -2261,7 +2283,7 @@ function AppInner() {
               effet d apparition. */}
               <div key={ongletOrganisation ? "organisation-v2" : vue} className="app-vue">
                 <LimiteChargement>
-                  <Suspense fallback={<EcranQuiArrive />}>
+                  {storeData.loading && vue !== VUE_VERROUILLEE ? <EcranQuiArrive /> : <Suspense fallback={<EcranQuiArrive />}>
                     {vue === VUE_VERROUILLEE && (
                       <StoreLockedScreen
                         storeName={boutiqueActive.name}
@@ -3084,7 +3106,7 @@ function AppInner() {
                         onSaveParametre={parametresBoutique.enregistrer}
                       />
                     )}
-                  </Suspense>
+                  </Suspense>}
                 </LimiteChargement>
               </div>
             </main>
@@ -3238,18 +3260,19 @@ export default function App() {
   if (loading || (!user && !isPasswordRecovery)) {
     return (
       <>
+        {loading && (
+          <div className="ecran-session">
+            <OuvertureEspace etape="Vérification de votre session…" />
+          </div>
+        )}
         <div className="accueil-public">
           <LimiteChargement>
-            <Suspense fallback={<AppLoader etape="Ouverture" />}>
+            <Suspense fallback={<EcranQuiArrive />}>
               <AuthPage />
             </Suspense>
           </LimiteChargement>
         </div>
-        {loading && (
-          <div className="ecran-session">
-            <AppLoader etape="Vérification de votre session…" />
-          </div>
-        )}
+
       </>
     );
   }

@@ -7,24 +7,36 @@
  * manifeste mais ne génère aucun service worker. Le manifeste reste donc
  * déclaré dans vite.config.ts ; seul ce fichier est écrit à part.
  *
- * Il a deux rôles, et volontairement pas un de plus :
- *
- *   1. rendre l'application installable — un navigateur exige un service
- *      worker actif avant de proposer l'ajout à l'écran d'accueil ;
- *   2. éviter de retélécharger les fichiers statiques à chaque
- *      ouverture, ce qui compte sur une connexion mobile.
- *
- * Ce qu'il ne fait PAS, et pourquoi : il ne met en cache ni les pages ni
- * les données. Les pages sont rendues par le serveur, et les données
- * — stocks, soldes, paiements — viennent de Supabase. Servir une version
- * périmée d'un solde ferait prendre une décision sur un chiffre faux ;
- * une erreur franche vaut mieux. L'application ne fonctionne donc pas
- * hors ligne, et c'est un choix.
+ * L’APK peut réutiliser le document public anonyme au démarrage.
+ * Les données du compte et de la boutique sont toujours lues sur le réseau.
  */
 
 const VERSION = "tantana-v7";
 const CACHE_STATIQUE = `${VERSION}-statique`;
 const CACHE_POLICES = `${VERSION}-polices`;
+const cacheAccueil = VERSION + "-accueil";
+const domaineTantana = self.location.hostname === "tantana-suite.com";
+
+async function relireAccueil() {
+  const response = await fetch("/", {
+    credentials: "omit", cache: "no-cache", headers: { Accept: "text/html" },
+  });
+  if (response.ok && !response.redirected && response.headers.get("X-Tantana-Accueil-Public") === "1") {
+    try { await (await caches.open(cacheAccueil)).put("/", response.clone()); }
+    catch { /* Un cache plein ne doit pas bloquer le document reçu. */ }
+  }
+  return response;
+}
+
+self.addEventListener("message", event => {
+  if (domaineTantana && event.data === "preparer-accueil-apk" &&
+      event.source?.url && new URL(event.source.url).origin === self.location.origin) {
+    event.waitUntil((async () => {
+      const cached = await (await caches.open(cacheAccueil)).match("/");
+      if (!cached) await relireAccueil();
+    })().catch(() => {}));
+  }
+});
 
 // Les fichiers d'assets portent une empreinte dans leur nom : un contenu
 // modifié change de nom. Ils sont donc immuables, et les garder en cache
@@ -76,7 +88,20 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  // Navigations et appels de données : réseau, sans intermédiaire.
+  // Seule l’entrée publique de l’APK peut être servie localement.
+  if (domaineTantana && request.mode === "navigate" && url.origin === self.location.origin &&
+      url.pathname === "/" && !url.search && request.cache !== "reload" &&
+      !request.headers.has("authorization") &&
+      / TantanaAndroid(?:Essai)?\//.test(request.headers.get("user-agent") || self.navigator.userAgent)) {
+    const fresh = relireAccueil();
+    event.waitUntil(fresh.then(() => {}, () => {}));
+    event.respondWith((async () => {
+      const cached = await caches.match("/", { cacheName: cacheAccueil }).catch(() => undefined);
+      const age = Date.now() - Date.parse(cached?.headers.get("date") || "");
+      return cached && age >= 0 && age < 86400000 ? cached : fresh;
+    })());
+    return;
+  }
   if (request.mode === "navigate") return;
   if (url.hostname.endsWith(".supabase.co")) return;
 

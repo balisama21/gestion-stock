@@ -26,6 +26,8 @@ public final class EcranTantana extends Activity {
     private LinearLayout connexion;
     private TextView messageConnexion;
     private Button reessayer;
+    private Button compte;
+    private boolean ouvrirCompte;
     private boolean navigationEnErreur;
     private String destination = SITE.toString();
     private final Runnable attenteLongue = () -> {
@@ -129,6 +131,14 @@ public final class EcranTantana extends Activity {
         messageConnexion.setTextColor(Color.parseColor("#243B31"));
         messageConnexion.setAccessibilityLiveRegion(View.ACCESSIBILITY_LIVE_REGION_POLITE);
         connexion.addView(messageConnexion);
+        compte = new Button(this);
+        compte.setText("Mon compte");
+        compte.setOnClickListener(v -> {
+            ouvrirCompte = true;
+            compte.setEnabled(false);
+            compte.setText("Mon compte sélectionné");
+        });
+        connexion.addView(compte);
         reessayer = new Button(this);
         reessayer.setText("Réessayer");
         reessayer.setOnClickListener(v -> {
@@ -144,12 +154,18 @@ public final class EcranTantana extends Activity {
         messageConnexion.setText("Ouverture de Tantana…");
         reessayer.setVisibility(View.GONE);
         connexion.setVisibility(View.VISIBLE);
-        connexion.postDelayed(attenteLongue, 8000);
+        connexion.postDelayed(attenteLongue, 3000);
     }
 
     private void masquerConnexion() {
         connexion.removeCallbacks(attenteLongue);
         connexion.setVisibility(View.GONE);
+        if (ouvrirCompte && page.getUrl() != null && trusted(Uri.parse(page.getUrl()))) {
+            page.evaluateJavascript("if(location.pathname==='/' && !location.search && !location.hash) location.replace('#ouvrir-compte');", null);
+            ouvrirCompte = false;
+            compte.setText("Mon compte");
+            compte.setEnabled(true);
+        }
     }
 
     private void echecConnexion(WebResourceRequest request) {

@@ -143,6 +143,18 @@ export default {
       const response = await hoteDeLaRequete.run(url.hostname, () =>
         marqueDeLaRequete.run(marque, () => handler.fetch(request, env, ctx)),
       );
+      // Le document initial est public. Les données du compte arrivent côté client.
+      if (request.method === "GET" && url.hostname === "tantana-suite.com" &&
+          url.pathname === "/" && !url.search && response.status === 200 &&
+          !request.headers.has("authorization") && !request.headers.has("cookie") &&
+          !response.headers.has("set-cookie") && response.headers.get("content-type")?.includes("text/html") &&
+          !/private|no-store/i.test(response.headers.get("cache-control") ?? "")) {
+        const headers = new Headers(response.headers);
+        headers.set("Cache-Control", "private, max-age=60, stale-while-revalidate=86400");
+        headers.set("X-Tantana-Accueil-Public", "1");
+        headers.append("Vary", "Cookie, Authorization");
+        return new Response(response.body, {status: response.status, headers});
+      }
       return await normalizeCatastrophicSsrResponse(response);
     } catch (error) {
       console.error(error);
