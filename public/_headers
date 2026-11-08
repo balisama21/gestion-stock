@@ -38,3 +38,6 @@
 # modifié change de nom. Ils peuvent donc être gardés indéfiniment.
 /assets/*
   Cache-Control: public, max-age=31536000, immutable
+
+/telechargements/versions.json
+  Cache-Control: no-store

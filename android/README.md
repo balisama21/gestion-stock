@@ -28,3 +28,9 @@ try {
 ```
 
 L’empreinte SHA-256 du premier certificat est `f91e26b1078cedb881d032ae42ec80c17ba47f7f0828aa86836d5b22cb6f2ee0`. Déployer le site et l’APK ensemble pour activer le téléchargement depuis la bannière Android.
+
+Après la signature des deux APK dans public/telechargements, exécuter
+`./android/versions.ps1 -BuildTools .android-local/tools/android-15` puis publier
+les deux fichiers et versions.json ensemble. Incrémenter le versionCode de chaque
+nouvelle édition. Les applications installées vérifient le catalogue au premier
+plan et comparent son empreinte SHA-256 avant de proposer le fichier à Android.

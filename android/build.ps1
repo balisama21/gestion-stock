@@ -23,7 +23,7 @@ $activity = "$PSScriptRoot/src/EcranTantana.java"
 if ($EssaiBarre) { $manifest = "$PSScriptRoot/essai/AndroidManifest.xml" }
 Run "$bt/aapt2.exe" @('compile','--dir',"$PSScriptRoot/res",'-o',"$out/resources.zip")
 Run "$bt/aapt2.exe" @('link','-I',$platform,'--manifest',$manifest,'-o',"$out/resources.apk","$out/resources.zip")
-Run "$Jdk/bin/javac.exe" @('-encoding','UTF-8','--release','8','-classpath',"$platform;$classes",'-d',$classes,$activity,"$PSScriptRoot/src/RappelsAndroid.java","$PSScriptRoot/src/ExportAndroid.java")
+Run "$Jdk/bin/javac.exe" @('-encoding','UTF-8','--release','8','-classpath',"$platform;$classes",'-d',$classes,$activity,"$PSScriptRoot/src/RappelsAndroid.java","$PSScriptRoot/src/ExportAndroid.java","$PSScriptRoot/src/MiseAJourAndroid.java")
 Run "$Jdk/bin/jar.exe" @("-J-Djava.io.tmpdir=$out",'cf',"$out/classes.jar",'-C',$classes,'.')
 Run "$Jdk/bin/java.exe" @('-cp',"$bt/lib/d8.jar",'com.android.tools.r8.D8','--release','--min-api','26','--lib',$platform,'--output',$out,"$out/classes.jar")
 Run "$bt/aapt.exe" @('version')

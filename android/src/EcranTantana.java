@@ -34,6 +34,7 @@ public final class EcranTantana extends Activity {
     };
     private WebView page;
     private ExportAndroid exports;
+    private MiseAJourAndroid misesAJour;
     private WebMessagePort colors;
     private ValueCallback<Uri[]> files;
     private int topInset;
@@ -52,6 +53,7 @@ public final class EcranTantana extends Activity {
             | View.SYSTEM_UI_FLAG_LAYOUT_STABLE | View.SYSTEM_UI_FLAG_LAYOUT_HIDE_NAVIGATION);
         frame = new FrameLayout(this);
         exports = new ExportAndroid(this);
+        misesAJour = new MiseAJourAndroid(this);
         page = new WebView(this);
         frame.addView(page, -1, -1);
         preparerConnexion();
@@ -264,7 +266,13 @@ public final class EcranTantana extends Activity {
 
     @Override protected void onResume() {
         super.onResume();
+        misesAJour.resume();
         refreshReminders();
+    }
+
+    @Override protected void onPause() {
+        misesAJour.pause();
+        super.onPause();
     }
 
     private void refreshReminders() {

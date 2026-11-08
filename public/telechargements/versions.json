@@ -1,0 +1,12 @@
+{
+  "com.tantanasuite.app": {
+    "code": 10,
+    "version": "1.11",
+    "sha256": "9cab6edeeb5c76b9672f1bb5e4be71563cacc0364593d91278ae420ac4ec5d35"
+  },
+  "com.tantanasuite.app.essai": {
+    "code": 10,
+    "version": "1.11",
+    "sha256": "7df665540433bbbd268a2afbf1dc8b288fdf7f606320f60bfe111e4c675156f6"
+  }
+}
