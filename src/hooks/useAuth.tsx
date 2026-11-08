@@ -183,10 +183,7 @@ export function useAuthState(): AuthState & AuthActions {
         // App() (BalsamaApp.tsx) prend alors le relais normalement (même
         // logique que pour un compte email/mot de passe : boutique
         // existante → dashboard, aucune boutique → CreateStoreOnboarding).
-        redirectTo: new URL(
-          retourGoogleAndroid ? "/android/retour.html" : "/",
-          window.location.origin,
-        ).href,
+        redirectTo: new URL(retourGoogleAndroid ?? "/", window.location.origin).href,
       },
     });
     return { error: error?.message ?? null };

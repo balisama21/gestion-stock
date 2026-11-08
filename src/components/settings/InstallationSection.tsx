@@ -73,7 +73,7 @@ export const InstallationSection: React.FC = () => {
       description={`Installer ${marque.nom} sur cet appareil, pour l'ouvrir depuis l'écran d'accueil.`}
       icon={<Smartphone className="h-4 w-4" />}
     >
-      {apk ? (
+      {apk && !installee ? (
         <SettingsRow
           label="Application Android"
           hint="Ouvrez le fichier APK téléchargé pour installer l’application."

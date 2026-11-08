@@ -6,7 +6,10 @@
   "dir": "ltr",
   "start_url": "/",
   "scope": "/",
-  "related_applications": [{ "platform": "play", "id": "com.tantanasuite.app" }],
+  "related_applications": [
+    { "platform": "play", "id": "com.tantanasuite.app" },
+    { "platform": "play", "id": "com.tantanasuite.app.essai" }
+  ],
   "display": "standalone",
   "orientation": "portrait",
   "theme_color": "#f7f8f5",

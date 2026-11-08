@@ -1,4 +1,4 @@
-package com.tantanasuite.app.essai;
+package com.tantanasuite.app;
 
 import android.app.Activity;
 import android.content.ActivityNotFoundException;
@@ -51,7 +51,7 @@ public final class EcranTantana extends Activity {
         settings.setAllowFileAccess(false);
         settings.setAllowContentAccess(false);
         settings.setMixedContentMode(WebSettings.MIXED_CONTENT_NEVER_ALLOW);
-        settings.setUserAgentString(settings.getUserAgentString() + " TantanaAndroidEssai/2");
+        settings.setUserAgentString(settings.getUserAgentString() + (ancienneEdition() ? " TantanaAndroidEssai/2" : " TantanaAndroid/2"));
         page.setWebViewClient(new WebViewClient() {
             @Override public boolean shouldOverrideUrlLoading(WebView view, WebResourceRequest request) {
                 Uri url = request.getUrl();
@@ -81,6 +81,8 @@ public final class EcranTantana extends Activity {
         if (!resumeGoogle(getIntent()) && (state == null || page.restoreState(state) == null)) page.loadUrl(SITE.toString());
     }
 
+    private boolean ancienneEdition() { return "com.tantanasuite.app.essai".equals(getPackageName()); }
+
     private void updateInset() {
         if (page.getUrl() == null || !trusted(Uri.parse(page.getUrl()))) return;
         page.evaluateJavascript("document.documentElement.style.setProperty('--tantana-inset-native',("
@@ -96,7 +98,7 @@ public final class EcranTantana extends Activity {
     private boolean resumeGoogle(Intent intent) {
         Uri url = intent.getData();
         if (!Intent.ACTION_VIEW.equals(intent.getAction()) || url == null || !trusted(url)
-            || !"/android/retour.html".equals(url.getEncodedPath())) return false;
+            || !(ancienneEdition() ? "/android/retour.html" : "/android/connexion.html").equals(url.getEncodedPath())) return false;
         // Ne transmettre que le code PKCE. Le vérificateur reste dans le stockage de cette WebView.
         String code = url.getQueryParameter("code");
         if (code == null || !code.matches("[A-Za-z0-9_-]{16,256}")) {

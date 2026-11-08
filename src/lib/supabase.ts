@@ -7,8 +7,12 @@ if (!supabaseUrl || !supabaseAnonKey) {
   throw new Error("Missing Supabase environment variables. Check your .env file.");
 }
 
-export const retourGoogleAndroid =
-  typeof navigator !== "undefined" && / TantanaAndroidEssai\/2\b/.test(navigator.userAgent);
+const agentAndroid = typeof navigator === "undefined" ? "" : navigator.userAgent;
+export const retourGoogleAndroid = / TantanaAndroid\/2\b/.test(agentAndroid)
+  ? "/android/connexion.html"
+  : / TantanaAndroidEssai\/2\b/.test(agentAndroid)
+    ? "/android/retour.html"
+    : null;
 
 export const supabase: SupabaseClient = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {

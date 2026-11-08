@@ -1,6 +1,6 @@
 # Tantana pour Android
 
-L’APK distribué par le site se trouve dans `public/telechargements/tantana.apk`. La version 1.2 ouvre le SaaS de production dans une Trusted Web Activity. Les écrans, les droits et les données sont ceux du site. Un navigateur compatible vérifie l’association du domaine au certificat Android pour masquer la barre d’adresse. Les autres navigateurs peuvent afficher leur interface habituelle. Déployer aussi le fichier /.well-known/assetlinks.json sur le domaine HTTPS de lancement.
+L’APK distribué par le site se trouve dans `public/telechargements/tantana.apk`. La version 1.5 affiche le SaaS dans la fenêtre Android validée sur téléphone. Le lien Google officiel revient sur /android/connexion.html. Pour les installations précédemment nommées Tantana Essai, compiler aussi avec -EssaiBarre et signer le résultat sous telechargements/tantana-essai.apk. Cette édition garde son identifiant et son lien de retour historiques.
 
 ## Préparer une mise à jour
 
@@ -10,7 +10,7 @@ Augmenter `versionCode` dans `AndroidManifest.xml` et conserver le nom de paquet
 ./android/build.ps1 -Jdk $env:JAVA_HOME -BuildTools "$env:ANDROID_HOME/build-tools/35.0.0" -AndroidJar "$env:ANDROID_HOME/platforms/android-35/android.jar"
 ```
 
-Le script récupère les interfaces Custom Tabs depuis Google Maven et vérifie leur archive. Il produit `.android-local/tantana-unsigned.apk`. Utiliser la clé d’origine pour chaque nouvelle version. Sur le poste de la première compilation, le magasin PKCS12 et son mot de passe protégé par Windows se trouvent dans `%USERPROFILE%\.android\tantana-signing`. Pour une sauvegarde transférable, conserver une copie sécurisée du magasin et sauvegarder son mot de passe dans un gestionnaire de secrets. Le fichier DPAPI dépend du profil Windows qui l’a créé.
+Il produit `.android-local/tantana-unsigned.apk`. Utiliser la clé d’origine pour chaque nouvelle version. Sur le poste de la première compilation, le magasin PKCS12 et son mot de passe protégé par Windows se trouvent dans `%USERPROFILE%\.android\tantana-signing`. Pour une sauvegarde transférable, conserver une copie sécurisée du magasin et sauvegarder son mot de passe dans un gestionnaire de secrets. Le fichier DPAPI dépend du profil Windows qui l’a créé.
 
 ```powershell
 $signature = Join-Path $env:USERPROFILE '.android/tantana-signing'

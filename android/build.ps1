@@ -19,22 +19,8 @@ function Run($tool, [string[]]$arguments) {
 }
 
 $manifest = "$PSScriptRoot/AndroidManifest.xml"
-$activity = "$PSScriptRoot/src/TantanaActivity.java"
-if ($EssaiBarre) {
-    $manifest = "$PSScriptRoot/essai/AndroidManifest.xml"
-    $activity = "$PSScriptRoot/essai/EcranTantana.java"
-} else {
-    $aar = Join-Path $root '.android-local/browser-1.3.0.aar'
-    if (!(Test-Path $aar)) {
-        Invoke-WebRequest 'https://dl.google.com/dl/android/maven2/androidx/browser/browser/1.3.0/browser-1.3.0.aar' -OutFile $aar
-    }
-    if ((Get-FileHash $aar).Hash -ne 'E740B1BEEAC82303415D68BEE9D5C1F259716F560A829CA07C7CE97E60850E1B') { throw 'Archive AndroidX incorrecte' }
-    # Interfaces Binder officielles du protocole Custom Tabs, sans les composants UI AndroidX.
-    Push-Location $out
-    try { Run "$Jdk/bin/jar.exe" @('xf',$aar,'classes.jar') } finally { Pop-Location }
-    Push-Location $classes
-    try { Run "$Jdk/bin/jar.exe" @('xf',"$out/classes.jar",'android/support/customtabs') } finally { Pop-Location }
-}
+$activity = "$PSScriptRoot/src/EcranTantana.java"
+if ($EssaiBarre) { $manifest = "$PSScriptRoot/essai/AndroidManifest.xml" }
 Run "$bt/aapt2.exe" @('compile','--dir',"$PSScriptRoot/res",'-o',"$out/resources.zip")
 Run "$bt/aapt2.exe" @('link','-I',$platform,'--manifest',$manifest,'-o',"$out/resources.apk","$out/resources.zip")
 Run "$Jdk/bin/javac.exe" @('-encoding','UTF-8','--release','8','-classpath',"$platform;$classes",'-d',$classes,$activity)

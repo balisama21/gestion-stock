@@ -31,7 +31,7 @@ export function enregistrerServiceWorker(): void {
 export function estInstallee(): boolean {
   if (typeof window === "undefined") return false;
   return (
-    navigator.userAgent.includes(" TantanaAndroidEssai/") ||
+    / TantanaAndroid(?:Essai)?\//.test(navigator.userAgent) ||
     window.matchMedia("(display-mode: standalone)").matches ||
     // Safari sur iOS n'expose pas `display-mode` et utilise ce drapeau
     // propriétaire, non standard, absent des types du DOM.
@@ -53,7 +53,7 @@ export function estIOS(): boolean {
 /** Chemin de l'APK signé hébergé sur le domaine de Tantana, configuré à la publication. */
 export function cheminApkAndroid(parDefaut: boolean): string | null {
   const chemin = import.meta.env.VITE_ANDROID_APK_PATH ?? "/telechargements/tantana.apk";
-  if (!parDefaut || typeof navigator === "undefined" || !/Android/i.test(navigator.userAgent)) {
+  if (!parDefaut || typeof navigator === "undefined" || estIOS()) {
     return null;
   }
   return typeof chemin === "string" && /^\/(?:[\w-]+\/)*[\w.-]+\.apk$/.test(chemin) ? chemin : null;
@@ -67,8 +67,11 @@ export async function apkTantanaInstalle(): Promise<boolean> {
   try {
     const applications = await navigateur.getInstalledRelatedApps?.();
     return (
-      applications?.some((app) => app.platform === "play" && app.id === "com.tantanasuite.app") ??
-      false
+      applications?.some(
+        (app) =>
+          app.platform === "play" &&
+          ["com.tantanasuite.app", "com.tantanasuite.app.essai"].includes(app.id ?? ""),
+      ) ?? false
     );
   } catch {
     return false;

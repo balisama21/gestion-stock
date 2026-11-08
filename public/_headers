@@ -22,7 +22,7 @@
   Content-Disposition: attachment; filename="tantana-essai.apk"
   Cache-Control: no-cache
 
-/android/retour.html
+/android/*.html
   Cache-Control: no-store
   Referrer-Policy: no-referrer
   X-Frame-Options: DENY

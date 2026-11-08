@@ -153,15 +153,17 @@ export const InstallPrompt: React.FC = () => {
         )}
 
         <div className="min-w-0 flex-1">
-          <p className="text-sm font-semibold text-foreground">Installer {marque.nom}</p>
+          <p className="text-sm font-semibold text-foreground">
+            Installer {apk ? "Tantana" : marque.nom}
+          </p>
 
           {apk ? (
             <>
               <p className="mt-1 text-xs text-muted-foreground">
-                Ouvrez le fichier APK téléchargé et confirmez l’installation sur votre téléphone.
+                Ouvrez le fichier tantana.apk sur votre téléphone Android pour installer Tantana.
               </p>
               <a href={apk} download className="app-btn-primary mt-3 w-full text-xs">
-                Télécharger l’application Android
+                Télécharger l’APK Android
               </a>
             </>
           ) : ios ? (
