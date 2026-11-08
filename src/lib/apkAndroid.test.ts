@@ -5,7 +5,7 @@ afterEach(() => vi.restoreAllMocks());
 
 it.each([
   ["Android", true, "/telechargements/tantana.apk"],
-  ["Windows NT 10.0", true, "/telechargements/tantana.apk"],
+  ["Windows NT 10.0", true, null],
   ["iPhone", true, null],
   ["Android", false, null],
 ])("choisit le téléchargement pour %s, marque Tantana %s", (agent, tantana, chemin) => {

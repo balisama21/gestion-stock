@@ -53,7 +53,7 @@ export function estIOS(): boolean {
 /** Chemin de l'APK signé hébergé sur le domaine de Tantana, configuré à la publication. */
 export function cheminApkAndroid(parDefaut: boolean): string | null {
   const chemin = import.meta.env.VITE_ANDROID_APK_PATH ?? "/telechargements/tantana.apk";
-  if (!parDefaut || typeof navigator === "undefined" || estIOS()) {
+  if (!parDefaut || typeof navigator === "undefined" || !/Android/i.test(navigator.userAgent)) {
     return null;
   }
   return typeof chemin === "string" && /^\/(?:[\w-]+\/)*[\w.-]+\.apk$/.test(chemin) ? chemin : null;

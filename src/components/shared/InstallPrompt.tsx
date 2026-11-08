@@ -154,18 +154,13 @@ export const InstallPrompt: React.FC = () => {
 
         <div className="min-w-0 flex-1">
           <p className="text-sm font-semibold text-foreground">
-            Installer {apk ? "Tantana" : marque.nom}
+            Installer {marque.parDefaut ? "Tantana" : marque.nom}
           </p>
 
           {apk ? (
-            <>
-              <p className="mt-1 text-xs text-muted-foreground">
-                Ouvrez le fichier tantana.apk sur votre téléphone Android pour installer Tantana.
-              </p>
-              <a href={apk} download className="app-btn-primary mt-3 w-full text-xs">
-                Télécharger l’APK Android
-              </a>
-            </>
+            <a href={apk} download className="app-btn-primary mt-3 w-full text-xs">
+              Télécharger l’APK Android
+            </a>
           ) : ios ? (
             <p className="mt-1 flex flex-wrap items-center gap-x-1.5 gap-y-1 text-xs leading-relaxed text-muted-foreground">
               <span>Dans Safari, appuyez sur Partager</span>
@@ -175,15 +170,10 @@ export const InstallPrompt: React.FC = () => {
               <span>« Sur l'écran d'accueil ».</span>
             </p>
           ) : (
-            <>
-              <p className="mt-1 text-xs leading-relaxed text-muted-foreground">
-                Accès direct depuis l'écran d'accueil, sans barre d'adresse.
-              </p>
-              <button onClick={installer} className="app-btn-primary mt-3 w-full text-xs">
-                <Download className="h-4 w-4" />
-                Installer la version web
-              </button>
-            </>
+            <button onClick={installer} className="app-btn-primary mt-3 w-full text-xs">
+              <Download className="h-4 w-4" />
+              Télécharger l’application
+            </button>
           )}
           <button onClick={fermer} className="mt-2 text-xs underline">
             Continuer sur le web
