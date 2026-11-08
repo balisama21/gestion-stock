@@ -1,5 +1,5 @@
 import { desactiverRappelsPush } from "../lib/rappelsPush";
-import { useState, useEffect, useCallback, createContext, useContext } from "react";
+import { useState, useRef, useEffect, useCallback, createContext, useContext } from "react";
 import type { User, Session } from "@supabase/supabase-js";
 import { retourGoogleAndroid, supabase } from "../lib/supabase";
 import { oublierBoutiqueActive } from "../lib/boutiqueActive";
@@ -65,13 +65,19 @@ export function useAuthState(): AuthState & AuthActions {
   const [loading, setLoading] = useState(true);
   const [isPasswordRecovery, setIsPasswordRecovery] = useState(false);
 
+  const compteActif = useRef<string | null>(null);
+  const lecture = useRef(0);
   const fetchProfile = useCallback(async (userId: string) => {
+    if (compteActif.current !== userId) return;
+    const numero = ++lecture.current;
+    const actuelle = () => numero === lecture.current && compteActif.current === userId;
     const { data, error } = await supabase
       .from("profiles")
       .select("*")
       .eq("id", userId)
       .maybeSingle();
 
+    if (!actuelle()) return;
     if (error && error.code !== "PGRST116") {
       console.error("Profile fetch error:", error);
       setProfileError("Fetch error: " + error.message);
@@ -86,6 +92,7 @@ export function useAuthState(): AuthState & AuthActions {
 
     try {
       const { data: userData } = await supabase.auth.getUser();
+      if (!actuelle() || userData.user?.id !== userId) return;
       const fallbackProfile = {
         id: userId,
         email: userData.user?.email ?? "",
@@ -109,6 +116,7 @@ export function useAuthState(): AuthState & AuthActions {
         .select("*")
         .single();
 
+      if (!actuelle()) return;
       if (!insertError && inserted) {
         setProfile(inserted);
         setProfileError(null);
@@ -116,27 +124,20 @@ export function useAuthState(): AuthState & AuthActions {
         setProfileError("Insert error: " + insertError.message);
       }
     } catch (createError: any) {
+      if (!actuelle()) return;
       console.error("Profile creation fallback failed:", createError);
       setProfileError("Catch error: " + createError.message);
     }
   }, []);
 
   useEffect(() => {
-    // Initialize session
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setSession(session);
-      setUser(session?.user ?? null);
-      if (session?.user) {
-        fetchProfile(session.user.id).finally(() => setLoading(false));
-      } else {
-        setLoading(false);
-      }
-    });
-
-    // Listen for auth changes
+    let enCours = false;
+    let generation = 0;
+    let minuterie: number | undefined;
+    // INITIAL_SESSION fournit aussi la session restaurée au démarrage.
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (_event, session) => {
+    } = supabase.auth.onAuthStateChange((_event, session) => {
       if (_event === "SIGNED_OUT") {
         window.tantanaRappels?.({ action: "clear" });
         void desactiverRappelsPush().catch(() => {});
@@ -151,15 +152,44 @@ export function useAuthState(): AuthState & AuthActions {
       }
       setSession(session);
       setUser(session?.user ?? null);
-      if (session?.user) {
-        await fetchProfile(session.user.id);
-      } else {
+      const id = session?.user.id ?? null;
+      if (compteActif.current !== id) {
+        compteActif.current = id;
+        generation++;
+        enCours = false;
+        window.clearTimeout(minuterie);
         setProfile(null);
+        setProfileError(null);
+        setLoading(Boolean(id));
       }
-      setLoading(false);
+      if (!id) {
+        setLoading(false);
+        return;
+      }
+      if (enCours) return;
+      enCours = true;
+      const courante = generation;
+      // Le callback doit rendre la main avant un appel utilisant le même client Auth.
+      minuterie = window.setTimeout(() => {
+        void fetchProfile(id)
+          .catch((error) => {
+            if (generation === courante) setProfileError(String(error));
+          })
+          .finally(() => {
+            if (generation !== courante) return;
+            enCours = false;
+            setLoading(false);
+          });
+      }, 0);
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      generation++;
+      lecture.current++;
+      compteActif.current = null;
+      window.clearTimeout(minuterie);
+      subscription.unsubscribe();
+    };
   }, [fetchProfile]);
 
   const signIn = useCallback(async (email: string, password: string) => {
