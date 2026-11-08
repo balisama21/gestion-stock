@@ -377,7 +377,7 @@ html {
    n'intercepte aucun geste. */
 :root {
   --papier-accueil: #fdfcfa;
-  --fond-barre-etat: var(--card);
+  --fond-barre-etat: var(--background);
 }
 :root[data-accueil-tantana] {
   --fond-barre-etat: var(--papier-accueil);
@@ -392,6 +392,15 @@ body::before {
   background-color: var(--fond-barre-etat);
   z-index: 200;
   pointer-events: none;
+}
+
+@media screen {
+  .page-accueil > .sticky:first-child {
+    padding-top: env(safe-area-inset-top, 0px);
+  }
+  .app-modal-overlay.fixed {
+    top: env(safe-area-inset-top, 0px);
+  }
 }
 
 .dark,

@@ -13,7 +13,7 @@ import { useEffect, type ReactNode } from "react";
 import appCss from "../styles.css?url";
 import { installerRepriseApresDeploiement } from "../lib/chunkRecovery";
 import { enregistrerServiceWorker } from "../lib/pwa";
-import { accorderLaBarreDEtat, viewportTantana } from "../lib/couleurDeBarre";
+import { accorderLaBarreDEtat } from "../lib/couleurDeBarre";
 import { InstallPrompt } from "../components/shared/InstallPrompt";
 import { APP_TITRE_SEO } from "../lib/appConfig";
 import { metasDeReferencement } from "../lib/seo";
@@ -95,10 +95,10 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
     return {
       meta: [
         { charSet: "utf-8" },
-        // Android installé réserve la zone système, y compris sur les écrans à encoche.
+        // Le fond couvre la zone système, les commandes respectent safe-area-inset-top.
         {
           name: "viewport",
-          content: viewportTantana(),
+          content: "width=device-width, initial-scale=1, viewport-fit=cover",
         },
         { title: titre },
         // Référencement et aperçus : lus par les robots, donc dans le
@@ -115,7 +115,7 @@ export const Route = createRootRouteWithContext<{ queryClient: QueryClient }>()(
         // affiche. Une seule balise ici, et c'est necessaire : le
         // gestionnaire d'en-tete dedoublonne les metas par leur `name` et
         // n'en garderait qu'une de toute facon.
-        { name: "theme-color", content: "#ffffff" },
+        { name: "theme-color", content: "#f7f8f5" },
         { name: "mobile-web-app-capable", content: "yes" },
         { name: "apple-mobile-web-app-capable", content: "yes" },
         { name: "apple-mobile-web-app-status-bar-style", content: "default" },
