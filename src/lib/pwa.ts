@@ -49,6 +49,31 @@ export function estIOS(): boolean {
   );
 }
 
+/** Chemin de l'APK signé hébergé sur le domaine de Tantana, configuré à la publication. */
+export function cheminApkAndroid(parDefaut: boolean): string | null {
+  const chemin = import.meta.env.VITE_ANDROID_APK_PATH ?? "/telechargements/tantana.apk";
+  if (!parDefaut || typeof navigator === "undefined" || !/Android/i.test(navigator.userAgent)) {
+    return null;
+  }
+  return typeof chemin === "string" && /^\/(?:[\w-]+\/)*[\w.-]+\.apk$/.test(chemin) ? chemin : null;
+}
+
+/** L'APK doit déclarer le domaine Tantana dans ses asset_statements. */
+export async function apkTantanaInstalle(): Promise<boolean> {
+  const navigateur = navigator as Navigator & {
+    getInstalledRelatedApps?: () => Promise<{ platform: string; id?: string }[]>;
+  };
+  try {
+    const applications = await navigateur.getInstalledRelatedApps?.();
+    return (
+      applications?.some((app) => app.platform === "play" && app.id === "com.tantanasuite.app") ??
+      false
+    );
+  } catch {
+    return false;
+  }
+}
+
 /**
  * Événement d'installation de Chrome, capté au plus tôt.
  *
@@ -91,9 +116,7 @@ export function evenementInstallationCapte(): EvenementInstallation | null {
 }
 
 /** S'abonne aux événements à venir. Renvoie de quoi se désabonner. */
-export function surEvenementInstallation(
-  fn: (e: EvenementInstallation) => void,
-): () => void {
+export function surEvenementInstallation(fn: (e: EvenementInstallation) => void): () => void {
   abonnes.add(fn);
   return () => abonnes.delete(fn);
 }

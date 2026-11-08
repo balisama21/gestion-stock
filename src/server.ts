@@ -1,6 +1,7 @@
 import "./lib/error-capture";
 
 import { AsyncLocalStorage } from "node:async_hooks";
+import associationAndroid from "../public/.well-known/assetlinks.json?raw";
 import { consumeLastCapturedError } from "./lib/error-capture";
 import { renderErrorPage } from "./lib/error-page";
 import { MANIFESTE_DE_MARQUE, MANIFESTE_PAR_DEFAUT, type Marque } from "./lib/marque";
@@ -62,6 +63,14 @@ export default {
   async fetch(request: Request, env: unknown, ctx: unknown) {
     try {
       const url = new URL(request.url);
+      if (url.pathname === "/.well-known/assetlinks.json") {
+        if (!["tantana-suite.com", "www.tantana-suite.com"].includes(url.hostname)) {
+          return new Response(null, { status: 404 });
+        }
+        return new Response(request.method === "HEAD" ? null : associationAndroid, {
+          headers: { "content-type": "application/json", "cache-control": "public, max-age=300" },
+        });
+      }
       const icone = lireCheminIconeRepli(url.pathname);
       const robots = url.pathname === "/robots.txt";
       const sitemap = url.pathname === "/sitemap.xml";

@@ -1,0 +1,30 @@
+# Tantana pour Android
+
+L’APK distribué par le site se trouve dans `public/telechargements/tantana.apk`. La version 1.1 ouvre le SaaS de production dans une Trusted Web Activity. Les écrans, les droits et les données sont ceux du site. Un navigateur compatible vérifie l’association du domaine au certificat Android pour masquer la barre d’adresse. Les autres navigateurs peuvent afficher leur interface habituelle. Déployer aussi le fichier /.well-known/assetlinks.json sur le domaine HTTPS de lancement.
+
+## Préparer une mise à jour
+
+Augmenter `versionCode` dans `AndroidManifest.xml` et conserver le nom de paquet `com.tantanasuite.app`. Depuis la racine du dépôt, exécuter sous PowerShell avec un JDK 17, les Android Build Tools 35 et la plateforme Android 35.
+
+```powershell
+./android/build.ps1 -Jdk $env:JAVA_HOME -BuildTools "$env:ANDROID_HOME/build-tools/35.0.0" -AndroidJar "$env:ANDROID_HOME/platforms/android-35/android.jar"
+```
+
+Le script récupère les interfaces Custom Tabs depuis Google Maven et vérifie leur archive. Il produit `.android-local/tantana-unsigned.apk`. Utiliser la clé d’origine pour chaque nouvelle version. Sur le poste de la première compilation, le magasin PKCS12 et son mot de passe protégé par Windows se trouvent dans `%USERPROFILE%\.android\tantana-signing`. Pour une sauvegarde transférable, conserver une copie sécurisée du magasin et sauvegarder son mot de passe dans un gestionnaire de secrets. Le fichier DPAPI dépend du profil Windows qui l’a créé.
+
+```powershell
+$signature = Join-Path $env:USERPROFILE '.android/tantana-signing'
+$secret = Get-Content "$signature/mot-de-passe.dpapi" | ConvertTo-SecureString
+$env:TANTANA_KS_PASS = [Net.NetworkCredential]::new('', $secret).Password
+$signer = "$env:ANDROID_HOME/build-tools/35.0.0/apksigner.bat"
+try {
+    & $signer sign --ks "$signature/tantana.p12" --ks-key-alias tantana --ks-pass env:TANTANA_KS_PASS --v4-signing-enabled false --out public/telechargements/tantana.apk .android-local/tantana-unsigned.apk
+    if ($LASTEXITCODE -ne 0) { throw 'Échec de signature' }
+    & $signer verify --verbose --print-certs public/telechargements/tantana.apk
+    if ($LASTEXITCODE -ne 0) { throw 'Échec de vérification' }
+} finally {
+    Remove-Item Env:TANTANA_KS_PASS
+}
+```
+
+L’empreinte SHA-256 du premier certificat est `f91e26b1078cedb881d032ae42ec80c17ba47f7f0828aa86836d5b22cb6f2ee0`. Déployer le site et l’APK ensemble pour activer le téléchargement depuis la bannière Android.

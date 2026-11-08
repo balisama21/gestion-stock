@@ -10,6 +10,20 @@ afterEach(() => {
 const demander = (chemin: string, init?: RequestInit) =>
   serveur.fetch(new Request(`https://injoignable.mg${chemin}`, init), {}, {});
 
+it("sert directement l’association Android attendue par Chrome", async () => {
+  const url = "https://tantana-suite.com/.well-known/assetlinks.json";
+  const reponse = await serveur.fetch(new Request(url), {}, {});
+  expect(reponse.status).toBe(200);
+  expect(reponse.headers.get("location")).toBeNull();
+  expect(reponse.headers.get("content-type")).toBe("application/json");
+  const [association] = await reponse.json();
+  expect(association.relation).toContain("delegate_permission/common.handle_all_urls");
+  expect(association.target.package_name).toBe("com.tantanasuite.app");
+  expect(association.target.sha256_cert_fingerprints).toContain(
+    "F9:1E:26:B1:07:8C:ED:B8:81:D0:32:AE:42:EC:80:C1:7B:A4:7F:7F:08:28:AA:86:83:6D:5B:22:CB:6F:2E:E0",
+  );
+});
+
 describe("manifeste d'un domaine client", () => {
   it("lecture de la marque en échec : 503, jamais le manifeste de Tantana", async () => {
     vi.stubEnv("VITE_SUPABASE_URL", "https://x.supabase.co");

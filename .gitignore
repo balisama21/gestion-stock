@@ -49,3 +49,4 @@ supabase/.temp/
 
 # Sauvegardes locales de la base (jamais versionnées)
 .sauvegardes/
+/.android-local/

@@ -3,6 +3,7 @@ import { Check, Download, Plus, Share, Smartphone } from "lucide-react";
 import { SettingsSection, SettingsRow, SettingsBlock } from "./primitives";
 import {
   estIOS,
+  cheminApkAndroid,
   estInstallee,
   evenementInstallationCapte,
   surEvenementInstallation,
@@ -32,6 +33,11 @@ export const InstallationSection: React.FC = () => {
   const [evenement, setEvenement] = useState<EvenementInstallation | null>(null);
   const [installee, setInstallee] = useState(false);
   const [ios, setIos] = useState(false);
+  const [apk, setApk] = useState<string | null>(null);
+
+  useEffect(() => {
+    setApk(cheminApkAndroid(marque.parDefaut));
+  }, [marque.parDefaut]);
 
   useEffect(() => {
     setInstallee(estInstallee());
@@ -67,7 +73,16 @@ export const InstallationSection: React.FC = () => {
       description={`Installer ${marque.nom} sur cet appareil, pour l'ouvrir depuis l'écran d'accueil.`}
       icon={<Smartphone className="h-4 w-4" />}
     >
-      {installee ? (
+      {apk ? (
+        <SettingsRow
+          label="Application Android"
+          hint="Ouvrez le fichier APK téléchargé pour installer l’application."
+        >
+          <a href={apk} download className="app-btn-primary w-full text-sm">
+            Télécharger l’application Android
+          </a>
+        </SettingsRow>
+      ) : installee ? (
         <SettingsBlock>
           <p className="flex items-center gap-2 text-sm text-muted-foreground">
             <Check className="h-4 w-4 shrink-0 t-success" />
@@ -91,7 +106,7 @@ export const InstallationSection: React.FC = () => {
         </SettingsBlock>
       ) : evenement ? (
         <SettingsRow
-          label="Installer sur cet appareil"
+          label="Installer la version web sur cet appareil"
           hint="Accès direct depuis l'écran d'accueil, sans barre d'adresse."
         >
           <button onClick={installer} className="app-btn-primary w-full text-sm">

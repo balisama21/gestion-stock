@@ -2,6 +2,8 @@ import React, { useEffect, useState } from "react";
 import { Download, Share, Plus, X } from "lucide-react";
 import {
   estIOS,
+  cheminApkAndroid,
+  apkTantanaInstalle,
   estInstallee,
   evenementInstallationCapte,
   surEvenementInstallation,
@@ -11,6 +13,8 @@ import { useMarque } from "../../hooks/useMarque";
 import { SANS_ICONE } from "../../lib/marque";
 
 const CLE_REFUS = "balsama-installation-refusee";
+const cleConfirmation = (ios: boolean) =>
+  ios ? "installation-ios-confirmee" : "installation-apk-confirmee";
 const JOURS_AVANT_NOUVELLE_PROPOSITION = 7;
 /** Laisse à l'utilisateur le temps d'arriver avant de lui proposer quoi que ce soit. */
 const DELAI_AVANT_AFFICHAGE_MS = 3000;
@@ -35,22 +39,6 @@ const memoriserRefus = () => {
   }
 };
 
-/**
- * Invitation à installer l'application sur le téléphone.
- *
- * Deux systèmes, deux comportements irréconciliables.
- *
- * Sur Android, Chrome émet `beforeinstallprompt`. On l'intercepte pour
- * empêcher la fenêtre native — impossible à styler, et qui surgit au
- * plus mauvais moment — et on garde l'événement sous le coude : le
- * bouton de notre bannière le rejoue au moment choisi par
- * l'utilisateur.
- *
- * Sur iOS, cet événement n'existe pas et Safari n'offre aucun moyen de
- * déclencher une installation depuis une page. La seule voie est le menu
- * Partager, qu'il faut donc expliquer. C'est une limite du système, pas
- * un manque de l'application.
- */
 export const InstallPrompt: React.FC = () => {
   const marque = useMarque();
   const icone = marque.parDefaut
@@ -61,15 +49,46 @@ export const InstallPrompt: React.FC = () => {
   const [evenement, setEvenement] = useState<EvenementInstallation | null>(null);
   const [visible, setVisible] = useState(false);
   const [ios, setIos] = useState(false);
+  const [apk, setApk] = useState<string | null>(null);
 
   useEffect(() => {
+    setVisible(false);
     if (estInstallee() || refusRecent()) return;
 
-    if (estIOS()) {
-      setIos(true);
-      const t = setTimeout(() => setVisible(true), DELAI_AVANT_AFFICHAGE_MS);
-      return () => clearTimeout(t);
+    const chemin = cheminApkAndroid(marque.parDefaut);
+    setApk(chemin);
+    if (estIOS() || chemin) {
+      const iphone = estIOS();
+      setIos(iphone);
+      let revision = 0;
+      const verifier = async () => {
+        const demande = ++revision;
+        if (document.hidden || estInstallee() || refusRecent()) {
+          setVisible(false);
+          return;
+        }
+        try {
+          if (localStorage.getItem(cleConfirmation(iphone))) {
+            setVisible(false);
+            return;
+          }
+        } catch {
+          /* Stockage indisponible. */
+        }
+        const installee = chemin ? await apkTantanaInstalle() : false;
+        if (revision === demande && !refusRecent()) setVisible(!installee);
+      };
+      const t = setTimeout(verifier, DELAI_AVANT_AFFICHAGE_MS);
+      document.addEventListener("visibilitychange", verifier);
+      window.addEventListener("pageshow", verifier);
+      return () => {
+        revision++;
+        clearTimeout(t);
+        document.removeEventListener("visibilitychange", verifier);
+        window.removeEventListener("pageshow", verifier);
+      };
     }
+    if (marque.parDefaut && /Android/i.test(navigator.userAgent)) return;
 
     let minuterie: number | undefined;
 
@@ -93,7 +112,7 @@ export const InstallPrompt: React.FC = () => {
       window.removeEventListener("appinstalled", surInstallation);
       if (minuterie) clearTimeout(minuterie);
     };
-  }, []);
+  }, [marque.parDefaut]);
 
   const installer = async () => {
     if (!evenement) return;
@@ -136,9 +155,18 @@ export const InstallPrompt: React.FC = () => {
         <div className="min-w-0 flex-1">
           <p className="text-sm font-semibold text-foreground">Installer {marque.nom}</p>
 
-          {ios ? (
+          {apk ? (
+            <>
+              <p className="mt-1 text-xs text-muted-foreground">
+                Ouvrez le fichier APK téléchargé et confirmez l’installation sur votre téléphone.
+              </p>
+              <a href={apk} download className="app-btn-primary mt-3 w-full text-xs">
+                Télécharger l’application Android
+              </a>
+            </>
+          ) : ios ? (
             <p className="mt-1 flex flex-wrap items-center gap-x-1.5 gap-y-1 text-xs leading-relaxed text-muted-foreground">
-              <span>Appuyez sur</span>
+              <span>Dans Safari, appuyez sur Partager</span>
               <Share className="inline h-3.5 w-3.5 shrink-0" aria-label="Partager" />
               <span>puis sur</span>
               <Plus className="inline h-3.5 w-3.5 shrink-0" aria-label="Ajouter" />
@@ -151,9 +179,27 @@ export const InstallPrompt: React.FC = () => {
               </p>
               <button onClick={installer} className="app-btn-primary mt-3 w-full text-xs">
                 <Download className="h-4 w-4" />
-                Installer l'application
+                Installer la version web
               </button>
             </>
+          )}
+          <button onClick={fermer} className="mt-2 text-xs underline">
+            Continuer sur le web
+          </button>
+          {(ios || apk) && (
+            <button
+              className="mt-2 block text-xs underline"
+              onClick={() => {
+                try {
+                  localStorage.setItem(cleConfirmation(ios), "1");
+                } catch {
+                  /* Stockage indisponible. */
+                }
+                fermer();
+              }}
+            >
+              J’ai déjà installé l’application
+            </button>
           )}
         </div>
 
