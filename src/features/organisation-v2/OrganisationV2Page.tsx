@@ -69,10 +69,10 @@ const LIBELLES: Record<OngletOrg, string> = {
 };
 
 const ACCROCHES: Record<OngletOrg, string> = {
-  apercu: "Ce que l'équipe doit faire, ce qui est prévu, et ce qu'on doit vous redire.",
-  taches: "Ce que l'équipe doit faire, et où ça en est.",
-  agenda: "Vos rendez-vous, et ce que la boutique doit régler.",
-  rappels: "Ce que vous voulez qu'on vous redise, et quand.",
+  apercu: "Planning et échéances de votre boutique.",
+  taches: "Attribution et suivi des tâches.",
+  agenda: "Rendez-vous et échéances par date.",
+  rappels: "Horaires et fréquence des notifications.",
 };
 
 export interface OrganisationV2Props {
@@ -93,7 +93,7 @@ export interface OrganisationV2Props {
   deliveries: LivraisonEcheance[];
   delaisRappel: DelaisRappel;
   /** Ouvre un autre écran de l'application (Achats, Devis, Paramètres…). */
-  onNaviguer: (vue: string) => void;
+  onNaviguer: (vue: string, recherche?: string) => void;
 }
 
 export const OrganisationV2Page: React.FC<OrganisationV2Props> = (props) => {
@@ -112,7 +112,8 @@ export const OrganisationV2Page: React.FC<OrganisationV2Props> = (props) => {
   // ── portée : « Toute l'équipe » ou « Ce qui m'est assigné » ──
   // Par défaut, celle que les droits donnent : toute l'équipe pour qui la
   // voit, ses propres tâches pour les autres.
-  const [portee, setPortee] = useState<Portee>(droits.voitTouteLEquipe ? "equipe" : "moi");
+  const [choixPortee, setPortee] = useState<Portee>("equipe");
+  const portee = droits.voitTouteLEquipe ? choixPortee : "moi";
 
   // Le jour choisi dans l agenda vit ici : « Ouvrir dans l agenda » et
   // « + Événement » en ont besoin hors de l onglet Agenda.
@@ -281,25 +282,6 @@ export const OrganisationV2Page: React.FC<OrganisationV2Props> = (props) => {
     <Contexte.Provider value={valeur}>
       <div className="org2">
         <div className="wrap">
-          <nav className="tabs" role="tablist" aria-label="Sections de l'organisation">
-            {onglets.map((o) => (
-              <button
-                key={o}
-                role="tab"
-                type="button"
-                id={`org2-tab-${o}`}
-                aria-controls={`org2-pane-${o}`}
-                aria-selected={onglet === o}
-                onClick={() => onChangerOnglet(o)}
-              >
-                {LIBELLES[o]}
-                {pastille[o] && (
-                  <span className={`n${pastille[o]?.crit ? " crit" : ""}`}>{pastille[o]?.n}</span>
-                )}
-              </button>
-            ))}
-          </nav>
-
           <header className="top app-page-head">
             <div className="app-page-head-text">
               <span className="app-page-icon" aria-hidden="true">
@@ -320,7 +302,8 @@ export const OrganisationV2Page: React.FC<OrganisationV2Props> = (props) => {
               >
                 <IcActualiser />
               </button>
-              {droits.voitTaches && (
+              {droits.voitTaches && !droits.voitTouteLEquipe && <span>Ce qui m'est assigné</span>}
+              {droits.voitTaches && droits.voitTouteLEquipe && (
                 <div className="menu-wrap">
                   <button
                     className="pill"
@@ -394,6 +377,25 @@ export const OrganisationV2Page: React.FC<OrganisationV2Props> = (props) => {
               )}
             </div>
           </header>
+
+          <nav className="tabs" role="tablist" aria-label="Sections de l'organisation">
+            {onglets.map((o) => (
+              <button
+                key={o}
+                role="tab"
+                type="button"
+                id={`org2-tab-${o}`}
+                aria-controls={`org2-pane-${o}`}
+                aria-selected={onglet === o}
+                onClick={() => onChangerOnglet(o)}
+              >
+                {LIBELLES[o]}
+                {(pastille[o]?.n ?? 0) > 0 && (
+                  <span className={`n${pastille[o]?.crit ? " crit" : ""}`}>{pastille[o]?.n}</span>
+                )}
+              </button>
+            ))}
+          </nav>
 
           <section
             className="pane"

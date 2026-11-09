@@ -192,6 +192,7 @@ export interface LigneAgenda {
   evenement?: Evenement;
   /** L'écran à ouvrir pour une échéance. */
   onglet?: string;
+  recherche?: string;
 }
 
 export const ligneDeEvenement = (e: Evenement): LigneAgenda => ({
@@ -289,6 +290,7 @@ export const echeancesMetier = (
       source: "achat",
       classe: enRetard(a.dateEcheance) ? "app-badge-danger" : "app-badge-warning",
       onglet: "achats",
+      recherche: a.numero || a.designation,
     });
   }
 
@@ -303,6 +305,7 @@ export const echeancesMetier = (
       source: "devis",
       classe: enRetard(d.valide_jusqu_au) ? "app-badge-danger" : "app-badge-info",
       onglet: "devis",
+      recherche: d.numero || d.client_nom,
     });
   }
 
@@ -317,6 +320,7 @@ export const echeancesMetier = (
       source: "livraison",
       classe: "app-badge-neutral",
       onglet: "livraisons",
+      recherche: c.numero || c.destinataire,
     });
   }
 

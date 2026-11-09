@@ -2568,7 +2568,7 @@ function AppInner() {
                         quotes={storeData.quotes}
                         deliveries={storeData.deliveries}
                         delaisRappel={delaisDeRappel(personnalisation.rappels)}
-                        onNaviguer={(v) => setActiveTab(v as ActiveTab)}
+                        onNaviguer={(v, recherche) => recherche ? viserLigne(v as ActiveTab, recherche) : setActiveTab(v as ActiveTab)}
                       />
                     )}
                     {!ongletOrganisation && vue === "taches" && (

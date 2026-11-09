@@ -2000,3 +2000,21 @@
     padding: 10px 12px;
   }
 }
+
+.org2 .org-overview { align-items: start; }
+.org2 .org-date { margin-top: 4px; color: var(--muted); font-size: 0.83rem; }
+.org2 .org-business { border-top: 3px solid var(--accent); }
+.org2 .org-overview .week { margin-bottom: 12px; }
+.org2 .org-history summary { cursor: pointer; color: var(--ink-2); }
+.org2 .org-history summary h2 { display: inline-flex; align-items: center; gap: 8px; font-size: 1rem; }
+.org2 .org-history summary svg { width: 18px; height: 18px; }
+.org2 .org-history[open] summary { margin-bottom: 12px; }
+.org2 .org-overview .row .title { overflow-wrap: anywhere; }
+.org2 .org-overview .ch h2 {
+  color: var(--ink);
+  font-size: 1.05rem;
+  text-transform: none;
+  letter-spacing: -0.015em;
+}
+.org2 .org-overview .when { white-space: normal; text-align: right; }
+.org2 .org-overview .wday { min-width: 0; }

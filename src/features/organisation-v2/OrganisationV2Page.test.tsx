@@ -76,6 +76,7 @@ function monter({
   ],
   rappels = [rappel({})],
   evenements = [] as Evenement[],
+  quotes = [] as import("./hooks/useEcheances").DevisEcheance[],
   permissions = null as PermissionsMap | null,
 } = {}) {
   const sourceTaches = {
@@ -106,6 +107,7 @@ function monter({
     supprimer: ok(),
   };
   const changerOnglet = vi.fn();
+  const naviguer = vi.fn();
   const utils = render(
     <OrganisationV2Page
       onglet={onglet}
@@ -122,10 +124,10 @@ function monter({
       evenements={sourceEvenements}
       rappels={sourceRappels}
       purchases={[]}
-      quotes={[]}
+      quotes={quotes}
       deliveries={[]}
       delaisRappel={{ veilleHeure: 18, memeJourMinutes: 60 }}
-      onNaviguer={vi.fn()}
+      onNaviguer={naviguer}
     />,
   );
   const ecritures = () =>
@@ -140,7 +142,15 @@ function monter({
       sourceRappels.basculer,
       sourceRappels.supprimer,
     ].reduce((n, f) => n + f.mock.calls.length, 0);
-  return { ...utils, sourceTaches, sourceEvenements, sourceRappels, changerOnglet, ecritures };
+  return {
+    ...utils,
+    sourceTaches,
+    sourceEvenements,
+    sourceRappels,
+    changerOnglet,
+    naviguer,
+    ecritures,
+  };
 }
 
 afterEach(cleanup);
@@ -314,13 +324,31 @@ describe("Organisation v2 — onglet Rappels", () => {
 });
 
 describe("Organisation v2 — Vue d'ensemble", () => {
-  it("compte les tâches du jour et les retards, sans écrire", () => {
+  it("ouvre le devis concerné depuis les échéances sans afficher les devis acceptés", () => {
+    const devis = {
+      id: "q1",
+      numero: "DEV-18",
+      client_nom: "Anja",
+      statut: "envoye",
+      total: 2800,
+      valide_jusqu_au: HIER4,
+    };
+    const m = monter({
+      onglet: "apercu",
+      quotes: [devis, { ...devis, id: "q2", client_nom: "Jo", statut: "accepte" }],
+    });
+    expect(screen.queryByText("Relancer Jo")).toBeNull();
+    fireEvent.click(screen.getByRole("button", { name: /Relancer Anja/ }));
+    expect(m.naviguer).toHaveBeenCalledWith("devis", "DEV-18");
+    expect(m.ecritures()).toBe(0);
+  });
+
+  it("présente les tâches du jour et les retards, sans écrire", () => {
     const m = monter({ onglet: "apercu" });
-    const tuiles = document.querySelectorAll(".tile .tv");
-    expect(tuiles[0].textContent).toBe("1");
-    expect(tuiles[1].textContent).toBe("1");
-    expect(screen.getByText(/échéance dépassée depuis 4 jours/)).toBeTruthy();
-    expect(screen.getByText("Qui porte quoi")).toBeTruthy();
+    expect(screen.getByRole("heading", { name: "Tâches en retard" })).toBeTruthy();
+    expect(screen.getByText("Relancer le fournisseur")).toBeTruthy();
+    expect(screen.getByText("Inventaire")).toBeTruthy();
+    expect(screen.getByText("Répartition des tâches")).toBeTruthy();
     fireEvent.click(screen.getAllByRole("button", { name: "aujourd'hui" })[0]);
     expect(m.ecritures()).toBe(0);
   });
@@ -329,7 +357,7 @@ describe("Organisation v2 — Vue d'ensemble", () => {
     monter({ onglet: "apercu", taches: [], rappels: [] });
     expect(screen.getByText("Journée libre")).toBeTruthy();
     expect(screen.getByText("Aucun retard")).toBeTruthy();
-    expect(screen.getByText("Rien à boucler avant ce soir.")).toBeTruthy();
+    expect(screen.getByText("Aucune échéance à suivre sur cette période.")).toBeTruthy();
     expect(document.body.textContent).not.toMatch(/exemple/i);
   });
 });

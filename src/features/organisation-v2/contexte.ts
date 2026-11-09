@@ -61,7 +61,7 @@ export interface ContexteOrganisation {
   ouvrir: (p: Panneau) => void;
   fermer: () => void;
   allerA: (o: OngletOrg) => void;
-  naviguer: (vue: string) => void;
+  naviguer: (vue: string, recherche?: string) => void;
   dire: Dire;
 }
 

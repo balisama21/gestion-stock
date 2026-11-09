@@ -795,7 +795,7 @@ const ListeEcheances: React.FC<{ ids?: string[] }> = ({ ids }) => {
                 onClick={() => {
                   if (l.onglet) {
                     fermer();
-                    naviguer(l.onglet);
+                    naviguer(l.onglet, l.recherche);
                   }
                 }}
               >

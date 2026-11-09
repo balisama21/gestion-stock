@@ -1,11 +1,9 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import React, { useMemo, useState } from "react";
 import { estEnRetard } from "../../../lib/taches";
 import { heureDe, jourDe } from "../../../lib/evenements";
 import { useOrg } from "../contexte";
 import {
   ajouterJours,
-  ecartJours,
-  heureMinute,
   JOURS_COURTS,
   JOURS_LONGS,
   majuscule,
@@ -13,106 +11,45 @@ import {
   relatif,
   versDate,
 } from "../lib/dates";
-import {
-  CLASSE_TYPE,
-  COULEUR_TYPE,
-  elementsEntre,
-  panneauDe,
-  type ElementOrg,
-} from "../lib/elements";
+import { COULEUR_TYPE, elementsEntre, panneauDe, type ElementOrg } from "../lib/elements";
 import { recitDe } from "../lib/activite";
 import { termineeCetteSemaine } from "../lib/stats";
 import { Avatar, EtatVide } from "../components/elements";
-import {
-  IcActivite,
-  IcAgenda,
-  IcAlerte,
-  IcArgent,
-  IcEquipe,
-  IcHorloge,
-  IcTache,
-} from "../components/icones";
+import { IcActivite, IcAgenda, IcAlerte, IcArgent, IcEquipe } from "../components/icones";
 import { TacheLigne } from "../components/TacheLigne";
-
-/** Les heures du fil de la journée, comme dans la maquette. */
-const H0 = 8;
-const H1 = 19;
 
 export const ApercuTab: React.FC = () => {
   const o = useOrg();
-  const { aujourdhui, maintenant, tachesPortee, sources, droits, nom, ouvrir, allerA } = o;
+  const { aujourdhui, tachesPortee, sources, droits, nom, ouvrir, allerA } = o;
 
-  const ouvertes = tachesPortee.filter((t) => t.statut !== "termine");
-  const retards = ouvertes.filter((t) => estEnRetard(t, aujourdhui));
-  const duJour = ouvertes.filter((t) => t.echeance === aujourdhui);
+  const retards = tachesPortee
+    .filter((t) => estEnRetard(t, aujourdhui))
+    .sort((a, b) => (a.echeance ?? "").localeCompare(b.echeance ?? ""));
   const ouvrirElement = (e: ElementOrg) => ouvrir(panneauDe(e.ref));
 
-  // ── prochain rendez-vous : un événement qui n'a pas encore commencé ──
-  const prochainRdv = useMemo(() => {
-    const fin = ajouterJours(aujourdhui, 30);
-    return (
-      o.evenements
-        .filter((e) => {
-          const j = jourDe(e.debut);
-          if (j < aujourdhui || j > fin) return false;
-          return e.journee_entiere ? true : new Date(e.debut) >= maintenant;
-        })
-        .sort((a, b) => a.debut.localeCompare(b.debut))[0] ?? null
-    );
-  }, [o.evenements, aujourdhui, maintenant]);
-  const rdvDuJour = o.evenements.filter((e) => jourDe(e.debut) === aujourdhui).length;
-
-  // ── échéances à régler : en retard ou dans les sept jours ──
   const echeancesProches = o.echeances
-    .filter((l) => ecartJours(aujourdhui, l.jour) <= 7)
+    .filter((l) => l.jour <= ajouterJours(aujourdhui, 6))
     .sort((a, b) => a.jour.localeCompare(b.jour));
-  const echeancesEnRetard = echeancesProches.filter((l) => l.jour < aujourdhui).length;
   const voitEcheances =
     droits.voitAgenda &&
     (droits.voitModule("achats") || droits.voitModule("devis") || droits.voitModule("livraisons"));
 
-  const premiereRetard = retards
-    .slice()
-    .sort((a, b) => (a.echeance ?? "").localeCompare(b.echeance ?? ""))[0];
-
-  // ── bandeau défilant sur téléphone : les points sous les tuiles ──
-  const rail = useRef<HTMLDivElement>(null);
-  const [points, setPoints] = useState({ n: 0, courant: 0 });
-  const peindre = useCallback(() => {
-    const r = rail.current;
-    if (!r) return;
-    const tuiles = Array.from(r.children) as HTMLElement[];
-    if (r.scrollWidth - r.clientWidth < 4 || tuiles.length < 2) {
-      setPoints({ n: 0, courant: 0 });
-      return;
-    }
-    const pas = tuiles[1].offsetLeft - tuiles[0].offsetLeft || r.clientWidth;
-    setPoints({ n: tuiles.length, courant: Math.round(r.scrollLeft / Math.max(1, pas)) });
-  }, []);
-  useEffect(() => {
-    peindre();
-    window.addEventListener("resize", peindre);
-    return () => window.removeEventListener("resize", peindre);
-  }, [peindre]);
-  const allerALaTuile = (i: number) => {
-    const r = rail.current;
-    if (!r) return;
-    const tuiles = Array.from(r.children) as HTMLElement[];
-    const pas = tuiles.length > 1 ? tuiles[1].offsetLeft - tuiles[0].offsetLeft : r.clientWidth;
-    r.scrollTo({ left: i * pas, behavior: "smooth" });
-  };
-
-  // ── fil de la journée ──
-  const duJourItems = elementsEntre(aujourdhui, aujourdhui, sources);
-  const heureMaintenant = maintenant.getHours();
-
   // ── les sept prochains jours ──
-  const [jourSemaine, setJourSemaine] = useState<string | null>(null);
+  const [selection, setJourSemaine] = useState<string | null>(null);
   const septJours = Array.from({ length: 7 }, (_, i) => ajouterJours(aujourdhui, i));
   const semaine = elementsEntre(aujourdhui, septJours[6], sources);
-  const listeSemaine = jourSemaine
-    ? semaine.filter((i) => i.jour === jourSemaine)
-    : semaine.slice(0, 5);
+  const jourSemaine = selection && septJours.includes(selection) ? selection : aujourdhui;
+  const sourcesVisibles = [
+    droits.voitTaches && "taches",
+    droits.voitAgenda && "evenements",
+    droits.voitRappels && "rappels",
+  ].filter((cle): cle is keyof typeof o.chargement => Boolean(cle));
+  const planningIncomplet = sourcesVisibles.some((cle) => o.erreurs[cle])
+    ? "Certaines données du planning sont indisponibles. Vous pouvez actualiser la page."
+    : sourcesVisibles.some((cle) => o.chargement[cle])
+      ? "Chargement du planning…"
+      : null;
+  const listeSemaine = semaine.filter((i) => i.jour === jourSemaine);
 
   // ── qui porte quoi : toutes les tâches visibles, par personne ──
   const charge = useMemo(() => {
@@ -146,278 +83,35 @@ export const ApercuTab: React.FC = () => {
   const titreTache = (id: string | null, etiquette: string | null) =>
     o.taches.find((t) => t.id === id)?.titre ?? etiquette ?? "une tâche";
 
-  const enteteJour = `${JOURS_LONGS[maintenant.getDay()]} ${maintenant.getDate()} ${MOIS_LONGS[maintenant.getMonth()]} · ${heureMinute(maintenant)}`;
+  const jour = versDate(jourSemaine);
+  const date = majuscule(
+    `${JOURS_LONGS[jour.getDay()]} ${jour.getDate()} ${MOIS_LONGS[jour.getMonth()]}`,
+  );
 
   return (
     <>
-      <div className="today">
-        <h2>
-          Aujourd'hui <span>{enteteJour}</span>
-        </h2>
-        <div className="rail" ref={rail} onScroll={peindre}>
-          {droits.voitTaches && (
-            <article className="tile">
-              <div className="th">
-                <span className="ti">
-                  <IcTache />À boucler aujourd'hui
-                </span>
-                <button
-                  className="go"
-                  type="button"
-                  aria-label="Ouvrir les tâches"
-                  onClick={() => allerA("taches")}
-                >
-                  →
-                </button>
-              </div>
-              <div className="tv num">{duJour.length}</div>
-              <p className="tp">
-                {duJour.length ? `${duJour[0].titre}.` : "Rien à boucler avant ce soir."}
-              </p>
-              {duJour.length > 0 && (
-                <div className="tfoot">
-                  <small>
-                    Assignée à <b>{nom(duJour[0].assignee_id)}</b>
-                  </small>
-                  <button
-                    className="btn sm ghost"
-                    type="button"
-                    onClick={() => ouvrir({ kind: "tache", id: duJour[0].id })}
-                  >
-                    Ouvrir
-                  </button>
-                </div>
-              )}
-            </article>
-          )}
-
-          {droits.voitTaches && (
-            <article className="tile">
-              <div className="th">
-                <span className="ti">
-                  <IcAlerte />
-                  En retard
-                </span>
-                <button
-                  className="go"
-                  type="button"
-                  aria-label="Ouvrir les tâches en retard"
-                  onClick={() => allerA("taches")}
-                >
-                  →
-                </button>
-              </div>
-              <div className={`tv num${retards.length ? " crit" : ""}`}>{retards.length}</div>
-              <p className="tp">
-                {premiereRetard?.echeance
-                  ? `${premiereRetard.titre} — échéance dépassée depuis ${ecartJours(premiereRetard.echeance, aujourdhui)} jour${ecartJours(premiereRetard.echeance, aujourdhui) > 1 ? "s" : ""}.`
-                  : "Toutes les échéances sont tenues."}
-              </p>
-              {premiereRetard && (
-                <div className="tfoot">
-                  <small>
-                    Portée par <b>{nom(premiereRetard.assignee_id)}</b>
-                  </small>
-                  <button
-                    className="btn sm"
-                    type="button"
-                    onClick={() => ouvrir({ kind: "tache", id: premiereRetard.id })}
-                  >
-                    Traiter
-                  </button>
-                </div>
-              )}
-            </article>
-          )}
-
-          {droits.voitAgenda && (
-            <article className="tile">
-              <div className="th">
-                <span className="ti">
-                  <IcAgenda />
-                  Prochain rendez-vous
-                </span>
-                <button
-                  className="go"
-                  type="button"
-                  aria-label="Ouvrir l'agenda"
-                  onClick={() => allerA("agenda")}
-                >
-                  →
-                </button>
-              </div>
-              <div className="tv num">
-                {prochainRdv ? (
-                  <>
-                    {majuscule(JOURS_COURTS[versDate(jourDe(prochainRdv.debut)).getDay()])}
-                    <small>
-                      {prochainRdv.journee_entiere ? "journée" : heureDe(prochainRdv.debut)}
-                    </small>
-                  </>
-                ) : (
-                  "—"
-                )}
-              </div>
-              <p className="tp">
-                {prochainRdv
-                  ? `${prochainRdv.titre}${prochainRdv.lieu ? `, à ${prochainRdv.lieu}` : ""}.`
-                  : "Aucun rendez-vous dans les trente prochains jours."}
-              </p>
-              <div className="tfoot">
-                <small>
-                  {rdvDuJour ? (
-                    <>
-                      <b>{rdvDuJour}</b> aujourd'hui
-                    </>
-                  ) : (
-                    <>
-                      Rien de prévu <b>aujourd'hui</b>
-                    </>
-                  )}
-                </small>
-                {prochainRdv && (
-                  <button
-                    className="btn sm ghost"
-                    type="button"
-                    onClick={() => ouvrir({ kind: "evenement", id: prochainRdv.id })}
-                  >
-                    Voir
-                  </button>
-                )}
-              </div>
-            </article>
-          )}
-
-          {voitEcheances && (
-            <article className="tile">
-              <div className="th">
-                <span className="ti">
-                  <IcArgent />
-                  Échéances à régler
-                </span>
-                <button
-                  className="go"
-                  type="button"
-                  aria-label="Voir les échéances"
-                  onClick={() => allerA("agenda")}
-                >
-                  →
-                </button>
-              </div>
-              <div className={`tv num${echeancesEnRetard ? " crit" : ""}`}>
-                {echeancesProches.length}
-              </div>
-              <p className="tp">
-                {echeancesProches.length
-                  ? `${echeancesProches
-                      .slice(0, 2)
-                      .map((l) => l.titre)
-                      .join(", ")}${echeancesProches.length > 2 ? "…" : "."}`
-                  : "Rien à régler dans les sept prochains jours."}
-              </p>
-              {echeancesProches.length > 0 && (
-                <div className="tfoot">
-                  <small>
-                    {echeancesEnRetard ? (
-                      <>
-                        <b>{echeancesEnRetard}</b> en retard
-                      </>
-                    ) : (
-                      <>
-                        Rien <b>en retard</b>
-                      </>
-                    )}
-                  </small>
-                  <button
-                    className="btn sm ghost"
-                    type="button"
-                    onClick={() =>
-                      ouvrir({ kind: "echeances", ids: echeancesProches.map((l) => l.id) })
-                    }
-                  >
-                    Détail
-                  </button>
-                </div>
-              )}
-            </article>
-          )}
-        </div>
-        {points.n > 0 && (
-          <div className="dots" aria-hidden="true">
-            {Array.from({ length: points.n }, (_, i) => (
-              <button
-                key={i}
-                type="button"
-                tabIndex={-1}
-                aria-current={i === points.courant}
-                onClick={() => allerALaTuile(i)}
-              />
-            ))}
-          </div>
-        )}
-      </div>
-
-      <div className="grid">
-        <article className="card s7">
+      <div className="grid org-overview">
+        <article className={voitEcheances ? "card s7" : "card s12"}>
           <div className="ch">
-            <h2>
-              <IcHorloge />
-              Fil de la journée
-            </h2>
+            <div>
+              <h2>
+                <IcAgenda />
+                Planning de la semaine
+              </h2>
+              <p className="org-date">{date}</p>
+            </div>
             {droits.voitAgenda && (
-              <button className="link" type="button" onClick={() => allerA("agenda")}>
-                Ouvrir l'agenda
+              <button
+                className="link"
+                type="button"
+                onClick={() => {
+                  o.setJourAgenda(jourSemaine);
+                  allerA("agenda");
+                }}
+              >
+                Ouvrir l’agenda
               </button>
             )}
-          </div>
-          {duJourItems.length === 0 ? (
-            <EtatVide
-              titre="Journée libre"
-              detail="Aucun rendez-vous, aucune échéance aujourd'hui."
-            />
-          ) : (
-            <div className="day-line">
-              {Array.from({ length: H1 - H0 + 1 }, (_, k) => H0 + k).map((h) => {
-                const creneau = duJourItems.filter((i) => {
-                  const hh = i.heure ? Number(i.heure.slice(0, 2)) : H0;
-                  return Math.min(Math.max(hh, H0), H1) === h;
-                });
-                if (!creneau.length && h !== heureMaintenant && h % 2) return null;
-                return (
-                  <div key={h} className={`slot${h === heureMaintenant ? " now" : ""}`}>
-                    <div className="h">{String(h).padStart(2, "0")}:00</div>
-                    <div className="body">
-                      {creneau.map((i) => (
-                        <button
-                          key={i.cle}
-                          type="button"
-                          className={`ev ${CLASSE_TYPE[i.type]}`}
-                          onClick={() => ouvrirElement(i)}
-                        >
-                          <span className="bar" />
-                          <span className="tx">
-                            <b>{i.titre}</b>
-                            <small>
-                              {i.sous}
-                              {i.heure ? ` · ${i.heure}` : ""}
-                            </small>
-                          </span>
-                        </button>
-                      ))}
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </article>
-
-        <article className="card s5">
-          <div className="ch">
-            <h2>
-              <IcAgenda />
-              Les sept prochains jours
-            </h2>
           </div>
           <div className="week">
             {septJours.map((j) => {
@@ -430,7 +124,7 @@ export const ApercuTab: React.FC = () => {
                   className={`wday${j === aujourdhui ? " today" : ""}${j === jourSemaine ? " sel" : ""}`}
                   aria-label={relatif(j, aujourdhui)}
                   aria-pressed={j === jourSemaine}
-                  onClick={() => setJourSemaine(jourSemaine === j ? null : j)}
+                  onClick={() => setJourSemaine(j)}
                 >
                   <span className="dw">{majuscule(JOURS_COURTS[d.getDay()].slice(0, 2))}</span>
                   <span className="dn">{d.getDate()}</span>
@@ -444,8 +138,15 @@ export const ApercuTab: React.FC = () => {
             })}
           </div>
           <div className="rows">
-            {listeSemaine.length === 0 ? (
-              <p className="none">Rien de prévu {jourSemaine ? "ce jour-là" : "cette semaine"}</p>
+            {planningIncomplet && (
+              <p role="status" className="none">
+                {planningIncomplet}
+              </p>
+            )}
+            {listeSemaine.length === 0 && !planningIncomplet ? (
+              <p className="none">
+                {jourSemaine === aujourdhui ? "Journée libre" : "Rien de prévu ce jour-là"}
+              </p>
             ) : (
               listeSemaine.map((i) => (
                 <button key={i.cle} className="row" type="button" onClick={() => ouvrirElement(i)}>
@@ -455,8 +156,7 @@ export const ApercuTab: React.FC = () => {
                     <span className="meta">{i.sous}</span>
                   </span>
                   <span className={`when${i.enRetard ? " crit" : ""}`}>
-                    {relatif(i.jour, aujourdhui)}
-                    {i.heure ? ` · ${i.heure}` : ""}
+                    {i.heure ?? "Toute la journée"}
                   </span>
                 </button>
               ))
@@ -464,40 +164,102 @@ export const ApercuTab: React.FC = () => {
           </div>
         </article>
 
+        {voitEcheances && (
+          <article className="card s5 org-business">
+            <div className="ch">
+              <div>
+                <h2>
+                  <IcArgent />
+                  Échéances de la boutique
+                </h2>
+                <p className="org-date">En retard ou dans les sept prochains jours</p>
+              </div>
+            </div>
+            {echeancesProches.length === 0 ? (
+              <p className="none">Aucune échéance à suivre sur cette période.</p>
+            ) : (
+              <div className="rows">
+                {echeancesProches.slice(0, 4).map((ligne) => (
+                  <button
+                    key={ligne.id}
+                    className="row"
+                    type="button"
+                    onClick={() => ligne.onglet && o.naviguer(ligne.onglet, ligne.recherche)}
+                  >
+                    <span
+                      className="pt"
+                      style={{
+                        background: ligne.jour < aujourdhui ? "var(--crit)" : "var(--accent)",
+                      }}
+                    />
+                    <span className="rtxt">
+                      <span className="title">{ligne.titre}</span>
+                      <span className="meta">{ligne.detail}</span>
+                    </span>
+                    <span className={ligne.jour < aujourdhui ? "when crit" : "when"}>
+                      {relatif(ligne.jour, aujourdhui)}
+                    </span>
+                  </button>
+                ))}
+                {echeancesProches.length > 4 && (
+                  <button
+                    type="button"
+                    className="link"
+                    onClick={() =>
+                      ouvrir({ kind: "echeances", ids: echeancesProches.map((l) => l.id) })
+                    }
+                  >
+                    Voir les {echeancesProches.length} échéances
+                  </button>
+                )}
+              </div>
+            )}
+          </article>
+        )}
+
         {droits.voitTaches && (
-          <article className="card s6">
+          <article
+            className={droits.voitTouteLEquipe && o.portee === "equipe" ? "card s6" : "card s12"}
+          >
             <div className="ch">
               <h2>
                 <IcAlerte />
-                En retard
+                Tâches en retard
               </h2>
               <button className="link" type="button" onClick={() => allerA("taches")}>
                 Tout voir
               </button>
             </div>
             <div className="rows">
-              {retards.length === 0 ? (
-                <EtatVide titre="Aucun retard" detail="Toutes les échéances sont tenues." />
+              {(o.erreurs.taches || o.chargement.taches) && retards.length === 0 ? (
+                <p className="none">
+                  {o.erreurs.taches ? "Les tâches sont indisponibles." : "Chargement des tâches…"}
+                </p>
+              ) : retards.length === 0 ? (
+                <EtatVide
+                  titre="Aucun retard"
+                  detail="Aucune tâche ouverte ne dépasse sa date prévue."
+                />
               ) : (
-                retards.map((t) => <TacheLigne key={t.id} t={t} />)
+                retards.slice(0, 5).map((t) => <TacheLigne key={t.id} t={t} />)
               )}
             </div>
           </article>
         )}
 
-        {droits.voitTaches && droits.voitTouteLEquipe && (
+        {droits.voitTaches && droits.voitTouteLEquipe && o.portee === "equipe" && (
           <article className="card s6">
             <div className="ch">
               <h2>
                 <IcEquipe />
-                Qui porte quoi
+                Répartition des tâches
               </h2>
             </div>
             {charge.length === 0 ? (
               <EtatVide
                 neutre
                 titre="Aucune tâche en cours"
-                detail="Personne n'a rien sur le feu."
+                detail="Les tâches attribuées apparaîtront ici."
               />
             ) : (
               <div className="who-rows">
@@ -571,13 +333,13 @@ export const ApercuTab: React.FC = () => {
         )}
 
         {droits.voitTaches && (
-          <article className="card s12">
-            <div className="ch">
+          <details className="card s12 org-history">
+            <summary>
               <h2>
                 <IcActivite />
                 Activité de l'organisation
               </h2>
-            </div>
+            </summary>
             <div className="rows">
               {o.activite.erreur ? (
                 <p className="none">L'activité n'a pas pu être chargée.</p>
@@ -613,7 +375,7 @@ export const ApercuTab: React.FC = () => {
                 })
               )}
             </div>
-          </article>
+          </details>
         )}
       </div>
     </>
