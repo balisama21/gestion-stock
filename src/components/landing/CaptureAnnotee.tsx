@@ -1,27 +1,8 @@
 import React, { useCallback, useEffect, useLayoutEffect, useRef, useState } from "react";
 
-/**
- * Une vraie capture de l'application, expliquée par des numéros.
- *
- * Les captures sont prises sur une boutique de démonstration : les noms,
- * téléphones et montants sont inventés. Jamais une capture d'une boutique
- * réelle sur une page publique.
- *
- * ── Deux lectures selon la largeur ──
- *
- * Sur grand écran, les explications se rangent dans deux colonnes, de part
- * et d'autre de la capture, chacune à la hauteur de la pastille numérotée
- * posée sur l'élément qu'elle décrit. Le numéro suffit à les relier : pas
- * de flèche qui barrerait la capture.
- *
- * Sur téléphone, il n'y a pas la place pour des colonnes : les pastilles
- * gardent leur numéro, et les explications passent sous la capture, dans
- * le même ordre.
- */
+/** Les légendes accompagnent la capture de démonstration, en colonnes ou en liste sur mobile. */
 
 export interface Repere {
-  /** Position de l'élément, en pourcentage de la largeur de la capture. */
-  x: number;
   /** Position de l'élément, en pourcentage de la hauteur de la capture. */
   y: number;
   titre: string;
@@ -53,24 +34,23 @@ export const CaptureAnnotee: React.FC<CaptureAnnoteeProps> = ({
   ecran,
   largeurMax,
 }) => {
-  const numerotes = reperes.map((r, i) => ({ ...r, n: i + 1 }));
-  const gauche = numerotes.filter((r) => r.cote === "gauche").sort((a, b) => a.y - b.y);
-  const droite = numerotes.filter((r) => r.cote === "droite").sort((a, b) => a.y - b.y);
+  const gauche = reperes.filter((r) => r.cote === "gauche").sort((a, b) => a.y - b.y);
+  const droite = reperes.filter((r) => r.cote === "droite").sort((a, b) => a.y - b.y);
 
   const conteneur = useRef<HTMLDivElement>(null);
   const image = useRef<HTMLDivElement>(null);
-  const etiquettes = useRef(new Map<number, HTMLDivElement>());
+  const etiquettes = useRef(new Map<string, HTMLDivElement>());
   const colonnesRef = useRef<{ gauche: HTMLDivElement | null; droite: HTMLDivElement | null }>({
     gauche: null,
     droite: null,
   });
-  const [hauts, setHauts] = useState<Record<number, number>>({});
+  const [hauts, setHauts] = useState<Record<string, number>>({});
 
   const mesurer = useCallback(() => {
     const img = image.current;
     if (!img || !window.matchMedia("(min-width: 1024px)").matches) return;
     const i = img.getBoundingClientRect();
-    const nouveauxHauts: Record<number, number> = {};
+    const nouveauxHauts: Record<string, number> = {};
 
     // Chaque explication se place à la hauteur de ce qu'elle désigne,
     // puis on écarte celles qui se chevaucheraient, de haut en bas, et on
@@ -82,7 +62,7 @@ export const CaptureAnnotee: React.FC<CaptureAnnoteeProps> = ({
       const col = colonnesRef.current[cote];
       if (!col || liste.length === 0) continue;
       const c = col.getBoundingClientRect();
-      const hauteurs = liste.map((r) => etiquettes.current.get(r.n)?.offsetHeight ?? 60);
+      const hauteurs = liste.map((r) => etiquettes.current.get(r.titre)?.offsetHeight ?? 60);
       const tops = liste.map((r) => i.top - c.top + (r.y / 100) * i.height - 13);
       for (let k = 0; k < tops.length; k++) {
         tops[k] = Math.max(tops[k], 0);
@@ -92,7 +72,7 @@ export const CaptureAnnotee: React.FC<CaptureAnnoteeProps> = ({
       if (debord > 0)
         for (let k = tops.length - 1; k >= 0; k--) tops[k] = Math.max(0, tops[k] - debord);
       liste.forEach((r, k) => {
-        nouveauxHauts[r.n] = tops[k];
+        nouveauxHauts[r.titre] = tops[k];
       });
     }
 
@@ -113,7 +93,7 @@ export const CaptureAnnotee: React.FC<CaptureAnnoteeProps> = ({
     return () => observateur.disconnect();
   }, [mesurer]);
 
-  const colonne = (liste: typeof numerotes, cote: "gauche" | "droite") =>
+  const colonne = (liste: Repere[], cote: "gauche" | "droite") =>
     liste.length > 0 && (
       <div
         ref={(el) => {
@@ -125,27 +105,23 @@ export const CaptureAnnotee: React.FC<CaptureAnnoteeProps> = ({
       >
         {liste.map((r) => (
           <div
-            key={r.n}
+            key={r.titre}
             ref={(el) => {
-              if (el) etiquettes.current.set(r.n, el);
-              else etiquettes.current.delete(r.n);
+              if (el) etiquettes.current.set(r.titre, el);
+              else etiquettes.current.delete(r.titre);
             }}
             className="ca-etiquette"
             style={
-              hauts[r.n] !== undefined
-                ? { position: "absolute", left: 0, right: 0, top: hauts[r.n] }
+              hauts[r.titre] !== undefined
+                ? { position: "absolute", left: 0, right: 0, top: hauts[r.titre] }
                 : undefined
             }
           >
             <p
-              className={`flex items-center gap-2 text-[0.95rem] font-semibold leading-snug ${
-                cote === "gauche" ? "justify-end" : ""
-              }`}
+              className="text-[0.95rem] font-semibold leading-snug"
               style={{ color: "var(--carbone)" }}
             >
-              {cote === "droite" && <span className="ca-num">{r.n}</span>}
               {r.titre}
-              {cote === "gauche" && <span className="ca-num">{r.n}</span>}
             </p>
             {r.texte && (
               <p
@@ -169,25 +145,6 @@ export const CaptureAnnotee: React.FC<CaptureAnnoteeProps> = ({
 
   return (
     <figure className="m-0">
-      <style>{`
-        .ca-num {
-          display: inline-grid; place-items: center; flex: none;
-          width: 1.5rem; height: 1.5rem; border-radius: 999px;
-          background: var(--primary); color: #fff;
-          font-size: .75rem; font-weight: 700;
-        }
-        /* Posée en haut à droite du point visé, pas dessus : la valeur
-           désignée reste lisible. */
-        .ca-pastille {
-          position: absolute; transform: translate(-10%, -95%);
-          display: grid; place-items: center;
-          width: 22px; height: 22px; border-radius: 999px;
-          background: var(--primary); color: #fff;
-          font-size: .75rem; font-weight: 800; line-height: 1;
-          box-shadow: 0 0 0 2.5px #fff, 0 4px 10px rgba(28,27,24,.25);
-        }
-      `}</style>
-
       <div ref={conteneur} className={`relative grid items-stretch gap-x-8 ${colonnes}`}>
         {colonne(gauche, "gauche")}
 
@@ -232,11 +189,6 @@ export const CaptureAnnotee: React.FC<CaptureAnnoteeProps> = ({
                 className="block h-auto w-full"
                 onLoad={mesurer}
               />
-              {numerotes.map((r) => (
-                <span key={r.n} className="ca-pastille" style={{ left: `${r.x}%`, top: `${r.y}%` }}>
-                  {r.n}
-                </span>
-              ))}
             </div>
           </div>
         </div>
@@ -245,10 +197,9 @@ export const CaptureAnnotee: React.FC<CaptureAnnoteeProps> = ({
       </div>
 
       {/* Téléphone : la même explication, en liste sous la capture. */}
-      <ol className="mt-6 grid gap-4 sm:grid-cols-2 lg:hidden">
-        {numerotes.map((r) => (
-          <li key={r.n} className="flex gap-3">
-            <span className="ca-num mt-0.5">{r.n}</span>
+      <ul className="mt-6 grid list-none gap-4 sm:grid-cols-2 lg:hidden">
+        {reperes.map((r) => (
+          <li key={r.titre}>
             <span>
               <span
                 className="block text-[0.95rem] font-semibold leading-snug"
@@ -267,7 +218,7 @@ export const CaptureAnnotee: React.FC<CaptureAnnoteeProps> = ({
             </span>
           </li>
         ))}
-      </ol>
+      </ul>
     </figure>
   );
 };

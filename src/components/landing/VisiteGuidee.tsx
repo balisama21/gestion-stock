@@ -23,9 +23,7 @@ import ticket from "./visite/ticket.jpg";
  *
  * Chaque étape s'ouvre sur une photo du métier — le comptoir, la réserve,
  * le marché, le camion — pour que le visiteur s'y reconnaisse, puis montre
- * l'écran de l'application qui lui correspond, ses éléments désignés par
- * des numéros. Les dessins qui tenaient ce rôle disaient l'idée ; les
- * captures montrent le produit tel qu'on l'utilisera.
+ * l'écran de l'application qui lui correspond, accompagné de ses légendes.
  *
  * Les captures viennent d'une boutique de démonstration aux données
  * inventées. Les photos sont publiées sous licence Unsplash (usage libre,
@@ -37,7 +35,6 @@ const photo = (id: string, largeur: number) =>
   `https://images.unsplash.com/photo-${id}?auto=format&fit=crop&w=${largeur}&q=70`;
 
 interface Etape {
-  numero: string;
   icone: React.ElementType;
   etiquette: string;
   titre: string;
@@ -58,7 +55,6 @@ interface Etape {
 
 const ETAPES: Etape[] = [
   {
-    numero: "01",
     icone: ShoppingCart,
     etiquette: "Au comptoir",
     titre: "Une vente encaissée en quelques secondes",
@@ -84,35 +80,30 @@ const ETAPES: Etape[] = [
       largeurMax: "23rem",
       reperes: [
         {
-          x: 49.9,
           y: 22.5,
           cote: "gauche",
           titre: "Scanner ou choisir",
           texte: "Le code-barres retrouve le produit ; la liste montre ce qui reste en stock.",
         },
         {
-          x: 40,
           y: 57.3,
           cote: "gauche",
           titre: "Le panier",
           texte: "Chaque article, sa quantité et son prix. On en ajoute autant qu'il faut.",
         },
         {
-          x: 73.9,
           y: 14.8,
           cote: "droite",
           titre: "Le vendeur",
           texte: "Chaque vente lui est attribuée : son chiffre et sa caisse sont suivis à part.",
         },
         {
-          x: 90,
           y: 85.2,
           cote: "droite",
           titre: "Payé ou à crédit",
           texte: "Si le client paie une partie, le reste devient une créance, toute seule.",
         },
         {
-          x: 66,
           y: 96.1,
           cote: "droite",
           titre: "Valider",
@@ -122,7 +113,6 @@ const ETAPES: Etape[] = [
     },
   },
   {
-    numero: "02",
     icone: Boxes,
     etiquette: "Dans la réserve",
     titre: "Le stock se tient tout seul",
@@ -146,35 +136,30 @@ const ETAPES: Etape[] = [
       alt: "Liste des produits avec leurs prix, leur stock et les alertes",
       reperes: [
         {
-          x: 4.3,
           y: 17.3,
           cote: "gauche",
           titre: "Le stock en chiffres",
           texte: "Nombre de références, valeur du stock, produits à racheter.",
         },
         {
-          x: 5.7,
           y: 39.8,
           cote: "gauche",
           titre: "Chaque produit",
           texte: "Son prix de vente, son prix d'achat, son fournisseur.",
         },
         {
-          x: 95.5,
           y: 7.1,
           cote: "droite",
           titre: "Un produit en une minute",
           texte: "Désignation, prix, stock de départ et seuil d'alerte.",
         },
         {
-          x: 94.5,
           y: 51.1,
           cote: "droite",
           titre: "Sous le seuil",
           texte: "L'orange signale qu'il est temps de racheter.",
         },
         {
-          x: 94.5,
           y: 79.4,
           cote: "droite",
           titre: "Rupture",
@@ -184,7 +169,6 @@ const ETAPES: Etape[] = [
     },
   },
   {
-    numero: "03",
     icone: CreditCard,
     etiquette: "Les crédits clients",
     titre: "Qui vous doit quoi, sans chercher",
@@ -209,28 +193,24 @@ const ETAPES: Etape[] = [
       alt: "Liste des ventes et commandes restant à encaisser",
       reperes: [
         {
-          x: 16,
           y: 25.2,
           cote: "gauche",
           titre: "Le total à recevoir",
           texte: "Tout ce que vos clients vous doivent, en un chiffre.",
         },
         {
-          x: 9.2,
           y: 59.8,
           cote: "gauche",
           titre: "Chaque pièce",
           texte: "Vente ou commande, avec le nom du client.",
         },
         {
-          x: 91,
           y: 41.9,
           cote: "droite",
           titre: "Recevoir",
           texte: "Montant, mode de paiement : c'est enregistré.",
         },
         {
-          x: 80.5,
           y: 51.5,
           cote: "droite",
           titre: "Le reste dû",
@@ -240,7 +220,6 @@ const ETAPES: Etape[] = [
     },
   },
   {
-    numero: "04",
     icone: Wallet,
     etiquette: "La caisse",
     titre: "Votre trésorerie, au franc près",
@@ -264,35 +243,30 @@ const ETAPES: Etape[] = [
       alt: "Écran de trésorerie avec la composition des entrées et sorties",
       reperes: [
         {
-          x: 18.5,
           y: 24.8,
           cote: "gauche",
           titre: "L'argent disponible",
           texte: "Ce qu'il y a dans la caisse, maintenant.",
         },
         {
-          x: 96,
           y: 8.5,
           cote: "droite",
           titre: "Ajouter un apport",
           texte: "Une injection d'argent, notée avec sa source.",
         },
         {
-          x: 93.4,
           y: 20.1,
           cote: "droite",
           titre: "Saine ou basse",
           texte: "Le signal passe à l'orange sous votre seuil.",
         },
         {
-          x: 96.2,
           y: 59,
           cote: "droite",
           titre: "Ce qui est entré",
           texte: "Les ventes et commandes encaissées.",
         },
         {
-          x: 96.2,
           y: 66.5,
           cote: "droite",
           titre: "Ce qui est sorti",
@@ -302,7 +276,6 @@ const ETAPES: Etape[] = [
     },
   },
   {
-    numero: "05",
     icone: Truck,
     etiquette: "Commandes et livraisons",
     titre: "De la commande à la livraison",
@@ -326,28 +299,24 @@ const ETAPES: Etape[] = [
       alt: "Liste des commandes avec leur statut et leur paiement",
       reperes: [
         {
-          x: 12.7,
           y: 52.6,
           cote: "gauche",
           titre: "Statut et paiement",
           texte: "En attente, en cours, livré · impayé, partiel, payé.",
         },
         {
-          x: 26.6,
           y: 91.6,
           cote: "gauche",
           titre: "Marquer livré",
           texte: "La marchandise réservée sort du stock.",
         },
         {
-          x: 92.3,
           y: 29.2,
           cote: "droite",
           titre: "Les impayés",
           texte: "Ce qui reste à encaisser sur les commandes.",
         },
         {
-          x: 54.1,
           y: 82.6,
           cote: "droite",
           titre: "Total, payé, reste",
@@ -486,12 +455,6 @@ const BlocPhoto: React.FC<{ etape: Etape; aDroite: boolean }> = ({ etape, aDroit
               boxShadow: "0 30px 60px -30px rgba(28,27,24,.5)",
             }}
           />
-          <span
-            className="absolute -top-5 left-6 grid h-14 w-14 place-items-center rounded-full font-mono text-lg font-bold text-white"
-            style={{ background: "var(--primary)", boxShadow: "0 8px 20px -8px rgba(0,0,0,.45)" }}
-          >
-            {etape.numero}
-          </span>
           <p
             className="absolute bottom-4 left-4 right-4 rounded-xl px-4 py-2.5 text-[0.85rem] font-medium backdrop-blur-md sm:right-auto sm:max-w-[80%]"
             style={{ background: "rgba(253,252,250,.88)", color: "var(--carbone)" }}
@@ -566,7 +529,7 @@ export const VisiteGuidee: React.FC = () => (
       {/* Les étapes : la photo du métier, puis l'écran expliqué. */}
       <div className="mt-24 space-y-28 sm:space-y-36">
         {ETAPES.map((etape, i) => (
-          <div key={etape.numero}>
+          <div key={etape.etiquette}>
             <Revele>
               <BlocPhoto etape={etape} aDroite={i % 2 === 1} />
             </Revele>
@@ -614,42 +577,36 @@ export const VisiteGuidee: React.FC = () => (
             ecran="Tableau de bord"
             reperes={[
               {
-                x: 21.6,
                 y: 28.1,
                 cote: "gauche",
                 titre: "Les alertes du jour",
                 texte: "Tâches en retard, produits à racheter.",
               },
               {
-                x: 18.5,
                 y: 48.1,
                 cote: "gauche",
                 titre: "Ventes du jour",
                 texte: "Comparées à la veille.",
               },
               {
-                x: 46.1,
                 y: 48.1,
                 cote: "gauche",
                 titre: "Entrées d'argent",
                 texte: "Ce qui a été encaissé aujourd'hui.",
               },
               {
-                x: 38.2,
                 y: 95,
                 cote: "gauche",
                 titre: "La courbe du mois",
                 texte: "Les ventes, jour après jour.",
               },
               {
-                x: 59.2,
                 y: 48.1,
                 cote: "droite",
                 titre: "Sorties d'argent",
                 texte: "Achats et dépenses du jour et du mois.",
               },
               {
-                x: 86.3,
                 y: 58.4,
                 cote: "droite",
                 titre: "À recommander",
@@ -705,35 +662,30 @@ export const VisiteGuidee: React.FC = () => (
               largeurMax="26rem"
               reperes={[
                 {
-                  x: 10.5,
                   y: 7.2,
                   cote: "gauche",
                   titre: "Votre identité",
                   texte: "Logo, coordonnées, NIF et STAT.",
                 },
                 {
-                  x: 29.2,
                   y: 42,
                   cote: "gauche",
                   titre: "Le détail",
                   texte: "Articles, quantités, prix.",
                 },
                 {
-                  x: 7.5,
                   y: 55.2,
                   cote: "gauche",
                   titre: "Le montant en lettres",
                   texte: "La mention qui tranche en cas de désaccord.",
                 },
                 {
-                  x: 93.8,
                   y: 20.4,
                   cote: "droite",
                   titre: "Le tampon",
                   texte: "Payé, ou reste à payer.",
                 },
                 {
-                  x: 94,
                   y: 61.4,
                   cote: "droite",
                   titre: "Total et reste dû",
