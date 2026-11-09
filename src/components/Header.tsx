@@ -854,10 +854,11 @@ export const Header: React.FC<HeaderProps> = ({
           onFermer={() => setMobileMenuOpen(false)}
         />
       )}
-      {/* Mobile Bottom Navigation */}
+      {/* Mobile Bottom Navigation — toujours visible : elle ne se
+          replie plus au défilement, les raccourcis restent à portée
+          du pouce pendant qu'on lit une page longue. */}
       <nav
-        data-masquee={barresMasquees}
-        className="app-bar-auto app-bar-bas lg:hidden fixed bottom-0 left-0 right-0 z-50 bg-card/95 backdrop-blur border-t border-border shadow-[0_-4px_18px_rgba(38,58,50,0.07)]"
+        className="app-bar-bas lg:hidden fixed bottom-0 left-0 right-0 z-50 bg-card/95 backdrop-blur border-t border-border shadow-[0_-4px_18px_rgba(38,58,50,0.07)]"
       >
         {/* Le nombre de colonnes suit le nombre de raccourcis. Il était
             figé à cinq : une boutique qui masquait un module laissait

@@ -1125,9 +1125,6 @@ td {
 .app-bar-haut[data-masquee="true"] {
   transform: translateY(-100%);
 }
-.app-bar-bas[data-masquee="true"] {
-  transform: translateY(100%);
-}
 
 /* Les barres continuent de libérer la place — c'est de l'espace de
    lecture gagné, pas un ornement — mais elles changent d'état sans
