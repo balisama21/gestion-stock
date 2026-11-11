@@ -5,7 +5,7 @@ import { formatDateLocale } from "../utils/formulas";
 import { montant as formaterMontant } from "../features/documents/lib/format";
 import { PageHeader } from "./shared/PageHeader";
 import { FilterBar, FilterField } from "./shared/FilterBar";
-import { DataList, type DataListItem } from "./shared/DataList";
+import { DataList, type DataListItem, libelleDuJour, PictoDocument } from "./shared/DataList";
 import { DateJour, Deux, Texte } from "./shared/Cellules";
 import { StatCol } from "./shared/StatBar";
 import { SquelettePage } from "./shared/SquelettePage";
@@ -67,6 +67,20 @@ const ORDRE_ONGLETS: TypeDocument[] = [
 ];
 
 /** Le mot au singulier, pour la ligne grise sous le numéro. */
+/** Ce que porte la petite feuille de chaque pièce, et son ton. */
+const PICTO_TYPE: Record<
+  TypeDocument,
+  { court: string; ton: "vert" | "orange" | "rouge" | "bleu" | "violet" }
+> = {
+  facture: { court: "FAC", ton: "vert" },
+  commission: { court: "COM", ton: "vert" },
+  recu: { court: "Reçu", ton: "violet" },
+  proforma: { court: "PRO", ton: "bleu" },
+  devis: { court: "DEV", ton: "bleu" },
+  avoir: { court: "Avoir", ton: "rouge" },
+  facture_achat: { court: "ACH", ton: "orange" },
+};
+
 const NOM_TYPE: Record<TypeDocument, string> = {
   facture: "Facture",
   commission: "Facture avec commission",
@@ -277,11 +291,15 @@ export const FacturationView: React.FC<FacturationViewProps> = ({
 
     return {
       id: d.cle,
+      // Rangée par jour seulement quand la liste est triée par date :
+      // triée par montant ou par client, les jours s'éparpilleraient.
+      groupe: tri === "date" ? libelleDuJour(d.date) : undefined,
+      leading: <PictoDocument type={PICTO_TYPE[d.type].court} ton={PICTO_TYPE[d.type].ton} />,
       primary: d.numero || NOM_TYPE[d.type],
       meta: [
         NOM_TYPE[d.type],
         d.tiers,
-        formatDateLocale(d.date, locale),
+        tri === "date" ? null : formatDateLocale(d.date, locale),
         d.echeance && d.reste > 0 ? `échéance ${formatDateLocale(d.echeance, locale)}` : null,
         retard ? `${jours} jour${jours > 1 ? "s" : ""} de retard` : null,
       ],
@@ -522,6 +540,8 @@ export const FacturationView: React.FC<FacturationViewProps> = ({
               ) : (
                 <DataList
                   items={lignes}
+                  /* Une liasse de pièces, avec des pointillés de détachement. */
+                  allure="document"
                   titrePrincipal="Document"
                   colonnes={[
                     { cle: "tiers", titre: "Client ou fournisseur" },

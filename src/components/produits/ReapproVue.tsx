@@ -148,6 +148,7 @@ export const ReapproVue: React.FC<ReapproVueProps> = ({
             )}
             <div className="app-card overflow-hidden">
               <DataList
+                allure="produit"
                 items={g.lignes.map(item)}
                 titrePrincipal="Produit"
                 colonnes={[

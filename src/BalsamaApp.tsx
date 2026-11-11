@@ -2961,6 +2961,10 @@ function AppInner() {
                         notesDeFrais={notesDeFrais.notes}
                         locale={locale}
                         products={products}
+                        // Une écriture s'ouvre dans son écran, sur sa fiche.
+                        onOuvrir={(onglet, id) =>
+                          viserLigne(onglet as ActiveTab, "", undefined, id)
+                        }
                       />
                     )}
                     {vue === "commandes" && (

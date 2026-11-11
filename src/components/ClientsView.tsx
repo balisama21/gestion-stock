@@ -19,10 +19,16 @@ import {
   ShoppingBag,
   Trash2,
   User,
+  UserCheck,
+  Users,
+  UserX,
+  Wallet,
   X,
 } from "lucide-react";
 import { formatCurrency } from "../utils/formulas";
 import { PageHeader } from "./shared/PageHeader";
+import { FilterBar, PastilleFiltre } from "./shared/FilterBar";
+import { LignePersonne } from "./shared/LignePersonne";
 import { ChampsPersoLecture, ChampsPersoSaisie } from "./shared/ChampsPersonnalises";
 import {
   champObligatoireManquant,
@@ -305,6 +311,17 @@ export const ClientsView: React.FC<ClientsViewProps> = ({
     rembourse: 0,
     enCours: 0,
   };
+
+  /** Combien chaque onglet garde : on sait avant de cliquer. */
+  const compteFiltres = useMemo(() => {
+    let actifs = 0;
+    let impayes = 0;
+    for (const c of clients) {
+      if ((c.statut ?? "actif") === "actif") actifs++;
+      if ((comptes[c.id]?.resteDu ?? 0) > 0) impayes++;
+    }
+    return { actifs, inactifs: clients.length - actifs, impayes };
+  }, [clients, comptes]);
 
   const listeFiltree = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -665,47 +682,47 @@ export const ClientsView: React.FC<ClientsViewProps> = ({
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         {/* ── Colonne de gauche : la liste ── */}
         <div className={`space-y-4 ${selection ? "lg:col-span-1" : "lg:col-span-3"}`}>
-          {/* Recherche et filtre réunis dans une seule barre, comme sur
-              les autres listes. */}
-          <div className="app-toolbar flex-wrap">
-            <div className="relative w-full sm:min-w-56 sm:flex-1">
-              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <label htmlFor="cl-recherche" className="sr-only">
-                Rechercher un client
-              </label>
-              <input
-                id="cl-recherche"
-                type="search"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                placeholder="Nom, entreprise, téléphone, ville…"
-                className="app-field pl-10"
-              />
-            </div>
-
-            {/* Les filtres restent sur une ligne qui passe à la ligne
-                plutôt que de défiler : rien ne doit sortir de l'écran. */}
-            <div className="app-seg" role="group" aria-label="Filtrer la liste">
-              {(
-                [
-                  ["tous", `Tous (${clients.length})`],
-                  ["actifs", "Actifs"],
-                  ["inactifs", "Inactifs"],
-                  ["impayes", "Avec impayé"],
-                ] as const
-              ).map(([valeur, libelle]) => (
-                <button
-                  key={valeur}
-                  type="button"
-                  onClick={() => setFiltre(valeur)}
-                  aria-pressed={filtre === valeur}
-                  className="app-seg-item"
-                >
-                  {libelle}
-                </button>
-              ))}
-            </div>
-          </div>
+          {/* La recherche partagée par toutes les listes, détachée de la
+              liste, et les quatre filtres en onglets à icône — la même
+              barre que le catalogue, avec les mots des clients. */}
+          <FilterBar
+            searchValue={search}
+            onSearchChange={setSearch}
+            searchPlaceholder="Nom, entreprise, téléphone, ville…"
+            rapides={(
+              [
+                { cle: "tous", libelle: "Tous", compte: clients.length, icone: <Users /> },
+                {
+                  cle: "actifs",
+                  libelle: "Actifs",
+                  compte: compteFiltres.actifs,
+                  icone: <UserCheck />,
+                },
+                {
+                  cle: "inactifs",
+                  libelle: "Inactifs",
+                  compte: compteFiltres.inactifs,
+                  icone: <UserX />,
+                },
+                {
+                  cle: "impayes",
+                  libelle: "Avec impayé",
+                  compte: compteFiltres.impayes,
+                  icone: <Wallet />,
+                },
+              ] as const
+            ).map((o) => (
+              <PastilleFiltre
+                key={o.cle}
+                actif={filtre === o.cle}
+                compte={o.compte}
+                icone={o.icone}
+                onClick={() => setFiltre(o.cle)}
+              >
+                {o.libelle}
+              </PastilleFiltre>
+            ))}
+          />
 
           {listeFiltree.length === 0 ? (
             <div className="app-card p-10 text-center text-muted-foreground">
@@ -723,80 +740,47 @@ export const ClientsView: React.FC<ClientsViewProps> = ({
               )}
             </div>
           ) : (
-            <div className="app-card overflow-hidden">
-              {/* Liste dense — le clic SÉLECTIONNE le client pour le
-                  panneau de droite, il n'ouvre pas une modale : c'est un
-                  écran maître-détail, pas un journal. */}
-              <div className="app-list">
-                {listeFiltree.map((client) => {
-                  const compte = comptes[client.id] ?? compteVide;
-                  const choisi = selection?.id === client.id;
-                  const secondaire = [
-                    client.entreprise,
-                    client.telephone,
-                    client.ville,
-                    compte.commandes > 0
-                      ? `${compte.commandes} commande${compte.commandes > 1 ? "s" : ""}`
-                      : null,
-                    // Le nombre de VENTES du client, payées ou non : « à crédit » le
-                    // disait d'une vente réglée comptant. Ce qu'il doit encore
-                    // a son propre badge, à droite.
-                    compte.ventesCredit > 0
-                      ? `${compte.ventesCredit} vente${compte.ventesCredit > 1 ? "s" : ""}`
-                      : null,
-                    compte.enCours > 0 ? `${compte.enCours} en cours` : null,
-                  ]
-                    .filter(Boolean)
-                    .join(" · ");
-                  return (
-                    <button
-                      key={client.id}
-                      type="button"
-                      onClick={() => {
-                        setSelection(choisi ? null : client);
-                        setSuppressionDemandee(false);
-                      }}
-                      aria-pressed={choisi}
-                      className={`app-list-row w-full justify-between gap-3 text-left ${
-                        choisi ? "bg-muted" : ""
-                      }`}
-                    >
-                      <AvatarPersonne nom={client.nom} taille={32} />
-                      <span className="min-w-0 flex-1">
-                        <span className="app-list-primary block">
-                          {client.nom}
-                          {client.prenom ? ` ${client.prenom}` : ""}
-                          {/* L'espace est explicite : sans lui, un lecteur
-                              d'écran annonce « AndrianinaInactif ». */}
-                          {(client.statut ?? "actif") === "inactif" && " "}
-                          {(client.statut ?? "actif") === "inactif" && (
-                            <span className="app-badge app-badge-neutral ml-2">Inactif</span>
-                          )}
-                        </span>
-                        {secondaire && (
-                          <span className="app-list-secondary block">{secondaire}</span>
-                        )}
-                      </span>
-
-                      {/* L'impayé et son montant tiennent dans un seul badge,
-                          sous le total : côte à côte, ils ne laissaient plus
-                          au nom du client que quelques lettres. */}
-                      <span className="flex shrink-0 flex-col items-end gap-1 text-right">
-                        <span className="app-list-amount block tabular-nums">
-                          {formatCurrency(compte.totalAchete)}
-                        </span>
-                        {compte.resteDu > 0 && (
-                          <span className="app-badge app-badge-danger shrink-0 tabular-nums">
-                            <AlertCircle className="h-3 w-3" aria-hidden="true" />
-                            <span className="sr-only">Impayé :</span>
-                            {formatCurrency(compte.resteDu)} dû
-                          </span>
-                        )}
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
+            /* ── La liste des personnes ──
+               Le clic SÉLECTIONNE le client pour le panneau de droite, il
+               n'ouvre pas une modale : c'est un écran maître-détail, pas
+               un journal. Le bouton d'appel est À CÔTÉ du bouton de la
+               ligne, jamais dedans : deux boutons imbriqués ne seraient
+               ni valides ni utilisables au clavier. */
+            <div className="app-personnes" role="list" aria-label="Clients">
+              {listeFiltree.map((client) => {
+                const compte = comptes[client.id] ?? compteVide;
+                const choisi = selection?.id === client.id;
+                return (
+                  <LignePersonne
+                    key={client.id}
+                    nom={`${client.nom}${client.prenom ? ` ${client.prenom}` : ""}`}
+                    portrait={<AvatarPersonne nom={client.nom} taille={50} />}
+                    contact={[client.entreprise, client.telephone, client.ville]}
+                    puces={[
+                      (client.statut ?? "actif") === "inactif" ? "Inactif" : null,
+                      // Le nombre de VENTES du client, payées ou non : ce
+                      // qu'il doit encore a sa propre pastille, à droite.
+                      compte.ventesCredit > 0
+                        ? `${compte.ventesCredit} vente${compte.ventesCredit > 1 ? "s" : ""}`
+                        : null,
+                      compte.commandes > 0
+                        ? `${compte.commandes} commande${compte.commandes > 1 ? "s" : ""}`
+                        : null,
+                      compte.enCours > 0 ? `${compte.enCours} en cours` : null,
+                    ]}
+                    total={formatCurrency(compte.totalAchete)}
+                    legende="acheté"
+                    dette={compte.resteDu > 0 ? formatCurrency(compte.resteDu) : null}
+                    inactif={(client.statut ?? "actif") === "inactif"}
+                    telephone={client.telephone}
+                    choisie={choisi}
+                    onChoisir={() => {
+                      setSelection(choisi ? null : client);
+                      setSuppressionDemandee(false);
+                    }}
+                  />
+                );
+              })}
             </div>
           )}
         </div>

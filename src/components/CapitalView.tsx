@@ -9,16 +9,35 @@ import {
   ShieldCheck,
   Building2,
   FileSpreadsheet,
+  PiggyBank,
+  Landmark,
+  ShoppingBag,
+  Package,
+  Receipt,
+  RotateCcw,
+  Users,
 } from "lucide-react";
+import { Cascade } from "./shared/Cascade";
 import { formatCurrency, formatDateLocale } from "../utils/formulas";
 import { PageHeader } from "./shared/PageHeader";
 import { StatCol } from "./shared/StatBar";
-import { DataList, type DataListItem } from "./shared/DataList";
+import { DataList, type DataListItem, libelleDuJour, Picto } from "./shared/DataList";
 import { useOuvertureFiche } from "../lib/cibleRecherche";
 import { Modal } from "./shared/Modal";
 import { dateDuJour } from "../lib/dates";
 import { symboleDeSaisie } from "../lib/affichageDevise";
 import { useConfirmation } from "../hooks/useConfirmation";
+
+/** L'icône de chaque poste de la trésorerie, dans la cascade. */
+const ICONE_POSTE: Record<string, React.ReactNode> = {
+  initial: <Landmark />,
+  apports: <PiggyBank />,
+  ventes: <ShoppingBag />,
+  achats: <Package />,
+  depenses: <Receipt />,
+  remboursements: <RotateCcw />,
+  salaires: <Users />,
+};
 
 interface CapitalViewProps {
   capital: CapitalSummary;
@@ -202,8 +221,23 @@ export const CapitalView: React.FC<CapitalViewProps> = ({
   /** Une ligne de la liste ; sert aussi à ouvrir la fiche visée par une notification. */
   const versItemApport = (app: CapitalApport): DataListItem => ({
     id: app.id,
+    groupe: libelleDuJour(app.date),
+    leading: (
+      <Picto ton="vert">
+        <PiggyBank />
+      </Picto>
+    ),
+    // La part de cet apport dans tout ce qui a été apporté.
+    jauge:
+      capital.apportsTotal > 0
+        ? {
+            part: app.montant / capital.apportsTotal,
+            libelle: `${Math.round((app.montant / capital.apportsTotal) * 100)} % des apports`,
+          }
+        : undefined,
     primary: app.source,
-    meta: [formatDateLocale(app.date, locale), app.note || null],
+    // La date est le titre du groupe : pas sur chaque ligne.
+    meta: [app.note || null],
     amount: `+ ${formatCurrency(app.montant)}`,
     detailTitle: app.source,
     detailSubtitle: `Apport du ${formatDateLocale(app.date, locale)}`,
@@ -305,43 +339,44 @@ export const CapitalView: React.FC<CapitalViewProps> = ({
         </p>
       </div>
 
-      {/* Composition de la trésorerie.
-          Les six cartes chiffrées de l'ancienne grille ne disaient pas
-          comment elles s'enchaînaient. Posées en état financier signé, du
-          premier poste jusqu'au total, le calcul se lit tout seul. */}
-      <div className="app-card overflow-hidden">
-        <div className="border-b border-border px-4 py-3">
-          <h3 className="app-section-title">
-            <Wallet className="h-4 w-4" />
-            Composition
-          </h3>
+      {/* ── D'où vient la trésorerie ──
+          Une cascade plutôt qu'un tableau : chaque poste fait avancer ou
+          reculer le solde, et sa piste le montre — un pas vert vers la
+          droite pour ce qui entre, un pas rouge vers la gauche pour ce
+          qui sort, jusqu'à la trésorerie disponible, en plein. Les sept
+          postes restent tous là, même à zéro : c'est un état financier,
+          et l'addition doit pouvoir se refaire de tête. */}
+      <section className="space-y-3" aria-labelledby="capital-composition">
+        <div className="flex items-end justify-between gap-3 px-1">
+          <div>
+            <h3 id="capital-composition" className="text-base font-bold text-foreground">
+              D&apos;où vient votre trésorerie
+            </h3>
+            <p className="text-xs text-muted-foreground">
+              Chaque poste, et ce qu&apos;il fait au solde.
+            </p>
+          </div>
         </div>
-
-        <div className="divide-y divide-border">
-          {composition.map((l) => (
-            <div key={l.key} className="flex items-center justify-between gap-3 px-4 py-2.5">
-              <span className="min-w-0 flex-1">
-                <span className="app-list-primary block">{l.label}</span>
-                {l.hint && <span className="app-list-secondary block">{l.hint}</span>}
-              </span>
-              <span className="app-list-amount">
-                {l.sign} {formatCurrency(l.value)}
-              </span>
-            </div>
-          ))}
-        </div>
-
-        <div className="flex items-center justify-between gap-3 border-t border-border bg-muted/40 px-4 py-3">
-          <span className="text-sm font-medium text-foreground">Trésorerie disponible</span>
-          <span
-            className={`font-mono text-base font-semibold tabular-nums ${
-              isNegative ? "t-danger" : "text-foreground"
-            }`}
-          >
-            {formatCurrency(capital.tresorerieGlobaleActuelle)}
-          </span>
-        </div>
-      </div>
+        <Cascade
+          format={formatCurrency}
+          etapes={[
+            ...composition.map((l) => ({
+              cle: l.key,
+              libelle: l.label,
+              detail: l.hint,
+              montant: l.sign === "+" ? l.value : -l.value,
+              icone: ICONE_POSTE[l.key],
+            })),
+            {
+              cle: "total",
+              libelle: "Trésorerie disponible",
+              detail: isNegative ? "Le solde est négatif" : "Ce qui est réellement en caisse",
+              total: true,
+              icone: <Wallet />,
+            },
+          ]}
+        />
+      </section>
 
       {/* Deux lectures de solidité, sorties de la carte « Couverture &
           santé » qui mélangeait indicateurs et rappel de formule. */}
@@ -428,6 +463,8 @@ export const CapitalView: React.FC<CapitalViewProps> = ({
 
         <DataList
           emptyLabel="Aucun apport enregistré pour le moment."
+          /* Des jalons : chaque apport, et sa part dans le capital apporté. */
+          allure="jalon"
           ouvrir={ficheAOuvrir}
           items={apports.map(versItemApport)}
         />

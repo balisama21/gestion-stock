@@ -615,6 +615,7 @@ export const DevisView: React.FC<DevisViewProps> = ({
       <div className="app-card overflow-hidden">
         <DataList
           emptyLabel="Aucun devis ne correspond à ces filtres."
+          allure="operation"
           ouvrir={ficheAOuvrir}
           titrePrincipal="Client"
           colonnes={[

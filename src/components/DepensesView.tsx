@@ -18,6 +18,9 @@ import {
   RefreshCw,
   ShoppingBag,
   TrendingDown,
+  Banknote as BilletPicto,
+  Package as ColisPicto,
+  Receipt as RecuPicto,
 } from "lucide-react";
 import { formatCurrency, formatDateLocale } from "../utils/formulas";
 import { PageHeader } from "./shared/PageHeader";
@@ -26,7 +29,7 @@ import { SelecteurPersonne } from "./shared/SelecteurPersonne";
 import { cleDeListe } from "../lib/listes";
 import type { Personne } from "../lib/personnes";
 import { FilterBar, FilterField } from "./shared/FilterBar";
-import { DataList, type DataListItem } from "./shared/DataList";
+import { DataList, type DataListItem, libelleDuJour, Picto } from "./shared/DataList";
 import { DateJour, Deux, Texte } from "./shared/Cellules";
 import { adresseDocument, envoyerFichier, reduireImage } from "../lib/stockageFichiers";
 import { StatCol } from "./shared/StatBar";
@@ -342,8 +345,25 @@ export const DepensesView: React.FC<DepensesViewProps> = ({
   /** Une ligne de la liste ; sert aussi à ouvrir la fiche visée par une notification. */
   const versItemDepense = (e: Expense): DataListItem => ({
     id: e.id,
+    groupe: libelleDuJour(e.date),
+    // Le point de la frise : l'icône du type de dépense.
+    leading:
+      e.type === "Achat de stock" ? (
+        <Picto ton="bleu">
+          <ColisPicto />
+        </Picto>
+      ) : e.type === "Retrait d'argent" ? (
+        <Picto ton="orange">
+          <BilletPicto />
+        </Picto>
+      ) : (
+        <Picto ton="rouge">
+          <RecuPicto />
+        </Picto>
+      ),
     primary: e.note?.trim() || e.type,
-    meta: [formatDateLocale(e.date, locale), avecEquipe ? e.vendeur : null],
+    // La date est le titre du groupe : pas sur chaque ligne.
+    meta: [e.note?.trim() ? e.type : null, avecEquipe ? e.vendeur : null],
     amount: `- ${formatCurrency(e.montant)}`,
     badge: (
       <span
@@ -557,6 +577,8 @@ export const DepensesView: React.FC<DepensesViewProps> = ({
       <div className="app-card overflow-hidden">
         <DataList
           emptyLabel="Aucune dépense ne correspond à ces filtres."
+          /* Une frise : chaque dépense est un point sur la ligne du temps. */
+          allure="chronologie"
           ouvrir={ficheAOuvrir}
           titrePrincipal="Dépense"
           colonnes={[

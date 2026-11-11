@@ -19,9 +19,13 @@ import {
   Upload,
   Wallet,
   X,
+  CircleCheck,
+  CircleSlash,
 } from "lucide-react";
 import { formatCurrency } from "../utils/formulas";
 import { PageHeader } from "./shared/PageHeader";
+import { FilterBar, PastilleFiltre } from "./shared/FilterBar";
+import { LignePersonne, PortraitIcone } from "./shared/LignePersonne";
 import { SelecteurListe } from "./shared/SelecteurListe";
 import { ChampsPersoLecture, ChampsPersoSaisie } from "./shared/ChampsPersonnalises";
 import {
@@ -364,6 +368,12 @@ export const FournisseursView: React.FC<FournisseursViewProps> = ({
     dernier: null as string | null,
     produits: 0,
   };
+
+  /** Combien d'actifs : les onglets disent leur compte avant le clic. */
+  const nbActifs = useMemo(
+    () => suppliers.filter((x) => (x.statut ?? "actif") === "actif").length,
+    [suppliers],
+  );
 
   const listeFiltree = useMemo(() => {
     const q = search.trim().toLowerCase();
@@ -771,44 +781,35 @@ export const FournisseursView: React.FC<FournisseursViewProps> = ({
       <div className="grid grid-cols-1 gap-6 lg:grid-cols-3">
         {/* ── La liste ── */}
         <div className={`space-y-4 ${selection ? "lg:col-span-1" : "lg:col-span-3"}`}>
-          {/* Recherche et filtre réunis dans une seule barre, comme sur
-              les autres listes. */}
-          <div className="app-toolbar flex-wrap">
-            <div className="relative w-full sm:min-w-56 sm:flex-1">
-              <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-              <label htmlFor="fo-recherche" className="sr-only">
-                Rechercher un fournisseur
-              </label>
-              <input
-                id="fo-recherche"
-                type="search"
-                value={search}
-                onChange={(e) => setSearch(e.target.value)}
-                placeholder="Nom, entreprise, catégorie, ville…"
-                className="app-field pl-10"
-              />
-            </div>
-
-            <div className="app-seg" role="group" aria-label="Filtrer la liste">
-              {(
-                [
-                  ["tous", `Tous (${suppliers.length})`],
-                  ["actifs", "Actifs"],
-                  ["inactifs", "Inactifs"],
-                ] as const
-              ).map(([valeur, libelle]) => (
-                <button
-                  key={valeur}
-                  type="button"
-                  onClick={() => setFiltre(valeur)}
-                  aria-pressed={filtre === valeur}
-                  className="app-seg-item"
-                >
-                  {libelle}
-                </button>
-              ))}
-            </div>
-          </div>
+          {/* La recherche partagée, détachée de la liste, et les filtres
+              en onglets à icône — la même barre que le catalogue. */}
+          <FilterBar
+            searchValue={search}
+            onSearchChange={setSearch}
+            searchPlaceholder="Nom, entreprise, catégorie, ville…"
+            rapides={(
+              [
+                { cle: "tous", libelle: "Tous", compte: suppliers.length, icone: <Truck /> },
+                { cle: "actifs", libelle: "Actifs", compte: nbActifs, icone: <CircleCheck /> },
+                {
+                  cle: "inactifs",
+                  libelle: "Inactifs",
+                  compte: suppliers.length - nbActifs,
+                  icone: <CircleSlash />,
+                },
+              ] as const
+            ).map((o) => (
+              <PastilleFiltre
+                key={o.cle}
+                actif={filtre === o.cle}
+                compte={o.compte}
+                icone={o.icone}
+                onClick={() => setFiltre(o.cle)}
+              >
+                {o.libelle}
+              </PastilleFiltre>
+            ))}
+          />
 
           {listeFiltree.length === 0 ? (
             <div className="app-card p-10 text-center text-muted-foreground">
@@ -826,65 +827,46 @@ export const FournisseursView: React.FC<FournisseursViewProps> = ({
               )}
             </div>
           ) : (
-            <div className="app-card overflow-hidden">
-              <div className="app-list">
-                {listeFiltree.map((fournisseur) => {
-                  const compte = comptes[fournisseur.id] ?? compteVide;
-                  const choisi = selection?.id === fournisseur.id;
-                  const secondaire = [
-                    nomDuType(fournisseur),
-                    fournisseur.telephone,
-                    fournisseur.ville,
-                    compte.achats > 0
-                      ? `${compte.achats} achat${compte.achats > 1 ? "s" : ""}`
-                      : null,
-                    compte.produits > 0
-                      ? `${compte.produits} produit${compte.produits > 1 ? "s" : ""}`
-                      : null,
-                  ]
-                    .filter(Boolean)
-                    .join(" · ");
-                  return (
-                    <button
-                      key={fournisseur.id}
-                      type="button"
-                      onClick={() => {
-                        setSelection(choisi ? null : fournisseur);
-                        setSuppressionDemandee(false);
-                      }}
-                      aria-pressed={choisi}
-                      className={`app-list-row w-full justify-between gap-3 text-left ${
-                        choisi ? "bg-muted" : ""
-                      }`}
-                    >
-                      <span className="min-w-0 flex-1">
-                        <span className="app-list-primary block">
-                          {fournisseur.nom}
-                          {/* L'espace est explicite : sans lui, un lecteur
-                              d'écran annonce « VillaDInactif ». */}
-                          {(fournisseur.statut ?? "actif") === "inactif" && " "}
-                          {(fournisseur.statut ?? "actif") === "inactif" && (
-                            <span className="app-badge app-badge-neutral ml-2">Inactif</span>
-                          )}
-                        </span>
-                        {secondaire && (
-                          <span className="app-list-secondary block">{secondaire}</span>
-                        )}
-                      </span>
-                      <span className="shrink-0 text-right">
-                        <span className="app-list-amount block tabular-nums">
-                          {formatCurrency(compte.total)}
-                        </span>
-                        {compte.du > 0 && (
-                          <span className="app-list-secondary block tabular-nums t-danger">
-                            {formatCurrency(compte.du)} dû
-                          </span>
-                        )}
-                      </span>
-                    </button>
-                  );
-                })}
-              </div>
+            /* Les fournisseurs, en personnes : leur portrait est un camion,
+               leur chiffre ce qu'on leur a acheté, leur dette ce qu'on leur
+               doit encore. */
+            <div className="app-personnes" role="list" aria-label="Fournisseurs">
+              {listeFiltree.map((fournisseur) => {
+                const compte = comptes[fournisseur.id] ?? compteVide;
+                const choisi = selection?.id === fournisseur.id;
+                const inactif = (fournisseur.statut ?? "actif") === "inactif";
+                return (
+                  <LignePersonne
+                    key={fournisseur.id}
+                    nom={fournisseur.nom}
+                    portrait={
+                      <PortraitIcone>
+                        <Truck className="h-[22px] w-[22px]" />
+                      </PortraitIcone>
+                    }
+                    contact={[nomDuType(fournisseur), fournisseur.telephone, fournisseur.ville]}
+                    puces={[
+                      inactif ? "Inactif" : null,
+                      compte.achats > 0
+                        ? `${compte.achats} achat${compte.achats > 1 ? "s" : ""}`
+                        : null,
+                      compte.produits > 0
+                        ? `${compte.produits} produit${compte.produits > 1 ? "s" : ""}`
+                        : null,
+                    ]}
+                    total={formatCurrency(compte.total)}
+                    legende="acheté chez lui"
+                    dette={compte.du > 0 ? formatCurrency(compte.du) : null}
+                    inactif={inactif}
+                    telephone={fournisseur.telephone}
+                    choisie={choisi}
+                    onChoisir={() => {
+                      setSelection(choisi ? null : fournisseur);
+                      setSuppressionDemandee(false);
+                    }}
+                  />
+                );
+              })}
             </div>
           )}
         </div>
