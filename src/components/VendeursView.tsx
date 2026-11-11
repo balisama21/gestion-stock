@@ -23,7 +23,7 @@ import {
 import { formatCurrency, formatDateLocale, getSaleLabel, quantiteEnMots } from "../utils/formulas";
 import { PageHeader } from "./shared/PageHeader";
 import { StatCol } from "./shared/StatBar";
-import { DataList } from "./shared/DataList";
+import { DataList, libelleDuJour } from "./shared/DataList";
 import { Modal } from "./shared/Modal";
 import { exporterPdf, exporterImage, imprimerDocument, nomDeFichier } from "../lib/documentExport";
 import { reprendreApresDeploiement, messageDErreurExport } from "../lib/chunkRecovery";
@@ -822,13 +822,15 @@ Il ne pourra plus ouvrir la boutique. Ses ventes, dépenses et remises restent e
 
               <div className="app-card overflow-hidden">
                 <DataList
+                  allure="operation"
+                  sens="entree"
                   emptyLabel="Aucune vente enregistrée pour ce vendeur."
                   items={filteredSellerSales.map((s) => ({
                     id: s.id,
+                    groupe: libelleDuJour(s.date),
                     primary: getSaleLabel(s, products),
                     meta: [
                       quantiteEnMots(s.quantite, products.find((x) => x.id === s.productId)?.unite),
-                      formatDateLocale(s.date, locale),
                       formatCurrency(s.prixVenteUnit),
                     ],
                     amount: formatCurrency(s.totalVente),
@@ -892,11 +894,14 @@ Il ne pourra plus ouvrir la boutique. Ses ventes, dépenses et remises restent e
 
               <div className="app-card overflow-hidden">
                 <DataList
+                  allure="operation"
+                  sens="sortie"
                   emptyLabel="Aucune dépense enregistrée pour ce vendeur."
                   items={filteredSellerExpenses.map((e) => ({
                     id: e.id,
+                    groupe: libelleDuJour(e.date),
                     primary: e.type,
-                    meta: [formatDateLocale(e.date, locale), e.note || null],
+                    meta: [e.note || null],
                     amount: `- ${formatCurrency(e.montant)}`,
                     detailTitle: e.type,
                     detailSubtitle: `Dépense n° ${e.numero}`,

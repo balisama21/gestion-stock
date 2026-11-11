@@ -16,7 +16,7 @@ import type { Database } from "../lib/database.types";
 import { formatCurrency, formatDateLocale, getProductLabel } from "../utils/formulas";
 import { PageHeader, HeaderMetric } from "./shared/PageHeader";
 import { FilterBar, FilterField } from "./shared/FilterBar";
-import { DataList, type DataListItem } from "./shared/DataList";
+import { DataList, type DataListItem, libelleDuJour, Picto } from "./shared/DataList";
 import { DateJour, Deux } from "./shared/Cellules";
 import { Modal } from "./shared/Modal";
 import { SortieDocument } from "../features/documents/SortieDocument";
@@ -316,11 +316,28 @@ export const FacturesAchatView: React.FC<Props> = ({
     const reste = resteDe(f);
     return {
       id: f.id,
+      groupe: libelleDuJour(f.date),
+      leading: (
+        <Picto ton={reste > 0 ? "orange" : "vert"}>
+          <FileText />
+        </Picto>
+      ),
+      // Ce qui est déjà réglé : la jauge se remplit, le liseré passe au vert.
+      jauge:
+        (f.total ?? 0) > 0
+          ? {
+              part: ((f.total ?? 0) - reste) / (f.total ?? 0),
+              libelle:
+                reste > 0
+                  ? `réglée à ${Math.round((((f.total ?? 0) - reste) / (f.total ?? 0)) * 100)} %`
+                  : "réglée",
+            }
+          : undefined,
       primary: <span className="block truncate">{f.fournisseur || "Fournisseur inconnu"}</span>,
       meta: [
         f.numero,
         f.numero_fournisseur ? `n° ${f.numero_fournisseur}` : null,
-        formatDateLocale(f.date, "FR"),
+        // La date est le titre du groupe : pas sur chaque ligne.
         f.date_echeance ? `échéance ${formatDateLocale(f.date_echeance, "FR")}` : null,
         f.piece_jointe ? "pièce jointe" : null,
       ],
@@ -500,6 +517,8 @@ export const FacturesAchatView: React.FC<Props> = ({
       <div className="app-card overflow-hidden">
         <DataList
           emptyLabel="Aucune facture reçue ne correspond à ces filtres."
+          /* Un registre : un liseré et une jauge de ce qui est réglé. */
+          allure="registre"
           titrePrincipal="Fournisseur"
           colonnes={[
             { cle: "date", titre: "Date", largeur: "8.5rem" },

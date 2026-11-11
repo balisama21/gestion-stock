@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { ChevronRight, Inbox } from "lucide-react";
+import { ChevronRight, Inbox, MoreVertical } from "lucide-react";
 import { Modal } from "./Modal";
 import { AvisIntrouvable } from "./AvisIntrouvable";
 import { useEcranTableau } from "../../hooks/useEcranTableau";
@@ -56,6 +56,83 @@ export interface DataListItem {
   sousTitre?: React.ReactNode;
   /** EN TABLEAU (PC) — le contenu de chaque colonne, par sa clé. */
   cellules?: Record<string, React.ReactNode>;
+  /**
+   * Le groupe de la ligne : le jour d'une opération (« Aujourd'hui »,
+   * « Hier », « lundi 9 novembre »). Chaque nouveau groupe ouvre un bloc
+   * sous son titre — un bloc blanc en allure « operation », sans cadre
+   * en allure « produit ». Les lignes doivent
+   * arriver déjà triées : la liste ne regroupe que des voisines.
+   */
+  groupe?: string;
+  /**
+   * Une jauge sous la ligne : la part d'un apport dans le capital, ce qui
+   * est déjà réglé d'une facture. `part` va de 0 à 1 ; à 1, la ligne est
+   * dite complète (la facture est réglée) et le dit en couleur.
+   */
+  jauge?: { part: number; libelle?: string };
+}
+
+/**
+ * L'ALLURE D'UNE LISTE, selon ce qu'elle montre.
+ *
+ * Une liste de produits, un journal de ventes et une liste de rappels
+ * ne se lisent pas de la même façon. Chacune a donc sa forme, sur
+ * téléphone (sur PC, toutes deviennent des tableaux) :
+ *
+ *   produit   — un catalogue. Pas de cadre, une vague entre deux
+ *               lignes, grande photo, prix en grand et en vert.
+ *   operation — un journal d'argent. Les lignes sont rangées par jour,
+ *               chaque jour dans un bloc blanc sous son titre, comme un
+ *               relevé de banque. Le montant se colore selon le sens.
+ *   compact   — une liste de travail (tâches, rappels, classements) :
+ *               un bloc, des filets, rien qui prenne de la place.
+ *   chronologie — des dépenses : une frise verticale, chaque dépense un
+ *               point sur la ligne du temps, son icône dans le point.
+ *   jalon     — des apports : le montant d'abord, et une jauge qui dit
+ *               la part de chacun dans tout ce qui a été apporté.
+ *   document  — des pièces (factures, reçus, avoirs) : une petite feuille
+ *               au coin plié qui porte le type, un numéro en chiffres
+ *               réguliers, des pointillés de détachement entre deux.
+ *   registre  — des factures à régler : un liseré de couleur à gauche et
+ *               une jauge de ce qui est déjà réglé.
+ *
+ * Les personnes (clients, fournisseurs, prestataires) ont la leur, mais
+ * leurs écrans ne passent pas par cette liste : voir `.app-personnes`.
+ */
+export type AllureListe =
+  "produit" | "operation" | "compact" | "chronologie" | "jalon" | "document" | "registre";
+
+/**
+ * Le sens de l'argent dans une liste d'opérations : une vente entre, une
+ * dépense sort. Seule l'entrée se colore — la sortie garde l'encre du
+ * texte, son signe « − » suffit, et une colonne entière de rouge se lit
+ * comme une alerte qui n'en est pas une.
+ */
+export type SensMontant = "entree" | "sortie" | "neutre";
+
+/**
+ * « Aujourd'hui », « Hier », ou le jour en toutes lettres : le titre d'un
+ * groupe d'opérations. `jour` est une date ISO (AAAA-MM-JJ…).
+ */
+export function libelleDuJour(jour: string, maintenant: Date = new Date()): string {
+  const iso = jour.slice(0, 10);
+  const local = (d: Date) =>
+    `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
+  const aujourdhui = local(maintenant);
+  const veille = new Date(maintenant);
+  veille.setDate(veille.getDate() - 1);
+  if (iso === aujourdhui) return "Aujourd'hui";
+  if (iso === local(veille)) return "Hier";
+  const [a, m, j] = iso.split("-").map(Number);
+  const d = new Date(a, (m || 1) - 1, j || 1);
+  if (Number.isNaN(d.getTime())) return iso;
+  const texte = d.toLocaleDateString("fr-FR", {
+    weekday: "long",
+    day: "numeric",
+    month: "long",
+    ...(a !== maintenant.getFullYear() ? { year: "numeric" as const } : {}),
+  });
+  return texte.charAt(0).toUpperCase() + texte.slice(1);
 }
 
 /** Une colonne du tableau affiché sur PC. */
@@ -88,6 +165,10 @@ interface DataListProps {
   colonnes?: ColonneTableau[];
   /** L'en-tête de la première colonne, celle du nom : « Produit », « Client ». */
   titrePrincipal?: string;
+  /** La forme de la liste sur téléphone. Par défaut : `compact`. */
+  allure?: AllureListe;
+  /** En allure `operation` : le sens de l'argent, qui colore le montant. */
+  sens?: SensMontant;
 }
 
 const classeColonne = (c: ColonneTableau) =>
@@ -134,6 +215,8 @@ export const DataList: React.FC<DataListProps> = ({
   ouvrir,
   colonnes,
   titrePrincipal = "Élément",
+  allure = "compact",
+  sens = "neutre",
 }) => {
   const ecranTableau = useEcranTableau();
   const enTableau = Boolean(colonnes?.length) && ecranTableau;
@@ -262,79 +345,116 @@ export const DataList: React.FC<DataListProps> = ({
           </table>
         </div>
       ) : (
-        <div className={`app-list ${className}`}>
-          {items.slice(0, affichees).map((item) => {
-            const meta = (item.meta ?? []).filter(Boolean) as string[];
-            const clickable = Boolean(item.details?.length || item.actions);
+        <div className={`app-list app-allure-${allure} app-sens-${sens} ${className}`}>
+          {regrouper(allure, items.slice(0, affichees)).map((bloc, i) => {
+            const lignes = bloc.lignes.map((item) => {
+              const meta = (item.meta ?? []).filter(Boolean) as string[];
+              const clickable = Boolean(item.details?.length || item.actions);
 
-            const inner = (
-              <>
-                {/* Bloc gauche : information principale puis, en dessous,
-                  tout le contexte sur une seule ligne grise. */}
-                <span className="min-w-0 flex-1">
-                  <span className="app-list-primary block">{item.primary}</span>
-                  {meta.length > 0 && (
-                    <span className="app-list-secondary block">{meta.join(" · ")}</span>
-                  )}
-                </span>
+              /* ── Une ligne, en trois blocs ──
 
-                {/* Bloc droit : montant, puis badge de statut. */}
-                <span className="flex shrink-0 items-center gap-2 sm:gap-3">
-                  {(item.amount || item.amountHint) && (
-                    <span className="text-right">
-                      {item.amount && <span className="app-list-amount block">{item.amount}</span>}
-                      {item.amountHint && (
-                        <span className="app-list-secondary block">{item.amountHint}</span>
+                   [photo]  nom                    montant   ⋮
+                            référence · contexte   complément
+                            [badge]
+
+                 Le nom et le montant sont ce que l'on cherche : ils sont
+                 en haut et en gras. Les trois points (allure produit)
+                 disent que la ligne s'ouvre — toute la ligne est le
+                 bouton, ils n'en sont que le signe. */
+              const inner = (
+                <span className="app-ligne">
+                  <span className="app-ligne-texte">
+                    <span className="app-list-primary">{item.primary}</span>
+                    {meta.length > 0 && (
+                      <span className="app-list-secondary">{meta.join(" · ")}</span>
+                    )}
+                    {item.badge && <span className="app-ligne-badge">{item.badge}</span>}
+                  </span>
+                  {item.jauge && (
+                    <span className="app-ligne-jauge">
+                      <span className="app-ligne-jauge-piste" aria-hidden="true">
+                        <i
+                          style={{
+                            width: `${Math.round(Math.min(1, Math.max(0, item.jauge.part)) * 100)}%`,
+                          }}
+                        />
+                      </span>
+                      {item.jauge.libelle && (
+                        <span className="app-ligne-jauge-libelle">{item.jauge.libelle}</span>
                       )}
                     </span>
                   )}
-                  {item.badge && <span className="shrink-0">{item.badge}</span>}
-                  {/* Le chevron disparaît sur écran étroit : ces 20 px sont
-                    plus utiles au libellé principal qu'à un indice
-                    d'affordance que le clic donne de toute façon. */}
-                  {clickable && (
-                    <ChevronRight className="hidden h-4 w-4 shrink-0 text-muted-foreground/50 sm:block" />
+                  {(item.amount || item.amountHint) && (
+                    <span className="app-ligne-prix">
+                      {item.amount && <span className="app-list-amount">{item.amount}</span>}
+                      {item.amountHint && (
+                        <span className="app-list-secondary">{item.amountHint}</span>
+                      )}
+                    </span>
                   )}
+                  {clickable &&
+                    (allure === "produit" ? (
+                      <span className="app-ligne-menu" aria-hidden="true">
+                        <MoreVertical className="h-[18px] w-[18px]" />
+                      </span>
+                    ) : (
+                      <ChevronRight
+                        className="app-ligne-chevron h-4 w-4 shrink-0 text-muted-foreground/50"
+                        aria-hidden="true"
+                      />
+                    ))}
                 </span>
-              </>
-            );
-
-            // Sans élément de tête, la ligne EST le bouton. Avec, c'est le
-            // conteneur qui porte l'espacement et le bouton n'a plus de
-            // marge interne propre — sinon les deux s'additionnent et la
-            // ligne dépasse à droite.
-            if (!item.leading) {
-              const Row = clickable ? "button" : "div";
-              return (
-                <Row
-                  key={item.id}
-                  {...(clickable
-                    ? { type: "button" as const, onClick: () => setOpenItem(item) }
-                    : {})}
-                  className="app-list-row w-full justify-between gap-3 text-left"
-                >
-                  {inner}
-                </Row>
               );
-            }
 
-            return (
-              <div key={item.id} className="app-list-row gap-3">
-                <span className="shrink-0">{item.leading}</span>
-                {clickable ? (
-                  <button
-                    type="button"
-                    onClick={() => setOpenItem(item)}
-                    className="flex min-w-0 flex-1 items-center justify-between gap-3 text-left"
+              // Sans élément de tête, la ligne EST le bouton. Avec, c'est le
+              // conteneur qui porte l'espacement et le bouton n'a plus de
+              // marge interne propre — sinon les deux s'additionnent et la
+              // ligne dépasse à droite.
+              if (!item.leading) {
+                const Row = clickable ? "button" : "div";
+                return (
+                  <Row
+                    key={item.id}
+                    {...(clickable
+                      ? { type: "button" as const, onClick: () => setOpenItem(item) }
+                      : {})}
+                    className="app-list-row w-full gap-3 text-left"
+                    data-complet={item.jauge && item.jauge.part >= 1 ? "" : undefined}
                   >
                     {inner}
-                  </button>
-                ) : (
-                  <span className="flex min-w-0 flex-1 items-center justify-between gap-3">
-                    {inner}
-                  </span>
-                )}
-              </div>
+                  </Row>
+                );
+              }
+
+              return (
+                <div
+                  key={item.id}
+                  className="app-list-row gap-3"
+                  data-complet={item.jauge && item.jauge.part >= 1 ? "" : undefined}
+                >
+                  <span className="shrink-0">{item.leading}</span>
+                  {clickable ? (
+                    <button
+                      type="button"
+                      onClick={() => setOpenItem(item)}
+                      className="flex min-w-0 flex-1 text-left"
+                    >
+                      {inner}
+                    </button>
+                  ) : (
+                    <span className="flex min-w-0 flex-1">{inner}</span>
+                  )}
+                </div>
+              );
+            });
+
+            return bloc.titre === null ? (
+              <React.Fragment key={`b${i}`}>{lignes}</React.Fragment>
+            ) : (
+              <section key={`b${i}`} className="app-jour" aria-label={bloc.titre}>
+                <h3 className="app-jour-titre">{bloc.titre}</h3>
+                <div className="app-jour-bloc">{lignes}</div>
+              </section>
             );
           })}
         </div>
@@ -383,3 +503,53 @@ export const DataList: React.FC<DataListProps> = ({
     </>
   );
 };
+
+/**
+ * Les lignes, en blocs : par jour, quand les lignes portent un `groupe`
+ * (les ventes et les achats, en allure produit comme en allure
+ * operation). La liste compacte reste toujours d'un seul tenant.
+ */
+function regrouper(
+  allure: AllureListe,
+  lignes: DataListItem[],
+): { titre: string | null; lignes: DataListItem[] }[] {
+  if (allure === "compact" || !lignes.some((l) => l.groupe)) {
+    return [{ titre: null, lignes }];
+  }
+  const blocs: { titre: string | null; lignes: DataListItem[] }[] = [];
+  for (const l of lignes) {
+    const titre = l.groupe ?? "";
+    const dernier = blocs[blocs.length - 1];
+    if (dernier && dernier.titre === titre) dernier.lignes.push(l);
+    else blocs.push({ titre, lignes: [l] });
+  }
+  return blocs;
+}
+
+/**
+ * Un pictogramme de ligne : une icône sur un disque doux, dans un ton.
+ * À poser en `leading` des listes qui n'ont pas de photo (dépenses,
+ * apports, factures reçues).
+ */
+export const Picto: React.FC<{
+  ton?: "vert" | "orange" | "rouge" | "bleu" | "violet" | "gris";
+  children: React.ReactNode;
+}> = ({ ton = "vert", children }) => (
+  <span className={`app-picto ton-${ton}`} aria-hidden="true">
+    {children}
+  </span>
+);
+
+/**
+ * Une petite feuille au coin plié, qui porte le type d'une pièce : « FAC »,
+ * « REÇU », « AVOIR ». Le ton suit la nature de la pièce.
+ */
+export const PictoDocument: React.FC<{
+  type: string;
+  ton?: "vert" | "orange" | "rouge" | "bleu" | "violet" | "gris";
+}> = ({ type, ton = "vert" }) => (
+  <span className={`app-picto-doc ton-${ton}`} aria-hidden="true">
+    <span className="app-picto-doc-lignes" />
+    <span className="app-picto-doc-type">{type}</span>
+  </span>
+);

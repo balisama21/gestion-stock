@@ -2,6 +2,8 @@ import React, { useState, useMemo } from "react";
 import { Product, LocaleSetting, type StoreSettings } from "../types";
 import {
   Package,
+  LayoutGrid,
+  Star,
   Plus,
   Search,
   AlertTriangle,
@@ -22,7 +24,7 @@ import {
 } from "../utils/formulas";
 import { VariantBadge } from "./shared/VariantBadge";
 import { PageHeader } from "./shared/PageHeader";
-import { FilterBar, FilterField } from "./shared/FilterBar";
+import { FilterBar, FilterField, PastilleFiltre } from "./shared/FilterBar";
 import { DataList, type DataListItem } from "./shared/DataList";
 import { VignetteProduit, vignettesParProduit } from "./shared/VignetteProduit";
 import { Deux, Stock, Texte } from "./shared/Cellules";
@@ -710,16 +712,17 @@ export const ProduitsView: React.FC<ProduitsViewProps> = ({
         p.numero,
         categorie,
         showFournisseur ? p.fournisseur || null : null,
-        `seuil ${p.seuilAlerte}`,
+        `Seuil ${p.seuilAlerte}`,
       ],
       amount: formatCurrency(p.prixVenteDefaut),
-      amountHint: showPrixAchat ? `achat ${formatCurrency(p.prixAchat)}` : undefined,
+      amountHint: showPrixAchat ? `Achat : ${formatCurrency(p.prixAchat)}` : undefined,
       badge: (
         <span
           className={`app-badge ${
-            rupture ? "app-badge-danger" : bas ? "app-badge-warning" : "app-badge-neutral"
+            rupture ? "app-badge-danger" : bas ? "app-badge-warning" : "app-badge-success"
           }`}
         >
+          <Package className="h-3.5 w-3.5" aria-hidden="true" />
           {rupture ? "Rupture" : `${quantiteEnMots(p.stockActuel, p.unite)} en stock`}
         </span>
       ),
@@ -907,10 +910,10 @@ export const ProduitsView: React.FC<ProduitsViewProps> = ({
             searchValue={searchTerm}
             onSearchChange={setSearchTerm}
             searchPlaceholder="Rechercher un produit, une référence, un fournisseur…"
+            /* La pastille du bouton « Filtres » ne compte que ce qu'il
+               range : l'état du stock, lui, se lit sur ses pastilles. */
             activeFilterCount={
-              (stockFilter !== "Tous" ? 1 : 0) +
-              (supplierFilter !== "Tous" ? 1 : 0) +
-              (categoryFilter !== "Tous" ? 1 : 0)
+              (supplierFilter !== "Tous" ? 1 : 0) + (categoryFilter !== "Tous" ? 1 : 0)
             }
             onReset={() => {
               setStockFilter("Tous");
@@ -918,45 +921,49 @@ export const ProduitsView: React.FC<ProduitsViewProps> = ({
               setCategoryFilter("Tous");
               setSearchTerm("");
             }}
+            rapides={(
+              [
+                {
+                  key: "Tous" as const,
+                  label: "Tous",
+                  count: products.length,
+                  icone: <LayoutGrid />,
+                },
+                {
+                  key: "OK" as const,
+                  label: "En stock",
+                  count: products.length - totalAlertesStock,
+                  icone: <Package />,
+                },
+                {
+                  key: "Alerte" as const,
+                  label: "Alertes",
+                  count: totalAlertesStock,
+                  icone: <AlertTriangle />,
+                },
+                ...(reglagesAlertes.prealerteActive
+                  ? [
+                      {
+                        key: FILTRE_A_RECOMMANDER,
+                        label: "À recommander",
+                        count: totalARecommander,
+                        icone: <Star />,
+                      },
+                    ]
+                  : []),
+              ] as { key: FiltreStock; label: string; count: number; icone: React.ReactNode }[]
+            ).map((opt) => (
+              <PastilleFiltre
+                key={opt.key}
+                actif={stockFilter === opt.key}
+                compte={opt.count}
+                icone={opt.icone}
+                onClick={() => setStockFilter(opt.key)}
+              >
+                {opt.label}
+              </PastilleFiltre>
+            ))}
           >
-            <FilterField label="Stock">
-              <div className="flex w-full items-center gap-1 rounded-xl border border-border bg-muted p-1 lg:w-auto">
-                {(
-                  [
-                    { key: "Tous" as const, label: "Tous", count: products.length },
-                    {
-                      key: "OK" as const,
-                      label: "OK",
-                      count: products.length - totalAlertesStock,
-                    },
-                    { key: "Alerte" as const, label: "Alertes", count: totalAlertesStock },
-                    ...(reglagesAlertes.prealerteActive
-                      ? [
-                          {
-                            key: FILTRE_A_RECOMMANDER,
-                            label: "À recommander",
-                            count: totalARecommander,
-                          },
-                        ]
-                      : []),
-                  ] as { key: FiltreStock; label: string; count: number }[]
-                ).map((opt) => (
-                  <button
-                    key={opt.key}
-                    type="button"
-                    onClick={() => setStockFilter(opt.key)}
-                    className={`flex-1 whitespace-nowrap rounded-lg px-2.5 py-2 text-xs font-medium transition-colors lg:flex-none ${
-                      stockFilter === opt.key
-                        ? "bg-card text-primary font-semibold shadow-sm"
-                        : "text-muted-foreground hover:text-foreground"
-                    }`}
-                  >
-                    {opt.label} ({opt.count})
-                  </button>
-                ))}
-              </div>
-            </FilterField>
-
             {optionsCategorie.length > 0 && (
               <FilterField label="Catégorie">
                 <select
@@ -1000,6 +1007,7 @@ export const ProduitsView: React.FC<ProduitsViewProps> = ({
           <div className="app-card overflow-hidden">
             <DataList
               emptyLabel="Aucun produit ne correspond à ces filtres."
+              allure="produit"
               ouvrir={ficheAOuvrir}
               titrePrincipal="Produit"
               colonnes={[

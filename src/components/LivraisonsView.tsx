@@ -582,6 +582,7 @@ export const LivraisonsView: React.FC<LivraisonsViewProps> = ({
       <div className="app-card overflow-hidden">
         <DataList
           emptyLabel="Aucune course ne correspond à ces filtres."
+          allure="operation"
           ouvrir={ficheAOuvrir}
           titrePrincipal="Destinataire"
           colonnes={[

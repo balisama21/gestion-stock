@@ -1498,24 +1498,148 @@ td {
   .app-toolbar {
     @apply flex flex-col gap-2 p-2.5 sm:flex-row sm:items-center sm:gap-3;
   }
-  /* Posée juste au-dessus de la liste qu'elle filtre, la barre s'y
-     soude : une seule carte, la recherche en tête de liste. C'est la
-     forme des tableaux des grandes plateformes, et cela retire un
-     cadre et une marge entre les deux. */
-  .app-toolbar:has(+ .app-card) {
-    border-bottom-left-radius: 0;
-    border-bottom-right-radius: 0;
-    background: color-mix(in srgb, var(--muted) 55%, var(--card));
-    box-shadow: none;
-    margin-block-end: 0 !important;
-  }
-  .app-toolbar + .app-card {
-    border-top-left-radius: 0;
-    border-top-right-radius: 0;
-    border-top: 0;
-  }
   .app-toolbar .app-field {
     @apply bg-card py-2;
+  }
+
+  /* ── Recherche et filtres (FilterBar) ──
+     La recherche a sa propre barre, DÉTACHÉE de la liste : elle s'y
+     soudait pour ne faire qu'une carte, et l'on ne distinguait plus le
+     champ où l'on tape des lignes que l'on lit. Sur téléphone elle n'a
+     aucun cadre — le champ et le bouton des filtres sont posés sur le
+     fond de page ; sur PC elle redevient une barre, avec les filtres en
+     ligne. */
+  .app-recherche {
+    @apply flex flex-col gap-3;
+  }
+  .app-recherche-ligne {
+    @apply flex min-w-0 items-center gap-2;
+  }
+  .app-recherche-champ {
+    @apply h-12 w-full border border-border bg-card pl-12 pr-11 text-[15px] text-foreground
+      transition-colors placeholder:text-muted-foreground/70
+      focus:border-primary focus:outline-none focus:ring-2 focus:ring-ring;
+    border-radius: 16px;
+    box-shadow: var(--elev-2);
+    text-overflow: ellipsis;
+  }
+  .app-recherche-filtres {
+    @apply relative inline-flex h-12 shrink-0 items-center gap-2 px-4 text-sm font-semibold
+      transition-colors;
+    border-radius: 16px;
+    border: 1px solid var(--success-border);
+    background: var(--success-soft);
+    color: var(--foreground);
+    box-shadow: var(--elev-1);
+  }
+  .app-recherche-filtres svg {
+    color: var(--primary);
+  }
+  .app-recherche-filtres:active {
+    background: var(--success-border);
+  }
+  /* Un filtre est posé : le bouton le dit sans qu'on l'ouvre. */
+  .app-recherche-filtres.est-actif {
+    border-color: var(--primary);
+  }
+  /* Le compte des filtres posés, sur le coin du bouton. */
+  .app-recherche-compte {
+    @apply absolute -right-1.5 -top-1.5 inline-flex h-5 min-w-5 items-center justify-center
+      rounded-full bg-primary px-1 text-[11px] font-bold text-primary-foreground;
+    box-shadow: 0 0 0 2px var(--background);
+  }
+  /* Les filtres rapides : une rangée d'onglets, l'icône au-dessus du
+     libellé. Ils se partagent la largeur ; trop nombreux, ils défilent
+     au doigt plutôt que de passer à la ligne. */
+  .app-recherche-rapides {
+    @apply flex items-start gap-1 overflow-x-auto pb-1 pt-1;
+    /* `!important` : la feuille pose une barre fine sur tout ce qui
+       défile, hors de cette couche, et elle passerait devant. */
+    scrollbar-width: none !important;
+    -webkit-overflow-scrolling: touch;
+  }
+  .app-recherche-rapides::-webkit-scrollbar {
+    display: none !important;
+  }
+  .app-pastille {
+    @apply flex flex-col items-center gap-1 whitespace-nowrap px-0.5 text-[13px] font-medium
+      text-muted-foreground transition-colors;
+    /* Chaque onglet prend sa part de la largeur, sans jamais rétrécir
+       sous son texte : trop nombreux, ils défilent au doigt. */
+    flex: 1 0 auto;
+    min-height: 0;
+  }
+  .app-pastille-icone {
+    @apply flex h-7 w-7 items-center justify-center;
+  }
+  .app-pastille-icone svg {
+    width: 22px;
+    height: 22px;
+    stroke-width: 1.75;
+  }
+  .app-pastille-libelle {
+    @apply inline-flex items-center gap-1 rounded-full px-2 py-1;
+  }
+  .app-pastille-compte {
+    @apply text-xs font-semibold tabular-nums opacity-75;
+  }
+  .app-pastille[aria-pressed="true"] {
+    @apply font-semibold;
+    color: var(--primary);
+  }
+  .app-pastille[aria-pressed="true"] .app-pastille-libelle {
+    @apply bg-primary text-primary-foreground;
+    box-shadow: 0 6px 14px -8px var(--primary);
+  }
+  .app-pastille[aria-pressed="true"] .app-pastille-compte {
+    opacity: 0.95;
+  }
+  @media (hover: hover) {
+    .app-pastille:not([aria-pressed="true"]):hover {
+      @apply text-foreground;
+    }
+  }
+  @media (min-width: 1024px) {
+    .app-recherche {
+      @apply flex-row flex-wrap items-center border border-border bg-card p-2.5;
+      border-radius: 14px;
+      box-shadow: var(--elev-2);
+    }
+    .app-recherche-ligne {
+      @apply min-w-64 flex-1;
+    }
+    .app-recherche-champ {
+      @apply h-10 bg-muted pl-10 text-sm;
+      box-shadow: none;
+    }
+    .app-recherche-rapides {
+      @apply items-center gap-2 p-0;
+      overflow: visible;
+    }
+    .app-recherche-filtres {
+      display: none;
+    }
+    /* Sur PC, les filtres rapides redeviennent des pastilles en ligne. */
+    .app-pastille {
+      @apply h-9 flex-none flex-row gap-1.5 rounded-full border border-border bg-card px-3;
+    }
+    .app-pastille-icone {
+      @apply h-4 w-4;
+    }
+    .app-pastille-icone svg {
+      width: 16px;
+      height: 16px;
+    }
+    .app-pastille-libelle {
+      @apply p-0;
+    }
+    .app-pastille[aria-pressed="true"] {
+      @apply border-primary bg-primary text-primary-foreground;
+    }
+    .app-pastille[aria-pressed="true"] .app-pastille-libelle {
+      background: transparent;
+      box-shadow: none;
+    }
   }
 
   /* ── Champs de saisie ──
@@ -1927,7 +2051,1223 @@ td {
     @apply divide-y divide-border;
   }
   .app-list-row {
-    @apply flex items-center gap-3 px-4 py-2.5 text-sm transition-colors;
+    @apply flex items-center gap-3 px-4 py-3 text-sm transition-colors;
+  }
+  /* ══ LES LIGNES DE DataList, SUR TÉLÉPHONE ══
+     Une grille commune à toutes les allures : le nom et le contexte à
+     gauche, le montant à droite sur ces deux rangées, le signe
+     d'ouverture tout à droite — et le badge sur sa propre rangée, qui
+     court sous le nom ET le montant. Chaque allure (voir `AllureListe`
+     dans DataList.tsx) règle ensuite tailles, cadre et couleurs. */
+  .app-ligne {
+    @apply grid min-w-0 flex-1 items-center gap-x-2.5 gap-y-1;
+    grid-template-columns: minmax(0, 1fr) auto auto;
+  }
+  .app-ligne-texte {
+    display: contents;
+  }
+  .app-ligne-texte > .app-list-primary {
+    grid-column: 1;
+    grid-row: 1;
+    align-self: end;
+  }
+  .app-ligne-texte > .app-list-secondary {
+    grid-column: 1;
+    grid-row: 2;
+    align-self: start;
+  }
+  .app-ligne-texte > .app-ligne-badge {
+    grid-column: 1 / 3;
+    grid-row: 3;
+  }
+  .app-ligne-prix {
+    @apply flex shrink-0 flex-col items-end gap-0.5 text-right;
+    grid-column: 2;
+    grid-row: 1 / 3;
+  }
+  .app-ligne-menu,
+  .app-ligne-chevron {
+    grid-column: 3;
+    grid-row: 1 / 4;
+  }
+  .app-ligne .app-list-secondary {
+    @apply max-w-full;
+  }
+  .app-ligne-badge {
+    @apply mt-0.5 flex max-w-full;
+  }
+
+  /* Un nom long passe à la ligne au lieu d'être coupé (« Sachet à Motif
+     pqts de 50 - 28 x 40 cm » et « … 20 x 30 cm » ne se distinguent que
+     par leur fin), sur trois lignes au plus. `!important` : la classe
+     `truncate`, posée par les écrans appelants, passerait devant. La
+     liste compacte, elle, garde ses noms sur une ligne. */
+  .app-allure-produit .app-list-primary,
+  .app-allure-operation .app-list-primary,
+  .app-allure-chronologie .app-list-primary,
+  .app-allure-registre .app-list-primary,
+  .app-allure-produit .app-list-primary .truncate,
+  .app-allure-operation .app-list-primary .truncate,
+  .app-allure-chronologie .app-list-primary .truncate,
+  .app-allure-registre .app-list-primary .truncate,
+  .app-allure-jalon .app-list-primary,
+  .app-allure-jalon .app-list-primary .truncate {
+    white-space: normal !important;
+    overflow-wrap: anywhere;
+  }
+  .app-allure-produit .app-list-primary,
+  .app-allure-operation .app-list-primary,
+  .app-allure-chronologie .app-list-primary,
+  .app-allure-registre .app-list-primary,
+  .app-allure-jalon .app-list-primary {
+    max-height: 4.2em;
+    overflow: hidden;
+  }
+
+  /* ── Allure « produit » : un catalogue ──
+     Ni cadre autour de la liste, ni cadre par ligne : les produits sont
+     posés sur le fond de page, une vague très pâle entre deux. La photo,
+     le nom et le prix structurent la ligne. */
+  .app-card:has(> .app-allure-produit) {
+    overflow: visible;
+    border-color: transparent;
+    background: transparent;
+    box-shadow: none;
+  }
+  .app-allure-produit {
+    @apply flex flex-col;
+  }
+  /* Les filets de `divide-y` (posés en bas de chaque ligne par
+     Tailwind v4) n'ont pas leur place ici. */
+  .app-allure-produit > * {
+    border-width: 0 !important;
+  }
+  /* Rangé par jour (les ventes, les achats) : le titre du jour sépare
+     les groupes, et le groupe n'a pas de cadre — la vague reste le seul
+     trait entre deux lignes. */
+  .app-allure-produit .app-jour + .app-jour {
+    margin-top: 1.25rem;
+  }
+  .app-allure-produit .app-jour-bloc {
+    overflow: visible;
+    border-width: 0;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+  }
+  .app-allure-produit .app-jour-bloc > * {
+    border-width: 0 !important;
+  }
+  .app-allure-produit .app-list-row {
+    @apply relative gap-3.5 px-1 py-4;
+    border-radius: 18px;
+  }
+  .app-allure-produit .app-list-row:not(:last-child)::after {
+    content: "";
+    position: absolute;
+    left: 8px;
+    right: 8px;
+    bottom: -4px;
+    height: 8px;
+    background: var(--success-border);
+    -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 400 8' preserveAspectRatio='none'%3E%3Cpath d='M0 5 C 70 0, 130 8, 200 4 S 330 0, 400 4' fill='none' stroke='black' stroke-width='1.4' vector-effect='non-scaling-stroke'/%3E%3C/svg%3E")
+      center / 100% 100% no-repeat;
+    mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 400 8' preserveAspectRatio='none'%3E%3Cpath d='M0 5 C 70 0, 130 8, 200 4 S 330 0, 400 4' fill='none' stroke='black' stroke-width='1.4' vector-effect='non-scaling-stroke'/%3E%3C/svg%3E")
+      center / 100% 100% no-repeat;
+    pointer-events: none;
+  }
+  @media (hover: hover) {
+    .app-allure-produit .app-list-row:hover {
+      background: color-mix(in srgb, var(--success-soft) 60%, transparent);
+    }
+  }
+  /* La photo, grande, dans une forme douce cerclée de blanc. */
+  .app-allure-produit .vignette-produit {
+    width: 78px !important;
+    height: 78px !important;
+    border-radius: 46% 54% 58% 42% / 50% 42% 58% 50% !important;
+    font-size: 28px !important;
+    border: 3px solid var(--card);
+    box-shadow:
+      0 0 0 1px var(--success-border),
+      0 8px 18px -10px rgb(38 58 50 / 35%);
+  }
+  .app-allure-produit .app-list-primary {
+    @apply text-base font-bold leading-snug;
+  }
+  .app-allure-produit .app-list-secondary {
+    @apply text-[13px];
+  }
+  .app-allure-produit .app-ligne-badge .app-badge {
+    @apply gap-1.5 px-2.5 py-1 text-[12.5px] font-semibold;
+  }
+  .app-allure-produit .app-ligne-prix {
+    @apply relative py-1 pl-5;
+  }
+  /* La courbe en S qui sépare le texte du prix. */
+  .app-allure-produit .app-ligne-prix::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: -8px;
+    bottom: -8px;
+    width: 14px;
+    background: var(--primary);
+    opacity: 0.35;
+    -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 14 60' preserveAspectRatio='none'%3E%3Cpath d='M11 0 C 12 18, 2 22, 3 34 S 9 50, 5 60' fill='none' stroke='black' stroke-width='1.4' vector-effect='non-scaling-stroke'/%3E%3C/svg%3E")
+      center / 100% 100% no-repeat;
+    mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 14 60' preserveAspectRatio='none'%3E%3Cpath d='M11 0 C 12 18, 2 22, 3 34 S 9 50, 5 60' fill='none' stroke='black' stroke-width='1.4' vector-effect='non-scaling-stroke'/%3E%3C/svg%3E")
+      center / 100% 100% no-repeat;
+    pointer-events: none;
+  }
+  .app-allure-produit .app-ligne-prix .app-list-amount {
+    @apply text-[19px] font-extrabold leading-tight;
+    color: var(--primary);
+  }
+  .app-allure-produit .app-ligne-prix .app-list-secondary {
+    @apply text-xs;
+  }
+  .app-ligne-menu {
+    @apply flex h-9 w-9 shrink-0 items-center justify-center rounded-full;
+    background: var(--success-soft);
+    color: var(--primary);
+  }
+
+  /* ── Allure « operation » : un journal d'argent ──
+     Les lignes sont rangées par jour, chaque jour dans un bloc blanc
+     sous son titre, comme un relevé de banque : on retrouve « ce qui
+     s'est passé mardi » sans lire les dates une à une. Sans jour connu,
+     la liste reste d'un seul bloc, dans la carte de l'écran. */
+  .app-card:has(> .app-allure-operation > .app-jour) {
+    overflow: visible;
+    border-color: transparent;
+    background: transparent;
+    box-shadow: none;
+  }
+  .app-allure-operation:has(> .app-jour) {
+    @apply flex flex-col gap-5;
+  }
+  /* Les filets de `divide-y` (posés en bas de chaque ligne par
+     Tailwind v4) n'ont pas leur place ici. */
+  .app-allure-operation:has(> .app-jour) > * {
+    border-width: 0 !important;
+  }
+  .app-jour-titre {
+    @apply mb-2 flex items-center gap-2 px-1 text-[13px] font-bold text-foreground;
+  }
+  .app-jour-titre::after {
+    content: "";
+    @apply h-px flex-1;
+    background: var(--border);
+  }
+  .app-jour-bloc {
+    @apply divide-y divide-border overflow-hidden border border-border bg-card;
+    border-radius: 18px;
+    box-shadow: var(--elev-2);
+  }
+  .app-allure-operation .app-list-row {
+    @apply py-3.5;
+  }
+  .app-allure-operation .vignette-produit {
+    width: 46px !important;
+    height: 46px !important;
+    font-size: 17px !important;
+    box-shadow: 0 0 0 1px var(--border);
+  }
+  .app-allure-operation .app-list-primary {
+    @apply text-[15px] font-semibold leading-snug;
+  }
+  .app-allure-operation .app-list-secondary {
+    @apply text-[12.5px];
+  }
+  .app-allure-operation .app-ligne-prix .app-list-amount {
+    @apply text-base font-bold;
+  }
+  /* L'argent qui entre se colore ; celui qui sort garde l'encre du
+     texte — son signe suffit. */
+  .app-sens-entree .app-ligne-prix .app-list-amount {
+    color: var(--success);
+  }
+  .app-allure-operation .app-ligne-badge .app-badge {
+    @apply text-[11.5px];
+  }
+
+  /* ── Allure « compact » : une liste de travail ──
+     Tâches, rappels, classements : un bloc, des filets, une ligne par
+     élément, rien qui prenne de la place. */
+  .app-allure-compact .app-list-primary {
+    @apply text-sm font-semibold;
+  }
+  .app-allure-compact .app-ligne {
+    @apply gap-y-0.5;
+  }
+  .app-allure-compact .app-ligne-badge {
+    @apply mt-1;
+  }
+
+  /* ══ ÉLÉMENTS COMMUNS AUX ALLURES SANS CADRE ══ */
+  .app-card:has(> .app-allure-chronologie),
+  .app-card:has(> .app-allure-jalon),
+  .app-card:has(> .app-allure-document),
+  .app-card:has(> .app-allure-registre) {
+    overflow: visible;
+    border-color: transparent;
+    background: transparent;
+    box-shadow: none;
+  }
+  .app-allure-chronologie,
+  .app-allure-jalon,
+  .app-allure-document,
+  .app-allure-registre {
+    @apply flex flex-col gap-5;
+  }
+  .app-allure-chronologie > *,
+  .app-allure-jalon > *,
+  .app-allure-document > *,
+  .app-allure-registre > *,
+  .app-allure-chronologie .app-jour-bloc > *,
+  .app-allure-jalon .app-jour-bloc > *,
+  .app-allure-document .app-jour-bloc > *,
+  .app-allure-registre .app-jour-bloc > * {
+    border-width: 0 !important;
+  }
+  .app-allure-chronologie .app-jour-bloc,
+  .app-allure-jalon .app-jour-bloc,
+  .app-allure-document .app-jour-bloc,
+  .app-allure-registre .app-jour-bloc {
+    overflow: visible;
+    border-width: 0;
+    border-radius: 0;
+    background: transparent;
+    box-shadow: none;
+  }
+  .app-allure-chronologie .app-list-primary,
+  .app-allure-jalon .app-list-primary,
+  .app-allure-document .app-list-primary,
+  .app-allure-registre .app-list-primary {
+    @apply text-[15px] font-semibold;
+  }
+  @media (hover: hover) {
+    .app-allure-chronologie .app-list-row:hover,
+    .app-allure-jalon .app-list-row:hover,
+    .app-allure-document .app-list-row:hover,
+    .app-allure-registre .app-list-row:hover {
+      background: color-mix(in srgb, var(--success-soft) 55%, transparent);
+    }
+  }
+
+  /* Le pictogramme : une icône sur un disque doux, dans un ton. */
+  .app-picto {
+    @apply flex h-10 w-10 items-center justify-center rounded-full;
+    background: var(--ton-doux);
+    color: var(--ton-fort);
+  }
+  .app-picto svg {
+    width: 19px;
+    height: 19px;
+  }
+  .ton-vert {
+    --ton-fort: var(--success);
+    --ton-doux: var(--success-soft);
+  }
+  .ton-orange {
+    --ton-fort: var(--warning);
+    --ton-doux: var(--warning-soft);
+  }
+  .ton-rouge {
+    --ton-fort: var(--danger);
+    --ton-doux: var(--danger-soft);
+  }
+  .ton-bleu {
+    --ton-fort: var(--info);
+    --ton-doux: var(--info-soft);
+  }
+  .ton-violet {
+    --ton-fort: var(--violet);
+    --ton-doux: var(--violet-soft);
+  }
+  .ton-gris {
+    --ton-fort: var(--muted-foreground);
+    --ton-doux: var(--muted);
+  }
+
+  /* La jauge, sous la ligne : la part d'un apport, ce qui est réglé. */
+  .app-ligne-jauge {
+    @apply flex items-center gap-2;
+    grid-column: 1 / 3;
+    grid-row: 4;
+  }
+  .app-ligne-jauge-piste {
+    @apply relative h-1.5 flex-1 overflow-hidden rounded-full;
+    background: var(--success-soft);
+  }
+  .app-ligne-jauge-piste i {
+    @apply absolute inset-y-0 left-0 rounded-full;
+    background: var(--primary);
+  }
+  .app-ligne-jauge-libelle {
+    @apply shrink-0 text-[11.5px] font-semibold tabular-nums text-muted-foreground;
+  }
+
+  /* ── Allure « chronologie » : les dépenses sur une frise ──
+     Une ligne du temps verticale court à gauche ; chaque dépense y est un
+     point, avec l'icône de son type dedans. Le jour est une pastille
+     posée sur la frise. On lit sa journée de haut en bas, comme un fil. */
+  .app-allure-chronologie .app-jour {
+    @apply relative;
+  }
+  .app-allure-chronologie .app-jour::before {
+    content: "";
+    position: absolute;
+    left: 23px;
+    top: 14px;
+    bottom: 18px;
+    width: 2px;
+    border-radius: 2px;
+    background: linear-gradient(to bottom, var(--success-border), var(--border));
+  }
+  .app-allure-chronologie .app-jour-titre {
+    @apply relative z-[1] mb-1 ml-2.5 inline-flex rounded-full px-3 py-1 text-[12.5px];
+    background: var(--muted);
+  }
+  .app-allure-chronologie .app-jour-titre::after {
+    display: none;
+  }
+  .app-allure-chronologie .app-list-row {
+    @apply relative px-1 py-3;
+    border-radius: 16px;
+  }
+  .app-allure-chronologie .app-picto {
+    @apply relative z-[1];
+    box-shadow: 0 0 0 4px var(--background);
+  }
+  .app-allure-chronologie .app-ligne-prix .app-list-amount {
+    @apply text-base font-bold;
+    color: var(--danger);
+  }
+  .app-allure-chronologie .app-ligne-badge .app-badge {
+    @apply text-[11px];
+  }
+
+  /* ── Allure « jalon » : les apports qui font le capital ──
+     Le montant en grand et en vert, et sous chaque apport une jauge qui
+     dit sa part dans tout ce qui a été apporté. Entre deux apports, un
+     pointillé discret. */
+  .app-allure-jalon .app-jour-titre {
+    @apply text-[11.5px] font-semibold uppercase tracking-wider text-muted-foreground;
+  }
+  .app-allure-jalon .app-list-row {
+    @apply px-1 py-4;
+    border-radius: 16px;
+  }
+  .app-allure-jalon .app-list-row + .app-list-row {
+    border-top: 1.5px dotted var(--success-border) !important;
+    border-radius: 0;
+  }
+  .app-allure-jalon .app-picto {
+    @apply h-12 w-12;
+    border-radius: 16px;
+  }
+  .app-allure-jalon .app-picto svg {
+    width: 22px;
+    height: 22px;
+  }
+  .app-allure-jalon .app-ligne-prix .app-list-amount {
+    @apply text-xl font-extrabold;
+    color: var(--success);
+  }
+  .app-allure-jalon .app-ligne-jauge {
+    @apply mt-1.5;
+  }
+
+  /* ── Allure « document » : une liasse de pièces ──
+     Une petite feuille au coin plié porte le type de la pièce ; le numéro
+     est en chiffres réguliers ; des pointillés de détachement séparent
+     deux pièces, comme sur un carnet à souches. Le statut perd sa
+     pastille pour un simple point de couleur. */
+  .app-picto-doc {
+    @apply relative flex h-[52px] w-[42px] flex-col justify-between overflow-hidden px-1.5 pb-1.5 pt-2;
+    border-radius: 6px 12px 6px 6px;
+    background: var(--card);
+    border: 1.5px solid var(--ton-doux);
+    box-shadow: 0 6px 14px -10px rgb(38 58 50 / 40%);
+    clip-path: polygon(0 0, calc(100% - 11px) 0, 100% 11px, 100% 100%, 0 100%);
+  }
+  /* Le coin plié. */
+  .app-picto-doc::after {
+    content: "";
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 11px;
+    height: 11px;
+    background: var(--ton-doux);
+    border-bottom-left-radius: 4px;
+  }
+  .app-picto-doc-lignes {
+    @apply block h-[13px] w-[70%];
+    background: repeating-linear-gradient(to bottom, var(--ton-doux) 0 2px, transparent 2px 5px);
+  }
+  .app-picto-doc-type {
+    @apply block rounded-[3px] py-[1px] text-center text-[8.5px] font-extrabold uppercase leading-tight tracking-wide;
+    background: var(--ton-fort);
+    color: var(--card);
+  }
+  .app-allure-document .app-jour-titre {
+    @apply text-[12.5px];
+  }
+  .app-allure-document .app-list-row {
+    @apply relative px-1 py-3.5;
+  }
+  .app-allure-document .app-list-row:not(:last-child)::after {
+    content: "";
+    position: absolute;
+    left: 56px;
+    right: 4px;
+    bottom: 0;
+    border-bottom: 1.5px dashed var(--border);
+  }
+  .app-allure-document .app-list-primary {
+    @apply font-mono text-[14px] tracking-tight;
+  }
+  .app-allure-document .app-ligne-prix .app-list-amount {
+    @apply text-base font-bold;
+  }
+  .app-allure-document .app-ligne-prix .app-list-secondary {
+    color: var(--warning);
+  }
+  /* Le badge du statut, quelle que soit sa classe (les pièces portent
+     `app-badge-success` sans `app-badge`). */
+  .app-allure-document .app-ligne-badge > span {
+    @apply inline-flex items-center gap-1.5 border-0 bg-transparent px-0 py-0 text-[12px] font-semibold;
+  }
+  .app-allure-document .app-ligne-badge > span::before {
+    content: "";
+    @apply inline-block h-2 w-2 rounded-full;
+    background: currentColor;
+  }
+
+  /* ── Allure « registre » : les factures à régler ──
+     Chaque facture porte un liseré à gauche — orange tant qu'il reste à
+     payer, vert une fois réglée — et une jauge de ce qui est déjà réglé.
+     On voit d'un coup d'œil ce qui pèse encore. */
+  .app-allure-registre .app-jour-titre {
+    @apply text-[12.5px];
+  }
+  .app-allure-registre .app-list-row {
+    @apply relative py-3.5 pl-4 pr-1;
+    border-radius: 0 16px 16px 0;
+  }
+  .app-allure-registre .app-list-row::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 10px;
+    bottom: 10px;
+    width: 4px;
+    border-radius: 4px;
+    background: var(--warning);
+  }
+  .app-allure-registre .app-list-row[data-complet]::before {
+    background: var(--success);
+  }
+  .app-allure-registre .app-list-row + .app-list-row {
+    margin-top: 4px;
+  }
+  .app-allure-registre .app-picto {
+    border-radius: 12px;
+  }
+  .app-allure-registre .app-ligne-jauge-piste {
+    background: var(--warning-soft);
+  }
+  .app-allure-registre .app-ligne-jauge-piste i {
+    background: var(--warning);
+  }
+  .app-allure-registre [data-complet] .app-ligne-jauge-piste {
+    background: var(--success-soft);
+  }
+  .app-allure-registre [data-complet] .app-ligne-jauge-piste i {
+    background: var(--success);
+  }
+  .app-allure-registre .app-ligne-jauge {
+    @apply mt-1;
+  }
+  .app-allure-registre .app-ligne-prix .app-list-amount {
+    @apply text-base font-bold;
+  }
+
+  /* ══ LA CASCADE (Capital, Bilan) ══
+     Une étape par poste, sans cadre : l'icône, le libellé et son détail,
+     le montant signé, et dessous une piste qui montre le pas que fait le
+     solde — vert vers la droite, rouge vers la gauche. Les totaux
+     repartent de zéro, en plein, et sont séparés du reste par un filet. */
+  .app-cascade {
+    @apply flex flex-col;
+  }
+  .app-cascade-etape {
+    @apply grid items-center gap-x-3 gap-y-1.5 px-1 py-3;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    --pas: var(--success);
+    --pas-doux: var(--success-soft);
+  }
+  .app-cascade-etape.est-moins {
+    --pas: var(--danger);
+    --pas-doux: var(--danger-soft);
+  }
+  .app-cascade-etape.est-total {
+    --pas: var(--primary);
+    --pas-doux: var(--success-soft);
+    @apply mt-1 rounded-2xl px-3 py-3.5;
+    background: color-mix(in srgb, var(--success-soft) 70%, transparent);
+  }
+  .app-cascade-etape + .app-cascade-etape:not(.est-total) {
+    border-top: 1px dashed var(--border);
+  }
+  .app-cascade-ico {
+    @apply flex h-9 w-9 items-center justify-center rounded-xl;
+    grid-row: 1 / 3;
+    background: var(--pas-doux);
+    color: var(--pas);
+  }
+  .app-cascade-ico svg {
+    width: 18px;
+    height: 18px;
+  }
+  .app-cascade-texte {
+    @apply flex min-w-0 flex-col;
+  }
+  .app-cascade-libelle {
+    @apply text-[14.5px] font-semibold leading-snug text-foreground;
+  }
+  .app-cascade-detail {
+    @apply text-xs text-muted-foreground;
+  }
+  .app-cascade-montant {
+    @apply whitespace-nowrap text-right text-[15px] font-bold tabular-nums;
+    color: var(--pas);
+  }
+  .app-cascade-etape.est-total .app-cascade-libelle {
+    @apply text-[15px] font-bold;
+  }
+  .app-cascade-etape.est-total .app-cascade-montant {
+    @apply text-lg font-extrabold text-foreground;
+  }
+  /* La piste : tout le chemin du solde, et le pas de ce poste dessus. */
+  .app-cascade-piste {
+    @apply relative h-2 rounded-full;
+    grid-column: 2 / 4;
+    background: color-mix(in srgb, var(--border) 55%, transparent);
+  }
+  .app-cascade-piste i {
+    @apply absolute inset-y-0 rounded-full;
+    background: var(--pas);
+    transition:
+      left 0.5s cubic-bezier(0.2, 0.8, 0.2, 1),
+      width 0.5s cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+  .app-cascade-zero {
+    @apply absolute -inset-y-1 w-0.5 rounded-full;
+    background: var(--muted-foreground);
+    opacity: 0.5;
+  }
+
+  /* ══ LE COMPTE DE RÉSULTAT (Bilan) ══ */
+  .app-bilan {
+    @apply flex flex-col gap-4;
+  }
+  /* Trois onglets qui disent déjà leur résultat. */
+  .app-bilan-onglets {
+    @apply grid grid-cols-3 gap-1.5 rounded-2xl p-1.5;
+    background: var(--muted);
+  }
+  .app-bilan-onglet {
+    @apply flex min-w-0 flex-col items-center gap-0.5 rounded-xl px-1.5 py-2.5 text-center transition-colors;
+    min-height: 0;
+  }
+  .app-bilan-onglet[aria-selected="true"] {
+    @apply bg-card;
+    box-shadow: var(--elev-2);
+  }
+  .app-bilan-onglet-titre {
+    @apply text-[13px] font-bold text-foreground;
+  }
+  .app-bilan-onglet-detail {
+    @apply max-w-full truncate text-[10.5px] text-muted-foreground;
+  }
+  .app-bilan-onglet-valeur {
+    @apply mt-1 max-w-full truncate text-[12.5px] font-semibold tabular-nums;
+    color: var(--success);
+  }
+  .app-bilan-onglet:not([aria-selected="true"]) .app-bilan-onglet-valeur {
+    opacity: 0.75;
+  }
+  /* Le résultat de l'horizon choisi, en grand. */
+  .app-bilan-hero {
+    @apply flex flex-col items-center gap-1 px-2 py-4 text-center;
+    border-top: 2px solid var(--success-border);
+    background: linear-gradient(
+      to bottom,
+      color-mix(in srgb, var(--success-soft) 80%, transparent),
+      transparent
+    );
+  }
+  .app-bilan-hero.est-perte {
+    border-top-color: var(--danger-border);
+    background: linear-gradient(
+      to bottom,
+      color-mix(in srgb, var(--danger-soft) 80%, transparent),
+      transparent
+    );
+  }
+  .app-bilan-hero-libelle {
+    @apply inline-flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-muted-foreground;
+  }
+  .app-bilan-hero-phrase {
+    @apply text-[13px] font-medium text-muted-foreground;
+  }
+  /* L'onglet choisi ne répète pas son résultat : un trait le marque. */
+  .app-bilan-onglet-choisi {
+    @apply mt-2 h-1 w-6 rounded-full;
+    background: var(--primary);
+  }
+  .app-bilan-hero-valeur {
+    @apply text-[34px] font-extrabold leading-tight tracking-tight tabular-nums;
+  }
+  .app-bilan-hero-valeur > span {
+    color: inherit;
+  }
+  .app-bilan-hero-puces {
+    @apply mt-1 flex flex-wrap justify-center gap-1.5;
+  }
+  .app-bilan-puce {
+    @apply rounded-full px-2.5 py-1 text-[12px] font-semibold tabular-nums;
+    background: var(--muted);
+    color: var(--muted-foreground);
+  }
+  .app-bilan-note {
+    @apply flex items-start gap-2 rounded-xl px-3 py-2.5 text-[12.5px] leading-snug text-muted-foreground;
+    background: var(--info-soft);
+  }
+  .app-bilan-note svg {
+    color: var(--info);
+    margin-top: 1px;
+  }
+  .app-bilan-note b {
+    @apply font-semibold text-foreground;
+  }
+
+  /* ══ L'HISTORIQUE ══ */
+  /* Les filtres, sans cadre : période en onglets, dates sur une ligne,
+     types en puces de couleur. */
+  .app-histo-filtres {
+    @apply flex flex-col gap-3;
+  }
+  /* Les dates, dans leur carte, juste avant le relevé. */
+  .app-histo-dates {
+    @apply flex items-center gap-2 border border-border bg-card px-3 py-2 text-[13px] text-muted-foreground;
+    border-radius: 14px;
+    box-shadow: var(--elev-2);
+  }
+  .app-histo-dates-ico {
+    @apply h-[18px] w-[18px] shrink-0;
+    color: var(--primary);
+  }
+  .app-histo-dates.est-libre {
+    border-color: var(--success-border);
+    background: var(--success-soft);
+    color: var(--foreground);
+  }
+  .app-histo-dates input {
+    @apply min-w-0 flex-1 rounded-lg border-0 bg-transparent px-1 py-1 text-[13px] font-semibold text-foreground;
+  }
+  .app-histo-dates input:focus {
+    @apply outline-none ring-2 ring-ring;
+  }
+  /* Les types sur une seule ligne, qui défile au doigt. */
+  .app-histo-types {
+    @apply -mx-1 flex flex-nowrap gap-2 overflow-x-auto px-1 pb-0.5;
+    scrollbar-width: none !important;
+    -webkit-overflow-scrolling: touch;
+  }
+  .app-histo-types::-webkit-scrollbar {
+    display: none !important;
+  }
+  .app-histo-type {
+    @apply shrink-0 whitespace-nowrap;
+    @apply inline-flex h-8 items-center gap-1.5 rounded-full border px-3 text-[12.5px] font-semibold transition-colors;
+    /* `!important` : la hauteur minimale des boutons tactiles, posée
+       pour toute l'application, en faisait des pavés. */
+    min-height: 0 !important;
+    border-color: var(--border);
+    color: var(--muted-foreground);
+    background: transparent;
+  }
+  .app-histo-type svg {
+    width: 14px;
+    height: 14px;
+  }
+  .app-histo-type[aria-pressed="true"] {
+    border-color: color-mix(in srgb, var(--ton-fort) 35%, transparent);
+    background: var(--ton-doux);
+    color: var(--ton-fort);
+  }
+  .app-histo-type[aria-pressed="false"] {
+    text-decoration: line-through;
+    opacity: 0.7;
+  }
+
+  /* Le relevé : chaque jour sous son titre, le solde du jour en pastille,
+     les écritures sans cadre, séparées d'un filet pointillé. */
+  .app-releve {
+    @apply flex flex-col gap-5;
+  }
+  .app-releve-titre {
+    @apply mb-1 flex items-center justify-between gap-3 px-1;
+  }
+  .app-releve-titre > span:first-child {
+    @apply flex flex-col text-[14px] font-bold leading-tight text-foreground;
+  }
+  .app-releve-titre small {
+    @apply text-[11.5px] font-medium text-muted-foreground;
+  }
+  .app-releve-net {
+    @apply shrink-0 rounded-full px-2.5 py-1 text-[12.5px] font-bold tabular-nums;
+    background: var(--muted);
+    color: var(--muted-foreground);
+  }
+  .app-releve-net.est-entree {
+    background: var(--success-soft);
+    color: var(--success);
+  }
+  .app-releve-net.est-sortie {
+    background: var(--danger-soft);
+    color: var(--danger);
+  }
+  /* Chaque écriture sur un fond doux à la couleur de son type : vert
+     pour une vente, bleu pour un achat, rouge pour une dépense… Les
+     lignes se distinguent sans filet, et l'œil range le journal par
+     couleur avant même de lire. */
+  .app-releve-jour {
+    @apply flex flex-col gap-2;
+  }
+  .app-releve-ligne {
+    @apply relative flex w-full items-center gap-3 rounded-2xl px-3 py-3 text-left transition-colors;
+    min-height: 0;
+    background: color-mix(in srgb, var(--ton-doux) 75%, transparent);
+    border: 1px solid color-mix(in srgb, var(--ton-fort) 12%, transparent);
+  }
+  .app-releve-ligne .app-picto {
+    background: var(--card);
+    box-shadow: 0 1px 2px rgb(38 58 50 / 8%);
+  }
+  button.app-releve-ligne {
+    cursor: pointer;
+  }
+  button.app-releve-ligne:active {
+    background: var(--ton-doux);
+  }
+  @media (hover: hover) {
+    button.app-releve-ligne:hover {
+      background: var(--ton-doux);
+    }
+  }
+  .app-releve-texte {
+    @apply flex min-w-0 flex-1 flex-col gap-0.5;
+  }
+  .app-releve-libelle {
+    @apply text-[14.5px] font-semibold leading-snug text-foreground;
+    overflow-wrap: anywhere;
+  }
+  .app-releve-meta {
+    @apply truncate text-[12.5px] text-muted-foreground;
+  }
+  .app-releve-montant {
+    @apply shrink-0 whitespace-nowrap text-[15px] font-bold tabular-nums;
+  }
+  .app-releve-montant.est-entree {
+    color: var(--success);
+  }
+  .app-releve-montant.est-sortie {
+    color: var(--danger);
+  }
+  .app-releve-montant.est-attente {
+    @apply text-muted-foreground;
+    font-weight: 600;
+  }
+  .app-releve-chevron {
+    @apply h-4 w-4 shrink-0 text-muted-foreground/50;
+  }
+
+  /* ══ LA CARTE PRO ══
+     Fond blanc, coins doux, ombre à peine posée, et un en-tête qui dit
+     ce que la carte contient. La variante illustrée porte un bandeau en
+     dégradé vert, orné de formes douces. */
+  .app-carte-pro {
+    @apply overflow-hidden border border-border bg-card;
+    /* Des angles nets, pas des coins ronds : la carte se lit comme une
+       feuille posée sur la page. */
+    border-radius: 0;
+    box-shadow:
+      0 1px 2px rgb(38 58 50 / 5%),
+      0 10px 28px -18px rgb(38 58 50 / 28%);
+  }
+  .app-carte-pro-tete {
+    @apply relative flex items-center gap-3 px-4 pb-3 pt-4;
+  }
+  .app-carte-pro-ico {
+    @apply relative z-[1] flex h-10 w-10 shrink-0 items-center justify-center rounded-xl;
+    background: var(--success-soft);
+    color: var(--primary);
+  }
+  .app-carte-pro-ico svg {
+    width: 20px;
+    height: 20px;
+  }
+  .app-carte-pro-titres {
+    @apply relative z-[1] flex min-w-0 flex-1 flex-col;
+  }
+  .app-carte-pro-titre {
+    @apply text-[16px] font-bold leading-tight text-foreground;
+  }
+  .app-carte-pro-sous {
+    @apply mt-0.5 text-[12.5px] text-muted-foreground;
+  }
+  .app-carte-pro-action {
+    @apply relative z-[1] shrink-0;
+  }
+  .app-carte-pro-pastille {
+    @apply rounded-full px-2.5 py-1 text-[12px] font-semibold;
+    background: var(--muted);
+    color: var(--muted-foreground);
+  }
+  .app-carte-pro-corps {
+    @apply px-4 pb-4;
+  }
+  /* Sur téléphone, la carte va presque d'un bord à l'autre : elle mange
+     la marge de la page et n'en garde qu'environ 2 mm (8 px) de chaque
+     côté. Les bordures latérales disparaissent, l'ombre suffit. */
+  @media (max-width: 1023px) {
+    .app-carte-pro {
+      /* La marge de `.app-container` à cette largeur, moins 8 px. */
+      margin-left: calc(8px - max(1rem, env(safe-area-inset-left, 0px)));
+      margin-right: calc(8px - max(1rem, env(safe-area-inset-right, 0px)));
+      border-inline-width: 0;
+    }
+    .app-carte-pro-tete,
+    .app-carte-pro-corps {
+      @apply px-3.5;
+    }
+  }
+  @media (min-width: 640px) and (max-width: 1023px) {
+    .app-carte-pro {
+      margin-left: calc(8px - max(1.5rem, env(safe-area-inset-left, 0px)));
+      margin-right: calc(8px - max(1.5rem, env(safe-area-inset-right, 0px)));
+    }
+  }
+  /* La variante illustrée : bandeau dégradé, titre en blanc. */
+  .app-carte-pro.est-illustree .app-carte-pro-tete {
+    @apply mb-3 pb-5 pt-5;
+    background: linear-gradient(
+      135deg,
+      var(--primary) 0%,
+      color-mix(in srgb, var(--primary) 70%, #0b3d2a) 100%
+    );
+  }
+  .app-carte-pro-decor {
+    @apply pointer-events-none absolute inset-0 h-full w-full;
+    fill: rgb(255 255 255 / 9%);
+  }
+  .app-carte-pro.est-illustree .app-carte-pro-ico {
+    background: rgb(255 255 255 / 18%);
+    color: #fff;
+    box-shadow: inset 0 0 0 1px rgb(255 255 255 / 25%);
+  }
+  .app-carte-pro.est-illustree .app-carte-pro-titre {
+    color: #fff;
+  }
+  .app-carte-pro.est-illustree .app-carte-pro-sous {
+    color: rgb(255 255 255 / 80%);
+  }
+
+  /* ══ L'ANNEAU DES DÉPENSES ══ */
+  .app-donut-bloc {
+    @apply flex flex-col items-center gap-4 sm:flex-row sm:items-center;
+  }
+  .app-donut {
+    @apply relative h-40 w-40 shrink-0;
+  }
+  .app-donut svg {
+    @apply h-full w-full -rotate-90;
+  }
+  .app-donut-fond {
+    fill: none;
+    stroke: var(--muted);
+    stroke-width: 16;
+  }
+  .app-donut-arc {
+    fill: none;
+    stroke: var(--ton-fort);
+    stroke-width: 16;
+    stroke-linecap: round;
+    transition: stroke-dasharray 0.6s ease;
+  }
+  .app-donut-centre {
+    @apply absolute inset-0 flex flex-col items-center justify-center text-center;
+  }
+  .app-donut-centre small {
+    @apply text-[11px] font-semibold uppercase tracking-wider text-muted-foreground;
+  }
+  .app-donut-centre b {
+    @apply text-[15px] font-extrabold tabular-nums text-foreground;
+  }
+  .app-donut-legende {
+    @apply flex w-full min-w-0 flex-1 flex-col gap-3;
+  }
+  .app-donut-legende li {
+    @apply grid items-center gap-x-2 gap-y-1;
+    grid-template-columns: auto minmax(0, 1fr) auto auto;
+  }
+  .app-donut-puce {
+    @apply h-2.5 w-2.5 rounded-full;
+    background: var(--ton-fort);
+  }
+  .app-donut-nom {
+    @apply truncate text-[14px] font-semibold text-foreground;
+  }
+  .app-donut-part {
+    @apply rounded-full px-2 py-0.5 text-[11.5px] font-bold tabular-nums;
+    background: var(--ton-doux);
+    color: var(--ton-fort);
+  }
+  .app-donut-montant {
+    @apply text-right text-[14px] font-bold tabular-nums text-foreground;
+  }
+  .app-donut-jauge {
+    @apply relative h-1.5 overflow-hidden rounded-full;
+    grid-column: 2 / 5;
+    background: var(--muted);
+  }
+  .app-donut-jauge i {
+    @apply absolute inset-y-0 left-0 rounded-full;
+    background: var(--ton-fort);
+  }
+
+  /* ══ MOIS PAR MOIS ══ */
+  .app-mois {
+    @apply flex flex-col gap-4;
+  }
+  .app-mois-barres {
+    @apply grid h-40 items-end gap-1 pt-2;
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+  }
+  .app-mois-colonne {
+    @apply flex h-full min-w-0 flex-col items-center gap-1.5;
+    min-height: 0 !important;
+    padding: 0;
+  }
+  .app-mois-piste {
+    @apply relative flex w-full flex-1 items-end justify-center rounded-lg;
+  }
+  .app-mois-colonne[aria-selected="true"] .app-mois-piste {
+    background: var(--success-soft);
+  }
+  .app-mois-ca {
+    @apply relative flex w-[70%] items-end overflow-hidden rounded-t-md;
+    min-height: 3px;
+    background: color-mix(in srgb, var(--primary) 30%, transparent);
+    transition: height 0.5s cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+  .app-mois-marge {
+    @apply w-full;
+    background: var(--primary);
+  }
+  .app-mois-colonne[aria-selected="true"] .app-mois-ca {
+    background: color-mix(in srgb, var(--primary) 45%, transparent);
+  }
+  /* Le chiffre d'affaires du mois choisi, au-dessus de sa barre. */
+  .app-mois-ca {
+    overflow: visible;
+  }
+  .app-mois-marge {
+    @apply rounded-t-md;
+  }
+  .app-mois-bulle {
+    @apply absolute bottom-full left-1/2 mb-1 -translate-x-1/2 whitespace-nowrap rounded-md px-1.5 py-0.5 text-[10.5px] font-bold tabular-nums;
+    background: var(--foreground);
+    color: var(--background);
+  }
+  .app-mois-lettre {
+    @apply text-[11px] font-semibold text-muted-foreground;
+  }
+  .app-mois-colonne.est-courant .app-mois-lettre {
+    @apply rounded-full px-1.5;
+    background: var(--muted);
+    color: var(--foreground);
+  }
+  .app-mois-colonne[aria-selected="true"] .app-mois-lettre {
+    color: var(--primary);
+    font-weight: 800;
+  }
+  .app-mois-detail {
+    @apply rounded-2xl p-3.5;
+    background: color-mix(in srgb, var(--muted) 70%, transparent);
+  }
+  .app-mois-detail-tete {
+    @apply mb-3 flex items-baseline justify-between gap-2;
+  }
+  .app-mois-detail-tete b {
+    @apply text-[15px] font-bold text-foreground;
+  }
+  .app-mois-detail-tete span {
+    @apply text-[12.5px] text-muted-foreground;
+  }
+  .app-mois-tuiles {
+    @apply grid grid-cols-2 gap-2;
+  }
+  .app-mois-tuile {
+    @apply flex flex-col gap-0.5 rounded-xl bg-card px-3 py-2.5;
+    box-shadow: var(--elev-1);
+  }
+  .app-mois-tuile small {
+    @apply text-[11.5px] text-muted-foreground;
+  }
+  .app-mois-tuile b {
+    @apply text-[15px] font-bold tabular-nums text-foreground;
+  }
+  .app-mois-tuile b.t-danger {
+    color: var(--danger);
+  }
+  .app-mois-tuile b.t-success,
+  .app-mois-tuile b .t-success {
+    color: var(--success);
+  }
+  .app-mois-tuile.est-resultat {
+    box-shadow: inset 0 0 0 1.5px var(--success-border);
+  }
+  .app-mois-tuile.est-perte {
+    box-shadow: inset 0 0 0 1.5px var(--danger-border);
+  }
+  .app-mois-note {
+    @apply mt-2.5 text-[12px] text-muted-foreground;
+  }
+  .app-mois-legende {
+    @apply flex items-center gap-1.5 text-[11.5px] text-muted-foreground;
+  }
+  .app-mois-legende span {
+    @apply ml-2 inline-block h-2.5 w-2.5 rounded-sm first:ml-0;
+  }
+  .app-mois-legende .ca {
+    background: color-mix(in srgb, var(--primary) 30%, transparent);
+  }
+  .app-mois-legende .marge {
+    background: var(--primary);
+  }
+
+  /* ══ LES PERSONNES : clients, fournisseurs, prestataires ══
+     Une personne ne se lit ni comme un produit ni comme une opération :
+     on la reconnaît à son visage, on cherche ce qu'elle a acheté et ce
+     qu'elle doit, et l'on veut souvent l'appeler. D'où sa propre liste :
+     sans cadre comme le catalogue, une vague entre deux personnes, un
+     grand portrait cerclé de la couleur de son statut, ses chiffres à
+     droite — la dette en rouge — et un bouton pour l'appeler. */
+  .app-personnes {
+    @apply flex flex-col;
+  }
+  .app-personne {
+    @apply relative flex items-center gap-2 rounded-[18px] px-1 py-3.5 transition-colors;
+  }
+  .app-personne:not(:last-child)::after {
+    content: "";
+    position: absolute;
+    left: 8px;
+    right: 8px;
+    bottom: -4px;
+    height: 8px;
+    background: var(--success-border);
+    -webkit-mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 400 8' preserveAspectRatio='none'%3E%3Cpath d='M0 5 C 70 0, 130 8, 200 4 S 330 0, 400 4' fill='none' stroke='black' stroke-width='1.4' vector-effect='non-scaling-stroke'/%3E%3C/svg%3E")
+      center / 100% 100% no-repeat;
+    mask: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 400 8' preserveAspectRatio='none'%3E%3Cpath d='M0 5 C 70 0, 130 8, 200 4 S 330 0, 400 4' fill='none' stroke='black' stroke-width='1.4' vector-effect='non-scaling-stroke'/%3E%3C/svg%3E")
+      center / 100% 100% no-repeat;
+    pointer-events: none;
+  }
+  .app-personne.est-choisie {
+    background: var(--success-soft);
+  }
+  @media (hover: hover) {
+    .app-personne:not(.est-choisie):hover {
+      background: color-mix(in srgb, var(--success-soft) 55%, transparent);
+    }
+  }
+  .app-personne-corps {
+    @apply flex min-w-0 flex-1 items-center gap-3 text-left;
+  }
+  /* Le portrait, cerclé de la couleur du statut : vert actif, gris
+     inactif, rouge quand la personne doit de l'argent. */
+  .app-personne-portrait {
+    @apply relative flex shrink-0 rounded-full;
+    /* La bague : un liseré blanc puis la couleur du statut, dessinés en
+       ombres — ils n'ajoutent rien à la taille du portrait, qui reste
+       aligné avec le texte. */
+    --bague: var(--success-border);
+    margin: 4px;
+    box-shadow:
+      0 0 0 2px var(--background),
+      0 0 0 4.5px var(--bague);
+  }
+  .app-personne-portrait > * {
+    border-radius: 9999px;
+  }
+  .app-personne-portrait.inactive {
+    --bague: var(--border);
+    filter: grayscale(0.6);
+  }
+  .app-personne-portrait.doit {
+    --bague: var(--danger-border);
+  }
+  .app-portrait-icone {
+    @apply flex items-center justify-center rounded-full;
+    background: var(--success-soft);
+    color: var(--primary);
+  }
+  .app-personne-texte {
+    @apply flex min-w-0 flex-1 flex-col items-start gap-1;
+  }
+  .app-personne-nom {
+    @apply max-w-full text-base font-bold leading-snug text-foreground;
+    overflow-wrap: anywhere;
+  }
+  .app-personne-meta {
+    @apply max-w-full truncate text-[13px] text-muted-foreground;
+  }
+  .app-personne-puces {
+    @apply flex flex-wrap gap-1.5;
+  }
+  .app-personne-puce {
+    @apply inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[11.5px] font-semibold;
+    background: var(--muted);
+    color: var(--muted-foreground);
+  }
+  .app-personne-chiffres {
+    @apply flex shrink-0 flex-col items-end gap-1 text-right;
+  }
+  .app-personne-total {
+    @apply text-base font-bold leading-tight tabular-nums text-foreground;
+  }
+  .app-personne-legende {
+    @apply text-[11.5px] text-muted-foreground;
+  }
+  .app-personne-dette {
+    @apply inline-flex items-center gap-1 rounded-full px-2 py-0.5 text-[12px] font-bold tabular-nums;
+    background: var(--danger-soft);
+    color: var(--danger);
+  }
+  .app-personne-appel {
+    @apply flex h-10 w-10 shrink-0 items-center justify-center rounded-full transition-colors;
+    background: var(--success-soft);
+    color: var(--primary);
+  }
+  .app-personne-appel:active {
+    background: var(--success-border);
   }
   @media (hover: hover) {
     .app-list-row:hover {

@@ -21,6 +21,13 @@ interface FilterBarProps {
    * restent automatiquement synchronisés.
    */
   children?: React.ReactNode;
+  /**
+   * Les filtres rapides : ceux dont on se sert dix fois par jour (l'état
+   * du stock, le statut d'une vente). Ils restent TOUJOURS visibles, en
+   * pastilles sous la recherche, au lieu d'être rangés avec les autres
+   * derrière le bouton « Filtres ». Un geste au lieu de trois.
+   */
+  rapides?: React.ReactNode;
 }
 
 export const FilterBar: React.FC<FilterBarProps> = ({
@@ -30,6 +37,7 @@ export const FilterBar: React.FC<FilterBarProps> = ({
   activeFilterCount = 0,
   onReset,
   children,
+  rapides,
 }) => {
   const [open, setOpen] = useState(false);
 
@@ -47,49 +55,59 @@ export const FilterBar: React.FC<FilterBarProps> = ({
 
   return (
     <>
-      <div className="app-toolbar lg:flex-wrap">
-        {/* Recherche — toujours visible, pleine largeur sur mobile */}
-        <div className="relative w-full lg:min-w-64 lg:flex-1">
-          <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
-          <input
-            type="text"
-            value={searchValue}
-            onChange={(e) => onSearchChange(e.target.value)}
-            placeholder={searchPlaceholder}
-            className="app-field pl-9"
-          />
-          {searchValue && (
+      {/* La recherche vit dans sa propre barre, détachée de la liste
+          qu'elle filtre : on voit d'un coup d'œil où l'on tape et où
+          l'on lit. Sur téléphone, le bouton des filtres se range à
+          droite du champ plutôt que d'occuper une rangée entière. */}
+      <div className="app-recherche">
+        <div className="app-recherche-ligne">
+          <div className="relative min-w-0 flex-1">
+            <Search className="pointer-events-none absolute left-3.5 top-1/2 h-[18px] w-[18px] -translate-y-1/2 text-muted-foreground" />
+            <input
+              type="text"
+              value={searchValue}
+              onChange={(e) => onSearchChange(e.target.value)}
+              placeholder={searchPlaceholder}
+              aria-label={searchPlaceholder}
+              className="app-recherche-champ"
+            />
+            {searchValue && (
+              <button
+                type="button"
+                onClick={() => onSearchChange("")}
+                className="absolute right-1.5 top-1/2 flex h-9 w-9 -translate-y-1/2 items-center justify-center rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground"
+                aria-label="Effacer la recherche"
+              >
+                <X className="h-4 w-4" />
+              </button>
+            )}
+          </div>
+
+          {hasFilters && (
             <button
               type="button"
-              onClick={() => onSearchChange("")}
-              className="absolute right-2 top-1/2 flex h-8 w-8 -translate-y-1/2 items-center justify-center rounded-lg text-muted-foreground hover:bg-muted hover:text-foreground"
-              aria-label="Effacer la recherche"
+              onClick={() => setOpen(true)}
+              className={`app-recherche-filtres lg:hidden${activeFilterCount > 0 ? " est-actif" : ""}`}
+              aria-label={
+                activeFilterCount > 0
+                  ? `Filtres, ${activeFilterCount} actif${activeFilterCount > 1 ? "s" : ""}`
+                  : "Filtres"
+              }
             >
-              <X className="h-4 w-4" />
+              <SlidersHorizontal className="h-5 w-5" />
+              <span>Filtres</span>
+              {activeFilterCount > 0 && (
+                <span className="app-recherche-compte">{activeFilterCount}</span>
+              )}
             </button>
           )}
         </div>
 
-        {hasFilters && (
-          <>
-            {/* Déclencheur du panneau — mobile uniquement */}
-            <button
-              type="button"
-              onClick={() => setOpen(true)}
-              className="app-btn-secondary w-full lg:hidden"
-            >
-              <SlidersHorizontal className="h-4 w-4" />
-              Filtres
-              {activeFilterCount > 0 && (
-                <span className="ml-1 inline-flex h-5 min-w-5 items-center justify-center rounded-full bg-primary px-1.5 text-[11px] font-bold text-primary-foreground">
-                  {activeFilterCount}
-                </span>
-              )}
-            </button>
+        {rapides && <div className="app-recherche-rapides">{rapides}</div>}
 
-            {/* Filtres en ligne — à partir de 768px */}
-            <div className="hidden flex-wrap items-center gap-3 lg:ml-auto lg:flex">{children}</div>
-          </>
+        {/* Les autres filtres, en ligne — sur PC seulement. */}
+        {hasFilters && (
+          <div className="hidden flex-wrap items-center gap-3 lg:ml-auto lg:flex">{children}</div>
         )}
       </div>
 
@@ -161,4 +179,39 @@ export const FilterField: React.FC<FilterFieldProps> = ({ label, children }) => 
     </span>
     {children}
   </label>
+);
+
+interface PastilleFiltreProps {
+  actif: boolean;
+  onClick: () => void;
+  /** Combien de lignes ce filtre garde : on sait avant de cliquer. */
+  compte?: number;
+  /** L'icône posée au-dessus du libellé. */
+  icone?: React.ReactNode;
+  children: React.ReactNode;
+}
+
+/**
+ * Un filtre rapide : une icône, et dessous son libellé avec son compte.
+ * À poser dans `rapides`. Plusieurs côte à côte forment un choix ; celui
+ * qui est actif voit son libellé se remplir de la couleur principale.
+ */
+export const PastilleFiltre: React.FC<PastilleFiltreProps> = ({
+  actif,
+  onClick,
+  compte,
+  icone,
+  children,
+}) => (
+  <button type="button" className="app-pastille" aria-pressed={actif} onClick={onClick}>
+    {icone && (
+      <span className="app-pastille-icone" aria-hidden="true">
+        {icone}
+      </span>
+    )}
+    <span className="app-pastille-libelle">
+      {children}
+      {compte !== undefined && <span className="app-pastille-compte">{compte}</span>}
+    </span>
+  </button>
 );

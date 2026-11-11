@@ -1,8 +1,19 @@
 import React, { useMemo, useState } from "react";
 import { Sale, Purchase, Expense, Product, LocaleSetting } from "../types";
-import { CalendarRange, PieChart, BarChart3 } from "lucide-react";
+import {
+  CalendarRange,
+  BarChart3,
+  PieChart,
+  TrendingUp,
+  Package,
+  Percent,
+  Receipt,
+  Scale,
+  ShoppingCart,
+} from "lucide-react";
+import { Cascade } from "./shared/Cascade";
 import { formatCurrency } from "../utils/formulas";
-import { DataList } from "./shared/DataList";
+import { CartePro } from "./shared/CartePro";
 import { PageHeader } from "./shared/PageHeader";
 import { dateDuJour } from "../lib/dates";
 import { chiffreAffairesNet, effetDesAvoirsSurLaMarge, type AvoirDeVente } from "../lib/ventes";
@@ -208,15 +219,8 @@ export const RapportsView: React.FC<RapportsViewProps> = ({
     return { month: mName, index: mIdx, ca, achats, depenses, marge, countSales: mSales.length };
   });
 
-  /**
-   * Les douze mois sont affichés, y compris ceux sans la moindre
-   * écriture. La règle habituelle — une valeur nulle ne s'affiche pas —
-   * ne vaut pas pour une série calendaire : c'est l'année entière qu'on
-   * vient lire ici, et un mois creux est une information, pas du vide.
-   * Le masquer ferait aussi croire que seuls les mois listés existent.
-   */
-  const isEmptyMonth = (ms: (typeof monthlyStats)[number]) =>
-    ms.ca === 0 && ms.achats === 0 && ms.depenses === 0;
+  // Les douze mois sont tous dessinés, même vides : c'est l'année entière
+  // qu'on vient lire, et un mois creux est une information (voir MoisParMois).
 
   /**
    * Les trois horizons, en colonnes. Le tableau est transposé par rapport
@@ -314,156 +318,353 @@ export const RapportsView: React.FC<RapportsViewProps> = ({
         }
       />
 
-      {/* Synthèse comparative.
-          La page affichait ces douze chiffres deux fois : une fois dans
-          trois grandes cartes colorées, une seconde dans un tableau de six
-          colonnes doublé de cartes mobiles. Il n'en reste qu'un tableau,
-          quatre colonnes, `table-fixed` pour qu'un montant long passe à la
-          ligne au lieu de pousser une barre de défilement. */}
-      <div className="app-card overflow-hidden">
-        <div className="border-b border-border px-4 py-3">
-          <h3 className="app-section-title">
-            <PieChart className="h-4 w-4" />
-            Synthèse comparative
-          </h3>
-        </div>
+      {/* ── Le compte de résultat ──
+          Un tableau de trois colonnes ne tenait pas sur un téléphone : les
+          montants passaient sur deux lignes et l'on comparait des
+          chiffres coupés. On choisit maintenant l'horizon (jour, mois,
+          année) — chaque onglet montre déjà son résultat — et l'on lit
+          en dessous comment ce résultat se construit, du chiffre
+          d'affaires jusqu'au bénéfice. */}
+      <CartePro
+        illustree
+        icone={<Scale />}
+        titre="Compte de résultat"
+        sousTitre="Comment se forme votre bénéfice"
+      >
+        <CompteDeResultat periodes={periodes} />
+      </CartePro>
 
-        <table className="app-table w-full table-fixed">
-          <thead>
-            <tr>
-              <th className="w-[32%] px-2 text-left sm:px-4">Poste</th>
-              {periodes.map((p) => (
-                <th key={p.id} className="px-2 text-right sm:px-4">
-                  <span className="block">{p.titre}</span>
-                  <span className="block text-[10px] font-normal normal-case tracking-normal text-muted-foreground">
-                    {p.detail}
-                  </span>
-                </th>
-              ))}
-            </tr>
-          </thead>
-
-          <tbody>
-            {lignes.map((l) => (
-              <tr key={l.key}>
-                <td className="px-2 text-xs text-muted-foreground sm:px-4 sm:text-sm">{l.label}</td>
-                {periodes.map((p) => (
-                  <td
-                    key={p.id}
-                    className={`px-2 text-right font-mono text-xs tabular-nums sm:px-4 sm:text-sm ${
-                      l.strong ? "font-medium text-foreground" : "text-foreground"
-                    }`}
-                  >
-                    {l.render(p)}
-                  </td>
-                ))}
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
-
-      {/* Où part l'argent.
-          Une liste plutôt qu'un camembert : on lit un montant, on le
-          compare au précédent, et la part se déduit du total affiché en
-          bas. Un camembert demande de comparer des angles. */}
+      {/* Où part l'argent : un anneau qui montre d'un coup d'œil quel
+          poste pèse, et dessous chaque poste avec sa part et son montant. */}
       {parPoste.length > 0 && (
-        <div className="app-card overflow-hidden">
-          <div className="flex items-center justify-between gap-3 border-b border-border px-4 py-3">
-            <h3 className="app-section-title">
-              <BarChart3 className="h-4 w-4" />
-              Où part l&apos;argent
-            </h3>
-            <span className="text-xs text-muted-foreground">{filterYear}</span>
-          </div>
-          <div className="app-list">
-            {parPoste.map((p: { nom: string; montant: number }) => (
-              <div key={p.nom} className="app-list-row justify-between gap-3">
-                <span className="min-w-0 flex-1">
-                  <span className="app-list-primary block">{p.nom}</span>
-                  <span className="app-list-secondary block">
-                    {totalParPoste > 0
-                      ? `${Math.round((p.montant / totalParPoste) * 100)} % des dépenses`
-                      : ""}
-                  </span>
-                </span>
-                <span className="app-list-amount">{formatCurrency(p.montant)}</span>
-              </div>
-            ))}
-            <div className="app-list-row justify-between gap-3 bg-muted">
-              <span className="app-list-primary font-semibold">Total</span>
-              <span className="app-list-amount font-semibold">{formatCurrency(totalParPoste)}</span>
-            </div>
-          </div>
-        </div>
+        <CartePro
+          icone={<PieChart />}
+          titre="Où part l'argent"
+          sousTitre="Les dépenses de l'année, poste par poste"
+          action={<span className="app-carte-pro-pastille">{filterYear}</span>}
+        >
+          <OuPartLArgent postes={parPoste} total={totalParPoste} />
+        </CartePro>
       )}
 
-      {/* Mois par mois.
-          Douze cartes de quatre lignes colorées deviennent douze lignes de
-          liste : le chiffre d'affaires tombe dans la même colonne d'un mois
-          à l'autre, ce qui est la seule façon de les comparer d'un regard. */}
-      <div className="app-card overflow-hidden">
-        <div className="flex items-center justify-between gap-3 border-b border-border px-4 py-3">
-          <h3 className="app-section-title">
-            <BarChart3 className="h-4 w-4" />
-            Mois par mois
-          </h3>
-          <span className="text-xs text-muted-foreground">{filterYear}</span>
+      {/* Mois par mois : douze barres pour comparer l'année d'un regard ;
+          un appui sur un mois en donne le détail juste en dessous. */}
+      <CartePro
+        icone={<BarChart3 />}
+        titre="Mois par mois"
+        sousTitre="Chiffre d'affaires et marge, mois après mois"
+        action={<span className="app-carte-pro-pastille">{filterYear}</span>}
+      >
+        <MoisParMois mois={monthlyStats} moisCourant={filterMonth} annee={filterYear} />
+      </CartePro>
+    </div>
+  );
+};
+
+type PeriodeBilan = {
+  id: string;
+  titre: string;
+  detail: string;
+  ca: number;
+  achats: number;
+  depenses: number;
+  marge: number;
+  nbVentes: number;
+};
+
+/**
+ * LE COMPTE DE RÉSULTAT D'UNE PÉRIODE.
+ *
+ *   — trois onglets, un par horizon, qui disent déjà leur résultat ;
+ *   — le résultat de l'horizon choisi, en grand, avec sa marge en % ;
+ *   — la cascade qui le construit : chiffre d'affaires, moins le coût
+ *     des marchandises vendues, égale la marge brute ; moins les
+ *     dépenses, égale le résultat.
+ *
+ * Les achats de stock ne s'en déduisent pas : la marge tient déjà compte
+ * du prix d'achat des articles vendus. Ils sont rappelés à part, pour
+ * qu'on ne les cherche pas.
+ */
+const CompteDeResultat: React.FC<{ periodes: PeriodeBilan[] }> = ({ periodes }) => {
+  const [choisie, setChoisie] = React.useState("mois");
+  const p = periodes.find((x) => x.id === choisie) ?? periodes[0];
+  const resultat = p.marge - p.depenses;
+  const tauxMarge = p.ca > 0 ? Math.round((p.marge / p.ca) * 100) : null;
+
+  /*
+   * CHAQUE CHIFFRE UNE SEULE FOIS.
+   *
+   * Le résultat de l'horizon choisi s'écrivait trois fois dans la carte :
+   * dans son onglet, en grand, et au bas de la cascade ; la marge en %
+   * deux fois. Maintenant l'onglet choisi ne répète pas son résultat (les
+   * deux autres le gardent : c'est la comparaison), la cascade s'arrête
+   * aux dépenses, et le résultat se lit une fois, en grand, à la fin du
+   * calcul — là où on l'attend.
+   */
+  return (
+    <div className="app-bilan">
+      <div className="app-bilan-onglets" role="tablist" aria-label="Horizon">
+        {periodes.map((x) => {
+          const r = x.marge - x.depenses;
+          const choisi = x.id === p.id;
+          return (
+            <button
+              key={x.id}
+              type="button"
+              role="tab"
+              aria-selected={choisi}
+              onClick={() => setChoisie(x.id)}
+              className="app-bilan-onglet"
+            >
+              <span className="app-bilan-onglet-titre">{x.titre}</span>
+              <span className="app-bilan-onglet-detail">{x.detail}</span>
+              {choisi ? (
+                <span className="app-bilan-onglet-choisi" aria-hidden="true" />
+              ) : (
+                <span className={`app-bilan-onglet-valeur ${r < 0 ? "t-danger" : ""}`}>
+                  {r < 0 ? "−" : r > 0 ? "+" : ""}
+                  {formatCurrency(Math.abs(r))}
+                </span>
+              )}
+            </button>
+          );
+        })}
+      </div>
+
+      <div role="tabpanel" className="app-bilan">
+        <Cascade
+          format={formatCurrency}
+          etapes={[
+            {
+              cle: "ca",
+              libelle: "Chiffre d'affaires",
+              detail: `${p.nbVentes} vente${p.nbVentes > 1 ? "s" : ""}, nettes des avoirs`,
+              montant: p.ca,
+              icone: <TrendingUp />,
+            },
+            {
+              cle: "cout",
+              libelle: "Coût des marchandises vendues",
+              detail: "Prix d'achat des articles vendus",
+              montant: -(p.ca - p.marge),
+              icone: <Package />,
+            },
+            {
+              cle: "marge",
+              libelle: "Marge brute des ventes",
+              detail: tauxMarge !== null ? `${tauxMarge} % du chiffre d'affaires` : undefined,
+              total: true,
+              icone: <Percent />,
+            },
+            {
+              cle: "depenses",
+              libelle: "Dépenses",
+              detail: "Frais, retraits, salaires",
+              montant: -p.depenses,
+              icone: <Receipt />,
+            },
+          ]}
+        />
+
+        <div className={`app-bilan-hero${resultat < 0 ? " est-perte" : ""}`}>
+          <span className="app-bilan-hero-libelle">
+            <Scale className="h-4 w-4" aria-hidden="true" />
+            Résultat (marge − dépenses) · {p.detail}
+          </span>
+          <span
+            className={`app-bilan-hero-valeur ${resultat < 0 ? "t-danger" : resultat > 0 ? "t-success" : ""}`}
+          >
+            <Signe montant={resultat} />
+          </span>
+          <span className="app-bilan-hero-phrase">
+            {resultat < 0
+              ? "Perte sur la période"
+              : resultat > 0
+                ? "Bénéfice sur la période"
+                : "Ni bénéfice ni perte"}
+          </span>
         </div>
 
-        <DataList
-          emptyLabel={`Aucune activité enregistrée en ${filterYear}.`}
-          items={monthlyStats.map((ms) => ({
-            id: ms.month,
-            primary: (
-              <span className="flex items-center gap-2">
-                <span
-                  className={`truncate ${isEmptyMonth(ms) ? "font-normal text-muted-foreground" : ""}`}
-                >
-                  {ms.month}
-                </span>
-                {ms.index === filterMonth && (
-                  <span className="app-badge app-badge-neutral shrink-0">Mois en cours</span>
-                )}
-              </span>
-            ),
-            meta: [
-              // Un mois creux le dit franchement, plutôt que de laisser
-              // une ligne nue qu'on prendrait pour un défaut d'affichage.
-              isEmptyMonth(ms) ? "Aucune activité" : null,
-              ms.countSales > 0 ? `${ms.countSales} vente${ms.countSales > 1 ? "s" : ""}` : null,
-              ms.achats > 0 ? `${formatCurrency(ms.achats)} d'achats` : null,
-              ms.depenses > 0 ? `${formatCurrency(ms.depenses)} de dépenses` : null,
-            ],
-            amount: formatCurrency(ms.ca),
-            amountHint: ms.marge !== 0 ? <Signe montant={ms.marge} /> : undefined,
-            detailTitle: `${ms.month} ${filterYear}`,
-            detailSubtitle: "Détail du mois",
-            details: [
-              { label: "Chiffre d'affaires", value: formatCurrency(ms.ca) },
-              {
-                label: "Achats de stock",
-                value: ms.achats > 0 ? formatCurrency(ms.achats) : "",
-                hideIfEmpty: true,
-              },
-              {
-                label: "Dépenses",
-                value: ms.depenses > 0 ? formatCurrency(ms.depenses) : "",
-                hideIfEmpty: true,
-              },
-              {
-                label: "Marge brute des ventes",
-                value: <Signe montant={ms.marge} />,
-              },
-              {
-                label: "Résultat (marge − dépenses)",
-                value: <Signe montant={ms.marge - ms.depenses} />,
-              },
-              { label: "Ventes", value: String(ms.countSales) },
-            ],
-          }))}
-        />
+        <p className="app-bilan-note">
+          <ShoppingCart className="h-4 w-4 shrink-0" aria-hidden="true" />
+          <span>
+            Achats de stock : <b>{formatCurrency(p.achats)}</b> — non déduits, ils deviennent un
+            coût quand les produits se vendent.
+          </span>
+        </p>
       </div>
     </div>
   );
 };
+
+/** Les teintes des postes de dépenses, dans l'anneau et la légende. */
+const TONS_POSTES = ["rouge", "orange", "violet", "bleu", "vert", "gris"] as const;
+
+/**
+ * L'anneau des dépenses : chaque poste est un arc, à sa part du total ;
+ * le total est au centre. Dessous, la légende dit, poste par poste, la
+ * part et le montant — l'anneau donne la forme, la liste les chiffres.
+ */
+const OuPartLArgent: React.FC<{ postes: { nom: string; montant: number }[]; total: number }> = ({
+  postes,
+  total,
+}) => {
+  const rayon = 52;
+  const tour = 2 * Math.PI * rayon;
+  let deja = 0;
+  return (
+    <div className="app-donut-bloc">
+      <div className="app-donut">
+        <svg viewBox="0 0 140 140" role="img" aria-label="Répartition des dépenses par poste">
+          <circle cx="70" cy="70" r={rayon} className="app-donut-fond" />
+          {postes.map((p, i) => {
+            const part = total > 0 ? p.montant / total : 0;
+            const arc = (
+              <circle
+                key={p.nom}
+                cx="70"
+                cy="70"
+                r={rayon}
+                className={`app-donut-arc ton-${TONS_POSTES[i % TONS_POSTES.length]}`}
+                strokeDasharray={`${Math.max(0, part * tour - 2)} ${tour}`}
+                strokeDashoffset={-deja * tour}
+              />
+            );
+            deja += part;
+            return arc;
+          })}
+        </svg>
+        <span className="app-donut-centre">
+          <small>Total</small>
+          <b>{formatCurrency(total)}</b>
+        </span>
+      </div>
+      <ul className="app-donut-legende">
+        {postes.map((p, i) => {
+          const part = total > 0 ? Math.round((p.montant / total) * 100) : 0;
+          return (
+            <li key={p.nom} className={`ton-${TONS_POSTES[i % TONS_POSTES.length]}`}>
+              <span className="app-donut-puce" aria-hidden="true" />
+              <span className="app-donut-nom">{p.nom}</span>
+              <span className="app-donut-part">{part} %</span>
+              <span className="app-donut-montant">{formatCurrency(p.montant)}</span>
+              <span className="app-donut-jauge" aria-hidden="true">
+                <i style={{ width: `${part}%` }} />
+              </span>
+            </li>
+          );
+        })}
+      </ul>
+    </div>
+  );
+};
+
+type StatMois = {
+  month: string;
+  index: number;
+  ca: number;
+  achats: number;
+  depenses: number;
+  marge: number;
+  countSales: number;
+};
+
+/**
+ * Douze barres, une par mois : la hauteur dit le chiffre d'affaires, la
+ * part foncée la marge. Un appui choisit un mois ; son détail s'affiche
+ * dessous, en quatre tuiles. Au départ, c'est le mois en cours.
+ */
+const MoisParMois: React.FC<{ mois: StatMois[]; moisCourant: number; annee: number }> = ({
+  mois,
+  moisCourant,
+  annee,
+}) => {
+  const [choisi, setChoisi] = React.useState(moisCourant);
+  const max = Math.max(1, ...mois.map((m) => m.ca));
+  const m = mois[choisi] ?? mois[0];
+  const precedent = choisi > 0 ? mois[choisi - 1] : null;
+  const vide = m.ca === 0 && m.achats === 0 && m.depenses === 0;
+  const evolution =
+    precedent && precedent.ca > 0 ? Math.round(((m.ca - precedent.ca) / precedent.ca) * 100) : null;
+
+  /*
+   * Le détail ne répète pas le compte de résultat : pour le mois en
+   * cours, chiffre d'affaires, marge, dépenses et résultat sont déjà
+   * dans la carte du dessus. Il dit donc ce qu'elle ne dit pas — le
+   * panier moyen, l'évolution sur le mois d'avant, les achats — et le
+   * chiffre d'affaires du mois choisi s'écrit au-dessus de sa barre.
+   */
+  return (
+    <div className="app-mois">
+      <div className="app-mois-barres" role="tablist" aria-label={`Mois de ${annee}`}>
+        {mois.map((x) => (
+          <button
+            key={x.index}
+            type="button"
+            role="tab"
+            aria-selected={x.index === choisi}
+            aria-label={`${x.month} : ${formatCurrency(x.ca)}`}
+            onClick={() => setChoisi(x.index)}
+            className={`app-mois-colonne${x.index === moisCourant ? " est-courant" : ""}`}
+          >
+            <span className="app-mois-piste">
+              <span className="app-mois-ca" style={{ height: `${(x.ca / max) * 100}%` }}>
+                <span
+                  className="app-mois-marge"
+                  style={{ height: `${x.ca > 0 ? (Math.max(0, x.marge) / x.ca) * 100 : 0}%` }}
+                />
+                {x.index === choisi && x.ca > 0 && (
+                  <span className="app-mois-bulle">{formatCompact(x.ca)}</span>
+                )}
+              </span>
+            </span>
+            <span className="app-mois-lettre">{x.month.charAt(0)}</span>
+          </button>
+        ))}
+      </div>
+
+      <div className="app-mois-detail" role="tabpanel">
+        <div className="app-mois-detail-tete">
+          <b>
+            {m.month} {annee}
+          </b>
+          {vide && <span>Aucune activité</span>}
+        </div>
+        <div className="app-mois-tuiles">
+          <span className="app-mois-tuile">
+            <small>Ventes</small>
+            <b>{m.countSales}</b>
+          </span>
+          <span className="app-mois-tuile">
+            <small>Panier moyen</small>
+            <b>{m.countSales > 0 ? formatCurrency(Math.round(m.ca / m.countSales)) : "—"}</b>
+          </span>
+          <span
+            className={`app-mois-tuile${evolution !== null && evolution < 0 ? " est-perte" : evolution !== null ? " est-resultat" : ""}`}
+          >
+            <small>vs {precedent ? precedent.month.toLowerCase() : "mois d'avant"}</small>
+            <b className={evolution === null ? "" : evolution < 0 ? "t-danger" : "t-success"}>
+              {evolution === null
+                ? "—"
+                : `${evolution > 0 ? "+" : evolution < 0 ? "−" : ""}${Math.abs(evolution)} %`}
+            </b>
+          </span>
+          <span className="app-mois-tuile">
+            <small>Achats de stock</small>
+            <b>{formatCurrency(m.achats)}</b>
+          </span>
+        </div>
+      </div>
+      <p className="app-mois-legende" aria-hidden="true">
+        <span className="ca" /> Chiffre d&apos;affaires <span className="marge" /> dont marge
+      </p>
+    </div>
+  );
+};
+
+/** « 85,5 k », « 1,2 M » : un montant court, pour la bulle d'une barre. */
+function formatCompact(n: number): string {
+  if (n >= 1_000_000) return `${String(Math.round(n / 100_000) / 10).replace(".", ",")} M`;
+  if (n >= 1_000) return `${String(Math.round(n / 100) / 10).replace(".", ",")} k`;
+  return String(Math.round(n));
+}

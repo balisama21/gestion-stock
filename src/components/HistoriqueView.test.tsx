@@ -59,9 +59,16 @@ describe("journal de compte", () => {
 
   it("filtre par type", () => {
     afficher();
-    // Les types sont repliés dans un menu : on l'ouvre, puis on décoche.
-    fireEvent.click(screen.getByRole("button", { name: /^Types :/ }));
-    fireEvent.click(screen.getByRole("button", { name: "Dépense" }));
+    // Les types sont des puces toutes allumées : un appui en éteint une.
+    const depense = screen.getByRole("button", { name: "Dépense" });
+    expect(depense.getAttribute("aria-pressed")).toBe("true");
+    fireEvent.click(depense);
+    expect(depense.getAttribute("aria-pressed")).toBe("false");
     expect(screen.queryByText(/DEP1/)).toBeNull();
+  });
+
+  it("sans moyen d'ouvrir, les lignes ne sont pas des boutons", () => {
+    afficher();
+    expect(screen.queryByRole("button", { name: /DEP1|: ouvrir$/ })).toBeNull();
   });
 });

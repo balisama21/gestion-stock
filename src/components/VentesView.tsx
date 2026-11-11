@@ -56,7 +56,7 @@ import {
 } from "../lib/conditionnements";
 import type { Personne } from "../lib/personnes";
 import { FilterBar, FilterField } from "./shared/FilterBar";
-import { DataList, type DataListItem } from "./shared/DataList";
+import { DataList, type DataListItem, libelleDuJour } from "./shared/DataList";
 import { VignetteProduit, vignettesParProduit } from "./shared/VignetteProduit";
 import { DateJour, Deux, Marge, Montant, Texte } from "./shared/Cellules";
 import { StatBar, StatCol } from "./shared/StatBar";
@@ -898,6 +898,7 @@ export const VentesView: React.FC<VentesViewProps> = ({
       : `${formatCurrency(s.prixVenteUnit)} / u`;
     return {
       id: s.id,
+      groupe: libelleDuJour(s.date),
       leading: (
         <VignetteProduit nom={nom} chemin={s.productId ? vignettes.get(s.productId) : null} />
       ),
@@ -914,7 +915,7 @@ export const VentesView: React.FC<VentesViewProps> = ({
         // toutes lettres : collee au nom, « ×20 » se lisait comme un
         // format de catalogue plutot que comme une quantite.
         qte.principal,
-        formatDateLocale(s.date, locale),
+        // La date est le titre du groupe : pas sur chaque ligne.
         // Seul, le responsable lirait son propre nom sur chaque ligne.
         avecEquipe ? s.vendeur : null,
         showMontant ? prixAffiche : null,
@@ -1094,9 +1095,9 @@ export const VentesView: React.FC<VentesViewProps> = ({
 
     return {
       id: premiere.ticketId ?? premiere.id,
+      groupe: libelleDuJour(premiere.date),
       primary: <span className="block truncate">{noms}</span>,
       meta: [
-        formatDateLocale(premiere.date, locale),
         avecEquipe ? premiere.vendeur : null,
         `${lignes.length} produits · ${articles} articles`,
         showMargeLigne ? `marge +${formatCurrency(marge)}` : null,
@@ -1425,6 +1426,9 @@ export const VentesView: React.FC<VentesViewProps> = ({
       <div className="app-card overflow-hidden">
         <DataList
           emptyLabel="Aucune vente ne correspond à ces filtres."
+          /* Le style du catalogue, rangé par jour : la date de chaque
+             vente ou achat est le titre de son groupe. */
+          allure="produit"
           ouvrir={ficheAOuvrir}
           titrePrincipal="Produit"
           colonnes={[

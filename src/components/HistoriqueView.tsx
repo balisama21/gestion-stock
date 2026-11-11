@@ -7,6 +7,11 @@ import {
   ArrowRightLeft,
   PlusCircle,
   Receipt,
+  CalendarDays,
+  CalendarMinus,
+  CalendarRange,
+  Infinity as Toujours,
+  ChevronRight,
 } from "lucide-react";
 import {
   formatCurrency,
@@ -16,7 +21,8 @@ import {
 } from "../utils/formulas";
 import { PageHeader } from "./shared/PageHeader";
 import { StatBar } from "./shared/StatBar";
-import { FiltreChoixMultiples } from "./shared/FiltreChoixMultiples";
+import { PastilleFiltre } from "./shared/FilterBar";
+import { libelleDuJour, Picto } from "./shared/DataList";
 
 import type { Database } from "../lib/database.types";
 
@@ -42,6 +48,12 @@ interface HistoriqueViewProps {
   notesDeFrais?: NoteDeFrais[];
   locale: LocaleSetting;
   products: Product[];
+  /**
+   * Ouvre l'écran d'où vient une écriture, sur sa fiche : la vente dans
+   * les Ventes, l'achat dans les Achats… Absent, les lignes ne sont que
+   * des lignes de lecture.
+   */
+  onOuvrir?: (onglet: string, id: string) => void;
 }
 
 interface Ecriture {
@@ -55,6 +67,8 @@ interface Ecriture {
   /** Faux pour une note pas encore remboursée : elle n'a rien sorti de la caisse. */
   decaisse: boolean;
   icon: React.ReactNode;
+  /** L'écran qui sait montrer cette écriture, et la fiche à y ouvrir. */
+  onglet: string;
 }
 
 type Raccourci = "mois" | "mois_dernier" | "annee" | "tout";
@@ -84,6 +98,28 @@ const TYPES: MovementType[] = ["VENTE", "ACHAT", "DÉPENSE", "NOTE", "APPORT"];
 
 const icone = "w-4 h-4 text-muted-foreground";
 
+/** L'icône et le ton de chaque type d'écriture : la puce du filtre et la ligne. */
+const ICONE_TYPE: Record<MovementType, React.ReactNode> = {
+  VENTE: <DollarSign />,
+  ACHAT: <ShoppingCart />,
+  DÉPENSE: <ArrowRightLeft />,
+  NOTE: <Receipt />,
+  APPORT: <PlusCircle />,
+};
+const TON_TYPE: Record<MovementType, "vert" | "bleu" | "rouge" | "violet" | "orange"> = {
+  VENTE: "vert",
+  ACHAT: "bleu",
+  DÉPENSE: "rouge",
+  NOTE: "violet",
+  APPORT: "orange",
+};
+const ICONE_RACCOURCI: Record<Raccourci, React.ReactNode> = {
+  mois: <CalendarDays />,
+  mois_dernier: <CalendarMinus />,
+  annee: <CalendarRange />,
+  tout: <Toujours />,
+};
+
 /** Le journal de compte : ventes, achats, dépenses, notes de frais et apports, par jour. */
 export const HistoriqueView: React.FC<HistoriqueViewProps> = ({
   purchases,
@@ -94,6 +130,7 @@ export const HistoriqueView: React.FC<HistoriqueViewProps> = ({
   notesDeFrais = [],
   locale,
   products,
+  onOuvrir,
 }) => {
   const [raccourci, setRaccourci] = useState<Raccourci | null>("tout");
   const [periode, setPeriode] = useState(() => bornes("tout"));
@@ -112,6 +149,7 @@ export const HistoriqueView: React.FC<HistoriqueViewProps> = ({
         montant: -p.totalAchat,
         decaisse: true,
         icon: <ShoppingCart className={icone} />,
+        onglet: "achats",
       })),
       ...sales.map((s) => ({
         id: s.id,
@@ -123,6 +161,7 @@ export const HistoriqueView: React.FC<HistoriqueViewProps> = ({
         montant: s.montantPaye,
         decaisse: true,
         icon: <DollarSign className={icone} />,
+        onglet: "ventes",
       })),
       // Commandes livrées ET payées : équivalentes à une vente terminée.
       ...orders
@@ -148,6 +187,7 @@ export const HistoriqueView: React.FC<HistoriqueViewProps> = ({
             montant: o.montant_paye,
             decaisse: true,
             icon: <DollarSign className={icone} />,
+            onglet: "commandes",
           };
         }),
       ...expenses.map((e) => {
@@ -164,6 +204,7 @@ export const HistoriqueView: React.FC<HistoriqueViewProps> = ({
           montant: -e.montant,
           decaisse: true,
           icon: note ? <Receipt className={icone} /> : <ArrowRightLeft className={icone} />,
+          onglet: "depenses",
         };
       }),
       // Les notes remboursées sont déjà là par leur dépense ; les autres
@@ -180,6 +221,7 @@ export const HistoriqueView: React.FC<HistoriqueViewProps> = ({
           montant: -Number(n.montant_converti),
           decaisse: false,
           icon: <Receipt className={icone} />,
+          onglet: "notes_frais",
         })),
       ...apports.map((a) => ({
         id: a.id,
@@ -191,6 +233,7 @@ export const HistoriqueView: React.FC<HistoriqueViewProps> = ({
         montant: a.montant,
         decaisse: true,
         icon: <PlusCircle className={icone} />,
+        onglet: "capital",
       })),
     ].sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0));
   }, [purchases, sales, expenses, apports, orders, notesDeFrais, products]);
@@ -235,68 +278,43 @@ export const HistoriqueView: React.FC<HistoriqueViewProps> = ({
         subtitle="Le journal de compte : chaque entrée et sortie d'argent, jour par jour."
       />
 
-      {/* Une seule barre : la période à gauche (raccourcis puis dates
-          exactes), les types d'écritures à droite, repliés dans un seul
-          champ à cases à cocher. Elle tenait sur trois rangées empilées
-          dans une carte, avec cinq boutons verts pleins qui pesaient plus
-          lourd que le journal lui-même. */}
-      <div className="app-toolbar flex-wrap lg:justify-between">
-        <div className="flex w-full flex-wrap items-center gap-2 sm:w-auto">
-          <div className="app-seg" role="group" aria-label="Période">
-            {RACCOURCIS.map((r) => (
-              <button
-                key={r.cle}
-                type="button"
-                aria-pressed={raccourci === r.cle}
-                onClick={() => {
-                  setRaccourci(r.cle);
-                  setPeriode(bornes(r.cle));
-                }}
-                className="app-seg-item"
-              >
-                {r.libelle}
-              </button>
-            ))}
-          </div>
-          <div className="grid w-full grid-cols-[minmax(0,1fr)_auto_minmax(0,1fr)] items-center gap-1.5 sm:flex sm:w-auto">
-            <label className="sr-only" htmlFor="historique-du">
-              Du
-            </label>
-            <input
-              id="historique-du"
-              type="date"
-              value={periode.du}
-              onChange={(e) => {
-                setRaccourci(null);
-                setPeriode((p) => ({ ...p, du: e.target.value }));
+      {/* ── Les filtres, sans cadre ──
+          La période en onglets à icône, comme les filtres rapides des
+          autres listes ; dessous, les dates exactes sur une ligne ; puis
+          les cinq types d'écritures en puces de couleur, toutes allumées
+          au départ — un appui en éteint une, un autre la rallume. On voit
+          ce qui est filtré sans ouvrir de menu. */}
+      <div className="app-histo-filtres">
+        <div className="app-recherche-rapides" role="group" aria-label="Période">
+          {RACCOURCIS.map((r) => (
+            <PastilleFiltre
+              key={r.cle}
+              actif={raccourci === r.cle}
+              icone={ICONE_RACCOURCI[r.cle]}
+              onClick={() => {
+                setRaccourci(r.cle);
+                setPeriode(bornes(r.cle));
               }}
-              className="app-field-sm w-full min-w-0 sm:w-36"
-            />
-            <span className="text-xs text-muted-foreground" aria-hidden="true">
-              →
-            </span>
-            <label className="sr-only" htmlFor="historique-au">
-              Au
-            </label>
-            <input
-              id="historique-au"
-              type="date"
-              value={periode.au}
-              onChange={(e) => {
-                setRaccourci(null);
-                setPeriode((p) => ({ ...p, au: e.target.value }));
-              }}
-              className="app-field-sm w-full min-w-0 sm:w-36"
-            />
-          </div>
+            >
+              {r.libelle}
+            </PastilleFiltre>
+          ))}
         </div>
-        <FiltreChoixMultiples
-          label="Types"
-          options={TYPES.map((t) => ({ valeur: t, libelle: labelFor(t) }))}
-          choisies={types}
-          onBasculer={basculerType}
-          onTout={() => setTypes(new Set(TYPES))}
-        />
+
+        <div className="app-histo-types" role="group" aria-label="Types d'écritures">
+          {TYPES.map((t) => (
+            <button
+              key={t}
+              type="button"
+              aria-pressed={types.has(t)}
+              onClick={() => basculerType(t)}
+              className={`app-histo-type ton-${TON_TYPE[t]}`}
+            >
+              {ICONE_TYPE[t]}
+              {labelFor(t)}
+            </button>
+          ))}
+        </div>
       </div>
 
       <StatBar
@@ -318,36 +336,69 @@ export const HistoriqueView: React.FC<HistoriqueViewProps> = ({
         ]}
       />
 
-      <div className="app-card overflow-hidden">
-        {filtree.length === 0 ? (
-          <p className="px-4 py-10 text-center text-sm text-muted-foreground">
-            {timeline.length === 0
-              ? "Aucun mouvement enregistré pour le moment."
-              : "Aucun mouvement sur cette période avec ces filtres."}
-          </p>
-        ) : (
-          groupedByDay.map(([jour, evenements]) => {
+      {/* Les dates exactes, juste avant le relevé qu'elles bornent, dans
+          leur propre carte : on règle la fenêtre, et l'on lit dessous. */}
+      <div className={`app-histo-dates${raccourci === null ? " est-libre" : ""}`}>
+        <CalendarRange className="app-histo-dates-ico" aria-hidden="true" />
+        <label htmlFor="historique-du">Du</label>
+        <input
+          id="historique-du"
+          type="date"
+          value={periode.du}
+          onChange={(e) => {
+            setRaccourci(null);
+            setPeriode((p) => ({ ...p, du: e.target.value }));
+          }}
+        />
+        <label htmlFor="historique-au">au</label>
+        <input
+          id="historique-au"
+          type="date"
+          value={periode.au}
+          onChange={(e) => {
+            setRaccourci(null);
+            setPeriode((p) => ({ ...p, au: e.target.value }));
+          }}
+        />
+      </div>
+
+      {/* ── Le relevé ──
+          Un relevé de compte, sans cadre : chaque jour sous son titre,
+          avec le solde de la journée dans une pastille de couleur ; chaque
+          écriture avec l'icône de son type, son montant vert quand il
+          entre, rouge quand il sort, gris quand il ne touche pas encore la
+          caisse. Un appui ouvre l'écriture dans son écran, sur sa fiche. */}
+      {filtree.length === 0 ? (
+        <p className="app-card px-4 py-10 text-center text-sm text-muted-foreground">
+          {timeline.length === 0
+            ? "Aucun mouvement enregistré pour le moment."
+            : "Aucun mouvement sur cette période avec ces filtres."}
+        </p>
+      ) : (
+        <div className="app-releve">
+          {groupedByDay.map(([jour, evenements]) => {
             const net = evenements.filter((e) => e.decaisse).reduce((acc, e) => acc + e.montant, 0);
             return (
-              <section key={jour}>
-                <header className="flex items-baseline justify-between gap-3 border-b border-border bg-muted/40 px-4 py-2">
-                  <span className="text-[11px] font-medium uppercase tracking-wide text-muted-foreground">
-                    {formatDateLocale(jour, locale)}
+              <section key={jour} className="app-releve-jour" aria-label={libelleDuJour(jour)}>
+                <header className="app-releve-titre">
+                  <span>
+                    {libelleDuJour(jour)}
+                    <small>{formatDateLocale(jour, locale)}</small>
                   </span>
-                  <span className="font-mono text-xs tabular-nums text-muted-foreground">
+                  <span
+                    className={`app-releve-net ${net > 0 ? "est-entree" : net < 0 ? "est-sortie" : ""}`}
+                  >
                     {signe(net)}
                   </span>
                 </header>
 
-                <div className="app-list">
-                  {evenements.map((item) => (
-                    <div key={`${item.type}-${item.id}`} className="app-list-row items-start gap-3">
-                      <span className="mt-0.5 flex h-7 w-7 shrink-0 items-center justify-center">
-                        {item.icon}
-                      </span>
-                      <span className="min-w-0 flex-1">
-                        <span className="app-list-primary block">{item.description}</span>
-                        <span className="app-list-secondary block">
+                {evenements.map((item) => {
+                  const contenu = (
+                    <>
+                      <Picto ton={TON_TYPE[item.type]}>{ICONE_TYPE[item.type]}</Picto>
+                      <span className="app-releve-texte">
+                        <span className="app-releve-libelle">{item.description}</span>
+                        <span className="app-releve-meta">
                           {[
                             labelFor(item.type),
                             item.actor,
@@ -359,18 +410,43 @@ export const HistoriqueView: React.FC<HistoriqueViewProps> = ({
                         </span>
                       </span>
                       <span
-                        className={`app-list-amount ${item.decaisse ? "" : "text-muted-foreground"}`}
+                        className={`app-releve-montant ${
+                          !item.decaisse
+                            ? "est-attente"
+                            : item.montant >= 0
+                              ? "est-entree"
+                              : "est-sortie"
+                        }`}
                       >
                         {signe(item.montant)}
                       </span>
+                      {onOuvrir && (
+                        <ChevronRight className="app-releve-chevron" aria-hidden="true" />
+                      )}
+                    </>
+                  );
+                  const cle = `${item.type}-${item.id}`;
+                  return onOuvrir ? (
+                    <button
+                      key={cle}
+                      type="button"
+                      className={`app-releve-ligne ton-${TON_TYPE[item.type]}`}
+                      onClick={() => onOuvrir(item.onglet, item.id)}
+                      aria-label={`${item.description}, ${signe(item.montant)} : ouvrir`}
+                    >
+                      {contenu}
+                    </button>
+                  ) : (
+                    <div key={cle} className={`app-releve-ligne ton-${TON_TYPE[item.type]}`}>
+                      {contenu}
                     </div>
-                  ))}
-                </div>
+                  );
+                })}
               </section>
             );
-          })
-        )}
-      </div>
+          })}
+        </div>
+      )}
     </div>
   );
 };

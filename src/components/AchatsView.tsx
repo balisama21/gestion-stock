@@ -62,7 +62,7 @@ import {
 import type { Database } from "../lib/database.types";
 import { PageHeader } from "./shared/PageHeader";
 import { FilterBar, FilterField } from "./shared/FilterBar";
-import { DataList, type DataListItem } from "./shared/DataList";
+import { DataList, type DataListItem, libelleDuJour } from "./shared/DataList";
 import { SelecteurFournisseur } from "./shared/SelecteurFournisseur";
 import { SelecteurProduit, versProduitAChoisir } from "./shared/SelecteurProduit";
 import { cleDeListe } from "../lib/listes";
@@ -989,6 +989,8 @@ export const AchatsView: React.FC<AchatsViewProps> = ({
 
   /** Une ligne de la liste ; sert aussi à ouvrir la fiche visée par une notification. */
   const versItemAchat = (p: Purchase): DataListItem => ({
+    // La date est le titre du groupe : pas sur chaque ligne.
+    groupe: libelleDuJour(p.date),
     id: p.id,
     leading: (
       <VignetteProduit
@@ -1006,7 +1008,6 @@ export const AchatsView: React.FC<AchatsViewProps> = ({
       // En toutes lettres dans le rang secondaire, comme sur le
       // tableau de bord et dans les ventes.
       quantiteAchetee(p).principal,
-      formatDateLocale(p.date, locale),
       showFournisseur ? p.fournisseur || null : null,
       showPrix
         ? p.conditionnement
@@ -1281,6 +1282,9 @@ export const AchatsView: React.FC<AchatsViewProps> = ({
       <div className="app-card overflow-hidden">
         <DataList
           emptyLabel="Aucun achat ne correspond à ces filtres."
+          /* Le style du catalogue, rangé par jour : la date de chaque
+             vente ou achat est le titre de son groupe. */
+          allure="produit"
           ouvrir={ficheAOuvrir}
           titrePrincipal="Produit"
           colonnes={[
