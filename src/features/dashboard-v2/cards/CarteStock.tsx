@@ -2,7 +2,7 @@ import React from "react";
 import { Icone } from "../../../components/shared/Icone";
 import { Lead, TeteCarte } from "../components/Tn";
 import { Tag } from "../components/Tag";
-import { montant, nombre } from "../lib/format";
+import { nombre } from "../lib/format";
 import { quantiteEnMots } from "../../../utils/formulas";
 import { VignetteProduit } from "../../../components/shared/VignetteProduit";
 import type { ChiffresStock, LigneStock } from "../lib/chiffres";
@@ -16,7 +16,8 @@ import type { ChiffresStock, LigneStock } from "../lib/chiffres";
  */
 export const CarteStock: React.FC<{
   stock: ChiffresStock;
-  valeurVisible: boolean;
+  /** Conservé pour compatibilité d'appel : la valeur vit dans « Le stock » au-dessus. */
+  valeurVisible?: boolean;
   /** La photo de chaque produit, par identifiant. */
   vignettes?: Map<string, string>;
   onProduit?: (produit: LigneStock) => void;
@@ -24,7 +25,7 @@ export const CarteStock: React.FC<{
   onVoirLaListe?: () => void;
   /** Ouvre le bon de commande, prêt à imprimer ou à exporter. */
   onCommander?: () => void;
-}> = ({ stock, valeurVisible, vignettes, onProduit, onVoirLaListe, onCommander }) => {
+}> = ({ stock, vignettes, onProduit, onVoirLaListe, onCommander }) => {
   const sousLeSeuil = stock.sousLeSeuil.length;
   const aRecommander = stock.aRecommander.length;
 
@@ -100,17 +101,17 @@ export const CarteStock: React.FC<{
           <Icone nom="box" />
         </span>
         <div>
-          {valeurVisible ? (
-            <>
-              <small>Valeur du stock</small>
-              <b className="num">{montant(stock.valeur)}</b>
-            </>
-          ) : (
-            <>
-              <small>Produits suivis</small>
-              <b className="num">{quantiteEnMots(stock.etagere.length, "produit")}</b>
-            </>
-          )}
+          {/* La valeur du stock est déjà le premier chiffre de la section,
+              juste au-dessus. Ici, ce que la liste montre : l'étagère ne
+              garde que les produits les plus proches de leur seuil, et
+              écrire « 5 produits suivis » ferait passer ce nombre de
+              lignes pour le nombre de produits de la boutique. */}
+          <small>Affichés ci-dessus</small>
+          <b className="num">
+            {stock.etagere.length > 1
+              ? `Les ${stock.etagere.length} plus proches du seuil`
+              : quantiteEnMots(stock.etagere.length, "produit")}
+          </b>
         </div>
         {/* Deux gestes distincts : voir la liste pour la parcourir,
             préparer la commande pour ouvrir le bon — qui s'imprime et

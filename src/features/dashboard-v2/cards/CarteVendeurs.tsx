@@ -63,9 +63,10 @@ export const CarteVendeurs: React.FC<{
           const part = total > 0 ? Math.round((Math.max(0, v.soldeNetEnPoche) / total) * 100) : 0;
           return (
             <div className={`rw${i === 0 ? " first" : ""}`} key={v.id}>
-              <AvatarPersonne nom={v.nom} taille={50} className="ava" />
+              <AvatarPersonne nom={v.nom?.trim() || "?"} taille={50} className="ava" />
               <div className="nm">
-                <b>{v.nom}</b>
+                {/* Un compte créé sans nom laissait une ligne sans titre. */}
+                <b>{v.nom?.trim() || "Vendeur sans nom"}</b>
                 <small>
                   {montantsVisibles
                     ? `Ventes ${montant(v.totalVentesMontant)} · Dép. ${montant(v.totalDepenses)}`

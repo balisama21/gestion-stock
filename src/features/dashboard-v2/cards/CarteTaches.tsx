@@ -137,9 +137,8 @@ export const CarteTaches: React.FC<{
         grand
         titre="À faire"
         sous={
-          nbOuvertes === 0 ? (
-            "Aucune tâche ouverte pour le moment."
-          ) : (
+          // Sans tâche, l'état vide du corps le dit : pas deux fois.
+          nbOuvertes === 0 ? undefined : (
             <>
               {nbOuvertes} tâche{nbOuvertes > 1 ? "s" : ""} ouverte{nbOuvertes > 1 ? "s" : ""}
               {nbEnRetard > 0 && <span className="alerte"> · dont {nbEnRetard} en retard</span>}
@@ -165,7 +164,7 @@ export const CarteTaches: React.FC<{
               </span>
               <div>
                 <b>Rien à faire</b>
-                <span>Aucune tâche urgente pour le moment.</span>
+                <span>Aucune tâche ouverte pour le moment.</span>
               </div>
             </div>
           ) : (

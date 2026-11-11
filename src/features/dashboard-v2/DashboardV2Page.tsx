@@ -562,19 +562,6 @@ export const DashboardV2Page: React.FC<DashboardV2PageProps> = ({
     nombreDeJours(periode.intervalle) < 7 ? "sur les 7 derniers jours" : periode.phrase
   }`;
 
-  /** La dernière opération d'argent connue, et combien aujourd'hui. */
-  const derniereOperation = useMemo(() => {
-    const jours = [
-      ...sales.map((v) => v.date),
-      ...purchases.map((a) => a.date),
-      ...expenses.map((d) => d.date),
-    ];
-    return {
-      jour: jours.length ? jours.reduce((a, b) => (a > b ? a : b)) : null,
-      aujourdhui: jours.filter((j) => j === aujourdhui).length,
-    };
-  }, [sales, purchases, expenses, aujourdhui]);
-
   /** Le choix de période, posé dans l'aperçu des ventes et dans le stock. */
   const selecteurPeriode = (
     <MenuPill
@@ -730,7 +717,6 @@ export const DashboardV2Page: React.FC<DashboardV2PageProps> = ({
     paiements: voit("paiements"),
     fournisseurs: voit("fournisseurs"),
   };
-  const avecArgent = Object.values(argent).some(Boolean);
   const stockCartes = {
     stock: voit("stock"),
     ruptures: voit("ruptures"),
@@ -743,6 +729,13 @@ export const DashboardV2Page: React.FC<DashboardV2PageProps> = ({
     aPayer: voit("fournisseurs"),
   };
   const avecPartenaires = partenaires.fournisseurs || partenaires.prestataires;
+  /**
+   * « Fournisseurs à payer » n'apparaît qu'une fois : dans la section
+   * Fournisseurs quand elle est là (« Achats à régler », « Prochains
+   * paiements »), sinon dans l'argent.
+   */
+  if (avecPartenaires && partenaires.aPayer) argent.fournisseurs = false;
+  const avecArgent = Object.values(argent).some(Boolean);
 
   const carteOperation: Record<string, React.ReactNode> = {
     agenda: (
@@ -893,23 +886,23 @@ export const DashboardV2Page: React.FC<DashboardV2PageProps> = ({
               montantVisible={droits.champVisible("capital", "montant")}
             />
           )}
-          {(argent.tresorerie || argent.sorties) && (
+          {/* Les quatre petits chiffres qui suivaient (total des entrées,
+              des sorties, solde, dernière opération) ne s'affichent plus
+              sous la trésorerie : elle les donne déjà, avec les cartes du
+              jour en haut de page.
+
+              Seul le total des sorties reste, pour qui voit les sorties
+              SANS la trésorerie — le gestionnaire de stock. Sans lui, sa
+              section « L'argent » n'aurait plus qu'une bannière. */}
+          {argent.sorties && !argent.tresorerie && (
             <CarteArgentMinis
               flux={chiffres.flux}
               periode={periode.libelle}
               solde={capital.tresorerieGlobaleActuelle}
-              derniere={derniereOperation}
+              derniere={{ jour: null, aujourdhui: 0 }}
               montantVisible={droits.champVisible("capital", "montant")}
-              avec={{
-                entrees: argent.tresorerie,
-                sorties: argent.sorties,
-                solde: argent.tresorerie,
-                derniere: argent.tresorerie,
-              }}
-              onEntrees={() => setPanneau({ cle: "encaisse" })}
+              avec={{ entrees: false, sorties: true, solde: false, derniere: false }}
               onSorties={() => setPanneau({ cle: "sorties" })}
-              onSolde={vers("capital")}
-              onDerniere={vers("historique")}
             />
           )}
           {(argent.resultat || argent.tresorerie) && (
