@@ -8,6 +8,7 @@ import {
   documentDeFactureAchat,
   documentDeVente,
 } from "../../features/documents/lib/buildDocument";
+import type { TauxFiges } from "../../features/documents/lib/tva";
 import type { DocumentCommercial, LigneAvoir } from "./documents";
 
 type Client = Database["public"]["Tables"]["clients"]["Row"];
@@ -41,6 +42,8 @@ export interface SourcesDeLaPiece {
   boutique: StoreSettings;
   reglages: ReglagesDocuments;
   locale: LocaleSetting;
+  /** Les taux de TVA de la pièce telle qu'elle est partie, quand elle a déjà été émise. */
+  tauxFiges?: TauxFiges;
 }
 
 /**
@@ -57,15 +60,18 @@ export function construireLaPiece(
   sortie: SortieVoulue = "facture",
 ): Document | null {
   const commun = { boutique: s.boutique, reglages: s.reglages, locale: s.locale };
+  // Le taux de TVA de chaque ligne : figé si la pièce est déjà partie,
+  // tiré du catalogue sinon. Sans effet sur la facture reçue.
+  const taux = { produits: s.produits, tauxFiges: s.tauxFiges };
 
   if (d.entite === "vente") {
     if (d.ventes.length === 0) return null;
     const identifiants = new Set(d.ventes.map((v) => v.id));
     return documentDeVente({
       ...commun,
+      ...taux,
       type: sortie,
       ventes: d.ventes,
-      produits: s.produits,
       client: s.clients.find((c) => c.id === d.clientId) ?? null,
       /* Du plus récent au plus ancien : le document affiche le mode du
          dernier règlement reçu. */
@@ -79,6 +85,7 @@ export function construireLaPiece(
   if (d.entite === "devis" && d.devis) {
     return documentDeDevis({
       ...commun,
+      ...taux,
       devis: d.devis,
       lignes: d.lignesDevis,
       client: s.clients.find((c) => c.id === d.clientId) ?? null,
@@ -88,6 +95,7 @@ export function construireLaPiece(
   if (d.entite === "avoir" && d.avoir) {
     return documentDAvoir({
       ...commun,
+      ...taux,
       avoir: d.avoir,
       lignes: s.lignesAvoir.filter((l) => l.avoir_id === d.avoir!.id),
       client: s.clients.find((c) => c.id === d.clientId) ?? null,
@@ -99,12 +107,27 @@ export function construireLaPiece(
       ...commun,
       facture: d.factureAchat,
       lignes: s.lignesFactureAchat.filter((l) => l.invoice_id === d.factureAchat!.id),
-      fournisseur:
-        s.fournisseurs.find((f) => f.id === d.factureAchat!.supplier_id) ?? null,
+      fournisseur: s.fournisseurs.find((f) => f.id === d.factureAchat!.supplier_id) ?? null,
     });
   }
 
   return null;
+}
+
+/**
+ * Le taux de TVA de chaque ligne, tel qu'il est au moment où la pièce
+ * part : c'est ce que sa copie figée retient, pour qu'une réimpression
+ * ne suive pas une fiche produit modifiée depuis.
+ */
+export function tauxDeLaPiece(
+  d: DocumentCommercial,
+  s: SourcesDeLaPiece,
+  sortie: SortieVoulue = "facture",
+): Record<string, number> {
+  const piece = construireLaPiece(d, { ...s, tauxFiges: undefined }, sortie);
+  return Object.fromEntries(
+    (piece?.lignes ?? []).flatMap((l) => (l.tva === null ? [] : [[l.id, l.tva]])),
+  );
 }
 
 /**

@@ -34,6 +34,17 @@ export function nombre(valeur: number): string {
 }
 
 /**
+ * Un taux, sans son signe : « 20 », « 5,5 ».
+ *
+ * À part de `nombre`, qui arrondit à l'unité : un taux de 5,5 % ne
+ * doit pas s'imprimer « 6 ».
+ */
+export function taux(valeur: number): string {
+  if (!Number.isFinite(valeur)) return "—";
+  return new Intl.NumberFormat("fr-FR", { maximumFractionDigits: 2 }).format(valeur);
+}
+
+/**
  * Un montant avec sa devise.
  *
  * La devise vient de `stores.currency_symbol`, qui vaut « Ar » chez

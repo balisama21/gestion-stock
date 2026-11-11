@@ -5,6 +5,7 @@ import { lireReglagesDocuments, type ReglagesDocuments } from "./reglages";
 import { resoudreType, type TypeResolu } from "./resolveur";
 import { lireTypes, type ReglagesType, type TypeDocumentV3 } from "./typesDocument";
 import { lireLogoCopie, type LogoCopie } from "./logoFige";
+import type { TauxFiges } from "./tva";
 
 /**
  * LA COPIE FIGÉE D'UNE PIÈCE ÉMISE
@@ -18,6 +19,11 @@ import { lireLogoCopie, type LogoCopie } from "./logoFige";
  * Le logo, qui pèse jusqu'à 2 Mo, n'y est pas recopié : la copie garde le
  * chemin de sa version dans le seau `logos`, rangée une fois pour toutes.
  * Voir `logoFige.ts`.
+ *
+ * Le taux de TVA de chaque ligne y est figé lui aussi. Les montants
+ * viennent de la base, mais le taux vient de la fiche produit, que la
+ * boutique peut changer demain : sans cela, la réimpression d'une
+ * facture de janvier annoncerait une autre TVA que l'originale.
  */
 
 type ChampBoutique =
@@ -57,6 +63,13 @@ export interface CopieFigee {
   boutique: BoutiqueFigee;
   /** Absent : le logo n'a pas pu être figé, celui du moment sera repris. */
   logo?: LogoCopie;
+  /**
+   * Le taux de TVA de chaque ligne, par identifiant de ligne.
+   *
+   * Absent d'une copie rangée avant que les lignes aient leur taux :
+   * la pièce ressort alors comme elle est partie — voir `TauxFiges`.
+   */
+  taux?: Record<string, number>;
 }
 
 const versReglagesType = (r: TypeResolu): ReglagesType => ({
@@ -78,6 +91,7 @@ export function figer(
   type: TypeDocumentV3,
   emisLe: string,
   logo?: LogoCopie,
+  taux?: Record<string, number>,
 ): CopieFigee {
   const resolu = resoudreType(reglages, type);
   const libre = dispositionDuType(reglages.libre, type);
@@ -117,6 +131,7 @@ export function figer(
     reglages: figes,
     boutique: figee,
     ...(logo ? { logo } : {}),
+    ...(taux ? { taux } : {}),
   };
 }
 
@@ -124,6 +139,18 @@ export interface PieceFigee {
   reglages: ReglagesDocuments;
   boutique: BoutiqueFigee;
   logo?: LogoCopie;
+  /** `"avant"` : une copie rangée avant que les lignes aient leur taux. */
+  taux: TauxFiges;
+}
+
+/** Les taux d'une copie, s'ils y sont et s'ils se lisent. */
+function lireTaux(brut: unknown): TauxFiges {
+  if (!brut || typeof brut !== "object" || Array.isArray(brut)) return "avant";
+  const sortie: Record<string, number> = {};
+  for (const [id, v] of Object.entries(brut as Record<string, unknown>)) {
+    if (typeof v === "number" && Number.isFinite(v) && v >= 0) sortie[id] = v;
+  }
+  return sortie;
 }
 
 function lireBoutique(brut: unknown): BoutiqueFigee {
@@ -160,6 +187,7 @@ export function lireCopieFigee(
       reglages: lireReglagesDocuments(r.reglages),
       boutique: lireBoutique(r.boutique),
       logo: lireLogoCopie(r.logo),
+      taux: lireTaux(r.taux),
     };
   }
 
@@ -182,6 +210,7 @@ export function lireCopieFigee(
         libre: { ...actuels.libre, parType },
       },
       boutique: {},
+      taux: "avant",
     };
   }
 

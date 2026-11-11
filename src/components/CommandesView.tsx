@@ -70,6 +70,7 @@ import { useEcranTableau } from "../hooks/useEcranTableau";
 import { useConfirmation } from "../hooks/useConfirmation";
 import { signalerErreur } from "../lib/messages";
 import { useDefilerVers } from "../hooks/useDefilerVers";
+import type { ProduitTva } from "../features/documents/lib/tva";
 
 type Order = Database["public"]["Tables"]["orders"]["Row"] & {
   client?: Database["public"]["Tables"]["clients"]["Row"] | null;
@@ -96,6 +97,11 @@ interface CommandesViewProps {
   settings?: StoreSettings;
   clients: Client[];
   products: Product[];
+  /**
+   * Le catalogue tel que les documents le lisent, taux de TVA de la
+   * catégorie compris. `products` porte les lignes brutes de la base.
+   */
+  catalogue?: readonly ProduitTva[];
   isOwner: boolean;
   onAddOrder: (
     orderData: { client_id: string | null; note: string | null; date_livraison: string | null },
@@ -180,6 +186,7 @@ export const CommandesView: React.FC<CommandesViewProps> = ({
   settings,
   clients,
   products,
+  catalogue,
   isOwner,
   onAddOrder,
   onUpdateOrder,
@@ -239,6 +246,7 @@ export const CommandesView: React.FC<CommandesViewProps> = ({
           commande: bonAImprimer,
           lignes: bonAImprimer.items ?? [],
           client: bonAImprimer.client ?? null,
+          produits: catalogue,
           boutique: settings,
           reglages: reglagesDocuments,
         })

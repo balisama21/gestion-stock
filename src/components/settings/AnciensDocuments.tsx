@@ -110,7 +110,11 @@ export const ApercuAncienTicket: React.FC<{ settings: StoreSettings }> = ({ sett
   const devise = settings.currencySymbol || "Ar";
   const tva = settings.tvaRate ?? 0;
   const sousTotal = 54000;
-  const montantTva = prefs.showTva && tva > 0 ? Math.round((sousTotal * tva) / 100) : 0;
+  // La TVA est COMPRISE dans le prix payé, comme sur les vrais documents :
+  // elle s'extrait du total, elle ne s'y ajoute pas. L'aperçu annonçait
+  // 64 800 Ar pour une vente de 54 000.
+  const montantTva =
+    prefs.showTva && tva > 0 ? Math.round(sousTotal - sousTotal / (1 + tva / 100)) : 0;
 
   return (
     // `[overflow-wrap:anywhere]` : cet aperçu n'est pas un
@@ -178,7 +182,7 @@ export const ApercuAncienTicket: React.FC<{ settings: StoreSettings }> = ({ sett
 
       {montantTva > 0 && (
         <div className="flex justify-between">
-          <span>TVA {tva}%</span>
+          <span>TVA {tva}% comprise</span>
           <span>
             {montantTva.toLocaleString("fr-FR")} {devise}
           </span>
@@ -187,7 +191,7 @@ export const ApercuAncienTicket: React.FC<{ settings: StoreSettings }> = ({ sett
       <div className="flex justify-between text-[11px] font-bold">
         <span>TOTAL</span>
         <span>
-          {(sousTotal + montantTva).toLocaleString("fr-FR")} {devise}
+          {sousTotal.toLocaleString("fr-FR")} {devise}
         </span>
       </div>
 

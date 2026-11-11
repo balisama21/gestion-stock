@@ -424,6 +424,7 @@ export type Database = {
           parent_id: string | null;
           store_id: string;
           taux_marge: number | null;
+          tva_rate: number | null;
           updated_at: string;
           usage: string;
         };
@@ -437,6 +438,7 @@ export type Database = {
           parent_id?: string | null;
           store_id: string;
           taux_marge?: number | null;
+          tva_rate?: number | null;
           updated_at?: string;
           usage?: string;
         };
@@ -450,6 +452,7 @@ export type Database = {
           parent_id?: string | null;
           store_id?: string;
           taux_marge?: number | null;
+          tva_rate?: number | null;
           updated_at?: string;
           usage?: string;
         };

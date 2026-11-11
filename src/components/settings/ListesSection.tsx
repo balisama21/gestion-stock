@@ -73,6 +73,7 @@ export const ListesSection: React.FC<ListesSectionProps> = ({
   const [enEdition, setEnEdition] = useState<ValeurDeListe | null>(null);
   const [nomEdite, setNomEdite] = useState("");
   const [tauxEdite, setTauxEdite] = useState("");
+  const [tvaEditee, setTvaEditee] = useState("");
   const [voirArchivees, setVoirArchivees] = useState(false);
   const [enCours, setEnCours] = useState(false);
   const [erreur, setErreur] = useState<string | null>(null);
@@ -134,10 +135,17 @@ export const ListesSection: React.FC<ListesSectionProps> = ({
     setEnCours(true);
     setErreur(null);
     const taux = tauxEdite.trim() === "" ? null : Number(tauxEdite);
+    const tva = tvaEditee.trim() === "" ? null : Number(tvaEditee);
+    const tvaPropre = tva !== null && Number.isFinite(tva) ? tva : null;
     const { error } = await onUpdate(enEdition.id, {
       nom: propre,
       ...(description.porteUnTaux
         ? { taux_marge: taux !== null && Number.isFinite(taux) ? taux : null }
+        : {}),
+      // Écrite seulement quand elle change : renommer une catégorie ne
+      // doit pas dépendre d'une colonne que la base n'aurait pas encore.
+      ...(description.porteUnTaux && tvaPropre !== (enEdition.tva_rate ?? null)
+        ? { tva_rate: tvaPropre }
         : {}),
     });
     setEnCours(false);
@@ -261,6 +269,7 @@ export const ListesSection: React.FC<ListesSectionProps> = ({
       combien > 0 ? `${combien} enregistrement${combien > 1 ? "s" : ""}` : "Pas encore utilisée",
       enfants > 0 ? `${enfants} sous-valeur${enfants > 1 ? "s" : ""}` : null,
       description.porteUnTaux && v.taux_marge != null ? `+${v.taux_marge} %` : null,
+      description.porteUnTaux && v.tva_rate != null ? `TVA ${v.tva_rate} %` : null,
     ]
       .filter(Boolean)
       .join(" · ");
@@ -323,6 +332,7 @@ export const ListesSection: React.FC<ListesSectionProps> = ({
               setEnEdition(v);
               setNomEdite(v.nom);
               setTauxEdite(v.taux_marge == null ? "" : String(v.taux_marge));
+              setTvaEditee(v.tva_rate == null ? "" : String(v.tva_rate));
               setErreur(null);
             }}
             className="app-btn-icon h-8 w-8"
@@ -445,6 +455,22 @@ export const ListesSection: React.FC<ListesSectionProps> = ({
                   />
                 </label>
               )}
+              {description.porteUnTaux && (
+                <label className="sm:w-32">
+                  <span className="sr-only">Taux de TVA par défaut, en pourcentage</span>
+                  <input
+                    type="number"
+                    min={0}
+                    max={100}
+                    step="any"
+                    inputMode="decimal"
+                    placeholder="TVA (%)"
+                    className="app-field font-mono"
+                    value={tvaEditee}
+                    onChange={(e) => setTvaEditee(e.target.value)}
+                  />
+                </label>
+              )}
               <button type="submit" disabled={enCours} className="app-btn-primary shrink-0">
                 <Save className="h-4 w-4" />
                 Enregistrer
@@ -452,8 +478,9 @@ export const ListesSection: React.FC<ListesSectionProps> = ({
             </div>
             {description.porteUnTaux && (
               <p className="mt-2 text-xs text-muted-foreground">
-                Laissé vide, le taux de la boutique s&apos;applique. Rempli, il vaut pour tous les
-                produits de cette catégorie qui n&apos;ont pas le leur.
+                Marge et TVA : laissées vides, celles de la boutique s&apos;appliquent. Remplies,
+                elles valent pour tous les produits de cette catégorie qui n&apos;ont pas les leurs.
+                La TVA sert aux factures, devis et reçus.
               </p>
             )}
           </form>

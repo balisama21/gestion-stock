@@ -1,7 +1,7 @@
 import React from "react";
 import type { Document } from "../lib/buildDocument";
 import { dessinerCode128 } from "../lib/codeBarres";
-import { argent, argentOuTiret, montantOuTiret, quantite } from "../lib/format";
+import { argent, argentOuTiret, montantOuTiret, quantite, taux } from "../lib/format";
 import type { LargeurTicket, ReglagesTicket } from "../lib/reglages";
 import { useEquivalentsDuDocument } from "../lib/equivalents";
 import { convertir } from "../../../lib/contexteDevises";
@@ -173,9 +173,9 @@ const SECTIONS: Record<CleTicket, React.FC<ProprietesTicket>> = {
       {d.totaux.horsTaxe !== null && (
         <Ligne gauche="Total hors taxe" droite={argent(d.totaux.horsTaxe)} />
       )}
-      {d.totaux.tva && (
-        <Ligne gauche={`TVA ${d.totaux.tva.taux} %`} droite={argent(d.totaux.tva.montant)} />
-      )}
+      {d.totaux.tva?.parTaux.map((t) => (
+        <Ligne key={t.taux} gauche={`TVA ${taux(t.taux)} %`} droite={argent(t.montant)} />
+      ))}
       <div className="l tot">
         <span>TOTAL</span>
         <span>{montantOuTiret(d.totaux.total, d.devise)}</span>

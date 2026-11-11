@@ -18,6 +18,7 @@ import { FiletDeSecurite } from "../../features/documents/FiletDeSecurite";
 import { SortieDocument } from "../../features/documents/SortieDocument";
 import { documentDeDevis } from "../../features/documents/lib/buildDocument";
 import type { ReglagesDocuments } from "../../features/documents/lib/reglages";
+import type { ProduitTva } from "../../features/documents/lib/tva";
 import { texteFiscal } from "../../lib/nifStat";
 
 interface DocumentDevisProps {
@@ -33,6 +34,8 @@ interface DocumentDevisProps {
    */
   documentsV2?: boolean;
   reglagesDocuments?: ReglagesDocuments;
+  /** Le catalogue, pour le taux de TVA de chaque ligne. */
+  produits?: readonly ProduitTva[];
 }
 
 /**
@@ -55,6 +58,7 @@ export const DocumentDevis: React.FC<DocumentDevisProps> = ({
   onClose,
   documentsV2 = false,
   reglagesDocuments,
+  produits,
 }) => {
   const marque = useMarque();
   /*
@@ -64,7 +68,13 @@ export const DocumentDevis: React.FC<DocumentDevisProps> = ({
   const [v2Tombee, setV2Tombee] = useState(false);
   const documentNouveau =
     documentsV2 && !v2Tombee && reglagesDocuments && devis
-      ? documentDeDevis({ devis, lignes, boutique: settings, reglages: reglagesDocuments })
+      ? documentDeDevis({
+          devis,
+          lignes,
+          produits,
+          boutique: settings,
+          reglages: reglagesDocuments,
+        })
       : null;
   const [invoicePrefs] = useInvoicePrefs();
   const [paperId, setPaperId] = useState<PaperFormatId>("a4");

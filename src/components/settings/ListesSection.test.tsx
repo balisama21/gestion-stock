@@ -134,6 +134,20 @@ describe("le renommage", () => {
     );
   });
 
+  it("écrit le taux de TVA de la catégorie quand il change", async () => {
+    const { onUpdate } = monter();
+    fireEvent.click(screen.getByRole("button", { name: "Renommer Alimentation" }));
+    fireEvent.change(screen.getByPlaceholderText("TVA (%)"), { target: { value: "5.5" } });
+    fireEvent.click(screen.getAllByRole("button", { name: /Enregistrer/ })[0]);
+    await waitFor(() =>
+      expect(onUpdate).toHaveBeenCalledWith("1", {
+        nom: "Alimentation",
+        taux_marge: null,
+        tva_rate: 5.5,
+      }),
+    );
+  });
+
   it("refuse un nom déjà pris par une autre valeur de la même liste", async () => {
     const { onUpdate } = monter();
     fireEvent.click(screen.getByRole("button", { name: "Renommer Alimentation" }));

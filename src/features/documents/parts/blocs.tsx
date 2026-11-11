@@ -10,7 +10,7 @@ import type {
   Tampon,
   TotauxDocument,
 } from "../lib/buildDocument";
-import { montant, montantOuTiret } from "../lib/format";
+import { montant, montantOuTiret, taux } from "../lib/format";
 import { celluleDeLigne, CLASSE, COLONNE } from "./cellules";
 import { useEquivalentsDuDocument } from "../lib/equivalents";
 import { convertir } from "../../../lib/contexteDevises";
@@ -241,14 +241,17 @@ export const Totaux: React.FC<{
         </div>
       </>
     )}
-    {totaux.tva && (
-      <div className="l">
+    {/* Une ligne par taux. Quand il y en a plusieurs, chacune dit sur
+        quelle base elle porte : « 20 % » seul ne dirait pas de quoi. */}
+    {totaux.tva?.parTaux.map((t, _i, tous) => (
+      <div key={t.taux} className="l">
         <span className="doc-muted">
-          {totaux.libelleTva} {totaux.tva.taux} %
+          {totaux.libelleTva} {taux(t.taux)} %
+          {tous.length > 1 && <> sur {montant(t.horsTaxe, devise)}</>}
         </span>
-        <span className="doc-num">{montant(totaux.tva.montant, devise)}</span>
+        <span className="doc-num">{montant(t.montant, devise)}</span>
       </div>
-    )}
+    ))}
     {/* La ligne du total porte un nom, et non un rang : les modèles
         qui la mettent en valeur visaient `:last-child`, qui est la
         ligne « Déjà payé » dès qu un règlement est connu — le filet

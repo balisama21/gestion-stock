@@ -49,6 +49,7 @@ const FORME: Record<CleColonne, { largeur?: string; align?: "center" | "right" }
   quantite: { largeur: "22mm", align: "center" },
   unite: { largeur: "18mm", align: "center" },
   prixUnitaire: { largeur: "26mm", align: "right" },
+  tva: { largeur: "14mm", align: "center" },
   total: { largeur: "28mm", align: "right" },
 };
 
@@ -57,6 +58,7 @@ const CLASSE: Record<CleColonne, string> = {
   quantite: "doc-qte",
   unite: "doc-qte",
   prixUnitaire: "doc-montant",
+  tva: "doc-qte",
   total: "doc-montant",
 };
 
