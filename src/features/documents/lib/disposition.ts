@@ -308,7 +308,44 @@ export function blocsResolus(d: Disposition): Blocs {
   for (const [cle, b] of Object.entries(d.blocs)) {
     if ((estCleCachet(cle) || estCleElement(cle)) && b) sortie[cle] = contraindre(b);
   }
-  return sortie;
+  return nomALaPlaceDuLogo(sortie);
+}
+
+/** Au-delà de cet écart après le logo, le nom a été posé ailleurs exprès : on n'y touche pas. */
+const ECART_NOM_LOGO = 8;
+
+/** Le nom partage la bande du logo et commence juste après lui. */
+function nomContreLeLogo(logo: BlocPose, nom: BlocPose): boolean {
+  const memeBande = nom.y < logo.y + logo.h && logo.y < nom.y + nom.h;
+  return memeBande && nom.x > logo.x && nom.x <= logo.x + logo.l + ECART_NOM_LOGO;
+}
+
+/**
+ * LOGO MASQUÉ : LE NOM PREND LE BORD
+ *
+ * Le nom est posé à droite du logo. Logo masqué, il restait décalé
+ * d'autant, au-dessus d'un vide, désaligné des coordonnées qui partent
+ * de la marge. Il glisse donc à la place du logo, sa droite ne bouge pas.
+ * Le logo réaffiché, le nom revient à côté de lui (`afficherLeLogo`).
+ */
+function nomALaPlaceDuLogo(blocs: Blocs): Blocs {
+  const { logo, nom } = blocs;
+  if (!logo?.masque || !nom || nom.masque || !nomContreLeLogo(logo, nom)) return blocs;
+  return { ...blocs, nom: { ...nom, x: logo.x, l: nom.l + nom.x - logo.x } };
+}
+
+/**
+ * Réaffiche le logo. Si le nom a été déplacé pendant que le logo était
+ * masqué, il occupe sa place : on le repousse à droite, sa droite ne bouge pas.
+ */
+export function afficherLeLogo(d: Disposition): Disposition {
+  const suite = poserBloc(d, "logo", { masque: false });
+  const { logo, nom } = blocsResolus(suite);
+  const memeBande = nom.y < logo.y + logo.h && logo.y < nom.y + nom.h;
+  const droiteDuLogo = logo.x + logo.l;
+  if (nom.masque || !memeBande || nom.x >= droiteDuLogo || nom.x + nom.l <= logo.x) return suite;
+  const x = droiteDuLogo + 4;
+  return poserBloc(suite, "nom", { x, l: Math.max(TAILLE_MIN, nom.x + nom.l - x) });
 }
 
 /* ── Redimensionnement et aimantation ────────────────────────────── */

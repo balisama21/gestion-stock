@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  afficherLeLogo,
   aimanterDeplacement,
   aimanterRedimension,
   basculerSection,
@@ -256,5 +257,34 @@ describe("le ticket, en colonne", () => {
   it("revenir au modèle d'origine remet l'ordre du ticket", () => {
     const t = deplacerSection(creerDisposition("ticket", "classique", "c"), "pied", 0);
     expect(colonneResolue(reinitialiserDisposition(t)).ordre).toEqual(ORDRE_TICKET);
+  });
+});
+
+describe("le logo masqué", () => {
+  it("fait glisser le nom à la marge, sa droite ne bougeant pas", () => {
+    for (const base of ["classique", "bandeau", "epure", "compact"] as const) {
+      const d = poserBloc(creerDisposition("facture", base, "x"), "logo", { masque: true });
+      const { logo, nom } = blocsResolus(d);
+      const avant = blocsResolus(creerDisposition("facture", base, "x")).nom;
+      expect(nom.x).toBe(logo.x);
+      expect(nom.x + nom.l).toBe(avant.x + avant.l);
+    }
+  });
+
+  it("laisse le nom en place quand le logo est visible ou le nom posé loin", () => {
+    const d = creerDisposition("facture", "classique", "x");
+    expect(blocsResolus(d).nom.x).toBe(32);
+    const loin = poserBloc(poserBloc(d, "nom", { x: 60 }), "logo", { masque: true });
+    expect(blocsResolus(loin).nom.x).toBe(60);
+  });
+
+  it("réaffiché, repousse le nom qui avait pris sa place", () => {
+    let d = poserBloc(creerDisposition("facture", "classique", "x"), "logo", { masque: true });
+    d = poserBloc(d, "nom", { x: blocsResolus(d).nom.x, l: blocsResolus(d).nom.l });
+    d = afficherLeLogo(d);
+    const { logo, nom } = blocsResolus(d);
+    expect(logo.masque).toBeFalsy();
+    expect(nom.x).toBeGreaterThanOrEqual(logo.x + logo.l);
+    expect(nom.x + nom.l).toBe(127);
   });
 });

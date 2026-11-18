@@ -57,6 +57,7 @@ import {
   ajouterElement,
   BLOCS,
   cleElement,
+  afficherLeLogo,
   blocsResolus,
   cleCachet,
   clesPosees,
@@ -1841,7 +1842,9 @@ export const EditeurLibre: React.FC<Props> = ({
                       aria-label={masque ? `Afficher ${nom}` : `Masquer ${nom}`}
                       title={masque ? "Afficher" : "Masquer"}
                       onClick={() => {
-                        poser(cle, { masque: !masque });
+                        // Le logo réaffiché reprend sa place si le nom l'occupait.
+                        if (cle === "logo" && masque) setD((p) => afficherLeLogo(p));
+                        else poser(cle, { masque: !masque });
                         if (!masque && choisi === cle) setChoisi(null);
                       }}
                       className={boutonIcone}
