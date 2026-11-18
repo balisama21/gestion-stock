@@ -92,6 +92,12 @@ export interface EnTeteBoutique extends BlocTiers {
   logoSeul?: boolean;
   /** Les initiales, quand elles remplacent le logo. `null` = pas de pastille. */
   initiales: string | null;
+  /**
+   * Les initiales ne sont là que faute de logo importé (et non par choix).
+   * Une boutique d'une marque blanche y voit alors le logo de sa marque
+   * (voir `useDocumentAvecLogo`).
+   */
+  fauteDeLogo?: boolean;
   sousTitre: string | null;
 }
 
@@ -365,6 +371,7 @@ export function enTeteBoutique(
     logoUrl: montreLogo ? logo : null,
     logoSeul: montreLogo && reglages.logo === "seul",
     initiales: montreInitiales ? initiales(nom) || null : null,
+    ...(avecLogo && parLogo && !logo ? { fauteDeLogo: true } : null),
     lignes: page.ordre("entete").flatMap((cle) => lignes[cle] ?? []),
     nif,
     champs: [

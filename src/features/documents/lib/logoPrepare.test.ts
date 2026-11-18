@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { cadreUtile } from "./logoPrepare";
+import { avecLogoDeMarque, cadreUtile, logoDeMarqueLocal } from "./logoPrepare";
 
 /** Une image de `l` × `h`, vide, où l'on peint des pixels pleins. */
 function image(l: number, h: number, pleins: [number, number][], fond: "transparent" | "blanc") {
@@ -45,5 +45,32 @@ describe("le cadre utile d'un logo", () => {
 
   it("laisse une image vide telle quelle", () => {
     expect(cadreUtile(image(10, 10, [], "transparent"), 10, 10)).toBeNull();
+  });
+});
+
+describe("le logo de la marque, faute de logo importé", () => {
+  const sans = { emetteur: { logoUrl: null, initiales: "PB", fauteDeLogo: true } };
+
+  it("remplace les initiales par le logo de la marque", () => {
+    const d = avecLogoDeMarque(sans, "/marques/kinvest/logo-k.svg");
+    expect(d.emetteur.logoUrl).toBe("/marques/kinvest/logo-k.svg");
+    expect(d.emetteur.initiales).toBeNull();
+  });
+
+  it("garde les initiales choisies, le logo importé, et Tantana", () => {
+    const choisies = { emetteur: { logoUrl: null, initiales: "PB" } };
+    expect(avecLogoDeMarque(choisies, "/k.png")).toBe(choisies);
+    const importe = { emetteur: { logoUrl: "data:x", initiales: null, fauteDeLogo: true } };
+    expect(avecLogoDeMarque(importe, "/k.png")).toBe(importe);
+    expect(avecLogoDeMarque(sans, null)).toBe(sans);
+  });
+
+  it("lit le logo d'une marque sur le site même", () => {
+    expect(logoDeMarqueLocal("https://mg-kinvest.com/marques/kinvest/logo-k-512.png")).toBe(
+      "/marques/kinvest/logo-k-512.png",
+    );
+    expect(logoDeMarqueLocal("https://cdn.exemple.com/logo.png")).toBe(
+      "https://cdn.exemple.com/logo.png",
+    );
   });
 });
