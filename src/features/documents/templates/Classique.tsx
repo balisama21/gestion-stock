@@ -107,10 +107,12 @@ export const Classique: React.FC<ProprietesModele> = ({
 
         <footer className="pied doc-insecable">
           <div>{d.piedDePage}</div>
-          <div style={{ textAlign: "right" }} className="doc-muted">
-            {d.numero}
-            {pagination ? ` · ${pagination}` : ""}
-          </div>
+          {/* Le numéro figure déjà sous le titre : le pied ne garde que la page. */}
+          {pagination && (
+            <div style={{ textAlign: "right" }} className="doc-muted">
+              {pagination}
+            </div>
+          )}
         </footer>
       </div>
     ) : (

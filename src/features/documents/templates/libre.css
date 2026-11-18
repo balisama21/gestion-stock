@@ -96,9 +96,6 @@
 .bl-inverse .doc-coordonnees {
   color: rgba(255, 255, 255, 0.78);
 }
-.bl-inverse .doc-coordonnees .doc-fiscal {
-  color: #fff;
-}
 .bl-inverse .doc-pastille {
   background: rgba(255, 255, 255, 0.16);
 }

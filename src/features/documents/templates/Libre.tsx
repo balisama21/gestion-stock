@@ -123,7 +123,7 @@ export function contenuDuBloc(
     case "motDeFin":
       return d.motDeFin ? <div className="merci">{d.motDeFin}</div> : null;
     case "pied": {
-      const texte = [d.piedDePage, d.numero, pagination].filter(Boolean).join(" · ");
+      const texte = [d.piedDePage, pagination].filter(Boolean).join(" · ");
       return texte ? (
         <footer className={base === "bandeau" ? "barre-pied" : "doc-libre-pied"}>{texte}</footer>
       ) : null;
