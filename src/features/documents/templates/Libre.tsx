@@ -26,6 +26,7 @@ import {
   TableauLignes,
   TamponPaiement,
   Totaux,
+  PastilleFeuille,
 } from "../parts/blocs";
 import { texteFiscal, valeurFiscale } from "../../../lib/nifStat";
 
@@ -62,7 +63,7 @@ export function contenuDuBloc(
       return <div className="doc-libre-fond" />;
     case "logo":
       if (e.logoUrl) return <img className="doc-libre-logo" src={e.logoUrl} alt="" />;
-      return e.initiales ? <span className="doc-pastille">{e.initiales}</span> : null;
+      return e.initiales ? <PastilleFeuille initiales={e.initiales} /> : null;
     case "nom":
       return e.nom ? (
         <>

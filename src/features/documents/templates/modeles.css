@@ -24,17 +24,26 @@
   align-items: center;
   min-width: 0;
 }
+/* Les initiales d'une boutique sans logo, sur la feuille de Tantana
+   (voir `PastilleFeuille`). La feuille prend la couleur du document,
+   les lettres sont écrites comme le « TS » du logo : une romane fine,
+   au dessin de titre (`opsz` 60), en blanc. */
 .doc-pastille {
-  width: 13mm;
-  height: 13mm;
-  border-radius: 3mm;
-  background: var(--doc);
-  color: #fff;
-  display: grid;
-  place-items: center;
-  font-weight: 700;
-  font-size: 14pt;
+  width: 16mm;
+  height: 15mm;
   flex: none;
+  display: block;
+  overflow: visible;
+}
+.doc-pastille-fond {
+  fill: var(--doc);
+}
+.doc-pastille-lettres {
+  fill: #fff;
+  font-family: "Source Serif Documents", Georgia, "Times New Roman", serif;
+  font-weight: 400;
+  font-variation-settings: "opsz" 60;
+  letter-spacing: -0.02em;
 }
 /* LE LOGO PREND SA FORME, PAS CELLE D'UNE CASE.
    Un carré de 13 mm écrasait un logo en longueur jusqu'à le rendre
@@ -495,8 +504,11 @@
 }
 /* La pastille d'initiales se détache sur la couleur plutôt que de s'y
    confondre : un carré de la même teinte serait invisible. */
-.m-bandeau .band .doc-pastille {
-  background: rgba(255, 255, 255, 0.16);
+.m-bandeau .band .doc-pastille-fond {
+  fill: #fff;
+}
+.m-bandeau .band .doc-pastille-lettres {
+  fill: var(--doc);
 }
 .m-bandeau .band .repere {
   text-align: right;
@@ -706,10 +718,8 @@
   max-height: 18mm;
 }
 .m-compact .doc-pastille {
-  width: 10mm;
-  height: 10mm;
-  font-size: 11pt;
-  border-radius: 2mm;
+  width: 12mm;
+  height: 11.5mm;
 }
 .m-compact .doc-blocs {
   gap: 5mm;

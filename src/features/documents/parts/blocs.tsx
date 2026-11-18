@@ -37,6 +37,44 @@ import { texteFiscal } from "../../../lib/nifStat";
 
 /* ── L'identité de la boutique ───────────────────────────────────── */
 
+/**
+ * LES INITIALES SUR LA FEUILLE DE TANTANA
+ *
+ * Une boutique sans logo portait ses initiales dans un carré gris, le
+ * même pour toutes. Elles se posent maintenant sur la feuille du logo
+ * Tantana Suite, dans la couleur du document, écrites comme le « TS »
+ * du logo : une romane fine et contrastée, en blanc. La feuille et sa
+ * tige viennent du tracé du logo ; les lettres sont du texte, donc
+ * nettes à toutes les tailles et justes pour chaque boutique.
+ */
+export const PastilleFeuille: React.FC<{ initiales: string }> = ({ initiales }) => (
+  <svg
+    className="doc-pastille"
+    viewBox="-32.81 -178.34 262.33 248.23"
+    role="img"
+    aria-label={initiales}
+  >
+    <path
+      className="doc-pastille-fond"
+      d="M0 0C-26.75 -30.01 -0.69 -86.02 66.38 -129.81C121.54 -166.17 176.68 -175.34 226.52 -164.58C209.45 -120.03 196.19 -63.43 142.35 -21.84C82.04 24.45 22.26 35.74 0 0Z"
+    />
+    <path
+      className="doc-pastille-fond"
+      d="M2.36 -10.37C-14.85 3.37 -27.22 27.19 -29.29 58.36C-29.81 66.16 -20.62 66.89 -19.51 59.91C-16.12 33.96 -6.04 15.51 11.98 1.18Z"
+    />
+    <text
+      className="doc-pastille-lettres"
+      x="112"
+      y="-78"
+      textAnchor="middle"
+      dominantBaseline="central"
+      fontSize={initiales.length > 1 ? 90 : 120}
+    >
+      {initiales}
+    </text>
+  </svg>
+);
+
 export const Marque: React.FC<{ emetteur: EnTeteBoutique; inverse?: boolean }> = ({
   emetteur,
   inverse,
@@ -49,7 +87,7 @@ export const Marque: React.FC<{ emetteur: EnTeteBoutique; inverse?: boolean }> =
         alt={emetteur.logoSeul ? emetteur.nom : ""}
       />
     )}
-    {emetteur.initiales && <span className="doc-pastille">{emetteur.initiales}</span>}
+    {emetteur.initiales && <PastilleFeuille initiales={emetteur.initiales} />}
     <div style={{ minWidth: 0 }}>
       {!emetteur.logoSeul && <div className="doc-nom">{emetteur.nom}</div>}
       {emetteur.sousTitre && (

@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
+import { useMarque } from "../../../hooks/useMarque";
 
 /**
  * LE LOGO, PRÉPARÉ POUR LA FEUILLE
@@ -129,15 +130,52 @@ export function logoPrepare(src: string): Promise<string> {
 }
 
 /**
+ * Le logo d'une marque, servi par le même site que l'application.
+ *
+ * Les marques le déclarent en adresse https absolue (les e-mails
+ * l'exigent). Ses fichiers sont aussi dans `public/marques/` : lu depuis
+ * ici, il ne dépend ni d'un autre domaine ni de ses en-têtes CORS, que le
+ * canevas du rognage et la capture du PDF réclameraient.
+ */
+export function logoDeMarqueLocal(url: string): string {
+  try {
+    const u = new URL(url, "https://local.invalid");
+    return u.pathname.startsWith("/marques/") ? u.pathname : url;
+  } catch {
+    return url;
+  }
+}
+
+/**
+ * Faute de logo importé, une boutique d'une marque blanche porte celui de
+ * sa marque (le K bleu de Kinvest) plutôt que ses initiales. Tantana garde
+ * les initiales sur sa feuille.
+ */
+export function avecLogoDeMarque<
+  T extends {
+    emetteur: { logoUrl: string | null; initiales?: string | null; fauteDeLogo?: boolean };
+  } | null,
+>(doc: T, logoDeMarque: string | null): T {
+  if (!doc || !logoDeMarque || !doc.emetteur.fauteDeLogo || doc.emetteur.logoUrl) return doc;
+  return { ...doc, emetteur: { ...doc.emetteur, logoUrl: logoDeMarque, initiales: null } };
+}
+
+/**
  * Le document avec son logo préparé, et si la préparation est finie.
  *
  * Tant qu'elle ne l'est pas, le document garde le logo d'origine : l'aperçu
  * s'affiche aussitôt, mais l'export attend (`pret`), pour que le PDF porte
  * le logo rogné et non l'image lourde.
  */
-export function useDocumentAvecLogo<T extends { emetteur: { logoUrl: string | null } } | null>(
-  doc: T,
-): { doc: T; pret: boolean } {
+export function useDocumentAvecLogo<
+  T extends {
+    emetteur: { logoUrl: string | null; initiales?: string | null; fauteDeLogo?: boolean };
+  } | null,
+>(source: T): { doc: T; pret: boolean } {
+  const marque = useMarque();
+  const logoDeMarque =
+    !marque.parDefaut && marque.logoUrl ? logoDeMarqueLocal(marque.logoUrl) : null;
+  const doc = useMemo(() => avecLogoDeMarque(source, logoDeMarque), [source, logoDeMarque]);
   const brut = doc?.emetteur.logoUrl ?? null;
   const [pretes, setPretes] = useState<Record<string, string>>({});
   useEffect(() => {

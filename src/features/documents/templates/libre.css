@@ -96,8 +96,16 @@
 .bl-inverse .doc-coordonnees {
   color: rgba(255, 255, 255, 0.78);
 }
-.bl-inverse .doc-pastille {
-  background: rgba(255, 255, 255, 0.16);
+.bl-inverse .doc-pastille-fond {
+  fill: #fff;
+}
+.bl-inverse .doc-pastille-lettres {
+  fill: var(--doc);
+}
+/* Dans son bloc, la feuille en occupe toute la place. */
+.doc-libre .doc-pastille {
+  width: 100%;
+  height: 100%;
 }
 .bl-droite .doc-totaux,
 .bl-droite .doc-meta {
