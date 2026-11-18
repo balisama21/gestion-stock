@@ -50,6 +50,8 @@ export interface OptionsDocuments {
   tamponPaiement: boolean;
   /** L'emplacement du cachet et de la signature. */
   signature: boolean;
+  /** Le cachet et la signature de la boutique, apposés sur cet emplacement. */
+  visa: boolean;
   /** Les conditions de règlement, en bas de page. */
   conditions: boolean;
 }
@@ -123,7 +125,10 @@ export const REGLAGES_DOCUMENTS_PAR_DEFAUT: ReglagesDocuments = {
   libre: LIBRE_PAR_DEFAUT,
   cachets: [],
   modele: "classique",
-  couleur: "#0E7C5A",
+  // Le bleu nuit : sérieux sans être triste, il va à une quincaillerie
+  // comme à un cabinet, s'imprime net en noir et blanc, et ne se confond
+  // avec aucune couleur de statut (vert « payé », rouge « en retard »).
+  couleur: "#1F4E79",
   logo: "auto",
   options: {
     tva: false,
@@ -131,6 +136,7 @@ export const REGLAGES_DOCUMENTS_PAR_DEFAUT: ReglagesDocuments = {
     montantEnLettres: true,
     tamponPaiement: true,
     signature: true,
+    visa: true,
     conditions: true,
   },
   prefixeFacture: "FAC-",
@@ -209,6 +215,7 @@ export function lireReglagesDocuments(brut: unknown): ReglagesDocuments {
       montantEnLettres: oui(o.montantEnLettres, d.options.montantEnLettres),
       tamponPaiement: oui(o.tamponPaiement, d.options.tamponPaiement),
       signature: oui(o.signature, d.options.signature),
+      visa: oui(o.visa, d.options.visa),
       conditions: oui(o.conditions, d.options.conditions),
     },
     prefixeFacture: texte(r.prefixeFacture, d.prefixeFacture),

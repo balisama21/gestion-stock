@@ -12,7 +12,13 @@ import type {
 } from "../lib/buildDocument";
 import { montant, montantOuTiret } from "../lib/format";
 import { celluleDeLigne, CLASSE, COLONNE } from "./cellules";
-import { useEquivalentsDuDocument } from "../lib/equivalents";
+import {
+  useConversionDuDocument,
+  useEquivalentsDuDocument,
+  useEquivalentsDuTotal,
+} from "../lib/equivalents";
+import { useVisaDuDocument } from "../lib/visa";
+import { deviseDeTenue } from "../../../lib/affichageDevise";
 import { convertir } from "../../../lib/contexteDevises";
 import { texteFiscal } from "../../../lib/nifStat";
 
@@ -152,6 +158,7 @@ export const TableauLignes: React.FC<{
 }> = ({ lignes, colonnes, devise }) => {
   const avecUnite = colonnes.some((c) => c.cle === "unite");
   const equivalents = useEquivalentsDuDocument();
+  const conversion = useConversionDuDocument();
   return (
     <table>
       <thead>
@@ -173,7 +180,7 @@ export const TableauLignes: React.FC<{
           <tr key={l.id}>
             {colonnes.map((c) => (
               <td key={c.cle} className={CLASSE[c.cle] || undefined}>
-                {celluleDeLigne(c.cle, l, devise, avecUnite, equivalents)}
+                {celluleDeLigne(c.cle, l, devise, avecUnite, equivalents, conversion)}
               </td>
             ))}
           </tr>
@@ -187,8 +194,10 @@ export const TableauLignes: React.FC<{
 
 /** « Soit 12,40 € » sous le total, une ligne par devise choisie. */
 export const EquivalentsTotal: React.FC<{ total: number | null }> = ({ total }) => {
-  const equivalents = useEquivalentsDuDocument();
+  const equivalents = useEquivalentsDuTotal();
+  const conversion = useConversionDuDocument();
   if (total === null || !equivalents.length) return null;
+  const tenue = deviseDeTenue();
   return (
     <div className="doc-totaux doc-totaux-equiv">
       {equivalents.map((d) => (
@@ -197,6 +206,17 @@ export const EquivalentsTotal: React.FC<{ total: number | null }> = ({ total }) 
           <span className="doc-num doc-muted">{convertir(total, d)}</span>
         </div>
       ))}
+      {/* Converti, le document dit à quel taux : c'est ce qui permet au
+          client de vérifier, et au comptable de rapprocher. */}
+      {conversion && (
+        <div className="l">
+          <span className="doc-muted">Taux appliqué</span>
+          <span className="doc-num doc-muted">
+            1 {conversion.code} ={" "}
+            {conversion.taux.toLocaleString("fr-FR", { maximumFractionDigits: 2 })} {tenue.symbole}
+          </span>
+        </div>
+      )}
     </div>
   );
 };
@@ -214,71 +234,75 @@ export const EquivalentsTotal: React.FC<{ total: number | null }> = ({ total }) 
 export const Totaux: React.FC<{
   totaux: TotauxDocument;
   devise: string;
-}> = ({ totaux, devise }) => (
-  <div className="doc-totaux">
-    {/* Le hors-taxe n'apparaît QUE si la TVA est affichée : sans elle,
+}> = ({ totaux, devise: symbole }) => {
+  const conversion = useConversionDuDocument();
+  const m = (v: number) => montant(v, symbole, conversion);
+  return (
+    <div className="doc-totaux">
+      {/* Le hors-taxe n'apparaît QUE si la TVA est affichée : sans elle,
         il répéterait le total mot pour mot. */}
-    {totaux.horsTaxe !== null && (
-      <div className="l">
-        <span className="doc-muted">{totaux.libelleHorsTaxe}</span>
-        <span className="doc-num">{montant(totaux.horsTaxe, devise)}</span>
-      </div>
-    )}
-    {/* La commission se lit AVANT le total : deux lignes qui
+      {totaux.horsTaxe !== null && (
+        <div className="l">
+          <span className="doc-muted">{totaux.libelleHorsTaxe}</span>
+          <span className="doc-num">{m(totaux.horsTaxe)}</span>
+        </div>
+      )}
+      {/* La commission se lit AVANT le total : deux lignes qui
         détaillent ce que le client paie, et dont la somme est
         exactement le total annoncé dessous. */}
-    {totaux.commission && (
-      <>
-        {totaux.commission.prestation !== null && (
+      {totaux.commission && (
+        <>
+          {totaux.commission.prestation !== null && (
+            <div className="l">
+              <span className="doc-muted">{totaux.commission.libellePrestation}</span>
+              <span className="doc-num">{m(totaux.commission.prestation)}</span>
+            </div>
+          )}
           <div className="l">
-            <span className="doc-muted">{totaux.commission.libellePrestation}</span>
-            <span className="doc-num">{montant(totaux.commission.prestation, devise)}</span>
+            <span className="doc-muted">{totaux.commission.libelle}</span>
+            <span className="doc-num">{m(totaux.commission.montant)}</span>
           </div>
-        )}
+        </>
+      )}
+      {totaux.tva && (
         <div className="l">
-          <span className="doc-muted">{totaux.commission.libelle}</span>
-          <span className="doc-num">{montant(totaux.commission.montant, devise)}</span>
+          <span className="doc-muted">
+            {totaux.libelleTva} {totaux.tva.taux} %
+          </span>
+          <span className="doc-num">{m(totaux.tva.montant)}</span>
         </div>
-      </>
-    )}
-    {totaux.tva && (
-      <div className="l">
-        <span className="doc-muted">
-          {totaux.libelleTva} {totaux.tva.taux} %
-        </span>
-        <span className="doc-num">{montant(totaux.tva.montant, devise)}</span>
-      </div>
-    )}
-    {/* La ligne du total porte un nom, et non un rang : les modèles
+      )}
+      {/* La ligne du total porte un nom, et non un rang : les modèles
         qui la mettent en valeur visaient `:last-child`, qui est la
         ligne « Déjà payé » dès qu un règlement est connu — le filet
         de l Épuré soulignait donc l acompte au lieu du total. */}
-    <div className="l grand" style={{ fontSize: "12pt", fontWeight: 700 }}>
-      <span>{totaux.libelleTotal}</span>
-      <span className="doc-num">{montantOuTiret(totaux.total, devise)}</span>
-    </div>
-    <EquivalentsTotal total={totaux.total} />
-    {totaux.paye !== null && (
-      <div className="l">
-        <span className="doc-muted">
-          {totaux.libellePaye}
-          {totaux.modePaiement ? ` (${totaux.modePaiement})` : ""}
-        </span>
-        <span className="doc-num">{montant(totaux.paye, devise)}</span>
+      <div className="l grand" style={{ fontSize: "12pt", fontWeight: 700 }}>
+        <span>{totaux.libelleTotal}</span>
+        <span className="doc-num">{montantOuTiret(totaux.total, symbole, conversion)}</span>
       </div>
-    )}
-    {/* « Solde 0 Ar » ne dit rien que le tampon « PAYÉ » et la ligne
+      <EquivalentsTotal total={totaux.total} />
+      {totaux.paye !== null && (
+        <div className="l">
+          <span className="doc-muted">
+            {totaux.libellePaye}
+            {totaux.modePaiement ? ` (${totaux.modePaiement})` : ""}
+          </span>
+          <span className="doc-num">{m(totaux.paye)}</span>
+        </div>
+      )}
+      {/* « Solde 0 Ar » ne dit rien que le tampon « PAYÉ » et la ligne
         « Déjà payé » n'aient déjà dit, et c'est un zéro de plus à
         lire sur un document qui en compte assez. La ligne n'apparaît
         que lorsqu'il reste vraiment quelque chose. */}
-    {totaux.reste !== null && totaux.reste > 0 && (
-      <div className="l reste">
-        <span className="doc-muted">{totaux.libelleReste}</span>
-        <span className="doc-num">{montant(totaux.reste, devise)}</span>
-      </div>
-    )}
-  </div>
-);
+      {totaux.reste !== null && totaux.reste > 0 && (
+        <div className="l reste">
+          <span className="doc-muted">{totaux.libelleReste}</span>
+          <span className="doc-num">{m(totaux.reste)}</span>
+        </div>
+      )}
+    </div>
+  );
+};
 
 /* ── Bas de page ─────────────────────────────────────────────────── */
 
@@ -329,12 +353,45 @@ export const CoordonneesPaiement: React.FC<{ lignes: string[] | null; titre?: st
     </div>
   ) : null;
 
-export const Signature: React.FC<{ signatures: Signatures | null }> = ({ signatures }) =>
-  signatures ? (
+export const Signature: React.FC<{ signatures: Signatures | null }> = ({ signatures }) => {
+  const visa = useVisaDuDocument();
+  if (!signatures) return null;
+  const { cachet, signature } = visa ?? {};
+  const ligneDroite = (
+    <div className="ligne" style={{ textAlign: "right" }}>
+      {signatures.droite}
+    </div>
+  );
+  return (
     <div className="doc-signatures doc-insecable" style={{ marginTop: "6mm" }}>
       <div className="ligne">{signatures.gauche}</div>
-      <div className="ligne" style={{ textAlign: "right" }}>
-        {signatures.droite}
-      </div>
+      {/* Sans image, la ligne reste exactement celle d'avant : rien ne bouge
+          sur les factures des boutiques qui n'ont ni cachet ni signature. */}
+      {cachet || signature ? (
+        <div className="doc-signature-droite">
+          <div className="doc-visa" aria-hidden="true">
+            {cachet && (
+              <img
+                className="doc-visa-cachet"
+                src={cachet.src}
+                alt=""
+                style={{ opacity: cachet.opacite }}
+              />
+            )}
+            {signature && (
+              <img
+                className={`doc-visa-signature${cachet ? " doc-visa-signature--sur" : ""}`}
+                src={signature.src}
+                alt=""
+                style={{ opacity: signature.opacite }}
+              />
+            )}
+          </div>
+          {ligneDroite}
+        </div>
+      ) : (
+        ligneDroite
+      )}
     </div>
-  ) : null;
+  );
+};

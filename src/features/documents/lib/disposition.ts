@@ -651,13 +651,16 @@ export function poserBloc(d: Disposition, cle: ClePosee, patch: Partial<BlocPose
  */
 export function placerCachet(
   d: Disposition,
-  c: { id: string; largeur: number; hauteur: number },
+  c: { id: string; largeur: number; hauteur: number; role?: "cachet" | "signature" },
 ): Disposition {
   const ratio = c.hauteur / Math.max(1, c.largeur);
-  let l = ratio > 0.6 ? 40 : 55;
+  // Une signature est plus basse qu'un tampon : elle se pose à cheval dessus.
+  const signature = c.role === "signature";
+  const hMax = signature ? 20 : 40;
+  let l = signature ? 45 : ratio > 0.6 ? 40 : 55;
   let h = l * ratio;
-  if (h > 40) {
-    h = 40;
+  if (h > hMax) {
+    h = hMax;
     l = h / ratio;
   }
   const blocs = blocsResolus(d);
@@ -677,7 +680,8 @@ export function placerCachet(
     h = Math.max(20, bas - plafond);
     l = h / ratio;
   }
-  const b = contraindre({ x: FEUILLE.l - m.x - l, y: bas - h, l, h });
+  const decalage = signature ? 18 : 0;
+  const b = contraindre({ x: Math.max(m.x, FEUILLE.l - m.x - l - decalage), y: bas - h, l, h });
   return { ...d, blocs: { ...d.blocs, [cleCachet(c.id)]: b } };
 }
 

@@ -120,6 +120,11 @@ const OPTIONS: { cle: keyof ReglagesDocuments["options"]; nom: string; note: str
     note: "« Payé » ou « Reste à payer », en haut à droite.",
   },
   { cle: "signature", nom: "Signature", note: "La place du cachet et de la signature." },
+  {
+    cle: "visa",
+    nom: "Cachet et signature apposés",
+    note: "Vos images, posées d'elles-mêmes sur la ligne de signature.",
+  },
   { cle: "conditions", nom: "Conditions de règlement", note: "Le texte légal en bas de page." },
 ];
 

@@ -3,7 +3,11 @@ import type { Document } from "../lib/buildDocument";
 import { dessinerCode128 } from "../lib/codeBarres";
 import { argent, argentOuTiret, montantOuTiret, quantite } from "../lib/format";
 import type { LargeurTicket, ReglagesTicket } from "../lib/reglages";
-import { useEquivalentsDuDocument } from "../lib/equivalents";
+import {
+  useConversionDuDocument,
+  useEquivalentsDuDocument,
+  useEquivalentsDuTotal,
+} from "../lib/equivalents";
 import { convertir } from "../../../lib/contexteDevises";
 import { ORDRE_TICKET, type CleTicket, type ColonneTicket } from "../lib/disposition";
 import { texteFiscal } from "../../../lib/nifStat";
@@ -57,7 +61,7 @@ const EquivalentsArticle: React.FC<{ montant: number | null }> = ({ montant }) =
 
 /** « Soit en EUR » sous le total, une ligne par devise choisie. */
 const EquivalentsTotalTicket: React.FC<{ total: number | null }> = ({ total }) => {
-  const equivalents = useEquivalentsDuDocument();
+  const equivalents = useEquivalentsDuTotal();
   if (total === null || !equivalents.length) return null;
   return (
     <>
@@ -146,56 +150,62 @@ const SECTIONS: Record<CleTicket, React.FC<ProprietesTicket>> = {
     </>
   ),
 
-  articles: ({ document: d, reglages }) => (
-    <div>
-      {d.lignes.map((l) => (
-        <div className="art" key={l.id}>
-          <div className="n">{l.designation}</div>
-          <div className="l">
-            {/* Le détail montre le calcul — « 3 × 1 500 » — plutôt que
+  articles: function Articles({ document: d, reglages }) {
+    const c = useConversionDuDocument();
+    return (
+      <div>
+        {d.lignes.map((l) => (
+          <div className="art" key={l.id}>
+            <div className="n">{l.designation}</div>
+            <div className="l">
+              {/* Le détail montre le calcul — « 3 × 1 500 » — plutôt que
                 la seule quantité. C'est ce qui permet au client de
                 vérifier sans reprendre sa calculette. */}
-            <span>
-              {reglages.detailLignes
-                ? `${l.quantite} × ${argentOuTiret(l.prixUnitaire)}`
-                : quantite(l.quantite, l.unite)}
-            </span>
-            <span>{argentOuTiret(l.total)}</span>
+              <span>
+                {reglages.detailLignes
+                  ? `${l.quantite} × ${argentOuTiret(l.prixUnitaire, c)}`
+                  : quantite(l.quantite, l.unite)}
+              </span>
+              <span>{argentOuTiret(l.total, c)}</span>
+            </div>
+            <EquivalentsArticle montant={l.total} />
           </div>
-          <EquivalentsArticle montant={l.total} />
-        </div>
-      ))}
-    </div>
-  ),
-
-  totaux: ({ document: d }) => (
-    <>
-      {d.totaux.horsTaxe !== null && (
-        <Ligne gauche="Total hors taxe" droite={argent(d.totaux.horsTaxe)} />
-      )}
-      {d.totaux.tva && (
-        <Ligne gauche={`TVA ${d.totaux.tva.taux} %`} droite={argent(d.totaux.tva.montant)} />
-      )}
-      <div className="l tot">
-        <span>TOTAL</span>
-        <span>{montantOuTiret(d.totaux.total, d.devise)}</span>
+        ))}
       </div>
-      <EquivalentsTotalTicket total={d.totaux.total} />
-      {d.totaux.paye !== null && (
-        <Ligne
-          gauche={d.totaux.modePaiement ?? d.totaux.libellePaye}
-          droite={argent(d.totaux.paye)}
-        />
-      )}
-      {/* « Rendu 0 » n'apprend rien ; « Reste à payer », si. */}
-      {d.totaux.reste !== null && d.totaux.reste > 0 && (
-        <div className="l du">
-          <span>Reste à payer</span>
-          <span>{argent(d.totaux.reste)}</span>
+    );
+  },
+
+  totaux: function TotauxTicket({ document: d }) {
+    const c = useConversionDuDocument();
+    return (
+      <>
+        {d.totaux.horsTaxe !== null && (
+          <Ligne gauche="Total hors taxe" droite={argent(d.totaux.horsTaxe, c)} />
+        )}
+        {d.totaux.tva && (
+          <Ligne gauche={`TVA ${d.totaux.tva.taux} %`} droite={argent(d.totaux.tva.montant, c)} />
+        )}
+        <div className="l tot">
+          <span>TOTAL</span>
+          <span>{montantOuTiret(d.totaux.total, d.devise, c)}</span>
         </div>
-      )}
-    </>
-  ),
+        <EquivalentsTotalTicket total={d.totaux.total} />
+        {d.totaux.paye !== null && (
+          <Ligne
+            gauche={d.totaux.modePaiement ?? d.totaux.libellePaye}
+            droite={argent(d.totaux.paye, c)}
+          />
+        )}
+        {/* « Rendu 0 » n'apprend rien ; « Reste à payer », si. */}
+        {d.totaux.reste !== null && d.totaux.reste > 0 && (
+          <div className="l du">
+            <span>Reste à payer</span>
+            <span>{argent(d.totaux.reste, c)}</span>
+          </div>
+        )}
+      </>
+    );
+  },
 
   pied: ({ document: d }) => (
     <div className="c pied">

@@ -272,6 +272,43 @@
   color: #6b7671;
 }
 
+/* LE CACHET ET LA SIGNATURE, posés au-dessus de leur ligne.
+   Le tampon à droite, la signature à cheval sur lui, un peu plus à
+   gauche : c'est ainsi qu'on signe un papier tamponné. La signature
+   passe DEVANT le tampon, en « multiply », pour que l'encre des deux
+   se mêle au lieu que l'une efface l'autre. */
+.doc-signature-droite {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+}
+.doc-visa {
+  position: relative;
+  height: 26mm;
+  margin-bottom: -3mm;
+}
+.doc-visa img {
+  position: absolute;
+  bottom: 0;
+  object-fit: contain;
+  object-position: bottom right;
+}
+.doc-visa-cachet {
+  right: 2mm;
+  max-width: 44mm;
+  max-height: 26mm;
+}
+.doc-visa-signature {
+  right: 4mm;
+  max-width: 46mm;
+  max-height: 18mm;
+  mix-blend-mode: multiply;
+}
+.doc-visa-signature--sur {
+  right: 22mm;
+  bottom: 2mm;
+}
+
 /* ═══════════════════════════════════════════════════════════════════
    MODÈLE 1 — CLASSIQUE
    Logo à gauche, titre à droite, en-tête de tableau en aplat de

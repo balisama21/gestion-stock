@@ -5,9 +5,23 @@
  * un document émis garde celle qu'il portait.
  */
 
+/**
+ * Un cachet et une signature ne sont pas la même chose : le tampon dit
+ * QUELLE entreprise émet la pièce, la signature QUI l'engage. Sur une
+ * facture, on les pose ensemble, la signature à cheval sur le tampon.
+ */
+export type RoleCachet = "cachet" | "signature";
+
+export const NOM_PAR_ROLE: Record<RoleCachet, string> = {
+  cachet: "Cachet de l'entreprise",
+  signature: "Signature",
+};
+
 export interface Cachet {
   id: string;
   nom: string;
+  /** Tampon ou signature. Absent des anciens enregistrements : déduit du nom. */
+  role: RoleCachet;
   /** Chemin dans le seau `cachets`. */
   chemin: string;
   /** Taille du PNG, en pixels. */
@@ -40,9 +54,18 @@ export function lireCachets(brut: unknown): Cachet[] {
     if (!(largeur > 0 && hauteur > 0)) continue;
     const opacite = Number(r.opacite);
     vus.add(r.id);
+    const nom = typeof r.nom === "string" && r.nom.trim() ? r.nom : "Cachet";
     sortie.push({
       id: r.id,
-      nom: typeof r.nom === "string" && r.nom.trim() ? r.nom : "Cachet",
+      nom,
+      // Avant qu'on les distingue, tout était « cachet » : une image
+      // nommée « signature » en était pourtant une.
+      role:
+        r.role === "signature" || r.role === "cachet"
+          ? r.role
+          : /signature|sign[ée]/i.test(nom)
+            ? "signature"
+            : "cachet",
       chemin: r.chemin,
       largeur: Math.round(largeur),
       hauteur: Math.round(hauteur),
@@ -58,3 +81,11 @@ export const pppEffectif = (c: Pick<Cachet, "largeur">, largeurMm: number) =>
   Math.round(c.largeur / (Math.max(1, largeurMm) / 25.4));
 
 export const PPP_MINIMUM = 200;
+
+/** Le premier tampon et la première signature : ceux que la facture appose. */
+export function visaDeLaBoutique(cachets: Cachet[]): { cachet?: Cachet; signature?: Cachet } {
+  return {
+    cachet: cachets.find((c) => c.role === "cachet"),
+    signature: cachets.find((c) => c.role === "signature"),
+  };
+}

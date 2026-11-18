@@ -44,6 +44,7 @@ const cachet: Cachet = {
   hauteur: 600,
   opacite: 0.85,
   creeLe: "",
+  role: "cachet",
 };
 const base = creerDisposition("facture", "classique", "x");
 const avecCachet = placerCachet(base, cachet);

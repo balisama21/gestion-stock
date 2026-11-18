@@ -26,16 +26,31 @@ export function definirDevises(t: DeviseDeTenue, a: DeviseDAffichage | null): vo
   affichage = a && a.code !== t.code && a.taux > 0 ? a : null;
 }
 
+/**
+ * La conversion à appliquer : celle qu'un document impose, sinon celle de l'écran.
+ *
+ * `undefined` — rien d'imposé : la devise d'affichage de la boutique.
+ * `null` — la devise de tenue, sans conversion, quoi que dise l'écran.
+ * Une devise — celle-là, pour ce document seulement (une proforma en euros).
+ */
+export type ConversionImposee = DeviseDAffichage | null | undefined;
+
+const effective = (o: ConversionImposee): DeviseDAffichage | null =>
+  o === undefined ? affichage : o && o.code !== tenue.code && o.taux > 0 ? o : null;
+
 /** Vrai quand l'affichage diffère de la devise de tenue. */
-export const conversionActive = (): boolean => affichage !== null;
+export const conversionActive = (o?: ConversionImposee): boolean => effective(o) !== null;
 
 export const deviseDeTenue = (): DeviseDeTenue => tenue;
 
-export const deviseAffichee = (): DeviseDeTenue & { nom?: string } => affichage ?? tenue;
+export const deviseAffichee = (o?: ConversionImposee): DeviseDeTenue & { nom?: string } =>
+  effective(o) ?? tenue;
 
 /** Un montant enregistré, exprimé dans la devise d'affichage. */
-export const versAffichage = (montant: number): number =>
-  affichage ? montant / affichage.taux : montant;
+export const versAffichage = (montant: number, o?: ConversionImposee): number => {
+  const a = effective(o);
+  return a ? montant / a.taux : montant;
+};
 
 /** Le symbole des champs de saisie : on saisit toujours dans la devise de tenue. */
 export const symboleDeSaisie = (): string => tenue.symbole;

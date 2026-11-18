@@ -1,4 +1,9 @@
-import { conversionActive, deviseAffichee, versAffichage } from "../../../lib/affichageDevise";
+import {
+  conversionActive,
+  deviseAffichee,
+  type ConversionImposee,
+  versAffichage,
+} from "../../../lib/affichageDevise";
 /**
  * LE MONTANT ÉCRIT EN TOUTES LETTRES
  *
@@ -32,10 +37,10 @@ import { conversionActive, deviseAffichee, versAffichage } from "../../../lib/af
  *
  * ── CE QUE CE MODULE NE FAIT PAS ───────────────────────────────────
  *
- * Il ne connaît pas les centimes. L'ariary n'en a pas dans l'usage
- * courant, et toute l'application compte en entiers. Un montant à
- * virgule est arrondi, ce qui est le comportement de `formatCurrency`
- * — les deux mentions du document disent donc la même chose.
+ * Les centimes ne s'écrivent que pour une devise qui en a : l'ariary et
+ * le franc comorien comptent en entiers, l'euro et le dollar en
+ * centièmes. Une proforma en euros dit donc « deux cent cinquante euros
+ * et cinquante centimes », comme son total en chiffres.
  */
 
 /** Zéro à dix-neuf, qui ne se déduisent de rien. */
@@ -198,29 +203,135 @@ export function nombreEnLettres(valeur: number): string | null {
 }
 
 /**
+ * Comment une devise se dit dans une phrase.
+ *
+ * « ariary » est invariable ; « euro » prend un s ; « franc comorien »
+ * accorde ses deux mots. Le nom vient avec celui de sa subdivision, qui
+ * ne s'écrit que si la devise compte en centièmes.
+ */
+export interface UniteMonetaire {
+  singulier: string;
+  pluriel: string;
+  /** « centime », « cent »… absent : la devise compte en entiers. */
+  centieme?: { singulier: string; pluriel: string };
+  /** « une livre » et non « un livre ». */
+  feminin?: boolean;
+}
+
+const CENTIME = { singulier: "centime", pluriel: "centimes" };
+const CENT = { singulier: "cent", pluriel: "cents" };
+
+const UNITES_CONNUES: Record<string, UniteMonetaire> = {
+  MGA: { singulier: "ariary", pluriel: "ariary" },
+  EUR: { singulier: "euro", pluriel: "euros", centieme: CENTIME },
+  KMF: { singulier: "franc comorien", pluriel: "francs comoriens" },
+  XOF: { singulier: "franc CFA", pluriel: "francs CFA" },
+  XAF: { singulier: "franc CFA", pluriel: "francs CFA" },
+  USD: { singulier: "dollar", pluriel: "dollars", centieme: CENT },
+  CAD: { singulier: "dollar canadien", pluriel: "dollars canadiens", centieme: CENT },
+  AUD: { singulier: "dollar australien", pluriel: "dollars australiens", centieme: CENT },
+  CHF: { singulier: "franc suisse", pluriel: "francs suisses", centieme: CENTIME },
+  GBP: {
+    singulier: "livre sterling",
+    pluriel: "livres sterling",
+    centieme: { singulier: "penny", pluriel: "pence" },
+    feminin: true,
+  },
+  MUR: { singulier: "roupie mauricienne", pluriel: "roupies mauriciennes", feminin: true },
+  INR: { singulier: "roupie indienne", pluriel: "roupies indiennes", feminin: true },
+  MAD: { singulier: "dirham", pluriel: "dirhams", centieme: CENTIME },
+  AED: { singulier: "dirham", pluriel: "dirhams" },
+  ZAR: { singulier: "rand", pluriel: "rands", centieme: CENT },
+  CNY: { singulier: "yuan", pluriel: "yuans" },
+  JPY: { singulier: "yen", pluriel: "yens" },
+};
+
+/** Symboles et noms courants, ramenés au code de la devise. */
+const ALIAS: Record<string, string> = {
+  ar: "MGA",
+  ariary: "MGA",
+  "€": "EUR",
+  euro: "EUR",
+  euros: "EUR",
+  $: "USD",
+  dollars: "USD",
+  cf: "KMF",
+  fc: "KMF",
+  "franc comorien": "KMF",
+  "francs comoriens": "KMF",
+  fcfa: "XOF",
+  "francs cfa": "XOF",
+  "£": "GBP",
+  rs: "MUR",
+};
+
+/**
+ * L'unité d'une devise, à partir de son code (« EUR »), de son symbole
+ * (« € ») ou de son nom. Une devise inconnue garde le mot tel quel, en
+ * minuscules : mieux vaut un mot inhabituel qu'un mot inventé.
+ */
+export function uniteMonetaire(devise: string | null | undefined): UniteMonetaire {
+  const brut = (devise ?? "").trim();
+  if (!brut) return UNITES_CONNUES.MGA;
+  const code = UNITES_CONNUES[brut.toUpperCase()] ? brut.toUpperCase() : ALIAS[brut.toLowerCase()];
+  if (code) return UNITES_CONNUES[code];
+  const mot = brut.toLowerCase();
+  return { singulier: mot, pluriel: mot };
+}
+
+/** « un million d'euros », mais « un million deux cents euros ». */
+const avecUnite = (n: number, mots: string, u: UniteMonetaire): string => {
+  const tete = u.feminin ? mots.replace(/(^|\s)un$/, "$1une") : mots;
+  if (n === 1) return `${tete} ${u.singulier}`;
+  const rond = n >= 1e6 && n % 1e6 === 0;
+  const lien = rond ? (/^[aeiouyéèh]/i.test(u.pluriel) ? " d'" : " de ") : " ";
+  return `${tete}${lien}${u.pluriel}`;
+};
+
+/**
  * Le montant en toutes lettres, suivi de sa devise.
  *
- * La devise vient de la boutique (`stores.currency_symbol`), en
- * minuscules et au singulier : « ariary » est invariable, et le sigle
- * « Ar » ne s'écrit pas dans une phrase.
+ * `devise` se donne par son code, son symbole ou son nom (« Ar »,
+ * « EUR », « euros »). Quand le document s'affiche dans une autre devise
+ * — celle de l'écran, ou celle imposée à ce document —, le montant est
+ * converti et dit dans cette devise, centimes compris s'il en a.
  *
  * Renvoie `null` quand le montant n'est pas représentable — le
  * document masque alors la mention plutôt que d'écrire une phrase
  * tronquée.
  */
-export function montantEnLettres(valeur: number, devise = "ariary"): string | null {
-  if (conversionActive()) {
-    // Des centimes ne s'écrivent pas en toutes lettres ici : mieux vaut rien qu'un montant faux.
-    const a = deviseAffichee();
-    if (a.decimales > 0) return null;
-    valeur = Math.round(versAffichage(valeur));
-    devise = (a.nom ?? a.code).toLowerCase();
+export function montantEnLettres(
+  valeur: number,
+  devise = "ariary",
+  conversion?: ConversionImposee,
+): string | null {
+  if (!Number.isFinite(valeur)) return null;
+  let unite = uniteMonetaire(devise);
+  let decimales = unite.centieme ? 2 : 0;
+  if (conversionActive(conversion)) {
+    const a = deviseAffichee(conversion);
+    valeur = versAffichage(valeur, conversion);
+    unite = uniteMonetaire(a.code);
+    decimales = Math.min(2, a.decimales);
+  } else {
+    // La devise de tenue compte ce que l'écran compte : en entiers.
+    decimales = 0;
   }
-  const mots = nombreEnLettres(valeur);
-  if (mots === null) return null;
 
-  const unite = devise.trim();
-  return unite ? `${mots} ${unite}` : mots;
+  const enCentiemes = Math.round(Math.abs(valeur) * 10 ** decimales);
+  const entier = Math.floor(enCentiemes / 10 ** decimales);
+  const centiemes = decimales === 2 ? enCentiemes % 100 : 0;
+  const signe = valeur < 0 && enCentiemes > 0 ? "moins " : "";
+
+  const motsEntier = nombreEnLettres(entier);
+  if (motsEntier === null) return null;
+  const partieEntiere = avecUnite(entier, motsEntier, unite);
+  if (!centiemes) return signe + partieEntiere;
+
+  const sous = unite.centieme ?? CENTIME;
+  const motsCentiemes = nombreEnLettres(centiemes) ?? String(centiemes);
+  const partieCentiemes = `${motsCentiemes} ${centiemes === 1 ? sous.singulier : sous.pluriel}`;
+  return entier === 0 ? signe + partieCentiemes : `${signe}${partieEntiere} et ${partieCentiemes}`;
 }
 
 /**
@@ -232,19 +343,5 @@ export function montantEnLettres(valeur: number, devise = "ariary"): string | nu
  * mot inventé.
  */
 export function deviseEnToutesLettres(symbole: string | null | undefined): string {
-  const s = (symbole ?? "").trim();
-  if (!s) return "ariary";
-
-  const connus: Record<string, string> = {
-    ar: "ariary",
-    mga: "ariary",
-    "€": "euros",
-    eur: "euros",
-    $: "dollars",
-    usd: "dollars",
-    fcfa: "francs CFA",
-    xof: "francs CFA",
-  };
-
-  return connus[s.toLowerCase()] ?? s.toLowerCase();
+  return uniteMonetaire(symbole).pluriel;
 }

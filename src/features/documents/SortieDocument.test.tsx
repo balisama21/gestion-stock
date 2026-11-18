@@ -44,7 +44,7 @@ describe("modifier la mise en page depuis un document", () => {
     render(<Ecran onFermer={vi.fn()} />);
     expect(document.querySelector(".doc-feuille--libre")).toBeNull();
 
-    fireEvent.click(screen.getByRole("button", { name: /Modifier la mise en page/ }));
+    fireEvent.click(screen.getByRole("button", { name: /Modifier sur la feuille/ }));
     fireEvent.click(screen.getByRole("button", { name: /^Enregistrer/ }));
 
     await waitFor(() => expect(document.querySelector(".doc-feuille--libre")).not.toBeNull());
@@ -55,7 +55,7 @@ describe("modifier la mise en page depuis un document", () => {
   it("Échap dans l'éditeur ne ferme pas la fenêtre du document", async () => {
     const onFermer = vi.fn();
     render(<Ecran onFermer={onFermer} />);
-    fireEvent.click(screen.getByRole("button", { name: /Modifier la mise en page/ }));
+    fireEvent.click(screen.getByRole("button", { name: /Modifier sur la feuille/ }));
     fireEvent.keyDown(document, { key: "Escape" });
     fireEvent.keyDown(window, { key: "Escape" });
     // La fenêtre joue 200 ms de sortie avant de prévenir.

@@ -151,6 +151,21 @@ describe("écrire sur la feuille", () => {
     expect(blocsResolus(enregistrer()).totaux.textes).toBeUndefined();
   });
 
+  it("le bouton « Écrire » du bloc choisi ouvre le texte sur la feuille", () => {
+    const enregistrer = ouvrirAvecDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Mot de fin" }));
+    fireEvent.click(screen.getByTitle("Écrire ce texte directement sur la feuille"));
+    const zone = screen.getByLabelText("Écrire : Mot de fin");
+    fireEvent.change(zone, { target: { value: "Misaotra betsaka !" } });
+    fireEvent.keyDown(zone, { key: "Enter", ctrlKey: true });
+    expect(blocsResolus(enregistrer()).motDeFin.textes).toEqual({ texte: "Misaotra betsaka !" });
+  });
+
+  it("dit comment écrire sur la feuille", () => {
+    ouvrirAvecDocument();
+    expect(screen.getByText("Écrivez directement sur la feuille")).toBeTruthy();
+  });
+
   it("n'offre pas d'écrire le nom de la boutique", () => {
     ouvrirAvecDocument();
     fireEvent.doubleClick(document.querySelector('[data-cadre="nom"]')!);

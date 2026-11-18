@@ -27,11 +27,12 @@ describe("devise d'affichage", () => {
     expect(symboleDeSaisie()).toBe("Ar");
   });
 
-  it("le montant en lettres suit la devise d'affichage, et se tait s'il y a des centimes", () => {
+  it("le montant en lettres suit la devise d'affichage, centimes compris", () => {
     definirDevises(MGA, KMF);
-    expect(montantEnLettres(10000)).toMatch(/mille franc comorien$/);
+    expect(montantEnLettres(10000)).toBe("mille francs comoriens");
     definirDevises(MGA, EUR);
-    expect(montantEnLettres(10000)).toBeNull();
+    // 347 800 Ar à 5 000 Ar l'euro : 69,56 €. La mention dit la même chose que le chiffre.
+    expect(montantEnLettres(347800)).toBe("soixante-neuf euros et cinquante-six centimes");
   });
 
   it("choisir la devise de tenue comme affichage désactive la conversion", () => {

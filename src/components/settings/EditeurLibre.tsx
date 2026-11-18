@@ -19,6 +19,7 @@ import {
   Trash2,
   Type,
   Undo2,
+  PenLine,
 } from "lucide-react";
 import { SettingsToggle } from "./primitives";
 import { useReglagesModifiables } from "../../features/documents/contexteReglages";
@@ -544,6 +545,37 @@ export const EditeurLibre: React.FC<Props> = ({
     if (e && g?.deja && !g.bouge) toucherLeTexte(g.cle, { x: e.clientX, y: e.clientY }, true);
   };
 
+  /** Ce bloc porte-t-il des mots qu'on peut réécrire sur la feuille ? */
+  const peutEcrire = (cle: ClePosee): boolean =>
+    champsDe(cle).length > 0 || (peutEcrireBoutique && (cle === "emetteur" || cle === "nom"));
+
+  /**
+   * Le bouton « Écrire » du bloc choisi : le premier mot s'ouvre sur la
+   * feuille, à sa place. Un bloc de plusieurs mots s'écrit aussi dans le
+   * panneau, dont le premier champ prend la main.
+   */
+  const ecrireLeBloc = (cle: ClePosee) => {
+    const el = feuille.current?.querySelector<HTMLElement>(`.doc-libre [data-bloc="${cle}"]`);
+    if (el && (cle === "nom" || cle === "emetteur") && peutEcrireBoutique) {
+      const cible = el.querySelector<HTMLElement>(".doc-nom, [data-champ]");
+      if (cible) {
+        const r = cible.getBoundingClientRect();
+        if (ecrireValeurSous(cle, { x: r.left + r.width / 2, y: r.top + r.height / 2 })) return;
+      }
+    }
+    const champs = champsDe(cle);
+    const premier = champs[0];
+    if (premier && el) {
+      const valeur = blocs[cle]?.textes?.[premier.cle] ?? premier.valeur;
+      const porteur =
+        [...el.querySelectorAll<HTMLElement>("*")].find(
+          (n) => normal(n.textContent ?? "") === normal(valeur) && normal(valeur) !== "",
+        ) ?? el;
+      if (ouvrirEcriture(cle, null, false, { c: premier, el: porteur, valeur })) return;
+    }
+    requestAnimationFrame(() => document.querySelector<HTMLElement>("[data-champ-texte]")?.focus());
+  };
+
   /** Un mot s'écrit ; une coordonnée se choisit ; ailleurs, rien. */
   const toucherLeTexte = (cle: ClePosee, point: { x: number; y: number }, clic: boolean) => {
     if (ouvrirEcriture(cle, point, clic)) return;
@@ -1053,6 +1085,19 @@ export const EditeurLibre: React.FC<Props> = ({
             />
           )}
           {!apercu && (
+            <p
+              className="mx-auto mb-2 flex w-full items-start gap-2 rounded-lg border border-primary/20 bg-primary/5 px-3 py-2 text-xs leading-relaxed text-foreground"
+              style={{ maxWidth: LARGEUR_PX }}
+            >
+              <PenLine className="mt-0.5 h-3.5 w-3.5 shrink-0 text-primary" />
+              <span>
+                <b>Écrivez directement sur la feuille</b> : double-cliquez sur un texte, ou
+                choisissez un bloc puis « Écrire ». Glissez un bloc pour le déplacer, tirez ses
+                coins pour l&apos;agrandir. Les chiffres et le client viennent de vos ventes.
+              </span>
+            </p>
+          )}
+          {!apercu && (
             <div
               role="toolbar"
               aria-label="Ajouter sur la feuille"
@@ -1253,8 +1298,26 @@ export const EditeurLibre: React.FC<Props> = ({
                           />
                         )}
                         {actif && (
-                          <span className="absolute -top-[7mm] left-0 whitespace-nowrap rounded bg-primary px-[2mm] py-[0.5mm] text-[8pt] font-medium text-primary-foreground">
-                            {nomChoisi}
+                          <span className="absolute -top-[7mm] left-0 flex items-stretch overflow-hidden whitespace-nowrap rounded bg-primary text-[8pt] font-medium text-primary-foreground">
+                            <span className="px-[2mm] py-[0.5mm]">{nomChoisi}</span>
+                            {!ecrit && peutEcrire(cle) && (
+                              <button
+                                type="button"
+                                data-ecrire-bloc
+                                onPointerDown={(e) => e.stopPropagation()}
+                                onDoubleClick={(e) => e.stopPropagation()}
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  ecrireLeBloc(cle);
+                                }}
+                                className="flex items-center gap-[1mm] border-l border-primary-foreground/30 px-[2mm] py-[0.5mm] hover:bg-primary-foreground/15"
+                                style={{ minHeight: 0 }}
+                                title="Écrire ce texte directement sur la feuille"
+                              >
+                                <PenLine style={{ width: "3mm", height: "3mm" }} />
+                                Écrire
+                              </button>
+                            )}
                           </span>
                         )}
                         {actif &&
@@ -1788,11 +1851,11 @@ export const EditeurLibre: React.FC<Props> = ({
             })}
           </ul>
           <section className="border-t border-border p-4">
-            <p className="mb-2 text-sm font-semibold text-foreground">Cachets et signatures</p>
+            <p className="mb-2 text-sm font-semibold text-foreground">Cachet et signature</p>
             {cachets.length === 0 ? (
               <p className="text-xs leading-relaxed text-muted-foreground">
-                Ajoutez-les dans Paramètres → Factures et documents → Identité et cachets, puis
-                placez-les ici.
+                Ajoutez votre cachet et votre signature dans Paramètres → Factures et documents →
+                Identité et cachets, puis placez-les ici.
               </p>
             ) : (
               <ul className="space-y-2">
@@ -1825,6 +1888,9 @@ export const EditeurLibre: React.FC<Props> = ({
                         }`}
                       >
                         {c.nom}
+                        <span className="block text-xs font-normal text-muted-foreground">
+                          {c.role === "signature" ? "Signature" : "Cachet"}
+                        </span>
                       </button>
                       <button
                         type="button"
