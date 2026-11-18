@@ -7,6 +7,8 @@ import type { ModeleDocument, ReglagesDocuments } from "./lib/reglages";
 import { resoudreType } from "./lib/resolveur";
 import { dispositionDuType } from "./lib/disposition";
 import { ModifierMiseEnPage } from "../../components/settings/ModifierMiseEnPage";
+import { useDevisesDisponibles } from "../../lib/contexteDevises";
+import { deviseAffichee, deviseDeTenue, type ConversionImposee } from "../../lib/affichageDevise";
 
 /**
  * LA FENÊTRE QUI SORT UN DOCUMENT
@@ -70,6 +72,17 @@ export const SortieDocument: React.FC<SortieDocumentProps> = ({
   );
   const dispositionId = modele.startsWith("libre:") ? modele.slice(6) : null;
   const choix = FORMATS.filter((f) => formats.includes(f.cle));
+  // La devise de ce tirage. Par défaut, celle de l'écran ; une proforma
+  // pour un client de l'étranger peut sortir en euros sans rien changer
+  // à la boutique.
+  const devises = useDevisesDisponibles();
+  const codeEcran = deviseAffichee().code;
+  const [codeDevise, setCodeDevise] = useState(codeEcran);
+  const conversion: ConversionImposee = (() => {
+    if (codeDevise === codeEcran) return undefined;
+    if (codeDevise === deviseDeTenue().code) return null;
+    return devises.find((d) => d.code === codeDevise) ?? undefined;
+  })();
 
   return (
     <Modal
@@ -94,6 +107,23 @@ export const SortieDocument: React.FC<SortieDocumentProps> = ({
                 {choix.map((f) => (
                   <option key={f.cle} value={f.cle}>
                     {f.nom}
+                  </option>
+                ))}
+              </select>
+            </label>
+          )}
+          {devises.length > 1 && (
+            <label className="flex items-center gap-2">
+              <span className="sr-only">Devise du document</span>
+              <select
+                value={codeDevise}
+                onChange={(e) => setCodeDevise(e.target.value)}
+                className="app-field-sm w-auto"
+                title="Imprime ce document dans une autre devise, au taux du jour. Les montants enregistrés ne changent pas."
+              >
+                {devises.map((d) => (
+                  <option key={d.code} value={d.code}>
+                    {d.code} · {d.nom}
                   </option>
                 ))}
               </select>
@@ -149,7 +179,15 @@ export const SortieDocument: React.FC<SortieDocumentProps> = ({
         format={format}
         modele={dispositionId ? undefined : (modele as ModeleDocument)}
         dispositionId={dispositionId}
+        conversion={conversion}
       />
+      {conversion !== undefined && conversion !== null && (
+        <p className="text-xs text-muted-foreground">
+          Montants convertis au taux du jour : 1 {conversion.code} ={" "}
+          {conversion.taux.toLocaleString("fr-FR", { maximumFractionDigits: 4 })}{" "}
+          {deviseDeTenue().symbole}. Ils restent enregistrés en {deviseDeTenue().code}.
+        </p>
+      )}
     </Modal>
   );
 };

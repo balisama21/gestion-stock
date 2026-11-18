@@ -307,6 +307,17 @@ function AppInner() {
       affichees: autour(ecran),
       saisie: sousSaisie(ecran),
       pourDocument: (type: string) => autour(documents[type] ?? []),
+      disponibles: [
+        tenue.code,
+        ...devisesBoutique.devises.filter((x) => x.actif && !x.principale).map((x) => x.code),
+      ]
+        .filter((c, i, t) => t.indexOf(c) === i)
+        .map((c) => {
+          const d = versAffichee(c);
+          const nom = ficheDevise(devisesBoutique.catalogue, c)?.nom ?? c;
+          return d ? { ...d, nom } : null;
+        })
+        .filter((x): x is DeviseAffichee & { nom: string } => x !== null),
     };
   }, [
     devisesBoutique.devises,

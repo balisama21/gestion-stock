@@ -30,7 +30,7 @@ interface Props {
   onOuverture?: (ouvert: boolean) => void;
 }
 
-/** « Modifier la mise en page » depuis un document réel, pour qui a le droit de régler les documents. */
+/** « Modifier sur la feuille » depuis un document réel, pour qui a le droit de régler les documents. */
 export const ModifierMiseEnPage: React.FC<Props> = ({
   document: doc,
   format,
@@ -113,11 +113,11 @@ export const ModifierMiseEnPage: React.FC<Props> = ({
         title={
           pieceFigee
             ? "Cette pièce est déjà émise et garde sa présentation. Les changements vaudront pour les suivantes."
-            : "Déplacer les blocs, régler la feuille, placer un cachet"
+            : "Écrire les textes sur la feuille, déplacer les blocs, poser le cachet et la signature"
         }
       >
         <LayoutTemplate className="h-4 w-4" />
-        Modifier la mise en page
+        Modifier sur la feuille
       </button>
       {erreur && !edition && (
         <span role="alert" className="text-xs t-danger">

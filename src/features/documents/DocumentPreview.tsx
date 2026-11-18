@@ -28,8 +28,16 @@ import {
 import { imageCachet } from "./lib/traiterCachet";
 import { feuilleLibre, paginerLibre, zonesLibres, type MesuresLibres } from "./lib/paginationLibre";
 import type { ProprietesModele } from "./parts/squelette";
-import { ContexteEquivalents } from "./lib/equivalents";
-import { useDevisesDuDocument } from "../../lib/contexteDevises";
+import {
+  ContexteConversion,
+  ContexteEquivalents,
+  ContexteEquivalentsDuTotal,
+} from "./lib/equivalents";
+import { useDevisesDuDocument, type DeviseAffichee } from "../../lib/contexteDevises";
+import { deviseDeTenue, type ConversionImposee } from "../../lib/affichageDevise";
+import { deviseEnToutesLettres, montantEnLettres } from "./lib/montantEnLettres";
+import { ContexteVisa, typeAvecVisa, type Visa } from "./lib/visa";
+import { visaDeLaBoutique, type Cachet } from "./lib/cachets";
 import "./index.css";
 
 /**
@@ -186,16 +194,55 @@ interface DocumentPreviewProps {
    * sort sur une seule feuille, tout écrasé.
    */
   onPret?: (feuilles: HTMLElement[]) => void;
+  /**
+   * La devise de CE document : une proforma en euros pour un client de
+   * l'étranger. Absente : celle de l'écran. Les montants restent
+   * enregistrés en devise de tenue ; seul le papier change.
+   */
+  conversion?: ConversionImposee;
+}
+
+/**
+ * Le document dans la devise imposée : le montant en lettres se récrit,
+ * les équivalents s'écartent de la devise imprimée, et le total rappelle
+ * sa valeur dans la devise des comptes.
+ */
+function dansLaDevise(
+  doc: Document,
+  equivalents: DeviseAffichee[],
+  conversion: ConversionImposee,
+): { doc: Document; equivalents: DeviseAffichee[]; duTotal?: DeviseAffichee[] } {
+  if (conversion === undefined) return { doc, equivalents };
+  const tenue = deviseDeTenue();
+  const imprimee = conversion?.code ?? tenue.code;
+  const sansDoublon = (liste: DeviseAffichee[]) =>
+    liste.filter((e, i, t) => e.code !== imprimee && t.findIndex((x) => x.code === e.code) === i);
+  const lignes = sansDoublon(equivalents);
+  const total = doc.totaux.total;
+  return {
+    doc: {
+      ...doc,
+      montantEnLettres:
+        doc.montantEnLettres && total !== null
+          ? montantEnLettres(total, deviseEnToutesLettres(doc.devise), conversion)
+          : doc.montantEnLettres,
+    },
+    equivalents: lignes,
+    // Imprimé dans une autre devise, le total rappelle une fois sa valeur dans celle des comptes.
+    duTotal:
+      imprimee !== tenue.code ? sansDoublon([{ ...tenue, taux: 1 }, ...equivalents]) : undefined,
+  };
 }
 
 export const DocumentPreview: React.FC<DocumentPreviewProps> = ({
-  document: doc,
+  document: docSource,
   reglages,
   format = "a4",
   modele,
   dispositionId,
   sansActions,
   onPret,
+  conversion,
 }) => {
   const rouleau = format !== "a4";
   const largeurMm = LARGEUR_MM[format];
@@ -206,9 +253,13 @@ export const DocumentPreview: React.FC<DocumentPreviewProps> = ({
    * défaut de réglage propre au type, ce sont ceux de la boutique —
    * `resoudreType` s'en charge, et lui seul connaît l'ordre.
    */
-  const regle = resoudreType(reglages, doc.type);
+  const regle = resoudreType(reglages, docSource.type);
   // Le rouleau a son propre réglage : on ne veut pas forcément les mêmes devises qu'en A4.
-  const equivalents = useDevisesDuDocument(rouleau ? "ticket" : doc.type);
+  const equivalentsEcran = useDevisesDuDocument(rouleau ? "ticket" : docSource.type);
+  const { doc, equivalents, duTotal } = useMemo(
+    () => dansLaDevise(docSource, equivalentsEcran, conversion),
+    [docSource, equivalentsEcran, conversion],
+  );
   const libre =
     rouleau || dispositionId === null
       ? null
@@ -228,9 +279,19 @@ export const DocumentPreview: React.FC<DocumentPreviewProps> = ({
     const ids = new Set(cachetsPlaces(libre));
     return reglages.cachets.filter((c) => ids.has(c.id));
   }, [libre, reglages.cachets]);
+  // Mode simple : le tampon et la signature de la boutique, apposés d'eux-mêmes.
+  const visaBrut = useMemo(
+    () =>
+      !libre && !rouleau && reglages.options.visa && doc.signatures && typeAvecVisa(doc.type)
+        ? visaDeLaBoutique(reglages.cachets)
+        : {},
+    [libre, rouleau, reglages.options.visa, reglages.cachets, doc.signatures, doc.type],
+  );
   const clesImages = [
     ...cachetsDuDocument.map((c) => c.chemin),
     ...(libre ? imagesPosees(libre) : []),
+    ...(visaBrut.cachet ? [visaBrut.cachet.chemin] : []),
+    ...(visaBrut.signature ? [visaBrut.signature.chemin] : []),
   ].join("|");
   const [images, setImages] = useState<{ cle: string; urls: Record<string, string> }>({
     cle: "",
@@ -253,6 +314,14 @@ export const DocumentPreview: React.FC<DocumentPreviewProps> = ({
     };
   }, [clesImages]);
   const imagesPretes = images.cle === clesImages;
+  const visa = useMemo<Visa | null>(() => {
+    const image = (c?: Cachet) => {
+      const src = c ? images.urls[c.chemin] : undefined;
+      return c && src ? { src, opacite: c.opacite, ratio: c.largeur / c.hauteur } : undefined;
+    };
+    const v = { cachet: image(visaBrut.cachet), signature: image(visaBrut.signature) };
+    return v.cachet || v.signature ? v : null;
+  }, [visaBrut, images.urls]);
   const dispoTicket = rouleau ? dispositionDuType(reglages.libre, "ticket") : null;
   const colonne = dispoTicket ? colonneResolue(dispoTicket) : undefined;
   const nomModele = libre?.base ?? modele ?? regle.modele;
@@ -293,8 +362,8 @@ export const DocumentPreview: React.FC<DocumentPreviewProps> = ({
   // format change.
   const empreinte = useMemo(
     () =>
-      `${format}|${nomModele}|${doc.nomDeFichier}|${doc.lignes.length}|${doc.totaux.total}|${equivalents.map((e) => e.code).join(",")}|${libre ? JSON.stringify(libre) : ""}`,
-    [format, nomModele, doc, equivalents, libre],
+      `${format}|${nomModele}|${doc.nomDeFichier}|${doc.lignes.length}|${doc.totaux.total}|${equivalents.map((e) => e.code).join(",")}|${conversion === undefined ? "" : (conversion?.code ?? "tenue")}|${visa ? "visa" : ""}|${libre ? JSON.stringify(libre) : ""}`,
+    [format, nomModele, doc, equivalents, libre, conversion, visa],
   );
 
   if (mesure.cle !== empreinte) setMesure({ cle: empreinte, pages: null });
@@ -421,146 +490,154 @@ export const DocumentPreview: React.FC<DocumentPreviewProps> = ({
   };
 
   return (
-    <ContexteEquivalents.Provider value={equivalents}>
-      <div
-        className="doc-racine"
-        style={variablesDeCouleur(libre?.couleur ?? regle.couleur) as React.CSSProperties}
-      >
-        {erreur && (
-          <p
-            role="alert"
-            className="no-print mb-3 rounded-xl border border-danger-border bg-danger-soft px-3.5 py-3 text-sm t-danger"
-          >
-            {erreur}
-          </p>
-        )}
-
-        <div className="doc-scene" ref={scene}>
-          <div
-            className="doc-echelle"
-            style={{
-              transform: `scale(${echelle})`,
-              height: hauteur ?? undefined,
-              // La feuille de mesure ne doit jamais être vue : elle
-              // porte tout le document sur une page et déborderait.
-              visibility: enMesure ? "hidden" : undefined,
-            }}
-          >
-            {/*
-             * `printable-receipt` est l'accroche que la feuille de style
-             * d'impression de l'application connaît déjà : elle masque le
-             * reste de la modale et neutralise les conteneurs qui
-             * rogneraient le document. La reprendre évite de réécrire un
-             * travail qui a demandé plusieurs corrections.
-             */}
-            {rouleau ? (
-              <div
-                className={`doc-ticket printable-receipt${format === "t58" ? " doc-ticket--58" : ""}`}
-                ref={poser(0)}
-              >
-                <Ticket
-                  document={doc}
-                  reglages={{ ...reglages.ticket, largeur: format === "t58" ? 58 : 80 }}
-                  date={doc.meta.find((m) => m.libelle === "Date")?.valeur ?? ""}
-                  colonne={colonne}
-                />
-              </div>
-            ) : libre && blocs && zones ? (
-              repartition.map((indices, rang) => {
-                const f = feuilleLibre(rang, repartition.length, zones);
-                return (
-                  <div
-                    className={`doc-feuille doc-feuille--libre printable-receipt m-${libre.base}`}
-                    key={rang}
-                    ref={poser(rang)}
-                  >
-                    <Libre
-                      document={doc}
-                      base={libre.base}
-                      blocs={blocs}
-                      lignes={indices
-                        .map((i) => doc.lignes[i])
-                        .filter((l): l is LigneDocument => l !== undefined)}
-                      cles={f.cles}
-                      cadreTableau={f.cadre}
-                      cachets={{ cachets: cachetsDuDocument, images: images.urls }}
-                      pagination={doc.paginer ? mentionDePage(rang, repartition.length) : null}
-                    />
-                  </div>
-                );
-              })
-            ) : (
-              repartition.map((indices, rang) => (
-                <div
-                  className={`doc-feuille printable-receipt m-${nomModele}`}
-                  key={rang}
-                  ref={poser(rang)}
+    <ContexteVisa.Provider value={visa}>
+      <ContexteConversion.Provider value={conversion}>
+        <ContexteEquivalents.Provider value={equivalents}>
+          <ContexteEquivalentsDuTotal.Provider value={duTotal}>
+            <div
+              className="doc-racine"
+              style={variablesDeCouleur(libre?.couleur ?? regle.couleur) as React.CSSProperties}
+            >
+              {erreur && (
+                <p
+                  role="alert"
+                  className="no-print mb-3 rounded-xl border border-danger-border bg-danger-soft px-3.5 py-3 text-sm t-danger"
                 >
-                  <Modele
-                    document={doc}
-                    /* Le filet de sécurité, en plus de la remise à zéro
+                  {erreur}
+                </p>
+              )}
+
+              <div className="doc-scene" ref={scene}>
+                <div
+                  className="doc-echelle"
+                  style={{
+                    transform: `scale(${echelle})`,
+                    height: hauteur ?? undefined,
+                    // La feuille de mesure ne doit jamais être vue : elle
+                    // porte tout le document sur une page et déborderait.
+                    visibility: enMesure ? "hidden" : undefined,
+                  }}
+                >
+                  {/*
+                   * `printable-receipt` est l'accroche que la feuille de style
+                   * d'impression de l'application connaît déjà : elle masque le
+                   * reste de la modale et neutralise les conteneurs qui
+                   * rogneraient le document. La reprendre évite de réécrire un
+                   * travail qui a demandé plusieurs corrections.
+                   */}
+                  {rouleau ? (
+                    <div
+                      className={`doc-ticket printable-receipt${format === "t58" ? " doc-ticket--58" : ""}`}
+                      ref={poser(0)}
+                    >
+                      <Ticket
+                        document={doc}
+                        reglages={{ ...reglages.ticket, largeur: format === "t58" ? 58 : 80 }}
+                        date={doc.meta.find((m) => m.libelle === "Date")?.valeur ?? ""}
+                        colonne={colonne}
+                      />
+                    </div>
+                  ) : libre && blocs && zones ? (
+                    repartition.map((indices, rang) => {
+                      const f = feuilleLibre(rang, repartition.length, zones);
+                      return (
+                        <div
+                          className={`doc-feuille doc-feuille--libre printable-receipt m-${libre.base}`}
+                          key={rang}
+                          ref={poser(rang)}
+                        >
+                          <Libre
+                            document={doc}
+                            base={libre.base}
+                            blocs={blocs}
+                            lignes={indices
+                              .map((i) => doc.lignes[i])
+                              .filter((l): l is LigneDocument => l !== undefined)}
+                            cles={f.cles}
+                            cadreTableau={f.cadre}
+                            cachets={{ cachets: cachetsDuDocument, images: images.urls }}
+                            pagination={
+                              doc.paginer ? mentionDePage(rang, repartition.length) : null
+                            }
+                          />
+                        </div>
+                      );
+                    })
+                  ) : (
+                    repartition.map((indices, rang) => (
+                      <div
+                        className={`doc-feuille printable-receipt m-${nomModele}`}
+                        key={rang}
+                        ref={poser(rang)}
+                      >
+                        <Modele
+                          document={doc}
+                          /* Le filet de sécurité, en plus de la remise à zéro
                      ci-dessus : un rang qui ne désigne plus rien est
                      ignoré, jamais passé tel quel au modèle. */
-                    lignes={indices
-                      .map((i) => doc.lignes[i])
-                      .filter((l): l is LigneDocument => l !== undefined)}
-                    premiere={rang === 0}
-                    derniere={rang === repartition.length - 1}
-                    pagination={doc.paginer ? mentionDePage(rang, repartition.length) : null}
-                  />
+                          lignes={indices
+                            .map((i) => doc.lignes[i])
+                            .filter((l): l is LigneDocument => l !== undefined)}
+                          premiere={rang === 0}
+                          derniere={rang === repartition.length - 1}
+                          pagination={doc.paginer ? mentionDePage(rang, repartition.length) : null}
+                        />
+                      </div>
+                    ))
+                  )}
                 </div>
-              ))
-            )}
-          </div>
-        </div>
+              </div>
 
-        {!sansActions && (
-          <div className="no-print mt-4 flex flex-wrap items-center justify-end gap-2">
-            {!rouleau && repartition.length > 1 && (
-              <span className="mr-auto text-xs text-muted-foreground">
-                {repartition.length} pages
-              </span>
-            )}
-            {/*
-             * « Imprimer » est l'action principale, et ce n'est pas un
-             * détail : elle produit du TEXTE réel, sélectionnable et net
-             * à toute taille. Le PDF, lui, est une photographie du bloc
-             * — fidèle, mais pesante et non sélectionnable. Le bouton
-             * qui donne le meilleur résultat doit être celui qu'on
-             * atteint sans réfléchir.
-             */}
-            <button
-              type="button"
-              onClick={() => imprimerFeuille(rouleau ? largeurMm : undefined)}
-              disabled={!imagesPretes}
-              className="app-btn-primary"
-            >
-              <Printer className="h-4 w-4" />
-              Imprimer
-            </button>
-            <button
-              type="button"
-              onClick={() => exporter("pdf")}
-              disabled={exportEnCours !== null || !imagesPretes}
-              className="app-btn-secondary"
-              title="Un PDF fidèle à l'aperçu, à envoyer ou à archiver"
-            >
-              <Download className="h-4 w-4" />
-              {exportEnCours === "pdf" ? "Création…" : "PDF"}
-            </button>
-            <button
-              type="button"
-              onClick={() => exporter("image")}
-              disabled={exportEnCours !== null || !imagesPretes}
-              className="app-btn-secondary"
-              title="Une image par page, pratique à envoyer par messagerie"
-            >
-              <ImageIcon className="h-4 w-4" />
-              {exportEnCours === "image" ? "Création…" : "Image"}
-            </button>
-          </div>
-        )}
-      </div>
-    </ContexteEquivalents.Provider>
+              {!sansActions && (
+                <div className="no-print mt-4 flex flex-wrap items-center justify-end gap-2">
+                  {!rouleau && repartition.length > 1 && (
+                    <span className="mr-auto text-xs text-muted-foreground">
+                      {repartition.length} pages
+                    </span>
+                  )}
+                  {/*
+                   * « Imprimer » est l'action principale, et ce n'est pas un
+                   * détail : elle produit du TEXTE réel, sélectionnable et net
+                   * à toute taille. Le PDF, lui, est une photographie du bloc
+                   * — fidèle, mais pesante et non sélectionnable. Le bouton
+                   * qui donne le meilleur résultat doit être celui qu'on
+                   * atteint sans réfléchir.
+                   */}
+                  <button
+                    type="button"
+                    onClick={() => imprimerFeuille(rouleau ? largeurMm : undefined)}
+                    disabled={!imagesPretes}
+                    className="app-btn-primary"
+                  >
+                    <Printer className="h-4 w-4" />
+                    Imprimer
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => exporter("pdf")}
+                    disabled={exportEnCours !== null || !imagesPretes}
+                    className="app-btn-secondary"
+                    title="Un PDF fidèle à l'aperçu, à envoyer ou à archiver"
+                  >
+                    <Download className="h-4 w-4" />
+                    {exportEnCours === "pdf" ? "Création…" : "PDF"}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => exporter("image")}
+                    disabled={exportEnCours !== null || !imagesPretes}
+                    className="app-btn-secondary"
+                    title="Une image par page, pratique à envoyer par messagerie"
+                  >
+                    <ImageIcon className="h-4 w-4" />
+                    {exportEnCours === "image" ? "Création…" : "Image"}
+                  </button>
+                </div>
+              )}
+            </div>
+          </ContexteEquivalentsDuTotal.Provider>
+        </ContexteEquivalents.Provider>
+      </ContexteConversion.Provider>
+    </ContexteVisa.Provider>
   );
 };

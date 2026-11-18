@@ -5,6 +5,8 @@ import { lireReglagesDocuments, type ReglagesDocuments } from "./reglages";
 import { resoudreType, type TypeResolu } from "./resolveur";
 import { lireTypes, type ReglagesType, type TypeDocumentV3 } from "./typesDocument";
 import { lireLogoCopie, type LogoCopie } from "./logoFige";
+import { visaDeLaBoutique } from "./cachets";
+import { typeAvecVisa } from "./visa";
 
 /**
  * LA COPIE FIGÉE D'UNE PIÈCE ÉMISE
@@ -83,6 +85,12 @@ export function figer(
   const libre = dispositionDuType(reglages.libre, type);
   const ticket = dispositionDuType(reglages.libre, "ticket");
   const places = new Set(libre ? cachetsPlaces(libre) : []);
+  // Mode simple : le tampon et la signature apposés d'eux-mêmes partent avec la pièce.
+  if (!libre && reglages.options.visa && typeAvecVisa(type)) {
+    const { cachet, signature } = visaDeLaBoutique(reglages.cachets);
+    if (cachet) places.add(cachet.id);
+    if (signature) places.add(signature.id);
+  }
   const page = reglages.pages[type] ?? null;
 
   const figes: ReglagesDocuments = {

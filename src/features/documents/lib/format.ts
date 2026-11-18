@@ -1,5 +1,10 @@
 import type { LocaleSetting } from "../../../types";
-import { conversionActive, deviseAffichee, versAffichage } from "../../../lib/affichageDevise";
+import {
+  conversionActive,
+  deviseAffichee,
+  versAffichage,
+  type ConversionImposee,
+} from "../../../lib/affichageDevise";
 
 /**
  * MONTANTS, DATES ET QUANTITÉS, TELS QU'ILS S'IMPRIMENT
@@ -39,24 +44,32 @@ export function nombre(valeur: number): string {
  * La devise vient de `stores.currency_symbol`, qui vaut « Ar » chez
  * toutes les boutiques aujourd'hui mais n'a aucune raison de le rester.
  */
-export function montant(valeur: number, devise: string | null | undefined = "Ar"): string {
+export function montant(
+  valeur: number,
+  devise: string | null | undefined = "Ar",
+  conversion?: ConversionImposee,
+): string {
   // Une devise d'affichage choisie remplace celle de la boutique, montant converti.
-  if (conversionActive()) return `${argent(valeur)}\u00a0${deviseAffichee().symbole}`;
+  if (conversionActive(conversion)) {
+    return `${argent(valeur, conversion)}\u00a0${deviseAffichee(conversion).symbole}`;
+  }
   const symbole = (devise ?? "").trim() || "Ar";
   return `${nombre(valeur)}\u00a0${symbole}`;
 }
 
 /** Un montant sans symbole, dans la devise d'affichage (ticket, tableau de bord). */
-export function argent(valeur: number): string {
+export function argent(valeur: number, conversion?: ConversionImposee): string {
   if (!Number.isFinite(valeur)) return "\u2014";
-  const dec = conversionActive() ? deviseAffichee().decimales : 0;
+  const dec = conversionActive(conversion) ? deviseAffichee(conversion).decimales : 0;
   return new Intl.NumberFormat("fr-FR", { minimumFractionDigits: dec, maximumFractionDigits: dec })
-    .format(versAffichage(valeur))
+    .format(versAffichage(valeur, conversion))
     .replace(/\u202f/g, "\u00a0");
 }
 
-export const argentOuTiret = (valeur: number | null | undefined): string =>
-  valeur === null || valeur === undefined ? "\u2014" : argent(valeur);
+export const argentOuTiret = (
+  valeur: number | null | undefined,
+  conversion?: ConversionImposee,
+): string => (valeur === null || valeur === undefined ? "\u2014" : argent(valeur, conversion));
 
 /**
  * Un montant, ou un tiret quand la valeur est inconnue.
@@ -65,8 +78,12 @@ export const argentOuTiret = (valeur: number | null | undefined): string =>
  * commande, zéro se lit comme « gratuit », et c'est une erreur qu'on
  * ne rattrape plus une fois le document parti.
  */
-export function montantOuTiret(valeur: number | null | undefined, devise?: string | null): string {
-  return valeur === null || valeur === undefined ? "—" : montant(valeur, devise);
+export function montantOuTiret(
+  valeur: number | null | undefined,
+  devise?: string | null,
+  conversion?: ConversionImposee,
+): string {
+  return valeur === null || valeur === undefined ? "—" : montant(valeur, devise, conversion);
 }
 
 /**

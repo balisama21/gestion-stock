@@ -14,12 +14,19 @@ import {
   versCanvas,
   versPng,
 } from "../../features/documents/lib/traiterCachet";
-import { largeurNetteMm, type Cachet } from "../../features/documents/lib/cachets";
+import {
+  largeurNetteMm,
+  NOM_PAR_ROLE,
+  type Cachet,
+  type RoleCachet,
+} from "../../features/documents/lib/cachets";
 
 interface Props {
   storeId: string;
   onFermer: () => void;
   onAjoute: (c: Cachet) => Promise<void> | void;
+  /** Ce qu'on importe : le tampon de l'entreprise, ou la signature d'une personne. */
+  role?: RoleCachet;
 }
 
 type Outil = "recadrer" | "gommer";
@@ -42,13 +49,14 @@ const DAMIER = "repeating-conic-gradient(#e7ebe9 0% 25%, #ffffff 0% 50%) 50% / 1
 const boutonIcone =
   "inline-flex h-[34px] w-[34px] items-center justify-center text-muted-foreground hover:text-foreground disabled:opacity-40";
 
-export const ImportCachet: React.FC<Props> = ({ storeId, onFermer, onAjoute }) => {
+export const ImportCachet: React.FC<Props> = ({ storeId, onFermer, onAjoute, role = "cachet" }) => {
   const [source, setSource] = useState<ImagePixels | null>(null);
   const [dejaDetouree, setDejaDetouree] = useState(false);
   const [sensibilite, setSensibilite] = useState(1);
-  const [encre, setEncre] = useState<Encre>("originale");
+  // Une signature à l'encre noire ressort mieux qu'une photo jaunie.
+  const [encre, setEncre] = useState<Encre>(role === "signature" ? "noir" : "originale");
   const [opacite, setOpacite] = useState(1);
-  const [nom, setNom] = useState("");
+  const [nom, setNom] = useState(NOM_PAR_ROLE[role]);
   const [outil, setOutil] = useState<Outil>("recadrer");
   const [pinceau, setPinceau] = useState(24);
   const [cadre, setCadre] = useState<Cadre>(TOUT);
@@ -228,6 +236,7 @@ export const ImportCachet: React.FC<Props> = ({ storeId, onFermer, onAjoute }) =
       await onAjoute({
         id: envoi.id,
         nom: nom.trim(),
+        role,
         chemin: envoi.chemin,
         largeur: png.largeur,
         hauteur: png.hauteur,
@@ -247,7 +256,7 @@ export const ImportCachet: React.FC<Props> = ({ storeId, onFermer, onAjoute }) =
       className="fixed inset-0 z-[80] flex flex-col bg-background"
       role="dialog"
       aria-modal="true"
-      aria-label="Nouveau cachet ou signature"
+      aria-label={role === "signature" ? "Nouvelle signature" : "Nouveau cachet"}
     >
       <header className="flex flex-wrap items-center gap-2 border-b border-border bg-card px-3 py-2 sm:px-4">
         <button
@@ -260,7 +269,7 @@ export const ImportCachet: React.FC<Props> = ({ storeId, onFermer, onAjoute }) =
           <ArrowLeft className="h-5 w-5" />
         </button>
         <p className="min-w-0 flex-1 truncate text-sm font-semibold text-foreground">
-          Nouveau cachet ou signature
+          {role === "signature" ? "Nouvelle signature" : "Nouveau cachet de l'entreprise"}
         </p>
         <button
           type="button"
@@ -428,7 +437,7 @@ export const ImportCachet: React.FC<Props> = ({ storeId, onFermer, onAjoute }) =
               type="text"
               value={nom}
               onChange={(e) => setNom(e.target.value)}
-              placeholder="Cachet officiel, signature du gérant…"
+              placeholder={role === "signature" ? "Signature du gérant" : "Cachet officiel"}
               className="app-field mt-1 w-full"
             />
           </label>

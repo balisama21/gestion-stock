@@ -17,8 +17,8 @@ export const MODELES_DOCUMENT: { cle: ModeleDocument; nom: string; note: string 
 ];
 
 export const COULEURS_DOCUMENT: { valeur: string; nom: string }[] = [
-  { valeur: "#0E7C5A", nom: "Vert" },
   { valeur: "#1F4E79", nom: "Bleu nuit" },
+  { valeur: "#0E7C5A", nom: "Vert" },
   { valeur: "#3A72A6", nom: "Bleu clair" },
   { valeur: "#7A4B2A", nom: "Brun" },
   { valeur: "#8E2F3C", nom: "Bordeaux" },

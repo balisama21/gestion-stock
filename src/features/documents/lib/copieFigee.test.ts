@@ -21,6 +21,7 @@ const cachet: Cachet = {
   hauteur: 1200,
   opacite: 0.9,
   creeLe: "",
+  role: "cachet",
 };
 
 let disposition = creerDisposition("facture", "bandeau", "Factures");

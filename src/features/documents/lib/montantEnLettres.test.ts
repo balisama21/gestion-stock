@@ -178,3 +178,45 @@ describe("la devise", () => {
     expect(montantEnLettres(Number.NaN)).toBeNull();
   });
 });
+
+describe("les autres devises", () => {
+  const euro = { code: "EUR", symbole: "€", decimales: 2, taux: 5000, nom: "Euro" };
+  const comorien = { code: "KMF", symbole: "CF", decimales: 0, taux: 10, nom: "Franc comorien" };
+
+  it("accorde le nom de la devise", () => {
+    expect(montantEnLettres(1, "€")).toBe("un euro");
+    expect(montantEnLettres(250, "EUR")).toBe("deux cent cinquante euros");
+    expect(montantEnLettres(3000, "KMF")).toBe("trois mille francs comoriens");
+    expect(montantEnLettres(1, "KMF")).toBe("un franc comorien");
+  });
+
+  it("dit « de » après un million rond", () => {
+    expect(montantEnLettres(2_000_000, "Ar")).toBe("deux millions d'ariary");
+    expect(montantEnLettres(1_000_000, "EUR")).toBe("un million d'euros");
+    expect(montantEnLettres(1_000_200, "EUR")).toBe("un million deux cents euros");
+  });
+
+  it("écrit les centimes d'une proforma en euros", () => {
+    // 1 252 500 Ar à 5 000 Ar l'euro : 250,50 €.
+    expect(montantEnLettres(1_252_500, "Ar", euro)).toBe(
+      "deux cent cinquante euros et cinquante centimes",
+    );
+    expect(montantEnLettres(5_000, "Ar", euro)).toBe("un euro");
+    expect(montantEnLettres(2_500, "Ar", euro)).toBe("cinquante centimes");
+  });
+
+  it("convertit en francs comoriens, sans centimes", () => {
+    expect(montantEnLettres(13_500, "Ar", comorien)).toBe(
+      "mille trois cent cinquante francs comoriens",
+    );
+  });
+
+  it("revient à l'ariary quand le document l'impose", () => {
+    expect(montantEnLettres(13_500, "Ar", null)).toBe("treize mille cinq cents ariary");
+  });
+
+  it("met au féminin la livre", () => {
+    expect(montantEnLettres(1, "GBP")).toBe("une livre sterling");
+    expect(montantEnLettres(21, "GBP")).toBe("vingt et une livres sterling");
+  });
+});

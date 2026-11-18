@@ -65,7 +65,7 @@ function afficher(
   return { enregistrer, enregistre, onDisposition, onOuverture };
 }
 
-const bouton = () => screen.queryByRole("button", { name: /Modifier la mise en page/ });
+const bouton = () => screen.queryByRole("button", { name: /Modifier sur la feuille/ });
 
 describe("qui voit le bouton", () => {
   it("personne sans le droit de régler les documents", () => {

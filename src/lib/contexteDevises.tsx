@@ -16,6 +16,8 @@ export interface ValeurContexteDevises {
   saisie?: DeviseAffichee[];
   /** Les équivalents imprimés sur un type de document. */
   pourDocument: (type: string) => DeviseAffichee[];
+  /** Les devises actives de la boutique, celle de tenue d'abord : un document peut en choisir une. */
+  disponibles?: (DeviseAffichee & { nom: string })[];
 }
 
 const Contexte = createContext<ValeurContexteDevises | null>(null);
@@ -33,6 +35,10 @@ export function useDevisesDeSaisie(): DeviseAffichee[] {
 
 export function useDevisesDuDocument(type: string): DeviseAffichee[] {
   return useContext(Contexte)?.pourDocument(type) ?? [];
+}
+
+export function useDevisesDisponibles(): (DeviseAffichee & { nom: string })[] {
+  return useContext(Contexte)?.disponibles ?? [];
 }
 
 /** « 2,00 € » : un montant de la devise principale, converti. */

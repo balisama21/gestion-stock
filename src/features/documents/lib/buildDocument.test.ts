@@ -324,8 +324,8 @@ describe("la lecture des réglages", () => {
   });
 
   it("refuse une couleur qui n'en est pas une", () => {
-    expect(lireReglagesDocuments({ couleur: "rouge" }).couleur).toBe("#0E7C5A");
-    expect(lireReglagesDocuments({ couleur: "#GGG" }).couleur).toBe("#0E7C5A");
+    expect(lireReglagesDocuments({ couleur: "rouge" }).couleur).toBe("#1F4E79");
+    expect(lireReglagesDocuments({ couleur: "#GGG" }).couleur).toBe("#1F4E79");
   });
 
   it("refuse un modèle inventé", () => {
