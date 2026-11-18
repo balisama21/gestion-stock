@@ -36,7 +36,8 @@ import { lireTypes, TYPES_DOCUMENT, type ReglagesParType } from "./typesDocument
  */
 
 export type ModeleDocument = "classique" | "bandeau" | "epure" | "compact";
-export type ChoixLogo = "auto" | "initiales" | "aucun";
+/** « seul » : le logo contient déjà le nom, il s'affiche en grand et le nom ne se répète pas. */
+export type ChoixLogo = "auto" | "seul" | "initiales" | "aucun";
 export type LargeurTicket = 80 | 58;
 
 export interface OptionsDocuments {
@@ -168,7 +169,7 @@ export const PREFIXES: Record<string, string> = {
 };
 
 const MODELES: ModeleDocument[] = ["classique", "bandeau", "epure", "compact"];
-const LOGOS: ChoixLogo[] = ["auto", "initiales", "aucun"];
+const LOGOS: ChoixLogo[] = ["auto", "seul", "initiales", "aucun"];
 const ECHEANCES: Echeance[] = ["a_reception", "sous_15_jours", "sous_30_jours", "comptant"];
 
 /** Une couleur de document doit être une couleur, pas du texte libre. */

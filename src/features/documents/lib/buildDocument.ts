@@ -88,6 +88,8 @@ export interface BlocTiers {
 export interface EnTeteBoutique extends BlocTiers {
   /** `null` si la boutique n'a pas de logo, ou si le réglage l'écarte. */
   logoUrl: string | null;
+  /** Le logo porte déjà le nom : il s'affiche en grand, et le nom ne se répète pas à côté. */
+  logoSeul?: boolean;
   /** Les initiales, quand elles remplacent le logo. `null` = pas de pastille. */
   initiales: string | null;
   sousTitre: string | null;
@@ -313,10 +315,11 @@ export function enTeteBoutique(
   const logo = util(boutique?.logoUrl);
 
   // « auto » veut dire : le logo s'il existe, les initiales sinon.
+  // « seul » aussi, mais le logo s'y montre en grand, sans le nom à côté.
   const avecLogo = page.visible("entete.logo");
-  const montreLogo = avecLogo && reglages.logo === "auto" && logo !== null;
-  const montreInitiales =
-    avecLogo && (reglages.logo === "initiales" || (reglages.logo === "auto" && !logo));
+  const parLogo = reglages.logo === "auto" || reglages.logo === "seul";
+  const montreLogo = avecLogo && parLogo && logo !== null;
+  const montreInitiales = avecLogo && (reglages.logo === "initiales" || (parLogo && !logo));
 
   /*
    * Chaque ligne de l'en-tête est un élément que la boutique peut
@@ -360,6 +363,7 @@ export function enTeteBoutique(
     nom: page.visible("entete.nom") ? nom : "",
     sousTitre: page.visible("entete.activite") ? util(boutique?.subtitle) : null,
     logoUrl: montreLogo ? logo : null,
+    logoSeul: montreLogo && reglages.logo === "seul",
     initiales: montreInitiales ? initiales(nom) || null : null,
     lignes: page.ordre("entete").flatMap((cle) => lignes[cle] ?? []),
     nif,
@@ -762,7 +766,10 @@ export function documentDeVente(source: SourceVente): Document {
     mentions: page.visible("bas.conditions") ? util(regle.conditions) : null,
     signatures: page.visible("bas.signature")
       ? {
-          gauche: "Signature du client",
+          // Une facture ou un reçu engage l'entreprise, pas le client : il
+          // n'a rien à signer. Seuls le devis et la commande, qui demandent
+          // son accord, gardent sa ligne.
+          gauche: "",
           droite: SIGNATURE_EMETTEUR,
         }
       : null,

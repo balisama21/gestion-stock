@@ -47,16 +47,15 @@ export const Epure: React.FC<ProprietesModele> = ({
             <Marque emetteur={d.emetteur} />
             <CoordonneesEmetteur emetteur={d.emetteur} />
           </div>
+          {/* Le titre et les repères de la pièce, ensemble en haut à droite. */}
           <div className="repere">
             <div className="doc-titre">{d.titre}</div>
+            <Reperes meta={d.meta} pagination={pagination} />
           </div>
         </header>
 
         <div className="doc-blocs">
           <BlocAdresse bloc={d.destinataire} />
-          <div className="doc-blocs-droite">
-            <Reperes meta={d.meta} pagination={pagination} />
-          </div>
         </div>
       </div>
     ) : (

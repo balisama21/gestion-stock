@@ -103,6 +103,7 @@ import {
   textesDuBloc,
   type TexteModifiable,
 } from "../../features/documents/lib/textesLibres";
+import { useDocumentAvecLogo } from "../../features/documents/lib/logoPrepare";
 import { PPP_MINIMUM, pppEffectif } from "../../features/documents/lib/cachets";
 import { useConfirmation } from "../../hooks/useConfirmation";
 import "../../features/documents/index.css";
@@ -209,10 +210,12 @@ export const EditeurLibre: React.FC<Props> = ({
   const [boutique, setBoutique] = useState<ModifsBoutique>({});
   const [envoiFiche, setEnvoiFiche] = useState(false);
   const peutEcrireBoutique = !!contexte?.enregistrerBoutique;
-  const doc = useMemo(
+  const docEcritBoutique = useMemo(
     () => (docFiche ? appliquerBoutique(docFiche, boutique) : null),
     [docFiche, boutique],
   );
+  // Le même logo rogné que sur le document imprimé : la feuille montre ce qui sortira.
+  const { doc } = useDocumentAvecLogo(docEcritBoutique);
   /** Annuler / Rétablir : un pas par geste, les changements rapprochés font un seul pas. */
   const passe = useRef<Disposition[]>([]);
   const futur = useRef<Disposition[]>([]);

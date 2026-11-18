@@ -41,11 +41,17 @@ export const Marque: React.FC<{ emetteur: EnTeteBoutique; inverse?: boolean }> =
   emetteur,
   inverse,
 }) => (
-  <div className="doc-marque">
-    {emetteur.logoUrl && <img className="doc-logo" src={emetteur.logoUrl} alt="" />}
+  <div className={`doc-marque${emetteur.logoSeul ? " doc-marque--logo" : ""}`}>
+    {emetteur.logoUrl && (
+      <img
+        className={`doc-logo${emetteur.logoSeul ? " doc-logo--seul" : ""}`}
+        src={emetteur.logoUrl}
+        alt={emetteur.logoSeul ? emetteur.nom : ""}
+      />
+    )}
     {emetteur.initiales && <span className="doc-pastille">{emetteur.initiales}</span>}
     <div style={{ minWidth: 0 }}>
-      <div className="doc-nom">{emetteur.nom}</div>
+      {!emetteur.logoSeul && <div className="doc-nom">{emetteur.nom}</div>}
       {emetteur.sousTitre && (
         <div
           className="doc-sous-titre"
@@ -364,7 +370,9 @@ export const Signature: React.FC<{ signatures: Signatures | null }> = ({ signatu
   );
   return (
     <div className="doc-signatures doc-insecable" style={{ marginTop: "6mm" }}>
-      <div className="ligne">{signatures.gauche}</div>
+      {/* Sans signature du client, la place reste vide, sans filet : celle
+          de l'entreprise garde sa colonne, à droite. */}
+      {signatures.gauche ? <div className="ligne">{signatures.gauche}</div> : <div />}
       {/* Sans image, la ligne reste exactement celle d'avant : rien ne bouge
           sur les factures des boutiques qui n'ont ni cachet ni signature. */}
       {cachet || signature ? (

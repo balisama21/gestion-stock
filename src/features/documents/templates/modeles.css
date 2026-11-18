@@ -36,12 +36,32 @@
   font-size: 14pt;
   flex: none;
 }
+/* LE LOGO PREND SA FORME, PAS CELLE D'UNE CASE.
+   Un carré de 13 mm écrasait un logo en longueur jusqu'à le rendre
+   illisible, et laissait un logo en hauteur flotter dans le vide. Ici
+   seules les limites sont fixées : un logo carré fait 16 mm de côté, un
+   logo en longueur s'étire jusqu'à 44 mm, un logo en hauteur garde 16 mm
+   de haut. Ses marges vides sont rognées avant l'affichage (voir
+   `logoPrepare.ts`) : c'est le dessin qui remplit le cadre, pas le blanc. */
 .doc-logo {
-  width: 13mm;
-  height: 13mm;
+  display: block;
+  width: auto;
+  height: auto;
+  max-width: 44mm;
+  max-height: 16mm;
   object-fit: contain;
   object-position: left center;
   flex: none;
+}
+/* Le logo qui porte déjà le nom : seul, et plus grand. */
+.doc-logo--seul {
+  max-width: 75mm;
+  max-height: 24mm;
+}
+.doc-marque--logo {
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 1.5mm;
 }
 .doc-nom {
   font-size: 17pt;
@@ -335,6 +355,11 @@
 .m-classique .repere {
   text-align: right;
   font-size: 9.5pt;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 3mm;
+  flex: none;
 }
 .m-classique table thead th {
   background: var(--doc);
@@ -460,7 +485,9 @@
   margin: -14mm -15mm 0;
   display: flex;
   justify-content: space-between;
-  align-items: flex-end;
+  /* Le titre en haut, à la hauteur du nom : posé en bas du bandeau, il
+     ne s'alignait sur rien et l'en-tête paraissait de travers. */
+  align-items: flex-start;
   gap: 10mm;
 }
 .m-bandeau .band .doc-titre {
@@ -581,6 +608,11 @@
 }
 .m-epure .repere {
   text-align: right;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 3mm;
+  flex: none;
 }
 .m-epure table thead th {
   border-bottom: 0.6mm solid #16181a;
@@ -671,6 +703,15 @@
 }
 .m-compact .doc-nom {
   font-size: 14pt;
+}
+/* Le Compact gagne de la place partout, en-tête compris. */
+.m-compact .doc-logo {
+  max-width: 36mm;
+  max-height: 12mm;
+}
+.m-compact .doc-logo--seul {
+  max-width: 60mm;
+  max-height: 18mm;
 }
 .m-compact .doc-pastille {
   width: 10mm;

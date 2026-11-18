@@ -26,7 +26,8 @@ export const COULEURS_DOCUMENT: { valeur: string; nom: string }[] = [
 ];
 
 export const LOGOS_DOCUMENT: { cle: ChoixLogo; nom: string }[] = [
-  { cle: "auto", nom: "Logo, ou initiales à défaut" },
+  { cle: "auto", nom: "Logo et nom de la boutique" },
+  { cle: "seul", nom: "Logo seul, en grand (il porte déjà le nom)" },
   { cle: "initiales", nom: "Initiales seulement" },
   { cle: "aucun", nom: "Rien du tout" },
 ];
