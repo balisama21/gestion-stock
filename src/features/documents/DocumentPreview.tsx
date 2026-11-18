@@ -38,6 +38,7 @@ import { deviseDeTenue, type ConversionImposee } from "../../lib/affichageDevise
 import { deviseEnToutesLettres, montantEnLettres } from "./lib/montantEnLettres";
 import { ContexteVisa, typeAvecVisa, type Visa } from "./lib/visa";
 import { visaDeLaBoutique, type Cachet } from "./lib/cachets";
+import { useDocumentAvecLogo } from "./lib/logoPrepare";
 import "./index.css";
 
 /**
@@ -256,9 +257,11 @@ export const DocumentPreview: React.FC<DocumentPreviewProps> = ({
   const regle = resoudreType(reglages, docSource.type);
   // Le rouleau a son propre réglage : on ne veut pas forcément les mêmes devises qu'en A4.
   const equivalentsEcran = useDevisesDuDocument(rouleau ? "ticket" : docSource.type);
+  // Le logo rogné de ses marges vides et allégé : c'est le dessin qui remplit son cadre.
+  const { doc: docAvecLogo, pret: logoPret } = useDocumentAvecLogo(docSource);
   const { doc, equivalents, duTotal } = useMemo(
-    () => dansLaDevise(docSource, equivalentsEcran, conversion),
-    [docSource, equivalentsEcran, conversion],
+    () => dansLaDevise(docAvecLogo, equivalentsEcran, conversion),
+    [docAvecLogo, equivalentsEcran, conversion],
   );
   const libre =
     rouleau || dispositionId === null
@@ -313,7 +316,7 @@ export const DocumentPreview: React.FC<DocumentPreviewProps> = ({
       actif = false;
     };
   }, [clesImages]);
-  const imagesPretes = images.cle === clesImages;
+  const imagesPretes = images.cle === clesImages && logoPret;
   const visa = useMemo<Visa | null>(() => {
     const image = (c?: Cachet) => {
       const src = c ? images.urls[c.chemin] : undefined;
@@ -362,8 +365,8 @@ export const DocumentPreview: React.FC<DocumentPreviewProps> = ({
   // format change.
   const empreinte = useMemo(
     () =>
-      `${format}|${nomModele}|${doc.nomDeFichier}|${doc.lignes.length}|${doc.totaux.total}|${equivalents.map((e) => e.code).join(",")}|${conversion === undefined ? "" : (conversion?.code ?? "tenue")}|${visa ? "visa" : ""}|${libre ? JSON.stringify(libre) : ""}`,
-    [format, nomModele, doc, equivalents, libre, conversion, visa],
+      `${format}|${nomModele}|${doc.nomDeFichier}|${doc.lignes.length}|${doc.totaux.total}|${equivalents.map((e) => e.code).join(",")}|${conversion === undefined ? "" : (conversion?.code ?? "tenue")}|${visa ? "visa" : ""}|${logoPret ? "logo" : ""}|${libre ? JSON.stringify(libre) : ""}`,
+    [format, nomModele, doc, equivalents, libre, conversion, visa, logoPret],
   );
 
   if (mesure.cle !== empreinte) setMesure({ cle: empreinte, pages: null });

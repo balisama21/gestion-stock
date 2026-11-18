@@ -74,8 +74,16 @@ export function contenuDuBloc(
       if (e.champs) {
         const empile = base === "classique" || base === "epure";
         if (!e.titre && e.champs.length === 0) return null;
+        // Le nom est déjà écrit en gros dans son propre bloc, qui ne se
+        // masque pas : le répéter ici faisait lire deux fois la boutique.
+        // L'intitulé ne s'imprime que si la boutique l'a écrit elle-même.
         return (
-          <Coordonnees tiers={e} bloc={bloc} enLigne={!empile} titre={empile ? e.titre : ""} />
+          <Coordonnees
+            tiers={{ ...e, nom: "" }}
+            bloc={bloc}
+            enLigne={!empile}
+            titre={empile ? (bloc?.textes?.titre ?? "") : ""}
+          />
         );
       }
       if (base === "classique" || base === "epure") {

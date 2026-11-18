@@ -54,17 +54,19 @@ export const Classique: React.FC<ProprietesModele> = ({
             <Marque emetteur={d.emetteur} />
             <CoordonneesEmetteur emetteur={d.emetteur} />
           </div>
+          {/* Le titre, puis ce qui identifie la pièce — numéro, date,
+              échéance — et son tampon, d'un seul bloc en haut à droite :
+              là où l'œil cherche une référence. Ils flottaient avant au
+              niveau du client, sous un grand vide. */}
           <div className="repere">
             <div className="doc-titre">{d.titre}</div>
+            <Reperes meta={d.meta} pagination={pagination} />
+            <TamponPaiement tampon={d.tampon} />
           </div>
         </header>
 
         <div className="doc-blocs">
           <BlocAdresse bloc={d.destinataire} />
-          <div className="doc-blocs-droite">
-            <Reperes meta={d.meta} pagination={pagination} />
-            <TamponPaiement tampon={d.tampon} />
-          </div>
         </div>
       </div>
     ) : (

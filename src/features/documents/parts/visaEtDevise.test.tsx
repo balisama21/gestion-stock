@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it } from "vitest";
 import { cleanup, render } from "@testing-library/react";
-import { Signature, Totaux } from "./blocs";
+import { Marque, Signature, Totaux } from "./blocs";
 import { ContexteVisa } from "../lib/visa";
 import { ContexteConversion } from "../lib/equivalents";
 import type { TotauxDocument } from "../lib/buildDocument";
@@ -70,5 +70,42 @@ describe("les totaux dans la devise du document", () => {
   it("restent en ariary sans devise imposée", () => {
     const { container } = render(<Totaux totaux={totaux} devise="Ar" />);
     expect(container.textContent?.replace(/\s/g, " ")).toContain("1 252 500 Ar");
+  });
+});
+
+describe("la signature du client", () => {
+  it("n'a ni texte ni filet sur une facture, où le client ne signe pas", () => {
+    const { container } = render(
+      <Signature signatures={{ gauche: "", droite: "Cachet et signature de l'entreprise" }} />,
+    );
+    const lignes = container.querySelectorAll(".doc-signatures .ligne");
+    expect(lignes).toHaveLength(1);
+    expect(container.textContent).not.toContain("Signature du client");
+  });
+});
+
+describe("le logo de la boutique", () => {
+  const emetteur = {
+    titre: "Émetteur",
+    nom: "Épicerie du Centre",
+    lignes: [],
+    nif: null,
+    logoUrl: IMAGE,
+    initiales: null,
+    sousTitre: null,
+  };
+
+  it("se pose à côté du nom", () => {
+    const { container } = render(<Marque emetteur={emetteur} />);
+    expect(container.querySelector(".doc-logo")).toBeTruthy();
+    expect(container.querySelector(".doc-nom")?.textContent).toBe("Épicerie du Centre");
+  });
+
+  it("seul et en grand quand il porte déjà le nom", () => {
+    const { container } = render(<Marque emetteur={{ ...emetteur, logoSeul: true }} />);
+    expect(container.querySelector(".doc-logo--seul")?.getAttribute("alt")).toBe(
+      "Épicerie du Centre",
+    );
+    expect(container.querySelector(".doc-nom")).toBeNull();
   });
 });
