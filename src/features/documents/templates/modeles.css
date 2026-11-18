@@ -75,17 +75,13 @@
 }
 
 /* Les coordonnées, sous le logo et le nom : une information par
-   ligne. Les numéros fiscaux ferment le bloc, un ton plus appuyés :
-   c'est ce qu'un comptable vient y chercher. */
+   ligne. Les numéros fiscaux ferment le bloc, dans la même police et
+   la même couleur que les lignes au-dessus. */
 .doc-coordonnees {
   margin-top: 3mm;
   font-size: 8.5pt;
   line-height: 1.55;
   color: #39413d;
-}
-.doc-coordonnees .doc-fiscal {
-  margin-top: 0.6mm;
-  color: #16181a;
 }
 
 /* ── Le titre du document ────────────────────────────────────────── */
@@ -145,12 +141,11 @@
   color: #39413d;
   line-height: 1.5;
 }
-/* Le NIF et le STAT, dans le corps du texte et non plus en chasse
-   fixe : en petites capitales de machine à écrire, ils se lisaient
-   comme une ligne technique collée sous l'adresse. */
+/* Le NIF et le STAT s'écrivent comme le reste des coordonnées : ni
+   gras ni teinte plus foncée, qui les faisaient ressortir du bloc. */
 .doc-fiscal {
-  font-weight: 600;
-  letter-spacing: 0.01em;
+  font-weight: inherit;
+  color: inherit;
 }
 
 /* Le côté droit sous l'en-tête : les repères, puis le tampon. Le même
@@ -497,9 +492,6 @@
 .m-bandeau .band .doc-sous-titre,
 .m-bandeau .band .doc-coordonnees {
   color: rgba(255, 255, 255, 0.82);
-}
-.m-bandeau .band .doc-coordonnees .doc-fiscal {
-  color: #fff;
 }
 /* La pastille d'initiales se détache sur la couleur plutôt que de s'y
    confondre : un carré de la même teinte serait invisible. */
