@@ -4,6 +4,8 @@ import type { Database } from "../lib/database.types";
 import { useAuth } from "./useAuth";
 import { permissionsToVisibleModules, type PermissionsMap } from "../lib/permissions";
 import { lireBoutiqueActive, retenirBoutiqueActive } from "../lib/boutiqueActive";
+import { NATURE_PAR_DEFAUT, natureChoisissable, type CleNature } from "../lib/natures";
+import { lirePersonnalisation } from "../lib/personnalisation";
 import {
   COLONNES_BOUTIQUE_SANS_LOGO,
   lireBoutiquesDuCompte,
@@ -52,7 +54,10 @@ interface WorkspaceState {
 interface WorkspaceActions {
   switchStore: (storeId: string) => void;
   refreshStores: () => Promise<void>;
-  createStore: (data: Partial<Store>) => Promise<{ store: Store | null; error: string | null }>;
+  /** `nature` : bar-karaoké, pharmacie… rangée dans la personnalisation (voir `lib/natures.ts`). */
+  createStore: (
+    data: Partial<Store> & { nature?: CleNature },
+  ) => Promise<{ store: Store | null; error: string | null }>;
   updateStore: (
     storeId: string,
     updates: Partial<Store>,
@@ -259,8 +264,11 @@ export function useWorkspaceState(): WorkspaceContext {
   }, [user, fetchAllStores]);
 
   const createStore = useCallback(
-    async (data: Partial<Store>): Promise<{ store: Store | null; error: string | null }> => {
+    async (
+      data: Partial<Store> & { nature?: CleNature },
+    ): Promise<{ store: Store | null; error: string | null }> => {
       if (!user) return { store: null, error: "Non authentifié." };
+      const nature = natureChoisissable(data.nature);
 
       // Domaine client : la base étiquette la boutique et vérifie la liste.
       if (accesMarque.marqueId) {
@@ -272,7 +280,19 @@ export function useWorkspaceState(): WorkspaceContext {
           p_nom: data.name ?? "",
         });
         if (error) return { store: null, error: error.message };
-        const boutique = ouverte as Store;
+        let boutique = ouverte as Store;
+        // La fonction de la base ne connaît que le nom : la nature se pose
+        // ensuite. Un échec ici laisse une boutique standard, pas d'erreur.
+        if (nature !== NATURE_PAR_DEFAUT) {
+          const personnalisation = { ...lirePersonnalisation(boutique.personnalisation), nature };
+          const { data: posee } = await supabase
+            .from("stores")
+            .update({ personnalisation } as any)
+            .eq("id", boutique.id)
+            .select("*")
+            .single();
+          if (posee) boutique = posee as Store;
+        }
         setOwnedStores((prev) => [...prev, boutique]);
         setActiveStoreIdState(boutique.id);
         retenirBoutiqueActive(user.id, boutique.id);
@@ -290,6 +310,7 @@ export function useWorkspaceState(): WorkspaceContext {
         enable_pin_security: data.enable_pin_security ?? true,
         capital_initial: (data as any).capital_initial ?? 0,
         seuil_alerte_tresorerie: (data as any).seuil_alerte_tresorerie ?? 50000,
+        personnalisation: { nature },
         // activation_status / trial_ends_at ne sont volontairement PAS
         // envoyés ici : la colonne a un DEFAULT ('trial', now()+30 jours)
         // côté base (voir Étape 1), donc chaque nouvelle boutique démarre

@@ -10,6 +10,8 @@ import { LogoMarque } from "./landing/LogoMarque";
 import { ESSAI_JOURS } from "../lib/offres";
 import { hoteVisite } from "../lib/marquesBoutiques";
 import { SuppressionCompteModal } from "./settings/SuppressionCompteModal";
+import { ChoixNature } from "./shared/ChoixNature";
+import { NATURE_PAR_DEFAUT, type CleNature } from "../lib/natures";
 
 /**
  * Affiché quand un utilisateur est authentifié mais ne possède/rejoint
@@ -32,6 +34,7 @@ export const CreateStoreOnboarding: React.FC = () => {
   const [storeName, setStoreName] = useState(
     profile?.full_name ? `Boutique de ${profile.full_name}` : "",
   );
+  const [nature, setNature] = useState<CleNature>(NATURE_PAR_DEFAUT);
   const [creating, setCreating] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -48,7 +51,7 @@ export const CreateStoreOnboarding: React.FC = () => {
 
     setCreating(true);
     setError(null);
-    const { error: createError } = await createStore({ name: storeName.trim() });
+    const { error: createError } = await createStore({ name: storeName.trim(), nature });
     setCreating(false);
 
     if (createError) {
@@ -89,7 +92,8 @@ export const CreateStoreOnboarding: React.FC = () => {
     <div className="relative flex min-h-screen flex-col items-center justify-center overflow-hidden bg-background p-6">
       <div className="pointer-events-none absolute left-1/2 top-0 h-[28rem] w-[28rem] -translate-x-1/2 rounded-full bg-success-soft blur-3xl" />
 
-      <div className="relative z-10 w-full max-w-md">
+      {/* Plus large quand on crée : les types d'activité tiennent sur deux colonnes. */}
+      <div className={`relative z-10 w-full ${creationOuverte ? "max-w-2xl" : "max-w-md"}`}>
         <div className="mb-8 text-center">
           {/* Le logo lui-même, plutôt qu'un carré dégradé et une icône
               générique : c'est la marque que l'on doit reconnaître ici. */}
@@ -139,6 +143,13 @@ export const CreateStoreOnboarding: React.FC = () => {
                     placeholder="Ex: Ma Quincaillerie"
                     className="app-field"
                   />
+                </div>
+
+                <div>
+                  <p className="mb-1.5 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+                    Type d&apos;activité
+                  </p>
+                  <ChoixNature valeur={nature} onChange={setNature} desactive={creating} />
                 </div>
 
                 {marque.parDefaut && (
