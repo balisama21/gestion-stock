@@ -25,7 +25,6 @@ import {
   ROLE_LABELS,
   type RoleKey,
 } from "./lib/permissions";
-import { downloadExcelWorkbook } from "./utils/exportExcel";
 import { Header } from "./components/Header";
 import { NAV_GROUPS, universDe, visibleNavItems } from "./components/navigation";
 import { SousNavigation } from "./components/shared/SousNavigation";
@@ -61,11 +60,11 @@ import { MarqueDeLaBoutique, useMarque } from "./hooks/useMarque";
 import { useAuth } from "./hooks/useAuth";
 import { useSessionTimeout } from "./hooks/useSessionTimeout";
 import { workspaceContext, useWorkspaceState, useWorkspace } from "./hooks/useWorkspace";
+import { prechargerEspace } from "./lib/lectureEspace";
 import { useStoreData } from "./hooks/useStoreData";
 import { useStoreMembers } from "./hooks/useStoreMembers";
 import { useReglagesAlertesStock } from "./hooks/useReglagesAlertesStock";
 import { usePrealertesStock } from "./hooks/usePrealertesStock";
-import { BonDeCommande } from "./components/produits/BonDeCommande";
 import { useCaptureDuDrapeauDocuments, useDocumentsV2 } from "./features/documents/drapeau";
 import { lireReglagesDocuments } from "./features/documents/lib/reglages";
 import { ContexteReglagesDocuments } from "./features/documents/contexteReglages";
@@ -221,6 +220,11 @@ const PaiementsARecevoirView = lazy(() =>
   import("./components/PaiementsARecevoirView").then((m) => ({
     default: m.PaiementsARecevoirView,
   })),
+);
+/* Composé à la demande seulement ; il entraîne avec lui tout le moteur
+   des documents, inutile pour ouvrir l'application. */
+const BonDeCommande = lazy(() =>
+  import("./components/produits/BonDeCommande").then((m) => ({ default: m.BonDeCommande })),
 );
 const MyActivityView = lazy(() =>
   import("./components/MyActivityView").then((m) => ({ default: m.MyActivityView })),
@@ -458,6 +462,11 @@ function AppInner() {
    * la main le tri qu'elle vient d'énoncer.
    */
   const [bonDeCommandeOuvert, setBonDeCommandeOuvert] = useState(false);
+  // Monté à la première ouverture, puis gardé : sa fermeture reste animée.
+  const [bonDeCommandeMonte, setBonDeCommandeMonte] = useState(false);
+  useEffect(() => {
+    if (bonDeCommandeOuvert) setBonDeCommandeMonte(true);
+  }, [bonDeCommandeOuvert]);
 
   const actionNotification = useCallback(
     (action: ActionNotification) => {
@@ -2103,15 +2112,20 @@ function AppInner() {
   };
 
   const handleDownloadExcel = () => {
-    void downloadExcelWorkbook(
-      computedCapital,
-      products,
-      purchases,
-      sales,
-      computedSellers,
-      expenses,
-      marque.nom,
-    ).catch((error) => signalerErreur(error.message));
+    // La bibliothèque des tableurs (400 ko) n'est chargée qu'au clic.
+    void import("./utils/exportExcel")
+      .then(({ downloadExcelWorkbook }) =>
+        downloadExcelWorkbook(
+          computedCapital,
+          products,
+          purchases,
+          sales,
+          computedSellers,
+          expenses,
+          marque.nom,
+        ),
+      )
+      .catch((error) => signalerErreur(error.message));
   };
 
   // ─── Suppression réelle d'un collaborateur (store_members) ───
@@ -3148,13 +3162,19 @@ function AppInner() {
             cloche l'ouvre, la carte Stock aussi. Il vit donc à la
             racine plutôt que dans l'un des deux écrans, et l'autre
             aurait dû aller le chercher. */}
-            <BonDeCommande
-              ouvert={bonDeCommandeOuvert}
-              onFermer={() => setBonDeCommandeOuvert(false)}
-              produits={produitsARecommander}
-              reglages={alertesStock.reglages}
-              settings={storeSettings}
-            />
+            {(bonDeCommandeOuvert || bonDeCommandeMonte) && (
+              <LimiteChargement>
+                <Suspense fallback={null}>
+                  <BonDeCommande
+                    ouvert={bonDeCommandeOuvert}
+                    onFermer={() => setBonDeCommandeOuvert(false)}
+                    produits={produitsARecommander}
+                    reglages={alertesStock.reglages}
+                    settings={storeSettings}
+                  />
+                </Suspense>
+              </LimiteChargement>
+            )}
           </div>
         </ContexteReglagesDocuments.Provider>
       </FournisseurDevises>
@@ -3204,6 +3224,18 @@ export default function App() {
   // au tout premier chargement (nouvel onglet, retour sur le site après
   // fermeture, F5...), pas à chaque re-render une fois l'app ouverte.
   const pinCheckedOnBootRef = React.useRef(false);
+
+  /*
+   * Les boutiques du compte sont demandées dès que la session est connue,
+   * en même temps que le profil, et non après lui : l'espace de travail
+   * n'est monté qu'une fois le profil arrivé, et reprend alors cette
+   * lecture déjà en route (voir lib/lectureEspace.ts). Un effet, et non le
+   * rappel de `onAuthStateChange` : un appel au client Supabase depuis ce
+   * rappel attend le verrou qu'il tient.
+   */
+  useEffect(() => {
+    if (user?.id) prechargerEspace(user.id);
+  }, [user?.id]);
 
   useEffect(() => {
     if (pinCheckedOnBootRef.current) return;

@@ -1,20 +1,20 @@
-import { useState, useEffect, useCallback, createContext, useContext } from "react";
+import { useState, useEffect, useCallback, useMemo, createContext, useContext } from "react";
 import { supabase } from "../lib/supabase";
 import type { Database } from "../lib/database.types";
 import { useAuth } from "./useAuth";
-import {
-  normalizePermissions,
-  permissionsToVisibleModules,
-  type PermissionsMap,
-} from "../lib/permissions";
+import { permissionsToVisibleModules, type PermissionsMap } from "../lib/permissions";
 import { lireBoutiqueActive, retenirBoutiqueActive } from "../lib/boutiqueActive";
-import { boutiqueDuDomaineCourant } from "../lib/domaines";
+import {
+  lireBoutiquesDuCompte,
+  lireEspace,
+  lireLogoBoutique,
+  reprendreEspacePrecharge,
+} from "../lib/lectureEspace";
 import { boutiqueEstVerrouillee } from "../lib/verrouillage";
 import {
   ACCES_SANS_MARQUE,
   boutiquesDuDomaine,
   hoteVisite,
-  lireAccesMarque,
   type AccesMarque,
 } from "../lib/marquesBoutiques";
 
@@ -101,6 +101,12 @@ export function useWorkspaceState(): WorkspaceContext {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [hasInitializedActiveStore, setHasInitializedActiveStore] = useState(false);
+  /**
+   * Logo des boutiques, lu à part et après l'ouverture : la liste des
+   * boutiques arrive sans lui (voir lectureEspace.ts). `undefined` = pas
+   * encore lu, `null` = pas de logo.
+   */
+  const [logos, setLogos] = useState<Record<string, string | null>>({});
 
   const fetchAllStores = useCallback(async () => {
     if (!user)
@@ -110,33 +116,7 @@ export function useWorkspaceState(): WorkspaceContext {
         roles: {} as Record<string, string>,
         permissionsDetailed: {} as Record<string, PermissionsMap>,
       };
-
-    const [ownedRes, membershipsRes] = await Promise.all([
-      supabase.from("stores").select("*").eq("owner_id", user.id).order("created_at"),
-      supabase.from("store_members").select("*, store:stores(*)").eq("user_id", user.id),
-    ]);
-
-    if (ownedRes.error) throw ownedRes.error;
-    if (membershipsRes.error) throw membershipsRes.error;
-
-    const owned = ownedRes.data ?? [];
-    const memberStoreList = (membershipsRes.data ?? [])
-      .map((m: any) => m.store as Store)
-      .filter(Boolean);
-
-    const roles: Record<string, string> = {};
-    const permissionsDetailed: Record<string, PermissionsMap> = {};
-    (membershipsRes.data ?? []).forEach((m: any) => {
-      if (m.store_id) {
-        roles[m.store_id] = m.role;
-        // normalizePermissions() gère aussi bien l'ancien format (tableau
-        // de clés) que le nouveau (carte détaillée) — aucune donnée
-        // existante n'est perdue lors de cette mise à niveau.
-        permissionsDetailed[m.store_id] = normalizePermissions(m.permissions);
-      }
-    });
-
-    return { owned, memberStoreList, roles, permissionsDetailed };
+    return lireBoutiquesDuCompte(user.id);
   }, [user]);
 
   const loadStores = useCallback(async () => {
@@ -148,8 +128,10 @@ export function useWorkspaceState(): WorkspaceContext {
     setError(null);
 
     try {
+      // La lecture lancée dès l'ouverture de la session (voir
+      // lectureEspace.ts), sinon une nouvelle.
       const [{ owned, memberStoreList, roles, permissionsDetailed }, boutiqueDuDomaine, acces] =
-        await Promise.all([fetchAllStores(), boutiqueDuDomaineCourant(), lireAccesMarque()]);
+        await (reprendreEspacePrecharge(user.id) ?? lireEspace(user.id));
       setAccesMarque(acces);
       setOwnedStores(owned);
       setMemberStores(memberStoreList);
@@ -185,7 +167,7 @@ export function useWorkspaceState(): WorkspaceContext {
     } finally {
       setLoading(false);
     }
-  }, [user, fetchAllStores, hasInitializedActiveStore, adminPlateforme]);
+  }, [user, hasInitializedActiveStore, adminPlateforme]);
 
   useEffect(() => {
     setHasInitializedActiveStore(false);
@@ -202,7 +184,30 @@ export function useWorkspaceState(): WorkspaceContext {
     adminPlateforme,
   );
 
-  const activeStore = allStores.find((s) => s.id === activeStoreId) ?? null;
+  const boutiqueActiveSansLogo = allStores.find((s) => s.id === activeStoreId) ?? null;
+  const logoActif = activeStoreId ? logos[activeStoreId] : undefined;
+  const activeStore = useMemo(
+    () =>
+      boutiqueActiveSansLogo && logoActif !== undefined
+        ? { ...boutiqueActiveSansLogo, logo_url: logoActif }
+        : boutiqueActiveSansLogo,
+    [boutiqueActiveSansLogo, logoActif],
+  );
+
+  // Le logo de la boutique ouverte, sans retenir l'ouverture : l'en-tête
+  // et les documents l'affichent dès qu'il arrive.
+  useEffect(() => {
+    if (!activeStoreId || activeStoreId in logos) return;
+    let abandonne = false;
+    lireLogoBoutique(activeStoreId)
+      .then((logo) => {
+        if (!abandonne) setLogos((prev) => ({ ...prev, [activeStoreId]: logo }));
+      })
+      .catch(() => {});
+    return () => {
+      abandonne = true;
+    };
+  }, [activeStoreId, logos]);
   const isOwner = activeStore?.owner_id === user?.id;
   const memberRole = activeStore ? (memberRoles[activeStore.id] ?? null) : null;
   // Owner = accès total (null = illimité). Collaborateur = uniquement les
@@ -347,6 +352,7 @@ export function useWorkspaceState(): WorkspaceContext {
 
       setOwnedStores((prev) => prev.map((s) => (s.id === storeId ? (updated as Store) : s)));
       setMemberStores((prev) => prev.map((s) => (s.id === storeId ? (updated as Store) : s)));
+      setLogos((prev) => ({ ...prev, [storeId]: (updated as Store).logo_url ?? null }));
 
       return { store: updated as Store, error: null };
     },
