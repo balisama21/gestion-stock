@@ -18,6 +18,30 @@ const ContexteMarque = createContext<Marque>(MARQUE_PAR_DEFAUT);
 export const useMarque = (): Marque => useContext(ContexteMarque);
 
 /**
+ * La marque du domaine visité, quelle que soit la boutique ouverte.
+ *
+ * `useMarque` donne, dans l'application, la marque de la boutique ouverte
+ * (`MarqueDeLaBoutique`). Sur mg-kinvest.com, une boutique Tantana ouverte
+ * y montrait donc la feuille Tantana : c'est pourtant le site Kinvest, et
+ * son habillage (logo de l'en-tête, logo par défaut des factures) doit
+ * rester celui de Kinvest.
+ */
+const ContexteMarqueDuDomaine = createContext<Marque>(MARQUE_PAR_DEFAUT);
+export const useMarqueDuDomaine = (): Marque => useContext(ContexteMarqueDuDomaine);
+
+/**
+ * La marque qui habille l'écran et les pièces : celle du domaine quand
+ * c'est une marque blanche (tout mg-kinvest.com est Kinvest), sinon celle
+ * de la boutique ouverte (une boutique Kinvest ouverte sur Tantana garde
+ * son K).
+ */
+export function useMarqueDHabillage(): Marque {
+  const duDomaine = useMarqueDuDomaine();
+  const deLaBoutique = useMarque();
+  return duDomaine.parDefaut ? deLaBoutique : duDomaine;
+}
+
+/**
  * Premier rendu : la marque du rendu serveur (pas d'écart d'hydratation).
  * Ensuite : cache, puis réseau si le cache a plus de cinq minutes.
  */
@@ -52,7 +76,11 @@ export function MarqueProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
-  return <ContexteMarque.Provider value={marque}>{children}</ContexteMarque.Provider>;
+  return (
+    <ContexteMarqueDuDomaine.Provider value={marque}>
+      <ContexteMarque.Provider value={marque}>{children}</ContexteMarque.Provider>
+    </ContexteMarqueDuDomaine.Provider>
+  );
 }
 
 /**

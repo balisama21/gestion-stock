@@ -35,7 +35,7 @@ import { useConfirmation } from "../hooks/useConfirmation";
 import { supabase } from "../lib/supabase";
 import { hoteVisite, peutCreerUneBoutique } from "../lib/marquesBoutiques";
 import { abonnementNouvelleBoutique } from "../lib/abonnementNouvelleBoutique";
-import { useMarque } from "../hooks/useMarque";
+import { useMarqueDHabillage } from "../hooks/useMarque";
 import { usePersonnalisation } from "../lib/personnalisation";
 
 /**
@@ -170,7 +170,9 @@ export const Header: React.FC<HeaderProps> = ({
   sansBarreLaterale = false,
   badgesNav,
 }) => {
-  const marque = useMarque();
+  // Sur un domaine de marque blanche, l'en-tête porte la marque du site,
+  // même quand la boutique ouverte n'en fait pas partie.
+  const marque = useMarqueDHabillage();
 
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [notifOpen, setNotifOpen] = useState(false);

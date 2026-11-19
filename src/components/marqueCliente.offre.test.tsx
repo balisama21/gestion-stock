@@ -25,7 +25,10 @@ const marqueCliente = marqueDepuisLigne({
 
 const acces = { marqueId: "m-kinvest", proprietaire: false };
 
-vi.mock("../hooks/useMarque", () => ({ useMarque: () => marqueCliente }));
+vi.mock("../hooks/useMarque", () => ({
+  useMarque: () => marqueCliente,
+  useMarqueDHabillage: () => marqueCliente,
+}));
 // Objet stable : un objet neuf à chaque rendu relancerait les effets d'AuthPage.
 const auth = {
   user: null,

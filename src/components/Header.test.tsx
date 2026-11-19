@@ -39,7 +39,10 @@ const workspace = {
 };
 vi.mock("../hooks/useAuth", () => ({ useAuth: () => auth }));
 vi.mock("../hooks/useWorkspace", () => ({ useWorkspace: () => workspace }));
-vi.mock("../hooks/useMarque", () => ({ useMarque: () => ({ nom: "Tantana" }) }));
+vi.mock("../hooks/useMarque", () => ({
+  useMarque: () => ({ nom: "Tantana" }),
+  useMarqueDHabillage: () => ({ nom: "Tantana" }),
+}));
 vi.mock("../hooks/useBarresAuDefilement", () => ({ useBarresAuDefilement: () => false }));
 vi.mock("../lib/notificationsLues", () => ({
   useNotificationsLues: () => ({
