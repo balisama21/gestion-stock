@@ -20,6 +20,8 @@ import { AvatarPersonne } from "./shared/AvatarPersonne";
 import { Icone } from "./shared/Icone";
 import { formatCurrency } from "../utils/formulas";
 import { Modal } from "./shared/Modal";
+import { ChoixNature } from "./shared/ChoixNature";
+import { NATURE_PAR_DEFAUT, type CleNature } from "../lib/natures";
 import { Sidebar } from "./Sidebar";
 import { MenuPlus } from "./MenuPlus";
 import { PanneauNotifications } from "./PanneauNotifications";
@@ -193,6 +195,7 @@ export const Header: React.FC<HeaderProps> = ({
   const [workspaceMenuOpen, setWorkspaceMenuOpen] = useState(false);
   const [showCreateStoreModal, setShowCreateStoreModal] = useState(false);
   const [newStoreName, setNewStoreName] = useState("");
+  const [natureNouvelle, setNatureNouvelle] = useState<CleNature>(NATURE_PAR_DEFAUT);
   const [creatingStore, setCreatingStore] = useState(false);
   const [createStoreError, setCreateStoreError] = useState<string | null>(null);
 
@@ -232,7 +235,10 @@ export const Header: React.FC<HeaderProps> = ({
     if (!newStoreName.trim() || creatingStore) return;
     setCreatingStore(true);
     setCreateStoreError(null);
-    const { store, error } = await workspace.createStore({ name: newStoreName.trim() });
+    const { store, error } = await workspace.createStore({
+      name: newStoreName.trim(),
+      nature: natureNouvelle,
+    });
     setCreatingStore(false);
     if (error) {
       setCreateStoreError(error);
@@ -241,6 +247,7 @@ export const Header: React.FC<HeaderProps> = ({
     if (store) {
       setShowCreateStoreModal(false);
       setNewStoreName("");
+      setNatureNouvelle(NATURE_PAR_DEFAUT);
       setWorkspaceMenuOpen(false);
     }
   };
@@ -916,7 +923,7 @@ export const Header: React.FC<HeaderProps> = ({
           setShowCreateStoreModal(false);
           setCreateStoreError(null);
         }}
-        size="sm"
+        size="2xl"
         icon={<Store className="h-4 w-4" />}
         title="Créer une boutique"
         description="Vous en devenez propriétaire."
@@ -955,7 +962,7 @@ export const Header: React.FC<HeaderProps> = ({
           </p>
         )}
 
-        <form onSubmit={handleCreateStore} id="create-store-form" className="mt-4 space-y-3">
+        <form onSubmit={handleCreateStore} id="create-store-form" className="mt-4 space-y-4">
           <input
             type="text"
             required
@@ -963,8 +970,19 @@ export const Header: React.FC<HeaderProps> = ({
             value={newStoreName}
             onChange={(e) => setNewStoreName(e.target.value)}
             placeholder="Nom de la nouvelle boutique"
+            aria-label="Nom de la nouvelle boutique"
             className="app-field"
           />
+          <div>
+            <p className="mb-2 text-xs font-semibold uppercase tracking-wide text-muted-foreground">
+              Type d&apos;activité
+            </p>
+            <ChoixNature
+              valeur={natureNouvelle}
+              onChange={setNatureNouvelle}
+              desactive={creatingStore}
+            />
+          </div>
           {createStoreError && <p className="text-sm font-medium t-danger">{createStoreError}</p>}
         </form>
       </Modal>
