@@ -5,6 +5,7 @@ import { useAuth } from "./useAuth";
 import { permissionsToVisibleModules, type PermissionsMap } from "../lib/permissions";
 import { lireBoutiqueActive, retenirBoutiqueActive } from "../lib/boutiqueActive";
 import {
+  COLONNES_BOUTIQUE_SANS_LOGO,
   lireBoutiquesDuCompte,
   lireEspace,
   lireLogoBoutique,
@@ -341,22 +342,39 @@ export function useWorkspaceState(): WorkspaceContext {
         };
       }
 
-      const { data: updated, error } = await supabase
+      /*
+       * Le logo ne revient que s'il vient d'être changé. `select("*")` le
+       * renvoyait à chaque enregistrement — un numéro de téléphone corrigé
+       * faisait redescendre toute l'image. Les listes de boutiques restent
+       * sans logo, comme au démarrage (voir lectureEspace.ts) ; le logo vit
+       * à part, dans `logos`.
+       */
+      const logoModifie = "logo_url" in updates;
+      const { data, error } = await supabase
         .from("stores")
         .update(updates as any)
         .eq("id", storeId)
-        .select("*")
+        .select(
+          logoModifie ? `${COLONNES_BOUTIQUE_SANS_LOGO},logo_url` : COLONNES_BOUTIQUE_SANS_LOGO,
+        )
         .single();
 
       if (error) return { store: null, error: error.message };
 
-      setOwnedStores((prev) => prev.map((s) => (s.id === storeId ? (updated as Store) : s)));
-      setMemberStores((prev) => prev.map((s) => (s.id === storeId ? (updated as Store) : s)));
-      setLogos((prev) => ({ ...prev, [storeId]: (updated as Store).logo_url ?? null }));
+      const { logo_url: logoRenvoye, ...sansLogo } = data as unknown as Store;
+      const boutique = sansLogo as Store;
 
-      return { store: updated as Store, error: null };
+      setOwnedStores((prev) => prev.map((s) => (s.id === storeId ? boutique : s)));
+      setMemberStores((prev) => prev.map((s) => (s.id === storeId ? boutique : s)));
+      if (logoModifie) setLogos((prev) => ({ ...prev, [storeId]: logoRenvoye ?? null }));
+
+      const logo = logoModifie ? (logoRenvoye ?? null) : logos[storeId];
+      return {
+        store: logo === undefined ? boutique : { ...boutique, logo_url: logo },
+        error: null,
+      };
     },
-    [ownedStores, memberStores],
+    [ownedStores, memberStores, logos],
   );
 
   const copyStore = useCallback(

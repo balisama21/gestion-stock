@@ -11,7 +11,9 @@ type Store = Database["public"]["Tables"]["stores"]["Row"];
  *
  * LE LOGO N'EN FAIT PAS PARTIE. Il est stocké en base64 dans la colonne
  * `logo_url`, et les logos enregistrés avant leur réduction (voir
- * compressLogo.ts) pèsent jusqu'à deux mégaoctets chacun. `select("*")`
+ * compressLogo.ts) pesaient jusqu'à deux mégaoctets chacun — ramenés à
+ * 256 px en base le 19/11/2026, originaux gardés dans
+ * `sauvegardes.logos_boutiques_20261119`. `select("*")`
  * les ramenait tous, pour chaque boutique du compte : mesuré le
  * 19/11/2026, 4,2 Mo pour six boutiques, et 4 à 6 secondes d'écran
  * « Ouverture de votre boutique… » sur une bonne connexion. Seul le logo
