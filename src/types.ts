@@ -254,6 +254,9 @@ export interface StoreSettings {
 
 export type ActiveTab =
   | "dashboard"
+  | "salle"
+  | "inventaire"
+  | "consigne"
   | "capital"
   | "produits"
   | "achats"

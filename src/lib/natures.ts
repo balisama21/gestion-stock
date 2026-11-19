@@ -44,8 +44,8 @@ export const NATURES: Nature[] = [
   {
     cle: "karaoke",
     nom: "Bar-karaoké",
-    description: "Tables numérotées, notes ouvertes, droit de table, consigne, inventaire du soir.",
-    disponible: false,
+    description: "Tables numérotées, notes ouvertes, droit de table, addition partagée.",
+    disponible: true,
   },
   {
     cle: "pharmacie",
@@ -106,3 +106,78 @@ export const natureParCle = (cle: CleNature): Nature =>
 /** Une nature qu'on peut choisir aujourd'hui ; sinon la nature par défaut. */
 export const natureChoisissable = (cle: CleNature | null | undefined): CleNature =>
   cle && natureParCle(cle).disponible ? cle : NATURE_PAR_DEFAUT;
+
+/* ─────────────────────────────────────────────────────────────
+ * L'intérieur propre à chaque nature
+ * ───────────────────────────────────────────────────────────── */
+
+/**
+ * Ce qu'une nature change à l'intérieur : le nom des écrans, ceux qui
+ * n'ont rien à y faire, et les raccourcis de la barre du bas.
+ *
+ * Ce ne sont que des valeurs PAR DÉFAUT, appliquées à l'affichage et
+ * jamais enregistrées : un nom ou un masque choisi par la boutique dans
+ * ses réglages l'emporte toujours. Les données ne bougent pas ; une
+ * boutique standard ne voit aucune différence.
+ */
+export interface InterieurDeNature {
+  /** Le nom des écrans, par clé de module (« produits » → « Carte »). */
+  libelles?: Record<string, string>;
+  /** Les écrans retirés du menu. Leurs données restent. */
+  masques?: string[];
+  /** Les raccourcis de la barre du bas, dans l'ordre (« Plus » s'ajoute seul). */
+  barreDuBas?: string[];
+}
+
+export const INTERIEURS: Partial<Record<CleNature, InterieurDeNature>> = {
+  karaoke: {
+    libelles: {
+      dashboard: "Ce soir",
+      salle: "Salle",
+      produits: "Carte",
+      ventes: "Caisse",
+      achats: "Entrées de stock",
+      vendeurs: "Équipe",
+    },
+    masques: [
+      "devis",
+      "commandes",
+      "livraisons",
+      "prestataires",
+      "notes_frais",
+      "vue_equipe",
+      "taches",
+      "agenda",
+      "rappels",
+    ],
+    barreDuBas: ["dashboard", "salle", "produits", "ventes"],
+  },
+};
+
+export const interieurDe = (personnalisation: unknown): InterieurDeNature =>
+  INTERIEURS[natureDe(personnalisation)] ?? {};
+
+/**
+ * La personnalisation telle qu'elle s'affiche : celle de la boutique,
+ * complétée par l'intérieur de sa nature là où elle n'a rien choisi.
+ *
+ * À NE JAMAIS RÉENREGISTRER : les réglages s'écrivent depuis la
+ * personnalisation brute, sinon les valeurs par défaut de la nature
+ * deviendraient des choix de la boutique.
+ */
+export function avecLInterieur<
+  P extends { modules?: Record<string, { libelle?: string; masque?: boolean }> },
+>(perso: P): P {
+  const interieur = interieurDe(perso);
+  if (!interieur.libelles && !interieur.masques) return perso;
+  const modules: Record<string, { libelle?: string; masque?: boolean }> = {
+    ...(perso.modules ?? {}),
+  };
+  for (const [cle, libelle] of Object.entries(interieur.libelles ?? {})) {
+    if (!modules[cle]?.libelle?.trim()) modules[cle] = { ...modules[cle], libelle };
+  }
+  for (const cle of interieur.masques ?? []) {
+    if (modules[cle]?.masque === undefined) modules[cle] = { ...modules[cle], masque: true };
+  }
+  return { ...perso, modules };
+}
