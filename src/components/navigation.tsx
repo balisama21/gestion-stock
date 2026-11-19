@@ -22,9 +22,16 @@ import {
   ReceiptText,
   Receipt,
   Sparkles,
+  Mic,
+  Moon,
+  Wine,
+  Banknote,
+  ClipboardCheck,
+  Box,
 } from "lucide-react";
 import type { ActiveTab } from "../types";
 import { libelleModule, moduleMasque, type Personnalisation } from "../lib/personnalisation";
+import { interieurDe, natureDe } from "../lib/natures";
 
 /**
  * Source unique de vérité de la navigation.
@@ -85,6 +92,8 @@ export const NAV_GROUPS: NavGroup[] = [
     // modules que toutes les boutiques n'activent pas à la fin.
     title: "Ventes & clients",
     items: [
+      // La salle du bar-karaoké : seulement pour cette nature (voir `ongletDeLaNature`).
+      { id: "salle", label: "Salle", icon: <Mic className="w-4 h-4" /> },
       { id: "ventes", label: "Ventes", icon: <DollarSign className="w-4 h-4" /> },
       { id: "facturation", label: "Facturation", icon: <ReceiptText className="w-4 h-4" /> },
       { id: "clients", label: "Clients", icon: <UserIcon className="w-4 h-4" /> },
@@ -99,6 +108,13 @@ export const NAV_GROUPS: NavGroup[] = [
     items: [
       { id: "produits", label: "Produits", icon: <Package className="w-4 h-4" /> },
       { id: "achats", label: "Achats", icon: <ShoppingCart className="w-4 h-4" /> },
+      // Bar-karaoké seulement (voir `ONGLETS_DE_NATURE`).
+      {
+        id: "inventaire",
+        label: "Inventaire du soir",
+        icon: <ClipboardCheck className="w-4 h-4" />,
+      },
+      { id: "consigne", label: "Consigne", icon: <Box className="w-4 h-4" /> },
       { id: "fournisseurs", label: "Fournisseurs", icon: <Truck className="w-4 h-4" /> },
       { id: "prestataires", label: "Prestataires", icon: <Wrench className="w-4 h-4" /> },
     ],
@@ -133,8 +149,8 @@ export const NAV_GROUPS: NavGroup[] = [
  */
 const UNIVERS: ActiveTab[][] = [
   ["vue_equipe", "taches", "agenda", "rappels"],
-  ["ventes", "facturation", "devis", "commandes", "livraisons"],
-  ["produits", "achats", "fournisseurs", "prestataires"],
+  ["salle", "ventes", "facturation", "devis", "commandes", "livraisons"],
+  ["produits", "achats", "inventaire", "consigne", "fournisseurs", "prestataires"],
   ["clients", "paiements"],
   ["capital", "depenses", "notes_frais", "rapports"],
   // Les deux faces de l'équipe : ce que chacun détient de votre argent,
@@ -149,7 +165,33 @@ const UNIVERS: ActiveTab[][] = [
  * globales de l'entreprise, voir BalsamaApp.tsx) plutôt que d'être
  * masqué. Comportement repris tel quel de l'ancien Header.
  */
-export const ALWAYS_VISIBLE_TABS = ["dashboard", "capital", "ventes"];
+export const ALWAYS_VISIBLE_TABS = ["dashboard", "capital", "ventes", "salle"];
+
+/**
+ * Les écrans propres à une nature de boutique (voir `lib/natures.ts`).
+ * Absents de la liste : communs à toutes.
+ */
+const ONGLETS_DE_NATURE: Partial<Record<ActiveTab, string[]>> = {
+  salle: ["karaoke"],
+  inventaire: ["karaoke"],
+  consigne: ["karaoke"],
+};
+
+/**
+ * Les écrans qui suivent la permission d'un autre : l'inventaire touche
+ * au stock de la carte, la consigne aux livraisons des fournisseurs.
+ */
+const PERMISSION_DE: Partial<Record<ActiveTab, ActiveTab>> = {
+  inventaire: "produits",
+  consigne: "achats",
+};
+const permissionDe = (id: ActiveTab): ActiveTab => PERMISSION_DE[id] ?? id;
+
+/** Vrai si l'écran a sa place dans une boutique de cette nature. */
+export const ongletDeLaNature = (id: ActiveTab, perso: Personnalisation = {}): boolean => {
+  const natures = ONGLETS_DE_NATURE[id];
+  return !natures || natures.includes(natureDe(perso));
+};
 
 /**
  * Filtre les groupes selon les permissions du membre.
@@ -168,12 +210,13 @@ export function visibleNavGroups(
         (item) =>
           memberPermissions === null ||
           ALWAYS_VISIBLE_TABS.includes(item.id) ||
-          memberPermissions.includes(item.id),
+          memberPermissions.includes(permissionDe(item.id)),
       )
       // Un module retiré par l'entreprise disparaît de la
       // navigation, mais ses données restent : c'est un réglage
       // d'affichage, pas une suppression.
       .filter((item) => !moduleMasque(perso, item.id))
+      .filter((item) => ongletDeLaNature(item.id, perso))
       .map((item) => ({ ...item, label: libelleModule(perso, item.id, item.label) })),
   })).filter((group) => group.items.length > 0);
 }
@@ -220,16 +263,44 @@ export function universDe(
  */
 export const BOTTOM_TABS: { id: ActiveTab; shortLabel: string; icon: React.ReactNode }[] = [
   { id: "dashboard", shortLabel: "Accueil", icon: <TrendingUp className="w-5 h-5" /> },
+  // Le bar-karaoké seulement : c'est son écran de tous les instants.
+  { id: "salle", shortLabel: "Salle", icon: <Mic className="w-5 h-5" /> },
   { id: "ventes", shortLabel: "Ventes", icon: <DollarSign className="w-5 h-5" /> },
   { id: "produits", shortLabel: "Stock", icon: <Package className="w-5 h-5" /> },
   { id: "clients", shortLabel: "Clients", icon: <UserIcon className="w-5 h-5" /> },
 ];
 
+/**
+ * Les icônes d'une barre du bas propre à une nature : un bar ne
+ * reconnaît pas sa caisse dans un « $ », ni sa carte dans un carton.
+ */
+const ICONES_DE_NATURE: Partial<Record<ActiveTab, React.ReactNode>> = {
+  dashboard: <Moon className="w-5 h-5" />,
+  salle: <Mic className="w-5 h-5" />,
+  produits: <Wine className="w-5 h-5" />,
+  ventes: <Banknote className="w-5 h-5" />,
+};
+
 export function visibleBottomTabs(
   memberPermissions: string[] | null,
   perso: Personnalisation = {},
 ) {
-  return BOTTOM_TABS.filter(
+  const propre = interieurDe(perso).barreDuBas;
+  const tabs = propre
+    ? propre.flatMap((id) => {
+        const base = BOTTOM_TABS.find((t) => t.id === id);
+        return base
+          ? [
+              {
+                ...base,
+                shortLabel: libelleModule(perso, id, base.shortLabel),
+                icon: ICONES_DE_NATURE[id as ActiveTab] ?? base.icon,
+              },
+            ]
+          : [];
+      })
+    : BOTTOM_TABS;
+  return tabs.filter(
     (tab) =>
       (memberPermissions === null ||
         ALWAYS_VISIBLE_TABS.includes(tab.id) ||
@@ -237,7 +308,8 @@ export function visibleBottomTabs(
       // Un module masqué disparaît aussi de la barre du bas, sinon
       // l'utilisateur y trouverait un raccourci vers un écran qu'il a
       // lui-même retiré de son menu.
-      !moduleMasque(perso, tab.id),
+      !moduleMasque(perso, tab.id) &&
+      ongletDeLaNature(tab.id, perso),
   );
 }
 

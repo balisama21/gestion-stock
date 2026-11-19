@@ -324,7 +324,7 @@ export interface StoreData {
   // CRUD Products
   addProduct: (
     data: Omit<Database["public"]["Tables"]["products"]["Insert"], "store_id" | "owner_id">,
-  ) => Promise<{ error: string | null }>;
+  ) => Promise<{ error: string | null; id?: string | null }>;
 
   updateProduct: (
     id: string,

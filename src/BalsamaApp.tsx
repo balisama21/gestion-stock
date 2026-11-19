@@ -26,7 +26,9 @@ import {
   type RoleKey,
 } from "./lib/permissions";
 import { Header } from "./components/Header";
-import { NAV_GROUPS, universDe, visibleNavItems } from "./components/navigation";
+import { NAV_GROUPS, ongletDeLaNature, universDe, visibleNavItems } from "./components/navigation";
+import { avecLInterieur, natureDe } from "./lib/natures";
+import { dateDuJour } from "./lib/dates";
 import { SousNavigation } from "./components/shared/SousNavigation";
 import { SquelettePage } from "./components/shared/SquelettePage";
 import { construireNotifications, type ActionNotification } from "./lib/activite";
@@ -168,6 +170,28 @@ const FacturationPage = lazy(() =>
 );
 const VentesView = lazy(() =>
   import("./components/VentesView").then((m) => ({ default: m.VentesView })),
+);
+const InventaireView = lazy(() =>
+  import("./components/bar/InventaireView").then((m) => ({ default: m.InventaireView })),
+);
+const ConsigneView = lazy(() =>
+  import("./components/bar/ConsigneView").then((m) => ({ default: m.ConsigneView })),
+);
+const EntreesView = lazy(() =>
+  import("./components/bar/EntreesView").then((m) => ({ default: m.EntreesView })),
+);
+const CaisseView = lazy(() =>
+  import("./components/bar/CaisseView").then((m) => ({ default: m.CaisseView })),
+);
+const CarteView = lazy(() =>
+  import("./components/bar/CarteView").then((m) => ({ default: m.CarteView })),
+);
+const CeSoirView = lazy(() =>
+  import("./components/bar/CeSoirView").then((m) => ({ default: m.CeSoirView })),
+);
+// La salle du bar-karaoké : chargée seulement par les boutiques de cette nature.
+const SalleView = lazy(() =>
+  import("./components/bar/SalleView").then((m) => ({ default: m.SalleView })),
 );
 const VendeursView = lazy(() =>
   import("./components/VendeursView").then((m) => ({ default: m.VendeursView })),
@@ -564,6 +588,15 @@ function AppInner() {
     () => lirePersonnalisation(workspace.activeStore?.personnalisation),
     [workspace.activeStore],
   );
+  // Telle qu'elle s'affiche : complétée par l'intérieur de la nature de la
+  // boutique (« Carte », « Caisse »… pour un bar-karaoké). Jamais réenregistrée :
+  // les réglages s'écrivent depuis `personnalisation`.
+  const personnalisationAffichee = useMemo(
+    () => avecLInterieur(personnalisation),
+    [personnalisation],
+  );
+  // Un bar-karaoké ouvre sur « Ce soir », pas sur le tableau de bord d'un commerce.
+  const accueilDeNature = natureDe(personnalisation) === "karaoke";
 
   /**
    * La base tranche la même question dans ses politiques d'insertion ;
@@ -647,7 +680,7 @@ function AppInner() {
 
   const facturationBrute = useFacturation(
     workspace.activeStore?.id ?? null,
-    voitLaFacturation && !moduleMasque(personnalisation, "facturation"),
+    voitLaFacturation && !moduleMasque(personnalisationAffichee, "facturation"),
   );
   /*
    * Un avoir change la VENTE en base (montant avoiré, reste dû, parfois le
@@ -752,10 +785,13 @@ function AppInner() {
    * un écran que son menu ne sait plus rouvrir.
    */
   useEffect(() => {
-    if (moduleMasque(personnalisation, activeTab)) {
+    if (
+      moduleMasque(personnalisationAffichee, activeTab) ||
+      !ongletDeLaNature(activeTab, personnalisationAffichee)
+    ) {
       setActiveTab("dashboard");
     }
-  }, [personnalisation, activeTab]);
+  }, [personnalisationAffichee, activeTab]);
 
   /**
    * Un écran que le menu ne propose pas à ce membre ne s'ouvre pas non
@@ -770,9 +806,11 @@ function AppInner() {
     if (permissions === null) return;
     const auMenu = NAV_GROUPS.some((g) => g.items.some((i) => i.id === activeTab));
     if (!auMenu) return;
-    const visible = visibleNavItems(permissions, personnalisation).some((i) => i.id === activeTab);
+    const visible = visibleNavItems(permissions, personnalisationAffichee).some(
+      (i) => i.id === activeTab,
+    );
     if (!visible) setActiveTab("dashboard");
-  }, [workspace.memberPermissions, personnalisation, activeTab]);
+  }, [workspace.memberPermissions, personnalisationAffichee, activeTab]);
 
   // Préférences d'affichage des alertes (Paramètres → Notifications).
   const [notificationPrefs] = useNotificationPrefs();
@@ -1571,6 +1609,12 @@ function AppInner() {
   const paiementsScope = workspace.isOwner
     ? "all"
     : getModuleScope(workspace.memberPermissionsDetailed ?? {}, "paiements");
+  /** Les paiements des ventes que cette personne voit : la caisse du bar s'en sert. */
+  const paiementsDesVentesVisibles = useMemo(() => {
+    const ids = new Set(visibleSales.map((s) => s.id));
+    return payments.filter((p) => p.saleId !== null && ids.has(p.saleId));
+  }, [payments, visibleSales]);
+
   const visiblePayments = useMemo(() => {
     if (!hasPaiementsModule) return [];
     if (paiementsScope === "all") return payments;
@@ -2233,7 +2277,7 @@ function AppInner() {
        six niveaux plus bas — pour nommer son titre. Le faire descendre
        en propriétés aurait obligé chaque composant traversé à
        transporter une donnée qui ne le concerne pas. */
-    <contextePersonnalisation.Provider value={personnalisation}>
+    <contextePersonnalisation.Provider value={personnalisationAffichee}>
       <FournisseurDevises value={valeurDevises}>
         <ContexteReglagesDocuments.Provider value={reglagesModifiables}>
           {/* Le décalage à gauche libère la place de la sidebar fixe (voir
@@ -2255,7 +2299,9 @@ function AppInner() {
               seuilAlerte={computedCapital.seuilAlerteTresorerie}
               onOuvrirIdentiteBoutique={ouvrirIdentiteBoutique}
               onOuvrirMonCompte={ouvrirMonCompte}
-              surPhoto={vue === "dashboard" && hasDashboardAccess && dashboardV2}
+              surPhoto={
+                vue === "dashboard" && hasDashboardAccess && dashboardV2 && !accueilDeNature
+              }
               notifications={notifications}
               onActionNotification={actionNotification}
               sidebarCollapsed={sidebarCollapsed}
@@ -2266,7 +2312,7 @@ function AppInner() {
 
             <main
               className={`app-container flex-1 py-4 pb-[calc(6rem+env(safe-area-inset-bottom,0px))] md:py-6 lg:pb-6${
-                vue === "dashboard" && hasDashboardAccess && dashboardV2
+                vue === "dashboard" && hasDashboardAccess && dashboardV2 && !accueilDeNature
                   ? " app-container--pleine"
                   : ""
               }`}
@@ -2279,7 +2325,11 @@ function AppInner() {
               {vue !== VUE_VERROUILLEE && !ongletOrganisation && (
                 <SousNavigation
                   actif={activeTab}
-                  items={universDe(activeTab, workspace.memberPermissions, personnalisation)}
+                  items={universDe(
+                    activeTab,
+                    workspace.memberPermissions,
+                    personnalisationAffichee,
+                  )}
                   onChoisir={setActiveTab}
                 />
               )}
@@ -2307,7 +2357,17 @@ function AppInner() {
                       />
                     )}
 
+                    {vue === "dashboard" && accueilDeNature && workspace.activeStore && (
+                      <CeSoirView
+                        storeId={workspace.activeStore.id}
+                        storeName={workspace.activeStore.name.trim()}
+                        products={products}
+                        sales={visibleSales}
+                        onAller={setActiveTab}
+                      />
+                    )}
                     {vue === "dashboard" &&
+                      !accueilDeNature &&
                       (hasDashboardAccess ? (
                         dashboardV2 ? (
                           // Les collections `visible*` sont celles que recoivent
@@ -2426,7 +2486,66 @@ function AppInner() {
                           mySellerData={mySellerData}
                         />
                       ))}
-                    {vue === "produits" && (
+                    {vue === "produits" && accueilDeNature && (
+                      <CarteView
+                        products={products}
+                        categories={storeData.categories}
+                        productImages={storeData.productImages}
+                        peutModifier={workspace.isOwner}
+                        onCreerProduit={async (v) => {
+                          const r = await storeData.addProduct({
+                            designation: v.nom,
+                            variant_suffix: "",
+                            display_name: v.nom,
+                            prix_achat: v.prixAchat,
+                            prix_vente_defaut: v.prixVente,
+                            stock_initial: v.stock,
+                            seuil_alerte: v.seuil,
+                          });
+                          if (!r.error && r.id && v.categorieId) {
+                            await storeData.updateProductDetails(r.id, {
+                              category_id: v.categorieId,
+                            });
+                          }
+                          return { error: r.error };
+                        }}
+                        onModifierProduit={async (p, v) => {
+                          const r = await storeData.updateProduct(p.id, {
+                            designation: v.nom,
+                            prixAchat: v.prixAchat,
+                            prixVenteDefaut: v.prixVente,
+                            fournisseur: p.fournisseur,
+                            seuilAlerte: v.seuil,
+                          });
+                          if (r.error) return r;
+                          if ((p.categoryId ?? null) !== v.categorieId) {
+                            return storeData.updateProductDetails(p.id, {
+                              category_id: v.categorieId,
+                            });
+                          }
+                          return r;
+                        }}
+                        onRecevoir={async (p, quantite, prixAchat) => {
+                          const r = await storeData.addPurchase({
+                            date: dateDuJour(),
+                            product_id: p.id,
+                            quantite,
+                            prix_achat_unit: prixAchat,
+                            fournisseur: p.fournisseur ?? "",
+                          });
+                          return { error: r.error ?? null };
+                        }}
+                        onCorriger={(p, delta, motif) => storeData.ajusterStock(p.id, delta, motif)}
+                        onCreerRubriques={async (noms) => {
+                          for (const [i, nom] of noms.entries()) {
+                            const r = await storeData.addCategorie({ nom, ordre: i });
+                            if (r.error) return { error: r.error };
+                          }
+                          return { error: null };
+                        }}
+                      />
+                    )}
+                    {vue === "produits" && !accueilDeNature && (
                       <ProduitsView
                         importer={boutonImport("produits")}
                         reglagesAlertes={alertesStock.reglages}
@@ -2469,7 +2588,59 @@ function AppInner() {
                         settings={storeSettings}
                       />
                     )}
-                    {vue === "achats" && (
+                    {vue === "inventaire" && workspace.activeStore && (
+                      <InventaireView
+                        storeId={workspace.activeStore.id}
+                        products={products}
+                        categories={storeData.categories}
+                        peutValider={workspace.isOwner}
+                        onValide={() => storeData.refresh()}
+                      />
+                    )}
+                    {vue === "consigne" && workspace.activeStore && (
+                      <ConsigneView
+                        storeId={workspace.activeStore.id}
+                        estProprietaire={workspace.isOwner}
+                      />
+                    )}
+                    {vue === "achats" && accueilDeNature && (
+                      <EntreesView
+                        products={products}
+                        categories={storeData.categories}
+                        purchases={purchases}
+                        fournisseurs={storeData.suppliers}
+                        peutRecevoir={peutEnregistrerUnAchat}
+                        onRecevoir={async (r) => {
+                          // Une ligne par article ; ce qui est payé couvre les
+                          // premières lignes, le reste devient une dette.
+                          let reste = r.paye;
+                          for (const [i, l] of r.lignes.entries()) {
+                            const total = l.quantite * l.prixAchat;
+                            const part = Math.min(reste, total);
+                            reste -= part;
+                            const res = await storeData.addPurchase({
+                              date: r.date,
+                              product_id: l.produit.id,
+                              quantite: l.quantite,
+                              prix_achat_unit: l.prixAchat,
+                              fournisseur: r.fournisseur,
+                              supplier_id: r.fournisseurId,
+                              montant_paye: part,
+                            });
+                            if (res.error) {
+                              return {
+                                error:
+                                  i === 0
+                                    ? res.error
+                                    : `${res.error} (${i} article(s) déjà ajouté(s) au stock).`,
+                              };
+                            }
+                          }
+                          return { error: null };
+                        }}
+                      />
+                    )}
+                    {vue === "achats" && !accueilDeNature && (
                       <AchatsView
                         importer={peutEnregistrerUnAchat ? boutonImport("achats") : undefined}
                         onAddFournisseur={
@@ -2577,9 +2748,10 @@ function AppInner() {
                       <OrganisationV2Page
                         onglet={ongletOrganisation}
                         onglets={ongletsVisibles(
-                          visibleNavItems(workspace.memberPermissions, personnalisation).map(
-                            (item) => item.id,
-                          ),
+                          visibleNavItems(
+                            workspace.memberPermissions,
+                            personnalisationAffichee,
+                          ).map((item) => item.id),
                         )}
                         onChangerOnglet={(o) => setActiveTab(VUE_DE_L_ONGLET[o] as ActiveTab)}
                         storeId={workspace.activeStore?.id ?? null}
@@ -2762,7 +2934,30 @@ function AppInner() {
                         peutSupprimer={!livraisonsActions || livraisonsActions.includes("delete")}
                       />
                     )}
-                    {vue === "ventes" && (
+                    {vue === "salle" && workspace.activeStore && (
+                      <SalleView
+                        storeId={workspace.activeStore.id}
+                        products={products}
+                        categories={storeData.categories}
+                        productImages={storeData.productImages}
+                        clients={storeData.clients}
+                        serveurs={[
+                          ...vendeursDeLEquipe.map((p) => p.nom),
+                          ...storeData.personnesExternes.filter((p) => p.actif).map((p) => p.nom),
+                        ]}
+                        vendeur={myName}
+                        estProprietaire={workspace.isOwner}
+                        onVentes={() => storeData.refresh()}
+                      />
+                    )}
+                    {vue === "ventes" && accueilDeNature && workspace.activeStore && (
+                      <CaisseView
+                        storeId={workspace.activeStore.id}
+                        sales={visibleSales}
+                        payments={paiementsDesVentesVisibles}
+                      />
+                    )}
+                    {vue === "ventes" && !accueilDeNature && (
                       <VentesView
                         categories={storeData.categories}
                         personnes={vendeursDeLEquipe}
@@ -3032,7 +3227,7 @@ function AppInner() {
                         onNavigateToOrders={
                           // Le raccourci disparaît avec le module : mieux vaut
                           // pas de bouton qu'un bouton qui ne mène nulle part.
-                          moduleMasque(personnalisation, "commandes")
+                          moduleMasque(personnalisationAffichee, "commandes")
                             ? undefined
                             : () => setActiveTab("commandes")
                         }
