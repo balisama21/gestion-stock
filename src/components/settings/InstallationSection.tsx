@@ -9,7 +9,7 @@ import {
   surEvenementInstallation,
   type EvenementInstallation,
 } from "../../lib/pwa";
-import { useMarque } from "../../hooks/useMarque";
+import { useMarqueDHabillage } from "../../hooks/useMarque";
 
 /**
  * Installer l'application depuis les réglages.
@@ -29,7 +29,7 @@ import { useMarque } from "../../hooks/useMarque";
  * que de montrer un bouton sans effet.
  */
 export const InstallationSection: React.FC = () => {
-  const marque = useMarque();
+  const marque = useMarqueDHabillage();
   const [evenement, setEvenement] = useState<EvenementInstallation | null>(null);
   const [installee, setInstallee] = useState(false);
   const [ios, setIos] = useState(false);

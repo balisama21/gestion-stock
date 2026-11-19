@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { useMarque } from "../../../hooks/useMarque";
+import { useMarqueDHabillage } from "../../../hooks/useMarque";
 
 /**
  * LE LOGO, PRÉPARÉ POUR LA FEUILLE
@@ -172,7 +172,8 @@ export function useDocumentAvecLogo<
     emetteur: { logoUrl: string | null; initiales?: string | null; fauteDeLogo?: boolean };
   } | null,
 >(source: T): { doc: T; pret: boolean } {
-  const marque = useMarque();
+  // Sur mg-kinvest.com, toute boutique sans logo porte le K de Kinvest.
+  const marque = useMarqueDHabillage();
   const logoDeMarque =
     !marque.parDefaut && marque.logoUrl ? logoDeMarqueLocal(marque.logoUrl) : null;
   const doc = useMemo(() => avecLogoDeMarque(source, logoDeMarque), [source, logoDeMarque]);

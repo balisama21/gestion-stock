@@ -9,7 +9,7 @@ import {
   surEvenementInstallation,
   type EvenementInstallation,
 } from "../../lib/pwa";
-import { useMarque } from "../../hooks/useMarque";
+import { useMarqueDHabillage } from "../../hooks/useMarque";
 import { SANS_ICONE } from "../../lib/marque";
 
 const CLE_REFUS = "balsama-installation-refusee";
@@ -47,7 +47,7 @@ const memoriserRefus = () => {
 };
 
 export const InstallPrompt: React.FC = () => {
-  const marque = useMarque();
+  const marque = useMarqueDHabillage();
   const icone = marque.parDefaut
     ? "/icon-192.png"
     : marque.faviconUrl !== SANS_ICONE

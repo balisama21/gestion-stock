@@ -4,6 +4,7 @@ import { InstallPrompt } from "./InstallPrompt";
 
 vi.mock("../../hooks/useMarque", () => ({
   useMarque: () => ({ parDefaut: true, nom: "Tantana" }),
+  useMarqueDHabillage: () => ({ parDefaut: true, nom: "Tantana" }),
 }));
 
 afterEach(() => {

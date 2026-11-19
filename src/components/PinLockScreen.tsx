@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useCallback } from "react";
-import { useMarque } from "../hooks/useMarque";
+import { useMarqueDHabillage } from "../hooks/useMarque";
 import { Delete, KeyRound, Lock, ShieldCheck, ArrowLeft, Eye, EyeOff } from "lucide-react";
 import { useAuth } from "../hooks/useAuth";
 import { supabase } from "../lib/supabase";
@@ -13,7 +13,7 @@ interface PinLockScreenProps {
 type ScreenMode = "pin" | "forgot";
 
 export const PinLockScreen: React.FC<PinLockScreenProps> = ({ onUnlock }) => {
-  const marque = useMarque();
+  const marque = useMarqueDHabillage();
   const { profile, user, signOut, reauthenticate, refreshProfile } = useAuth();
   const [mode, setMode] = useState<ScreenMode>("pin");
   const [pin, setPin] = useState("");

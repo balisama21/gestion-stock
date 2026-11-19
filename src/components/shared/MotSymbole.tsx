@@ -1,6 +1,6 @@
 import React from "react";
 import { APP_NAME } from "../../lib/appConfig";
-import { useMarque } from "../../hooks/useMarque";
+import { useMarqueDHabillage } from "../../hooks/useMarque";
 
 interface MotSymboleProps {
   /**
@@ -34,7 +34,7 @@ interface MotSymboleProps {
  * les polices réduites du mot-symbole n'en couvrent pas les lettres.
  */
 export const MotSymbole: React.FC<MotSymboleProps> = ({ hauteur, couleur, className = "" }) => {
-  const marque = useMarque();
+  const marque = useMarqueDHabillage();
   if (!marque.parDefaut) {
     const h = typeof hauteur === "number" ? `${hauteur}px` : hauteur;
     return (
