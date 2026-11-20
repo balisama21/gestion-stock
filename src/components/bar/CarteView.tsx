@@ -16,12 +16,10 @@ import { VignetteProduit, vignettesParProduit } from "../shared/VignetteProduit"
 import { formatCurrency } from "../../utils/formulas";
 import { dateDuJour } from "../../lib/dates";
 import { estEnRupture, estSousLeSeuil } from "../../lib/prealerteStock";
+import { planRubriquesBar, RUBRIQUES_BAR } from "../../lib/rubriquesBar";
 
 type Categorie = Database["public"]["Tables"]["categories"]["Row"];
 type Resultat = { error: string | null };
-
-/** Les rubriques d'une carte de bar, proposées d'un geste à une carte vide. */
-export const RUBRIQUES_DE_BAR = ["Bières", "Softs", "Alcools", "Cocktails", "Plats", "Snacks"];
 
 /** Les raisons d'une correction de stock, dans les mots d'un bar. */
 const MOTIFS = [
@@ -57,7 +55,8 @@ export interface CarteViewProps {
   ) => Promise<Resultat>;
   onRecevoir: (p: Product, quantite: number, prixAchat: number) => Promise<Resultat>;
   onCorriger: (p: Product, delta: number, motif: string) => Promise<Resultat>;
-  onCreerRubriques: (noms: string[]) => Promise<Resultat>;
+  /** Remplace les catégories d'un commerce ordinaire par celles d'un bar. */
+  onAdapterRubriques: () => Promise<Resultat>;
 }
 
 const nombre = (v: string): number =>
@@ -79,6 +78,13 @@ export const CarteView: React.FC<CarteViewProps> = (props) => {
   const [choisi, setChoisi] = useState<Product | null>(null);
   const [occupe, setOccupe] = useState(false);
   const photos = useMemo(() => vignettesParProduit(productImages), [productImages]);
+  const plan = useMemo(() => {
+    const compte = new Map<string, number>();
+    for (const p of products) {
+      if (p.categoryId) compte.set(p.categoryId, (compte.get(p.categoryId) ?? 0) + 1);
+    }
+    return planRubriquesBar(categories, compte);
+  }, [categories, products]);
 
   const articles = useMemo(
     () => products.filter((p) => p.typeProduit !== "service" && p.statut !== "archive"),
@@ -123,24 +129,35 @@ export const CarteView: React.FC<CarteViewProps> = (props) => {
         )}
       </header>
 
-      {rubriques.length === 0 && peutModifier && (
+      {peutModifier && (plan.aMasquer.length > 0 || plan.aCreer.length > 0) && (
         <div className="flex flex-col gap-3 rounded-xl border border-dashed border-primary/50 bg-success-soft p-4 sm:flex-row sm:items-center">
           <Sparkles className="h-5 w-5 shrink-0 text-primary" />
           <p className="flex-1 text-sm">
-            Rangez votre carte comme une ardoise de bar :{" "}
-            <span className="font-semibold">{RUBRIQUES_DE_BAR.join(", ")}</span>.
+            {plan.aMasquer.length > 0 ? (
+              <>
+                Votre carte a encore les rubriques d&apos;un commerce ordinaire (
+                {categories
+                  .filter((c) => plan.aMasquer.includes(c.id))
+                  .map((c) => c.nom)
+                  .join(", ")}
+                ). Rangez-la comme une ardoise de bar :{" "}
+              </>
+            ) : (
+              "Complétez votre carte avec les rubriques d'un bar : "
+            )}
+            <span className="font-semibold">{RUBRIQUES_BAR.join(", ")}</span>.
           </p>
           <button
             type="button"
             disabled={occupe}
             onClick={async () => {
               setOccupe(true);
-              await props.onCreerRubriques(RUBRIQUES_DE_BAR);
+              await props.onAdapterRubriques();
               setOccupe(false);
             }}
             className="app-btn-primary"
           >
-            Créer les rubriques
+            {occupe ? "Rangement…" : "Ranger la carte"}
           </button>
         </div>
       )}
@@ -511,7 +528,15 @@ const ArticleModal: React.FC<{
 
       {geste === "menu" && (
         <div className="grid gap-2">
-          <button type="button" onClick={() => setGeste("recevoir")} className="app-btn-primary">
+          <button
+            type="button"
+            onClick={() => {
+              // Le prix a pu changer depuis l'ouverture de la fiche.
+              setPrixAchat(produit.prixAchat ? String(produit.prixAchat) : "");
+              setGeste("recevoir");
+            }}
+            className="app-btn-primary"
+          >
             <PackagePlus className="h-4 w-4" />
             Recevoir une livraison
           </button>

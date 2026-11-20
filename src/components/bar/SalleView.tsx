@@ -1,5 +1,15 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { Clock, LayoutGrid, Mic, Settings2, Users } from "lucide-react";
+import {
+  Check,
+  Clock,
+  LayoutGrid,
+  Mic,
+  Pencil,
+  Plus,
+  Settings2,
+  Trash2,
+  Users,
+} from "lucide-react";
 import type { Product } from "../../types";
 import type { Database } from "../../lib/database.types";
 import { PageHeader } from "../shared/PageHeader";
@@ -9,6 +19,8 @@ import { dureeDepuis, tablesParZone, totalNote, droitDeTable, type TableBar } fr
 import { NoteModal } from "./NoteModal";
 import { ConfigSalleModal } from "./ConfigSalleModal";
 import { OuvrirTableModal } from "./OuvrirTableModal";
+import { numeroSuivant, TableModal } from "./TableModal";
+import { useConfirmation } from "../../hooks/useConfirmation";
 
 type Client = Database["public"]["Tables"]["clients"]["Row"];
 type Categorie = Database["public"]["Tables"]["categories"]["Row"];
@@ -44,6 +56,16 @@ export const SalleView: React.FC<SalleViewProps> = (props) => {
   const [config, setConfig] = useState(false);
   const [aOuvrir, setAOuvrir] = useState<TableBar | null>(null);
   const [noteOuverte, setNoteOuverte] = useState<string | null>(null);
+  // Mode « Modifier la salle » : toucher une table l'édite au lieu de l'ouvrir.
+  const [edition, setEdition] = useState(false);
+  const [nettoyage, setNettoyage] = useState(false);
+  const [bilanNettoyage, setBilanNettoyage] = useState<string | null>(null);
+  const { confirmer, modaleConfirmation } = useConfirmation();
+  const [aModifier, setAModifier] = useState<{
+    table: TableBar | null;
+    zoneId: string | null;
+    numero?: string;
+  } | null>(null);
 
   // Les durées « depuis 1 h 05 » avancent sans recharger.
   const [maintenant, setMaintenant] = useState(() => Date.now());
@@ -52,12 +74,22 @@ export const SalleView: React.FC<SalleViewProps> = (props) => {
     return () => window.clearInterval(id);
   }, []);
 
-  const groupes = useMemo(() => tablesParZone(bar.tables, bar.zones), [bar.tables, bar.zones]);
+  // En modification, les tables hors service se montrent aussi (grisées).
+  const groupes = useMemo(
+    () =>
+      tablesParZone(
+        edition ? bar.tables.map((t) => ({ ...t, active: true })) : bar.tables,
+        bar.zones,
+      ),
+    [bar.tables, bar.zones, edition],
+  );
+  const reelle = (t: TableBar) => bar.tables.find((x) => x.id === t.id) ?? t;
   const occupees = bar.notes.length;
   const actives = bar.tables.filter((t) => t.active).length;
   const enCours = useMemo(() => totalNote(bar.lignes).reste, [bar.lignes]);
 
   const toucher = (t: TableBar) => {
+    if (edition) return setAModifier({ table: reelle(t), zoneId: t.zone_id });
     const note = bar.noteDeLaTable.get(t.id);
     if (note) setNoteOuverte(note.id);
     else setAOuvrir(t);
@@ -83,15 +115,27 @@ export const SalleView: React.FC<SalleViewProps> = (props) => {
           ) : undefined
         }
         actions={
-          props.estProprietaire ? (
-            <button
-              type="button"
-              onClick={() => setConfig(true)}
-              className="app-btn-secondary w-full sm:w-auto"
-            >
-              <Settings2 className="h-4 w-4" />
-              Configurer la salle
-            </button>
+          props.estProprietaire && bar.tables.length > 0 ? (
+            <div className="flex w-full gap-2 sm:w-auto">
+              <button
+                type="button"
+                onClick={() => setEdition((e) => !e)}
+                className={`${edition ? "app-btn-primary" : "app-btn-secondary"} flex-1 sm:flex-none`}
+                aria-pressed={edition}
+              >
+                {edition ? <Check className="h-4 w-4" /> : <Pencil className="h-4 w-4" />}
+                {edition ? "Terminé" : "Modifier la salle"}
+              </button>
+              <button
+                type="button"
+                onClick={() => setConfig(true)}
+                className="app-btn-secondary"
+                aria-label="Zones et création de tables"
+                title="Zones et création de tables"
+              >
+                <Settings2 className="h-4 w-4" />
+              </button>
+            </div>
           ) : undefined
         }
       />
@@ -102,7 +146,53 @@ export const SalleView: React.FC<SalleViewProps> = (props) => {
         </p>
       )}
 
-      {!bar.chargement && actives === 0 && (
+      {edition && bar.tables.some((t) => !t.active) && (
+        <div className="flex flex-wrap items-center gap-3 rounded-lg border border-border p-3 text-sm">
+          <span className="flex-1">
+            {bar.tables.filter((t) => !t.active).length} table(s) hors service. Celles qui
+            n&apos;ont jamais servi peuvent être supprimées d&apos;un coup.
+          </span>
+          <button
+            type="button"
+            disabled={nettoyage}
+            onClick={async () => {
+              const horsService = bar.tables.filter((t) => !t.active);
+              if (
+                !(await confirmer(
+                  `Supprimer les tables hors service qui n'ont jamais servi ? Celles qui ont un historique restent hors service.`,
+                  { danger: true, libelle: "Supprimer" },
+                ))
+              )
+                return;
+              setNettoyage(true);
+              let gardees = 0;
+              for (const t of horsService) {
+                const r = await bar.supprimerTable(t.id);
+                if (r.error) gardees++;
+              }
+              setNettoyage(false);
+              setBilanNettoyage(
+                `${horsService.length - gardees} table(s) supprimée(s)` +
+                  (gardees ? `, ${gardees} gardée(s) hors service (déjà servi).` : "."),
+              );
+            }}
+            className="app-btn-secondary"
+          >
+            <Trash2 className="h-4 w-4" />
+            {nettoyage ? "Suppression…" : "Supprimer les inutilisées"}
+          </button>
+          {bilanNettoyage && <p className="w-full text-xs t-success">{bilanNettoyage}</p>}
+        </div>
+      )}
+
+      {edition && (
+        <p className="rounded-lg border border-primary/40 bg-success-soft p-3 text-sm">
+          Touchez une table pour changer son numéro, sa zone, ses places ou son droit de table, la
+          mettre hors service ou la supprimer. « + Table » en ajoute une dans la zone.
+        </p>
+      )}
+
+      {!bar.chargement && actives === 0 && !edition && (
         <div className="app-card flex flex-col items-center gap-3 p-8 text-center">
           <span className="flex h-12 w-12 items-center justify-center rounded-xl bg-primary/10 text-primary">
             <LayoutGrid className="h-6 w-6" />
@@ -129,16 +219,28 @@ export const SalleView: React.FC<SalleViewProps> = (props) => {
             <h2 className="text-sm font-semibold uppercase tracking-wide text-muted-foreground">
               {zone?.nom ?? "Autres tables"}
             </h2>
-            {zone && zone.droit_table > 0 && (
-              <span className="text-xs text-muted-foreground">
-                Droit de table {formatCurrency(zone.droit_table)}
-              </span>
+            {edition && zone ? (
+              <button
+                type="button"
+                onClick={() => setConfig(true)}
+                className="text-xs font-medium text-primary"
+              >
+                Zone : nom et droit de table
+              </button>
+            ) : (
+              zone &&
+              zone.droit_table > 0 && (
+                <span className="text-xs text-muted-foreground">
+                  Droit de table {formatCurrency(zone.droit_table)}
+                </span>
+              )
             )}
           </div>
           <div className="grid grid-cols-3 gap-2 sm:grid-cols-4 md:grid-cols-5 xl:grid-cols-7">
             {tables.map((t) => {
               const n = bar.noteDeLaTable.get(t.id);
               const tot = n ? totalNote(bar.lignesDeLaNote(n.id)) : null;
+              const horsService = !reelle(t).active;
               return (
                 <button
                   key={t.id}
@@ -148,11 +250,12 @@ export const SalleView: React.FC<SalleViewProps> = (props) => {
                     n
                       ? "border-primary bg-success-soft hover:bg-success-soft/70"
                       : "border-dashed border-border bg-card hover:border-primary/60"
-                  }`}
-                  aria-label={`Table ${t.numero}${n ? ", occupée" : ", libre"}`}
+                  } ${edition ? "ring-1 ring-primary/30" : ""} ${horsService ? "opacity-50" : ""}`}
+                  aria-label={`Table ${t.numero}${edition ? ", modifier" : n ? ", occupée" : ", libre"}`}
                 >
                   <div className="flex items-start justify-between gap-1">
                     <span className="text-xl font-bold leading-none">{t.numero}</span>
+                    {edition && <Pencil className="h-3.5 w-3.5 text-primary" />}
                     {n?.nb_personnes ? (
                       <span className="flex items-center gap-0.5 text-[11px] text-muted-foreground">
                         <Users className="h-3 w-3" />
@@ -172,7 +275,7 @@ export const SalleView: React.FC<SalleViewProps> = (props) => {
                     </div>
                   ) : (
                     <div className="text-xs text-muted-foreground">
-                      Libre
+                      {horsService ? "Hors service" : "Libre"}
                       {droitDeTable(t, bar.zones) > 0 && !zone ? (
                         <> · {formatCurrency(droitDeTable(t, bar.zones))}</>
                       ) : null}
@@ -181,9 +284,35 @@ export const SalleView: React.FC<SalleViewProps> = (props) => {
                 </button>
               );
             })}
+            {edition && (
+              <button
+                type="button"
+                onClick={() =>
+                  setAModifier({
+                    table: null,
+                    zoneId: zone?.id ?? null,
+                    numero: numeroSuivant(bar.tables, tables),
+                  })
+                }
+                className="flex min-h-[96px] flex-col items-center justify-center gap-1 rounded-xl border border-dashed border-primary/60 text-sm font-semibold text-primary"
+              >
+                <Plus className="h-5 w-5" />
+                Table
+              </button>
+            )}
           </div>
         </section>
       ))}
+
+      {aModifier && (
+        <TableModal
+          bar={bar}
+          table={aModifier.table}
+          zoneParDefaut={aModifier.zoneId}
+          numeroPropose={aModifier.numero}
+          onFermer={() => setAModifier(null)}
+        />
+      )}
 
       {aOuvrir && (
         <OuvrirTableModal
@@ -218,6 +347,7 @@ export const SalleView: React.FC<SalleViewProps> = (props) => {
       )}
 
       {config && <ConfigSalleModal bar={bar} onFermer={() => setConfig(false)} />}
+      {modaleConfirmation}
     </div>
   );
 };
