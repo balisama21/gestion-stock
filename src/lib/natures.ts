@@ -138,6 +138,7 @@ export const INTERIEURS: Partial<Record<CleNature, InterieurDeNature>> = {
       ventes: "Caisse",
       achats: "Entrées de stock",
       vendeurs: "Équipe",
+      clients: "Habitués",
     },
     masques: [
       "devis",

@@ -187,6 +187,15 @@ const CaisseView = lazy(() =>
 const CarteView = lazy(() =>
   import("./components/bar/CarteView").then((m) => ({ default: m.CarteView })),
 );
+const HabituesView = lazy(() =>
+  import("./components/bar/HabituesView").then((m) => ({ default: m.HabituesView })),
+);
+const EquipeBarView = lazy(() =>
+  import("./components/bar/EquipeBarView").then((m) => ({ default: m.EquipeBarView })),
+);
+const BilanBarView = lazy(() =>
+  import("./components/bar/BilanBarView").then((m) => ({ default: m.BilanBarView })),
+);
 const CeSoirView = lazy(() =>
   import("./components/bar/CeSoirView").then((m) => ({ default: m.CeSoirView })),
 );
@@ -2992,7 +3001,38 @@ function AppInner() {
                         visibleFields={ventesVisibleFields}
                       />
                     )}
-                    {vue === "vendeurs" && (
+                    {vue === "vendeurs" && accueilDeNature && workspace.activeStore && (
+                      <EquipeBarView
+                        storeId={workspace.activeStore.id}
+                        sales={visibleSales}
+                        membres={vendeursDeLEquipe.map((p) => ({
+                          nom: p.nom,
+                          mention: p.mention ?? null,
+                        }))}
+                        serveursSansCompte={storeData.personnesExternes
+                          .filter((p) => p.actif)
+                          .map((p) => ({ id: p.id, nom: p.nom, telephone: p.telephone }))}
+                        estProprietaire={workspace.isOwner}
+                        onAjouterServeur={
+                          peutCompleterLesListes
+                            ? async (d) => {
+                                const r = await creerPersonneExterne({ ...d, role: "Serveur" });
+                                return { error: r.error };
+                              }
+                            : undefined
+                        }
+                        onRetirerServeur={
+                          peutCompleterLesListes
+                            ? (id) => storeData.updatePersonneExterne(id, { actif: false })
+                            : undefined
+                        }
+                        onInviter={() => {
+                          setSectionParametres("equipe");
+                          setActiveTab("settings");
+                        }}
+                      />
+                    )}
+                    {vue === "vendeurs" && !accueilDeNature && (
                       <VendeursView
                         sellers={computedSellers}
                         sales={sales}
@@ -3130,20 +3170,35 @@ function AppInner() {
                         onDeleteExpense={depensesScope === "all" ? handleDeleteExpense : undefined}
                       />
                     )}
-                    {vue === "rapports" && (
-                      <RapportsView
-                        sales={ventesPourChiffres}
-                        avoirs={avoirsVisibles}
-                        facturesRemisesEnStock={storeData.facturesRemisesEnStock}
-                        purchases={purchases}
-                        expenses={visibleExpenses}
-                        products={products}
-                        postes={storeData.categories
-                          .filter((c) => (c.usage ?? "produit") === "depense")
-                          .map((c) => ({ id: c.id, nom: c.nom }))}
-                        locale={locale}
-                      />
-                    )}
+                    {vue === "rapports" &&
+                      (() => {
+                        const comptable = (
+                          <RapportsView
+                            sales={ventesPourChiffres}
+                            avoirs={avoirsVisibles}
+                            facturesRemisesEnStock={storeData.facturesRemisesEnStock}
+                            purchases={purchases}
+                            expenses={visibleExpenses}
+                            products={products}
+                            postes={storeData.categories
+                              .filter((c) => (c.usage ?? "produit") === "depense")
+                              .map((c) => ({ id: c.id, nom: c.nom }))}
+                            locale={locale}
+                          />
+                        );
+                        return accueilDeNature && workspace.activeStore ? (
+                          <BilanBarView
+                            storeId={workspace.activeStore.id}
+                            sales={ventesPourChiffres}
+                            expenses={visibleExpenses}
+                            products={products}
+                            categories={storeData.categories}
+                            vueComptable={comptable}
+                          />
+                        ) : (
+                          comptable
+                        );
+                      })()}
                     {vue === "statistiques" && (
                       <StatistiquesView
                         categories={storeData.categories}
@@ -3213,7 +3268,17 @@ function AppInner() {
                         onAddPaymentToOrder={storeData.addPaymentToOrder}
                       />
                     )}
-                    {vue === "clients" && (
+                    {vue === "clients" && accueilDeNature && (
+                      <HabituesView
+                        clients={visibleClients}
+                        sales={visibleSales}
+                        onAddClient={storeData.addClient}
+                        onUpdateClient={storeData.updateClient}
+                        onDeleteClient={storeData.deleteClient}
+                        onAddPaymentToSale={storeData.addPaymentToSale}
+                      />
+                    )}
+                    {vue === "clients" && !accueilDeNature && (
                       <ClientsView
                         importer={boutonImport("clients")}
                         clients={visibleClients}
