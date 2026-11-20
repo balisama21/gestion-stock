@@ -6,6 +6,7 @@ import { permissionsToVisibleModules, type PermissionsMap } from "../lib/permiss
 import { lireBoutiqueActive, retenirBoutiqueActive } from "../lib/boutiqueActive";
 import { NATURE_PAR_DEFAUT, natureChoisissable, type CleNature } from "../lib/natures";
 import { lirePersonnalisation } from "../lib/personnalisation";
+import { adapterRubriquesAuBar } from "../lib/rubriquesBar";
 import {
   COLONNES_BOUTIQUE_SANS_LOGO,
   lireBoutiquesDuCompte,
@@ -292,6 +293,7 @@ export function useWorkspaceState(): WorkspaceContext {
             .select("*")
             .single();
           if (posee) boutique = posee as Store;
+          if (nature === "karaoke") await adapterRubriquesAuBar(boutique.id, user.id);
         }
         setOwnedStores((prev) => [...prev, boutique]);
         setActiveStoreIdState(boutique.id);
@@ -327,6 +329,9 @@ export function useWorkspaceState(): WorkspaceContext {
 
       // "Dernière boutique ouverte" — best effort, non bloquant.
       supabase.from("profiles").update({ store_id: created.id }).eq("id", user.id);
+
+      // Un bar-karaoké range sa carte en Bières, Softs, Alcools… dès le départ.
+      if (nature === "karaoke") await adapterRubriquesAuBar(created.id, user.id);
 
       setOwnedStores((prev) => [...prev, created]);
       setActiveStoreIdState(created.id);

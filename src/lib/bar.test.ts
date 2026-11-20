@@ -3,6 +3,7 @@ import {
   droitDeTable,
   dureeDepuis,
   grouperLignes,
+  nomDeTable,
   tablesParZone,
   totalDesLignes,
   totalNote,
@@ -138,5 +139,15 @@ describe("la salle", () => {
     const t = new Date(debut).getTime();
     expect(dureeDepuis(debut, t + 12 * 60000)).toBe("12 min");
     expect(dureeDepuis(debut, t + 125 * 60000)).toBe("2 h 05");
+  });
+});
+
+describe("le nom d'une table", () => {
+  it("ajoute « Table » à un simple numéro, jamais deux fois", () => {
+    expect(nomDeTable("4")).toBe("Table 4");
+    expect(nomDeTable("V2")).toBe("Table V2");
+    expect(nomDeTable("Table4")).toBe("Table4");
+    expect(nomDeTable("Comptoir")).toBe("Comptoir");
+    expect(nomDeTable("Terrasse 1")).toBe("Terrasse 1");
   });
 });

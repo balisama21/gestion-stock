@@ -3,7 +3,7 @@ import { Armchair } from "lucide-react";
 import type { Database } from "../../lib/database.types";
 import { Modal } from "../shared/Modal";
 import { formatCurrency } from "../../utils/formulas";
-import type { TableBar } from "../../lib/bar";
+import { nomDeTable, type TableBar } from "../../lib/bar";
 
 type Client = Database["public"]["Tables"]["clients"]["Row"];
 
@@ -41,7 +41,7 @@ export const OuvrirTableModal: React.FC<{
       onClose={onFermer}
       size="sm"
       icon={<Armchair className="h-4 w-4" />}
-      title={`Ouvrir la table ${table.numero}`}
+      title={`Ouvrir ${nomDeTable(table.numero)}`}
       description={
         droit > 0
           ? `Le droit de table (${formatCurrency(droit)}) s'ajoute à l'addition.`

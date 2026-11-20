@@ -182,6 +182,24 @@ export function useBar(storeId: string | null) {
     [storeId, tables.length, apres],
   );
 
+  /**
+   * Supprime une table. Une table qui a déjà eu une note ne se supprime
+   * pas (son historique y renvoie) : on la met hors service à la place.
+   */
+  const supprimerTable = useCallback(
+    async (id: string) => {
+      const r = await db.from("bar_tables").delete().eq("id", id);
+      if (r.error?.code === "23503" || r.error?.message?.includes("foreign key")) {
+        await recharger();
+        return {
+          error: "Cette table a déjà servi : mettez-la plutôt hors service, son historique reste.",
+        };
+      }
+      return apres(r);
+    },
+    [apres, recharger],
+  );
+
   /** Crée d'un coup les tables numérotées de `de` à `a` dans une zone. */
   const creerTables = useCallback(
     async (zoneId: string | null, de: number, a: number, prefixe = "") => {
@@ -277,6 +295,9 @@ export function useBar(storeId: string | null) {
   /** Retire `combien` unités d'un groupe de lignes, en commençant par les dernières servies. */
   const retirer = useCallback(
     async (groupe: LigneNote[], combien: number, motif: string | null) => {
+      // Ce qui sort d'une note après avoir été servi reste visible dans la
+      // caisse (« annulé sur les notes ») : c'est un point de contrôle.
+      const raison = motif ?? "Retiré de la note";
       let reste = combien;
       const aPayer = groupe.filter(resteAPayer).sort((a, b) => b.cree_le.localeCompare(a.cree_le));
       for (const l of aPayer) {
@@ -284,7 +305,7 @@ export function useBar(storeId: string | null) {
         if (l.quantite <= reste) {
           const r = await db
             .from("bar_note_lignes")
-            .update({ annulee: true, motif })
+            .update({ annulee: true, motif: raison })
             .eq("id", l.id);
           if (r.error) return apres(r);
           reste -= l.quantite;
@@ -294,6 +315,20 @@ export function useBar(storeId: string | null) {
             .update({ quantite: l.quantite - reste })
             .eq("id", l.id);
           if (r.error) return apres(r);
+          const trace = await db.from("bar_note_lignes").insert({
+            store_id: l.store_id,
+            note_id: l.note_id,
+            product_id: l.product_id,
+            designation: l.designation,
+            genre: l.genre,
+            quantite: reste,
+            prix_unit: l.prix_unit,
+            offert: l.offert,
+            serveur: l.serveur,
+            annulee: true,
+            motif: raison,
+          });
+          if (trace.error) return apres(trace);
           reste = 0;
         }
       }
@@ -396,6 +431,7 @@ export function useBar(storeId: string | null) {
     enregistrerZone,
     supprimerZone,
     enregistrerTable,
+    supprimerTable,
     creerTables,
     ouvrirNote,
     servir,

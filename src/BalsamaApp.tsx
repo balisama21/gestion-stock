@@ -29,6 +29,7 @@ import { Header } from "./components/Header";
 import { NAV_GROUPS, ongletDeLaNature, universDe, visibleNavItems } from "./components/navigation";
 import { avecLInterieur, natureDe } from "./lib/natures";
 import { dateDuJour } from "./lib/dates";
+import { adapterRubriquesAuBar } from "./lib/rubriquesBar";
 import { SousNavigation } from "./components/shared/SousNavigation";
 import { SquelettePage } from "./components/shared/SquelettePage";
 import { construireNotifications, type ActionNotification } from "./lib/activite";
@@ -2536,12 +2537,11 @@ function AppInner() {
                           return { error: r.error ?? null };
                         }}
                         onCorriger={(p, delta, motif) => storeData.ajusterStock(p.id, delta, motif)}
-                        onCreerRubriques={async (noms) => {
-                          for (const [i, nom] of noms.entries()) {
-                            const r = await storeData.addCategorie({ nom, ordre: i });
-                            if (r.error) return { error: r.error };
-                          }
-                          return { error: null };
+                        onAdapterRubriques={async () => {
+                          if (!workspace.activeStore || !user) return { error: "Non autorisé" };
+                          const r = await adapterRubriquesAuBar(workspace.activeStore.id, user.id);
+                          storeData.refresh();
+                          return r;
                         }}
                       />
                     )}

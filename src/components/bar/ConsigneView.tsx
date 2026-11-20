@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
-import { ArrowDownLeft, ArrowUpRight, Box, Plus, RefreshCw, Settings2 } from "lucide-react";
+import { ArrowDownLeft, ArrowUpRight, Box, Plus, RefreshCw, Settings2, Trash2 } from "lucide-react";
 import { supabase } from "../../lib/supabase";
 import { Modal } from "../shared/Modal";
 import { formatCurrency } from "../../utils/formulas";
@@ -367,6 +367,54 @@ const GesteModal: React.FC<{
   );
 };
 
+/** Un emballage déclaré : sa consigne se corrige, il se retire (son journal reste). */
+const LigneEmballage: React.FC<{ emballage: Emballage; onChange: () => Promise<void> }> = ({
+  emballage,
+  onChange,
+}) => {
+  const [consigne, setConsigne] = useState(String(emballage.consigne));
+  const [envoi, setEnvoi] = useState(false);
+  const change = nombre(consigne) !== emballage.consigne;
+  const maj = async (patch: Partial<Emballage>) => {
+    setEnvoi(true);
+    await db.from("bar_emballages").update(patch).eq("id", emballage.id);
+    setEnvoi(false);
+    await onChange();
+  };
+  return (
+    <li className="flex flex-wrap items-center gap-2 px-3 py-2 text-sm">
+      <span className="min-w-0 flex-1 truncate">{emballage.nom}</span>
+      <input
+        type="number"
+        inputMode="numeric"
+        min={0}
+        value={consigne}
+        onChange={(e) => setConsigne(e.target.value)}
+        aria-label={`Consigne de ${emballage.nom}`}
+        className="app-field w-24"
+      />
+      <button
+        type="button"
+        disabled={envoi || !change}
+        onClick={() => void maj({ consigne: nombre(consigne) })}
+        className="app-btn-secondary"
+      >
+        Enregistrer
+      </button>
+      <button
+        type="button"
+        disabled={envoi}
+        onClick={() => void maj({ actif: false })}
+        className="inline-flex h-[34px] w-[34px] items-center justify-center text-muted-foreground hover:text-foreground"
+        aria-label={`Retirer ${emballage.nom}`}
+        title="Retirer (le journal garde ses mouvements)"
+      >
+        <Trash2 className="h-4 w-4" />
+      </button>
+    </li>
+  );
+};
+
 const EmballagesModal: React.FC<{
   storeId: string;
   emballages: Emballage[];
@@ -378,9 +426,26 @@ const EmballagesModal: React.FC<{
   const [erreur, setErreur] = useState<string | null>(null);
   const [envoi, setEnvoi] = useState(false);
 
-  const ajouter = async (lignes: { nom: string; consigne: number }[]) => {
+  const ajouter = async (demandes: { nom: string; consigne: number }[]) => {
     setEnvoi(true);
     setErreur(null);
+    const retires = new Map(
+      emballages.filter((e) => !e.actif).map((e) => [e.nom.toLowerCase(), e]),
+    );
+    for (const d of demandes) {
+      const r = retires.get(d.nom.toLowerCase());
+      if (r)
+        await db
+          .from("bar_emballages")
+          .update({ actif: true, consigne: d.consigne })
+          .eq("id", r.id);
+    }
+    const lignes = demandes.filter((d) => !retires.has(d.nom.toLowerCase()));
+    if (lignes.length === 0) {
+      setEnvoi(false);
+      await onChange();
+      return true;
+    }
     const { error } = await db.from("bar_emballages").insert(
       lignes.map((l, i) => ({
         store_id: storeId,
@@ -398,7 +463,7 @@ const EmballagesModal: React.FC<{
     return true;
   };
 
-  const existants = new Set(emballages.map((e) => e.nom.toLowerCase()));
+  const existants = new Set(emballages.filter((e) => e.actif).map((e) => e.nom.toLowerCase()));
   const courantsManquants = EMBALLAGES_COURANTS.filter((e) => !existants.has(e.nom.toLowerCase()));
 
   return (
@@ -417,13 +482,12 @@ const EmballagesModal: React.FC<{
       }
     >
       <ul className="mb-4 divide-y divide-border rounded-lg border border-border">
-        {emballages.map((e) => (
-          <li key={e.id} className="flex items-center justify-between gap-3 px-3 py-2 text-sm">
-            <span>{e.nom}</span>
-            <span className="tabular-nums text-muted-foreground">{formatCurrency(e.consigne)}</span>
-          </li>
-        ))}
-        {emballages.length === 0 && (
+        {emballages
+          .filter((e) => e.actif)
+          .map((e) => (
+            <LigneEmballage key={e.id} emballage={e} onChange={onChange} />
+          ))}
+        {emballages.filter((e) => e.actif).length === 0 && (
           <li className="p-3 text-center text-sm text-muted-foreground">Aucun emballage.</li>
         )}
       </ul>

@@ -63,6 +63,17 @@ export interface LigneNote {
   cree_le: string;
 }
 
+/**
+ * Le nom d'une table à l'écran : « Table 4 », « Table V2 »… mais une
+ * table déjà nommée « Table4 », « Comptoir » ou « Terrasse 1 » garde son
+ * nom tel quel, sans « Table Table4 ».
+ */
+export const nomDeTable = (numero: string | null | undefined): string => {
+  const n = (numero ?? "").trim();
+  if (!n) return "Table";
+  return /^[a-z]?\d+$/i.test(n) ? `Table ${n}` : n;
+};
+
 /** Ce qu'une table paie pour s'asseoir : le sien, sinon celui de sa zone. */
 export function droitDeTable(table: TableBar, zones: ZoneBar[]): number {
   if (table.droit_table !== null && table.droit_table !== undefined) return table.droit_table;

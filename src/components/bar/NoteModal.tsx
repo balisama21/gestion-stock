@@ -22,6 +22,7 @@ import { useConfirmation } from "../../hooks/useConfirmation";
 import {
   dureeDepuis,
   grouperLignes,
+  nomDeTable,
   resteAPayer,
   totalDesLignes,
   totalNote,
@@ -105,7 +106,7 @@ export const NoteModal: React.FC<Props> = ({
     return !r.error;
   };
 
-  const titre = `Table ${table?.numero ?? "?"}`;
+  const titre = nomDeTable(table?.numero);
   const description = [
     `Ouverte depuis ${dureeDepuis(note.ouverte_le)}`,
     note.nb_personnes ? `${note.nb_personnes} pers.` : null,
@@ -156,7 +157,7 @@ export const NoteModal: React.FC<Props> = ({
               !(await confirmer(
                 total.dejaPaye > 0
                   ? "Une partie est déjà encaissée : la note ne peut plus être annulée."
-                  : `Annuler toute la note de la ${titre.toLowerCase()} ? Rien ne sera encaissé.`,
+                  : `Annuler toute la note de ${titre} ? Rien ne sera encaissé.`,
                 total.dejaPaye > 0
                   ? { libelle: "Compris" }
                   : { danger: true, libelle: "Annuler la note" },
@@ -194,7 +195,9 @@ export const NoteModal: React.FC<Props> = ({
           }}
           onRegrouper={async (cibleId, numero) => {
             if (
-              await agir(() => bar.regrouper(note.id, cibleId, `Regroupée avec la table ${numero}`))
+              await agir(() =>
+                bar.regrouper(note.id, cibleId, `Regroupée avec ${nomDeTable(numero)}`),
+              )
             )
               onFermer();
           }}

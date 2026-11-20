@@ -15,7 +15,7 @@ import { formatCurrency } from "../../utils/formulas";
 import { dateDuJour } from "../../lib/dates";
 import { MODES_DE_PAIEMENT } from "../facturation/paiement";
 import { recapCaisse, veille } from "../../lib/caisseBar";
-import type { LigneNote, NoteBar, TableBar } from "../../lib/bar";
+import { nomDeTable, type LigneNote, type NoteBar, type TableBar } from "../../lib/bar";
 
 interface Props {
   storeId: string;
@@ -286,7 +286,7 @@ export const CaisseView: React.FC<Props> = ({ storeId, sales, payments }) => {
                 <ReceiptText className="h-4 w-4 shrink-0 text-muted-foreground" />
                 <span className="w-12 shrink-0 tabular-nums text-muted-foreground">{a.heure}</span>
                 <span className="min-w-0 flex-1 truncate">
-                  {a.table ? `Table ${a.table}` : "Comptoir"}
+                  {a.table ? nomDeTable(a.table) : "Comptoir"}
                   {a.client && <span className="text-muted-foreground"> · {a.client}</span>}
                   <span className="text-muted-foreground"> · {a.articles} art.</span>
                 </span>
