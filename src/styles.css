@@ -4414,3 +4414,64 @@ html[data-marque="client"] .gs-ecran-chargement {
 :root[data-session] .accueil-public {
   display: none;
 }
+
+/* ── Bons de préparation du bar ──────────────────────────────────
+   Rendus dans un portail enfant de <body>, invisibles à l'écran. Le
+   temps de l'impression, <body> porte `impression-bon` : seuls les bons
+   sortent, la fenêtre de la note restant à l'écran. Les sélecteurs
+   sont plus précis que la règle générale (`body > *:not(.app-modal-overlay)`)
+   qu'ils doivent battre. */
+.bon-impression {
+  display: none;
+}
+@media print {
+  body.impression-bon > *:not(.bon-impression) {
+    display: none !important;
+  }
+  body.impression-bon > .bon-impression {
+    display: block !important;
+    color: #000;
+    background: #fff;
+  }
+}
+.bon-impression .bon {
+  padding: 2mm 3mm 6mm;
+  font-family: ui-monospace, "Courier New", monospace;
+  font-size: 12pt;
+  line-height: 1.3;
+  break-after: page;
+}
+.bon-impression .bon:last-child {
+  break-after: auto;
+}
+.bon-impression .bon-poste {
+  font-size: 16pt;
+  font-weight: 700;
+  text-align: center;
+  letter-spacing: 0.1em;
+}
+.bon-impression .bon-table {
+  margin-top: 1mm;
+  font-size: 20pt;
+  font-weight: 700;
+  text-align: center;
+}
+.bon-impression .bon-detail {
+  font-size: 9pt;
+  text-align: center;
+}
+.bon-impression .bon-lignes {
+  margin-top: 2mm;
+  padding-top: 2mm;
+  border-top: 1px dashed #000;
+}
+.bon-impression .bon-ligne {
+  display: flex;
+  gap: 3mm;
+  font-size: 13pt;
+  font-weight: 600;
+}
+.bon-impression .bon-quantite {
+  min-width: 8mm;
+  text-align: right;
+}

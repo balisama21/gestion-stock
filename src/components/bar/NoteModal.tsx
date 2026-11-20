@@ -6,6 +6,7 @@ import {
   Gift,
   Minus,
   Plus,
+  Printer,
   ReceiptText,
   Search,
   Trash2,
@@ -31,6 +32,8 @@ import {
 } from "../../lib/bar";
 import type { ArticleAServir, Bar } from "../../hooks/useBar";
 import { nomClient } from "./OuvrirTableModal";
+import type { BonsDePreparation } from "./BonsDePreparation";
+import { derniereCommande } from "../../lib/bonsBar";
 
 type Client = Database["public"]["Tables"]["clients"]["Row"];
 type Categorie = Database["public"]["Tables"]["categories"]["Row"];
@@ -48,6 +51,8 @@ interface Props {
   vendeur: string;
   onVentes: () => void;
   onFermer: () => void;
+  /** Les bons de préparation de cet appareil, quand il a une imprimante. */
+  bons?: BonsDePreparation;
 }
 
 const CLE_SERVEUR = "tantana.bar.serveur";
@@ -85,10 +90,13 @@ export const NoteModal: React.FC<Props> = ({
   vendeur,
   onVentes,
   onFermer,
+  bons,
 }) => {
   const [mode, setMode] = useState<Mode>("note");
   const [occupe, setOccupe] = useState(false);
   const [erreur, setErreur] = useState<string | null>(null);
+  const [info, setInfo] = useState<string | null>(null);
+  const avecBons = bons?.reglages.actif === true;
   const { confirmer, modaleConfirmation } = useConfirmation();
 
   const table = bar.tables.find((t) => t.id === note.table_id);
@@ -130,6 +138,9 @@ export const NoteModal: React.FC<Props> = ({
           {erreur}
         </p>
       )}
+      {info && (
+        <p className="mb-3 rounded-lg border border-border bg-muted/50 p-2.5 text-sm">{info}</p>
+      )}
 
       {mode === "note" && (
         <VueNote
@@ -140,6 +151,23 @@ export const NoteModal: React.FC<Props> = ({
           onServir={() => setMode("servir")}
           onEncaisser={() => setMode("encaisser")}
           onDeplacer={() => setMode("deplacer")}
+          onReimprimer={
+            avecBons && derniereCommande(lignes).length > 0
+              ? () => {
+                  const derniere = derniereCommande(lignes);
+                  setInfo(
+                    bons!.imprimer(
+                      derniere.map((l) => ({
+                        productId: l.product_id,
+                        designation: l.designation,
+                        quantite: l.quantite,
+                      })),
+                      { table: titre, serveur: derniere[0]?.serveur ?? null, reimpression: true },
+                    ),
+                  );
+                }
+              : undefined
+          }
           onMoins={(g) => agir(() => bar.retirer(g.lignes, 1, null))}
           onAnnulerGroupe={async (g) => {
             if (
@@ -177,9 +205,24 @@ export const NoteModal: React.FC<Props> = ({
           productImages={productImages}
           serveurs={serveurs}
           occupe={occupe}
+          avecBon={avecBons}
           onRetour={() => setMode("note")}
-          onValider={async (articles) => {
-            if (await agir(() => bar.servir(note.id, articles))) setMode("note");
+          onValider={async (articles, imprimerBon) => {
+            setInfo(null);
+            if (!(await agir(() => bar.servir(note.id, articles)))) return;
+            setMode("note");
+            if (imprimerBon && bons) {
+              setInfo(
+                bons.imprimer(
+                  articles.map((a) => ({
+                    productId: a.productId,
+                    designation: a.designation,
+                    quantite: a.quantite,
+                  })),
+                  { table: titre, serveur: articles[0]?.serveur ?? null },
+                ),
+              );
+            }
           }}
         />
       )}
@@ -242,6 +285,8 @@ const VueNote: React.FC<{
   onServir: () => void;
   onEncaisser: () => void;
   onDeplacer: () => void;
+  /** Absent sans imprimante, ou quand rien n'a encore été servi. */
+  onReimprimer?: () => void;
   onMoins: (g: GroupeLignes) => void;
   onAnnulerGroupe: (g: GroupeLignes) => void;
   onOffrir: (g: GroupeLignes) => void;
@@ -254,6 +299,7 @@ const VueNote: React.FC<{
   onServir,
   onEncaisser,
   onDeplacer,
+  onReimprimer,
   onMoins,
   onAnnulerGroupe,
   onOffrir,
@@ -372,6 +418,17 @@ const VueNote: React.FC<{
         Annuler la note
       </button>
     </div>
+    {onReimprimer && (
+      <button
+        type="button"
+        onClick={onReimprimer}
+        disabled={occupe}
+        className="flex items-center gap-1.5 text-sm font-medium text-primary"
+      >
+        <Printer className="h-4 w-4" />
+        Réimprimer le dernier bon
+      </button>
+    )}
   </div>
 );
 
@@ -383,9 +440,12 @@ const VueServir: React.FC<{
   productImages: { product_id: string | null; chemin: string; ordre: number }[];
   serveurs: string[];
   occupe: boolean;
+  /** Cet appareil imprime des bons : on propose d'en sortir un. */
+  avecBon: boolean;
   onRetour: () => void;
-  onValider: (a: ArticleAServir[]) => void;
-}> = ({ products, categories, productImages, serveurs, occupe, onRetour, onValider }) => {
+  onValider: (a: ArticleAServir[], imprimerBon: boolean) => void;
+}> = ({ products, categories, productImages, serveurs, occupe, avecBon, onRetour, onValider }) => {
+  const [imprimerBon, setImprimerBon] = useState(true);
   const [recherche, setRecherche] = useState("");
   const [categorie, setCategorie] = useState<string | null>(null);
   const [panier, setPanier] = useState<Map<string, number>>(new Map());
@@ -452,6 +512,7 @@ const VueServir: React.FC<{
             ]
           : [];
       }),
+      avecBon && imprimerBon,
     );
   };
 
@@ -575,6 +636,18 @@ const VueServir: React.FC<{
             ))}
           </datalist>
         </label>
+        {avecBon && (
+          <label className="flex shrink-0 items-center gap-1.5 text-sm">
+            <input
+              type="checkbox"
+              checked={imprimerBon}
+              onChange={(e) => setImprimerBon(e.target.checked)}
+              className="h-4 w-4"
+            />
+            <Printer className="h-4 w-4 text-muted-foreground" />
+            Bon
+          </label>
+        )}
         <button
           type="button"
           onClick={valider}

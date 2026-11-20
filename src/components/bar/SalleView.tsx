@@ -6,6 +6,7 @@ import {
   Mic,
   Pencil,
   Plus,
+  Printer,
   Settings2,
   Trash2,
   Users,
@@ -21,6 +22,7 @@ import { ConfigSalleModal } from "./ConfigSalleModal";
 import { OuvrirTableModal } from "./OuvrirTableModal";
 import { numeroSuivant, TableModal } from "./TableModal";
 import { useConfirmation } from "../../hooks/useConfirmation";
+import { ReglagesBonsModal, useBonsDePreparation } from "./BonsDePreparation";
 
 type Client = Database["public"]["Tables"]["clients"]["Row"];
 type Categorie = Database["public"]["Tables"]["categories"]["Row"];
@@ -53,6 +55,8 @@ export interface SalleViewProps {
  */
 export const SalleView: React.FC<SalleViewProps> = (props) => {
   const bar = useBar(props.storeId);
+  const bons = useBonsDePreparation(props.storeId, props.products, props.categories);
+  const [reglageBons, setReglageBons] = useState(false);
   const [config, setConfig] = useState(false);
   const [aOuvrir, setAOuvrir] = useState<TableBar | null>(null);
   const [noteOuverte, setNoteOuverte] = useState<string | null>(null);
@@ -115,28 +119,43 @@ export const SalleView: React.FC<SalleViewProps> = (props) => {
           ) : undefined
         }
         actions={
-          props.estProprietaire && bar.tables.length > 0 ? (
-            <div className="flex w-full gap-2 sm:w-auto">
-              <button
-                type="button"
-                onClick={() => setEdition((e) => !e)}
-                className={`${edition ? "app-btn-primary" : "app-btn-secondary"} flex-1 sm:flex-none`}
-                aria-pressed={edition}
-              >
-                {edition ? <Check className="h-4 w-4" /> : <Pencil className="h-4 w-4" />}
-                {edition ? "Terminé" : "Modifier la salle"}
-              </button>
-              <button
-                type="button"
-                onClick={() => setConfig(true)}
-                className="app-btn-secondary"
-                aria-label="Zones et création de tables"
-                title="Zones et création de tables"
-              >
-                <Settings2 className="h-4 w-4" />
-              </button>
-            </div>
-          ) : undefined
+          <div className="flex w-full gap-2 sm:w-auto">
+            <button
+              type="button"
+              onClick={() => setReglageBons(true)}
+              className={bons.reglages.actif ? "app-btn-primary" : "app-btn-secondary"}
+              aria-label="Bons de préparation"
+              title={
+                bons.reglages.actif
+                  ? "Bons de préparation : imprimés depuis cet appareil"
+                  : "Bons de préparation"
+              }
+            >
+              <Printer className="h-4 w-4" />
+            </button>
+            {props.estProprietaire && bar.tables.length > 0 && (
+              <>
+                <button
+                  type="button"
+                  onClick={() => setEdition((e) => !e)}
+                  className={`${edition ? "app-btn-primary" : "app-btn-secondary"} flex-1 sm:flex-none`}
+                  aria-pressed={edition}
+                >
+                  {edition ? <Check className="h-4 w-4" /> : <Pencil className="h-4 w-4" />}
+                  {edition ? "Terminé" : "Modifier la salle"}
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setConfig(true)}
+                  className="app-btn-secondary"
+                  aria-label="Zones et création de tables"
+                  title="Zones et création de tables"
+                >
+                  <Settings2 className="h-4 w-4" />
+                </button>
+              </>
+            )}
+          </div>
         }
       />
 
@@ -343,10 +362,19 @@ export const SalleView: React.FC<SalleViewProps> = (props) => {
           vendeur={props.vendeur}
           onVentes={props.onVentes}
           onFermer={() => setNoteOuverte(null)}
+          bons={bons}
         />
       )}
 
       {config && <ConfigSalleModal bar={bar} onFermer={() => setConfig(false)} />}
+      {reglageBons && (
+        <ReglagesBonsModal
+          bons={bons}
+          categories={props.categories}
+          onFermer={() => setReglageBons(false)}
+        />
+      )}
+      {bons.portail}
       {modaleConfirmation}
     </div>
   );
