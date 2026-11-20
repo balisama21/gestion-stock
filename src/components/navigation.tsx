@@ -28,6 +28,11 @@ import {
   Banknote,
   ClipboardCheck,
   Box,
+  Hourglass,
+  Pill,
+  ScrollText,
+  ShieldCheck,
+  Stethoscope,
 } from "lucide-react";
 import type { ActiveTab } from "../types";
 import { libelleModule, moduleMasque, type Personnalisation } from "../lib/personnalisation";
@@ -96,7 +101,10 @@ export const NAV_GROUPS: NavGroup[] = [
       { id: "salle", label: "Salle", icon: <Mic className="w-4 h-4" /> },
       { id: "ventes", label: "Ventes", icon: <DollarSign className="w-4 h-4" /> },
       { id: "facturation", label: "Facturation", icon: <ReceiptText className="w-4 h-4" /> },
+      // Pharmacie seulement : le registre des ordonnances.
+      { id: "ordonnancier", label: "Ordonnancier", icon: <ScrollText className="w-4 h-4" /> },
       { id: "clients", label: "Clients", icon: <UserIcon className="w-4 h-4" /> },
+      { id: "organismes", label: "Tiers payant", icon: <ShieldCheck className="w-4 h-4" /> },
       { id: "paiements", label: "Paiements à recevoir", icon: <CreditCard className="w-4 h-4" /> },
       { id: "devis", label: "Devis", icon: <FileText className="w-4 h-4" /> },
       { id: "commandes", label: "Commandes", icon: <ShoppingBag className="w-4 h-4" /> },
@@ -108,7 +116,9 @@ export const NAV_GROUPS: NavGroup[] = [
     items: [
       { id: "produits", label: "Produits", icon: <Package className="w-4 h-4" /> },
       { id: "achats", label: "Achats", icon: <ShoppingCart className="w-4 h-4" /> },
-      // Bar-karaoké seulement (voir `ONGLETS_DE_NATURE`).
+      // Pharmacie seulement : les lots qui périment.
+      { id: "peremptions", label: "Péremptions", icon: <Hourglass className="w-4 h-4" /> },
+      // Bar-karaoké et pharmacie (voir `ONGLETS_DE_NATURE`).
       {
         id: "inventaire",
         label: "Inventaire du soir",
@@ -149,9 +159,9 @@ export const NAV_GROUPS: NavGroup[] = [
  */
 const UNIVERS: ActiveTab[][] = [
   ["vue_equipe", "taches", "agenda", "rappels"],
-  ["salle", "ventes", "facturation", "devis", "commandes", "livraisons"],
-  ["produits", "achats", "inventaire", "consigne", "fournisseurs", "prestataires"],
-  ["clients", "paiements"],
+  ["salle", "ventes", "ordonnancier", "facturation", "devis", "commandes", "livraisons"],
+  ["produits", "achats", "peremptions", "inventaire", "consigne", "fournisseurs", "prestataires"],
+  ["clients", "organismes", "paiements"],
   ["capital", "depenses", "notes_frais", "rapports"],
   // Les deux faces de l'équipe : ce que chacun détient de votre argent,
   // et ce que vous lui devez. Deux comptes opposés qu'on consulte
@@ -173,8 +183,11 @@ export const ALWAYS_VISIBLE_TABS = ["dashboard", "capital", "ventes", "salle"];
  */
 const ONGLETS_DE_NATURE: Partial<Record<ActiveTab, string[]>> = {
   salle: ["karaoke"],
-  inventaire: ["karaoke"],
+  inventaire: ["karaoke", "pharmacie"],
   consigne: ["karaoke"],
+  peremptions: ["pharmacie"],
+  ordonnancier: ["pharmacie"],
+  organismes: ["pharmacie"],
 };
 
 /**
@@ -184,6 +197,9 @@ const ONGLETS_DE_NATURE: Partial<Record<ActiveTab, string[]>> = {
 const PERMISSION_DE: Partial<Record<ActiveTab, ActiveTab>> = {
   inventaire: "produits",
   consigne: "achats",
+  peremptions: "produits",
+  ordonnancier: "ventes",
+  organismes: "clients",
 };
 const permissionDe = (id: ActiveTab): ActiveTab => PERMISSION_DE[id] ?? id;
 
@@ -268,17 +284,27 @@ export const BOTTOM_TABS: { id: ActiveTab; shortLabel: string; icon: React.React
   { id: "ventes", shortLabel: "Ventes", icon: <DollarSign className="w-5 h-5" /> },
   { id: "produits", shortLabel: "Stock", icon: <Package className="w-5 h-5" /> },
   { id: "clients", shortLabel: "Clients", icon: <UserIcon className="w-5 h-5" /> },
+  // La pharmacie seulement.
+  { id: "peremptions", shortLabel: "Péremptions", icon: <Hourglass className="w-5 h-5" /> },
 ];
 
 /**
  * Les icônes d'une barre du bas propre à une nature : un bar ne
  * reconnaît pas sa caisse dans un « $ », ni sa carte dans un carton.
  */
-const ICONES_DE_NATURE: Partial<Record<ActiveTab, React.ReactNode>> = {
-  dashboard: <Moon className="w-5 h-5" />,
-  salle: <Mic className="w-5 h-5" />,
-  produits: <Wine className="w-5 h-5" />,
-  ventes: <Banknote className="w-5 h-5" />,
+const ICONES_DE_NATURE: Partial<Record<string, Partial<Record<ActiveTab, React.ReactNode>>>> = {
+  karaoke: {
+    dashboard: <Moon className="w-5 h-5" />,
+    salle: <Mic className="w-5 h-5" />,
+    produits: <Wine className="w-5 h-5" />,
+    ventes: <Banknote className="w-5 h-5" />,
+  },
+  pharmacie: {
+    dashboard: <Stethoscope className="w-5 h-5" />,
+    ventes: <Banknote className="w-5 h-5" />,
+    produits: <Pill className="w-5 h-5" />,
+    peremptions: <Hourglass className="w-5 h-5" />,
+  },
 };
 
 export function visibleBottomTabs(
@@ -294,7 +320,7 @@ export function visibleBottomTabs(
               {
                 ...base,
                 shortLabel: libelleModule(perso, id, base.shortLabel),
-                icon: ICONES_DE_NATURE[id as ActiveTab] ?? base.icon,
+                icon: ICONES_DE_NATURE[natureDe(perso)]?.[id as ActiveTab] ?? base.icon,
               },
             ]
           : [];
@@ -304,7 +330,7 @@ export function visibleBottomTabs(
     (tab) =>
       (memberPermissions === null ||
         ALWAYS_VISIBLE_TABS.includes(tab.id) ||
-        memberPermissions.includes(tab.id)) &&
+        memberPermissions.includes(permissionDe(tab.id))) &&
       // Un module masqué disparaît aussi de la barre du bas, sinon
       // l'utilisateur y trouverait un raccourci vers un écran qu'il a
       // lui-même retiré de son menu.

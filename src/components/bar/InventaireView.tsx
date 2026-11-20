@@ -25,6 +25,9 @@ interface Props {
   peutValider: boolean;
   /** Après validation : le stock a changé. */
   onValide: () => void;
+  /** Le titre et la phrase d'en-tête, quand ce n'est pas un bar. */
+  titre?: string;
+  sousTitre?: string;
 }
 
 const db = supabase as unknown as {
@@ -65,6 +68,8 @@ export const InventaireView: React.FC<Props> = ({
   categories,
   peutValider,
   onValide,
+  titre,
+  sousTitre,
 }) => {
   const jour = dateDuJour();
   const cle = cleBrouillon(storeId, jour);
@@ -161,9 +166,10 @@ export const InventaireView: React.FC<Props> = ({
   return (
     <div className="mx-auto max-w-3xl space-y-5 pb-28">
       <header>
-        <h1 className="text-2xl font-bold tracking-tight">Inventaire du soir</h1>
+        <h1 className="text-2xl font-bold tracking-tight">{titre ?? "Inventaire du soir"}</h1>
         <p className="text-sm text-muted-foreground">
-          Comptez ce qui reste après la fermeture : le logiciel montre ce qui manque.
+          {sousTitre ??
+            "Comptez ce qui reste après la fermeture : le logiciel montre ce qui manque."}
         </p>
       </header>
 

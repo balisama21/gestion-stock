@@ -50,8 +50,8 @@ export const NATURES: Nature[] = [
   {
     cle: "pharmacie",
     nom: "Pharmacie",
-    description: "Lots, dates de péremption et alertes, vente du lot qui périme en premier.",
-    disponible: false,
+    description: "Lots et péremptions, ordonnancier, tiers payant, génériques équivalents.",
+    disponible: true,
   },
   {
     cle: "restaurant",
@@ -152,6 +152,28 @@ export const INTERIEURS: Partial<Record<CleNature, InterieurDeNature>> = {
       "rappels",
     ],
     barreDuBas: ["dashboard", "salle", "produits", "ventes"],
+  },
+  pharmacie: {
+    libelles: {
+      dashboard: "Officine",
+      ventes: "Comptoir",
+      produits: "Médicaments",
+      achats: "Réceptions",
+      clients: "Patients",
+      vendeurs: "Équipe",
+      inventaire: "Inventaire",
+    },
+    masques: [
+      "devis",
+      "livraisons",
+      "prestataires",
+      "notes_frais",
+      "vue_equipe",
+      "taches",
+      "agenda",
+      "rappels",
+    ],
+    barreDuBas: ["dashboard", "ventes", "produits", "peremptions"],
   },
 };
 
