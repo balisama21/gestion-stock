@@ -10,12 +10,14 @@ const ECHELLES: [Echelle, string][] = [
 
 /** Soir, semaine ou mois, et les flèches pour remonter le temps. */
 export const ChoixPeriode: React.FC<{
+  /** « Soir » au bar, « Jour » ailleurs. */
+  libelleJour?: string;
   echelle: Echelle;
   recul: number;
   periode: Periode;
   onEchelle: (e: Echelle) => void;
   onRecul: (r: number) => void;
-}> = ({ echelle, recul, periode, onEchelle, onRecul }) => (
+}> = ({ libelleJour, echelle, recul, periode, onEchelle, onRecul }) => (
   <div className="space-y-2">
     <div className="grid grid-cols-3 gap-1 rounded-xl bg-muted p-1" role="tablist">
       {ECHELLES.map(([cle, libelle]) => (
@@ -32,7 +34,7 @@ export const ChoixPeriode: React.FC<{
             echelle === cle ? "bg-card text-foreground shadow-sm" : "text-muted-foreground"
           }`}
         >
-          {libelle}
+          {cle === "soir" && libelleJour ? libelleJour : libelle}
         </button>
       ))}
     </div>

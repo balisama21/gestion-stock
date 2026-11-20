@@ -52,18 +52,28 @@ export function planRubriquesBar(
   categories: CategorieLue[],
   produitsParCategorie: Map<string, number>,
 ): PlanRubriques {
+  return planRubriques(categories, produitsParCategorie, RUBRIQUES_BAR, DEPENSES_BAR);
+}
+
+/** Le même plan pour n'importe quelle nature : ses rubriques, ses postes de dépense. */
+export function planRubriques(
+  categories: CategorieLue[],
+  produitsParCategorie: Map<string, number>,
+  rubriques: string[],
+  postes: string[],
+): PlanRubriques {
   const produits = categories.filter((c) => (c.usage ?? "produit") === "produit");
   const depenses = categories.filter((c) => c.usage === "depense");
-  const duBar = new Set(RUBRIQUES_BAR.map(cle));
+  const duBar = new Set(rubriques.map(cle));
   const existantes = new Set(produits.map((c) => cle(c.nom)));
   return {
     aMasquer: produits
       .filter((c) => c.actif !== false && !duBar.has(cle(c.nom)) && !produitsParCategorie.get(c.id))
       .map((c) => c.id),
-    aCreer: RUBRIQUES_BAR.map((nom, i) => ({ nom, ordre: i * 10 })).filter(
-      (r) => !existantes.has(cle(r.nom)),
-    ),
-    depensesACreer: DEPENSES_BAR.filter((d) => !depenses.some((c) => cle(c.nom) === cle(d))),
+    aCreer: rubriques
+      .map((nom, i) => ({ nom, ordre: i * 10 }))
+      .filter((r) => !existantes.has(cle(r.nom))),
+    depensesACreer: postes.filter((d) => !depenses.some((c) => cle(c.nom) === cle(d))),
   };
 }
 
@@ -75,9 +85,14 @@ export const planVide = (p: PlanRubriques) =>
  * Une rubrique de bar mise de côté par le passé est réactivée plutôt que
  * créée en double.
  */
-export async function adapterRubriquesAuBar(
+export const adapterRubriquesAuBar = (storeId: string, userId: string) =>
+  adapterRubriques(storeId, userId, RUBRIQUES_BAR, DEPENSES_BAR);
+
+export async function adapterRubriques(
   storeId: string,
   userId: string,
+  rubriques: string[],
+  postes: string[],
 ): Promise<{ error: string | null }> {
   const db = supabase as unknown as { from: (t: string) => any };
   const [{ data: cats, error: e1 }, { data: prods, error: e2 }] = await Promise.all([
@@ -90,7 +105,7 @@ export async function adapterRubriquesAuBar(
     if (p.category_id) compte.set(p.category_id, (compte.get(p.category_id) ?? 0) + 1);
   }
   const categories = (cats ?? []) as CategorieLue[];
-  const plan = planRubriquesBar(categories, compte);
+  const plan = planRubriques(categories, compte, rubriques, postes);
 
   if (plan.aMasquer.length) {
     const { error } = await db.from("categories").update({ actif: false }).in("id", plan.aMasquer);
@@ -102,7 +117,7 @@ export async function adapterRubriquesAuBar(
       (c) =>
         (c.usage ?? "produit") === "produit" &&
         c.actif === false &&
-        RUBRIQUES_BAR.some((r) => cle(r) === cle(c.nom)),
+        rubriques.some((r) => cle(r) === cle(c.nom)),
     )
     .map((c) => c.id);
   if (aReactiver.length) {

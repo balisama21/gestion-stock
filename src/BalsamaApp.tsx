@@ -28,6 +28,9 @@ import {
 import { Header } from "./components/Header";
 import { NAV_GROUPS, ongletDeLaNature, universDe, visibleNavItems } from "./components/navigation";
 import { avecLInterieur, natureDe } from "./lib/natures";
+import { usePharmacie } from "./hooks/usePharmacie";
+import { nomAffiche } from "./components/pharmacie/FormulaireMedicament";
+import { chargerPolicePharmacie } from "./components/pharmacie/ui";
 import { dateDuJour } from "./lib/dates";
 import { adapterRubriquesAuBar } from "./lib/rubriquesBar";
 import { SousNavigation } from "./components/shared/SousNavigation";
@@ -186,6 +189,32 @@ const CaisseView = lazy(() =>
 );
 const CarteView = lazy(() =>
   import("./components/bar/CarteView").then((m) => ({ default: m.CarteView })),
+);
+const OfficineView = lazy(() =>
+  import("./components/pharmacie/OfficineView").then((m) => ({ default: m.OfficineView })),
+);
+const ComptoirView = lazy(() =>
+  import("./components/pharmacie/ComptoirView").then((m) => ({ default: m.ComptoirView })),
+);
+const MedicamentsView = lazy(() =>
+  import("./components/pharmacie/MedicamentsView").then((m) => ({ default: m.MedicamentsView })),
+);
+const ReceptionsView = lazy(() =>
+  import("./components/pharmacie/ReceptionsView").then((m) => ({ default: m.ReceptionsView })),
+);
+const PeremptionsView = lazy(() =>
+  import("./components/pharmacie/PeremptionsView").then((m) => ({ default: m.PeremptionsView })),
+);
+const OrdonnancierView = lazy(() =>
+  import("./components/pharmacie/OrdonnancierView").then((m) => ({
+    default: m.OrdonnancierView,
+  })),
+);
+const PatientsView = lazy(() =>
+  import("./components/pharmacie/PatientsView").then((m) => ({ default: m.PatientsView })),
+);
+const OrganismesView = lazy(() =>
+  import("./components/pharmacie/OrganismesView").then((m) => ({ default: m.OrganismesView })),
 );
 const HabituesView = lazy(() =>
   import("./components/bar/HabituesView").then((m) => ({ default: m.HabituesView })),
@@ -605,8 +634,25 @@ function AppInner() {
     () => avecLInterieur(personnalisation),
     [personnalisation],
   );
-  // Un bar-karaoké ouvre sur « Ce soir », pas sur le tableau de bord d'un commerce.
-  const accueilDeNature = natureDe(personnalisation) === "karaoke";
+  // Un bar-karaoké ouvre sur « Ce soir », une pharmacie sur « Officine » :
+  // pas sur le tableau de bord d'un commerce.
+  const nature = natureDe(personnalisation);
+  const estBar = nature === "karaoke";
+  const estPharmacie = nature === "pharmacie";
+  const accueilDeNature = estBar || estPharmacie;
+  // Les lots, fiches et organismes : chargés seulement dans une pharmacie.
+  const pharma = usePharmacie(estPharmacie ? (workspace.activeStore?.id ?? null) : null);
+  // L'habit de l'officine : toute l'application change de couleurs et
+  // d'écriture quand la boutique ouverte est une pharmacie (pharmacie.css).
+  useEffect(() => {
+    const html = document.documentElement;
+    if (estPharmacie) {
+      html.dataset.nature = "pharmacie";
+      chargerPolicePharmacie();
+    } else {
+      delete html.dataset.nature;
+    }
+  }, [estPharmacie]);
 
   /**
    * La base tranche la même question dans ses politiques d'insertion ;
@@ -2367,7 +2413,18 @@ function AppInner() {
                       />
                     )}
 
-                    {vue === "dashboard" && accueilDeNature && workspace.activeStore && (
+                    {vue === "dashboard" && estPharmacie && workspace.activeStore && (
+                      <OfficineView
+                        storeId={workspace.activeStore.id}
+                        storeName={workspace.activeStore.name.trim()}
+                        products={products}
+                        sales={visibleSales}
+                        pharma={pharma}
+                        aujourdhui={dateDuJour()}
+                        onAller={setActiveTab}
+                      />
+                    )}
+                    {vue === "dashboard" && estBar && workspace.activeStore && (
                       <CeSoirView
                         storeId={workspace.activeStore.id}
                         storeName={workspace.activeStore.name.trim()}
@@ -2496,7 +2553,49 @@ function AppInner() {
                           mySellerData={mySellerData}
                         />
                       ))}
-                    {vue === "produits" && accueilDeNature && (
+                    {vue === "produits" && estPharmacie && (
+                      <MedicamentsView
+                        products={products}
+                        categories={storeData.categories}
+                        pharma={pharma}
+                        aujourdhui={dateDuJour()}
+                        peutModifier={workspace.isOwner}
+                        onStockModifie={() => storeData.refresh()}
+                        onCreer={async (v) => {
+                          const r = await storeData.addProduct({
+                            designation: v.nom,
+                            variant_suffix: "",
+                            display_name: nomAffiche(v.nom, v.dosage),
+                            prix_achat: v.prixAchat,
+                            prix_vente_defaut: v.prixVente,
+                            stock_initial: 0,
+                            seuil_alerte: v.seuil,
+                          });
+                          if (!r.error && r.id && (v.categorieId || v.codeBarres.trim())) {
+                            await storeData.updateProductDetails(r.id, {
+                              category_id: v.categorieId,
+                              code_barres: v.codeBarres.trim() || null,
+                            });
+                          }
+                          return r;
+                        }}
+                        onModifier={async (p, v) => {
+                          const r = await storeData.updateProduct(p.id, {
+                            designation: v.nom,
+                            prixAchat: v.prixAchat,
+                            prixVenteDefaut: v.prixVente,
+                            fournisseur: p.fournisseur,
+                            seuilAlerte: v.seuil,
+                          });
+                          if (r.error) return r;
+                          return storeData.updateProductDetails(p.id, {
+                            category_id: v.categorieId,
+                            code_barres: v.codeBarres.trim() || null,
+                          });
+                        }}
+                      />
+                    )}
+                    {vue === "produits" && estBar && (
                       <CarteView
                         products={products}
                         categories={storeData.categories}
@@ -2604,6 +2703,43 @@ function AppInner() {
                         categories={storeData.categories}
                         peutValider={workspace.isOwner}
                         onValide={() => storeData.refresh()}
+                        {...(estPharmacie
+                          ? {
+                              titre: "Inventaire",
+                              sousTitre:
+                                "Comptez les boîtes en rayon : le logiciel montre les écarts avec le stock.",
+                            }
+                          : {})}
+                      />
+                    )}
+                    {vue === "peremptions" && estPharmacie && (
+                      <PeremptionsView
+                        products={products}
+                        sales={visibleSales}
+                        pharma={pharma}
+                        aujourdhui={dateDuJour()}
+                        peutRetirer={workspace.isOwner}
+                        onStockModifie={() => storeData.refresh()}
+                      />
+                    )}
+                    {vue === "ordonnancier" && estPharmacie && workspace.activeStore && (
+                      <OrdonnancierView
+                        storeId={workspace.activeStore.id}
+                        storeName={workspace.activeStore.name.trim()}
+                        sales={visibleSales}
+                        clients={storeData.clients}
+                        aujourdhui={dateDuJour()}
+                      />
+                    )}
+                    {vue === "organismes" && estPharmacie && workspace.activeStore && (
+                      <OrganismesView
+                        storeName={workspace.activeStore.name.trim()}
+                        clients={storeData.clients}
+                        sales={visibleSales}
+                        pharma={pharma}
+                        estProprietaire={workspace.isOwner}
+                        onAddClient={storeData.addClient}
+                        onAddPaymentToSale={storeData.addPaymentToSale}
                       />
                     )}
                     {vue === "consigne" && workspace.activeStore && (
@@ -2612,7 +2748,19 @@ function AppInner() {
                         estProprietaire={workspace.isOwner}
                       />
                     )}
-                    {vue === "achats" && accueilDeNature && (
+                    {vue === "achats" && estPharmacie && (
+                      <ReceptionsView
+                        storeName={workspace.activeStore?.name.trim()}
+                        products={products}
+                        purchases={purchases}
+                        fournisseurs={storeData.suppliers}
+                        pharma={pharma}
+                        aujourdhui={dateDuJour()}
+                        peutRecevoir={peutEnregistrerUnAchat}
+                        onRecue={() => storeData.refresh()}
+                      />
+                    )}
+                    {vue === "achats" && estBar && (
                       <EntreesView
                         products={products}
                         categories={storeData.categories}
@@ -2959,7 +3107,20 @@ function AppInner() {
                         onVentes={() => storeData.refresh()}
                       />
                     )}
-                    {vue === "ventes" && accueilDeNature && workspace.activeStore && (
+                    {vue === "ventes" && estPharmacie && workspace.activeStore && (
+                      <ComptoirView
+                        storeId={workspace.activeStore.id}
+                        storeName={workspace.activeStore.name.trim()}
+                        products={products}
+                        sales={visibleSales}
+                        clients={storeData.clients}
+                        pharma={pharma}
+                        aujourdhui={dateDuJour()}
+                        vendeur={myName}
+                        onVendre={handleAddSaleTicket}
+                      />
+                    )}
+                    {vue === "ventes" && estBar && workspace.activeStore && (
                       <CaisseView
                         storeId={workspace.activeStore.id}
                         sales={visibleSales}
@@ -3001,7 +3162,7 @@ function AppInner() {
                         visibleFields={ventesVisibleFields}
                       />
                     )}
-                    {vue === "vendeurs" && accueilDeNature && workspace.activeStore && (
+                    {vue === "vendeurs" && estBar && workspace.activeStore && (
                       <EquipeBarView
                         storeId={workspace.activeStore.id}
                         sales={visibleSales}
@@ -3032,7 +3193,7 @@ function AppInner() {
                         }}
                       />
                     )}
-                    {vue === "vendeurs" && !accueilDeNature && (
+                    {vue === "vendeurs" && !estBar && (
                       <VendeursView
                         sellers={computedSellers}
                         sales={sales}
@@ -3186,7 +3347,7 @@ function AppInner() {
                             locale={locale}
                           />
                         );
-                        return accueilDeNature && workspace.activeStore ? (
+                        return estBar && workspace.activeStore ? (
                           <BilanBarView
                             storeId={workspace.activeStore.id}
                             sales={ventesPourChiffres}
@@ -3268,7 +3429,7 @@ function AppInner() {
                         onAddPaymentToOrder={storeData.addPaymentToOrder}
                       />
                     )}
-                    {vue === "clients" && accueilDeNature && (
+                    {vue === "clients" && estBar && (
                       <HabituesView
                         clients={visibleClients}
                         sales={visibleSales}
@@ -3278,7 +3439,19 @@ function AppInner() {
                         onAddPaymentToSale={storeData.addPaymentToSale}
                       />
                     )}
-                    {vue === "clients" && !accueilDeNature && (
+                    {vue === "clients" && estPharmacie && (
+                      <PatientsView
+                        storeId={workspace.activeStore?.id ?? ""}
+                        clients={visibleClients}
+                        sales={visibleSales}
+                        pharma={pharma}
+                        aujourdhui={dateDuJour()}
+                        onAddClient={storeData.addClient}
+                        onUpdateClient={storeData.updateClient}
+                        onAddPaymentToSale={storeData.addPaymentToSale}
+                      />
+                    )}
+                    {vue === "clients" && !estBar && !estPharmacie && (
                       <ClientsView
                         importer={boutonImport("clients")}
                         clients={visibleClients}
