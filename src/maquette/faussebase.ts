@@ -141,6 +141,16 @@ export function vendre(panier: {
       return { ventes: [], error: `Stock disponible insuffisant pour "${p.displayName}".` };
   }
   const ticket = id();
+  // Les ventes d'un jour passé gardent une heure de ce jour-là : la caisse
+  // range l'argent reçu par jour de paiement.
+  const quand =
+    panier.date === aujourdhui()
+      ? new Date().toISOString()
+      : new Date(
+          `${panier.date}T${String(8 + (base.ventes.length % 11)).padStart(2, "0")}:${String(
+            (base.ventes.length * 7) % 60,
+          ).padStart(2, "0")}:00`,
+        ).toISOString();
   let reste = panier.montantPaye;
   const faites: Sale[] = [];
   for (const l of panier.lignes) {
@@ -175,11 +185,23 @@ export function vendre(panier: {
       montantAvoire: 0,
       soldeDu: total - paye,
       statutCredit: paye >= total ? "Payé" : paye > 0 ? "Partiel" : "Impayé",
-      saisieLe: new Date().toISOString(),
+      saisieLe: quand,
       conditionnement: c ? { nom: c.nom, nombre: l.nombre ?? 0, facteur: c.quantite } : null,
     };
     base.ventes.push(vente);
     faites.push(vente);
+    if (paye > 0)
+      base.paiements.push({
+        id: id(),
+        numero: `PAY${base.paiements.length + 1}`,
+        orderId: null,
+        saleId: vente.id,
+        montant: paye,
+        methode: panier.methode || "especes",
+        reference: null,
+        note: null,
+        createdAt: quand,
+      });
     mouvement(p.id, -l.quantite, "vente", { type: "sale", id: vente.id });
   }
   changer();
@@ -193,7 +215,17 @@ export function payerVente(saleId: string, montant: number) {
   v.montantPaye += montant;
   v.soldeDu -= montant;
   v.statutCredit = v.soldeDu <= 0 ? "Payé" : "Partiel";
-  base.paiements.push({ saleId, montant, createdAt: new Date().toISOString() });
+  base.paiements.push({
+    id: id(),
+    numero: `PAY${base.paiements.length + 1}`,
+    orderId: null,
+    saleId,
+    montant,
+    methode: "especes",
+    reference: null,
+    note: null,
+    createdAt: new Date().toISOString(),
+  });
   changer();
   return { error: null };
 }

@@ -100,7 +100,7 @@ export const MedicamentsView: React.FC<Props> = ({
   const produitOuvert = medicaments.find((p) => p.id === ouvert) ?? null;
 
   return (
-    <div className="ph-page max-w-6xl">
+    <div className="ph-page">
       <EnTete
         titre="Médicaments"
         sousTitre={`${medicaments.length} références · ${formatCurrency(valeurStock)} de stock au prix d'achat`}

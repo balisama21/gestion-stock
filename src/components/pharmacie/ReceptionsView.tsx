@@ -214,7 +214,7 @@ export const ReceptionsView: React.FC<Props> = ({
   const ceMois = purchases.filter((a) => a.date.slice(0, 7) === aujourdhui.slice(0, 7));
 
   return (
-    <div className="ph-page max-w-5xl">
+    <div className="ph-page">
       <EnTete
         titre="Réceptions"
         sousTitre="Les livraisons des grossistes, lot par lot."

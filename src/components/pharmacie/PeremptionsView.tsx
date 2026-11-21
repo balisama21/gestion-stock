@@ -112,7 +112,7 @@ export const PeremptionsView: React.FC<Props> = ({
   };
 
   return (
-    <div className="ph-page max-w-5xl">
+    <div className="ph-page">
       <EnTete
         titre="Péremptions"
         sousTitre="Le premier qui périme sort le premier. Ici, ce qu'il faut surveiller."

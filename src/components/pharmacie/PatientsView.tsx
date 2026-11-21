@@ -151,7 +151,7 @@ export const PatientsView: React.FC<Props> = ({
   const dossier = dossiers.find((d) => d.client.id === ouvert) ?? null;
 
   return (
-    <div className="ph-page max-w-4xl">
+    <div className="ph-page">
       <EnTete
         titre="Patients"
         sousTitre="Le dossier de chacun : délivrances, ordonnances, allergies, crédit."

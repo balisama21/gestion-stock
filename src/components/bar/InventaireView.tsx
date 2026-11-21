@@ -15,6 +15,7 @@ import {
   type InventairePasse,
   type MouvementInventaire,
 } from "../../lib/inventaireBar";
+import { Chiffre, EnTete, Pastille } from "../pharmacie/ui";
 
 type Categorie = Database["public"]["Tables"]["categories"]["Row"];
 
@@ -28,6 +29,8 @@ interface Props {
   /** Le titre et la phrase d'en-tête, quand ce n'est pas un bar. */
   titre?: string;
   sousTitre?: string;
+  /** « officine » : l'en-tête, les chiffres et les lignes de la pharmacie. */
+  habit?: "officine";
 }
 
 const db = supabase as unknown as {
@@ -70,7 +73,9 @@ export const InventaireView: React.FC<Props> = ({
   onValide,
   titre,
   sousTitre,
+  habit,
 }) => {
+  const officine = habit === "officine";
   const jour = dateDuJour();
   const cle = cleBrouillon(storeId, jour);
   const [comptes, setComptes] = useState<Record<string, number>>(() => lireBrouillon(cle));
@@ -164,14 +169,31 @@ export const InventaireView: React.FC<Props> = ({
   };
 
   return (
-    <div className="mx-auto max-w-3xl space-y-5 pb-28">
-      <header>
-        <h1 className="text-2xl font-bold tracking-tight">{titre ?? "Inventaire du soir"}</h1>
-        <p className="text-sm text-muted-foreground">
-          {sousTitre ??
-            "Comptez ce qui reste après la fermeture : le logiciel montre ce qui manque."}
-        </p>
-      </header>
+    <div className={officine ? "ph-page pb-28" : "mx-auto max-w-3xl space-y-5 pb-28"}>
+      {officine ? (
+        <EnTete
+          icone={<ClipboardCheck className="h-6 w-6" />}
+          titre={titre ?? "Inventaire"}
+          sousTitre={sousTitre}
+        >
+          <Chiffre ton="plein" valeur={articles.length} libelle="Références à compter" />
+          <Chiffre valeur={`${bilan.comptes} / ${articles.length}`} libelle="Déjà comptées" />
+          <Chiffre
+            ton={bilan.valeur < 0 ? "danger" : undefined}
+            valeur={formatCurrency(bilan.valeur)}
+            libelle="Écart, au prix d'achat"
+          />
+          <Chiffre valeur={passes.length} libelle="Inventaires passés" />
+        </EnTete>
+      ) : (
+        <header>
+          <h1 className="text-2xl font-bold tracking-tight">{titre ?? "Inventaire du soir"}</h1>
+          <p className="text-sm text-muted-foreground">
+            {sousTitre ??
+              "Comptez ce qui reste après la fermeture : le logiciel montre ce qui manque."}
+          </p>
+        </header>
+      )}
 
       {fait && (
         <div className="flex items-center gap-3 rounded-xl border border-success-border bg-success-soft p-3 text-sm">
@@ -218,12 +240,31 @@ export const InventaireView: React.FC<Props> = ({
             })}
           </div>
 
-          <ul className="divide-y divide-border rounded-xl border border-border">
+          <ul
+            className={
+              officine
+                ? "ph-panneau ph-liste"
+                : "divide-y divide-border rounded-xl border border-border"
+            }
+          >
             {visibles.map((p) => {
               const compte = comptes[p.id];
               const ecart = compte === undefined ? null : compte - p.stockActuel;
               return (
-                <li key={p.id} className="flex items-center gap-3 px-3 py-2.5">
+                <li
+                  key={p.id}
+                  className={officine ? "ph-ligne" : "flex items-center gap-3 px-3 py-2.5"}
+                  data-ton={
+                    !officine || ecart === null
+                      ? undefined
+                      : ecart < 0
+                        ? "danger"
+                        : ecart > 0
+                          ? "warning"
+                          : "croix"
+                  }
+                >
+                  {officine && <Pastille nom={p.displayName} />}
                   <div className="min-w-0 flex-1">
                     <p className="truncate text-sm font-semibold">{p.displayName}</p>
                     <p className="text-xs text-muted-foreground">
@@ -281,7 +322,13 @@ export const InventaireView: React.FC<Props> = ({
             <History className="h-4 w-4" />
             Inventaires passés
           </h2>
-          <ul className="divide-y divide-border rounded-xl border border-border">
+          <ul
+            className={
+              officine
+                ? "ph-panneau ph-liste"
+                : "divide-y divide-border rounded-xl border border-border"
+            }
+          >
             {passes.slice(0, 20).map((i) => (
               <li key={i.note} className="flex items-center gap-3 px-3 py-2.5 text-sm">
                 <ClipboardCheck className="h-4 w-4 shrink-0 text-muted-foreground" />

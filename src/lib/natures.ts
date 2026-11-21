@@ -162,8 +162,16 @@ export const INTERIEURS: Partial<Record<CleNature, InterieurDeNature>> = {
       clients: "Patients",
       vendeurs: "Équipe",
       inventaire: "Inventaire",
+      fournisseurs: "Grossistes",
+      rapports: "Bilan",
     },
+    // La boutique standard ne sert pas ici : les impayés se suivent
+    // dans Patients et Tiers payant, les commandes au grossiste dans
+    // Réceptions. Un module masqué se rallume dans les réglages.
     masques: [
+      "paiements",
+      "commandes",
+      "facturation",
       "devis",
       "livraisons",
       "prestataires",

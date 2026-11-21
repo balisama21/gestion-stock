@@ -260,6 +260,7 @@ export type ActiveTab =
   | "peremptions"
   | "ordonnancier"
   | "organismes"
+  | "caisse"
   | "capital"
   | "produits"
   | "achats"

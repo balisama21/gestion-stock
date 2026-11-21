@@ -75,7 +75,7 @@ export const OrganismesView: React.FC<Props> = ({
   const choisi = lignes.find((l) => l.organisme.client_id === ouvert) ?? null;
 
   return (
-    <div className="ph-page max-w-4xl">
+    <div className="ph-page">
       <EnTete
         titre="Tiers payant"
         sousTitre="Assurances, mutuelles et employeurs qui paient une part des médicaments."

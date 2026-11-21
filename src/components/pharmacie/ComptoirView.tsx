@@ -341,7 +341,7 @@ export const ComptoirView: React.FC<Props> = ({
   };
 
   return (
-    <div className="ph-page max-w-6xl">
+    <div className="ph-page">
       <EnTete
         titre="Comptoir"
         sousTitre="Cherchez, délivrez, encaissez."

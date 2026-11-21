@@ -33,6 +33,7 @@ import {
   ScrollText,
   ShieldCheck,
   Stethoscope,
+  Calculator,
 } from "lucide-react";
 import type { ActiveTab } from "../types";
 import { libelleModule, moduleMasque, type Personnalisation } from "../lib/personnalisation";
@@ -100,6 +101,8 @@ export const NAV_GROUPS: NavGroup[] = [
       // La salle du bar-karaoké : seulement pour cette nature (voir `ongletDeLaNature`).
       { id: "salle", label: "Salle", icon: <Mic className="w-4 h-4" /> },
       { id: "ventes", label: "Ventes", icon: <DollarSign className="w-4 h-4" /> },
+      // Pharmacie seulement : la caisse de la journée et son tiroir.
+      { id: "caisse", label: "Caisse du jour", icon: <Calculator className="w-4 h-4" /> },
       { id: "facturation", label: "Facturation", icon: <ReceiptText className="w-4 h-4" /> },
       // Pharmacie seulement : le registre des ordonnances.
       { id: "ordonnancier", label: "Ordonnancier", icon: <ScrollText className="w-4 h-4" /> },
@@ -159,7 +162,7 @@ export const NAV_GROUPS: NavGroup[] = [
  */
 const UNIVERS: ActiveTab[][] = [
   ["vue_equipe", "taches", "agenda", "rappels"],
-  ["salle", "ventes", "ordonnancier", "facturation", "devis", "commandes", "livraisons"],
+  ["salle", "ventes", "caisse", "ordonnancier", "facturation", "devis", "commandes", "livraisons"],
   ["produits", "achats", "peremptions", "inventaire", "consigne", "fournisseurs", "prestataires"],
   ["clients", "organismes", "paiements"],
   ["capital", "depenses", "notes_frais", "rapports"],
@@ -188,6 +191,7 @@ const ONGLETS_DE_NATURE: Partial<Record<ActiveTab, string[]>> = {
   peremptions: ["pharmacie"],
   ordonnancier: ["pharmacie"],
   organismes: ["pharmacie"],
+  caisse: ["pharmacie"],
 };
 
 /**
@@ -200,6 +204,7 @@ const PERMISSION_DE: Partial<Record<ActiveTab, ActiveTab>> = {
   peremptions: "produits",
   ordonnancier: "ventes",
   organismes: "clients",
+  caisse: "ventes",
 };
 const permissionDe = (id: ActiveTab): ActiveTab => PERMISSION_DE[id] ?? id;
 
