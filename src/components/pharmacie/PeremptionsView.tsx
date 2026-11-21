@@ -112,7 +112,7 @@ export const PeremptionsView: React.FC<Props> = ({
   };
 
   return (
-    <div className="ph-page max-w-5xl">
+    <div className="ph-page">
       <EnTete
         titre="Péremptions"
         sousTitre="Le premier qui périme sort le premier. Ici, ce qu'il faut surveiller."
@@ -198,44 +198,54 @@ export const PeremptionsView: React.FC<Props> = ({
         ) : (
           <ul className="ph-liste">
             {lignes.map(({ lot, produit, valeur, urgence }) => (
-              <li key={lot.id} className="ph-ligne flex-wrap" data-ton={TON_LIGNE[urgence]}>
+              <li key={lot.id} className="ph-ligne items-start" data-ton={TON_LIGNE[urgence]}>
                 <Pastille nom={produit.displayName} />
                 <span className="min-w-0 flex-1">
-                  <span className="block truncate text-sm font-bold">{produit.displayName}</span>
-                  <span className="mt-0.5 flex flex-wrap items-center gap-1.5 text-xs text-muted-foreground">
-                    <EtiquetteLot numero={lot.numero_lot} />
-                    {lot.date_peremption && <span>fin {moisAnnee(lot.date_peremption)}</span>}
-                    {lot.fournisseur && <span>· {lot.fournisseur}</span>}
+                  <span className="flex items-start gap-3">
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate text-sm font-bold">
+                        {produit.displayName}
+                      </span>
+                      <span className="mt-1 flex flex-wrap items-center gap-x-2 gap-y-1 text-xs text-muted-foreground">
+                        <EtiquetteLot numero={lot.numero_lot} />
+                        {lot.date_peremption && <span>fin {moisAnnee(lot.date_peremption)}</span>}
+                        {lot.fournisseur && <span>{lot.fournisseur}</span>}
+                      </span>
+                    </span>
+                    <span className="shrink-0 text-right">
+                      <span className="block text-sm font-extrabold tabular-nums">
+                        {lot.quantite} boîte{lot.quantite > 1 ? "s" : ""}
+                      </span>
+                      <span className="block text-[11px] tabular-nums text-muted-foreground">
+                        {formatCurrency(valeur)}
+                      </span>
+                    </span>
                   </span>
-                </span>
-                <BadgePeremption date={lot.date_peremption} aujourdhui={aujourdhui} />
-                <span className="w-16 text-right">
-                  <span className="block text-sm font-extrabold tabular-nums">{lot.quantite}</span>
-                  <span className="block text-[11px] tabular-nums text-muted-foreground">
-                    {formatCurrency(valeur)}
+                  <span className="mt-2 flex items-center gap-2">
+                    <BadgePeremption date={lot.date_peremption} aujourdhui={aujourdhui} />
+                    <span className="ml-auto flex gap-1">
+                      <button
+                        type="button"
+                        onClick={() => setACorriger(lot)}
+                        className="inline-flex items-center gap-1 rounded-lg border border-border px-2 py-1 text-xs font-semibold text-muted-foreground hover:bg-muted"
+                        title="Corriger le numéro ou la date"
+                      >
+                        <PencilLine className="h-3.5 w-3.5" />
+                        Corriger
+                      </button>
+                      {peutRetirer && (
+                        <button
+                          type="button"
+                          onClick={() => setARetirer({ lot, nom: produit.displayName })}
+                          className="inline-flex items-center gap-1 rounded-lg border border-danger-border px-2 py-1 text-xs font-semibold t-danger hover:bg-danger-soft"
+                          title="Retirer du rayon"
+                        >
+                          <PackageMinus className="h-3.5 w-3.5" />
+                          Retirer
+                        </button>
+                      )}
+                    </span>
                   </span>
-                </span>
-                <span className="flex gap-1">
-                  <button
-                    type="button"
-                    onClick={() => setACorriger(lot)}
-                    className="rounded-lg p-2 text-muted-foreground hover:bg-muted"
-                    aria-label="Corriger le lot"
-                    title="Corriger le numéro ou la date"
-                  >
-                    <PencilLine className="h-4 w-4" />
-                  </button>
-                  {peutRetirer && (
-                    <button
-                      type="button"
-                      onClick={() => setARetirer({ lot, nom: produit.displayName })}
-                      className="rounded-lg p-2 t-danger hover:bg-danger-soft"
-                      aria-label="Retirer du rayon"
-                      title="Retirer du rayon"
-                    >
-                      <PackageMinus className="h-4 w-4" />
-                    </button>
-                  )}
                 </span>
               </li>
             ))}

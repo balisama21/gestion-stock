@@ -16,7 +16,8 @@ import { formatCurrency } from "../../utils/formulas";
 import { estEnRupture, estSousLeSeuil, stockEstSuivi } from "../../lib/prealerteStock";
 import { lotsParUrgence, type Urgence } from "../../lib/pharmacie";
 import { useOrdonnances, type Pharmacie } from "../../hooks/usePharmacie";
-import { Chiffre, EnTete, Panneau, Pastille, Vide } from "./ui";
+import { Chiffre, EnTete, EtiquetteLot, Panneau, Pastille, Vide } from "./ui";
+import { BadgePeremption } from "./badges";
 
 interface Props {
   storeId: string;
@@ -95,6 +96,11 @@ export const OfficineView: React.FC<Props> = ({
   const perimes = resume("perime");
   const unMois = resume("un_mois");
   const troisMois = resume("trois_mois");
+  const prochains = [
+    ...(groupes.get("perime") ?? []),
+    ...(groupes.get("un_mois") ?? []),
+    ...(groupes.get("trois_mois") ?? []),
+  ].slice(0, 4);
 
   const manques = useMemo(
     () =>
@@ -121,7 +127,7 @@ export const OfficineView: React.FC<Props> = ({
     iso ? new Date(iso).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" }) : "";
 
   return (
-    <div className="ph-page max-w-5xl">
+    <div className="ph-page">
       <EnTete
         titre={storeName}
         sousTitre={
@@ -194,6 +200,29 @@ export const OfficineView: React.FC<Props> = ({
               ? "Aucun lot ne périme dans les trois mois."
               : `${formatCurrency(perimes.valeur + unMois.valeur + troisMois.valeur)} de stock à écouler ou à retirer.`}
           </p>
+          {prochains.length > 0 && (
+            <ul className="ph-liste -mx-[0.9rem] -mb-[0.9rem] mt-3 border-t border-border">
+              {prochains.map(({ lot, produit, urgence }) => (
+                <li
+                  key={lot.id}
+                  className="ph-ligne"
+                  data-ton={urgence === "trois_mois" ? "warning" : "danger"}
+                >
+                  <Pastille nom={produit.displayName} />
+                  <span className="min-w-0 flex-1">
+                    <span className="block truncate text-sm font-semibold">
+                      {produit.displayName}
+                    </span>
+                    <span className="mt-0.5 flex items-center gap-2 text-xs text-muted-foreground">
+                      <EtiquetteLot numero={lot.numero_lot} />
+                      {lot.quantite} en rayon
+                    </span>
+                  </span>
+                  <BadgePeremption date={lot.date_peremption} aujourdhui={aujourdhui} />
+                </li>
+              ))}
+            </ul>
+          )}
         </Panneau>
 
         <Panneau

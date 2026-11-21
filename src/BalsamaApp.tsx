@@ -216,6 +216,21 @@ const PatientsView = lazy(() =>
 const OrganismesView = lazy(() =>
   import("./components/pharmacie/OrganismesView").then((m) => ({ default: m.OrganismesView })),
 );
+const CaisseOfficineView = lazy(() =>
+  import("./components/pharmacie/CaisseOfficineView").then((m) => ({
+    default: m.CaisseOfficineView,
+  })),
+);
+const JournalOfficineView = lazy(() =>
+  import("./components/pharmacie/JournalOfficineView").then((m) => ({
+    default: m.JournalOfficineView,
+  })),
+);
+const BilanOfficineView = lazy(() =>
+  import("./components/pharmacie/BilanOfficineView").then((m) => ({
+    default: m.BilanOfficineView,
+  })),
+);
 const HabituesView = lazy(() =>
   import("./components/bar/HabituesView").then((m) => ({ default: m.HabituesView })),
 );
@@ -2706,6 +2721,7 @@ function AppInner() {
                         {...(estPharmacie
                           ? {
                               titre: "Inventaire",
+                              habit: "officine" as const,
                               sousTitre:
                                 "Comptez les boîtes en rayon : le logiciel montre les écarts avec le stock.",
                             }
@@ -3120,6 +3136,16 @@ function AppInner() {
                         onVendre={handleAddSaleTicket}
                       />
                     )}
+                    {vue === "caisse" && estPharmacie && workspace.activeStore && (
+                      <CaisseOfficineView
+                        storeId={workspace.activeStore.id}
+                        storeName={workspace.activeStore.name.trim()}
+                        sales={visibleSales}
+                        payments={paiementsDesVentesVisibles}
+                        organismes={pharma.organismes}
+                        aujourdhui={dateDuJour()}
+                      />
+                    )}
                     {vue === "ventes" && estBar && workspace.activeStore && (
                       <CaisseView
                         storeId={workspace.activeStore.id}
@@ -3347,6 +3373,19 @@ function AppInner() {
                             locale={locale}
                           />
                         );
+                        if (estPharmacie && workspace.activeStore)
+                          return (
+                            <BilanOfficineView
+                              storeId={workspace.activeStore.id}
+                              sales={ventesPourChiffres}
+                              expenses={visibleExpenses}
+                              products={products}
+                              categories={storeData.categories}
+                              organismes={pharma.organismes}
+                              aujourdhui={dateDuJour()}
+                              vueComptable={comptable}
+                            />
+                          );
                         return estBar && workspace.activeStore ? (
                           <BilanBarView
                             storeId={workspace.activeStore.id}
@@ -3387,7 +3426,17 @@ function AppInner() {
                         isOwner={workspace.isOwner}
                       />
                     )}
-                    {vue === "historique" && (
+                    {vue === "historique" && estPharmacie && (
+                      <JournalOfficineView
+                        sales={visibleSales}
+                        payments={paiementsDesVentesVisibles}
+                        purchases={historiquePurchases}
+                        expenses={visibleExpenses}
+                        apports={historiqueApports}
+                        aujourdhui={dateDuJour()}
+                      />
+                    )}
+                    {vue === "historique" && !estPharmacie && (
                       <HistoriqueView
                         purchases={historiquePurchases}
                         sales={visibleSales}

@@ -86,7 +86,7 @@ export const OrdonnancierView: React.FC<Props> = ({
   const partOrganismes = ordonnances.reduce((n, o) => n + o.part_organisme, 0);
 
   return (
-    <div className="ph-page max-w-5xl">
+    <div className="ph-page">
       <EnTete
         titre="Ordonnancier"
         sousTitre="Le registre des délivrances sur ordonnance, numéroté dans l'ordre."
