@@ -13,7 +13,7 @@ import { PatientsView } from "../components/pharmacie/PatientsView";
 import { InventaireView } from "../components/bar/InventaireView";
 import { CaisseOfficineView } from "../components/pharmacie/CaisseOfficineView";
 import { BilanOfficineView } from "../components/pharmacie/BilanOfficineView";
-import { HistoriqueView } from "../components/HistoriqueView";
+import { JournalOfficineView } from "../components/pharmacie/JournalOfficineView";
 import { CapitalView } from "../components/CapitalView";
 import { DepensesView } from "../components/DepensesView";
 import { SalairesView } from "../components/SalairesView";
@@ -344,12 +344,13 @@ export const MaquettePharmacie: React.FC = () => {
               />
             )}
             {onglet === "historique" && (
-              <HistoriqueView
-                purchases={donnees.achats}
+              <JournalOfficineView
                 sales={donnees.ventes}
+                payments={donnees.paiements}
+                purchases={donnees.achats}
                 expenses={DEPENSES}
-                locale="FR"
-                products={donnees.produits}
+                apports={[]}
+                aujourdhui={aujourdhui}
               />
             )}
             {onglet === "capital" && (

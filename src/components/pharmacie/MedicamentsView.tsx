@@ -288,18 +288,18 @@ export const MedicamentsView: React.FC<Props> = ({
                     >
                       <Pastille nom={p.displayName} />
                       <span className="min-w-0 flex-1">
-                        <span className="flex items-center gap-1.5">
-                          <span className="truncate font-bold">{p.displayName}</span>
-                          <BadgeRegime regime={fiche?.regime} />
-                        </span>
+                        <span className="block truncate font-bold">{p.displayName}</span>
                         <span className="block truncate text-xs text-muted-foreground">
                           {[fiche?.dci, fiche?.emplacement && `Rayon ${fiche.emplacement}`]
                             .filter(Boolean)
                             .join(" · ")}
                         </span>
-                        {e.prochaine && (
-                          <span className="mt-1 block">
-                            <BadgePeremption date={e.prochaine} aujourdhui={aujourdhui} />
+                        {(e.prochaine || (fiche?.regime && fiche.regime !== "libre")) && (
+                          <span className="mt-1 flex flex-wrap items-center gap-1.5">
+                            {e.prochaine && (
+                              <BadgePeremption date={e.prochaine} aujourdhui={aujourdhui} />
+                            )}
+                            <BadgeRegime regime={fiche?.regime} />
                           </span>
                         )}
                       </span>

@@ -221,6 +221,11 @@ const CaisseOfficineView = lazy(() =>
     default: m.CaisseOfficineView,
   })),
 );
+const JournalOfficineView = lazy(() =>
+  import("./components/pharmacie/JournalOfficineView").then((m) => ({
+    default: m.JournalOfficineView,
+  })),
+);
 const BilanOfficineView = lazy(() =>
   import("./components/pharmacie/BilanOfficineView").then((m) => ({
     default: m.BilanOfficineView,
@@ -3421,7 +3426,17 @@ function AppInner() {
                         isOwner={workspace.isOwner}
                       />
                     )}
-                    {vue === "historique" && (
+                    {vue === "historique" && estPharmacie && (
+                      <JournalOfficineView
+                        sales={visibleSales}
+                        payments={paiementsDesVentesVisibles}
+                        purchases={historiquePurchases}
+                        expenses={visibleExpenses}
+                        apports={historiqueApports}
+                        aujourdhui={dateDuJour()}
+                      />
+                    )}
+                    {vue === "historique" && !estPharmacie && (
                       <HistoriqueView
                         purchases={historiquePurchases}
                         sales={visibleSales}

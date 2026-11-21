@@ -41,7 +41,7 @@ export const EnTete: React.FC<{
   <header className="ph-entete">
     <div className="ph-entete-haut">
       <span className="ph-entete-icone">{icone ?? <Croix className="h-6 w-6" />}</span>
-      <div className="min-w-0">
+      <div className="ph-entete-texte">
         <h1 className="ph-entete-titre">{titre}</h1>
         {sousTitre && <p className="ph-entete-sous">{sousTitre}</p>}
       </div>
