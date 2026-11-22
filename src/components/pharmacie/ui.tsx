@@ -1,5 +1,6 @@
 import React from "react";
 import "./pharmacie.css";
+import pharmacien from "../../assets/pharmacie/pharmacien.webp";
 
 /**
  * Les pièces de l'habit « officine » (voir `pharmacie.css`) : chaque écran
@@ -47,7 +48,12 @@ export const EnTete: React.FC<{
       </div>
       {actions && <div className="ph-entete-actions">{actions}</div>}
     </div>
-    {children && <div className="ph-entete-chiffres ph-papier">{children}</div>}
+    {children && (
+      <div className="ph-bandeau">
+        <div className="ph-entete-chiffres">{children}</div>
+        <img src={pharmacien} alt="" className="ph-bandeau-image" width={235} height={200} />
+      </div>
+    )}
   </header>
 );
 

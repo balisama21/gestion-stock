@@ -157,168 +157,133 @@ html.dark[data-nature="pharmacie"] {
   }
 }
 
-/* ── Le papier du bloc-notes ──────────────────────────────────────
-   Les chiffres d'un écran s'écrivent sur une page de bloc-notes : papier
-   ligné, spirale en haut, deux feuilles dessous qui dépassent. Les traits
-   sont nets (aucun dégradé de couleur) : un papier, pas un effet. */
+/* ── Le bandeau illustré : les chiffres, et le pharmacien ──────────
+   Les chiffres d'un écran se posent sur un bandeau vert très pâle, uni,
+   le pharmacien et sa croix à droite. Le chiffre principal s'écrit en
+   grand, en vert ; les autres sur une ligne dessous : « 0 clients ·
+   2 ordonnances ». Ni carte par chiffre, ni dégradé. */
 html[data-nature="pharmacie"] {
-  --papier: #fffef8;
-  --papier-ligne: rgb(11 122 75 / 10%);
-  --papier-fil: #8a978f;
-  --papier-pas: 1.9rem;
-  --papier-marge: rgb(214 92 92 / 32%);
+  --bandeau: #edf5f0;
 }
 html.dark[data-nature="pharmacie"] {
-  --papier: oklch(0.235 0.018 120);
-  --papier-ligne: oklch(1 0 0 / 7%);
-  --papier-fil: oklch(0.6 0.02 150);
-  --papier-marge: oklch(0.65 0.15 25 / 35%);
+  --bandeau: oklch(0.235 0.03 158);
 }
-.ph-papier {
+.ph-bandeau {
   position: relative;
-  border: 1px solid var(--border);
-  border-radius: 0.3rem 0.3rem 0.9rem 0.9rem;
-  background-color: var(--papier);
-  background-image: repeating-linear-gradient(
-    to bottom,
-    transparent 0,
-    transparent calc(var(--papier-pas) - 1px),
-    var(--papier-ligne) calc(var(--papier-pas) - 1px),
-    var(--papier-ligne) var(--papier-pas)
-  );
-  background-position: 0 1.2rem;
-  box-shadow:
-    0 3px 0 -1px var(--papier),
-    0 3px 0 0 var(--border),
-    0 6px 0 -2px var(--papier),
-    0 6px 0 -1px var(--border),
-    0 10px 18px -10px rgb(0 0 0 / 18%);
+  margin-top: 1rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  overflow: hidden;
+  min-height: 9.5rem;
+  border-radius: 1.5rem;
+  background: var(--bandeau);
+  padding: 1.1rem 0 1.1rem 1.4rem;
 }
-/* La marge du cahier, un trait rouge pâle à gauche. */
-.ph-papier::after {
-  content: "";
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  left: 0.55rem;
-  width: 1px;
-  background: var(--papier-marge);
+.ph-bandeau-image {
+  align-self: flex-end;
+  flex-shrink: 0;
+  width: auto;
+  height: 10.5rem;
+  margin: 0 0.5rem -1.1rem 0;
   pointer-events: none;
+  user-select: none;
 }
-/* La spirale : un fil par trou, le long du bord haut. */
-.ph-papier::before {
-  content: "";
-  position: absolute;
-  z-index: 1;
-  left: 0.9rem;
-  right: 0.9rem;
-  top: -0.6rem;
-  height: 1.5rem;
-  background-image:
-    radial-gradient(circle at 50% 1.05rem, var(--background) 0 0.27rem, transparent 0.29rem),
-    linear-gradient(
-      to right,
-      transparent calc(50% - 1.5px),
-      var(--papier-fil) calc(50% - 1.5px),
-      var(--papier-fil) calc(50% + 1.5px),
-      transparent calc(50% + 1.5px)
-    );
-  background-size:
-    1.6rem 100%,
-    1.6rem 1.05rem;
-  background-repeat: repeat-x;
-  background-position: 0 0;
-  pointer-events: none;
+@media (max-width: 639px) {
+  .ph-bandeau {
+    min-height: 8rem;
+    padding-left: 1.1rem;
+  }
+  .ph-bandeau-image {
+    height: 7.5rem;
+    margin-right: 0.35rem;
+  }
 }
-
-/* ── Les chiffres de l'en-tête, sur la page du bloc-notes ──
-   Le chiffre principal (`ton="plein"`) s'écrit en grand, à l'encre
-   verte, sur la première ligne ; les autres dessous, deux par ligne,
-   séparés d'un trait en pointillé. Sur ordinateur, tout tient en ligne. */
 .ph-entete-chiffres {
-  margin-top: 1.35rem;
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  /* Le texte s'écrit SUR les lignes : chaque ligne de texte a la hauteur
-     d'un interligne, et la première ligne du papier tombe sous la
-     première ligne de texte. */
-  padding: 0.9rem 0 calc(var(--papier-pas) / 2);
-  background-position: 0 0.9rem;
-}
-@media (min-width: 768px) {
-  .ph-entete-chiffres {
-    display: flex;
-  }
-  .ph-entete-chiffres > * {
-    flex: 1 1 0;
-    min-width: 0;
-  }
-  .ph-entete-chiffres > [data-ton="plein"] {
-    flex-grow: 1.4;
-  }
-  .ph-entete-chiffres > .ph-chiffre + .ph-chiffre {
-    border-left: 1px dashed var(--border);
-  }
+  display: flex;
+  min-width: 0;
+  flex: 1 1 auto;
+  flex-wrap: wrap;
+  align-items: baseline;
+  align-content: center;
+  column-gap: 1.25rem;
+  row-gap: 0.35rem;
 }
 .ph-entete-chiffres > .ph-chiffre {
-  position: relative;
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.35rem;
   border: 0;
-  border-radius: 0.75rem;
+  border-radius: 0.5rem;
   background: transparent;
-  padding: 0 1rem;
+  padding: 0;
+  color: var(--foreground);
 }
 .ph-entete-chiffres > .ph-chiffre .ph-chiffre-valeur {
-  line-height: var(--papier-pas);
+  font-size: 1.2rem;
 }
 .ph-entete-chiffres > .ph-chiffre .ph-chiffre-libelle {
-  height: var(--papier-pas);
-  margin-top: 0;
-  line-height: var(--papier-pas);
+  margin: 0;
+  font-size: 0.9rem;
+  font-weight: 500;
 }
-@media (max-width: 767px) {
-  .ph-entete-chiffres:has(> [data-ton="plein"]:first-child)
-    > .ph-chiffre:nth-child(odd):not(:first-child),
-  .ph-entete-chiffres:not(:has(> [data-ton="plein"]:first-child)) > .ph-chiffre:nth-child(even) {
-    border-left: 1px dashed var(--border);
-    border-radius: 0;
-  }
-}
-/* Un chiffre resté seul sur sa ligne prend toute la largeur. */
-.ph-entete-chiffres:has(> [data-ton="plein"]:first-child) > .ph-chiffre:last-child:nth-child(even),
-.ph-entete-chiffres:not(:has(> [data-ton="plein"]:first-child))
-  > .ph-chiffre:last-child:nth-child(odd) {
-  grid-column: 1 / -1;
-  border-left: 0;
-}
+/* Le chiffre principal : en grand, en vert, son libellé dessous. */
 .ph-entete-chiffres > .ph-chiffre[data-ton="plein"] {
-  grid-column: 1 / -1;
+  flex-basis: 100%;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.1rem;
+  margin-bottom: 0.55rem;
   background: transparent;
   color: var(--primary);
 }
 .ph-entete-chiffres > .ph-chiffre[data-ton="plein"] .ph-chiffre-valeur {
-  font-size: 1.6rem;
-  line-height: var(--papier-pas);
+  font-size: 2.4rem;
+  line-height: 1.05;
+  letter-spacing: -0.03em;
 }
 .ph-entete-chiffres > .ph-chiffre[data-ton="plein"] .ph-chiffre-libelle {
+  font-size: 1rem;
   color: var(--muted-foreground);
 }
-/* En alerte, le chiffre est surligné, comme au marqueur. */
-.ph-entete-chiffres > .ph-chiffre[data-ton="danger"] {
-  background: color-mix(in oklab, var(--danger-soft) 80%, transparent);
+@media (max-width: 639px) {
+  .ph-entete-chiffres > .ph-chiffre[data-ton="plein"] .ph-chiffre-valeur {
+    font-size: 1.9rem;
+  }
+  .ph-entete-chiffres > .ph-chiffre .ph-chiffre-valeur {
+    font-size: 1.05rem;
+  }
+  .ph-entete-chiffres > .ph-chiffre .ph-chiffre-libelle {
+    font-size: 0.8rem;
+  }
 }
-.ph-entete-chiffres > .ph-chiffre[data-ton="warning"] {
-  background: color-mix(in oklab, var(--warning-soft) 80%, transparent);
+/* En alerte, le chiffre et son libellé prennent la couleur de l'alerte. */
+.ph-entete-chiffres > .ph-chiffre[data-ton="danger"],
+.ph-entete-chiffres > .ph-chiffre[data-ton="danger"] .ph-chiffre-libelle {
+  background: transparent;
+  color: var(--danger);
+}
+.ph-entete-chiffres > .ph-chiffre[data-ton="warning"],
+.ph-entete-chiffres > .ph-chiffre[data-ton="warning"] .ph-chiffre-libelle {
+  background: transparent;
+  color: var(--warning);
 }
 .ph-entete-chiffres > .ph-chiffre[data-ton="croix"] {
-  background: var(--croix-soft);
+  background: transparent;
+  color: var(--croix);
 }
-/* Le chiffre qui sert de filtre : entouré, comme d'un trait de stylo. */
-.ph-entete-chiffres > .ph-chiffre[aria-pressed="true"] {
-  border-radius: 0.75rem;
-  box-shadow: inset 0 0 0 2px var(--primary);
+/* Un chiffre qui sert de filtre se souligne ; celui qui filtre, en vert. */
+.ph-entete-chiffres > button.ph-chiffre {
+  text-decoration: underline dotted color-mix(in oklab, currentColor 45%, transparent);
+  text-underline-offset: 0.3em;
 }
 .ph-entete-chiffres > button.ph-chiffre:hover {
-  background: color-mix(in oklab, var(--secondary) 70%, transparent);
+  border-color: transparent;
+  text-decoration-style: solid;
+}
+.ph-entete-chiffres > .ph-chiffre[aria-pressed="true"] {
+  box-shadow: none;
+  text-decoration: underline solid 2px var(--primary);
 }
 
 /* ── Un chiffre clé ──────────────────────────────────────────────── */
@@ -754,10 +719,10 @@ html[data-nature="pharmacie"] .app-statbar-ico.app-statbar-ico-alerte {
   }
 }
 
-/* ── La feuille épinglée devient une page de bloc-notes ──
+/* ── La feuille épinglée devient le bandeau illustré ──
    Le chiffre clé des écrans communs (la trésorerie, ce qui reste à
-   payer) s'écrit sur la même page que ceux de la pharmacie : papier
-   ligné, spirale, encre verte ; rouge quand il alerte. */
+   payer) prend le même bandeau que ceux de la pharmacie : vert pâle uni,
+   le pharmacien à droite, le chiffre en vert ; en rouge quand il alerte. */
 html[data-nature="pharmacie"] .app-feuille {
   --foreground: inherit;
   --muted-foreground: inherit;
@@ -768,76 +733,42 @@ html[data-nature="pharmacie"] .app-feuille {
   --border: inherit;
   --card: inherit;
   transform: none;
-  margin-top: 0.75rem;
-  padding-top: 1.35rem;
-  border: 1px solid var(--border);
-  border-radius: 0.3rem 0.3rem 0.9rem 0.9rem;
+  margin-top: 0.5rem;
+  min-height: 8rem;
+  padding: 1.1rem 9.5rem 1.1rem 1.4rem;
+  border: 0;
+  border-radius: 1.5rem;
   color: var(--foreground);
-  background-color: var(--papier);
-  background-image: repeating-linear-gradient(
-    to bottom,
-    transparent 0,
-    transparent calc(var(--papier-pas) - 1px),
-    var(--papier-ligne) calc(var(--papier-pas) - 1px),
-    var(--papier-ligne) var(--papier-pas)
-  );
-  background-position: 0 1.2rem;
-  box-shadow:
-    0 3px 0 -1px var(--papier),
-    0 3px 0 0 var(--border),
-    0 6px 0 -2px var(--papier),
-    0 6px 0 -1px var(--border),
-    0 10px 18px -10px rgb(0 0 0 / 18%);
+  background: var(--bandeau) url("../../assets/pharmacie/pharmacien.webp") no-repeat right 0.5rem
+    bottom -0.6rem / auto 8.5rem;
+  box-shadow: none;
 }
-/* La punaise s'en va ; la spirale la remplace, le long du bord haut. */
-html[data-nature="pharmacie"] .app-feuille::after {
-  content: "";
-  position: absolute;
-  z-index: 1;
-  left: 0.9rem;
-  right: 0.9rem;
-  top: -0.6rem;
-  width: auto;
-  height: 1.5rem;
-  margin: 0;
-  opacity: 1;
-  transform: none;
-  clip-path: none;
-  background: none;
-  background-image:
-    radial-gradient(circle at 50% 1.05rem, var(--background) 0 0.27rem, transparent 0.29rem),
-    linear-gradient(
-      to right,
-      transparent calc(50% - 1.5px),
-      var(--papier-fil) calc(50% - 1.5px),
-      var(--papier-fil) calc(50% + 1.5px),
-      transparent calc(50% + 1.5px)
-    );
-  background-size:
-    1.6rem 100%,
-    1.6rem 1.05rem;
-  background-repeat: repeat-x;
-  background-position: 0 0;
-  pointer-events: none;
+@media (max-width: 639px) {
+  html[data-nature="pharmacie"] .app-feuille {
+    padding-right: 7rem;
+    background-size: auto 6.75rem;
+  }
 }
 html[data-nature="pharmacie"] .app-feuille::before,
+html[data-nature="pharmacie"] .app-feuille::after,
 html[data-nature="pharmacie"] .app-feuille.app-grand-chiffre::before {
   display: none;
 }
 html[data-nature="pharmacie"] .app-feuille.app-grand-chiffre {
   width: 100%;
-  margin: 0.75rem 0 1rem;
+  margin: 0.5rem 0 1rem;
 }
 html[data-nature="pharmacie"] .app-feuille .app-head-metric-label {
-  font-weight: 800;
-  letter-spacing: 0.08em;
+  font-weight: 700;
+  letter-spacing: 0.06em;
   color: var(--muted-foreground);
 }
 html[data-nature="pharmacie"] .app-feuille .app-head-metric-value,
 html[data-nature="pharmacie"] .app-feuille.app-grand-chiffre .font-mono {
   font-family: var(--font-sans);
+  font-size: 2rem;
   font-weight: 800;
-  letter-spacing: -0.02em;
+  letter-spacing: -0.03em;
 }
 html[data-nature="pharmacie"] .app-feuille .app-head-metric-value:not(.t-danger):not(.t-warning),
 html[data-nature="pharmacie"]
