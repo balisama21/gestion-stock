@@ -159,23 +159,23 @@ export const MedicamentsView: React.FC<Props> = ({
       </EnTete>
 
       <div className="flex flex-col gap-2 sm:flex-row">
-        <div className="flex flex-1 items-center gap-2">
-          <div className="min-w-0 flex-1">
-            <Recherche
-              valeur={recherche}
-              onChange={setRecherche}
-              placeholder="Nom, molécule, laboratoire ou code-barres"
-              icone={<Search className="h-5 w-5" />}
-              onEntree={() => {
-                if (/^\d{8,}$/.test(codePropre(recherche))) scanner(recherche);
-              }}
-            />
-          </div>
-          <BoutonScan
-            onCode={scanner}
-            titre="Scanner une boîte"
-            libelle="Scanner une boîte"
-            classeBouton="ph-bouton-scan"
+        <div className="min-w-0 flex-1">
+          <Recherche
+            valeur={recherche}
+            onChange={setRecherche}
+            placeholder="Nom, molécule, laboratoire ou code-barres"
+            icone={<Search className="h-5 w-5" />}
+            onEntree={() => {
+              if (/^\d{8,}$/.test(codePropre(recherche))) scanner(recherche);
+            }}
+            fin={
+              <BoutonScan
+                onCode={scanner}
+                titre="Scanner une boîte"
+                libelle="Scanner une boîte"
+                classeBouton="ph-bouton-scan"
+              />
+            }
           />
         </div>
         {rubriques.length > 0 && (

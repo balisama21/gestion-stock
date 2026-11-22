@@ -1,14 +1,18 @@
 import React, { useMemo, useState } from "react";
 import {
   AlertTriangle,
+  ArrowRight,
   Banknote,
   CheckCircle2,
   FileText,
+  Flame,
   Minus,
+  Package,
   Plus,
   Printer,
   Repeat,
   ScanLine,
+  ScrollText,
   Search,
   ShieldCheck,
   ShoppingBasket,
@@ -26,9 +30,9 @@ import {
   exigeOrdonnance,
   partsTiersPayant,
 } from "../../lib/pharmacie";
-import { inscrireOrdonnance, type Pharmacie } from "../../hooks/usePharmacie";
+import { inscrireOrdonnance, useOrdonnances, type Pharmacie } from "../../hooks/usePharmacie";
 import { BadgeFroid, BadgePeremption, BadgeRegime } from "./badges";
-import { Chiffre, EnTete, Panneau, Pastille, Recherche, Vide } from "./ui";
+import { Boite, Chiffre, EnTete, Panneau, Pastille, Recherche, Vide } from "./ui";
 import { TicketPharmacie, type TicketDelivrance } from "./TicketPharmacie";
 import { Raccourcis } from "./ui";
 import { BoutonScan } from "../shared/BoutonScan";
@@ -137,6 +141,7 @@ export const ComptoirView: React.FC<Props> = ({
   onAssocierCode,
 }) => {
   const [recherche, setRecherche] = useState("");
+  const [toutVoir, setToutVoir] = useState(false);
   const [inconnu, setInconnu] = useState<string | null>(null);
   const [chercheAssoc, setChercheAssoc] = useState("");
   const [prescripteurs, retenirPrescripteur] = useMemoireSaisie(`tn-prescripteurs:${storeId}`);
@@ -160,8 +165,12 @@ export const ComptoirView: React.FC<Props> = ({
     [products],
   );
   const duJour = useMemo(() => sales.filter((s) => s.date === aujourdhui), [sales, aujourdhui]);
-  /** Ce qui se vend le plus ces trente derniers jours : les raccourcis du comptoir. */
-  const courants = useMemo(() => {
+  const ordonnancesDuJour = useOrdonnances(storeId, aujourdhui, aujourdhui);
+  /**
+   * Tous les médicaments, du plus demandé ces trente derniers jours au
+   * moins demandé, puis par nom ; et combien en tête se sont vendus.
+   */
+  const { parDemande, vendus } = useMemo(() => {
     const depuis = new Date(Date.parse(`${aujourdhui}T00:00:00Z`) - 30 * 86400000)
       .toISOString()
       .slice(0, 10);
@@ -170,15 +179,18 @@ export const ComptoirView: React.FC<Props> = ({
       if (s.productId && s.date >= depuis)
         n.set(s.productId, (n.get(s.productId) ?? 0) + s.quantite);
     }
-    return actifs
-      .filter((p) => n.has(p.id))
-      .sort((a, b) => (n.get(b.id) ?? 0) - (n.get(a.id) ?? 0))
-      .slice(0, 8);
+    const tries = [...actifs].sort(
+      (a, b) =>
+        (n.get(b.id) ?? 0) - (n.get(a.id) ?? 0) || a.displayName.localeCompare(b.displayName, "fr"),
+    );
+    return { parDemande: tries, vendus: tries.filter((p) => n.has(p.id)).length };
   }, [sales, actifs, aujourdhui]);
+  /** Les raccourcis du comptoir : les plus demandés, ou tous sur demande. */
+  const enVitrine = toutVoir ? parDemande.slice(0, 200) : parDemande.slice(0, 8);
 
   const resultats = recherche.trim()
     ? actifs.filter((p) => correspond(p, pharma.ficheDe.get(p.id), recherche)).slice(0, 12)
-    : courants;
+    : enVitrine;
 
   /** Le médicament qui porte ce code-barres, s'il y en a un. */
   const parCode = (code: string) => {
@@ -396,7 +408,10 @@ export const ComptoirView: React.FC<Props> = ({
       ordonnance: numero,
       prescripteur: prescripteur.trim() || null,
     });
-    if (ordonnance) retenirPrescripteur(prescripteur);
+    if (ordonnance) {
+      retenirPrescripteur(prescripteur);
+      void ordonnancesDuJour.recharger();
+    }
     setEnvoi(false);
     vider();
     void pharma.recharger();
@@ -418,42 +433,48 @@ export const ComptoirView: React.FC<Props> = ({
           valeur={new Set(duJour.map((s) => s.ticketId ?? s.id)).size}
           libelle="Clients servis"
         />
+        <Chiffre
+          valeur={ordonnancesDuJour.ordonnances.length}
+          libelle="Ordonnances"
+          icone={<ScrollText className="h-3 w-3" />}
+        />
       </EnTete>
 
       <div className="grid gap-5 lg:grid-cols-[1fr_25rem]">
         <div className="min-w-0 space-y-3">
-          <div className="flex items-center gap-2">
-            <div className="min-w-0 flex-1">
-              <Recherche
-                valeur={recherche}
-                onChange={(v) => {
-                  setRecherche(v);
-                  if (v) setInconnu(null);
-                }}
-                placeholder="Nom, molécule ou code-barres"
-                icone={<Search className="h-5 w-5" />}
-                autoFocus
-                onEntree={() => {
-                  const q = recherche.trim();
-                  if (!q) return;
-                  // Un code-barres (tapé ou lu par la douchette dans le champ).
-                  if (
-                    parCode(q) ||
-                    lireGS1(q) ||
-                    (/^\d{8,}$/.test(codePropre(q)) && resultats.length === 0)
-                  )
-                    return scanner(q);
-                  if (resultats[0]) ajouter(resultats[0]);
-                }}
+          <Recherche
+            valeur={recherche}
+            onChange={(v) => {
+              setRecherche(v);
+              if (v) {
+                setInconnu(null);
+                setToutVoir(false);
+              }
+            }}
+            placeholder="Médicament, molécule ou code-barres…"
+            icone={<Search className="h-5 w-5" />}
+            autoFocus
+            fin={
+              <BoutonScan
+                onCode={scanner}
+                titre="Scanner une boîte"
+                libelle="Scanner une boîte"
+                classeBouton="ph-bouton-scan"
               />
-            </div>
-            <BoutonScan
-              onCode={scanner}
-              titre="Scanner une boîte"
-              libelle="Scanner une boîte"
-              classeBouton="ph-bouton-scan"
-            />
-          </div>
+            }
+            onEntree={() => {
+              const q = recherche.trim();
+              if (!q) return;
+              // Un code-barres (tapé ou lu par la douchette dans le champ).
+              if (
+                parCode(q) ||
+                lireGS1(q) ||
+                (/^\d{8,}$/.test(codePropre(q)) && resultats.length === 0)
+              )
+                return scanner(q);
+              if (resultats[0]) ajouter(resultats[0]);
+            }}
+          />
           {inconnu && (
             <Panneau
               titre="Code-barres inconnu"
@@ -505,7 +526,27 @@ export const ComptoirView: React.FC<Props> = ({
             </Panneau>
           )}
           <Panneau
-            titre={recherche.trim() ? `${resultats.length} résultat(s)` : "Les plus demandés"}
+            titre={
+              recherche.trim()
+                ? `${resultats.length} résultat(s)`
+                : toutVoir
+                  ? `Tous les médicaments · ${actifs.length}`
+                  : vendus > 0
+                    ? "Les plus demandés"
+                    : "Vos médicaments"
+            }
+            icone={
+              recherche.trim() ? <Search className="h-4 w-4" /> : <Flame className="h-4 w-4" />
+            }
+            action={
+              !recherche.trim() &&
+              actifs.length > 8 && (
+                <button type="button" onClick={() => setToutVoir((v) => !v)}>
+                  {toutVoir ? "Réduire" : "Voir tout"}
+                  {!toutVoir && <ArrowRight className="h-4 w-4" />}
+                </button>
+              )
+            }
           >
             {resultats.length === 0 ? (
               <Vide>
@@ -528,17 +569,17 @@ export const ComptoirView: React.FC<Props> = ({
                   return (
                     <li
                       key={p.id}
-                      className="ph-ligne flex-wrap"
+                      className="ph-ligne ph-produit flex-wrap"
                       data-ton={delivrable <= 0 ? "danger" : undefined}
                     >
-                      <Pastille nom={p.displayName} />
+                      <Boite nom={p.displayName} dosage={fiche?.dosage} />
                       <div className="min-w-0 flex-1">
                         <p className="flex flex-wrap items-center gap-1.5">
-                          <span className="font-bold">{p.displayName}</span>
+                          <span className="ph-produit-nom">{p.displayName}</span>
                           <BadgeRegime regime={fiche?.regime} />
                           <BadgeFroid conservation={fiche?.conservation} />
                         </p>
-                        <p className="truncate text-xs text-muted-foreground">
+                        <p className="truncate text-[0.8rem] text-muted-foreground">
                           {[
                             fiche?.dci,
                             fiche?.forme,
@@ -547,16 +588,17 @@ export const ComptoirView: React.FC<Props> = ({
                             .filter(Boolean)
                             .join(" · ")}
                         </p>
-                        <p className="mt-1 flex flex-wrap items-center gap-2 text-xs">
+                        <p className="mt-1.5 flex flex-wrap items-center gap-2 text-xs">
                           <span
-                            className={`font-bold ${
+                            className={`ph-produit-stock ${
                               delivrable <= 0
                                 ? "t-danger"
                                 : delivrable <= p.seuilAlerte
                                   ? "t-warning"
-                                  : "text-[var(--croix)]"
+                                  : "text-primary"
                             }`}
                           >
+                            <Package className="h-3.5 w-3.5" />
                             {delivrable <= 0 ? "Rupture" : `${delivrable} en stock`}
                           </span>
                           {e.prochaine && (
@@ -569,16 +611,14 @@ export const ComptoirView: React.FC<Props> = ({
                           )}
                         </p>
                       </div>
-                      <div className="flex w-full items-center justify-between gap-2 pl-[3.15rem] sm:w-auto sm:flex-col sm:items-end sm:pl-0">
-                        <span className="text-sm font-extrabold tabular-nums">
-                          {formatCurrency(p.prixVenteDefaut)}
-                        </span>
+                      <div className="flex shrink-0 flex-col items-end gap-2">
+                        <span className="ph-produit-prix">{formatCurrency(p.prixVenteDefaut)}</span>
                         {delivrable > 0 && (
-                          <div className="flex flex-wrap justify-end gap-1.5">
+                          <div className="flex flex-col items-end gap-1.5">
                             <button
                               type="button"
                               onClick={() => ajouter(p)}
-                              className="app-btn-primary !min-h-9 !px-3"
+                              className="ph-bouton-ajout"
                             >
                               <Plus className="h-4 w-4" />
                               {p.unite || "Unité"}
@@ -588,7 +628,8 @@ export const ComptoirView: React.FC<Props> = ({
                                 key={c.id}
                                 type="button"
                                 onClick={() => ajouter(p, c.id)}
-                                className="app-btn-secondary !min-h-9 !px-3"
+                                className="ph-bouton-ajout"
+                                data-variante="clair"
                               >
                                 <Plus className="h-4 w-4" />
                                 {c.nom} · {formatCurrency(prixVenteDe(c, p))}
