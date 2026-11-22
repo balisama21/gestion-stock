@@ -2,6 +2,7 @@ import React from "react";
 import { ArrowRight, Leaf } from "lucide-react";
 import tableau from "./visite/tableau.jpg";
 import tableauPetit from "./visite/tableau-800.jpg";
+import { APP_ACCROCHE_SEO, APP_NAME } from "../../lib/appConfig";
 
 interface HeroAccueilProps {
   /** Amène au formulaire de connexion, plus bas dans la page. */
@@ -91,18 +92,23 @@ export const HeroAccueil: React.FC<HeroAccueilProps> = ({ onRejoindreConnexion }
 
     <div className="mx-auto grid max-w-7xl items-center gap-14 px-5 pb-24 pt-16 sm:px-8 sm:pt-20 lg:min-h-[calc(100svh-3.5rem)] lg:grid-cols-[minmax(0,1fr)_minmax(0,1.1fr)] lg:gap-12 lg:pb-32">
       <div className="ha-entree text-white" style={{ textShadow: "0 2px 18px rgba(0,25,14,.55)" }}>
-        <span
-          className="inline-flex items-center gap-2 rounded-full px-3.5 py-1.5 text-[0.8125rem] font-semibold"
-          style={{ background: "rgba(255,255,255,.14)", backdropFilter: "blur(6px)" }}
-        >
-          <Leaf className="h-3.5 w-3.5" style={{ color: "#8fe0b4" }} aria-hidden />
-          Stock · Caisse · Clients · Bilan
-        </span>
-        <h1 className="mt-6 max-w-[16ch] text-[clamp(2.2rem,5.6vw,4rem)] font-bold leading-[1.05] tracking-tight">
-          Le cahier de votre boutique, <span style={{ color: "#8fe0b4" }}>tenu tout seul.</span>
+        {/* Le titre principal porte le nom du logiciel et ce qu'il fait :
+            c'est ce que Google retient comme sujet de la page. La petite
+            étiquette en fait partie, la phrase d'accroche suit. */}
+        <h1 className="text-[clamp(2.2rem,5.6vw,4rem)] font-bold leading-[1.05] tracking-tight">
+          <span
+            className="inline-flex items-center gap-2 rounded-full px-3.5 py-1.5 text-[0.8125rem] font-semibold leading-normal tracking-normal"
+            style={{ background: "rgba(255,255,255,.14)", backdropFilter: "blur(6px)" }}
+          >
+            <Leaf className="h-3.5 w-3.5" style={{ color: "#8fe0b4" }} aria-hidden />
+            {APP_ACCROCHE_SEO}
+          </span>{" "}
+          <span className="mt-6 block max-w-[16ch]">
+            Le cahier de votre boutique, <span style={{ color: "#8fe0b4" }}>tenu tout seul.</span>
+          </span>
         </h1>
         <p className="mt-5 max-w-[42ch] text-[1.0625rem] leading-relaxed text-white/80">
-          Tantana Suite réunit la gestion de stock, la caisse et la facturation de votre boutique. Chaque vente met à jour vos produits, vos paiements et votre bilan.
+          {APP_NAME} est un logiciel de gestion de stock, de caisse et de facturation pour les boutiques, les pharmacies et les PME de Madagascar. Chaque vente met à jour vos produits, vos paiements et votre bilan.
         </p>
         <div className="mt-8 flex flex-col gap-3 sm:flex-row">
           <button

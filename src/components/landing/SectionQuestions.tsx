@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import { ChevronDown } from "lucide-react";
 import { Revele } from "./Revele";
 import { ESSAI_JOURS, prixAVie, prixMensuel } from "../../lib/offres";
+import { APP_NAME, APP_SHORT_NAME } from "../../lib/appConfig";
 
 /**
  * Les questions qu'on se pose avant de s'inscrire.
@@ -19,8 +20,12 @@ import { ESSAI_JOURS, prixAVie, prixMensuel } from "../../lib/offres";
  */
 const QUESTIONS: { q: string; r: string }[] = [
   {
-    q: "Que peut-on gérer avec Tantana Suite ?",
-    r: "Tantana Suite est un logiciel de gestion commerciale pour les boutiques et les PME. Vous suivez les stocks, les achats fournisseurs, les ventes, les devis, les factures et les paiements clients. Le tableau de bord regroupe les entrées et sorties de trésorerie pour suivre votre activité.",
+    q: `Que peut-on gérer avec ${APP_NAME} ?`,
+    r: `${APP_NAME} est un logiciel de gestion commerciale pour les boutiques et les PME. Vous suivez les stocks, les achats fournisseurs, les ventes, les devis, les factures et les paiements clients. Le tableau de bord regroupe les entrées et sorties de trésorerie pour suivre votre activité.`,
+  },
+  {
+    q: "Est-ce fait pour les commerces de Madagascar ?",
+    r: "Oui. Les prix et les comptes sont en ariary, le paiement de l'abonnement passe par MVola, les dates suivent l'heure de Madagascar, et un client peut régler en espèces ou par Mobile Money. Le logiciel sert aussi bien une boutique à Antananarivo qu'un commerce en province : il suffit d'une connexion Internet.",
   },
   {
     q: "Comment suivre les ventes à crédit et les paiements clients ?",
@@ -32,7 +37,7 @@ const QUESTIONS: { q: string; r: string }[] = [
   },
   {
     q: "Est-ce que je peux l'installer sur mon téléphone ?",
-    r: "Sur Android, téléchargez l’APK Tantana depuis le site, puis ouvrez le fichier pour l’installer. Sur iPhone, ajoutez le site à l’écran d’accueil depuis Safari. Sur ordinateur, vous pouvez utiliser le navigateur ou installer l’application web.",
+    r: `Sur Android, téléchargez l’APK ${APP_SHORT_NAME} depuis le site, puis ouvrez le fichier pour l’installer. Sur iPhone, ajoutez le site à l’écran d’accueil depuis Safari. Sur ordinateur, vous pouvez utiliser le navigateur ou installer l’application web.`,
   },
   {
     q: "Plusieurs personnes peuvent-elles travailler dessus ?",
@@ -60,7 +65,7 @@ const QUESTIONS: { q: string; r: string }[] = [
   },
   {
     q: "Est-ce adapté à mon métier ?",
-    r: "Le logiciel se règle : vous renommez les modules avec vos mots, vous retirez ceux qui ne vous servent pas, et vous ajoutez vos propres champs aux fiches. Une boutique qui vend au comptoir n'affiche ni commandes ni livraisons ; une autre qui livre les active.",
+    r: "Épicerie, quincaillerie, boutique de vêtements, grossiste, pharmacie ou bar : le logiciel se règle. Une pharmacie suit ses lots, ses dates de péremption et son ordonnancier ; un bar suit ses tables et ses habitués. Vous renommez les modules avec vos mots, vous retirez ceux qui ne vous servent pas, et vous ajoutez vos propres champs aux fiches. Une boutique qui vend au comptoir n'affiche ni commandes ni livraisons ; une autre qui livre les active.",
   },
   {
     q: "Mes données m'appartiennent-elles ?",
