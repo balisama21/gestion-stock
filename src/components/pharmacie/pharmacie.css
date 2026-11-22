@@ -169,41 +169,50 @@ html.dark[data-nature="pharmacie"] {
   --bandeau: oklch(0.235 0.03 158);
 }
 .ph-bandeau {
+  --figure: 13rem;
   position: relative;
   margin-top: 1rem;
-  display: flex;
-  align-items: center;
-  gap: 1rem;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) var(--figure);
+  column-gap: 0.75rem;
   overflow: hidden;
-  min-height: 9.5rem;
   border-radius: 1.5rem;
   background: var(--bandeau);
-  padding: 1.1rem 0 1.1rem 1.4rem;
+  padding: 1.1rem 0.75rem 0 1.4rem;
+}
+/* La figure remplit la hauteur des chiffres, posée en bas à droite. */
+.ph-bandeau-figure {
+  position: relative;
+  /* La même marge basse que les chiffres : la figure commence et finit
+     avec eux. */
+  margin-bottom: 1.1rem;
 }
 .ph-bandeau-image {
-  align-self: flex-end;
-  flex-shrink: 0;
-  width: auto;
-  height: 10.5rem;
-  margin: 0 0.5rem -1.1rem 0;
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  object-position: right bottom;
   pointer-events: none;
   user-select: none;
 }
 @media (max-width: 639px) {
   .ph-bandeau {
-    min-height: 8rem;
-    padding-left: 1.1rem;
+    --figure: 50%;
+    column-gap: 0.4rem;
+    padding: 1rem 0.5rem 0 1.1rem;
   }
-  .ph-bandeau-image {
-    height: 7.5rem;
-    margin-right: 0.35rem;
+  .ph-bandeau-figure {
+    margin-bottom: 1rem;
   }
 }
 .ph-entete-chiffres {
   display: flex;
   min-width: 0;
-  flex: 1 1 auto;
   flex-wrap: wrap;
+  align-self: center;
+  padding-bottom: 1.1rem;
   align-items: baseline;
   align-content: center;
   column-gap: 1.25rem;
@@ -248,13 +257,23 @@ html.dark[data-nature="pharmacie"] {
 }
 @media (max-width: 639px) {
   .ph-entete-chiffres > .ph-chiffre[data-ton="plein"] .ph-chiffre-valeur {
-    font-size: 1.9rem;
+    font-size: 1.7rem;
+  }
+  .ph-entete-chiffres > .ph-chiffre[data-ton="plein"] .ph-chiffre-libelle {
+    font-size: 0.9rem;
   }
   .ph-entete-chiffres > .ph-chiffre .ph-chiffre-valeur {
     font-size: 1.05rem;
   }
   .ph-entete-chiffres > .ph-chiffre .ph-chiffre-libelle {
     font-size: 0.8rem;
+  }
+  .ph-entete-chiffres {
+    row-gap: 0.15rem;
+    padding-bottom: 1rem;
+  }
+  .ph-entete-chiffres > .ph-chiffre[data-ton="plein"] {
+    margin-bottom: 0.35rem;
   }
 }
 /* En alerte, le chiffre et son libellé prennent la couleur de l'alerte. */
@@ -735,18 +754,17 @@ html[data-nature="pharmacie"] .app-feuille {
   transform: none;
   margin-top: 0.5rem;
   min-height: 8rem;
-  padding: 1.1rem 9.5rem 1.1rem 1.4rem;
+  padding: 1.1rem clamp(8rem, 40%, 13rem) 1.1rem 1.4rem;
   border: 0;
   border-radius: 1.5rem;
   color: var(--foreground);
-  background: var(--bandeau) url("../../assets/pharmacie/pharmacien.webp") no-repeat right 0.5rem
-    bottom -0.6rem / auto 8.5rem;
+  background: var(--bandeau) url("../../assets/pharmacie/pharmacien.webp") no-repeat right 0.75rem
+    bottom 0 / auto calc(100% - 1rem);
   box-shadow: none;
 }
 @media (max-width: 639px) {
   html[data-nature="pharmacie"] .app-feuille {
-    padding-right: 7rem;
-    background-size: auto 6.75rem;
+    padding-right: 40%;
   }
 }
 html[data-nature="pharmacie"] .app-feuille::before,

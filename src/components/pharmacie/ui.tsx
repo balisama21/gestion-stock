@@ -51,7 +51,11 @@ export const EnTete: React.FC<{
     {children && (
       <div className="ph-bandeau">
         <div className="ph-entete-chiffres">{children}</div>
-        <img src={pharmacien} alt="" className="ph-bandeau-image" width={235} height={200} />
+        {/* La figure prend la hauteur des chiffres : elle ne compte pas
+            dans la hauteur du bandeau, elle la remplit. */}
+        <span className="ph-bandeau-figure" aria-hidden="true">
+          <img src={pharmacien} alt="" className="ph-bandeau-image" width={200} height={210} />
+        </span>
       </div>
     )}
   </header>
