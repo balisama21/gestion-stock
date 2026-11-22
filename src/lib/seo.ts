@@ -236,7 +236,29 @@ export function donneesStructurees(m: Marque, hote: string): Record<string, unkn
     // dans le rapport « Extraits de produits ».
     ...(catalogue ? { knowsAbout: catalogue.elements.map((e) => e.titre) } : null),
   };
-  return { "@context": "https://schema.org", "@graph": [organisation, site] };
+  const produits = catalogue?.elements.map((element, index) => ({
+    "@type": "ListItem",
+    position: index + 1,
+    item: {
+      "@type": "Thing",
+      name: element.titre,
+      description: [element.texte, element.formats].filter(Boolean).join(" "),
+      url: `${origine}/#catalogue`,
+    },
+  })) ?? [];
+  return {
+    "@context": "https://schema.org",
+    "@graph": [
+      organisation,
+      site,
+      ...(produits.length ? [{
+        "@type": "ItemList",
+        "@id": `${origine}/#catalogue`,
+        name: catalogue?.titre || "Catalogue des produits",
+        itemListElement: produits,
+      }] : []),
+    ],
+  };
 }
 
 /**

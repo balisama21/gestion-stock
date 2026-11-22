@@ -102,7 +102,7 @@ export const HeroAccueil: React.FC<HeroAccueilProps> = ({ onRejoindreConnexion }
           Le cahier de votre boutique, <span style={{ color: "#8fe0b4" }}>tenu tout seul.</span>
         </h1>
         <p className="mt-5 max-w-[42ch] text-[1.0625rem] leading-relaxed text-white/80">
-          Vous notez une vente. Le stock, la caisse et le bilan suivent, sans recopier une ligne.
+          Tantana Suite réunit la gestion de stock, la caisse et la facturation de votre boutique. Chaque vente met à jour vos produits, vos paiements et votre bilan.
         </p>
         <div className="mt-8 flex flex-col gap-3 sm:flex-row">
           <button

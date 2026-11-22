@@ -19,12 +19,20 @@ import { ESSAI_JOURS, prixAVie, prixMensuel } from "../../lib/offres";
  */
 const QUESTIONS: { q: string; r: string }[] = [
   {
+    q: "Que peut-on gérer avec Tantana Suite ?",
+    r: "Tantana Suite est un logiciel de gestion commerciale pour les boutiques et les PME. Vous suivez les stocks, les achats fournisseurs, les ventes, les devis, les factures et les paiements clients. Le tableau de bord regroupe les entrées et sorties de trésorerie pour suivre votre activité.",
+  },
+  {
+    q: "Comment suivre les ventes à crédit et les paiements clients ?",
+    r: "Une vente payée en partie conserve son solde à recevoir. Vous retrouvez les créances et l’historique des règlements de chaque client, puis enregistrez un paiement en espèces, par Mobile Money ou par virement.",
+  },
+  {
     q: "Faut-il Internet pour s'en servir ?",
     r: "Oui. Vos données vivent sur un serveur, et le logiciel les lit à chaque écran. Il n'y a pas de mode hors ligne : afficher un stock ou un solde enregistré la veille vous ferait prendre une décision sur un chiffre faux, et nous préférons une erreur franche. Une connexion mobile ordinaire suffit — l'application est légère et ne recharge que ce qui a changé.",
   },
   {
     q: "Est-ce que je peux l'installer sur mon téléphone ?",
-    r: "Oui, sans passer par un magasin d'applications. Ouvrez le site dans votre navigateur et choisissez « Ajouter à l'écran d'accueil » : une icône apparaît, et le logiciel s'ouvre en plein écran comme n'importe quelle autre application.",
+    r: "Sur Android, téléchargez l’APK Tantana depuis le site, puis ouvrez le fichier pour l’installer. Sur iPhone, ajoutez le site à l’écran d’accueil depuis Safari. Sur ordinateur, vous pouvez utiliser le navigateur ou installer l’application web.",
   },
   {
     q: "Plusieurs personnes peuvent-elles travailler dessus ?",

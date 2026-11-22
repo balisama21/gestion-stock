@@ -184,11 +184,12 @@ function Offres({ bloc }: { bloc: BlocLanding }) {
   );
 }
 
-function Catalogue({ bloc, contact }: { bloc: BlocLanding; contact: boolean }) {
+function Catalogue({ bloc, contact, adresse, nom }: { bloc: BlocLanding; contact: boolean; adresse?: string | null; nom: string }) {
   return (
     <section id="catalogue" className="scroll-mt-14 px-4 py-16 sm:px-8 sm:py-24">
       <div className="mx-auto max-w-6xl">
         <TitreSection>{bloc.titre || "Nos produits"}</TitreSection>
+        {adresse && <p className="mt-4 max-w-2xl text-base leading-relaxed">Retrouvez les produits de {nom} à {adresse}. Consultez les formats proposés et contactez-nous pour connaître les disponibilités et obtenir un devis.</p>}
         <ul className="mt-10 grid gap-6 sm:grid-cols-2 lg:grid-cols-4">
           {bloc.elements.map((e, i) => (
             <CartePhoto
@@ -497,7 +498,7 @@ export const PageAccueilMarque: React.FC<PageAccueilMarqueProps> = ({
         </div>
       </section>
 
-      {landing.catalogue && <Catalogue bloc={landing.catalogue} contact={!!landing.contact} />}
+      {landing.catalogue && <Catalogue bloc={landing.catalogue} contact={!!landing.contact} adresse={landing.contact?.adresse} nom={marque.nom} />}
       {landing.offres && <Offres bloc={landing.offres} />}
       {landing.arguments && <Arguments bloc={landing.arguments} />}
       {landing.etapes && <Etapes bloc={landing.etapes} />}
