@@ -1,4 +1,6 @@
 import React, { useMemo, useState } from "react";
+import { BoutonScan } from "../shared/BoutonScan";
+import { codePropre, useDouchette } from "../../hooks/useDouchette";
 import { CalendarClock, FileWarning, Hourglass, PackageX, Pill, Plus, Search } from "lucide-react";
 import type { Product } from "../../types";
 import type { Database } from "../../lib/database.types";
@@ -50,6 +52,16 @@ export const MedicamentsView: React.FC<Props> = ({
   const [rubrique, setRubrique] = useState("");
   const [ouvert, setOuvert] = useState<string | null>(null);
   const [edition, setEdition] = useState<Product | "nouveau" | null>(null);
+  /** Une boîte scannée : sa fiche s'ouvre ; un code inconnu se cherche. */
+  const scanner = (code: string) => {
+    const c = codePropre(code);
+    const p = products.find((x) => codePropre(x.codeBarres) === c);
+    if (p) {
+      setRecherche("");
+      setOuvert(p.id);
+    } else setRecherche(c);
+  };
+  useDouchette(scanner, !edition && !ouvert);
 
   const medicaments = useMemo(
     () =>
@@ -147,13 +159,19 @@ export const MedicamentsView: React.FC<Props> = ({
       </EnTete>
 
       <div className="flex flex-col gap-2 sm:flex-row">
-        <div className="flex-1">
-          <Recherche
-            valeur={recherche}
-            onChange={setRecherche}
-            placeholder="Nom, molécule, laboratoire ou code-barres"
-            icone={<Search className="h-5 w-5" />}
-          />
+        <div className="flex flex-1 items-center gap-2">
+          <div className="min-w-0 flex-1">
+            <Recherche
+              valeur={recherche}
+              onChange={setRecherche}
+              placeholder="Nom, molécule, laboratoire ou code-barres"
+              icone={<Search className="h-5 w-5" />}
+              onEntree={() => {
+                if (/^\d{8,}$/.test(codePropre(recherche))) scanner(recherche);
+              }}
+            />
+          </div>
+          <BoutonScan onCode={scanner} titre="Scanner une boîte" />
         </div>
         {rubriques.length > 0 && (
           <select

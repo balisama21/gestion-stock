@@ -20,6 +20,9 @@ const ici = import.meta.dirname;
  */
 export default defineConfig({
   root: ici,
+  // Son propre cache : lancé à côté du serveur de l'application, il ne
+  // lui fait pas recompiler ses dépendances à chaque démarrage.
+  cacheDir: path.resolve(ici, "node_modules/.vite-maquette"),
   plugins: [viteReact(), tailwindcss()],
   resolve: {
     alias: [

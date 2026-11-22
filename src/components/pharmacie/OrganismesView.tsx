@@ -1,4 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
+import { Raccourcis } from "./ui";
+import { formaterTelephone } from "../../lib/saisie";
 import { Banknote, Plus, Printer, ShieldCheck } from "lucide-react";
 import type { Sale } from "../../types";
 import type { Database } from "../../lib/database.types";
@@ -256,6 +258,7 @@ const EditionOrganisme: React.FC<{
             <input
               value={telephone}
               onChange={(e) => setTelephone(e.target.value)}
+              onBlur={() => setTelephone(formaterTelephone(telephone))}
               placeholder="Téléphone (facultatif)"
               className="app-field"
             />
@@ -270,6 +273,12 @@ const EditionOrganisme: React.FC<{
             value={taux}
             onChange={(e) => setTaux(e.target.value)}
             className="app-field"
+          />
+          <Raccourcis
+            libelle="Taux courants"
+            options={["50", "70", "80", "100"].map((t) => ({ valeur: t, libelle: `${t} %` }))}
+            actif={taux}
+            onChoisir={setTaux}
           />
         </label>
         <input
@@ -446,13 +455,21 @@ const FicheOrganisme: React.FC<{
               Encaisser un règlement
             </p>
             <div className="flex flex-wrap gap-2">
-              <input
-                inputMode="decimal"
-                value={montant}
-                onChange={(e) => setMontant(e.target.value)}
-                className="app-field w-32 flex-1"
-                aria-label="Montant reçu"
-              />
+              <span className="w-32 flex-1">
+                <input
+                  inputMode="decimal"
+                  value={montant}
+                  onChange={(e) => setMontant(e.target.value)}
+                  className="app-field"
+                  aria-label="Montant reçu"
+                />
+                <Raccourcis
+                  libelle="Montant réglé"
+                  actif={montant}
+                  onChoisir={setMontant}
+                  options={[{ valeur: String(du), libelle: "Tout le relevé" }]}
+                />
+              </span>
               <select
                 value={methode}
                 onChange={(e) => setMethode(e.target.value)}

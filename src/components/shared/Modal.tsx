@@ -315,7 +315,7 @@ export const Modal: React.FC<ModalProps> = ({
             <div className="flex items-start gap-3">
               {icon && (
                 <span
-                  className={`flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border ${
+                  className={`app-modal-icone flex h-9 w-9 shrink-0 items-center justify-center rounded-xl border ${
                     tone === "danger"
                       ? "border-danger-border bg-danger-soft t-danger"
                       : "border-border bg-muted text-muted-foreground"

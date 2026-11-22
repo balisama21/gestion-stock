@@ -1,4 +1,15 @@
 import React, { useState } from "react";
+import { Raccourcis } from "./ui";
+import { dateDuJour } from "../../lib/dates";
+
+/** Les péremptions qu'on lit le plus souvent : dans un, deux ou trois ans. */
+const MOIS_RAPIDES = () => {
+  const j = dateDuJour();
+  return [1, 2, 3].map((n) => ({
+    valeur: `${Number(j.slice(0, 4)) + n}-${j.slice(5, 7)}`,
+    libelle: `+${n} an${n > 1 ? "s" : ""}`,
+  }));
+};
 import { CalendarClock, PackageMinus, PencilLine } from "lucide-react";
 import { Modal } from "../shared/Modal";
 import { finDeMois, moisAnnee, type LotPharma } from "../../lib/pharmacie";
@@ -103,6 +114,12 @@ export const DaterStockModal: React.FC<{
             onChange={(e) => setMois(e.target.value)}
             className="app-field"
           />
+          <Raccourcis
+            libelle="Péremption"
+            actif={mois}
+            onChoisir={setMois}
+            options={MOIS_RAPIDES()}
+          />
         </Champ>
         <Champ libelle="Quantité">
           <input
@@ -110,6 +127,12 @@ export const DaterStockModal: React.FC<{
             value={quantite}
             onChange={(e) => setQuantite(e.target.value)}
             className="app-field"
+          />
+          <Raccourcis
+            libelle="Quantité"
+            actif={quantite}
+            onChoisir={setQuantite}
+            options={[{ valeur: String(sansDate), libelle: `Tout (${sansDate})` }]}
           />
         </Champ>
       </div>
@@ -166,6 +189,12 @@ export const CorrigerLotModal: React.FC<{
           value={mois}
           onChange={(e) => setMois(e.target.value)}
           className="app-field"
+        />
+        <Raccourcis
+          libelle="Péremption"
+          actif={mois}
+          onChoisir={setMois}
+          options={MOIS_RAPIDES()}
         />
       </Champ>
       {erreur && <p className="text-sm font-medium t-danger">{erreur}</p>}
@@ -240,6 +269,12 @@ export const RetirerLotModal: React.FC<{
           value={quantite}
           onChange={(e) => setQuantite(e.target.value)}
           className="app-field"
+        />
+        <Raccourcis
+          libelle="Quantité"
+          actif={quantite}
+          onChoisir={setQuantite}
+          options={[{ valeur: String(lot.quantite), libelle: "Tout le lot" }]}
         />
       </Champ>
       <Champ libelle="Note (facultatif)">

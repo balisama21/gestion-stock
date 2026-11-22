@@ -1,5 +1,15 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { CheckCircle2, ClipboardCheck, History, Minus, Plus, RotateCcw } from "lucide-react";
+import { BoutonScan } from "../shared/BoutonScan";
+import { codePropre, useDouchette } from "../../hooks/useDouchette";
+import {
+  CheckCircle2,
+  ClipboardCheck,
+  History,
+  Minus,
+  Plus,
+  RotateCcw,
+  ScanLine,
+} from "lucide-react";
 import type { Product } from "../../types";
 import type { Database } from "../../lib/database.types";
 import { supabase } from "../../lib/supabase";
@@ -128,6 +138,19 @@ export const InventaireView: React.FC<Props> = ({
 
   const fait = passes.find((p) => p.note === noteInventaire(jour));
 
+  const [dernierScan, setDernierScan] = useState<string | null>(null);
+  /** Une boîte scannée compte pour une : on passe la douchette sur le rayon. */
+  const scanner = (code: string) => {
+    const c = codePropre(code);
+    const p = articles.find((x) => codePropre(x.codeBarres) === c);
+    if (!p) return setDernierScan(`Code ${c} inconnu : comptez cette boîte à la main.`);
+    setComptes((avant) => {
+      const n = (avant[p.id] ?? 0) + 1;
+      setDernierScan(`${p.displayName} : ${n} compté${n > 1 ? "s" : ""}`);
+      return { ...avant, [p.id]: n };
+    });
+  };
+  useDouchette(scanner);
   const poser = (id: string, v: number | undefined) =>
     setComptes((c) => {
       const suite = { ...c };
@@ -207,6 +230,16 @@ export const InventaireView: React.FC<Props> = ({
             · {fait.articles} correction{fait.articles > 1 ? "s" : ""} ·{" "}
             <span className={fait.valeur < 0 ? "t-danger" : ""}>{formatCurrency(fait.valeur)}</span>
           </span>
+        </div>
+      )}
+
+      {articles.length > 0 && (
+        <div className="flex items-center gap-2 rounded-xl border border-dashed border-border p-2.5 text-sm">
+          <ScanLine className="h-4 w-4 shrink-0 text-primary" />
+          <span className="min-w-0 flex-1 text-muted-foreground">
+            {dernierScan ?? "Passez la douchette sur chaque boîte : elle compte pour une."}
+          </span>
+          <BoutonScan onCode={scanner} titre="Scanner une boîte" />
         </div>
       )}
 

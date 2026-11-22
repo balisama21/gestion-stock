@@ -1,4 +1,7 @@
 import React, { useMemo, useState } from "react";
+import { BoutonScan } from "../shared/BoutonScan";
+import { codePropre, useDouchette } from "../../hooks/useDouchette";
+import { Raccourcis } from "./ui";
 import {
   AlertTriangle,
   ClipboardList,
@@ -50,6 +53,15 @@ const nombre = (s: string) => {
 };
 
 const dateCourte = (jour: string) => jour.split("-").reverse().join("/");
+
+const decaler = (jour: string, jours: number) => {
+  const d = new Date(`${jour}T12:00:00Z`);
+  d.setUTCDate(d.getUTCDate() + jours);
+  return d.toISOString().slice(0, 10);
+};
+/** Le mois (AAAA-MM) dans `ans` années, à partir d'un jour. */
+const moisDans = (jour: string, ans: number) =>
+  `${Number(jour.slice(0, 4)) + ans}-${jour.slice(5, 7)}`;
 
 const nouvelleLigne = (p: Product, quantite = ""): Ligne => ({
   cle: `${p.id}-${Date.now()}-${Math.random()}`,
@@ -103,6 +115,31 @@ export const ReceptionsView: React.FC<Props> = ({
     setLignes((ls) => [...ls, nouvelleLigne(p)]);
     setRecherche("");
   };
+  /** Une boîte scannée : sa ligne s'ajoute ; un code inconnu se signale. */
+  const scanner = (code: string) => {
+    const c = codePropre(code);
+    const p = actifs.find((x) => codePropre(x.codeBarres) === c);
+    if (p) {
+      setErreur(null);
+      ajouter(p);
+    } else {
+      setRecherche("");
+      setErreur(
+        `Le code ${c} n'est attaché à aucun médicament. Ajoutez-le dans sa fiche, ou cherchez-le par son nom.`,
+      );
+    }
+  };
+  useDouchette(scanner, ouverte);
+  /** Les grossistes des dernières livraisons, le plus récent d'abord. */
+  const grossistesRecents = useMemo(() => {
+    const vus: string[] = [];
+    for (const a of [...purchases].sort((x, y) => y.date.localeCompare(x.date))) {
+      const n = a.fournisseur?.trim();
+      if (n && !vus.includes(n)) vus.push(n);
+      if (vus.length >= 4) break;
+    }
+    return vus;
+  }, [purchases]);
   const changer = (cle: string, champ: Partial<Ligne>) =>
     setLignes((ls) => ls.map((l) => (l.cle === cle ? { ...l, ...champ } : l)));
 
@@ -287,6 +324,12 @@ export const ReceptionsView: React.FC<Props> = ({
                     <option key={f.id} value={f.nom} />
                   ))}
                 </datalist>
+                <Raccourcis
+                  libelle="Grossistes récents"
+                  options={grossistesRecents}
+                  actif={fournisseur}
+                  onChoisir={setFournisseur}
+                />
               </label>
               <label className="block">
                 <span className="mb-1 block text-xs font-semibold text-muted-foreground">Date</span>
@@ -297,17 +340,36 @@ export const ReceptionsView: React.FC<Props> = ({
                   onChange={(e) => setDate(e.target.value)}
                   className="app-field"
                 />
+                <Raccourcis
+                  libelle="Date de livraison"
+                  actif={date}
+                  onChoisir={setDate}
+                  options={[
+                    { valeur: aujourdhui, libelle: "Aujourd'hui" },
+                    { valeur: decaler(aujourdhui, -1), libelle: "Hier" },
+                  ]}
+                />
               </label>
             </div>
 
             <div className="relative">
-              <Recherche
-                valeur={recherche}
-                onChange={setRecherche}
-                placeholder="Ajouter un médicament du bon de livraison"
-                icone={<ScanLine className="h-5 w-5" />}
-                onEntree={() => trouves[0] && ajouter(trouves[0])}
-              />
+              <div className="flex items-center gap-2">
+                <div className="min-w-0 flex-1">
+                  <Recherche
+                    valeur={recherche}
+                    onChange={setRecherche}
+                    placeholder="Scannez une boîte, ou tapez son nom"
+                    icone={<ScanLine className="h-5 w-5" />}
+                    onEntree={() => {
+                      const q = recherche.trim();
+                      if (!q) return;
+                      if (/^\d{8,}$/.test(codePropre(q))) return scanner(q);
+                      if (trouves[0]) ajouter(trouves[0]);
+                    }}
+                  />
+                </div>
+                <BoutonScan onCode={scanner} titre="Scanner une boîte livrée" />
+              </div>
               {trouves.length > 0 && (
                 <ul className="ph-liste absolute z-10 mt-1 w-full overflow-hidden rounded-xl border border-border bg-card shadow-lg">
                   {trouves.map((p) => (
@@ -376,6 +438,13 @@ export const ReceptionsView: React.FC<Props> = ({
                             className="app-field"
                             aria-label={`Quantité reçue de ${l.produit.displayName}`}
                           />
+                          {!l.quantite && (
+                            <Raccourcis
+                              libelle="Quantités courantes"
+                              options={["10", "20", "50", "100"]}
+                              onChoisir={(q) => changer(l.cle, { quantite: q })}
+                            />
+                          )}
                         </label>
                         <label className="block">
                           <span className="mb-1 block text-[11px] font-semibold text-muted-foreground">
@@ -439,6 +508,15 @@ export const ReceptionsView: React.FC<Props> = ({
                             className="app-field"
                             aria-label={`Mois de péremption de ${l.produit.displayName}`}
                           />
+                          <Raccourcis
+                            libelle="Péremption"
+                            actif={l.mois}
+                            onChoisir={(m) => changer(l.cle, { mois: m })}
+                            options={[1, 2, 3].map((n) => ({
+                              valeur: moisDans(date || aujourdhui, n),
+                              libelle: `+${n} an${n > 1 ? "s" : ""}`,
+                            }))}
+                          />
                         </label>
                       </div>
                       {alerte && (
@@ -485,6 +563,17 @@ export const ReceptionsView: React.FC<Props> = ({
                         onChange={(e) => setPaye(e.target.value)}
                         className="app-field"
                       />
+                      {total > 0 && (
+                        <Raccourcis
+                          libelle="Montant réglé"
+                          actif={paye}
+                          onChoisir={setPaye}
+                          options={[
+                            { valeur: String(Math.round(total / 2)), libelle: "La moitié" },
+                            { valeur: String(Math.round(total / 4)), libelle: "Un quart" },
+                          ]}
+                        />
+                      )}
                     </label>
                   )}
                   <label className="block">
@@ -496,6 +585,15 @@ export const ReceptionsView: React.FC<Props> = ({
                       value={echeance}
                       onChange={(e) => setEcheance(e.target.value)}
                       className="app-field"
+                    />
+                    <Raccourcis
+                      libelle="Échéance"
+                      actif={echeance}
+                      onChoisir={setEcheance}
+                      options={[15, 30, 60].map((j) => ({
+                        valeur: decaler(date || aujourdhui, j),
+                        libelle: `${j} jours`,
+                      }))}
                     />
                   </label>
                 </div>

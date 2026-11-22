@@ -29,6 +29,10 @@ import { inscrireOrdonnance, type Pharmacie } from "../../hooks/usePharmacie";
 import { BadgeFroid, BadgePeremption, BadgeRegime } from "./badges";
 import { Chiffre, EnTete, Panneau, Pastille, Recherche, Vide } from "./ui";
 import { TicketPharmacie, type TicketDelivrance } from "./TicketPharmacie";
+import { Raccourcis } from "./ui";
+import { BoutonScan } from "../shared/BoutonScan";
+import { codePropre, useDouchette } from "../../hooks/useDouchette";
+import { useMemoireSaisie } from "../../hooks/useMemoireSaisie";
 
 type Client = Database["public"]["Tables"]["clients"]["Row"];
 
@@ -59,6 +63,8 @@ interface Props {
     methode: string;
     lignes: LigneDeVente[];
   }) => Promise<{ ventes: Sale[]; error: string | null }>;
+  /** Attache un code-barres inconnu à un médicament : il sera reconnu ensuite. */
+  onAssocierCode?: (productId: string, code: string) => Promise<{ error: string | null }>;
 }
 
 interface Article {
@@ -126,8 +132,12 @@ export const ComptoirView: React.FC<Props> = ({
   aujourdhui,
   vendeur,
   onVendre,
+  onAssocierCode,
 }) => {
   const [recherche, setRecherche] = useState("");
+  const [inconnu, setInconnu] = useState<string | null>(null);
+  const [chercheAssoc, setChercheAssoc] = useState("");
+  const [prescripteurs, retenirPrescripteur] = useMemoireSaisie(`tn-prescripteurs:${storeId}`);
   const [panier, setPanier] = useState<Article[]>([]);
   const [organismeId, setOrganismeId] = useState("");
   const [matricule, setMatricule] = useState("");
@@ -168,6 +178,44 @@ export const ComptoirView: React.FC<Props> = ({
     ? actifs.filter((p) => correspond(p, pharma.ficheDe.get(p.id), recherche)).slice(0, 12)
     : courants;
 
+  /** Le médicament qui porte ce code-barres, s'il y en a un. */
+  const parCode = (code: string) => {
+    const c = codePropre(code);
+    return c ? actifs.find((p) => codePropre(p.codeBarres) === c) : undefined;
+  };
+  const scanner = (code: string) => {
+    const p = parCode(code);
+    setChercheAssoc("");
+    if (!p) {
+      setRecherche("");
+      setInconnu(codePropre(code));
+      return;
+    }
+    setInconnu(null);
+    const e = etatStock(p, pharma.lots, aujourdhui);
+    if (p.stockActuel - e.perime <= 0) {
+      // En rupture : on le montre, avec ses équivalents en stock.
+      setRecherche(p.displayName);
+      return;
+    }
+    ajouter(p);
+  };
+  // Une douchette lue alors que le curseur n'est dans aucun champ.
+  useDouchette(scanner);
+  const pourAssocier = inconnu
+    ? actifs
+        .filter((p) => correspond(p, pharma.ficheDe.get(p.id), chercheAssoc))
+        .sort((a, b) => Number(!!a.codeBarres) - Number(!!b.codeBarres))
+        .slice(0, 6)
+    : [];
+  const associer = async (p: Product) => {
+    if (!inconnu || !onAssocierCode) return;
+    const r = await onAssocierCode(p.id, inconnu);
+    if (r.error) return setErreur(r.error);
+    setInconnu(null);
+    ajouter(p);
+  };
+
   const organismes = pharma.organismes
     .filter((o) => o.actif)
     .map((o) => ({ ...o, client: clients.find((c) => c.id === o.client_id) }))
@@ -184,6 +232,17 @@ export const ComptoirView: React.FC<Props> = ({
   const ordonnance = ordonnanceExigee || avecOrdonnance;
   const montantRecu = recu.trim() ? nombre(recu) : parts.patient;
   const rendu = Number.isFinite(montantRecu) ? Math.max(0, montantRecu - parts.patient) : 0;
+  /** Les billets qu'on tend le plus souvent pour ce montant. */
+  const billets = (() => {
+    const a = parts.patient;
+    if (a <= 0) return [];
+    const v = new Set<number>();
+    for (const pas of [1000, 2000, 5000, 10000, 20000]) {
+      const b = Math.ceil(a / pas) * pas;
+      if (b > a) v.add(b);
+    }
+    return [...v].sort((x, y) => x - y).slice(0, 3);
+  })();
 
   const ajouter = (p: Product, conditionnementId = "") => {
     setFait(null);
@@ -335,6 +394,7 @@ export const ComptoirView: React.FC<Props> = ({
       ordonnance: numero,
       prescripteur: prescripteur.trim() || null,
     });
+    if (ordonnance) retenirPrescripteur(prescripteur);
     setEnvoi(false);
     vider();
     void pharma.recharger();
@@ -360,16 +420,79 @@ export const ComptoirView: React.FC<Props> = ({
 
       <div className="grid gap-5 lg:grid-cols-[1fr_25rem]">
         <div className="min-w-0 space-y-3">
-          <Recherche
-            valeur={recherche}
-            onChange={setRecherche}
-            placeholder="Nom, molécule ou code-barres"
-            icone={<ScanLine className="h-5 w-5" />}
-            autoFocus
-            onEntree={() => {
-              if (resultats[0] && recherche.trim()) ajouter(resultats[0]);
-            }}
-          />
+          <div className="flex items-center gap-2">
+            <div className="min-w-0 flex-1">
+              <Recherche
+                valeur={recherche}
+                onChange={(v) => {
+                  setRecherche(v);
+                  if (v) setInconnu(null);
+                }}
+                placeholder="Nom, molécule ou code-barres"
+                icone={<ScanLine className="h-5 w-5" />}
+                autoFocus
+                onEntree={() => {
+                  const q = recherche.trim();
+                  if (!q) return;
+                  // Un code-barres (tapé ou lu par la douchette dans le champ).
+                  if (parCode(q) || (/^\d{8,}$/.test(codePropre(q)) && resultats.length === 0))
+                    return scanner(q);
+                  if (resultats[0]) ajouter(resultats[0]);
+                }}
+              />
+            </div>
+            <BoutonScan onCode={scanner} titre="Scanner une boîte" />
+          </div>
+          {inconnu && (
+            <Panneau
+              titre="Code-barres inconnu"
+              icone={<ScanLine className="h-4 w-4" />}
+              action={
+                <button type="button" onClick={() => setInconnu(null)}>
+                  Fermer
+                </button>
+              }
+            >
+              <div className="space-y-2 p-3">
+                <p className="text-sm">
+                  Le code <span className="ph-lot">{inconnu}</span> n&apos;est attaché à aucun
+                  médicament.
+                  {onAssocierCode &&
+                    " Choisissez lequel c'est : il sera reconnu au prochain passage."}
+                </p>
+                {onAssocierCode && (
+                  <>
+                    <input
+                      value={chercheAssoc}
+                      onChange={(e) => setChercheAssoc(e.target.value)}
+                      placeholder="Nom ou molécule du médicament"
+                      className="app-field"
+                      autoFocus
+                    />
+                    <ul className="ph-liste rounded-xl border border-border">
+                      {pourAssocier.map((p) => (
+                        <li key={p.id}>
+                          <button
+                            type="button"
+                            onClick={() => void associer(p)}
+                            className="ph-ligne"
+                          >
+                            <Pastille nom={p.displayName} />
+                            <span className="min-w-0 flex-1 truncate text-sm font-semibold">
+                              {p.displayName}
+                            </span>
+                            <span className="text-xs font-bold text-primary">
+                              {p.codeBarres ? "Remplacer le code" : "C'est lui"}
+                            </span>
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  </>
+                )}
+              </div>
+            </Panneau>
+          )}
           <Panneau
             titre={recherche.trim() ? `${resultats.length} résultat(s)` : "Les plus demandés"}
           >
@@ -577,6 +700,13 @@ export const ComptoirView: React.FC<Props> = ({
                           aria-label={`Posologie de ${a.produit.displayName}`}
                         />
                       </div>
+                      {!a.posologie && (
+                        <Raccourcis
+                          libelle="Posologies courantes"
+                          options={POSOLOGIES.slice(0, 4)}
+                          onChoisir={(p) => changerArticle(a.cle, { posologie: p })}
+                        />
+                      )}
                     </li>
                   ))}
                 </ul>
@@ -682,12 +812,20 @@ export const ComptoirView: React.FC<Props> = ({
                         placeholder="Téléphone"
                         className="app-field"
                       />
-                      <input
-                        value={prescripteur}
-                        onChange={(e) => setPrescripteur(e.target.value)}
-                        placeholder="Médecin prescripteur"
-                        className="app-field col-span-2"
-                      />
+                      <div className="col-span-2">
+                        <input
+                          value={prescripteur}
+                          onChange={(e) => setPrescripteur(e.target.value)}
+                          placeholder="Médecin prescripteur"
+                          className="app-field"
+                        />
+                        <Raccourcis
+                          libelle="Médecins récents"
+                          options={prescripteurs.slice(0, 4)}
+                          actif={prescripteur}
+                          onChoisir={setPrescripteur}
+                        />
+                      </div>
                       <label className="col-span-2 block">
                         <span className="mb-1 block text-[11px] font-semibold text-muted-foreground">
                           Date de l&apos;ordonnance
@@ -698,6 +836,20 @@ export const ComptoirView: React.FC<Props> = ({
                           max={aujourdhui}
                           onChange={(e) => setDatePrescription(e.target.value)}
                           className="app-field"
+                        />
+                        <Raccourcis
+                          libelle="Date de l'ordonnance"
+                          actif={datePrescription}
+                          onChoisir={setDatePrescription}
+                          options={[
+                            { valeur: aujourdhui, libelle: "Aujourd'hui" },
+                            {
+                              valeur: new Date(Date.parse(`${aujourdhui}T12:00:00Z`) - 86400000)
+                                .toISOString()
+                                .slice(0, 10),
+                              libelle: "Hier",
+                            },
+                          ]}
                         />
                       </label>
                     </>
@@ -746,6 +898,17 @@ export const ComptoirView: React.FC<Props> = ({
                   aria-label="Montant reçu"
                 />
               </div>
+              {!credit && parts.patient > 0 && (
+                <Raccourcis
+                  libelle="Montant reçu"
+                  actif={recu}
+                  onChoisir={setRecu}
+                  options={[
+                    { valeur: String(parts.patient), libelle: "Compte juste" },
+                    ...billets.map((b) => ({ valeur: String(b), libelle: formatCurrency(b) })),
+                  ]}
+                />
+              )}
               {!organisme && (
                 <label className="flex items-center gap-2 text-xs text-muted-foreground">
                   <input
