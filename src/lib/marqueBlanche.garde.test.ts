@@ -21,6 +21,8 @@ const LECTEURS_AUTORISES = new Set([
   "components/shared/MotSymbole.tsx", // branche parDefaut
   "components/landing/PanneauMarque.tsx", // vitrine
   "components/landing/TicketImprime.tsx", // vitrine
+  "components/landing/HeroAccueil.tsx", // vitrine
+  "components/landing/SectionQuestions.tsx", // vitrine
 ]);
 
 /** Peuvent écrire le mot en clair. */

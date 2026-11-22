@@ -9,10 +9,12 @@ import {
   imageDePartage,
   lienCanonique,
   metasDeReferencement,
+  redirectionPermanente,
   robotsTxt,
   sitemapXml,
   estRobot,
 } from "./seo";
+import { APP_TITRE_SEO } from "./appConfig";
 
 const kinvest: Marque = marqueDepuisLigne({
   app_name: "Kinvest",
@@ -141,5 +143,45 @@ describe("référencement par domaine", () => {
       false,
     );
     expect(estRobot(null)).toBe(false);
+  });
+
+  it("Tantana : le nom et les mots de son métier dans le titre, la description et les données", () => {
+    expect(APP_TITRE_SEO).toMatch(/^Tantana Suite — .*gestion de stock.*caisse.*Madagascar/);
+    expect(APP_TITRE_SEO.length).toBeLessThanOrEqual(75);
+    const description = descriptionDe(MARQUE_PAR_DEFAUT);
+    expect(description).toMatch(/^Tantana Suite : logiciel de gestion de stock/);
+    for (const mot of ["caisse", "facturation", "pharmacies", "Madagascar"]) {
+      expect(description).toContain(mot);
+    }
+    expect(description.length).toBeLessThanOrEqual(160);
+
+    const t = donneesStructurees(MARQUE_PAR_DEFAUT, "tantana-suite.com") as {
+      "@graph": Record<string, unknown>[];
+    };
+    const [organisation, site, logiciel] = t["@graph"];
+    expect(organisation.alternateName).toBe("Tantana");
+    expect(site.alternateName).toBe("Tantana");
+    expect(logiciel.alternateName).toBe("Tantana");
+    expect(logiciel.areaServed).toEqual({ "@type": "Country", name: "Madagascar" });
+    // Rien de tout cela chez la marque cliente.
+    const k = donneesStructurees(kinvest, "mg-kinvest.com") as {
+      "@graph": Record<string, unknown>[];
+    };
+    expect(JSON.stringify(k)).not.toMatch(/alternateName|Madagascar/);
+  });
+
+  it("l'adresse Netlify de production renvoie pour de bon au vrai domaine, pas les aperçus", () => {
+    const vers = (adresse: string, methode = "GET") =>
+      redirectionPermanente(new URL(adresse), methode);
+    expect(vers("https://tantana-suite.netlify.app/?documents_v2=0")).toBe(
+      "https://tantana-suite.com/?documents_v2=0",
+    );
+    expect(vers("https://tantana-suite.netlify.app/robots.txt", "HEAD")).toBe(
+      "https://tantana-suite.com/robots.txt",
+    );
+    expect(vers("https://tantana-suite.netlify.app/_serverFn/x", "POST")).toBeNull();
+    expect(vers("https://deploy-preview-12--tantana-suite.netlify.app/")).toBeNull();
+    expect(vers("https://tantana-suite.com/")).toBeNull();
+    expect(vers("https://mg-kinvest.com/")).toBeNull();
   });
 });

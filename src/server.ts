@@ -8,7 +8,7 @@ import { MANIFESTE_DE_MARQUE, MANIFESTE_PAR_DEFAUT, type Marque } from "./lib/ma
 import { lireMarqueDeLHote, manifesteDeMarque } from "./lib/marqueServeur";
 import { initialeDeMarque, lireCheminIconeRepli } from "./lib/iconeRepli";
 import { pngIconeRepli } from "./lib/iconeRepliRendu";
-import { estRobot, robotsTxt, sitemapXml } from "./lib/seo";
+import { estRobot, redirectionPermanente, robotsTxt, sitemapXml } from "./lib/seo";
 
 // Marque de l'hôte, lue par `marqueCourante()` pendant le rendu.
 const marqueDeLaRequete = new AsyncLocalStorage<Marque | null>();
@@ -63,6 +63,14 @@ export default {
   async fetch(request: Request, env: unknown, ctx: unknown) {
     try {
       const url = new URL(request.url);
+      // L'adresse Netlify de production renvoie au vrai domaine (lib/seo.ts).
+      const versLeVraiSite = redirectionPermanente(url, request.method);
+      if (versLeVraiSite) {
+        return new Response(null, {
+          status: 301,
+          headers: { location: versLeVraiSite, "cache-control": "public, max-age=3600" },
+        });
+      }
       if (url.pathname === "/.well-known/assetlinks.json") {
         if (!["tantana-suite.com", "www.tantana-suite.com"].includes(url.hostname)) {
           return new Response(null, { status: 404 });

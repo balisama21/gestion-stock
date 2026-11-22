@@ -10,7 +10,17 @@ export const APP_SHORT_NAME = "Tantana";
  * marques clientes ont les leurs, tirés de leur fiche (`lib/seo.ts`).
  */
 export const APP_URL = "https://tantana-suite.com";
-export const APP_TITRE_SEO = `${APP_NAME} — Logiciel de gestion de stock, ventes et facturation`;
+//
+// Les mots que l'on tape dans Google viennent en tête : le nom, puis
+// « logiciel de gestion de stock », « caisse », « Madagascar ». Au-delà
+// d'une soixantaine de signes, Google coupe : l'essentiel est avant.
+export const APP_TITRE_SEO = `${APP_NAME} — Logiciel de gestion de stock et de caisse à Madagascar`;
+
+/**
+ * Accroche posée dans le titre principal (`<h1>`) de la vitrine : le nom
+ * du logiciel et ce qu'il fait, que Google lit comme le sujet de la page.
+ */
+export const APP_ACCROCHE_SEO = `${APP_NAME} · Stock, caisse et facturation`;
 
 /**
  * Numéro par lequel joindre l'administrateur.
