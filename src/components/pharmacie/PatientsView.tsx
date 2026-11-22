@@ -1,4 +1,17 @@
 import React, { useEffect, useMemo, useState } from "react";
+import { Raccourcis } from "./ui";
+import { ajouterALaNote, formaterTelephone } from "../../lib/saisie";
+
+/** Ce qu'on note le plus souvent au dossier d'un patient. */
+const NOTES_PATIENT = [
+  "Allergie pénicilline",
+  "Allergie aspirine",
+  "Allergie sulfamides",
+  "Diabétique",
+  "Hypertendu",
+  "Asthmatique",
+  "Enceinte",
+];
 import {
   AlertTriangle,
   Banknote,
@@ -326,6 +339,7 @@ const EditionPatient: React.FC<{
           type="tel"
           value={telephone}
           onChange={(e) => setTelephone(e.target.value)}
+          onBlur={() => setTelephone(formaterTelephone(telephone))}
           placeholder="Téléphone"
           className="app-field col-span-2"
         />
@@ -340,6 +354,11 @@ const EditionPatient: React.FC<{
             rows={3}
             placeholder="Ex. : allergique à la pénicilline, diabétique sous insuline…"
             className="app-field"
+          />
+          <Raccourcis
+            libelle="Allergies et traitements courants"
+            options={NOTES_PATIENT}
+            onChoisir={(m) => setNote(ajouterALaNote(note, m))}
           />
         </label>
         {erreur && <p className="col-span-2 text-sm font-semibold t-danger">{erreur}</p>}
@@ -443,13 +462,24 @@ const DossierPatient: React.FC<{
               Régler le crédit
             </p>
             <div className="flex flex-wrap gap-2">
-              <input
-                inputMode="decimal"
-                value={montant}
-                onChange={(e) => setMontant(e.target.value)}
-                className="app-field w-32 flex-1"
-                aria-label="Montant reçu"
-              />
+              <span className="w-32 flex-1">
+                <input
+                  inputMode="decimal"
+                  value={montant}
+                  onChange={(e) => setMontant(e.target.value)}
+                  className="app-field"
+                  aria-label="Montant reçu"
+                />
+                <Raccourcis
+                  libelle="Montant réglé"
+                  actif={montant}
+                  onChoisir={setMontant}
+                  options={[
+                    { valeur: String(dossier.du), libelle: "Tout" },
+                    { valeur: String(Math.round(dossier.du / 2)), libelle: "La moitié" },
+                  ]}
+                />
+              </span>
               <select
                 value={methode}
                 onChange={(e) => setMethode(e.target.value)}

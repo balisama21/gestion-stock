@@ -1,4 +1,7 @@
 import React, { useMemo, useState } from "react";
+import { Raccourcis } from "./ui";
+import { decalerJour, formaterTelephone } from "../../lib/saisie";
+import { useMemoireSaisie } from "../../hooks/useMemoireSaisie";
 import { ChevronLeft, ChevronRight, FilePlus2, Printer, ScrollText, Search } from "lucide-react";
 import type { Sale } from "../../types";
 import type { Database } from "../../lib/database.types";
@@ -283,6 +286,7 @@ export const OrdonnancierView: React.FC<Props> = ({
 
       {ajout && (
         <AjoutOrdonnance
+          storeId={storeId}
           aujourdhui={aujourdhui}
           onFermer={() => setAjout(false)}
           onInscrire={async (o) => {
@@ -300,10 +304,13 @@ export const OrdonnancierView: React.FC<Props> = ({
 };
 
 const AjoutOrdonnance: React.FC<{
+  storeId: string;
   aujourdhui: string;
   onFermer: () => void;
   onInscrire: (o: Parameters<typeof inscrireOrdonnance>[1]) => Promise<string | null>;
-}> = ({ aujourdhui, onFermer, onInscrire }) => {
+}> = ({ storeId, aujourdhui, onFermer, onInscrire }) => {
+  // Les mêmes médecins qu'au comptoir.
+  const [prescripteurs, retenirPrescripteur] = useMemoireSaisie(`tn-prescripteurs:${storeId}`);
   const [v, setV] = useState({
     nom: "",
     age: "",
@@ -336,6 +343,7 @@ const AjoutOrdonnance: React.FC<{
     });
     setEnvoi(false);
     setErreur(err);
+    if (!err) retenirPrescripteur(v.prescripteur);
   };
 
   return (
@@ -375,15 +383,24 @@ const AjoutOrdonnance: React.FC<{
         <input
           value={v.telephone}
           onChange={champ("telephone")}
+          onBlur={() => setV({ ...v, telephone: formaterTelephone(v.telephone) })}
           placeholder="Téléphone"
           className="app-field"
         />
-        <input
-          value={v.prescripteur}
-          onChange={champ("prescripteur")}
-          placeholder="Médecin prescripteur"
-          className="app-field col-span-2"
-        />
+        <div className="col-span-2">
+          <input
+            value={v.prescripteur}
+            onChange={champ("prescripteur")}
+            placeholder="Médecin prescripteur"
+            className="app-field"
+          />
+          <Raccourcis
+            libelle="Médecins récents"
+            options={prescripteurs.slice(0, 4)}
+            actif={v.prescripteur}
+            onChoisir={(p) => setV({ ...v, prescripteur: p })}
+          />
+        </div>
         <label className="col-span-2 block">
           <span className="mb-1 block text-xs font-semibold text-muted-foreground">
             Date de l&apos;ordonnance
@@ -394,6 +411,16 @@ const AjoutOrdonnance: React.FC<{
             max={aujourdhui}
             onChange={champ("date")}
             className="app-field"
+          />
+          <Raccourcis
+            libelle="Date de l'ordonnance"
+            actif={v.date}
+            onChoisir={(d) => setV({ ...v, date: d })}
+            options={[
+              { valeur: aujourdhui, libelle: "Aujourd'hui" },
+              { valeur: decalerJour(aujourdhui, -1), libelle: "Hier" },
+              { valeur: decalerJour(aujourdhui, -2), libelle: "Avant-hier" },
+            ]}
           />
         </label>
         <input

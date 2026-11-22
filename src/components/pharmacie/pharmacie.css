@@ -109,19 +109,16 @@ html.dark[data-nature="pharmacie"] {
   flex-wrap: wrap;
 }
 .ph-entete-icone {
+  /* L'icône seule, en vert, sans tuile derrière. */
   display: grid;
   place-items: center;
-  width: 2.75rem;
-  height: 2.75rem;
   flex-shrink: 0;
-  border-radius: 0.9rem;
-  background: var(--primary);
-  color: var(--primary-foreground);
-  box-shadow: 0 4px 12px color-mix(in oklab, var(--primary) 28%, transparent);
+  color: var(--primary);
 }
 .ph-entete-icone > svg {
-  width: 1.4rem;
-  height: 1.4rem;
+  width: 2rem;
+  height: 2rem;
+  stroke-width: 1.75;
 }
 .ph-entete-texte {
   flex: 1 1 12rem;
@@ -160,105 +157,152 @@ html.dark[data-nature="pharmacie"] {
   }
 }
 
-/* ── Les chiffres de l'en-tête : une seule carte ──────────────────
-   Le chiffre principal (`ton="plein"`) tient le haut, en vert uni,
-   la croix en filigrane ; les autres se rangent dessous, séparés
-   d'un filet. Sur ordinateur, tout tient sur une ligne. */
-.ph-entete-chiffres {
+/* ── Le bandeau illustré : les chiffres, et le pharmacien ──────────
+   Les chiffres d'un écran se posent sur un bandeau vert très pâle, uni,
+   le pharmacien et sa croix à droite. Le chiffre principal s'écrit en
+   grand, en vert ; les autres sur une ligne dessous : « 0 clients ·
+   2 ordonnances ». Ni carte par chiffre, ni dégradé. */
+html[data-nature="pharmacie"] {
+  --bandeau: #edf5f0;
+}
+html.dark[data-nature="pharmacie"] {
+  --bandeau: oklch(0.235 0.03 158);
+}
+.ph-bandeau {
+  --figure: 13rem;
+  position: relative;
   margin-top: 1rem;
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-columns: minmax(0, 1fr) var(--figure);
+  column-gap: 0.75rem;
   overflow: hidden;
-  border: 1px solid var(--border);
-  border-radius: 1.1rem;
-  background: var(--card);
-  box-shadow: var(--elev-1);
+  border-radius: 1.5rem;
+  background: var(--bandeau);
+  padding: 1.1rem 0.75rem 0 1.4rem;
 }
-@media (min-width: 768px) {
-  .ph-entete-chiffres {
-    display: flex;
+/* La figure remplit la hauteur des chiffres, posée en bas à droite. */
+.ph-bandeau-figure {
+  position: relative;
+  /* La même marge basse que les chiffres : la figure commence et finit
+     avec eux. */
+  margin-bottom: 1.1rem;
+}
+.ph-bandeau-image {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  object-fit: contain;
+  object-position: right bottom;
+  pointer-events: none;
+  user-select: none;
+}
+@media (max-width: 639px) {
+  .ph-bandeau {
+    --figure: 50%;
+    column-gap: 0.4rem;
+    padding: 1rem 0.5rem 0 1.1rem;
   }
-  .ph-entete-chiffres > * {
-    flex: 1 1 0;
-    min-width: 0;
+  .ph-bandeau-figure {
+    margin-bottom: 1rem;
   }
-  .ph-entete-chiffres > [data-ton="plein"] {
-    flex-grow: 1.4;
-  }
+}
+.ph-entete-chiffres {
+  display: flex;
+  min-width: 0;
+  flex-wrap: wrap;
+  align-self: center;
+  padding-bottom: 1.1rem;
+  align-items: baseline;
+  align-content: center;
+  column-gap: 1.25rem;
+  row-gap: 0.35rem;
 }
 .ph-entete-chiffres > .ph-chiffre {
-  position: relative;
+  display: inline-flex;
+  align-items: baseline;
+  gap: 0.35rem;
   border: 0;
-  border-radius: 0;
+  border-radius: 0.5rem;
   background: transparent;
-  padding: 0.85rem 1rem;
-  box-shadow:
-    -1px 0 0 var(--border),
-    0 -1px 0 var(--border);
+  padding: 0;
+  color: var(--foreground);
 }
-/* Un chiffre resté seul sur sa ligne prend toute la largeur. */
-.ph-entete-chiffres:has(> [data-ton="plein"]:first-child) > .ph-chiffre:last-child:nth-child(even),
-.ph-entete-chiffres:not(:has(> [data-ton="plein"]:first-child))
-  > .ph-chiffre:last-child:nth-child(odd) {
-  grid-column: 1 / -1;
+.ph-entete-chiffres > .ph-chiffre .ph-chiffre-valeur {
+  font-size: 1.2rem;
 }
-.ph-entete-chiffres > [data-ton="plein"] {
-  grid-column: 1 / -1;
-  overflow: hidden;
-  background: var(--primary);
-  color: var(--primary-foreground);
-  padding: 1rem 1.1rem;
+.ph-entete-chiffres > .ph-chiffre .ph-chiffre-libelle {
+  margin: 0;
+  font-size: 0.9rem;
+  font-weight: 500;
 }
-.ph-entete-chiffres > [data-ton="plein"] .ph-chiffre-valeur {
-  font-size: 1.65rem;
+/* Le chiffre principal : en grand, en vert, son libellé dessous. */
+.ph-entete-chiffres > .ph-chiffre[data-ton="plein"] {
+  flex-basis: 100%;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.1rem;
+  margin-bottom: 0.55rem;
+  background: transparent;
+  color: var(--primary);
 }
-.ph-entete-chiffres > [data-ton="plein"]::after {
-  content: "";
-  position: absolute;
-  right: -0.6rem;
-  top: 50%;
-  width: 5.5rem;
-  height: 5.5rem;
-  transform: translateY(-50%) rotate(12deg);
-  background: var(--primary-foreground);
-  opacity: 0.1;
-  clip-path: polygon(
-    35% 0,
-    65% 0,
-    65% 35%,
-    100% 35%,
-    100% 65%,
-    65% 65%,
-    65% 100%,
-    35% 100%,
-    35% 65%,
-    0 65%,
-    0 35%,
-    35% 35%
-  );
-  pointer-events: none;
+.ph-entete-chiffres > .ph-chiffre[data-ton="plein"] .ph-chiffre-valeur {
+  font-size: 2.4rem;
+  line-height: 1.05;
+  letter-spacing: -0.03em;
 }
-.ph-entete-chiffres > [data-ton="danger"] {
-  background: color-mix(in oklab, var(--danger-soft) 75%, transparent);
+.ph-entete-chiffres > .ph-chiffre[data-ton="plein"] .ph-chiffre-libelle {
+  font-size: 1rem;
+  color: var(--muted-foreground);
 }
-.ph-entete-chiffres > [data-ton="warning"] {
-  background: color-mix(in oklab, var(--warning-soft) 75%, transparent);
+@media (max-width: 639px) {
+  .ph-entete-chiffres > .ph-chiffre[data-ton="plein"] .ph-chiffre-valeur {
+    font-size: 1.7rem;
+  }
+  .ph-entete-chiffres > .ph-chiffre[data-ton="plein"] .ph-chiffre-libelle {
+    font-size: 0.9rem;
+  }
+  .ph-entete-chiffres > .ph-chiffre .ph-chiffre-valeur {
+    font-size: 1.05rem;
+  }
+  .ph-entete-chiffres > .ph-chiffre .ph-chiffre-libelle {
+    font-size: 0.8rem;
+  }
+  .ph-entete-chiffres {
+    row-gap: 0.15rem;
+    padding-bottom: 1rem;
+  }
+  .ph-entete-chiffres > .ph-chiffre[data-ton="plein"] {
+    margin-bottom: 0.35rem;
+  }
 }
-.ph-entete-chiffres > [data-ton="croix"] {
-  background: var(--croix-soft);
+/* En alerte, le chiffre et son libellé prennent la couleur de l'alerte. */
+.ph-entete-chiffres > .ph-chiffre[data-ton="danger"],
+.ph-entete-chiffres > .ph-chiffre[data-ton="danger"] .ph-chiffre-libelle {
+  background: transparent;
+  color: var(--danger);
 }
-/* Le chiffre qui sert de filtre : un cadre vert à l'intérieur. */
-.ph-entete-chiffres > .ph-chiffre[aria-pressed="true"] {
-  box-shadow:
-    -1px 0 0 var(--border),
-    0 -1px 0 var(--border),
-    inset 0 0 0 2px var(--primary);
+.ph-entete-chiffres > .ph-chiffre[data-ton="warning"],
+.ph-entete-chiffres > .ph-chiffre[data-ton="warning"] .ph-chiffre-libelle {
+  background: transparent;
+  color: var(--warning);
+}
+.ph-entete-chiffres > .ph-chiffre[data-ton="croix"] {
+  background: transparent;
+  color: var(--croix);
+}
+/* Un chiffre qui sert de filtre se souligne ; celui qui filtre, en vert. */
+.ph-entete-chiffres > button.ph-chiffre {
+  text-decoration: underline dotted color-mix(in oklab, currentColor 45%, transparent);
+  text-underline-offset: 0.3em;
 }
 .ph-entete-chiffres > button.ph-chiffre:hover {
-  background: var(--secondary);
+  border-color: transparent;
+  text-decoration-style: solid;
 }
-.ph-entete-chiffres > button.ph-chiffre[data-ton="plein"]:hover {
-  background: color-mix(in oklab, var(--primary) 90%, black);
+.ph-entete-chiffres > .ph-chiffre[aria-pressed="true"] {
+  box-shadow: none;
+  text-decoration: underline solid 2px var(--primary);
 }
 
 /* ── Un chiffre clé ──────────────────────────────────────────────── */
@@ -629,18 +673,19 @@ html[data-nature="pharmacie"] .coq-lien.on::before {
 
 /* ── L'en-tête de page : comme celui de l'officine ── */
 html[data-nature="pharmacie"] .app-page-icon {
-  width: 2.75rem;
-  height: 2.75rem;
-  border-radius: 0.9rem;
-  background: var(--primary);
-  color: var(--primary-foreground);
-  box-shadow: 0 4px 12px color-mix(in oklab, var(--primary) 28%, transparent);
+  width: auto;
+  height: auto;
+  border-radius: 0;
+  background: transparent;
+  color: var(--primary);
+  box-shadow: none;
 }
 html[data-nature="pharmacie"] .app-page-icon svg {
-  width: 22px;
-  height: 22px;
+  width: 2rem;
+  height: 2rem;
+  stroke-width: 1.75;
   /* Quelle que soit la teinte que l'écran donnait à son icône. */
-  color: var(--primary-foreground) !important;
+  color: var(--primary) !important;
 }
 html[data-nature="pharmacie"] .app-page-title {
   font-weight: 800;
@@ -693,115 +738,125 @@ html[data-nature="pharmacie"] .app-statbar-ico.app-statbar-ico-alerte {
   }
 }
 
-/* ── La feuille épinglée devient le bandeau vert du chiffre clé ──
-   Le papier punaisé est la signature de la boutique standard ; à
-   l'officine, le chiffre clé se lit sur un bandeau vert uni, comme
-   celui de l'en-tête des écrans de la pharmacie. En alerte, il rougit. */
+/* ── La feuille épinglée devient le bandeau illustré ──
+   Le chiffre clé des écrans communs (la trésorerie, ce qui reste à
+   payer) prend le même bandeau que ceux de la pharmacie : vert pâle uni,
+   le pharmacien à droite, le chiffre en vert ; en rouge quand il alerte. */
 html[data-nature="pharmacie"] .app-feuille {
-  --foreground: var(--primary-foreground);
-  --muted-foreground: color-mix(in oklab, var(--primary-foreground) 80%, transparent);
-  --success: var(--primary-foreground);
-  --info: var(--primary-foreground);
-  --border: color-mix(in oklab, var(--primary-foreground) 25%, transparent);
-  --card: var(--primary);
+  --foreground: inherit;
+  --muted-foreground: inherit;
+  --success: inherit;
+  --warning: inherit;
+  --danger: inherit;
+  --info: inherit;
+  --border: inherit;
+  --card: inherit;
   transform: none;
-  margin-top: 0;
-  overflow: hidden;
+  margin-top: 0.5rem;
+  min-height: 8rem;
+  padding: 1.1rem clamp(8rem, 40%, 13rem) 1.1rem 1.4rem;
   border: 0;
-  border-radius: 1.1rem;
-  background: var(--primary);
-  color: var(--primary-foreground);
-  box-shadow: 0 6px 16px color-mix(in oklab, var(--primary) 25%, transparent);
+  border-radius: 1.5rem;
+  color: var(--foreground);
+  background: var(--bandeau) url("../../assets/pharmacie/pharmacien.webp") no-repeat right 0.75rem
+    bottom 0 / auto calc(100% - 1rem);
+  box-shadow: none;
 }
-html[data-nature="pharmacie"] .app-feuille:has(.t-danger) {
-  background: var(--danger);
-}
-html[data-nature="pharmacie"] .app-feuille .t-danger,
-html[data-nature="pharmacie"] .app-feuille .t-warning {
-  color: inherit;
+@media (max-width: 639px) {
+  html[data-nature="pharmacie"] .app-feuille {
+    padding-right: 40%;
+  }
 }
 html[data-nature="pharmacie"] .app-feuille::before,
+html[data-nature="pharmacie"] .app-feuille::after,
 html[data-nature="pharmacie"] .app-feuille.app-grand-chiffre::before {
   display: none;
 }
-/* La croix en filigrane, à la place de la punaise. */
-html[data-nature="pharmacie"] .app-feuille::after {
-  content: "";
-  top: 50%;
-  left: auto;
-  right: -0.6rem;
-  width: 5.5rem;
-  height: 5.5rem;
-  margin: 0;
-  transform: translateY(-50%) rotate(12deg);
-  background: var(--primary-foreground);
-  opacity: 0.1;
-  clip-path: polygon(
-    35% 0,
-    65% 0,
-    65% 35%,
-    100% 35%,
-    100% 65%,
-    65% 65%,
-    65% 100%,
-    35% 100%,
-    35% 65%,
-    0 65%,
-    0 35%,
-    35% 35%
-  );
-}
 html[data-nature="pharmacie"] .app-feuille.app-grand-chiffre {
   width: 100%;
-  margin: 0 0 0.75rem;
+  margin: 0.5rem 0 1rem;
 }
 html[data-nature="pharmacie"] .app-feuille .app-head-metric-label {
-  font-weight: 800;
-  letter-spacing: 0.08em;
-  color: color-mix(in oklab, var(--primary-foreground) 82%, transparent);
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  color: var(--muted-foreground);
 }
 html[data-nature="pharmacie"] .app-feuille .app-head-metric-value,
-html[data-nature="pharmacie"] .app-feuille.app-grand-chiffre .font-mono,
+html[data-nature="pharmacie"] .app-feuille.app-grand-chiffre .font-mono {
+  font-family: var(--font-sans);
+  font-size: 2rem;
+  font-weight: 800;
+  letter-spacing: -0.03em;
+}
 html[data-nature="pharmacie"] .app-feuille .app-head-metric-value:not(.t-danger):not(.t-warning),
 html[data-nature="pharmacie"]
   .app-feuille.app-grand-chiffre
   .font-mono:not(.t-danger):not(.t-warning) {
-  font-family: var(--font-sans);
-  font-weight: 800;
-  letter-spacing: -0.02em;
-  color: var(--primary-foreground);
-}
-html[data-nature="pharmacie"] .app-feuille .app-badge {
-  background: color-mix(in oklab, var(--primary-foreground) 18%, transparent);
-  border-color: transparent;
-  color: var(--primary-foreground);
+  color: var(--primary);
 }
 
-/* ── Les onglets d'un univers : des pastilles, toutes visibles ──
-   Elles passent à la ligne plutôt que de défiler : sur téléphone,
-   aucun écran n'est caché derrière le bord. */
+/* ── Les onglets d'un univers : une barre d'icônes ──
+   Chaque écran a sa part égale de la largeur : son icône, son nom
+   dessous. L'écran ouvert se marque en vert, d'un trait sous lui. Tout
+   tient sur une ligne, sans défilement ni pastille. */
 html[data-nature="pharmacie"] .app-sous-nav {
-  flex-wrap: wrap;
+  display: grid;
+  grid-auto-flow: column;
+  grid-auto-columns: minmax(0, 1fr);
   overflow: visible;
-  gap: 0.4rem;
-  box-shadow: none;
+  column-gap: 0;
+  box-shadow: inset 0 -1px 0 var(--border);
 }
 html[data-nature="pharmacie"] .app-sous-nav-item {
-  border: 1px solid var(--border);
-  border-radius: 999px;
-  background: var(--card);
-  padding: 0.4rem 0.95rem;
-  font-size: 0.82rem;
+  position: relative;
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  align-items: center;
+  gap: 0.3rem;
+  border: 0;
+  padding: 0.5rem 0.15rem 0.65rem;
+  font-size: 0.7rem;
   font-weight: 700;
+  letter-spacing: -0.01em;
+  line-height: 1.15;
+  text-align: center;
+  white-space: normal;
+  color: var(--muted-foreground);
+}
+html[data-nature="pharmacie"] .app-sous-nav-icone {
+  display: grid;
+  place-items: center;
+}
+html[data-nature="pharmacie"] .app-sous-nav-icone svg {
+  width: 1.3rem;
+  height: 1.3rem;
 }
 html[data-nature="pharmacie"] .app-sous-nav-item:hover {
-  border-color: var(--primary);
   color: var(--primary);
 }
 html[data-nature="pharmacie"] .app-sous-nav-item[aria-current="page"] {
-  border-color: var(--primary);
+  color: var(--primary);
+  font-weight: 800;
+}
+html[data-nature="pharmacie"] .app-sous-nav-item[aria-current="page"]::after {
+  content: "";
+  position: absolute;
+  left: 22%;
+  right: 22%;
+  bottom: 0;
+  height: 3px;
+  border-radius: 3px 3px 0 0;
   background: var(--primary);
-  color: var(--primary-foreground);
+}
+@media (min-width: 768px) {
+  html[data-nature="pharmacie"] .app-sous-nav {
+    grid-auto-columns: minmax(0, 8.5rem);
+    justify-content: start;
+  }
+  html[data-nature="pharmacie"] .app-sous-nav-item {
+    font-size: 0.78rem;
+  }
 }
 
 /* ── Cartes, barres d'outils, tableaux, champs ── */
@@ -828,4 +883,162 @@ html[data-nature="pharmacie"] .app-pastille {
 html[data-nature="pharmacie"] .app-field,
 html[data-nature="pharmacie"] .app-field-sm {
   border-radius: 0.8rem;
+}
+
+/* ── Le menu « Plus » du téléphone : une grille de tuiles ──
+   Dans une boutique, une liste. À l'officine, chaque écran a sa tuile,
+   son icône dans une pastille verte : on le retrouve d'un coup d'œil. */
+html[data-nature="pharmacie"] .menu-plus-titre {
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  color: color-mix(in oklab, var(--primary) 70%, var(--muted-foreground));
+}
+html[data-nature="pharmacie"] .menu-plus-liste {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.5rem;
+}
+html[data-nature="pharmacie"] .menu-plus-lien {
+  min-height: 5.4rem;
+  flex-direction: column;
+  justify-content: center;
+  gap: 0.45rem;
+  padding: 0.7rem 0.35rem;
+  border: 1px solid var(--border);
+  border-radius: 1rem;
+  background: var(--card);
+  text-align: center;
+  font-size: 0.74rem;
+  font-weight: 700;
+  color: var(--foreground);
+}
+html[data-nature="pharmacie"] .menu-plus-icone {
+  display: grid;
+  place-items: center;
+  width: 2.4rem;
+  height: 2.4rem;
+  border-radius: 0.8rem;
+  background: var(--secondary);
+  color: var(--primary);
+  opacity: 1;
+}
+html[data-nature="pharmacie"] .menu-plus-libelle {
+  max-width: 100%;
+  white-space: normal;
+  line-height: 1.15;
+}
+html[data-nature="pharmacie"] .menu-plus-lien[aria-current="page"] {
+  border-color: var(--primary);
+  background: var(--secondary);
+}
+html[data-nature="pharmacie"] .menu-plus-lien[aria-current="page"] .menu-plus-icone {
+  background: var(--primary);
+  color: var(--primary-foreground);
+}
+html[data-nature="pharmacie"] .menu-plus-repere {
+  display: none;
+}
+
+/* ── Les fenêtres : une bande d'en-tête vert pâle, l'icône en vert plein ── */
+html[data-nature="pharmacie"] .app-modal-panel {
+  border-radius: 1.25rem 1.25rem 0 0;
+}
+@media (min-width: 640px) {
+  html[data-nature="pharmacie"] .app-modal-panel {
+    border-radius: 1.25rem;
+  }
+}
+html[data-nature="pharmacie"] .app-modal-panel:not([data-ton="danger"]) .app-modal-header {
+  background: var(--secondary);
+}
+@media (min-width: 640px) {
+  html[data-nature="pharmacie"] .app-modal-header {
+    border-top-left-radius: inherit;
+    border-top-right-radius: inherit;
+  }
+}
+html[data-nature="pharmacie"] .app-modal-icone:not(.bg-danger-soft) {
+  border-color: transparent;
+  background: var(--primary);
+  color: var(--primary-foreground);
+}
+html[data-nature="pharmacie"] .app-modal-header h3 {
+  font-weight: 800;
+}
+
+/* ── Les raccourcis sous un champ ── */
+.ph-raccourcis {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  margin-top: 0.4rem;
+}
+.ph-raccourci {
+  /* Plus bas que les boutons d'action (44 px) : une pastille se pose
+     sous un champ sans l'écraser, et reste assez haute pour le doigt. */
+  min-height: 2rem;
+  border: 1px dashed color-mix(in oklab, var(--primary) 45%, transparent);
+  border-radius: 999px;
+  padding: 0.18rem 0.6rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  line-height: 1.35;
+  color: var(--primary);
+  background: transparent;
+  transition:
+    background-color 0.15s,
+    border-color 0.15s;
+}
+.ph-raccourci:hover {
+  background: var(--secondary);
+  border-style: solid;
+}
+.ph-raccourci[aria-pressed="true"] {
+  border-style: solid;
+  border-color: var(--primary);
+  background: var(--primary);
+  color: var(--primary-foreground);
+}
+
+/* ── Le bouton de scan : l'icône verte, sur fond transparent ──
+   Il se pose à droite du grand champ de recherche, à sa hauteur. */
+.ph-bouton-scan {
+  display: grid;
+  flex-shrink: 0;
+  place-items: center;
+  width: 3.25rem;
+  height: 3.25rem;
+  border-radius: 1rem;
+  background: transparent;
+  color: var(--primary);
+  transition: background-color 0.15s;
+}
+.ph-bouton-scan:hover {
+  background: var(--secondary);
+}
+.ph-bouton-scan > svg {
+  width: 1.4rem;
+  height: 1.4rem;
+}
+
+/* ── Pas de titre en double ──
+   Quand la barre d'onglets est là, elle nomme déjà l'écran ouvert : le
+   titre de la page (icône, nom, phrase) disparaît à l'œil, et reste lu
+   par les lecteurs d'écran. Les gestes de l'en-tête restent. */
+html[data-nature="pharmacie"] .app-sous-nav + .app-vue :is(.ph-entete-icone, .ph-entete-texte),
+html[data-nature="pharmacie"] .app-sous-nav + .app-vue .app-page-head-text {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+html[data-nature="pharmacie"] .app-sous-nav + .app-vue .ph-entete-actions {
+  width: 100%;
+}
+@media (min-width: 640px) {
+  html[data-nature="pharmacie"] .app-sous-nav + .app-vue .ph-entete-actions {
+    justify-content: flex-end;
+  }
 }

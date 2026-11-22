@@ -3,14 +3,14 @@ import { ScanLine } from "lucide-react";
 import { Modal } from "./Modal";
 
 /**
- * Le détecteur de codes-barres du navigateur.
+ * Le détecteur de codes-barres.
  *
- * Il n'est pas décrit par les types du DOM : c'est une API que Chrome et
- * Edge exposent (donc Android, l'essentiel du parc ici), et que Firefox
- * et Safari n'ont pas. On la déclare au minimum de ce qu'on en utilise,
- * et le bouton disparaît simplement là où elle manque — plutôt que
- * d'embarquer une bibliothèque de trois cents kilo-octets pour tout le
- * monde, y compris ceux qui ne scannent jamais.
+ * Celui du navigateur d'abord : Chrome l'expose sur Android et sur Mac.
+ * Ailleurs — Chrome et Edge sous Windows, Firefox, Safari —, la même
+ * interface est fournie par `barcode-detector` (le moteur ZXing compilé en
+ * WebAssembly). Elle n'est chargée qu'au premier scan, et son moteur est
+ * servi par le site lui-même : ceux qui ne scannent jamais ne la
+ * téléchargent pas, et rien ne part chez un tiers.
  */
 interface CodeDetecte {
   rawValue: string;
@@ -26,6 +26,50 @@ const fabrique = (): FabriqueDetecteur | null => {
   return w.BarcodeDetector ?? null;
 };
 
+/**
+ * Les codes qu'on croise en boutique et en pharmacie : les codes-barres
+ * des produits, ceux des cartons, et le petit carré (DataMatrix) des
+ * boîtes de médicaments, qui porte aussi le lot et la péremption.
+ */
+const FORMATS = [
+  "ean_13",
+  "ean_8",
+  "upc_a",
+  "upc_e",
+  "code_128",
+  "code_39",
+  "itf",
+  "data_matrix",
+  "qr_code",
+];
+
+let chargement: Promise<FabriqueDetecteur | null> | null = null;
+/** Le détecteur du navigateur, ou à défaut celui de la bibliothèque. */
+function chargerDetecteur(): Promise<FabriqueDetecteur | null> {
+  const natif = fabrique();
+  if (natif) return Promise.resolve(natif);
+  if (typeof window === "undefined") return Promise.resolve(null);
+  chargement ??= (async () => {
+    try {
+      const [{ BarcodeDetector, prepareZXingModule }, { default: moteur }] = await Promise.all([
+        import("barcode-detector/ponyfill"),
+        import("zxing-wasm/reader/zxing_reader.wasm?url"),
+      ]);
+      prepareZXingModule({
+        overrides: {
+          locateFile: (chemin: string, prefixe: string) =>
+            chemin.endsWith(".wasm") ? moteur : prefixe + chemin,
+        },
+      });
+      return BarcodeDetector as unknown as FabriqueDetecteur;
+    } catch {
+      chargement = null;
+      return null;
+    }
+  })();
+  return chargement;
+}
+
 interface BoutonScanProps {
   /** Appelé une fois, avec le code lu, dès qu'un code est reconnu. */
   onCode: (code: string) => void;
@@ -33,6 +77,8 @@ interface BoutonScanProps {
   libelle?: string;
   /** Le titre de la fenêtre de scan, pour dire ce qu'on attend. */
   titre?: string;
+  /** La classe du bouton, quand un écran veut le sien (la pharmacie : plein, vert). */
+  classeBouton?: string;
 }
 
 /**
@@ -47,6 +93,7 @@ export const BoutonScan: React.FC<BoutonScanProps> = ({
   onCode,
   libelle = "Scanner un code-barres",
   titre = "Scanner un code-barres",
+  classeBouton = "app-btn-secondary shrink-0 px-3",
 }) => {
   const [disponible, setDisponible] = useState(false);
   const [ouvert, setOuvert] = useState(false);
@@ -58,9 +105,8 @@ export const BoutonScan: React.FC<BoutonScanProps> = ({
   // La détection n'existe qu'au navigateur : la page est rendue d'abord
   // sur le serveur, où `window` n'existe pas.
   useEffect(() => {
-    setDisponible(
-      fabrique() !== null && typeof navigator !== "undefined" && !!navigator.mediaDevices,
-    );
+    // Une caméra suffit : le détecteur, lui, se charge au premier scan.
+    setDisponible(typeof navigator !== "undefined" && !!navigator.mediaDevices?.getUserMedia);
   }, []);
 
   const arreter = useCallback(() => {
@@ -86,13 +132,23 @@ export const BoutonScan: React.FC<BoutonScanProps> = ({
 
   useEffect(() => {
     if (!ouvert) return;
-    const Detecteur = fabrique();
-    if (!Detecteur) return;
-
     let annule = false;
-    const detecteur = new Detecteur();
 
     const demarrer = async () => {
+      const Detecteur = await chargerDetecteur();
+      if (annule) return;
+      if (!Detecteur) {
+        setErreur(
+          "Le lecteur de codes-barres n'a pas pu se charger. Vérifiez la connexion, ou tapez le code à la main.",
+        );
+        return;
+      }
+      let detecteur: DetecteurCodes;
+      try {
+        detecteur = new Detecteur({ formats: FORMATS });
+      } catch {
+        detecteur = new Detecteur();
+      }
       try {
         const flux = await navigator.mediaDevices.getUserMedia({
           // La caméra arrière quand il y en a une : c'est celle qu'on
@@ -155,7 +211,7 @@ export const BoutonScan: React.FC<BoutonScanProps> = ({
       <button
         type="button"
         onClick={() => setOuvert(true)}
-        className="app-btn-secondary shrink-0 px-3"
+        className={classeBouton}
         aria-label={libelle}
         title={libelle}
       >

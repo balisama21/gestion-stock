@@ -20,7 +20,17 @@ import { imprimerFeuille } from "../../features/documents/lib/imprimer";
 import { MODES_DE_PAIEMENT } from "../facturation/paiement";
 import { caisseDuJour, ecartDuTiroir } from "../../lib/caisseOfficine";
 import type { OrganismePharma } from "../../lib/pharmacie";
-import { Chiffre, EnTete, Panneau, Vide } from "./ui";
+import { Chiffre, EnTete, Panneau, Raccourcis, Vide } from "./ui";
+
+/** Le fond de caisse posé un autre jour, s'il a été noté sur cet appareil. */
+const fondDe = (storeId: string, jour: string): string => {
+  try {
+    const brut = window.localStorage.getItem(`tn-caisse-officine:${storeId}:${jour}`);
+    return brut ? ((JSON.parse(brut) as { fond?: string }).fond ?? "") : "";
+  } catch {
+    return "";
+  }
+};
 
 interface Props {
   storeId: string;
@@ -116,6 +126,14 @@ export const CaisseOfficineView: React.FC<Props> = ({
   const ecart = ecartDuTiroir(fond, c.especes, compte);
   const compteSaisi = comptage.compte.trim() !== "";
   const plusGros = Math.max(1, ...c.parMoyen.map((m) => m.montant));
+  const fondHier = fondDe(storeId, decaler(jour, -1)).trim();
+  const fonds = [
+    ...(fondHier ? [{ valeur: fondHier, libelle: "Comme hier" }] : []),
+    ...["10000", "20000", "50000"].map((f) => ({
+      valeur: f,
+      libelle: formatCurrency(Number(f)),
+    })),
+  ];
 
   return (
     <div className="ph-page">
@@ -125,7 +143,7 @@ export const CaisseOfficineView: React.FC<Props> = ({
         sousTitre="L'argent reçu, moyen par moyen, et le tiroir compté au centime."
         actions={
           <>
-            <div className="flex items-center rounded-xl border border-border bg-card">
+            <div className="flex min-w-0 items-center rounded-xl border border-border bg-card sm:min-w-[13rem]">
               <button
                 type="button"
                 onClick={() => setJour(decaler(jour, -1))}
@@ -134,7 +152,7 @@ export const CaisseOfficineView: React.FC<Props> = ({
               >
                 <ChevronLeft className="h-4 w-4" />
               </button>
-              <span className="min-w-[8.5rem] text-center text-sm font-bold capitalize">
+              <span className="min-w-0 flex-1 truncate px-1 text-center text-sm font-bold capitalize">
                 {jourLisible(jour, aujourdhui)}
               </span>
               <button
@@ -183,6 +201,12 @@ export const CaisseOfficineView: React.FC<Props> = ({
                   onChange={(e) => setComptage({ ...comptage, fond: e.target.value })}
                   placeholder="0"
                   className="app-field w-full text-right tabular-nums"
+                />
+                <Raccourcis
+                  libelle="Fond de caisse"
+                  actif={comptage.fond}
+                  onChoisir={(f) => setComptage({ ...comptage, fond: f })}
+                  options={fonds}
                 />
               </label>
               <label className="block">

@@ -64,7 +64,11 @@ export const SousNavigation: React.FC<SousNavigationProps> = ({ actif, items, on
             aria-current={estActif ? "page" : undefined}
             className="app-sous-nav-item"
           >
-            {item.label}
+            {/* L'icône ne se montre que là où l'habit le veut (la pharmacie). */}
+            <span className="app-sous-nav-icone" aria-hidden="true">
+              {item.icon}
+            </span>
+            <span className="app-sous-nav-libelle">{item.label}</span>
           </button>
         );
       })}

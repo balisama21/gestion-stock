@@ -3134,6 +3134,12 @@ function AppInner() {
                         aujourdhui={dateDuJour()}
                         vendeur={myName}
                         onVendre={handleAddSaleTicket}
+                        onAssocierCode={
+                          workspace.isOwner
+                            ? (id, code) =>
+                                storeData.updateProductDetails(id, { code_barres: code })
+                            : undefined
+                        }
                       />
                     )}
                     {vue === "caisse" && estPharmacie && workspace.activeStore && (

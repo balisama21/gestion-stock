@@ -1,5 +1,6 @@
 import React from "react";
 import "./pharmacie.css";
+import pharmacien from "../../assets/pharmacie/pharmacien.webp";
 
 /**
  * Les pièces de l'habit « officine » (voir `pharmacie.css`) : chaque écran
@@ -47,7 +48,16 @@ export const EnTete: React.FC<{
       </div>
       {actions && <div className="ph-entete-actions">{actions}</div>}
     </div>
-    {children && <div className="ph-entete-chiffres">{children}</div>}
+    {children && (
+      <div className="ph-bandeau">
+        <div className="ph-entete-chiffres">{children}</div>
+        {/* La figure prend la hauteur des chiffres : elle ne compte pas
+            dans la hauteur du bandeau, elle la remplit. */}
+        <span className="ph-bandeau-figure" aria-hidden="true">
+          <img src={pharmacien} alt="" className="ph-bandeau-image" width={200} height={210} />
+        </span>
+      </div>
+    )}
   </header>
 );
 
@@ -195,3 +205,40 @@ export const Recherche: React.FC<{
     />
   </label>
 );
+
+/**
+ * Des raccourcis sous un champ : un clic le remplit. Les valeurs qu'on
+ * tape cent fois (un dosage, une posologie, un taux, une date) sont là,
+ * prêtes ; le champ reste libre pour tout le reste.
+ */
+export function Raccourcis({
+  options,
+  actif,
+  onChoisir,
+  libelle,
+}: {
+  options: (string | { valeur: string; libelle: string })[];
+  actif?: string;
+  onChoisir: (valeur: string) => void;
+  libelle?: string;
+}) {
+  if (options.length === 0) return null;
+  return (
+    <div className="ph-raccourcis" role="group" aria-label={libelle ?? "Raccourcis"}>
+      {options.map((o) => {
+        const { valeur, libelle: texte } = typeof o === "string" ? { valeur: o, libelle: o } : o;
+        return (
+          <button
+            key={`${valeur}-${texte}`}
+            type="button"
+            onClick={() => onChoisir(valeur)}
+            aria-pressed={actif !== undefined && actif === valeur}
+            className="ph-raccourci"
+          >
+            {texte}
+          </button>
+        );
+      })}
+    </div>
+  );
+}

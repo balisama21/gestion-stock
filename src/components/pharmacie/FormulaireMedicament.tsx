@@ -1,9 +1,22 @@
 import React, { useState } from "react";
-import { Pill } from "lucide-react";
+import { Pill, Sparkles } from "lucide-react";
 import type { Product } from "../../types";
 import type { Database } from "../../lib/database.types";
 import { Modal } from "../shared/Modal";
-import { FORMES, REGIMES, type FichePharma, type Regime } from "../../lib/pharmacie";
+import { FORMES, REGIMES, libelleRegime, type FichePharma, type Regime } from "../../lib/pharmacie";
+import {
+  prixAuCoefficient,
+  proposerMedicaments,
+  type MedicamentCourant,
+} from "../../lib/medicamentsCourants";
+import { BoutonScan } from "../shared/BoutonScan";
+import { useMemoireSaisie } from "../../hooks/useMemoireSaisie";
+import { Raccourcis } from "./ui";
+
+const DOSAGES = ["100 mg", "250 mg", "500 mg", "1 g"];
+const FORMES_COURANTES = ["Comprimé", "Gélule", "Sirop", "Injectable", "Crème", "Sachet"];
+const COEFFICIENTS = [1.2, 1.3, 1.4, 1.5];
+const SEUILS = ["5", "10", "20", "50"];
 
 type Categorie = Database["public"]["Tables"]["categories"]["Row"];
 
@@ -73,6 +86,30 @@ export const FormulaireMedicament: React.FC<{
   });
   const [envoi, setEnvoi] = useState(false);
   const [erreur, setErreur] = useState<string | null>(null);
+  // Les propositions ne s'affichent que pour une fiche neuve, tant
+  // qu'on n'en a pas choisi une.
+  const [propose, setPropose] = useState(!produit);
+  const [laboratoires, retenirLabo] = useMemoireSaisie("tn-pharma-laboratoires");
+  const [emplacements, retenirEmplacement] = useMemoireSaisie("tn-pharma-emplacements");
+  const propositions = propose ? proposerMedicaments(v.nom || v.dci) : [];
+  const remplir = (x: MedicamentCourant) => {
+    setV({
+      ...v,
+      nom: x.nom,
+      dci: x.dci,
+      dosage: x.dosage,
+      forme: x.forme,
+      regime: x.regime,
+      frais: !!x.frais,
+    });
+    setPropose(false);
+  };
+  const achat = nombre(v.prixAchat || "");
+  const vente = nombre(v.prixVente || "");
+  const marge =
+    Number.isFinite(achat) && Number.isFinite(vente) && achat > 0 && vente > 0
+      ? { taux: Math.round(((vente - achat) / vente) * 100), montant: vente - achat }
+      : null;
   const changer =
     (cle: keyof typeof v) =>
     (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) =>
@@ -102,7 +139,9 @@ export const FormulaireMedicament: React.FC<{
       seuil: Math.round(seuil),
     });
     setEnvoi(false);
-    if (err) setErreur(err);
+    if (err) return setErreur(err);
+    retenirLabo(v.laboratoire);
+    retenirEmplacement(v.emplacement);
   };
 
   return (
@@ -141,7 +180,7 @@ export const FormulaireMedicament: React.FC<{
               value={v.nom}
               onChange={changer("nom")}
               className="app-field"
-              placeholder="Doliprane, Amoxil…"
+              placeholder="Doliprane, Amoxil… ou la molécule"
               autoFocus
             />
           </Champ>
@@ -152,7 +191,38 @@ export const FormulaireMedicament: React.FC<{
               className="app-field"
               placeholder="500 mg"
             />
+            <Raccourcis
+              libelle="Dosages courants"
+              options={DOSAGES}
+              actif={v.dosage}
+              onChoisir={(d) => setV({ ...v, dosage: d })}
+            />
           </Champ>
+          {propositions.length > 0 && (
+            <div className="rounded-xl border border-dashed border-primary/40 bg-secondary/60 p-2 sm:col-span-3">
+              <p className="mb-1.5 flex items-center gap-1.5 text-xs font-bold text-primary">
+                <Sparkles className="h-3.5 w-3.5" />
+                Remplir d&apos;un geste
+              </p>
+              <div className="grid gap-1.5 sm:grid-cols-2">
+                {propositions.map((x) => (
+                  <button
+                    key={`${x.nom}-${x.dosage}-${x.forme}`}
+                    type="button"
+                    onClick={() => remplir(x)}
+                    className="rounded-lg border border-border bg-card px-2.5 py-1.5 text-left hover:border-primary"
+                  >
+                    <span className="block text-sm font-bold">{nomAffiche(x.nom, x.dosage)}</span>
+                    <span className="block text-[11px] text-muted-foreground">
+                      {[x.forme, x.dci, libelleRegime(x.regime), x.frais && "au frais"]
+                        .filter(Boolean)
+                        .join(" · ")}
+                    </span>
+                  </button>
+                ))}
+              </div>
+            </div>
+          )}
           <Champ libelle="Molécule (DCI)" className="sm:col-span-2">
             <input
               value={v.dci}
@@ -174,9 +244,21 @@ export const FormulaireMedicament: React.FC<{
                 <option key={f} value={f} />
               ))}
             </datalist>
+            <Raccourcis
+              libelle="Formes courantes"
+              options={FORMES_COURANTES.slice(0, 4)}
+              actif={v.forme}
+              onChoisir={(f) => setV({ ...v, forme: f })}
+            />
           </Champ>
           <Champ libelle="Laboratoire">
             <input value={v.laboratoire} onChange={changer("laboratoire")} className="app-field" />
+            <Raccourcis
+              libelle="Laboratoires récents"
+              options={laboratoires.slice(0, 3)}
+              actif={v.laboratoire}
+              onChoisir={(l) => setV({ ...v, laboratoire: l })}
+            />
           </Champ>
           <Champ libelle="Emplacement">
             <input
@@ -184,6 +266,12 @@ export const FormulaireMedicament: React.FC<{
               onChange={changer("emplacement")}
               className="app-field"
               placeholder="Rayon B, tiroir 3"
+            />
+            <Raccourcis
+              libelle="Emplacements récents"
+              options={emplacements.slice(0, 3)}
+              actif={v.emplacement}
+              onChoisir={(e) => setV({ ...v, emplacement: e })}
             />
           </Champ>
           <Champ libelle="Rubrique">
@@ -243,6 +331,17 @@ export const FormulaireMedicament: React.FC<{
               onChange={changer("prixVente")}
               className="app-field"
             />
+            {Number.isFinite(achat) && achat > 0 && (
+              <Raccourcis
+                libelle="Prix de vente au coefficient"
+                actif={v.prixVente}
+                onChoisir={(p) => setV({ ...v, prixVente: p })}
+                options={COEFFICIENTS.map((c) => ({
+                  valeur: String(prixAuCoefficient(achat, c)),
+                  libelle: `×${String(c).replace(".", ",")} · ${prixAuCoefficient(achat, c).toLocaleString("fr-FR")}`,
+                }))}
+              />
+            )}
           </Champ>
           <Champ libelle="Alerte sous">
             <input
@@ -251,11 +350,42 @@ export const FormulaireMedicament: React.FC<{
               onChange={changer("seuil")}
               className="app-field"
             />
+            <Raccourcis
+              libelle="Seuils courants"
+              options={SEUILS}
+              actif={v.seuil}
+              onChoisir={(n) => setV({ ...v, seuil: n })}
+            />
           </Champ>
           <Champ libelle="Code-barres">
-            <input value={v.codeBarres} onChange={changer("codeBarres")} className="app-field" />
+            <span className="flex gap-1.5">
+              <input
+                value={v.codeBarres}
+                onChange={changer("codeBarres")}
+                // Une douchette finit par Entrée : elle ne doit pas
+                // enregistrer la fiche à moitié remplie.
+                onKeyDown={(e) => {
+                  if (e.key === "Enter") e.preventDefault();
+                }}
+                placeholder="Scannez la boîte"
+                className="app-field min-w-0 flex-1"
+              />
+              <BoutonScan
+                onCode={(code) => setV({ ...v, codeBarres: code })}
+                titre="Scanner le code de la boîte"
+              />
+            </span>
           </Champ>
         </div>
+        {marge && (
+          <p
+            className={`-mt-2 text-xs font-semibold ${marge.taux < 0 ? "t-danger" : "text-muted-foreground"}`}
+          >
+            {marge.taux < 0
+              ? "Attention : le prix de vente est sous le prix d'achat."
+              : `Marge : ${marge.taux} % · ${marge.montant.toLocaleString("fr-FR")} Ar par unité`}
+          </p>
+        )}
 
         <Champ libelle="Notes (posologie, précautions…)">
           <textarea value={v.notes} onChange={changer("notes")} rows={2} className="app-field" />

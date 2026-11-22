@@ -41,33 +41,42 @@ export const MenuPlus: React.FC<MenuPlusProps> = ({
     />
     <div className="lg:hidden fixed bottom-[68px] left-0 right-0 z-50 rounded-t-2xl border-t border-border bg-card shadow-2xl animate-in slide-in-from-bottom duration-200">
       <div className="mx-auto mt-3 h-1 w-10 rounded-full bg-accent" />
-      <nav aria-label="Tous les écrans" className="max-h-[60vh] overflow-y-auto px-3 pb-4 pt-3">
+      <nav
+        aria-label="Tous les écrans"
+        className="menu-plus max-h-[60vh] overflow-y-auto px-3 pb-4 pt-3"
+      >
         {groups.map((group) => (
-          <div key={group.title} className="mb-4 last:mb-0">
-            <div className="px-3 pb-1.5 text-[10px] font-medium uppercase tracking-widest text-muted-foreground/70">
+          <div key={group.title} className="menu-plus-groupe mb-4 last:mb-0">
+            <div className="menu-plus-titre px-3 pb-1.5 text-[10px] font-medium uppercase tracking-widest text-muted-foreground/70">
               {group.title}
             </div>
-            {group.items.map((tab) => {
-              const isActive = activeTab === tab.id;
-              const badge = badges?.[tab.id] ?? 0;
-              return (
-                <button
-                  key={tab.id}
-                  onClick={() => onTabClick(tab.id)}
-                  aria-current={isActive ? "page" : undefined}
-                  className={`relative flex w-full items-center gap-3 rounded-md px-3 py-2.5 text-left text-sm transition-colors active:bg-muted ${
-                    isActive ? "font-medium text-foreground" : "text-muted-foreground"
-                  }`}
-                >
-                  {isActive && (
-                    <span className="absolute left-0 top-1/2 h-5 w-0.5 -translate-y-1/2 rounded-full bg-primary" />
-                  )}
-                  <span className={isActive ? "text-primary" : "opacity-80"}>{tab.icon}</span>
-                  <span className="truncate">{tab.label}</span>
-                  {badge > 0 && <BadgeNav compte={badge} libelle={`${tab.label} en retard`} />}
-                </button>
-              );
-            })}
+            {/* Une liste partout ; une grille de tuiles dans une pharmacie
+                (voir `pharmacie.css`). */}
+            <div className="menu-plus-liste">
+              {group.items.map((tab) => {
+                const isActive = activeTab === tab.id;
+                const badge = badges?.[tab.id] ?? 0;
+                return (
+                  <button
+                    key={tab.id}
+                    onClick={() => onTabClick(tab.id)}
+                    aria-current={isActive ? "page" : undefined}
+                    className={`menu-plus-lien relative flex w-full items-center gap-3 rounded-md px-3 py-2.5 text-left text-sm transition-colors active:bg-muted ${
+                      isActive ? "font-medium text-foreground" : "text-muted-foreground"
+                    }`}
+                  >
+                    {isActive && (
+                      <span className="menu-plus-repere absolute left-0 top-1/2 h-5 w-0.5 -translate-y-1/2 rounded-full bg-primary" />
+                    )}
+                    <span className={`menu-plus-icone ${isActive ? "text-primary" : "opacity-80"}`}>
+                      {tab.icon}
+                    </span>
+                    <span className="menu-plus-libelle truncate">{tab.label}</span>
+                    {badge > 0 && <BadgeNav compte={badge} libelle={`${tab.label} en retard`} />}
+                  </button>
+                );
+              })}
+            </div>
           </div>
         ))}
       </nav>
