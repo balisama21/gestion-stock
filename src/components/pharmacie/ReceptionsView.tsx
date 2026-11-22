@@ -360,28 +360,26 @@ export const ReceptionsView: React.FC<Props> = ({
             </div>
 
             <div className="relative">
-              <div className="flex items-center gap-2">
-                <div className="min-w-0 flex-1">
-                  <Recherche
-                    valeur={recherche}
-                    onChange={setRecherche}
-                    placeholder="Scannez une boîte, ou tapez son nom"
-                    icone={<Search className="h-5 w-5" />}
-                    onEntree={() => {
-                      const q = recherche.trim();
-                      if (!q) return;
-                      if (lireGS1(q) || /^\d{8,}$/.test(codePropre(q))) return scanner(q);
-                      if (trouves[0]) ajouter(trouves[0]);
-                    }}
+              <Recherche
+                valeur={recherche}
+                onChange={setRecherche}
+                placeholder="Scannez une boîte, ou tapez son nom"
+                icone={<Search className="h-5 w-5" />}
+                onEntree={() => {
+                  const q = recherche.trim();
+                  if (!q) return;
+                  if (lireGS1(q) || /^\d{8,}$/.test(codePropre(q))) return scanner(q);
+                  if (trouves[0]) ajouter(trouves[0]);
+                }}
+                fin={
+                  <BoutonScan
+                    onCode={scanner}
+                    titre="Scanner une boîte livrée"
+                    libelle="Scanner une boîte livrée"
+                    classeBouton="ph-bouton-scan"
                   />
-                </div>
-                <BoutonScan
-                  onCode={scanner}
-                  titre="Scanner une boîte livrée"
-                  libelle="Scanner une boîte livrée"
-                  classeBouton="ph-bouton-scan"
-                />
-              </div>
+                }
+              />
               {trouves.length > 0 && (
                 <ul className="ph-liste absolute z-10 mt-1 w-full overflow-hidden rounded-xl border border-border bg-card shadow-lg">
                   {trouves.map((p) => (

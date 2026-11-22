@@ -145,7 +145,7 @@ describe("le comptoir", () => {
         onVendre={vendre}
       />,
     );
-    fireEvent.change(screen.getByPlaceholderText("Nom, molécule ou code-barres"), {
+    fireEvent.change(screen.getByPlaceholderText("Médicament, molécule ou code-barres…"), {
       target: { value: "amoxicilline" },
     });
     fireEvent.click(screen.getByRole("button", { name: /boîte/ }));
@@ -197,7 +197,7 @@ describe("le comptoir", () => {
         onVendre={vendre}
       />,
     );
-    fireEvent.change(screen.getByPlaceholderText("Nom, molécule ou code-barres"), {
+    fireEvent.change(screen.getByPlaceholderText("Médicament, molécule ou code-barres…"), {
       target: { value: "amoxil" },
     });
     fireEvent.click(screen.getByRole("button", { name: /boîte/ }));
@@ -238,7 +238,7 @@ describe("le comptoir", () => {
         onVendre={vi.fn()}
       />,
     );
-    fireEvent.change(screen.getByPlaceholderText("Nom, molécule ou code-barres"), {
+    fireEvent.change(screen.getByPlaceholderText("Médicament, molécule ou code-barres…"), {
       target: { value: "amoxil 500" },
     });
     expect(screen.getByText("Rupture")).toBeTruthy();
@@ -360,7 +360,7 @@ describe("les gestes ajoutés à l'officine", () => {
         onVendre={vendre}
       />,
     );
-    fireEvent.change(screen.getByPlaceholderText("Nom, molécule ou code-barres"), {
+    fireEvent.change(screen.getByPlaceholderText("Médicament, molécule ou code-barres…"), {
       target: { value: "amoxil" },
     });
     fireEvent.click(screen.getByRole("button", { name: /boîte/ }));

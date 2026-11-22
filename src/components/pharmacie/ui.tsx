@@ -178,7 +178,10 @@ export function Segments<T extends string>({
   );
 }
 
-/** Le grand champ de recherche des écrans de la pharmacie. */
+/**
+ * Le grand champ de recherche des écrans de la pharmacie. `fin` se pose
+ * dedans, à droite, derrière un filet : le bouton de scan, par exemple.
+ */
 export const Recherche: React.FC<{
   valeur: string;
   onChange: (v: string) => void;
@@ -186,11 +189,15 @@ export const Recherche: React.FC<{
   icone: React.ReactNode;
   autoFocus?: boolean;
   onEntree?: () => void;
-}> = ({ valeur, onChange, placeholder, icone, autoFocus, onEntree }) => (
-  <label className="ph-recherche block">
-    <span className="ph-recherche-icone">{icone}</span>
+  fin?: React.ReactNode;
+}> = ({ valeur, onChange, placeholder, icone, autoFocus, onEntree, fin }) => (
+  <div className="ph-recherche" data-fin={fin ? "" : undefined}>
+    <span className="ph-recherche-icone" aria-hidden="true">
+      {icone}
+    </span>
     <input
       type="search"
+      aria-label={placeholder}
       value={valeur}
       onChange={(e) => onChange(e.target.value)}
       onKeyDown={(e) => {
@@ -203,8 +210,36 @@ export const Recherche: React.FC<{
       className="app-field w-full"
       autoFocus={autoFocus}
     />
-  </label>
+    {fin && <div className="ph-recherche-fin">{fin}</div>}
+  </div>
 );
+
+/** Les teintes des boîtes : chaque médicament garde la sienne. */
+const TEINTES = [155, 250, 15, 55, 300, 195, 95];
+
+/**
+ * Une boîte de médicament, dessinée : son nom, son dosage, une bande de
+ * couleur. On reconnaît un produit d'un coup d'œil dans une liste, comme
+ * sur l'étagère.
+ */
+export const Boite: React.FC<{ nom: string; dosage?: string | null }> = ({ nom, dosage }) => {
+  const dose =
+    dosage?.trim() || nom.match(/\d+(?:[.,]\d+)?\s*(?:mg|g|ml|µg|mcg|ui|%)(?:\/\S+)?/i)?.[0] || "";
+  const court = nom.replace(dose, "").trim().split(/\s+/)[0] || nom;
+  let h = 0;
+  for (const c of nom.toLowerCase()) h = (h * 31 + c.charCodeAt(0)) >>> 0;
+  const teinte = TEINTES[h % TEINTES.length];
+  return (
+    <span
+      className="ph-boite"
+      aria-hidden="true"
+      style={{ "--teinte": String(teinte) } as React.CSSProperties}
+    >
+      <span className="ph-boite-nom">{court}</span>
+      {dose && <span className="ph-boite-dose">{dose}</span>}
+    </span>
+  );
+};
 
 /**
  * Des raccourcis sous un champ : un clic le remplit. Les valeurs qu'on

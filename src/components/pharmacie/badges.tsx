@@ -1,5 +1,5 @@
 import React from "react";
-import { FileWarning, Snowflake } from "lucide-react";
+import { CalendarClock, FileWarning, Snowflake } from "lucide-react";
 import {
   delaiLisible,
   REGIMES,
@@ -24,10 +24,11 @@ export const BadgePeremption: React.FC<{ date: string | null; aujourdhui: string
   aujourdhui,
 }) => (
   <span
-    className={`inline-flex shrink-0 items-center rounded-full px-2 py-0.5 text-[11px] font-semibold tabular-nums ${
+    className={`inline-flex shrink-0 items-center gap-1 rounded-full px-2 py-0.5 text-[11px] font-semibold tabular-nums ${
       TON[urgence(date, aujourdhui)]
     }`}
   >
+    <CalendarClock className="h-3 w-3" aria-hidden="true" />
     {delaiLisible(date, aujourdhui)}
   </span>
 );
