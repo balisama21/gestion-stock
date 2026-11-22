@@ -1002,3 +1002,25 @@ html[data-nature="pharmacie"] .app-modal-header h3 {
   width: 1.4rem;
   height: 1.4rem;
 }
+
+/* ── Pas de titre en double ──
+   Quand la barre d'onglets est là, elle nomme déjà l'écran ouvert : le
+   titre de la page (icône, nom, phrase) disparaît à l'œil, et reste lu
+   par les lecteurs d'écran. Les gestes de l'en-tête restent. */
+html[data-nature="pharmacie"] .app-sous-nav + .app-vue :is(.ph-entete-icone, .ph-entete-texte),
+html[data-nature="pharmacie"] .app-sous-nav + .app-vue .app-page-head-text {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+html[data-nature="pharmacie"] .app-sous-nav + .app-vue .ph-entete-actions {
+  width: 100%;
+}
+@media (min-width: 640px) {
+  html[data-nature="pharmacie"] .app-sous-nav + .app-vue .ph-entete-actions {
+    justify-content: flex-end;
+  }
+}

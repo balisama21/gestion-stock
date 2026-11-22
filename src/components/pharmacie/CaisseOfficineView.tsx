@@ -143,7 +143,7 @@ export const CaisseOfficineView: React.FC<Props> = ({
         sousTitre="L'argent reçu, moyen par moyen, et le tiroir compté au centime."
         actions={
           <>
-            <div className="flex items-center rounded-xl border border-border bg-card">
+            <div className="flex min-w-0 items-center rounded-xl border border-border bg-card sm:min-w-[13rem]">
               <button
                 type="button"
                 onClick={() => setJour(decaler(jour, -1))}
@@ -152,7 +152,7 @@ export const CaisseOfficineView: React.FC<Props> = ({
               >
                 <ChevronLeft className="h-4 w-4" />
               </button>
-              <span className="min-w-[8.5rem] text-center text-sm font-bold capitalize">
+              <span className="min-w-0 flex-1 truncate px-1 text-center text-sm font-bold capitalize">
                 {jourLisible(jour, aujourdhui)}
               </span>
               <button
