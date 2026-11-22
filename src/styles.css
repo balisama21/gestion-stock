@@ -4138,6 +4138,11 @@ td {
     color 150ms ease,
     border-color 150ms ease;
 }
+/* L'icône d'un onglet : cachée ici, montrée par l'habit d'une nature
+   (voir components/pharmacie/pharmacie.css). */
+.app-sous-nav-icone {
+  display: none;
+}
 .app-sous-nav-item:hover {
   color: var(--foreground);
   border-bottom-color: var(--border);

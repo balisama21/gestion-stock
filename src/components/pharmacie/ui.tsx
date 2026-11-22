@@ -47,7 +47,7 @@ export const EnTete: React.FC<{
       </div>
       {actions && <div className="ph-entete-actions">{actions}</div>}
     </div>
-    {children && <div className="ph-entete-chiffres">{children}</div>}
+    {children && <div className="ph-entete-chiffres ph-papier">{children}</div>}
   </header>
 );
 
