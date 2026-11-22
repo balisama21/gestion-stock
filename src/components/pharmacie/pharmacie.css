@@ -945,7 +945,7 @@ html[data-nature="pharmacie"] .app-modal-header h3 {
   color: var(--primary-foreground);
 }
 
-/* ── Le bouton de scan : une tuile verte pleine, comme l'icône du titre ──
+/* ── Le bouton de scan : l'icône verte, sur fond transparent ──
    Il se pose à droite du grand champ de recherche, à sa hauteur. */
 .ph-bouton-scan {
   display: grid;
@@ -954,13 +954,12 @@ html[data-nature="pharmacie"] .app-modal-header h3 {
   width: 3.25rem;
   height: 3.25rem;
   border-radius: 1rem;
-  background: var(--primary);
-  color: var(--primary-foreground);
-  box-shadow: 0 4px 12px color-mix(in oklab, var(--primary) 28%, transparent);
+  background: transparent;
+  color: var(--primary);
   transition: background-color 0.15s;
 }
 .ph-bouton-scan:hover {
-  background: color-mix(in oklab, var(--primary) 88%, black);
+  background: var(--secondary);
 }
 .ph-bouton-scan > svg {
   width: 1.4rem;
