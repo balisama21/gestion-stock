@@ -15,10 +15,18 @@ import { ESSAI_JOURS, PRIX_MENSUEL } from "./offres";
  * serveur, le cache côté client) : aucune requête de plus.
  */
 
-/** Description de Tantana dans les résultats de recherche (~160 signes utiles). */
-export const DESCRIPTION_PAR_DEFAUT =
-  "Logiciel de gestion tout-en-un pour commerces et PME : stock, ventes, clients, " +
-  `facturation, trésorerie et équipe, sur ordinateur et sur mobile. Essai gratuit de ${ESSAI_JOURS} jours.`;
+/**
+ * Description de Tantana dans les résultats de recherche (~150 signes :
+ * Google coupe vers 155). Le nom d'abord, puis les mots que l'on tape
+ * pour trouver un tel logiciel : gestion de stock, caisse, facturation,
+ * boutique, pharmacie, Madagascar.
+ */
+export const descriptionParDefaut = (nom: string): string =>
+  `${nom} : logiciel de gestion de stock, de caisse et de facturation pour boutiques, ` +
+  `pharmacies et PME à Madagascar. Essai gratuit de ${ESSAI_JOURS} jours.`;
+
+/** Pays servi, dans les données structurées de Tantana. */
+const MADAGASCAR = { "@type": "Country", name: "Madagascar" };
 
 /** Chemins publics, ceux que liste le sitemap. Le reste est privé (`noindex`). */
 export const PAGES_PUBLIQUES = ["/"];
@@ -56,7 +64,7 @@ const absolue = (url: string, origine: string): string =>
 
 /** Ce que Google affiche sous le titre. */
 export function descriptionDe(m: Marque): string {
-  if (m.parDefaut) return DESCRIPTION_PAR_DEFAUT;
+  if (m.parDefaut) return descriptionParDefaut(m.nom);
   return m.landing?.sousTitre || m.slogan || m.landing?.titre || m.nom;
 }
 
@@ -151,6 +159,9 @@ export function donneesStructurees(m: Marque, hote: string): Record<string, unkn
     description,
     inLanguage: "fr",
     publisher: { "@id": idOrganisation },
+    // Le nom court (« Tantana ») : Google s'en sert pour le nom du site
+    // affiché au-dessus du résultat, et le rapproche de la recherche.
+    ...(m.parDefaut && m.nomCourt !== m.nom ? { alternateName: m.nomCourt } : null),
   };
 
   if (m.parDefaut) {
@@ -161,8 +172,11 @@ export function donneesStructurees(m: Marque, hote: string): Record<string, unkn
           "@type": "Organization",
           "@id": idOrganisation,
           name: m.nom,
+          alternateName: m.nomCourt,
           url: `${origine}/`,
+          description,
           logo,
+          areaServed: MADAGASCAR,
           contactPoint: {
             "@type": "ContactPoint",
             telephone: APP_SUPPORT_PHONE,
@@ -173,14 +187,27 @@ export function donneesStructurees(m: Marque, hote: string): Record<string, unkn
         site,
         {
           "@type": "SoftwareApplication",
+          "@id": `${origine}/#logiciel`,
           name: m.nom,
+          alternateName: m.nomCourt,
           url: `${origine}/`,
           description,
           image: logo,
           applicationCategory: "BusinessApplication",
-          applicationSubCategory: "Gestion de stock et de ventes",
+          applicationSubCategory: "Logiciel de gestion de stock, de caisse et de facturation",
           operatingSystem: "Web, Android, iOS, Windows, macOS",
           inLanguage: "fr",
+          areaServed: MADAGASCAR,
+          featureList: [
+            "Gestion de stock",
+            "Caisse et tickets de caisse (58 / 80 mm)",
+            "Facturation, devis et bons de livraison",
+            "Ventes à crédit et paiements clients (espèces, Mobile Money)",
+            "Achats fournisseurs",
+            "Trésorerie et bilan",
+            "Gestion de pharmacie : lots, péremptions, ordonnancier",
+            "Travail en équipe avec droits par personne",
+          ],
           offers: {
             "@type": "Offer",
             price: PRIX_MENSUEL,
@@ -282,6 +309,22 @@ export function sitemapXml(hote: string, marque: Marque | null): string | null {
     urls.join("\n") +
     "\n</urlset>\n"
   );
+}
+
+/**
+ * Adresse Netlify de production du site (`<nom>.netlify.app`). Des liens
+ * publiés la citent (LinkedIn) : servie telle quelle, elle est fermée aux
+ * robots et ces liens ne profitent à rien. Redirigée pour de bon vers
+ * tantana-suite.com, elle lui transmet leur poids. Les aperçus
+ * (`deploy-preview-12--…`) et les branches gardent leur adresse.
+ */
+export const HOTE_NETLIFY_PRODUCTION = "tantana-suite.netlify.app";
+
+/** Adresse vers laquelle rediriger (301), ou `null` : rien à faire. */
+export function redirectionPermanente(url: URL, methode: string): string | null {
+  if (methode !== "GET" && methode !== "HEAD") return null;
+  if (normaliserHote(url.hostname) !== HOTE_NETLIFY_PRODUCTION) return null;
+  return APP_URL + url.pathname + url.search;
 }
 
 /**
