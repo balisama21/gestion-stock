@@ -9,6 +9,7 @@ import {
   Printer,
   Repeat,
   ScanLine,
+  Search,
   ShieldCheck,
   ShoppingBasket,
   Trash2,
@@ -32,6 +33,7 @@ import { TicketPharmacie, type TicketDelivrance } from "./TicketPharmacie";
 import { Raccourcis } from "./ui";
 import { BoutonScan } from "../shared/BoutonScan";
 import { codePropre, useDouchette } from "../../hooks/useDouchette";
+import { lireGS1 } from "../../lib/gs1";
 import { useMemoireSaisie } from "../../hooks/useMemoireSaisie";
 
 type Client = Database["public"]["Tables"]["clients"]["Row"];
@@ -429,19 +431,28 @@ export const ComptoirView: React.FC<Props> = ({
                   if (v) setInconnu(null);
                 }}
                 placeholder="Nom, molécule ou code-barres"
-                icone={<ScanLine className="h-5 w-5" />}
+                icone={<Search className="h-5 w-5" />}
                 autoFocus
                 onEntree={() => {
                   const q = recherche.trim();
                   if (!q) return;
                   // Un code-barres (tapé ou lu par la douchette dans le champ).
-                  if (parCode(q) || (/^\d{8,}$/.test(codePropre(q)) && resultats.length === 0))
+                  if (
+                    parCode(q) ||
+                    lireGS1(q) ||
+                    (/^\d{8,}$/.test(codePropre(q)) && resultats.length === 0)
+                  )
                     return scanner(q);
                   if (resultats[0]) ajouter(resultats[0]);
                 }}
               />
             </div>
-            <BoutonScan onCode={scanner} titre="Scanner une boîte" />
+            <BoutonScan
+              onCode={scanner}
+              titre="Scanner une boîte"
+              libelle="Scanner une boîte"
+              classeBouton="ph-bouton-scan"
+            />
           </div>
           {inconnu && (
             <Panneau

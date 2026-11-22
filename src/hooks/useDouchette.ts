@@ -1,4 +1,5 @@
 import { useEffect, useRef } from "react";
+import { lireGS1 } from "../lib/gs1";
 
 /**
  * LA DOUCHETTE, OÙ QUE SOIT LE CURSEUR
@@ -40,7 +41,17 @@ export function useDouchette(onCode: (code: string) => void, actif = true) {
     if (!actif || typeof document === "undefined") return;
     let touches: { touche: string; quand: number }[] = [];
     const ecouter = (e: KeyboardEvent) => {
-      if (estUnChamp(e.target) || e.ctrlKey || e.altKey || e.metaKey) {
+      if (estUnChamp(e.target)) {
+        touches = [];
+        return;
+      }
+      // Le séparateur d'un carré GS1, que certaines douchettes 2D envoient
+      // en Ctrl + ].
+      if (e.ctrlKey && e.key === "]" && touches.length) {
+        touches.push({ touche: String.fromCharCode(29), quand: performance.now() });
+        return;
+      }
+      if (e.ctrlKey || e.altKey || e.metaKey) {
         touches = [];
         return;
       }
@@ -63,5 +74,14 @@ export function useDouchette(onCode: (code: string) => void, actif = true) {
   }, [actif]);
 }
 
-/** Le code tel qu'on le compare : sans espaces. */
-export const codePropre = (code: string | null | undefined) => (code ?? "").replace(/\s/g, "");
+/**
+ * Le code tel qu'on le compare : sans espaces ; celui du produit quand
+ * c'est un carré GS1 ; un GTIN-14 à zéro de tête ramené à son EAN-13.
+ */
+export const codePropre = (code: string | null | undefined): string => {
+  const brut = code ?? "";
+  const gs1 = lireGS1(brut);
+  if (gs1) return gs1.code;
+  const c = brut.replace(/\s/g, "");
+  return /^0\d{13}$/.test(c) ? c.slice(1) : c;
+};

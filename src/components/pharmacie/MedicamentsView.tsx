@@ -171,7 +171,12 @@ export const MedicamentsView: React.FC<Props> = ({
               }}
             />
           </div>
-          <BoutonScan onCode={scanner} titre="Scanner une boîte" />
+          <BoutonScan
+            onCode={scanner}
+            titre="Scanner une boîte"
+            libelle="Scanner une boîte"
+            classeBouton="ph-bouton-scan"
+          />
         </div>
         {rubriques.length > 0 && (
           <select

@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from "react";
 import { BoutonScan } from "../shared/BoutonScan";
 import { codePropre, useDouchette } from "../../hooks/useDouchette";
+import { lireGS1 } from "../../lib/gs1";
 import { Raccourcis } from "./ui";
 import {
   AlertTriangle,
@@ -8,6 +9,7 @@ import {
   PackagePlus,
   Plus,
   ScanLine,
+  Search,
   Trash2,
   Truck,
 } from "lucide-react";
@@ -111,8 +113,11 @@ export const ReceptionsView: React.FC<Props> = ({
     : [];
   const sousLeSeuil = actifs.filter((p) => p.seuilAlerte > 0 && p.stockActuel <= p.seuilAlerte);
 
-  const ajouter = (p: Product) => {
-    setLignes((ls) => [...ls, nouvelleLigne(p)]);
+  const ajouter = (p: Product, lu?: { lot: string | null; mois: string | null }) => {
+    setLignes((ls) => [
+      ...ls,
+      { ...nouvelleLigne(p), numeroLot: lu?.lot ?? "", mois: lu?.mois ?? "" },
+    ]);
     setRecherche("");
   };
   /** Une boîte scannée : sa ligne s'ajoute ; un code inconnu se signale. */
@@ -121,7 +126,9 @@ export const ReceptionsView: React.FC<Props> = ({
     const p = actifs.find((x) => codePropre(x.codeBarres) === c);
     if (p) {
       setErreur(null);
-      ajouter(p);
+      // Le carré d'une boîte porte aussi son lot et sa péremption.
+      const gs1 = lireGS1(code);
+      ajouter(p, gs1 ? { lot: gs1.lot, mois: gs1.peremption?.slice(0, 7) ?? null } : undefined);
     } else {
       setRecherche("");
       setErreur(
@@ -359,16 +366,21 @@ export const ReceptionsView: React.FC<Props> = ({
                     valeur={recherche}
                     onChange={setRecherche}
                     placeholder="Scannez une boîte, ou tapez son nom"
-                    icone={<ScanLine className="h-5 w-5" />}
+                    icone={<Search className="h-5 w-5" />}
                     onEntree={() => {
                       const q = recherche.trim();
                       if (!q) return;
-                      if (/^\d{8,}$/.test(codePropre(q))) return scanner(q);
+                      if (lireGS1(q) || /^\d{8,}$/.test(codePropre(q))) return scanner(q);
                       if (trouves[0]) ajouter(trouves[0]);
                     }}
                   />
                 </div>
-                <BoutonScan onCode={scanner} titre="Scanner une boîte livrée" />
+                <BoutonScan
+                  onCode={scanner}
+                  titre="Scanner une boîte livrée"
+                  libelle="Scanner une boîte livrée"
+                  classeBouton="ph-bouton-scan"
+                />
               </div>
               {trouves.length > 0 && (
                 <ul className="ph-liste absolute z-10 mt-1 w-full overflow-hidden rounded-xl border border-border bg-card shadow-lg">
