@@ -1,12 +1,12 @@
 {
   "com.tantanasuite.app": {
-    "code": 10,
-    "version": "1.11",
-    "sha256": "9cab6edeeb5c76b9672f1bb5e4be71563cacc0364593d91278ae420ac4ec5d35"
+    "code": 11,
+    "version": "1.12",
+    "sha256": "2cc98a881476fb0ed44bd13a7d0acfaa073396c959cb7ff9582b3725e63f43fb"
   },
   "com.tantanasuite.app.essai": {
-    "code": 10,
-    "version": "1.11",
-    "sha256": "7df665540433bbbd268a2afbf1dc8b288fdf7f606320f60bfe111e4c675156f6"
+    "code": 11,
+    "version": "1.12",
+    "sha256": "5688b06b0ac84dd3f3a727cacdf49599328bb4a7262e461f662b02c7b74110d6"
   }
 }
