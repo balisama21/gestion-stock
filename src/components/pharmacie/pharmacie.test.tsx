@@ -399,3 +399,40 @@ describe("les gestes ajoutés à l'officine", () => {
     expect(screen.getByText("Allergique à la pénicilline")).toBeTruthy();
   });
 });
+
+describe("les alertes de stock hors périmés", () => {
+  it("filtre les ruptures, les stocks faibles et les lots sans date", () => {
+    render(
+      <MedicamentsView
+        products={[
+          produit({ stockActuel: 20 }),
+          produit({ id: "faible", displayName: "Stock réduit", stockActuel: 3 }),
+          produit({ id: "inconnu", displayName: "Lot à dater", stockActuel: 8 }),
+        ]}
+        categories={[]}
+        pharma={pharmaFactice({
+          lots: [
+            lot({ date_peremption: "2026-10-31" }),
+            lot({ id: "sans", product_id: "inconnu", quantite: 8, date_peremption: null }),
+          ],
+        })}
+        aujourdhui={J}
+        peutModifier={false}
+        onCreer={vi.fn()}
+        onModifier={vi.fn()}
+        onStockModifie={vi.fn()}
+      />,
+    );
+    fireEvent.click(screen.getByText("En rupture"));
+    expect(screen.getAllByText("Amoxil 500 mg").length).toBeGreaterThan(0);
+    expect(screen.queryByText("Stock réduit")).toBeNull();
+    fireEvent.click(screen.getByText("Stock faible"));
+    expect(screen.getAllByText("Stock réduit").length).toBeGreaterThan(0);
+    expect(screen.queryByText("Amoxil 500 mg")).toBeNull();
+    fireEvent.click(screen.getByText("Stock sans date"));
+    expect(screen.getAllByText("Lot à dater").length).toBeGreaterThan(0);
+  });
+  it("commande selon le stock hors périmés", () => {
+    expect(quantiteSuggeree(produit({ stockActuel: 20, seuilAlerte: 5 }), 2)).toBe(8);
+  });
+});

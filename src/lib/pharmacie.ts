@@ -204,6 +204,10 @@ export interface EtatStock {
   enLots: number;
   /** Le reste du stock, sans numéro ni date. */
   sansDate: number;
+  /** Toutes les unités sans date connue, y compris les lots existants. */
+  totalSansDate: number;
+  /** Stock hors périmés ; les dates inconnues restent à vérifier. */
+  disponible: number;
   /** Dont périmé, à ne pas délivrer. */
   perime: number;
   /** La date du prochain lot non périmé qui sortira. */
@@ -220,6 +224,10 @@ export function etatStock(p: Product, lots: LotPharma[], aujourdhui: string): Et
   return {
     enLots,
     sansDate: Math.max(0, p.stockActuel - enLots),
+    totalSansDate:
+      Math.max(0, p.stockActuel - enLots) +
+      siens.filter((l) => l.date_peremption === null).reduce((n, l) => n + l.quantite, 0),
+    disponible: Math.max(0, p.stockActuel - perime),
     perime,
     prochaine: prochain?.date_peremption ?? null,
   };
