@@ -1,11 +1,15 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="com.tantanasuite.app" android:versionCode="10" android:versionName="1.11">
+    package="com.tantanasuite.app" android:versionCode="11" android:versionName="1.12">
     <uses-sdk android:minSdkVersion="26" android:targetSdkVersion="35"/>
     <uses-permission android:name="android.permission.REQUEST_INSTALL_PACKAGES"/>
     <uses-permission android:name="android.permission.INTERNET"/>
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
     <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM"/>
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>
+    <!-- La caméra lit les codes-barres des boîtes ; un appareil sans caméra installe quand même. -->
+    <uses-permission android:name="android.permission.CAMERA"/>
+    <uses-feature android:name="android.hardware.camera" android:required="false"/>
+    <uses-feature android:name="android.hardware.camera.any" android:required="false"/>
     <application android:label="Tantana" android:icon="@drawable/tantana"
         android:theme="@style/TantanaLaunch" android:usesCleartextTraffic="false" android:allowBackup="false">
         <meta-data android:name="asset_statements" android:resource="@string/asset_statements"/>

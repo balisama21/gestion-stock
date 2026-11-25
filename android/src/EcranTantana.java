@@ -37,6 +37,8 @@ public final class EcranTantana extends Activity {
     private MiseAJourAndroid misesAJour;
     private WebMessagePort colors;
     private ValueCallback<Uri[]> files;
+    /** La demande de caméra de la page, en attente de la réponse d'Android. */
+    private PermissionRequest camera;
     private int topInset;
 
     @Override protected void onCreate(Bundle state) {
@@ -121,6 +123,29 @@ public final class EcranTantana extends Activity {
                 try { startActivityForResult(params.createIntent(), 1); }
                 catch (ActivityNotFoundException e) { files.onReceiveValue(null); files = null; }
                 return true;
+            }
+
+            // Le scan des codes-barres : la page demande la caméra. On ne
+            // l'accorde qu'à Tantana, et seulement la vidéo ; Android
+            // demande d'abord l'autorisation à l'utilisateur s'il ne l'a
+            // pas encore donnée.
+            @Override public void onPermissionRequest(PermissionRequest request) {
+                boolean video = false;
+                for (String r : request.getResources())
+                    if (PermissionRequest.RESOURCE_VIDEO_CAPTURE.equals(r)) video = true;
+                if (!video || !trusted(request.getOrigin())) { request.deny(); return; }
+                if (checkSelfPermission(android.Manifest.permission.CAMERA)
+                        == android.content.pm.PackageManager.PERMISSION_GRANTED) {
+                    request.grant(new String[]{PermissionRequest.RESOURCE_VIDEO_CAPTURE});
+                    return;
+                }
+                if (camera != null) camera.deny();
+                camera = request;
+                requestPermissions(new String[]{android.Manifest.permission.CAMERA}, 3);
+            }
+
+            @Override public void onPermissionRequestCanceled(PermissionRequest request) {
+                if (request == camera) camera = null;
             }
         });
         if (!resumeGoogle(getIntent()) && (state == null || page.restoreState(state) == null)) {
@@ -284,6 +309,13 @@ public final class EcranTantana extends Activity {
     @Override public void onRequestPermissionsResult(int request, String[] permissions, int[] results) {
         super.onRequestPermissionsResult(request, permissions, results);
         if (request == 2) refreshReminders();
+        if (request == 3 && camera != null) {
+            boolean accorde = results.length > 0
+                && results[0] == android.content.pm.PackageManager.PERMISSION_GRANTED;
+            if (accorde) camera.grant(new String[]{PermissionRequest.RESOURCE_VIDEO_CAPTURE});
+            else camera.deny();
+            camera = null;
+        }
     }
 
     private void followTheme() {

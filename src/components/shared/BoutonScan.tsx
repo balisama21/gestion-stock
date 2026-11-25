@@ -189,7 +189,9 @@ export const BoutonScan: React.FC<BoutonScanProps> = ({
         const nom = (e as { name?: string }).name;
         setErreur(
           nom === "NotAllowedError"
-            ? "L'accès à la caméra a été refusé. Autorisez-le dans votre navigateur, ou tapez le code à la main."
+            ? /; wv\)/.test(navigator.userAgent)
+              ? "L'accès à la caméra a été refusé. Autorisez-le dans les réglages du téléphone (Applications › Tantana › Autorisations › Caméra), ou tapez le code à la main."
+              : "L'accès à la caméra a été refusé. Autorisez-le dans votre navigateur, ou tapez le code à la main."
             : nom === "NotFoundError"
               ? "Aucune caméra n'a été trouvée sur cet appareil."
               : "La caméra n'a pas pu être ouverte. Tapez le code à la main.",
