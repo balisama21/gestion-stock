@@ -10,8 +10,8 @@ export interface LigneCommande {
 }
 
 /** Ce qu'il faut commander : de quoi remonter à deux fois le seuil, au moins le seuil. */
-export const quantiteSuggeree = (p: Product) =>
-  Math.max(p.seuilAlerte, p.seuilAlerte * 2 - Math.max(0, p.stockActuel), 1);
+export const quantiteSuggeree = (p: Product, disponible = p.stockActuel) =>
+  Math.max(p.seuilAlerte, p.seuilAlerte * 2 - Math.max(0, disponible), 1);
 
 /**
  * LA COMMANDE AU GROSSISTE
@@ -25,9 +25,11 @@ export const CommandeGrossiste: React.FC<{
   storeName: string;
   products: Product[];
   fournisseurs: string[];
+  disponibles?: Map<string, number>;
   onFermer: () => void;
   onRecevoir: (lignes: LigneCommande[], fournisseur: string) => void;
-}> = ({ storeName, products, fournisseurs, onFermer, onRecevoir }) => {
+}> = ({ storeName, products, fournisseurs, disponibles, onFermer, onRecevoir }) => {
+  const stockDe = (p: Product) => disponibles?.get(p.id) ?? p.stockActuel;
   const proposes = useMemo(
     () =>
       products
@@ -35,14 +37,16 @@ export const CommandeGrossiste: React.FC<{
           (p) =>
             p.statut !== "archive" &&
             p.typeProduit !== "service" &&
-            p.seuilAlerte > 0 &&
-            p.stockActuel <= p.seuilAlerte,
+            (disponibles?.get(p.id) ?? p.stockActuel) <= p.seuilAlerte,
         )
-        .sort((a, b) => a.stockActuel - b.stockActuel),
-    [products],
+        .sort(
+          (a, b) =>
+            (disponibles?.get(a.id) ?? a.stockActuel) - (disponibles?.get(b.id) ?? b.stockActuel),
+        ),
+    [products, disponibles],
   );
   const [lignes, setLignes] = useState<{ produit: Product; quantite: string }[]>(() =>
-    proposes.map((p) => ({ produit: p, quantite: String(quantiteSuggeree(p)) })),
+    proposes.map((p) => ({ produit: p, quantite: String(quantiteSuggeree(p, stockDe(p))) })),
   );
   const [fournisseur, setFournisseur] = useState(fournisseurs[0] ?? "");
   const [copie, setCopie] = useState(false);
@@ -68,7 +72,7 @@ export const CommandeGrossiste: React.FC<{
       size="2xl"
       icon={<ClipboardList className="h-4 w-4" />}
       title="Commande au grossiste"
-      description="Ce qui est sous le seuil d'alerte, avec une quantité proposée. Ajustez, puis imprimez ou envoyez."
+      description="Les ruptures et stocks faibles, hors unités périmées, avec une quantité proposée. Ajustez, puis imprimez ou envoyez."
       footer={
         <>
           <button
@@ -160,12 +164,12 @@ export const CommandeGrossiste: React.FC<{
               <li
                 key={l.produit.id}
                 className="ph-ligne"
-                data-ton={l.produit.stockActuel <= 0 ? "danger" : "warning"}
+                data-ton={stockDe(l.produit) <= 0 ? "danger" : "warning"}
               >
                 <span className="min-w-0 flex-1">
                   <span className="block truncate text-sm font-bold">{l.produit.displayName}</span>
                   <span className="block text-xs text-muted-foreground">
-                    {l.produit.stockActuel <= 0 ? "Rupture" : `${l.produit.stockActuel} en stock`} ·
+                    {stockDe(l.produit) <= 0 ? "Rupture" : `${stockDe(l.produit)} hors périmés`} ·
                     seuil {l.produit.seuilAlerte}
                   </span>
                 </span>

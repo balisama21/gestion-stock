@@ -110,7 +110,14 @@ describe("les péremptions", () => {
       ],
       J,
     );
-    expect(e).toEqual({ enLots: 14, sansDate: 11, perime: 4, prochaine: "2027-03-31" });
+    expect(e).toEqual({
+      enLots: 14,
+      sansDate: 11,
+      totalSansDate: 11,
+      disponible: 21,
+      perime: 4,
+      prochaine: "2027-03-31",
+    });
   });
 
   it("chiffre les lots à risque", () => {
@@ -168,5 +175,36 @@ describe("le tiers payant", () => {
     expect(partsTiersPayant(12_500, 80)).toEqual({ organisme: 10_000, patient: 2_500 });
     expect(partsTiersPayant(3_333, 70)).toEqual({ organisme: 2_333, patient: 1_000 });
     expect(partsTiersPayant(5_000, 100)).toEqual({ organisme: 5_000, patient: 0 });
+  });
+});
+
+describe("le stock disponible", () => {
+  it("compte les lots sans date sans les confondre avec le stock sans lot", () => {
+    const e = etatStock(
+      produit({ stockActuel: 20 }),
+      [
+        lot({ quantite: 7, date_peremption: null }),
+        lot({ quantite: 5, date_peremption: "2026-10-31" }),
+      ],
+      J,
+    );
+    expect(e.sansDate).toBe(8);
+    expect(e.totalSansDate).toBe(15);
+    expect(e.disponible).toBe(15);
+  });
+  it("détecte une rupture lorsque tout est périmé", () => {
+    expect(
+      etatStock(produit({ stockActuel: 10 }), [lot({ date_peremption: "2026-10-31" })], J)
+        .disponible,
+    ).toBe(0);
+  });
+  it("conserve le lot du jour et borne le disponible à zéro", () => {
+    expect(
+      etatStock(produit({ stockActuel: 10 }), [lot({ date_peremption: J })], J).disponible,
+    ).toBe(10);
+    expect(
+      etatStock(produit({ stockActuel: 2 }), [lot({ date_peremption: "2026-10-31" })], J)
+        .disponible,
+    ).toBe(0);
   });
 });

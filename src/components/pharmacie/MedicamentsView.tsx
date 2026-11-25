@@ -26,7 +26,7 @@ interface Props {
   onStockModifie: () => void;
 }
 
-type Filtre = "tous" | "rupture" | "a_perimer" | "sans_date" | "ordonnance";
+type Filtre = "tous" | "faible" | "rupture" | "a_perimer" | "sans_date" | "ordonnance";
 
 /**
  * LES MÉDICAMENTS
@@ -81,10 +81,15 @@ export const MedicamentsView: React.FC<Props> = ({
     const u = urgence(e.prochaine, aujourdhui);
     return u === "un_mois" || u === "trois_mois";
   };
+  const stockFaible = (p: Product) => {
+    const disponible = etats.get(p.id)!.disponible;
+    return disponible > 0 && disponible <= p.seuilAlerte;
+  };
   const compte = {
-    rupture: medicaments.filter((p) => p.stockActuel <= 0).length,
+    faible: medicaments.filter(stockFaible).length,
+    rupture: medicaments.filter((p) => etats.get(p.id)!.disponible <= 0).length,
     a_perimer: medicaments.filter(aPerimer).length,
-    sans_date: medicaments.filter((p) => etats.get(p.id)!.sansDate > 0).length,
+    sans_date: medicaments.filter((p) => etats.get(p.id)!.totalSansDate > 0).length,
     ordonnance: medicaments.filter((p) => exigeOrdonnance(pharma.ficheDe.get(p.id)?.regime)).length,
   };
   const valeurStock = medicaments.reduce((n, p) => n + Math.max(0, p.stockActuel) * p.prixAchat, 0);
@@ -92,9 +97,10 @@ export const MedicamentsView: React.FC<Props> = ({
   const visibles = medicaments.filter((p) => {
     const fiche = pharma.ficheDe.get(p.id);
     if (rubrique && p.categoryId !== rubrique) return false;
-    if (filtre === "rupture" && p.stockActuel > 0) return false;
+    if (filtre === "faible" && !stockFaible(p)) return false;
+    if (filtre === "rupture" && etats.get(p.id)!.disponible > 0) return false;
     if (filtre === "a_perimer" && !aPerimer(p)) return false;
-    if (filtre === "sans_date" && etats.get(p.id)!.sansDate <= 0) return false;
+    if (filtre === "sans_date" && etats.get(p.id)!.totalSansDate <= 0) return false;
     if (filtre === "ordonnance" && !exigeOrdonnance(fiche?.regime)) return false;
     return correspond(p, fiche, recherche);
   });
@@ -141,6 +147,13 @@ export const MedicamentsView: React.FC<Props> = ({
           ton={compte.rupture ? "danger" : undefined}
           onClick={() => basculer("rupture")}
           actif={filtre === "rupture"}
+        />
+        <Chiffre
+          valeur={compte.faible}
+          libelle="Stock faible"
+          ton={compte.faible ? "warning" : undefined}
+          onClick={() => basculer("faible")}
+          actif={filtre === "faible"}
         />
         <Chiffre
           valeur={compte.sans_date}
@@ -195,6 +208,10 @@ export const MedicamentsView: React.FC<Props> = ({
         )}
       </div>
 
+      <p className="text-xs text-muted-foreground">
+        Le stock affiché exclut les unités périmées. Les unités sans date restent à vérifier avant
+        délivrance.
+      </p>
       <Panneau
         titre={
           filtre === "tous" && !recherche.trim() && !rubrique
@@ -225,7 +242,7 @@ export const MedicamentsView: React.FC<Props> = ({
                   <th>Molécule</th>
                   <th>Rayon</th>
                   <th>Péremption</th>
-                  <th className="ph-num">Stock</th>
+                  <th className="ph-num">Stock hors périmés</th>
                   <th className="ph-num">Prix</th>
                 </tr>
               </thead>
@@ -266,7 +283,7 @@ export const MedicamentsView: React.FC<Props> = ({
                           </span>
                         ) : e.prochaine ? (
                           <BadgePeremption date={e.prochaine} aujourdhui={aujourdhui} />
-                        ) : e.sansDate > 0 ? (
+                        ) : e.totalSansDate > 0 ? (
                           <span className="text-xs text-muted-foreground">sans date</span>
                         ) : (
                           "—"
@@ -274,14 +291,14 @@ export const MedicamentsView: React.FC<Props> = ({
                       </td>
                       <td
                         className={`ph-num font-bold ${
-                          p.stockActuel <= 0
+                          etats.get(p.id)!.disponible <= 0
                             ? "t-danger"
-                            : p.stockActuel <= p.seuilAlerte
+                            : etats.get(p.id)!.disponible <= p.seuilAlerte
                               ? "t-warning"
                               : ""
                         }`}
                       >
-                        {p.stockActuel}
+                        {e.disponible}
                       </td>
                       <td className="ph-num font-bold">{formatCurrency(p.prixVenteDefaut)}</td>
                     </tr>
@@ -302,7 +319,7 @@ export const MedicamentsView: React.FC<Props> = ({
                       onClick={() => setOuvert(p.id)}
                       className="ph-ligne"
                       data-ton={
-                        p.stockActuel <= 0 || e.perime > 0
+                        etats.get(p.id)!.disponible <= 0 || e.perime > 0
                           ? "danger"
                           : aPerimer(p)
                             ? "warning"
@@ -329,10 +346,10 @@ export const MedicamentsView: React.FC<Props> = ({
                       <span className="text-right">
                         <span
                           className={`block text-sm font-extrabold tabular-nums ${
-                            p.stockActuel <= 0 ? "t-danger" : ""
+                            etats.get(p.id)!.disponible <= 0 ? "t-danger" : ""
                           }`}
                         >
-                          {p.stockActuel}
+                          {e.disponible}
                         </span>
                         <span className="block text-xs font-semibold tabular-nums text-muted-foreground">
                           {formatCurrency(p.prixVenteDefaut)}

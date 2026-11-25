@@ -17,7 +17,7 @@ import type { Product, Purchase } from "../../types";
 import type { Database } from "../../lib/database.types";
 import { formatCurrency } from "../../utils/formulas";
 import { libelleUnite, prixAchatDe } from "../../lib/conditionnements";
-import { correspond, finDeMois, urgence } from "../../lib/pharmacie";
+import { correspond, etatStock, finDeMois, urgence } from "../../lib/pharmacie";
 import type { Pharmacie } from "../../hooks/usePharmacie";
 import { Chiffre, EnTete, Panneau, Pastille, Recherche, Segments, Vide } from "./ui";
 import { CommandeGrossiste, type LigneCommande } from "./CommandeGrossiste";
@@ -111,7 +111,13 @@ export const ReceptionsView: React.FC<Props> = ({
   const trouves = recherche.trim()
     ? actifs.filter((p) => correspond(p, pharma.ficheDe.get(p.id), recherche)).slice(0, 8)
     : [];
-  const sousLeSeuil = actifs.filter((p) => p.seuilAlerte > 0 && p.stockActuel <= p.seuilAlerte);
+  const disponibles = useMemo(
+    () => new Map(actifs.map((p) => [p.id, etatStock(p, pharma.lots, aujourdhui).disponible])),
+    [actifs, pharma.lots, aujourdhui],
+  );
+  const sousLeSeuil = actifs.filter(
+    (p) => p.typeProduit !== "service" && disponibles.get(p.id)! <= p.seuilAlerte,
+  );
 
   const ajouter = (p: Product, lu?: { lot: string | null; mois: string | null }) => {
     setLignes((ls) => [
@@ -670,6 +676,7 @@ export const ReceptionsView: React.FC<Props> = ({
         <CommandeGrossiste
           storeName={storeName}
           products={actifs}
+          disponibles={disponibles}
           fournisseurs={fournisseurs.map((f) => f.nom)}
           onFermer={() => setCommande(false)}
           onRecevoir={recevoirCommande}
