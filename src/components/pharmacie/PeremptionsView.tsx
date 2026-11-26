@@ -22,7 +22,7 @@ import {
 import type { Pharmacie } from "../../hooks/usePharmacie";
 import { BadgePeremption } from "./badges";
 import { CorrigerLotModal, DaterStockModal, RetirerLotModal } from "./ActionsLot";
-import { Chiffre, EnTete, EtiquetteLot, Panneau, Pastille, Segments, Vide } from "./ui";
+import { Chiffre, EnTete, EtiquetteLot, Panneau, Pastille, Vide } from "./ui";
 
 interface Props {
   cibleInitiale?: import("../../lib/pharmacie").CibleOfficine;
@@ -33,6 +33,16 @@ interface Props {
   peutRetirer: boolean;
   onStockModifie: () => void;
 }
+
+/** Le nom court d'une échéance, pour qu'un chiffre tienne sur une ligne. */
+const COURT: Record<Urgence, string> = {
+  perime: "Périmés",
+  un_mois: "Dans le mois",
+  trois_mois: "Sous 3 mois",
+  six_mois: "Sous 6 mois",
+  plus_tard: "Plus tard",
+  sans_date: "Sans date",
+};
 
 const TON_LIGNE: Record<Urgence, "danger" | "warning" | "info" | undefined> = {
   perime: "danger",
@@ -125,36 +135,33 @@ export const PeremptionsView: React.FC<Props> = ({
         sousTitre="Le premier qui périme sort le premier. Ici, ce qu'il faut surveiller."
         icone={<Hourglass className="h-6 w-6" />}
       >
-        {(["perime", "un_mois", "trois_mois", "six_mois"] as Urgence[]).map((u) => (
+        {/* Les échéances, une par chiffre : toucher l'une l'affiche dessous. */}
+        {URGENCES.map((u) => (
           <Chiffre
-            key={u}
-            valeur={formatCurrency(valeurDe(u))}
-            libelle={`${URGENCES.find((x) => x.cle === u)!.titre} · ${nombreDe(u)}`}
+            key={u.cle}
+            valeur={formatCurrency(
+              valeurDe(u.cle) +
+                (u.cle === "sans_date"
+                  ? nonDates.reduce((n, x) => n + x.sansDate * x.produit.prixAchat, 0)
+                  : 0),
+            )}
+            libelle={`${COURT[u.cle]} · ${
+              nombreDe(u.cle) + (u.cle === "sans_date" ? nonDates.length : 0)
+            }`}
             ton={
-              nombreDe(u) === 0
+              nombreDe(u.cle) === 0
                 ? undefined
-                : u === "perime" || u === "un_mois"
+                : u.cle === "perime" || u.cle === "un_mois"
                   ? "danger"
-                  : u === "trois_mois"
+                  : u.cle === "trois_mois"
                     ? "warning"
                     : undefined
             }
-            onClick={() => choisirSection(u)}
-            actif={section === u}
+            onClick={() => choisirSection(u.cle)}
+            actif={section === u.cle}
           />
         ))}
       </EnTete>
-
-      <Segments
-        libelle="Échéance"
-        valeur={section}
-        onChange={choisirSection}
-        options={URGENCES.map((u) => ({
-          cle: u.cle,
-          libelle: u.titre,
-          compte: nombreDe(u.cle) + (u.cle === "sans_date" ? nonDates.length : 0),
-        }))}
-      />
 
       {lotCible && (
         <div className="flex items-center justify-between gap-3 text-sm">
@@ -171,7 +178,7 @@ export const PeremptionsView: React.FC<Props> = ({
       {message && <p className="ph-panneau p-3 text-sm font-semibold">{message}</p>}
 
       <Panneau
-        titre={`${titre} · ${formatCurrency(valeurDe(section))}`}
+        titre={titre}
         icone={<Hourglass className="h-4 w-4" />}
         action={
           section === "perime" && !lotCible && peutRetirer && lignes.length > 0 ? (
@@ -240,7 +247,7 @@ export const PeremptionsView: React.FC<Props> = ({
                       </span>
                     </span>
                   </span>
-                  <span className="mt-2 flex items-center gap-2">
+                  <span className="mt-2 flex flex-wrap items-center gap-2">
                     <BadgePeremption date={lot.date_peremption} aujourdhui={aujourdhui} />
                     <span className="ml-auto flex gap-1">
                       <button
