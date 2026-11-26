@@ -25,6 +25,7 @@ import { CorrigerLotModal, DaterStockModal, RetirerLotModal } from "./ActionsLot
 import { Chiffre, EnTete, EtiquetteLot, Panneau, Pastille, Segments, Vide } from "./ui";
 
 interface Props {
+  cibleInitiale?: import("../../lib/pharmacie").CibleOfficine;
   products: Product[];
   sales: Sale[];
   pharma: Pharmacie;
@@ -51,6 +52,7 @@ const TON_LIGNE: Record<Urgence, "danger" | "warning" | "info" | undefined> = {
  * à qui un lot a été vendu quand un fabricant le rappelle.
  */
 export const PeremptionsView: React.FC<Props> = ({
+  cibleInitiale,
   products,
   sales,
   pharma,
@@ -70,7 +72,7 @@ export const PeremptionsView: React.FC<Props> = ({
     [products, pharma.lots, aujourdhui],
   );
   const premiere = URGENCES.find((u) => (groupes.get(u.cle)?.length ?? 0) > 0)?.cle ?? "perime";
-  const [section, setSection] = useState<Urgence>(premiere);
+  const [section, setSection] = useState<Urgence>(cibleInitiale?.urgence ?? premiere);
   const [aRetirer, setARetirer] = useState<{ lot: LotPharma; nom: string } | null>(null);
   const [aCorriger, setACorriger] = useState<LotPharma | null>(null);
   const [aDater, setADater] = useState<{ produit: Product; sansDate: number } | null>(null);
@@ -80,7 +82,12 @@ export const PeremptionsView: React.FC<Props> = ({
 
   const valeurDe = (u: Urgence) => (groupes.get(u) ?? []).reduce((n, l) => n + l.valeur, 0);
   const nombreDe = (u: Urgence) => groupes.get(u)?.length ?? 0;
-  const lignes = groupes.get(section) ?? [];
+  const [lotCible, setLotCible] = useState(cibleInitiale?.lotId);
+  const lignes = (groupes.get(section) ?? []).filter(({ lot }) => !lotCible || lot.id === lotCible);
+  const choisirSection = (u: Urgence) => {
+    setSection(u);
+    setLotCible(undefined);
+  };
   const titre = URGENCES.find((u) => u.cle === section)!.titre;
 
   const retirerTousLesPerimes = async () => {
@@ -132,7 +139,7 @@ export const PeremptionsView: React.FC<Props> = ({
                     ? "warning"
                     : undefined
             }
-            onClick={() => setSection(u)}
+            onClick={() => choisirSection(u)}
             actif={section === u}
           />
         ))}
@@ -141,7 +148,7 @@ export const PeremptionsView: React.FC<Props> = ({
       <Segments
         libelle="Échéance"
         valeur={section}
-        onChange={setSection}
+        onChange={choisirSection}
         options={URGENCES.map((u) => ({
           cle: u.cle,
           libelle: u.titre,
@@ -149,13 +156,25 @@ export const PeremptionsView: React.FC<Props> = ({
         }))}
       />
 
+      {lotCible && (
+        <div className="flex items-center justify-between gap-3 text-sm">
+          <span>Lot sélectionné depuis l’officine</span>
+          <button
+            type="button"
+            className="app-btn-secondary"
+            onClick={() => setLotCible(undefined)}
+          >
+            Afficher tous les lots
+          </button>
+        </div>
+      )}
       {message && <p className="ph-panneau p-3 text-sm font-semibold">{message}</p>}
 
       <Panneau
         titre={`${titre} · ${formatCurrency(valeurDe(section))}`}
         icone={<Hourglass className="h-4 w-4" />}
         action={
-          section === "perime" && peutRetirer && lignes.length > 0 ? (
+          section === "perime" && !lotCible && peutRetirer && lignes.length > 0 ? (
             <button
               type="button"
               disabled={occupe}

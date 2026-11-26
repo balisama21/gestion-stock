@@ -25,6 +25,7 @@ import { CommandeGrossiste, type LigneCommande } from "./CommandeGrossiste";
 type Fournisseur = Database["public"]["Tables"]["suppliers"]["Row"];
 
 interface Props {
+  ouvrirCommande?: boolean;
   storeName?: string;
   products: Product[];
   purchases: Purchase[];
@@ -85,6 +86,7 @@ const nouvelleLigne = (p: Product, quantite = ""): Ligne => ({
  * grossiste se prépare ici aussi, et devient une réception à la livraison.
  */
 export const ReceptionsView: React.FC<Props> = ({
+  ouvrirCommande = false,
   storeName = "Pharmacie",
   products,
   purchases,
@@ -95,7 +97,7 @@ export const ReceptionsView: React.FC<Props> = ({
   onRecue,
 }) => {
   const [ouverte, setOuverte] = useState(false);
-  const [commande, setCommande] = useState(false);
+  const [commande, setCommande] = useState(ouvrirCommande);
   const [fournisseur, setFournisseur] = useState("");
   const [date, setDate] = useState(aujourdhui);
   const [lignes, setLignes] = useState<Ligne[]>([]);

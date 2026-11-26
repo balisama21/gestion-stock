@@ -489,6 +489,10 @@ function AppInner() {
   ]);
 
   const [activeTab, setActiveTab] = useState<ActiveTab>("dashboard");
+  const [cibleOfficine, setCibleOfficine] = useState<import("./lib/pharmacie").CibleOfficine>();
+  useEffect(() => {
+    if (activeTab !== "peremptions" && activeTab !== "achats") setCibleOfficine(undefined);
+  }, [activeTab]);
 
   /*
    * ET TOUT DE SUITE, SUR LE TABLEAU DE BORD.
@@ -2436,7 +2440,10 @@ function AppInner() {
                         sales={visibleSales}
                         pharma={pharma}
                         aujourdhui={dateDuJour()}
-                        onAller={setActiveTab}
+                        onAller={(tab, cible) => {
+                          setCibleOfficine(cible);
+                          setActiveTab(tab);
+                        }}
                       />
                     )}
                     {vue === "dashboard" && estBar && workspace.activeStore && (
@@ -2730,6 +2737,7 @@ function AppInner() {
                     )}
                     {vue === "peremptions" && estPharmacie && (
                       <PeremptionsView
+                        cibleInitiale={cibleOfficine}
                         products={products}
                         sales={visibleSales}
                         pharma={pharma}
@@ -2766,6 +2774,7 @@ function AppInner() {
                     )}
                     {vue === "achats" && estPharmacie && (
                       <ReceptionsView
+                        ouvrirCommande={cibleOfficine?.commande}
                         storeName={workspace.activeStore?.name.trim()}
                         products={products}
                         purchases={purchases}

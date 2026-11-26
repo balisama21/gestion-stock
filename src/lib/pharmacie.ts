@@ -346,3 +346,9 @@ export const DEPENSES_PHARMACIE = [
   "Chaîne du froid",
   "Ordre et licences",
 ];
+
+export interface CibleOfficine {
+  urgence?: Urgence;
+  lotId?: string;
+  commande?: boolean;
+}

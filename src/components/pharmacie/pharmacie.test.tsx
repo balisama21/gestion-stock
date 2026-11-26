@@ -436,3 +436,71 @@ describe("les alertes de stock hors périmés", () => {
     expect(quantiteSuggeree(produit({ stockActuel: 20, seuilAlerte: 5 }), 2)).toBe(8);
   });
 });
+
+describe("les raccourcis de l’officine", () => {
+  it("signale les périmés, les prix absents et transmet la destination exacte", () => {
+    const aller = vi.fn();
+    render(
+      <OfficineView
+        storeId="s"
+        storeName="Officine test"
+        products={[produit({ prixAchat: 0 })]}
+        sales={[]}
+        pharma={pharmaFactice({
+          lots: [lot({ date_peremption: "2026-10-31", prix_achat_unit: null })],
+        })}
+        aujourdhui={J}
+        onAller={aller}
+      />,
+    );
+    expect(screen.getByText("Rupture")).toBeTruthy();
+    expect(screen.getByText(/Valeur non renseignée/)).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: /Périmés/ }));
+    expect(aller).toHaveBeenLastCalledWith("peremptions", { urgence: "perime" });
+    fireEvent.click(screen.getByRole("button", { name: /Amoxil.*AX12/ }));
+    expect(aller).toHaveBeenLastCalledWith("peremptions", { urgence: "perime", lotId: "l1" });
+    fireEvent.click(screen.getByRole("button", { name: /Préparer la commande/ }));
+    expect(aller).toHaveBeenLastCalledWith("achats", { commande: true });
+  });
+  it("isole le lot choisi et permet de retrouver tous les lots", () => {
+    render(
+      <PeremptionsView
+        products={[produit({})]}
+        sales={[]}
+        pharma={pharmaFactice({
+          lots: [
+            lot({ date_peremption: "2026-10-31" }),
+            lot({ id: "l2", numero_lot: "AUTRE", date_peremption: "2026-10-31" }),
+          ],
+        })}
+        aujourdhui={J}
+        peutRetirer
+        onStockModifie={vi.fn()}
+        cibleInitiale={{ urgence: "perime", lotId: "l1" }}
+      />,
+    );
+    expect(screen.getByText("LOT AX12")).toBeTruthy();
+    expect(screen.queryByText("LOT AUTRE")).toBeNull();
+    expect(screen.queryByText("Tout retirer")).toBeNull();
+    fireEvent.click(screen.getByText("Afficher tous les lots"));
+    expect(screen.getByText("LOT AUTRE")).toBeTruthy();
+    expect(screen.getByText("Tout retirer")).toBeTruthy();
+  });
+  it("ouvre directement la commande sans enregistrer de réception", () => {
+    const pharma = pharmaFactice();
+    render(
+      <ReceptionsView
+        products={[produit({ stockActuel: 0 })]}
+        purchases={[]}
+        fournisseurs={[]}
+        pharma={pharma}
+        aujourdhui={J}
+        peutRecevoir
+        onRecue={vi.fn()}
+        ouvrirCommande
+      />,
+    );
+    expect(screen.getByRole("heading", { name: "Commande au grossiste" })).toBeTruthy();
+    expect(pharma.recevoir).not.toHaveBeenCalled();
+  });
+});
