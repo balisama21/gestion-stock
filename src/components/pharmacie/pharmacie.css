@@ -938,6 +938,61 @@ html[data-nature="pharmacie"] .app-sous-nav-item[aria-current="page"]::after {
   }
 }
 
+/* ── Là où la barre du bas existe (téléphone, tablette) ──
+   Elle montre déjà Officine, Comptoir, Médicaments et Péremptions : la
+   rangée du haut ne garde que les autres écrans de l'univers, en texte
+   seul : ni cadre, ni fond, ni icône. Des capitales espacées, que rien
+   d'autre n'emploie à l'écran : on les lit comme des liens, pas comme un
+   titre. L'écran ouvert, s'il n'est pas dans la barre du bas, s'écrit en
+   vert, souligné ; un lien touché se souligne aussi. Ce qui ne tient pas
+   glisse du doigt. */
+@media (max-width: 1023px) {
+  html[data-nature="pharmacie"] .app-sous-nav {
+    display: flex;
+    gap: 1.25rem;
+    overflow-x: auto;
+    margin-bottom: 0.75rem;
+    padding: 0;
+    box-shadow: none;
+  }
+  html[data-nature="pharmacie"] .app-sous-nav:not(:has(.app-sous-nav-item:not([data-en-bas]))) {
+    display: none;
+  }
+  html[data-nature="pharmacie"] .app-sous-nav-item[data-en-bas] {
+    display: none;
+  }
+  html[data-nature="pharmacie"] .app-sous-nav-item {
+    flex: none;
+    flex-direction: row;
+    border: 0;
+    background: none;
+    padding: 0.4rem 0;
+    font-size: 0.72rem;
+    font-weight: 700;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+    white-space: nowrap;
+    color: var(--muted-foreground);
+    text-decoration-thickness: 2px;
+    text-underline-offset: 0.5em;
+  }
+  html[data-nature="pharmacie"] .app-sous-nav-item:active {
+    color: var(--primary);
+    text-decoration-line: underline;
+  }
+  html[data-nature="pharmacie"] .app-sous-nav-icone {
+    display: none;
+  }
+  html[data-nature="pharmacie"] .app-sous-nav-item[aria-current="page"] {
+    color: var(--primary);
+    font-weight: 800;
+    text-decoration-line: underline;
+  }
+  html[data-nature="pharmacie"] .app-sous-nav-item[aria-current="page"]::after {
+    content: none;
+  }
+}
+
 /* ── Cartes, barres d'outils, tableaux, champs ── */
 html[data-nature="pharmacie"] .app-card,
 html[data-nature="pharmacie"] .app-toolbar,

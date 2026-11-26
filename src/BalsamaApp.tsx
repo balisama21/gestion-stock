@@ -26,7 +26,13 @@ import {
   type RoleKey,
 } from "./lib/permissions";
 import { Header } from "./components/Header";
-import { NAV_GROUPS, ongletDeLaNature, universDe, visibleNavItems } from "./components/navigation";
+import {
+  NAV_GROUPS,
+  ongletDeLaNature,
+  universDe,
+  visibleBottomTabs,
+  visibleNavItems,
+} from "./components/navigation";
 import { avecLInterieur, natureDe } from "./lib/natures";
 import { usePharmacie } from "./hooks/usePharmacie";
 import { nomAffiche } from "./components/pharmacie/FormulaireMedicament";
@@ -2406,6 +2412,10 @@ function AppInner() {
                     personnalisationAffichee,
                   )}
                   onChoisir={setActiveTab}
+                  enBas={visibleBottomTabs(
+                    workspace.memberPermissions,
+                    personnalisationAffichee,
+                  ).map((t) => t.id)}
                 />
               )}
 
