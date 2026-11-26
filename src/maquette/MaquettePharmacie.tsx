@@ -71,6 +71,10 @@ const DEPENSES: Expense[] = (
 export const MaquettePharmacie: React.FC = () => {
   const version = useSyncExternalStore(abonner, versionDeLaBase);
   const [onglet, setOnglet] = useState<ActiveTab>(lireOnglet);
+  const [cibleOfficine, setCibleOfficine] = useState<import("../lib/pharmacie").CibleOfficine>();
+  useEffect(() => {
+    if (onglet !== "peremptions" && onglet !== "achats") setCibleOfficine(undefined);
+  }, [onglet]);
   const [sombre, setSombre] = useState(() => window.location.search.includes("sombre"));
   const pharma = usePharmacie(BOUTIQUE);
   const aujourdhui = dateDuJour();
@@ -206,7 +210,10 @@ export const MaquettePharmacie: React.FC = () => {
                 sales={donnees.ventes}
                 pharma={pharma}
                 aujourdhui={aujourdhui}
-                onAller={aller}
+                onAller={(tab, cible) => {
+                  setCibleOfficine(cible);
+                  aller(tab);
+                }}
               />
             )}
             {onglet === "ventes" && (
@@ -254,6 +261,7 @@ export const MaquettePharmacie: React.FC = () => {
             )}
             {onglet === "achats" && (
               <ReceptionsView
+                ouvrirCommande={cibleOfficine?.commande}
                 storeName="Pharmacie du Lac"
                 products={donnees.produits}
                 purchases={donnees.achats}
@@ -266,6 +274,7 @@ export const MaquettePharmacie: React.FC = () => {
             )}
             {onglet === "peremptions" && (
               <PeremptionsView
+                cibleInitiale={cibleOfficine}
                 products={donnees.produits}
                 sales={donnees.ventes}
                 pharma={pharma}

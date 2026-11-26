@@ -14,7 +14,7 @@ import {
 import type { ActiveTab, Product, Sale } from "../../types";
 import { formatCurrency } from "../../utils/formulas";
 import { estEnRupture, estSousLeSeuil, stockEstSuivi } from "../../lib/prealerteStock";
-import { lotsParUrgence, type Urgence } from "../../lib/pharmacie";
+import { etatStock, lotsParUrgence, type CibleOfficine, type Urgence } from "../../lib/pharmacie";
 import { useOrdonnances, type Pharmacie } from "../../hooks/usePharmacie";
 import { Chiffre, EnTete, EtiquetteLot, Panneau, Pastille, Vide } from "./ui";
 import { BadgePeremption } from "./badges";
@@ -26,7 +26,7 @@ interface Props {
   sales: Sale[];
   pharma: Pharmacie;
   aujourdhui: string;
-  onAller: (tab: ActiveTab) => void;
+  onAller: (tab: ActiveTab, cible?: CibleOfficine) => void;
 }
 
 const JOURS = ["dimanche", "lundi", "mardi", "mercredi", "jeudi", "vendredi", "samedi"];
@@ -96,11 +96,19 @@ export const OfficineView: React.FC<Props> = ({
   const perimes = resume("perime");
   const unMois = resume("un_mois");
   const troisMois = resume("trois_mois");
-  const prochains = [
+  const risques = [
     ...(groupes.get("perime") ?? []),
     ...(groupes.get("un_mois") ?? []),
     ...(groupes.get("trois_mois") ?? []),
-  ].slice(0, 4);
+  ];
+  const prochains = risques.slice(0, 4);
+  const prixManquants = risques.filter(
+    ({ lot, produit }) => (lot.prix_achat_unit ?? produit.prixAchat) <= 0,
+  ).length;
+  const disponibles = useMemo(
+    () => new Map(products.map((p) => [p.id, etatStock(p, pharma.lots, aujourdhui).disponible])),
+    [products, pharma.lots, aujourdhui],
+  );
 
   const manques = useMemo(
     () =>
@@ -109,10 +117,11 @@ export const OfficineView: React.FC<Props> = ({
           (p) =>
             p.statut !== "archive" &&
             stockEstSuivi(p) &&
-            (estEnRupture(p.stockActuel) || estSousLeSeuil(p.stockActuel, p.seuilAlerte)),
+            (estEnRupture(disponibles.get(p.id)!) ||
+              estSousLeSeuil(disponibles.get(p.id)!, p.seuilAlerte)),
         )
-        .sort((a, b) => a.stockActuel - b.stockActuel),
-    [products],
+        .sort((a, b) => disponibles.get(a.id)! - disponibles.get(b.id)!),
+    [products, disponibles],
   );
   const aRecouvrer = useMemo(() => {
     const ids = new Set(pharma.organismes.map((o) => o.client_id));
@@ -180,45 +189,54 @@ export const OfficineView: React.FC<Props> = ({
               ton={perimes.n ? "danger" : undefined}
               valeur={perimes.n}
               libelle="Périmés"
-              onClick={() => onAller("peremptions")}
+              onClick={() => onAller("peremptions", { urgence: "perime" })}
             />
             <Chiffre
               ton={unMois.n ? "danger" : undefined}
               valeur={unMois.n}
               libelle="Dans le mois"
-              onClick={() => onAller("peremptions")}
+              onClick={() => onAller("peremptions", { urgence: "un_mois" })}
             />
             <Chiffre
               ton={troisMois.n ? "warning" : undefined}
               valeur={troisMois.n}
               libelle="Sous 3 mois"
-              onClick={() => onAller("peremptions")}
+              onClick={() => onAller("peremptions", { urgence: "trois_mois" })}
             />
           </div>
           <p className="mt-3 text-sm text-muted-foreground">
             {perimes.n + unMois.n + troisMois.n === 0
               ? "Aucun lot ne périme dans les trois mois."
-              : `${formatCurrency(perimes.valeur + unMois.valeur + troisMois.valeur)} de stock à écouler ou à retirer.`}
+              : prixManquants === risques.length
+                ? "Valeur non renseignée : complétez les prix d’achat des lots à traiter."
+                : `${formatCurrency(perimes.valeur + unMois.valeur + troisMois.valeur)} de stock à écouler ou à retirer.`}
+            {prixManquants > 0 &&
+              prixManquants < risques.length &&
+              ` Estimation partielle : ${prixManquants} lot(s) sans prix d’achat renseigné.`}
           </p>
           {prochains.length > 0 && (
             <ul className="ph-liste -mx-[0.9rem] -mb-[0.9rem] mt-3 border-t border-border">
               {prochains.map(({ lot, produit, urgence }) => (
-                <li
-                  key={lot.id}
-                  className="ph-ligne"
-                  data-ton={urgence === "trois_mois" ? "warning" : "danger"}
-                >
-                  <Pastille nom={produit.displayName} />
-                  <span className="min-w-0 flex-1">
-                    <span className="block truncate text-sm font-semibold">
-                      {produit.displayName}
+                <li key={lot.id}>
+                  <button
+                    type="button"
+                    onClick={() => onAller("peremptions", { urgence, lotId: lot.id })}
+                    className="ph-ligne focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary"
+                    data-ton={urgence === "trois_mois" ? "warning" : "danger"}
+                  >
+                    <Pastille nom={produit.displayName} />
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate text-sm font-semibold">
+                        {produit.displayName}
+                      </span>
+                      <span className="mt-0.5 flex items-center gap-2 text-xs text-muted-foreground">
+                        <EtiquetteLot numero={lot.numero_lot} />
+                        {lot.quantite} en rayon
+                      </span>
                     </span>
-                    <span className="mt-0.5 flex items-center gap-2 text-xs text-muted-foreground">
-                      <EtiquetteLot numero={lot.numero_lot} />
-                      {lot.quantite} en rayon
-                    </span>
-                  </span>
-                  <BadgePeremption date={lot.date_peremption} aujourdhui={aujourdhui} />
+                    <BadgePeremption date={lot.date_peremption} aujourdhui={aujourdhui} />
+                    <ChevronRight className="h-4 w-4 shrink-0" />
+                  </button>
                 </li>
               ))}
             </ul>
@@ -230,7 +248,11 @@ export const OfficineView: React.FC<Props> = ({
           icone={<ClipboardList className="h-4 w-4" />}
           action={
             manques.length > 0 ? (
-              <button type="button" onClick={() => onAller("achats")} className="flex items-center">
+              <button
+                type="button"
+                onClick={() => onAller("achats", { commande: true })}
+                className="flex items-center"
+              >
                 Préparer la commande
                 <ChevronRight className="h-4 w-4" />
               </button>
@@ -238,11 +260,12 @@ export const OfficineView: React.FC<Props> = ({
           }
         >
           {manques.length === 0 ? (
-            <Vide>Tous les stocks sont au-dessus de leur seuil.</Vide>
+            <Vide>Tous les stocks hors périmés sont au-dessus de leur seuil.</Vide>
           ) : (
             <ul className="ph-liste max-h-64 overflow-y-auto">
               {manques.slice(0, 8).map((p) => {
-                const rupture = estEnRupture(p.stockActuel);
+                const disponible = disponibles.get(p.id)!;
+                const rupture = estEnRupture(disponible);
                 return (
                   <li key={p.id} className="ph-ligne" data-ton={rupture ? "danger" : "warning"}>
                     {rupture ? (
@@ -254,7 +277,7 @@ export const OfficineView: React.FC<Props> = ({
                       {p.displayName}
                     </span>
                     <span className={`text-xs font-bold ${rupture ? "t-danger" : "t-warning"}`}>
-                      {rupture ? "Rupture" : `${p.stockActuel} / ${p.seuilAlerte}`}
+                      {rupture ? "Rupture" : `${disponible} / ${p.seuilAlerte}`}
                     </span>
                   </li>
                 );
