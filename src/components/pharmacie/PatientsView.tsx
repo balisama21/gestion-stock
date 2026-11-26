@@ -192,7 +192,10 @@ export const PatientsView: React.FC<Props> = ({
         icone={<Search className="h-5 w-5" />}
       />
 
-      <Panneau titre={`${visibles.length} patient(s)`} icone={<Users className="h-4 w-4" />}>
+      <Panneau
+        titre={recherche.trim() ? `${visibles.length} patient(s) trouvé(s)` : "Les patients"}
+        icone={<Users className="h-4 w-4" />}
+      >
         {visibles.length === 0 ? (
           <Vide icone={<UserRound className="h-6 w-6" />}>
             {dossiers.length === 0

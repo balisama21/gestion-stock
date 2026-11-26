@@ -199,8 +199,11 @@ export const InventaireView: React.FC<Props> = ({
           titre={titre ?? "Inventaire"}
           sousTitre={sousTitre}
         >
-          <Chiffre ton="plein" valeur={articles.length} libelle="Références à compter" />
-          <Chiffre valeur={`${bilan.comptes} / ${articles.length}`} libelle="Déjà comptées" />
+          <Chiffre
+            ton="plein"
+            valeur={`${bilan.comptes} / ${articles.length}`}
+            libelle="Références comptées"
+          />
           <Chiffre
             ton={bilan.valeur < 0 ? "danger" : undefined}
             valeur={formatCurrency(bilan.valeur)}

@@ -166,7 +166,7 @@ export const OrdonnancierView: React.FC<Props> = ({
       </div>
 
       <Panneau
-        titre={`Registre · ${visibles.length} ligne(s)`}
+        titre={recherche.trim() ? `Registre · ${visibles.length} trouvée(s)` : "Registre"}
         icone={<ScrollText className="h-4 w-4" />}
       >
         {chargement ? (

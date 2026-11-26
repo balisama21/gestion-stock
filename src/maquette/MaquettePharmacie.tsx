@@ -202,243 +202,250 @@ export const MaquettePharmacie: React.FC = () => {
               items={universDe(onglet, null, PERSO)}
               onChoisir={aller}
             />
-            {onglet === "dashboard" && (
-              <OfficineView
-                storeId={BOUTIQUE}
-                storeName="Pharmacie du Lac"
-                products={donnees.produits}
-                sales={donnees.ventes}
-                pharma={pharma}
-                aujourdhui={aujourdhui}
-                onAller={(tab, cible) => {
-                  setCibleOfficine(cible);
-                  aller(tab);
-                }}
-              />
-            )}
-            {onglet === "ventes" && (
-              <ComptoirView
-                storeId={BOUTIQUE}
-                storeName="Pharmacie du Lac"
-                products={donnees.produits}
-                sales={donnees.ventes}
-                clients={donnees.clients}
-                pharma={pharma}
-                aujourdhui={aujourdhui}
-                vendeur="Hanitra"
-                onVendre={async (p) => vendre(p)}
-              />
-            )}
-            {onglet === "produits" && (
-              <MedicamentsView
-                products={donnees.produits}
-                categories={donnees.categories}
-                pharma={pharma}
-                aujourdhui={aujourdhui}
-                peutModifier
-                onStockModifie={() => undefined}
-                onCreer={async (v) => {
-                  const id = `med-n${base.produits.length}`;
-                  base.produits.push({
-                    ...base.produits[0],
-                    id,
-                    designation: v.nom,
-                    displayName: nomAffiche(v.nom, v.dosage),
-                    prixAchat: v.prixAchat,
-                    prixVenteDefaut: v.prixVente,
-                    seuilAlerte: v.seuil,
-                    categoryId: v.categorieId,
-                    codeBarres: v.codeBarres || null,
-                    stockActuel: 0,
-                    stockDisponible: 0,
-                    stockInitial: 0,
-                    conditionnements: [],
-                  });
-                  return { error: null, id };
-                }}
-                onModifier={async (p, v) => modifierProduit(p, v)}
-              />
-            )}
-            {onglet === "achats" && (
-              <ReceptionsView
-                ouvrirCommande={cibleOfficine?.commande}
-                storeName="Pharmacie du Lac"
-                products={donnees.produits}
-                purchases={donnees.achats}
-                fournisseurs={donnees.fournisseurs}
-                pharma={pharma}
-                aujourdhui={aujourdhui}
-                peutRecevoir
-                onRecue={() => undefined}
-              />
-            )}
-            {onglet === "peremptions" && (
-              <PeremptionsView
-                cibleInitiale={cibleOfficine}
-                products={donnees.produits}
-                sales={donnees.ventes}
-                pharma={pharma}
-                aujourdhui={aujourdhui}
-                peutRetirer
-                onStockModifie={() => undefined}
-              />
-            )}
-            {onglet === "ordonnancier" && (
-              <OrdonnancierView
-                storeId={BOUTIQUE}
-                storeName="Pharmacie du Lac"
-                sales={donnees.ventes}
-                clients={donnees.clients}
-                aujourdhui={aujourdhui}
-              />
-            )}
-            {onglet === "organismes" && (
-              <OrganismesView
-                storeName="Pharmacie du Lac"
-                clients={donnees.clients}
-                sales={donnees.ventes}
-                pharma={pharma}
-                estProprietaire
-                onAddClient={async (d) => {
-                  const client = { id: `c-${Date.now()}`, store_id: BOUTIQUE, prenom: null, ...d };
-                  base.tables.clients.push(client);
-                  return { client, error: null };
-                }}
-                onAddPaymentToSale={async (saleId, d) => payerVente(saleId, d.montant)}
-              />
-            )}
-            {onglet === "clients" && (
-              <PatientsView
-                storeId={BOUTIQUE}
-                clients={donnees.clients}
-                sales={donnees.ventes}
-                pharma={pharma}
-                aujourdhui={aujourdhui}
-                onAddClient={async (d) => {
-                  base.tables.clients.push({ id: `c-${Date.now()}`, store_id: BOUTIQUE, ...d });
-                  await pharma.recharger();
-                  return { error: null };
-                }}
-                onUpdateClient={async (id, d) => {
-                  Object.assign(
-                    base.tables.clients.find((c) => c.id === id)!,
-                    d,
-                  );
-                  await pharma.recharger();
-                  return { error: null };
-                }}
-                onAddPaymentToSale={async (saleId, d) => payerVente(saleId, d.montant)}
-              />
-            )}
-            {onglet === "caisse" && (
-              <CaisseOfficineView
-                storeId={BOUTIQUE}
-                storeName="Pharmacie du Lac"
-                sales={donnees.ventes}
-                payments={donnees.paiements}
-                organismes={pharma.organismes}
-                aujourdhui={aujourdhui}
-              />
-            )}
-            {onglet === "rapports" && (
-              <BilanOfficineView
-                storeId={BOUTIQUE}
-                sales={donnees.ventes}
-                expenses={DEPENSES}
-                products={donnees.produits}
-                categories={donnees.categories}
-                organismes={pharma.organismes}
-                aujourdhui={aujourdhui}
-                vueComptable={<p className="text-sm">Le bilan comptable standard.</p>}
-              />
-            )}
-            {onglet === "historique" && (
-              <JournalOfficineView
-                sales={donnees.ventes}
-                payments={donnees.paiements}
-                purchases={donnees.achats}
-                expenses={DEPENSES}
-                apports={[]}
-                aujourdhui={aujourdhui}
-              />
-            )}
-            {onglet === "capital" && (
-              <CapitalView
-                capital={{
-                  capitalInitial: 8000000,
-                  apportsTotal: 0,
-                  ventesTotalEncaisse: donnees.paiements.reduce((n, p) => n + p.montant, 0),
-                  achatsTotal: 0,
-                  depensesVendeursTotal: DEPENSES.reduce((n, d) => n + d.montant, 0),
-                  remboursementsTotal: 0,
-                  salairesTotal: 0,
-                  tresorerieGlobaleActuelle: 8000000 + tresorerie,
-                  seuilAlerteTresorerie: 500000,
-                }}
-                apports={[]}
-                locale="FR"
-                onUpdateCapitalInitial={() => undefined}
-                onUpdateSeuil={() => undefined}
-                onAddApport={() => undefined}
-                onDeleteApport={() => undefined}
-              />
-            )}
-            {onglet === "depenses" && (
-              <DepensesView
-                expenses={DEPENSES}
-                sellers={[]}
-                locale="FR"
-                postes={[]}
-                personnes={[]}
-                prestataires={[]}
-                storeId={BOUTIQUE}
-                onAddExpense={() => undefined}
-              />
-            )}
-            {onglet === "salaires" && (
-              <SalairesView
-                salaires={[]}
-                paiements={[]}
-                nomsConnus={["Hanitra", "Fara"]}
-                membres={[]}
-                locale="FR"
-                peutGerer
-                onAddSalaire={async () => ({ error: null })}
-                onDeleteSalaire={async () => ({ error: null })}
-                onAddPaiement={async () => ({ error: null })}
-                onUpdatePaiement={async () => ({ error: null })}
-                onDeletePaiement={async () => ({ error: null })}
-              />
-            )}
-            {onglet === "fournisseurs" && (
-              <FournisseursView
-                suppliers={donnees.fournisseurs}
-                purchases={donnees.achats}
-                products={donnees.produits}
-                onAddSupplier={async () => ({ supplier: null, error: null })}
-                onUpdateSupplier={async () => ({ error: null })}
-                onDeleteSupplier={async () => ({ error: null })}
-                onAddSupplierPayment={async () => ({ error: null })}
-                champsPersonnalises={[]}
-              />
-            )}
-            {["vendeurs", "assistant_ia"].includes(onglet) && (
-              <p className="rounded-xl border border-border bg-card p-6 text-sm text-muted-foreground">
-                Cet écran n&apos;est pas rempli dans la maquette.
-              </p>
-            )}
-            {onglet === "inventaire" && (
-              <InventaireView
-                storeId={BOUTIQUE}
-                products={donnees.produits}
-                categories={donnees.categories}
-                peutValider
-                onValide={() => undefined}
-                titre="Inventaire"
-                habit="officine"
-                sousTitre="Comptez les boîtes en rayon : le logiciel montre les écarts avec le stock."
-              />
-            )}
+            <div className="app-vue">
+              {onglet === "dashboard" && (
+                <OfficineView
+                  storeId={BOUTIQUE}
+                  storeName="Pharmacie du Lac"
+                  products={donnees.produits}
+                  sales={donnees.ventes}
+                  pharma={pharma}
+                  aujourdhui={aujourdhui}
+                  onAller={(tab, cible) => {
+                    setCibleOfficine(cible);
+                    aller(tab);
+                  }}
+                />
+              )}
+              {onglet === "ventes" && (
+                <ComptoirView
+                  storeId={BOUTIQUE}
+                  storeName="Pharmacie du Lac"
+                  products={donnees.produits}
+                  sales={donnees.ventes}
+                  clients={donnees.clients}
+                  pharma={pharma}
+                  aujourdhui={aujourdhui}
+                  vendeur="Hanitra"
+                  onVendre={async (p) => vendre(p)}
+                />
+              )}
+              {onglet === "produits" && (
+                <MedicamentsView
+                  products={donnees.produits}
+                  categories={donnees.categories}
+                  pharma={pharma}
+                  aujourdhui={aujourdhui}
+                  peutModifier
+                  onStockModifie={() => undefined}
+                  onCreer={async (v) => {
+                    const id = `med-n${base.produits.length}`;
+                    base.produits.push({
+                      ...base.produits[0],
+                      id,
+                      designation: v.nom,
+                      displayName: nomAffiche(v.nom, v.dosage),
+                      prixAchat: v.prixAchat,
+                      prixVenteDefaut: v.prixVente,
+                      seuilAlerte: v.seuil,
+                      categoryId: v.categorieId,
+                      codeBarres: v.codeBarres || null,
+                      stockActuel: 0,
+                      stockDisponible: 0,
+                      stockInitial: 0,
+                      conditionnements: [],
+                    });
+                    return { error: null, id };
+                  }}
+                  onModifier={async (p, v) => modifierProduit(p, v)}
+                />
+              )}
+              {onglet === "achats" && (
+                <ReceptionsView
+                  ouvrirCommande={cibleOfficine?.commande}
+                  storeName="Pharmacie du Lac"
+                  products={donnees.produits}
+                  purchases={donnees.achats}
+                  fournisseurs={donnees.fournisseurs}
+                  pharma={pharma}
+                  aujourdhui={aujourdhui}
+                  peutRecevoir
+                  onRecue={() => undefined}
+                />
+              )}
+              {onglet === "peremptions" && (
+                <PeremptionsView
+                  cibleInitiale={cibleOfficine}
+                  products={donnees.produits}
+                  sales={donnees.ventes}
+                  pharma={pharma}
+                  aujourdhui={aujourdhui}
+                  peutRetirer
+                  onStockModifie={() => undefined}
+                />
+              )}
+              {onglet === "ordonnancier" && (
+                <OrdonnancierView
+                  storeId={BOUTIQUE}
+                  storeName="Pharmacie du Lac"
+                  sales={donnees.ventes}
+                  clients={donnees.clients}
+                  aujourdhui={aujourdhui}
+                />
+              )}
+              {onglet === "organismes" && (
+                <OrganismesView
+                  storeName="Pharmacie du Lac"
+                  clients={donnees.clients}
+                  sales={donnees.ventes}
+                  pharma={pharma}
+                  estProprietaire
+                  onAddClient={async (d) => {
+                    const client = {
+                      id: `c-${Date.now()}`,
+                      store_id: BOUTIQUE,
+                      prenom: null,
+                      ...d,
+                    };
+                    base.tables.clients.push(client);
+                    return { client, error: null };
+                  }}
+                  onAddPaymentToSale={async (saleId, d) => payerVente(saleId, d.montant)}
+                />
+              )}
+              {onglet === "clients" && (
+                <PatientsView
+                  storeId={BOUTIQUE}
+                  clients={donnees.clients}
+                  sales={donnees.ventes}
+                  pharma={pharma}
+                  aujourdhui={aujourdhui}
+                  onAddClient={async (d) => {
+                    base.tables.clients.push({ id: `c-${Date.now()}`, store_id: BOUTIQUE, ...d });
+                    await pharma.recharger();
+                    return { error: null };
+                  }}
+                  onUpdateClient={async (id, d) => {
+                    Object.assign(
+                      base.tables.clients.find((c) => c.id === id)!,
+                      d,
+                    );
+                    await pharma.recharger();
+                    return { error: null };
+                  }}
+                  onAddPaymentToSale={async (saleId, d) => payerVente(saleId, d.montant)}
+                />
+              )}
+              {onglet === "caisse" && (
+                <CaisseOfficineView
+                  storeId={BOUTIQUE}
+                  storeName="Pharmacie du Lac"
+                  sales={donnees.ventes}
+                  payments={donnees.paiements}
+                  organismes={pharma.organismes}
+                  aujourdhui={aujourdhui}
+                />
+              )}
+              {onglet === "rapports" && (
+                <BilanOfficineView
+                  storeId={BOUTIQUE}
+                  sales={donnees.ventes}
+                  expenses={DEPENSES}
+                  products={donnees.produits}
+                  categories={donnees.categories}
+                  organismes={pharma.organismes}
+                  aujourdhui={aujourdhui}
+                  vueComptable={<p className="text-sm">Le bilan comptable standard.</p>}
+                />
+              )}
+              {onglet === "historique" && (
+                <JournalOfficineView
+                  sales={donnees.ventes}
+                  payments={donnees.paiements}
+                  purchases={donnees.achats}
+                  expenses={DEPENSES}
+                  apports={[]}
+                  aujourdhui={aujourdhui}
+                />
+              )}
+              {onglet === "capital" && (
+                <CapitalView
+                  capital={{
+                    capitalInitial: 8000000,
+                    apportsTotal: 0,
+                    ventesTotalEncaisse: donnees.paiements.reduce((n, p) => n + p.montant, 0),
+                    achatsTotal: 0,
+                    depensesVendeursTotal: DEPENSES.reduce((n, d) => n + d.montant, 0),
+                    remboursementsTotal: 0,
+                    salairesTotal: 0,
+                    tresorerieGlobaleActuelle: 8000000 + tresorerie,
+                    seuilAlerteTresorerie: 500000,
+                  }}
+                  apports={[]}
+                  locale="FR"
+                  onUpdateCapitalInitial={() => undefined}
+                  onUpdateSeuil={() => undefined}
+                  onAddApport={() => undefined}
+                  onDeleteApport={() => undefined}
+                />
+              )}
+              {onglet === "depenses" && (
+                <DepensesView
+                  expenses={DEPENSES}
+                  sellers={[]}
+                  locale="FR"
+                  postes={[]}
+                  personnes={[]}
+                  prestataires={[]}
+                  storeId={BOUTIQUE}
+                  onAddExpense={() => undefined}
+                />
+              )}
+              {onglet === "salaires" && (
+                <SalairesView
+                  salaires={[]}
+                  paiements={[]}
+                  nomsConnus={["Hanitra", "Fara"]}
+                  membres={[]}
+                  locale="FR"
+                  peutGerer
+                  onAddSalaire={async () => ({ error: null })}
+                  onDeleteSalaire={async () => ({ error: null })}
+                  onAddPaiement={async () => ({ error: null })}
+                  onUpdatePaiement={async () => ({ error: null })}
+                  onDeletePaiement={async () => ({ error: null })}
+                />
+              )}
+              {onglet === "fournisseurs" && (
+                <FournisseursView
+                  suppliers={donnees.fournisseurs}
+                  purchases={donnees.achats}
+                  products={donnees.produits}
+                  onAddSupplier={async () => ({ supplier: null, error: null })}
+                  onUpdateSupplier={async () => ({ error: null })}
+                  onDeleteSupplier={async () => ({ error: null })}
+                  onAddSupplierPayment={async () => ({ error: null })}
+                  champsPersonnalises={[]}
+                />
+              )}
+              {["vendeurs", "assistant_ia"].includes(onglet) && (
+                <p className="rounded-xl border border-border bg-card p-6 text-sm text-muted-foreground">
+                  Cet écran n&apos;est pas rempli dans la maquette.
+                </p>
+              )}
+              {onglet === "inventaire" && (
+                <InventaireView
+                  storeId={BOUTIQUE}
+                  products={donnees.produits}
+                  categories={donnees.categories}
+                  peutValider
+                  onValide={() => undefined}
+                  titre="Inventaire"
+                  habit="officine"
+                  sousTitre="Comptez les boîtes en rayon : le logiciel montre les écarts avec le stock."
+                />
+              )}
+            </div>
           </main>
         </div>
       </div>

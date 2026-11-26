@@ -304,7 +304,7 @@ export const CaisseOfficineView: React.FC<Props> = ({
         </div>
 
         <Panneau
-          titre={`Les délivrances · ${c.tickets.length}`}
+          titre="Les délivrances"
           icone={<ReceiptText className="h-4 w-4" />}
           className="lg:col-span-3"
         >

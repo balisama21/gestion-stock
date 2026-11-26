@@ -197,14 +197,42 @@ html.dark[data-nature="pharmacie"] {
   pointer-events: none;
   user-select: none;
 }
+/* Au téléphone, la figure ne prend plus de colonne : elle se pose derrière
+   les chiffres, de leur hauteur, en bas à droite. Un chiffre long passe
+   sur elle, détouré de la couleur du bandeau pour rester lisible. */
 @media (max-width: 639px) {
   .ph-bandeau {
-    --figure: 50%;
-    column-gap: 0.4rem;
+    grid-template-columns: minmax(0, 1fr);
     padding: 1rem 0.5rem 0 1.1rem;
   }
   .ph-bandeau-figure {
-    margin-bottom: 1rem;
+    position: absolute;
+    top: 1rem;
+    right: 0.5rem;
+    bottom: 1rem;
+    width: 72%;
+    margin: 0;
+  }
+  /* Un chiffre par ligne, à gauche : seule la fin d'un chiffre long
+     passe sur la figure, jamais un chiffre entier sur le visage. */
+  .ph-bandeau .ph-entete-chiffres {
+    position: relative;
+    z-index: 1;
+    flex-direction: column;
+    flex-wrap: nowrap;
+    align-items: flex-start;
+    text-shadow:
+      0 0 2px var(--bandeau),
+      0 0 4px var(--bandeau),
+      0 0 8px var(--bandeau);
+  }
+  /* Un voile de la couleur du bandeau sous chaque texte : invisible sur le
+     fond, il garde le texte lisible là où il passe sur la blouse ou la
+     planchette. */
+  .ph-bandeau .ph-chiffre-valeur,
+  .ph-bandeau .ph-chiffre-libelle {
+    border-radius: 0.35rem;
+    background: color-mix(in oklab, var(--bandeau) 85%, transparent);
   }
 }
 .ph-entete-chiffres {
@@ -222,6 +250,9 @@ html.dark[data-nature="pharmacie"] {
   display: inline-flex;
   align-items: baseline;
   gap: 0.35rem;
+  /* Un chiffre et son nom tiennent sur une ligne : jamais « 8 700 » en
+     haut et « Ar » dessous. */
+  white-space: nowrap;
   border: 0;
   border-radius: 0.5rem;
   background: transparent;
