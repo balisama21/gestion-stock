@@ -8,6 +8,12 @@ interface SousNavigationProps {
   /** Les écrans du même univers, déjà filtrés (voir `universDe`). */
   items: NavItem[];
   onChoisir: (id: ActiveTab) => void;
+  /**
+   * Les écrans que la barre du bas montre déjà, au téléphone. Marqués
+   * `data-en-bas` : un habit peut les retirer de la rangée là où cette
+   * barre existe (la pharmacie le fait), pour ne pas les montrer deux fois.
+   */
+  enBas?: ActiveTab[];
 }
 
 /**
@@ -38,7 +44,12 @@ interface SousNavigationProps {
  * étage pour un seul mot. L'onglet courant est amené en vue à
  * l'ouverture.
  */
-export const SousNavigation: React.FC<SousNavigationProps> = ({ actif, items, onChoisir }) => {
+export const SousNavigation: React.FC<SousNavigationProps> = ({
+  actif,
+  items,
+  onChoisir,
+  enBas,
+}) => {
   const rangee = useRef<HTMLElement>(null);
 
   // L'onglet courant, centré dans la rangée quand elle défile. Sans
@@ -62,6 +73,7 @@ export const SousNavigation: React.FC<SousNavigationProps> = ({ actif, items, on
             type="button"
             onClick={() => onChoisir(item.id)}
             aria-current={estActif ? "page" : undefined}
+            data-en-bas={enBas?.includes(item.id) || undefined}
             className="app-sous-nav-item"
           >
             {/* L'icône ne se montre que là où l'habit le veut (la pharmacie). */}

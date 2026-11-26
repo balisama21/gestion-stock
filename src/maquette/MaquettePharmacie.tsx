@@ -20,7 +20,12 @@ import { SalairesView } from "../components/SalairesView";
 import { FournisseursView } from "../components/FournisseursView";
 import { Sidebar } from "../components/Sidebar";
 import { SousNavigation } from "../components/shared/SousNavigation";
-import { universDe, visibleNavGroups, visibleNavItems } from "../components/navigation";
+import {
+  universDe,
+  visibleBottomTabs,
+  visibleNavGroups,
+  visibleNavItems,
+} from "../components/navigation";
 import { avecLInterieur } from "../lib/natures";
 import { contextePersonnalisation } from "../lib/personnalisation";
 import { Croix } from "../components/pharmacie/ui";
@@ -201,6 +206,7 @@ export const MaquettePharmacie: React.FC = () => {
               actif={onglet}
               items={universDe(onglet, null, PERSO)}
               onChoisir={aller}
+              enBas={visibleBottomTabs(null, PERSO).map((t) => t.id)}
             />
             <div className="app-vue">
               {onglet === "dashboard" && (
