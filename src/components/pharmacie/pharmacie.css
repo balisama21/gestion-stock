@@ -163,78 +163,53 @@ html.dark[data-nature="pharmacie"] {
 }
 
 /* ── La barre des gestes du jour : Comptoir et Réception ───────────
-   Une gélule blanche à deux compartiments : le geste principal en vert
-   plein, l'autre en clair, chacun avec son icône dans une pastille et un
-   mot qui dit ce qu'on y fait. Sur ordinateur, elle se pose à droite du
-   titre ; sur téléphone et tablette, elle reste collée en haut de
-   l'écran pendant tout le défilement. */
+   Une seule bande vert pâle, coupée en deux par un trait fin : à gauche
+   le comptoir, à droite la réception, l'icône et le mot en vert. Sur
+   ordinateur, elle se pose à droite du titre ; sur téléphone et
+   tablette, elle reste collée en haut de l'écran pendant tout le
+   défilement. Son fond est opaque (le vert pâle mêlé à la carte) : rien
+   de ce qui défile dessous ne transparaît, en clair comme en sombre. */
 .ph-barre {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 0.3rem;
-  padding: 0.3rem;
-  border: 1px solid var(--border);
-  border-radius: 999px;
-  background: color-mix(in oklab, var(--card) 88%, transparent);
-  -webkit-backdrop-filter: blur(12px) saturate(1.4);
-  backdrop-filter: blur(12px) saturate(1.4);
-  box-shadow: var(--elev-2);
+  height: 2.9rem;
+  overflow: hidden;
+  border: 1px solid color-mix(in oklab, var(--primary) 18%, transparent);
+  border-radius: 0.8rem;
+  background: color-mix(in oklab, var(--croix) 13%, var(--card));
 }
 .ph-barre-geste {
+  position: relative;
   display: flex;
   min-width: 0;
   align-items: center;
-  gap: 0.6rem;
-  padding: 0.35rem 0.9rem 0.35rem 0.35rem;
-  border-radius: 999px;
-  color: var(--foreground);
-  text-align: left;
-  transition:
-    background-color 0.15s,
-    transform 0.1s;
+  justify-content: center;
+  gap: 0.45rem;
+  color: var(--primary);
+  font-size: 0.92rem;
+  font-weight: 700;
+  transition: background-color 0.15s;
+}
+/* Le trait du milieu, plus court que la bande. */
+.ph-barre-geste + .ph-barre-geste::before {
+  content: "";
+  position: absolute;
+  left: 0;
+  top: 25%;
+  bottom: 25%;
+  width: 1px;
+  background: color-mix(in oklab, var(--primary) 35%, transparent);
 }
 .ph-barre-geste:hover {
-  background: var(--secondary);
+  background: color-mix(in oklab, var(--primary) 8%, transparent);
 }
 .ph-barre-geste:active {
-  transform: scale(0.97);
+  background: color-mix(in oklab, var(--primary) 16%, transparent);
 }
 .ph-barre-geste:focus-visible {
   outline: 2px solid var(--primary);
-  outline-offset: 2px;
-}
-.ph-barre-geste[data-principal] {
-  background: var(--primary);
-  color: var(--primary-foreground);
-}
-.ph-barre-icone {
-  display: grid;
-  flex: none;
-  place-items: center;
-  width: 2.25rem;
-  height: 2.25rem;
-  border-radius: 999px;
-  background: var(--croix-soft);
-  color: var(--primary);
-}
-.ph-barre-geste[data-principal] .ph-barre-icone {
-  background: color-mix(in oklab, var(--primary-foreground) 22%, transparent);
-  color: var(--primary-foreground);
-}
-.ph-barre-texte {
-  display: flex;
-  min-width: 0;
-  flex-direction: column;
-  line-height: 1.15;
-}
-.ph-barre-texte b {
-  font-size: 0.92rem;
-  font-weight: 800;
-}
-.ph-barre-texte small {
-  font-size: 0.7rem;
-  font-weight: 600;
-  opacity: 0.75;
+  outline-offset: -3px;
+  border-radius: 0.7rem;
 }
 @media (min-width: 1024px) {
   .ph-barre {
@@ -259,6 +234,9 @@ html.dark[data-nature="pharmacie"] {
     top: calc(var(--haut-systeme, 0px) + 0.5rem);
     z-index: 30;
     margin-block: -0.35rem;
+    /* Un liseré couleur de page autour de la bande : ce qui défile ne
+       passe pas dans l'espace laissé au-dessus d'elle. */
+    box-shadow: 0 0 0 0.5rem var(--background);
   }
   .ph-entete:has(> .ph-barre) > .ph-bandeau {
     margin-top: 0;
