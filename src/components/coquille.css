@@ -394,23 +394,25 @@
     animation: none;
   }
 }
-/* Le nombre de notifications pas encore vues, dans une pastille rouge
-   cerclée de la couleur de la barre. */
+/* Le nombre de notifications pas encore vues, dans un petit rond rouge
+   cerclé de la couleur de la barre, posé sur le bord du rond de la
+   cloche (en haut à droite, à 45°). Un chiffre tient dans un rond
+   parfait ; « 9+ » l'allonge à peine. */
 .coq-badge {
   position: absolute;
-  top: -7px;
-  right: -9px;
+  top: -4px;
+  right: -4px;
   display: grid;
   place-items: center;
-  min-width: 18px;
-  height: 18px;
-  padding: 0 4px;
+  box-sizing: border-box;
+  min-width: 19px;
+  height: 19px;
+  padding: 0 3px;
   border: 2px solid var(--card);
   border-radius: 999px;
-  box-sizing: content-box;
   background: var(--danger);
   color: #fff;
-  font-size: 10.5px;
+  font-size: 10px;
   font-weight: 700;
   line-height: 1;
   font-variant-numeric: tabular-nums;
@@ -710,10 +712,10 @@
     width: 18px;
     height: 18px;
   }
-  /* Le nombre, posé à cheval sur le haut droit du rond. */
+  /* Le nombre, posé sur le bord haut droit du rond. */
   .coq-badge {
-    top: calc((44px - var(--coq-pastille)) / 2 - 6px);
-    right: calc((44px - var(--coq-pastille)) / 2 - 8px);
+    top: calc((44px - var(--coq-pastille)) / 2 - 3px);
+    right: calc((44px - var(--coq-pastille)) / 2 - 3px);
   }
   .coq-profil {
     margin-left: 0;
