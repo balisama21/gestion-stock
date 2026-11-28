@@ -504,10 +504,8 @@ const DossierPatient: React.FC<{
         {message && <p className="text-sm font-bold text-[var(--croix)]">{message}</p>}
         {erreur && <p className="text-sm font-semibold t-danger">{erreur}</p>}
 
-        <Panneau titre="Ordonnances" icone={<ScrollText className="h-4 w-4" />}>
-          {ordonnances.length === 0 ? (
-            <Vide>Aucune ordonnance à son nom.</Vide>
-          ) : (
+        {ordonnances.length > 0 && (
+          <Panneau titre="Ordonnances" icone={<ScrollText className="h-4 w-4" />}>
             <ul className="ph-liste">
               {ordonnances.map((o) => (
                 <li key={o.id} className="ph-ligne">
@@ -521,13 +519,11 @@ const DossierPatient: React.FC<{
                 </li>
               ))}
             </ul>
-          )}
-        </Panneau>
+          </Panneau>
+        )}
 
-        <Panneau titre="Médicaments délivrés">
-          {delivrances.length === 0 ? (
-            <Vide>Rien de délivré à son nom.</Vide>
-          ) : (
+        {delivrances.length > 0 && (
+          <Panneau titre="Médicaments délivrés">
             <ul className="ph-liste max-h-60 overflow-y-auto">
               {delivrances.map((v) => (
                 <li
@@ -550,8 +546,8 @@ const DossierPatient: React.FC<{
                 </li>
               ))}
             </ul>
-          )}
-        </Panneau>
+          </Panneau>
+        )}
 
         <div className="flex flex-wrap gap-2 border-t border-border pt-4">
           {client.telephone && (

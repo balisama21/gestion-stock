@@ -642,10 +642,8 @@ export const ReceptionsView: React.FC<Props> = ({
         </Panneau>
       )}
 
-      <Panneau titre="Dernières livraisons" icone={<Truck className="h-4 w-4" />}>
-        {dernieres.length === 0 ? (
-          <Vide>Aucune livraison enregistrée.</Vide>
-        ) : (
+      {dernieres.length > 0 && (
+        <Panneau titre="Dernières livraisons" icone={<Truck className="h-4 w-4" />}>
           <ul className="ph-liste">
             {dernieres.map((g) => (
               <li
@@ -671,8 +669,8 @@ export const ReceptionsView: React.FC<Props> = ({
               </li>
             ))}
           </ul>
-        )}
-      </Panneau>
+        </Panneau>
+      )}
 
       {commande && (
         <CommandeGrossiste

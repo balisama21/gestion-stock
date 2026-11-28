@@ -83,6 +83,7 @@ export const OfficineView: React.FC<Props> = ({
       }))
       .sort((a, b) => b.quand.localeCompare(a.quand));
   }, [duJour]);
+  const plusDelivres = useMemo(() => lesPlusDelivres(duJour), [duJour]);
   const { ordonnances } = useOrdonnances(storeId, aujourdhui, aujourdhui);
 
   const groupes = useMemo(
@@ -101,6 +102,7 @@ export const OfficineView: React.FC<Props> = ({
     ...(groupes.get("un_mois") ?? []),
     ...(groupes.get("trois_mois") ?? []),
   ];
+  const aSurveiller = risques.length;
   const prochains = risques.slice(0, 4);
   const prixManquants = risques.filter(
     ({ lot, produit }) => (lot.prix_achat_unit ?? produit.prixAchat) <= 0,
@@ -136,7 +138,7 @@ export const OfficineView: React.FC<Props> = ({
     iso ? new Date(iso).toLocaleTimeString("fr-FR", { hour: "2-digit", minute: "2-digit" }) : "";
 
   return (
-    <div className="ph-page">
+    <div className="ph-page ph-officine">
       <EnTete
         titre={storeName}
         sousTitre={
@@ -144,15 +146,30 @@ export const OfficineView: React.FC<Props> = ({
             {salutation()} · {date}
           </>
         }
-        actions={
+        barre={
           <>
-            <button type="button" onClick={() => onAller("ventes")} className="app-btn-primary">
-              <Banknote className="h-4 w-4" />
-              Comptoir
+            <button
+              type="button"
+              onClick={() => onAller("ventes")}
+              className="ph-barre-geste"
+              data-principal
+            >
+              <span className="ph-barre-icone">
+                <Banknote className="h-4 w-4" />
+              </span>
+              <span className="ph-barre-texte">
+                <b>Comptoir</b>
+                <small>Délivrer</small>
+              </span>
             </button>
-            <button type="button" onClick={() => onAller("achats")} className="app-btn-secondary">
-              <PackagePlus className="h-4 w-4" />
-              Réception
+            <button type="button" onClick={() => onAller("achats")} className="ph-barre-geste">
+              <span className="ph-barre-icone">
+                <PackagePlus className="h-4 w-4" />
+              </span>
+              <span className="ph-barre-texte">
+                <b>Réception</b>
+                <small>Livraison</small>
+              </span>
             </button>
           </>
         }
@@ -169,85 +186,86 @@ export const OfficineView: React.FC<Props> = ({
       </EnTete>
 
       <div className="grid gap-5 lg:grid-cols-2">
-        <Panneau
-          titre="À surveiller"
-          icone={<Hourglass className="h-4 w-4" />}
-          action={
-            <button
-              type="button"
-              onClick={() => onAller("peremptions")}
-              className="flex items-center"
-            >
-              Péremptions
-              <ChevronRight className="h-4 w-4" />
-            </button>
-          }
-          corps
-        >
-          <div className="grid grid-cols-3 gap-2">
-            <Chiffre
-              ton={perimes.n ? "danger" : undefined}
-              valeur={perimes.n}
-              libelle="Périmés"
-              onClick={() => onAller("peremptions", { urgence: "perime" })}
-            />
-            <Chiffre
-              ton={unMois.n ? "danger" : undefined}
-              valeur={unMois.n}
-              libelle="Dans le mois"
-              onClick={() => onAller("peremptions", { urgence: "un_mois" })}
-            />
-            <Chiffre
-              ton={troisMois.n ? "warning" : undefined}
-              valeur={troisMois.n}
-              libelle="Sous 3 mois"
-              onClick={() => onAller("peremptions", { urgence: "trois_mois" })}
-            />
-          </div>
-          <p className="mt-3 text-sm text-muted-foreground">
-            {perimes.n + unMois.n + troisMois.n === 0
-              ? "Aucun lot ne périme dans les trois mois."
-              : prixManquants === risques.length
+        {/* Un bloc ne s'affiche que s'il a quelque chose à montrer. */}
+        {aSurveiller > 0 && (
+          <Panneau
+            titre="À surveiller"
+            icone={<Hourglass className="h-4 w-4" />}
+            action={
+              <button
+                type="button"
+                onClick={() => onAller("peremptions")}
+                className="flex items-center"
+              >
+                Péremptions
+                <ChevronRight className="h-4 w-4" />
+              </button>
+            }
+            corps
+          >
+            <div className="grid grid-cols-3 gap-2">
+              <Chiffre
+                ton={perimes.n ? "danger" : undefined}
+                valeur={perimes.n}
+                libelle="Périmés"
+                onClick={() => onAller("peremptions", { urgence: "perime" })}
+              />
+              <Chiffre
+                ton={unMois.n ? "danger" : undefined}
+                valeur={unMois.n}
+                libelle="Dans le mois"
+                onClick={() => onAller("peremptions", { urgence: "un_mois" })}
+              />
+              <Chiffre
+                ton={troisMois.n ? "warning" : undefined}
+                valeur={troisMois.n}
+                libelle="Sous 3 mois"
+                onClick={() => onAller("peremptions", { urgence: "trois_mois" })}
+              />
+            </div>
+            <p className="mt-3 text-sm text-muted-foreground">
+              {prixManquants === risques.length
                 ? "Valeur non renseignée : complétez les prix d’achat des lots à traiter."
                 : `${formatCurrency(perimes.valeur + unMois.valeur + troisMois.valeur)} de stock à écouler ou à retirer.`}
-            {prixManquants > 0 &&
-              prixManquants < risques.length &&
-              ` Estimation partielle : ${prixManquants} lot(s) sans prix d’achat renseigné.`}
-          </p>
-          {prochains.length > 0 && (
-            <ul className="ph-liste -mx-[0.9rem] -mb-[0.9rem] mt-3 border-t border-border">
-              {prochains.map(({ lot, produit, urgence }) => (
-                <li key={lot.id}>
-                  <button
-                    type="button"
-                    onClick={() => onAller("peremptions", { urgence, lotId: lot.id })}
-                    className="ph-ligne focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary"
-                    data-ton={urgence === "trois_mois" ? "warning" : "danger"}
-                  >
-                    <Pastille nom={produit.displayName} />
-                    <span className="min-w-0 flex-1">
-                      <span className="block truncate text-sm font-semibold">
-                        {produit.displayName}
+              {prixManquants > 0 &&
+                prixManquants < risques.length &&
+                ` Estimation partielle : ${prixManquants} lot(s) sans prix d’achat renseigné.`}
+            </p>
+            {prochains.length > 0 && (
+              <ul className="ph-liste -mx-[0.9rem] -mb-[0.9rem] mt-3 border-t border-border">
+                {prochains.map(({ lot, produit, urgence }) => (
+                  <li key={lot.id}>
+                    <button
+                      type="button"
+                      onClick={() => onAller("peremptions", { urgence, lotId: lot.id })}
+                      className="ph-ligne focus-visible:outline focus-visible:outline-2 focus-visible:outline-primary"
+                      data-ton={urgence === "trois_mois" ? "warning" : "danger"}
+                    >
+                      <Pastille nom={produit.displayName} />
+                      <span className="min-w-0 flex-1">
+                        <span className="block truncate text-sm font-semibold">
+                          {produit.displayName}
+                        </span>
+                        <span className="mt-0.5 flex items-center gap-2 text-xs text-muted-foreground">
+                          <EtiquetteLot numero={lot.numero_lot} />
+                          {lot.quantite} en rayon
+                        </span>
                       </span>
-                      <span className="mt-0.5 flex items-center gap-2 text-xs text-muted-foreground">
-                        <EtiquetteLot numero={lot.numero_lot} />
-                        {lot.quantite} en rayon
-                      </span>
-                    </span>
-                    <BadgePeremption date={lot.date_peremption} aujourdhui={aujourdhui} />
-                    <ChevronRight className="h-4 w-4 shrink-0" />
-                  </button>
-                </li>
-              ))}
-            </ul>
-          )}
-        </Panneau>
+                      <BadgePeremption date={lot.date_peremption} aujourdhui={aujourdhui} />
+                      <ChevronRight className="h-4 w-4 shrink-0" />
+                    </button>
+                  </li>
+                ))}
+              </ul>
+            )}
+          </Panneau>
+        )}
 
-        <Panneau
-          titre={`À commander · ${manques.length}`}
-          icone={<ClipboardList className="h-4 w-4" />}
-          action={
-            manques.length > 0 ? (
+        {manques.length > 0 && (
+          <Panneau
+            titre={`À commander · ${manques.length}`}
+            icone={<ClipboardList className="h-4 w-4" />}
+            action={
               <button
                 type="button"
                 onClick={() => onAller("achats", { commande: true })}
@@ -256,12 +274,8 @@ export const OfficineView: React.FC<Props> = ({
                 Préparer la commande
                 <ChevronRight className="h-4 w-4" />
               </button>
-            ) : undefined
-          }
-        >
-          {manques.length === 0 ? (
-            <Vide>Tous les stocks hors périmés sont au-dessus de leur seuil.</Vide>
-          ) : (
+            }
+          >
             <ul className="ph-liste max-h-64 overflow-y-auto">
               {manques.slice(0, 8).map((p) => {
                 const disponible = disponibles.get(p.id)!;
@@ -283,22 +297,20 @@ export const OfficineView: React.FC<Props> = ({
                 );
               })}
             </ul>
-          )}
-        </Panneau>
+          </Panneau>
+        )}
 
-        <Panneau
-          titre="Dernières délivrances"
-          icone={<ReceiptText className="h-4 w-4" />}
-          action={
-            <button type="button" onClick={() => onAller("ventes")} className="flex items-center">
-              Comptoir
-              <ChevronRight className="h-4 w-4" />
-            </button>
-          }
-        >
-          {tickets.length === 0 ? (
-            <Vide>Aucune vente aujourd&apos;hui pour l&apos;instant.</Vide>
-          ) : (
+        {tickets.length > 0 && (
+          <Panneau
+            titre="Dernières délivrances"
+            icone={<ReceiptText className="h-4 w-4" />}
+            action={
+              <button type="button" onClick={() => onAller("ventes")} className="flex items-center">
+                Comptoir
+                <ChevronRight className="h-4 w-4" />
+              </button>
+            }
+          >
             <ul className="ph-liste">
               {tickets.slice(0, 6).map((t) => (
                 <li key={t.cle} className="ph-ligne" data-ton={t.du > 0 ? "warning" : undefined}>
@@ -320,53 +332,59 @@ export const OfficineView: React.FC<Props> = ({
                 </li>
               ))}
             </ul>
-          )}
-        </Panneau>
-
-        <div className="space-y-5">
-          {pharma.organismes.length > 0 && (
-            <Panneau
-              titre="Tiers payant"
-              icone={<ShieldCheck className="h-4 w-4" />}
-              action={
-                <button
-                  type="button"
-                  onClick={() => onAller("organismes")}
-                  className="flex items-center"
-                >
-                  Relevés
-                  <ChevronRight className="h-4 w-4" />
-                </button>
-              }
-              corps
-            >
-              <p className="text-2xl font-extrabold tabular-nums">{formatCurrency(aRecouvrer)}</p>
-              <p className="text-sm text-muted-foreground">
-                à recouvrer auprès de {pharma.organismes.filter((o) => o.actif).length} organisme(s)
-              </p>
-            </Panneau>
-          )}
-          <Panneau titre="Les plus délivrés aujourd'hui">
-            <PlusDelivres ventes={duJour} />
           </Panneau>
-        </div>
+        )}
+
+        {(pharma.organismes.length > 0 || plusDelivres.length > 0) && (
+          <div className="space-y-5">
+            {pharma.organismes.length > 0 && (
+              <Panneau
+                titre="Tiers payant"
+                icone={<ShieldCheck className="h-4 w-4" />}
+                action={
+                  <button
+                    type="button"
+                    onClick={() => onAller("organismes")}
+                    className="flex items-center"
+                  >
+                    Relevés
+                    <ChevronRight className="h-4 w-4" />
+                  </button>
+                }
+                corps
+              >
+                <p className="text-2xl font-extrabold tabular-nums">{formatCurrency(aRecouvrer)}</p>
+                <p className="text-sm text-muted-foreground">
+                  à recouvrer auprès de {pharma.organismes.filter((o) => o.actif).length}{" "}
+                  organisme(s)
+                </p>
+              </Panneau>
+            )}
+            {plusDelivres.length > 0 && (
+              <Panneau titre="Les plus délivrés aujourd'hui">
+                <PlusDelivres liste={plusDelivres} />
+              </Panneau>
+            )}
+          </div>
+        )}
       </div>
     </div>
   );
 };
 
-const PlusDelivres: React.FC<{ ventes: Sale[] }> = ({ ventes }) => {
-  const liste = useMemo(() => {
-    const m = new Map<string, { nom: string; quantite: number }>();
-    for (const s of ventes) {
-      if (!s.productId) continue;
-      const x = m.get(s.productId) ?? { nom: s.designation, quantite: 0 };
-      x.quantite += s.quantite;
-      m.set(s.productId, x);
-    }
-    return [...m.values()].sort((a, b) => b.quantite - a.quantite).slice(0, 5);
-  }, [ventes]);
-  if (liste.length === 0) return <Vide>Rien de délivré pour l&apos;instant.</Vide>;
+/** Les cinq médicaments les plus délivrés parmi ces ventes. */
+const lesPlusDelivres = (ventes: Sale[]) => {
+  const m = new Map<string, { nom: string; quantite: number }>();
+  for (const s of ventes) {
+    if (!s.productId) continue;
+    const x = m.get(s.productId) ?? { nom: s.designation, quantite: 0 };
+    x.quantite += s.quantite;
+    m.set(s.productId, x);
+  }
+  return [...m.values()].sort((a, b) => b.quantite - a.quantite).slice(0, 5);
+};
+
+const PlusDelivres: React.FC<{ liste: { nom: string; quantite: number }[] }> = ({ liste }) => {
   return (
     <ul className="ph-liste">
       {liste.map((p) => (

@@ -22,9 +22,10 @@ html[data-nature="pharmacie"] {
   --card-foreground: #0f2a1e;
   --popover: #ffffff;
   --popover-foreground: #0f2a1e;
-  --primary: #0b7a4b;
+  /* Un seul vert dans toute l'officine : celui de la croix. */
+  --primary: var(--croix);
   --primary-foreground: #ffffff;
-  --primary-trait: rgb(11 122 75 / 45%);
+  --primary-trait: color-mix(in oklab, var(--croix) 45%, transparent);
   --secondary: #e5f3eb;
   --secondary-foreground: #0f2a1e;
   --muted: #edf4ef;
@@ -33,20 +34,22 @@ html[data-nature="pharmacie"] {
   --accent-foreground: #0f2a1e;
   --border: #d7e6dc;
   --input: #c9dccf;
-  --ring: rgb(11 122 75 / 35%);
-  --success-soft: #e1f2e8;
+  --ring: color-mix(in oklab, var(--croix) 35%, transparent);
+  --success: var(--croix);
+  --success-soft: var(--croix-soft);
+  --success-border: color-mix(in oklab, var(--croix) 30%, transparent);
   --sidebar: #fbfdfb;
   --sidebar-foreground: #0f2a1e;
-  --sidebar-primary: #0b7a4b;
+  --sidebar-primary: var(--croix);
   --sidebar-primary-foreground: #ffffff;
-  --sidebar-accent: #e5f3eb;
-  --sidebar-accent-foreground: #0b5c39;
+  --sidebar-accent: var(--croix-soft);
+  --sidebar-accent-foreground: var(--croix);
   --sidebar-border: #e1ece4;
-  --sidebar-ring: rgb(11 122 75 / 35%);
+  --sidebar-ring: color-mix(in oklab, var(--croix) 35%, transparent);
   --elev-1: 0 1px 2px rgb(15 42 30 / 5%);
   --elev-2: 0 1px 2px rgb(15 42 30 / 5%), 0 6px 18px rgb(15 42 30 / 6%);
   --elev-3: 0 12px 30px rgb(15 42 30 / 13%), 0 2px 6px rgb(15 42 30 / 6%);
-  /* La croix de la pharmacie : un vert vif, réservé à la signature. */
+  /* La croix de la pharmacie : le vert vif de toute l'officine. */
   --croix: #16a34a;
   --croix-soft: #e3f6ea;
   background-color: var(--background) !important;
@@ -59,9 +62,9 @@ html.dark[data-nature="pharmacie"] {
   --card-foreground: oklch(0.95 0.01 150);
   --popover: oklch(0.24 0.027 160);
   --popover-foreground: oklch(0.95 0.01 150);
-  --primary: oklch(0.76 0.14 155);
+  --primary: var(--croix);
   --primary-foreground: oklch(0.18 0.03 160);
-  --primary-trait: oklch(0.76 0.14 155 / 50%);
+  --primary-trait: color-mix(in oklab, var(--croix) 50%, transparent);
   --secondary: oklch(0.26 0.03 160);
   --secondary-foreground: oklch(0.95 0.01 150);
   --muted: oklch(0.25 0.024 160);
@@ -70,16 +73,18 @@ html.dark[data-nature="pharmacie"] {
   --accent-foreground: oklch(0.95 0.01 150);
   --border: oklch(1 0 0 / 9%);
   --input: oklch(1 0 0 / 13%);
-  --ring: oklch(0.76 0.14 155 / 45%);
-  --success-soft: oklch(0.76 0.14 155 / 14%);
+  --ring: color-mix(in oklab, var(--croix) 45%, transparent);
+  --success: var(--croix);
+  --success-soft: var(--croix-soft);
+  --success-border: color-mix(in oklab, var(--croix) 32%, transparent);
   --sidebar: oklch(0.195 0.023 160);
   --sidebar-foreground: oklch(0.95 0.01 150);
-  --sidebar-primary: oklch(0.76 0.14 155);
+  --sidebar-primary: var(--croix);
   --sidebar-primary-foreground: oklch(0.18 0.03 160);
   --sidebar-accent: oklch(0.27 0.035 158);
   --sidebar-accent-foreground: oklch(0.95 0.01 150);
   --sidebar-border: oklch(1 0 0 / 8%);
-  --sidebar-ring: oklch(0.76 0.14 155 / 45%);
+  --sidebar-ring: color-mix(in oklab, var(--croix) 45%, transparent);
   --elev-1: 0 1px 2px rgb(0 0 0 / 30%);
   --elev-2: 0 1px 2px rgb(0 0 0 / 30%), 0 6px 18px rgb(0 0 0 / 25%);
   --croix: oklch(0.78 0.17 150);
@@ -154,6 +159,116 @@ html.dark[data-nature="pharmacie"] {
     flex: 1 1 0;
     min-width: 0;
     justify-content: center;
+  }
+}
+
+/* ── La barre des gestes du jour : Comptoir et Réception ───────────
+   Une gélule blanche à deux compartiments : le geste principal en vert
+   plein, l'autre en clair, chacun avec son icône dans une pastille et un
+   mot qui dit ce qu'on y fait. Sur ordinateur, elle se pose à droite du
+   titre ; sur téléphone et tablette, elle reste collée en haut de
+   l'écran pendant tout le défilement. */
+.ph-barre {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.3rem;
+  padding: 0.3rem;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: color-mix(in oklab, var(--card) 88%, transparent);
+  -webkit-backdrop-filter: blur(12px) saturate(1.4);
+  backdrop-filter: blur(12px) saturate(1.4);
+  box-shadow: var(--elev-2);
+}
+.ph-barre-geste {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.35rem 0.9rem 0.35rem 0.35rem;
+  border-radius: 999px;
+  color: var(--foreground);
+  text-align: left;
+  transition:
+    background-color 0.15s,
+    transform 0.1s;
+}
+.ph-barre-geste:hover {
+  background: var(--secondary);
+}
+.ph-barre-geste:active {
+  transform: scale(0.97);
+}
+.ph-barre-geste:focus-visible {
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+.ph-barre-geste[data-principal] {
+  background: var(--primary);
+  color: var(--primary-foreground);
+}
+.ph-barre-icone {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 999px;
+  background: var(--croix-soft);
+  color: var(--primary);
+}
+.ph-barre-geste[data-principal] .ph-barre-icone {
+  background: color-mix(in oklab, var(--primary-foreground) 22%, transparent);
+  color: var(--primary-foreground);
+}
+.ph-barre-texte {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  line-height: 1.15;
+}
+.ph-barre-texte b {
+  font-size: 0.92rem;
+  font-weight: 800;
+}
+.ph-barre-texte small {
+  font-size: 0.7rem;
+  font-weight: 600;
+  opacity: 0.75;
+}
+@media (min-width: 1024px) {
+  .ph-barre {
+    position: absolute;
+    top: 0;
+    right: 0;
+    width: 21rem;
+  }
+  .ph-entete:has(> .ph-barre) .ph-entete-texte {
+    padding-right: 22rem;
+  }
+}
+@media (max-width: 1023px) {
+  /* L'en-tête s'efface de la mise en page : ses morceaux deviennent des
+     enfants directs de la page, et la barre peut rester collée tout le
+     long de celle-ci (une barre collante ne sort pas de son parent). */
+  .ph-entete:has(> .ph-barre) {
+    display: contents;
+  }
+  .ph-barre {
+    position: sticky;
+    top: calc(var(--haut-systeme, 0px) + 0.5rem);
+    z-index: 30;
+    margin-block: -0.35rem;
+  }
+  .ph-entete:has(> .ph-barre) > .ph-bandeau {
+    margin-top: 0;
+  }
+  /* Sur l'Officine, la barre du haut de l'application reste en haut de
+     la page : elle part avec le défilement et ne revient pas quand on
+     remonte. C'est la barre des gestes qui reste en vue. */
+  html[data-nature="pharmacie"] body:has(.ph-officine) .app-bar-haut {
+    position: relative;
+    transform: none;
   }
 }
 
@@ -711,7 +826,7 @@ html[data-nature="pharmacie"] .app-btn-secondary {
    Aucun dégradé. Aucune page n'a à le savoir.
    ═══════════════════════════════════════════════════════════════════ */
 
-/* ── Le menu latéral : l'écran ouvert en vert plein ── */
+/* ── Le menu latéral : l'écran ouvert sur un vert pâle, trait à gauche ── */
 html[data-nature="pharmacie"] .coq-nav-h {
   font-weight: 800;
   letter-spacing: 0.12em;
@@ -727,13 +842,12 @@ html[data-nature="pharmacie"] .coq-lien:hover {
   color: var(--primary);
 }
 html[data-nature="pharmacie"] .coq-lien.on {
-  background: var(--primary);
-  color: var(--primary-foreground);
+  background: var(--croix-soft);
+  color: var(--primary);
   font-weight: 700;
-  box-shadow: 0 6px 14px color-mix(in oklab, var(--primary) 28%, transparent);
 }
 html[data-nature="pharmacie"] .coq-lien.on::before {
-  display: none;
+  background: var(--primary);
 }
 
 /* ── L'en-tête de page : comme celui de l'officine ── */
