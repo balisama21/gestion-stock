@@ -437,6 +437,34 @@ describe("les alertes de stock hors périmés", () => {
   });
 });
 
+describe("l’officine sans données", () => {
+  it("ne montre aucun bloc vide", () => {
+    render(
+      <OfficineView
+        storeId="s"
+        storeName="Officine vide"
+        products={[produit({ stockActuel: 50, seuilAlerte: 5 })]}
+        sales={[]}
+        pharma={pharmaFactice({
+          lots: [lot({ date_peremption: "2028-01-31", quantite_recue: 50, quantite: 50 })],
+        })}
+        aujourdhui={J}
+        onAller={vi.fn()}
+      />,
+    );
+    expect(screen.getByText("Officine vide")).toBeTruthy();
+    for (const titre of [
+      "À surveiller",
+      /À commander/,
+      "Dernières délivrances",
+      "Les plus délivrés aujourd'hui",
+      "Tiers payant",
+    ]) {
+      expect(screen.queryByText(titre)).toBeNull();
+    }
+  });
+});
+
 describe("les raccourcis de l’officine", () => {
   it("signale les périmés, les prix absents et transmet la destination exacte", () => {
     const aller = vi.fn();

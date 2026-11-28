@@ -176,7 +176,7 @@ export const MaquettePharmacie: React.FC = () => {
           }
         />
         <div className={replie ? "lg:pl-18" : "lg:pl-[268px]"}>
-          <nav className="sticky top-0 z-30 flex items-center gap-1 overflow-x-auto border-b border-border bg-card px-3 py-2 lg:justify-end lg:bg-background/80 lg:backdrop-blur">
+          <nav className="app-bar-haut sticky top-0 z-30 flex items-center gap-1 overflow-x-auto border-b border-border bg-card px-3 py-2 lg:justify-end lg:bg-background/80 lg:backdrop-blur">
             <span className="mr-3 shrink-0 text-sm font-bold lg:hidden">Pharmacie du Lac</span>
             <select
               value={onglet}

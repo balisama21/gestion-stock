@@ -18,7 +18,7 @@ import { formatCurrency } from "../../utils/formulas";
 import { bilanBar, periodeDe, type Echelle } from "../../lib/bilanBar";
 import type { OrganismePharma } from "../../lib/pharmacie";
 import { useOrdonnances } from "../../hooks/usePharmacie";
-import { Chiffre, EnTete, Panneau, Pastille, Segments, Vide } from "./ui";
+import { Chiffre, EnTete, Panneau, Pastille, Segments } from "./ui";
 
 type Categorie = Database["public"]["Tables"]["categories"]["Row"];
 
@@ -133,6 +133,8 @@ export const BilanOfficineView: React.FC<Props> = ({
       du: ventes.reduce((n, v) => n + Math.max(0, v.soldeDu), 0),
     };
   }, [sales, organismes, periode.debut, periode.fin]);
+  const tiersVisible = tiers.ca > 0 || tiers.du > 0;
+  const pertesVisibles = pertes.perime + pertes.casse > 0;
 
   if (comptable) {
     return (
@@ -222,160 +224,162 @@ export const BilanOfficineView: React.FC<Props> = ({
         </div>
       </div>
 
-      {echelle !== "soir" && (
+      {echelle !== "soir" && b.ca > 0 && (
         <Panneau titre="La recette, jour par jour" icone={<BarChart3 className="h-4 w-4" />} corps>
-          {b.ca === 0 ? (
-            <Vide>Aucune vente sur la période.</Vide>
-          ) : (
-            <>
-              <div
-                className="flex h-44 items-end gap-[3px]"
-                role="img"
-                aria-label="Recette par jour"
-              >
-                {b.parSoir.map((j) => (
-                  <div key={j.jour} className="group relative flex h-full flex-1 items-end">
-                    <div
-                      className={`w-full rounded-t-[4px] transition-colors ${
-                        j.jour === aujourdhui ? "bg-[var(--croix)]" : "bg-primary/75"
-                      } group-hover:bg-primary`}
-                      style={{ height: `${j.ca ? Math.max(2, (j.ca / plusHaut) * 100) : 0}%` }}
-                    />
-                    <div className="pointer-events-none absolute bottom-full left-1/2 z-10 mb-1 hidden -translate-x-1/2 whitespace-nowrap rounded-lg border border-border bg-popover px-2 py-1 text-xs shadow-md group-hover:block">
-                      <span className="font-bold">{jourCourt(j.jour)}</span> ·{" "}
-                      {formatCurrency(j.ca)}
-                    </div>
+          <>
+            <div className="flex h-44 items-end gap-[3px]" role="img" aria-label="Recette par jour">
+              {b.parSoir.map((j) => (
+                <div key={j.jour} className="group relative flex h-full flex-1 items-end">
+                  <div
+                    className={`w-full rounded-t-[4px] transition-colors ${
+                      j.jour === aujourdhui ? "bg-[var(--croix)]" : "bg-primary/75"
+                    } group-hover:bg-primary`}
+                    style={{ height: `${j.ca ? Math.max(2, (j.ca / plusHaut) * 100) : 0}%` }}
+                  />
+                  <div className="pointer-events-none absolute bottom-full left-1/2 z-10 mb-1 hidden -translate-x-1/2 whitespace-nowrap rounded-lg border border-border bg-popover px-2 py-1 text-xs shadow-md group-hover:block">
+                    <span className="font-bold">{jourCourt(j.jour)}</span> · {formatCurrency(j.ca)}
                   </div>
-                ))}
-              </div>
-              <div className="mt-1.5 flex justify-between text-[11px] text-muted-foreground">
-                <span>{jourCourt(periode.debut)}</span>
-                {b.meilleureSoiree && (
-                  <span>
-                    Meilleur jour : <b>{jourCourt(b.meilleureSoiree.jour)}</b> ·{" "}
-                    {formatCurrency(b.meilleureSoiree.ca)}
-                  </span>
-                )}
-                <span>{jourCourt(periode.fin)}</span>
-              </div>
-            </>
-          )}
+                </div>
+              ))}
+            </div>
+            <div className="mt-1.5 flex justify-between text-[11px] text-muted-foreground">
+              <span>{jourCourt(periode.debut)}</span>
+              {b.meilleureSoiree && (
+                <span>
+                  Meilleur jour : <b>{jourCourt(b.meilleureSoiree.jour)}</b> ·{" "}
+                  {formatCurrency(b.meilleureSoiree.ca)}
+                </span>
+              )}
+              <span>{jourCourt(periode.fin)}</span>
+            </div>
+          </>
         </Panneau>
       )}
 
-      <div className="grid gap-5 lg:grid-cols-2">
-        <Panneau titre="Les plus délivrés" icone={<Trophy className="h-4 w-4" />}>
-          {b.topArticles.length === 0 ? (
-            <Vide>Rien de délivré sur la période.</Vide>
-          ) : (
-            <ul className="ph-liste">
-              {b.topArticles.slice(0, 8).map((a, i) => (
-                <li key={a.nom} className="ph-ligne">
-                  <span className="w-5 text-xs font-extrabold text-muted-foreground">{i + 1}</span>
-                  <Pastille nom={a.nom} />
-                  <span className="min-w-0 flex-1">
-                    <span className="block truncate text-sm font-semibold">{a.nom}</span>
-                    <span className="mt-1 block h-1.5 overflow-hidden rounded-full bg-muted">
-                      <span
-                        className="block h-full rounded-full bg-primary"
-                        style={{ width: `${Math.max(3, (a.ca / plusGrosArticle) * 100)}%` }}
-                      />
+      {/* Un bloc ne s'affiche que s'il a quelque chose à montrer. */}
+      {(b.topArticles.length > 0 || b.parRubrique.length > 0 || tiersVisible || pertesVisibles) && (
+        <div className="grid gap-5 lg:grid-cols-2">
+          {b.topArticles.length > 0 && (
+            <Panneau titre="Les plus délivrés" icone={<Trophy className="h-4 w-4" />}>
+              <ul className="ph-liste">
+                {b.topArticles.slice(0, 8).map((a, i) => (
+                  <li key={a.nom} className="ph-ligne">
+                    <span className="w-5 text-xs font-extrabold text-muted-foreground">
+                      {i + 1}
                     </span>
-                  </span>
-                  <span className="text-right">
-                    <span className="block text-sm font-bold tabular-nums">
-                      {formatCurrency(a.ca)}
-                    </span>
-                    <span className="block text-[11px] text-muted-foreground">
-                      {a.quantite} boîte(s) · marge {pourcent(a.marge, a.ca)}
-                    </span>
-                  </span>
-                </li>
-              ))}
-            </ul>
-          )}
-        </Panneau>
-
-        <div className="space-y-5">
-          <Panneau titre="Par rubrique" icone={<PieChart className="h-4 w-4" />} corps>
-            {b.parRubrique.length === 0 ? (
-              <Vide>Aucune vente sur la période.</Vide>
-            ) : (
-              <ul className="space-y-2.5">
-                {b.parRubrique.slice(0, 7).map((r) => (
-                  <li key={r.nom}>
-                    <div className="flex justify-between text-sm">
-                      <span className="font-semibold">{r.nom}</span>
-                      <span className="tabular-nums">
-                        <b>{formatCurrency(r.ca)}</b>{" "}
-                        <span className="text-xs text-muted-foreground">
-                          {pourcent(r.ca, totalRubriques)}
-                        </span>
+                    <Pastille nom={a.nom} />
+                    <span className="min-w-0 flex-1">
+                      <span className="block truncate text-sm font-semibold">{a.nom}</span>
+                      <span className="mt-1 block h-1.5 overflow-hidden rounded-full bg-muted">
+                        <span
+                          className="block h-full rounded-full bg-primary"
+                          style={{ width: `${Math.max(3, (a.ca / plusGrosArticle) * 100)}%` }}
+                        />
                       </span>
-                    </div>
-                    <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-muted">
-                      <div
-                        className="h-full rounded-full bg-primary"
-                        style={{
-                          width: `${Math.max(3, (r.ca / Math.max(1, totalRubriques)) * 100)}%`,
-                        }}
-                      />
-                    </div>
+                    </span>
+                    <span className="text-right">
+                      <span className="block text-sm font-bold tabular-nums">
+                        {formatCurrency(a.ca)}
+                      </span>
+                      <span className="block text-[11px] text-muted-foreground">
+                        {a.quantite} boîte(s) · marge {pourcent(a.marge, a.ca)}
+                      </span>
+                    </span>
                   </li>
                 ))}
               </ul>
-            )}
-          </Panneau>
+            </Panneau>
+          )}
 
-          <div className="grid gap-3 sm:grid-cols-2">
-            <Panneau titre="Tiers payant" icone={<ShieldCheck className="h-4 w-4" />} corps>
-              <p className="text-xl font-extrabold tabular-nums">{formatCurrency(tiers.ca)}</p>
-              <p className="text-xs text-muted-foreground">
-                {pourcent(tiers.ca, b.ca)} du chiffre d&apos;affaires · {formatCurrency(tiers.du)}{" "}
-                encore à recevoir
-              </p>
-            </Panneau>
-            <Panneau titre="Pertes" icone={<PackageX className="h-4 w-4" />} corps>
-              <p
-                className={`text-xl font-extrabold tabular-nums ${
-                  pertes.perime + pertes.casse > 0 ? "t-danger" : ""
-                }`}
-              >
-                {formatCurrency(pertes.perime + pertes.casse)}
-              </p>
-              <p className="text-xs text-muted-foreground">
-                {formatCurrency(pertes.perime)} de périmés · {formatCurrency(pertes.casse)} de
-                casse, au prix d&apos;achat
-              </p>
-            </Panneau>
+          <div className="space-y-5">
+            {b.parRubrique.length > 0 && (
+              <Panneau titre="Par rubrique" icone={<PieChart className="h-4 w-4" />} corps>
+                <ul className="space-y-2.5">
+                  {b.parRubrique.slice(0, 7).map((r) => (
+                    <li key={r.nom}>
+                      <div className="flex justify-between text-sm">
+                        <span className="font-semibold">{r.nom}</span>
+                        <span className="tabular-nums">
+                          <b>{formatCurrency(r.ca)}</b>{" "}
+                          <span className="text-xs text-muted-foreground">
+                            {pourcent(r.ca, totalRubriques)}
+                          </span>
+                        </span>
+                      </div>
+                      <div className="mt-1 h-1.5 overflow-hidden rounded-full bg-muted">
+                        <div
+                          className="h-full rounded-full bg-primary"
+                          style={{
+                            width: `${Math.max(3, (r.ca / Math.max(1, totalRubriques)) * 100)}%`,
+                          }}
+                        />
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              </Panneau>
+            )}
+
+            {(tiersVisible || pertesVisibles) && (
+              <div className="grid gap-3 sm:grid-cols-2">
+                {tiersVisible && (
+                  <Panneau titre="Tiers payant" icone={<ShieldCheck className="h-4 w-4" />} corps>
+                    <p className="text-xl font-extrabold tabular-nums">
+                      {formatCurrency(tiers.ca)}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {pourcent(tiers.ca, b.ca)} du chiffre d&apos;affaires ·{" "}
+                      {formatCurrency(tiers.du)} encore à recevoir
+                    </p>
+                  </Panneau>
+                )}
+                {pertesVisibles && (
+                  <Panneau titre="Pertes" icone={<PackageX className="h-4 w-4" />} corps>
+                    <p
+                      className={`text-xl font-extrabold tabular-nums ${
+                        pertes.perime + pertes.casse > 0 ? "t-danger" : ""
+                      }`}
+                    >
+                      {formatCurrency(pertes.perime + pertes.casse)}
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {formatCurrency(pertes.perime)} de périmés · {formatCurrency(pertes.casse)} de
+                      casse, au prix d&apos;achat
+                    </p>
+                  </Panneau>
+                )}
+              </div>
+            )}
           </div>
         </div>
-      </div>
+      )}
 
-      <Panneau
-        titre="Du chiffre d'affaires au résultat"
-        icone={<Wallet className="h-4 w-4" />}
-        corps
-      >
-        <dl className="grid gap-2 text-sm sm:grid-cols-2 lg:grid-cols-4">
-          <Etape libelle="Chiffre d'affaires" valeur={b.ca} />
-          <Etape libelle="Achat des boîtes vendues" valeur={-b.cout} />
-          <Etape libelle="Dépenses de la période" valeur={-b.depenses} />
-          <Etape libelle="Résultat" valeur={b.resultat} fort />
-        </dl>
-        {b.depensesParPoste.length > 0 && (
-          <div className="mt-4 flex flex-wrap gap-2">
-            {b.depensesParPoste.slice(0, 8).map((p) => (
-              <span
-                key={p.nom}
-                className="rounded-full border border-border bg-muted px-3 py-1 text-xs"
-              >
-                {p.nom} · <b className="tabular-nums">{formatCurrency(p.montant)}</b>
-              </span>
-            ))}
-          </div>
-        )}
-      </Panneau>
+      {(b.ca > 0 || b.depenses > 0) && (
+        <Panneau
+          titre="Du chiffre d'affaires au résultat"
+          icone={<Wallet className="h-4 w-4" />}
+          corps
+        >
+          <dl className="grid gap-2 text-sm sm:grid-cols-2 lg:grid-cols-4">
+            <Etape libelle="Chiffre d'affaires" valeur={b.ca} />
+            <Etape libelle="Achat des boîtes vendues" valeur={-b.cout} />
+            <Etape libelle="Dépenses de la période" valeur={-b.depenses} />
+            <Etape libelle="Résultat" valeur={b.resultat} fort />
+          </dl>
+          {b.depensesParPoste.length > 0 && (
+            <div className="mt-4 flex flex-wrap gap-2">
+              {b.depensesParPoste.slice(0, 8).map((p) => (
+                <span
+                  key={p.nom}
+                  className="rounded-full border border-border bg-muted px-3 py-1 text-xs"
+                >
+                  {p.nom} · <b className="tabular-nums">{formatCurrency(p.montant)}</b>
+                </span>
+              ))}
+            </div>
+          )}
+        </Panneau>
+      )}
     </div>
   );
 };

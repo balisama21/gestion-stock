@@ -20,7 +20,7 @@ import { imprimerFeuille } from "../../features/documents/lib/imprimer";
 import { MODES_DE_PAIEMENT } from "../facturation/paiement";
 import { caisseDuJour, ecartDuTiroir } from "../../lib/caisseOfficine";
 import type { OrganismePharma } from "../../lib/pharmacie";
-import { Chiffre, EnTete, Panneau, Raccourcis, Vide } from "./ui";
+import { Chiffre, EnTete, Panneau, Raccourcis } from "./ui";
 
 /** Le fond de caisse posé un autre jour, s'il a été noté sur cet appareil. */
 const fondDe = (storeId: string, jour: string): string => {
@@ -268,49 +268,49 @@ export const CaisseOfficineView: React.FC<Props> = ({
             )}
           </Panneau>
 
-          <Panneau titre="Encaissé par moyen" icone={<Banknote className="h-4 w-4" />} corps>
-            {c.parMoyen.length === 0 ? (
-              <Vide>Aucun paiement reçu ce jour.</Vide>
-            ) : (
-              <ul className="space-y-3">
-                {c.parMoyen.map((m) => (
-                  <li key={m.methode}>
-                    <div className="flex items-center gap-2 text-sm">
-                      <span className="grid h-8 w-8 place-items-center rounded-lg bg-secondary text-primary">
-                        {ICONES[m.methode] ?? <Banknote className="h-4 w-4" />}
-                      </span>
-                      <span className="flex-1 font-semibold">{libelleMoyen(m.methode)}</span>
-                      <span className="text-xs text-muted-foreground">{m.nombre} paiement(s)</span>
-                      <span className="w-28 text-right font-bold tabular-nums">
-                        {formatCurrency(m.montant)}
-                      </span>
-                    </div>
-                    <div className="ml-10 mt-1.5 h-1.5 overflow-hidden rounded-full bg-muted">
-                      <div
-                        className="h-full rounded-full bg-primary"
-                        style={{ width: `${Math.max(3, (m.montant / plusGros) * 100)}%` }}
-                      />
-                    </div>
-                  </li>
-                ))}
-              </ul>
-            )}
-            {c.reglementsAnterieurs > 0 && (
-              <p className="mt-4 text-xs text-muted-foreground">
-                Dont {formatCurrency(c.reglementsAnterieurs)} de crédits anciens réglés ce jour.
-              </p>
-            )}
-          </Panneau>
+          {(c.parMoyen.length > 0 || c.reglementsAnterieurs > 0) && (
+            <Panneau titre="Encaissé par moyen" icone={<Banknote className="h-4 w-4" />} corps>
+              {c.parMoyen.length > 0 && (
+                <ul className="space-y-3">
+                  {c.parMoyen.map((m) => (
+                    <li key={m.methode}>
+                      <div className="flex items-center gap-2 text-sm">
+                        <span className="grid h-8 w-8 place-items-center rounded-lg bg-secondary text-primary">
+                          {ICONES[m.methode] ?? <Banknote className="h-4 w-4" />}
+                        </span>
+                        <span className="flex-1 font-semibold">{libelleMoyen(m.methode)}</span>
+                        <span className="text-xs text-muted-foreground">
+                          {m.nombre} paiement(s)
+                        </span>
+                        <span className="w-28 text-right font-bold tabular-nums">
+                          {formatCurrency(m.montant)}
+                        </span>
+                      </div>
+                      <div className="ml-10 mt-1.5 h-1.5 overflow-hidden rounded-full bg-muted">
+                        <div
+                          className="h-full rounded-full bg-primary"
+                          style={{ width: `${Math.max(3, (m.montant / plusGros) * 100)}%` }}
+                        />
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              )}
+              {c.reglementsAnterieurs > 0 && (
+                <p className="mt-4 text-xs text-muted-foreground">
+                  Dont {formatCurrency(c.reglementsAnterieurs)} de crédits anciens réglés ce jour.
+                </p>
+              )}
+            </Panneau>
+          )}
         </div>
 
-        <Panneau
-          titre="Les délivrances"
-          icone={<ReceiptText className="h-4 w-4" />}
-          className="lg:col-span-3"
-        >
-          {c.tickets.length === 0 ? (
-            <Vide>Aucune vente ce jour.</Vide>
-          ) : (
+        {c.tickets.length > 0 && (
+          <Panneau
+            titre="Les délivrances"
+            icone={<ReceiptText className="h-4 w-4" />}
+            className="lg:col-span-3"
+          >
             <ul className="ph-liste max-h-[34rem] overflow-y-auto">
               {c.tickets.map((t) => (
                 <li
@@ -338,8 +338,8 @@ export const CaisseOfficineView: React.FC<Props> = ({
                 </li>
               ))}
             </ul>
-          )}
-        </Panneau>
+          </Panneau>
+        )}
       </div>
 
       {releve && (

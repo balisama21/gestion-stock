@@ -37,8 +37,10 @@ export const EnTete: React.FC<{
   titre: string;
   sousTitre?: React.ReactNode;
   actions?: React.ReactNode;
+  /** Les gestes du jour, en barre qui reste en vue au défilement (voir `.ph-barre`). */
+  barre?: React.ReactNode;
   children?: React.ReactNode;
-}> = ({ icone, titre, sousTitre, actions, children }) => (
+}> = ({ icone, titre, sousTitre, actions, barre, children }) => (
   <header className="ph-entete">
     <div className="ph-entete-haut">
       <span className="ph-entete-icone">{icone ?? <Croix className="h-6 w-6" />}</span>
@@ -48,6 +50,11 @@ export const EnTete: React.FC<{
       </div>
       {actions && <div className="ph-entete-actions">{actions}</div>}
     </div>
+    {barre && (
+      <nav className="ph-barre" aria-label="Gestes du jour">
+        {barre}
+      </nav>
+    )}
     {children && (
       <div className="ph-bandeau">
         <div className="ph-entete-chiffres">{children}</div>
