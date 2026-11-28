@@ -235,15 +235,17 @@
   gap: 4px;
   flex: none;
 }
-/* Les outils : des boutons carrés aux coins doux, sans cadre au repos ;
-   un fond vert très léger au survol. */
+/* Les outils : des boutons ronds, comme la photo du profil, sans cadre
+   au repos ; un fond vert très léger au survol. */
 .coq-tool {
   position: relative;
   width: 40px;
   height: 40px;
-  border-radius: 12px;
+  border-radius: 50%;
   display: grid;
   place-items: center;
+  border: 1px solid color-mix(in srgb, var(--coq-g) 22%, var(--border));
+  background: color-mix(in srgb, var(--coq-gsoft) 70%, var(--card));
   color: var(--coq-g);
   transition:
     background-color 0.15s,
@@ -392,17 +394,26 @@
     animation: none;
   }
 }
+/* Le nombre de notifications pas encore vues, dans une pastille rouge
+   cerclée de la couleur de la barre. */
 .coq-badge {
   position: absolute;
-  top: 2px;
-  right: 0;
+  top: -7px;
+  right: -9px;
+  display: grid;
+  place-items: center;
+  min-width: 18px;
+  height: 18px;
+  padding: 0 4px;
+  border: 2px solid var(--card);
+  border-radius: 999px;
+  box-sizing: content-box;
   background: var(--danger);
   color: #fff;
-  font-size: 10px;
+  font-size: 10.5px;
   font-weight: 700;
-  line-height: 1.4;
-  border-radius: 999px;
-  padding: 1px 6px;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
 }
 
 /* ── Sur la photo du tableau de bord ──
@@ -458,6 +469,11 @@
   }
   .coq-top.transparente .coq-tools > .coq-tool:first-child {
     border-color: transparent;
+  }
+  /* Sur la photo, le rond se fait voile blanc léger. */
+  .coq-top.transparente .coq-tool {
+    border-color: rgb(255 255 255 / 45%);
+    background: rgb(255 255 255 / 10%);
   }
   .coq-top.transparente .coq-tool:hover,
   .coq-top.transparente .coq-tool.actif,
@@ -678,7 +694,7 @@
     position: absolute;
     inset: calc((44px - var(--coq-pastille)) / 2);
     border: 1px solid color-mix(in srgb, var(--coq-g) 22%, var(--border));
-    border-radius: 11px;
+    border-radius: 50%;
     background: color-mix(in srgb, var(--coq-gsoft) 70%, var(--card));
     transition: background-color 0.15s;
   }
@@ -694,16 +710,10 @@
     width: 18px;
     height: 18px;
   }
-  /* Le point rouge, posé sur le coin haut droit de la pastille. */
+  /* Le nombre, posé à cheval sur le haut droit du rond. */
   .coq-badge {
-    top: calc((44px - var(--coq-pastille)) / 2 - 3px);
-    right: calc((44px - var(--coq-pastille)) / 2 - 3px);
-    width: 9px;
-    height: 9px;
-    padding: 0;
-    font-size: 0;
-    border: 2px solid var(--card);
-    box-sizing: content-box;
+    top: calc((44px - var(--coq-pastille)) / 2 - 6px);
+    right: calc((44px - var(--coq-pastille)) / 2 - 8px);
   }
   .coq-profil {
     margin-left: 0;
