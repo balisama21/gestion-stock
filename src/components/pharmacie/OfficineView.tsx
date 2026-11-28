@@ -148,28 +148,13 @@ export const OfficineView: React.FC<Props> = ({
         }
         barre={
           <>
-            <button
-              type="button"
-              onClick={() => onAller("ventes")}
-              className="ph-barre-geste"
-              data-principal
-            >
-              <span className="ph-barre-icone">
-                <Banknote className="h-4 w-4" />
-              </span>
-              <span className="ph-barre-texte">
-                <b>Comptoir</b>
-                <small>Délivrer</small>
-              </span>
+            <button type="button" onClick={() => onAller("ventes")} className="ph-barre-geste">
+              <Banknote className="h-[1.1rem] w-[1.1rem]" />
+              Comptoir
             </button>
             <button type="button" onClick={() => onAller("achats")} className="ph-barre-geste">
-              <span className="ph-barre-icone">
-                <PackagePlus className="h-4 w-4" />
-              </span>
-              <span className="ph-barre-texte">
-                <b>Réception</b>
-                <small>Livraison</small>
-              </span>
+              <PackagePlus className="h-[1.1rem] w-[1.1rem]" />
+              Réception
             </button>
           </>
         }
